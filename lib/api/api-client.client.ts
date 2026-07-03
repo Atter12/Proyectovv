@@ -27,10 +27,15 @@ export async function apiClient<T>(
   if (!response.ok) {
     let message = "Error en la solicitud";
     try {
-      const data = (await response.json()) as { error?: string };
-      if (data.error) message = data.error;
+      const data = (await response.json()) as { error?: string; message?: string };
+      message = data.error ?? data.message ?? message;
     } catch {
-      // respuesta no JSON
+      if (response.status === 503) {
+        message =
+          "El servidor no está configurado para producción. Contacta al administrador.";
+      } else if (response.status >= 500) {
+        message = "Error interno del servidor. Intenta de nuevo más tarde.";
+      }
     }
     throw new ApiClientError(message, response.status);
   }

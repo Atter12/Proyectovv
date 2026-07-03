@@ -4,7 +4,7 @@ import {
   SESSION_MAX_AGE_SECONDS,
 } from "@/config/auth";
 import { routes } from "@/config/routes";
-import { assertProductionSecrets, serverEnv } from "@/lib/env/env.server";
+import { serverEnv } from "@/lib/env/env.server";
 import { createMockSession } from "@/lib/auth/session.server";
 
 function sessionCookieOptions() {
@@ -17,8 +17,20 @@ function sessionCookieOptions() {
   };
 }
 
+function missingSessionSecretResponse() {
+  return NextResponse.json(
+    {
+      error:
+        "SESSION_SECRET no está configurado en el servidor. Añádelo en Vercel → Project → Settings → Environment Variables y vuelve a desplegar.",
+    },
+    { status: 503 },
+  );
+}
+
 export async function POST() {
-  assertProductionSecrets();
+  if (serverEnv.isProduction && !process.env.SESSION_SECRET) {
+    return missingSessionSecretResponse();
+  }
 
   if (serverEnv.authMode !== "mock") {
     return NextResponse.json(
