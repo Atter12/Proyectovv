@@ -17,3 +17,33 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+@keyframes float-scale {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 25px -5px rgb(34 197 94 / 0.35);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 14px 30px -5px rgb(34 197 94 / 0.5);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-float-scale {
+  animation: float-scale 2s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}

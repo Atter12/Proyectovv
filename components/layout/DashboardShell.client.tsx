@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DashboardSidebar } from "./DashboardSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
-import { FloatingSupportButtons } from "@/components/floating/FloatingSupportButtons.client";
+import { FloatingSupportStack } from "@/components/floating/FloatingSupportStack.client";
 import { userMock } from "@/mocks/user.mock";
 import { cn } from "@/lib/cn";
 
@@ -46,7 +46,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
         <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
 
-      <FloatingSupportButtons />
+      <FloatingSupportStack />
     </div>
   );
 }
