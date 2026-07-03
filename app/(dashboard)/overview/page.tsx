@@ -1,36 +1,31 @@
 import { Card } from "@/components/ui/Card";
-import { HeroBanner } from "@/features/dashboard/components/HeroBanner";
-import { WalletCard } from "@/features/dashboard/components/WalletCard";
-import { MetricCards } from "@/features/dashboard/components/MetricCards";
+import { OverviewHero } from "@/features/dashboard/components/OverviewHero";
+import { WalletOverviewCard } from "@/features/dashboard/components/WalletOverviewCard";
+import { MetricsGrid } from "@/features/dashboard/components/MetricsGrid";
 import { OnboardingStepsCard } from "@/features/dashboard/components/OnboardingStepsCard";
-import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
+import { AdAccountsOverviewTable } from "@/features/dashboard/components/AdAccountsOverviewTable";
+import { requireSession } from "@/lib/auth/guards.server";
 import { getDashboardOverview } from "@/services/dashboard.mock.service";
 
 export default async function OverviewPage() {
+  await requireSession();
   const data = await getDashboardOverview();
 
   return (
-    <div className="space-y-6">
-      <HeroBanner />
+    <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
+      <OverviewHero />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="min-w-0 lg:col-span-2">
           <OnboardingStepsCard steps={data.onboardingSteps} />
         </div>
-        <WalletCard wallet={data.wallet} />
+        <WalletOverviewCard wallet={data.wallet} />
       </div>
 
-      <MetricCards metrics={data.metrics} />
+      <MetricsGrid metrics={data.metrics} />
 
-      <Card padding="none">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
-            Cuentas publicitarias
-          </h2>
-        </div>
-        <div className="p-2">
-          <AdAccountsTable accounts={data.adAccounts} />
-        </div>
+      <Card padding="none" className="overflow-hidden">
+        <AdAccountsOverviewTable accounts={data.adAccounts} />
       </Card>
     </div>
   );

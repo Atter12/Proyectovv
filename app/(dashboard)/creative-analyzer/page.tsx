@@ -1,18 +1,30 @@
-import { CreativeHero } from "@/features/creative-analyzer/components/CreativeHero";
-import { AnalyzerStatsGrid } from "@/features/creative-analyzer/components/AnalyzerStatsGrid";
-import { AnalyzerValueGrid } from "@/features/creative-analyzer/components/AnalyzerValueGrid";
-import { AnalyzerCtaSection } from "@/features/creative-analyzer/components/AnalyzerCtaSection";
+import { CreativeAnalyzerPageHeader } from "@/features/creative-analyzer/components/CreativeAnalyzerPageHeader";
+import { CreativeAnalyzerHero } from "@/features/creative-analyzer/components/CreativeAnalyzerHero";
+import { CreativeAnalyzerStats } from "@/features/creative-analyzer/components/CreativeAnalyzerStats";
+import { CreativeAnalysisWorkflow } from "@/features/creative-analyzer/components/CreativeAnalysisWorkflow";
+import { CreativeBenchmarkPanel } from "@/features/creative-analyzer/components/CreativeBenchmarkPanel";
+import { CreativeValueGrid } from "@/features/creative-analyzer/components/CreativeValueGrid";
+import { CreativeAnalyzerCTA } from "@/features/creative-analyzer/components/CreativeAnalyzerCTA";
+import { requirePermission } from "@/lib/auth/guards.server";
 import { getCreativeAnalyzerOverview } from "@/services/creative-analyzer.mock.service";
 
 export default async function CreativeAnalyzerPage() {
+  await requirePermission("creativeAnalyzer:read");
   const data = await getCreativeAnalyzerOverview();
 
   return (
-    <div className="space-y-8">
-      <CreativeHero />
-      <AnalyzerStatsGrid stats={data.stats} />
-      <AnalyzerValueGrid features={data.features} />
-      <AnalyzerCtaSection />
+    <div className="min-w-0 space-y-6 sm:space-y-8 lg:space-y-10">
+      <CreativeAnalyzerPageHeader />
+      <CreativeAnalyzerHero metrics={data.metrics} />
+      <CreativeAnalyzerStats stats={data.stats} />
+      <CreativeAnalysisWorkflow steps={data.workflowSteps} />
+      <CreativeBenchmarkPanel
+        metrics={data.metrics}
+        signals={data.creativeSignals}
+        recommendation={data.benchmarkRecommendation}
+      />
+      <CreativeValueGrid features={data.features} />
+      <CreativeAnalyzerCTA />
     </div>
   );
 }

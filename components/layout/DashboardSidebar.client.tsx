@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { mainNavigation } from "@/config/navigation";
+import { routes } from "@/config/routes";
+import { formatMoney } from "@/lib/format-money";
 import type { NavItem } from "@/types/navigation";
+import type { Wallet } from "@/types/wallet";
 
 function NavIcon({ icon }: { icon: NavItem["icon"] }) {
   const className = "h-5 w-5 shrink-0";
@@ -45,29 +48,75 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
 }
 
 interface DashboardSidebarProps {
+  wallet: Wallet;
   onNavigate?: () => void;
+  onClose?: () => void;
+  isMobileDrawer?: boolean;
   className?: string;
 }
 
-export function DashboardSidebar({ onNavigate, className }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  wallet,
+  onNavigate,
+  onClose,
+  isMobileDrawer = false,
+  className,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
+      id="dashboard-sidebar"
       className={cn(
-        "flex h-full w-64 shrink-0 flex-col border-r border-slate-200 bg-white",
+        "flex h-full shrink-0 flex-col border-r border-[#e5e7eb] bg-white",
         className,
       )}
     >
-      <div className="flex h-14 items-center border-b border-slate-200 px-5">
-        <Link href="/overview" className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-xs font-bold text-white">
-            DM
-          </div>
-          <span className="text-sm font-bold text-slate-900">{siteConfig.name}</span>
-        </Link>
+      <div className="border-b border-[#e5e7eb] px-4 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href={routes.overview}
+            className="flex min-w-0 flex-1 items-center gap-2.5"
+            onClick={onNavigate}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-bold text-white shadow-sm shadow-indigo-500/20">
+              DM
+            </div>
+            <span className="truncate text-sm font-bold tracking-tight text-[#0f172a]">
+              {siteConfig.name}
+            </span>
+          </Link>
+          {isMobileDrawer && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar menú"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-[#4056ff]/10 bg-gradient-to-br from-[#4056ff]/10 to-[#7c3aed]/5 p-3.5">
+          <p className="truncate text-xs font-semibold text-[#4056ff]">{wallet.name}</p>
+          <p className="mt-0.5 text-[10px] text-[#64748b]">Fondos disponibles</p>
+          <p className="mt-2 text-lg font-bold text-[#0f172a]">
+            {formatMoney(wallet.balance, wallet.currency)}
+          </p>
+          <Link
+            href={routes.payments}
+            onClick={onNavigate}
+            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4056ff] text-xs font-semibold text-white transition-all duration-200 hover:bg-[#4056ff]/90"
+          >
+            Agregar saldo
+          </Link>
+        </div>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+
+      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
         {mainNavigation.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -76,14 +125,17 @@ export function DashboardSidebar({ onNavigate, className }: DashboardSidebarProp
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                "relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                  ? "bg-[#4056ff]/8 text-[#4056ff]"
+                  : "text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]",
               )}
             >
+              {isActive && (
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#4056ff]" />
+              )}
               <NavIcon icon={item.icon} />
-              <span className="leading-tight">{item.label}</span>
+              <span className="min-w-0 leading-tight">{item.label}</span>
             </Link>
           );
         })}

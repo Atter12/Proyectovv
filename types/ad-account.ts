@@ -1,4 +1,4 @@
-export type AdAccountStatus = "active" | "pending" | "suspended" | "inactive";
+export type AdAccountStatus = "active" | "pending" | "disabled" | "review";
 
 export interface AdAccount {
   id: string;
@@ -10,4 +10,16 @@ export interface AdAccount {
   autoRecharge: boolean;
   thresholdInfo: string;
   timezone: string;
+}
+
+export interface AdAccountsSummary {
+  totalAccounts: number;
+  activeAccounts: number;
+  assignedBalance: number;
+  pendingSetup: number;
+}
+
+export interface AdAccountsOverview {
+  summary: AdAccountsSummary;
+  accounts: AdAccount[];
 }

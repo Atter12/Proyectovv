@@ -1,16 +1,51 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
+
+interface LoginResponse {
+  ok: boolean;
+  redirectTo: string;
+  mode: string;
+}
 
 export function LoginMockCard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleGoogleLogin() {
-    router.push(routes.overview);
+  async function handleGoogleLogin() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await apiClient<LoginResponse>(routes.api.auth.login, {
+        method: "POST",
+      });
+
+      const nextPath = searchParams.get("next");
+      const destination =
+        nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")
+          ? nextPath
+          : data.redirectTo;
+
+      router.push(destination);
+      router.refresh();
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo iniciar sesión. Intenta de nuevo.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -30,6 +65,7 @@ export function LoginMockCard() {
         size="lg"
         className="w-full"
         onClick={handleGoogleLogin}
+        disabled={loading}
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -49,11 +85,17 @@ export function LoginMockCard() {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        Continuar con Google
+        {loading ? "Iniciando sesión…" : "Continuar con Google"}
       </Button>
 
+      {error && (
+        <p className="mt-3 text-center text-xs text-red-600" role="alert">
+          {error}
+        </p>
+      )}
+
       <p className="mt-4 text-center text-xs text-slate-400">
-        Login mock — OAuth real se integrará después
+        Login mock — sesión segura con cookie HttpOnly
       </p>
     </Card>
   );

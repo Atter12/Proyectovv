@@ -1,37 +1,99 @@
 import { Card } from "@/components/ui/Card";
-import { WalletBalancePanel } from "@/features/payments/components/WalletBalancePanel";
-import { PaymentGatewaySelector } from "@/features/payments/components/PaymentGatewaySelector.client";
-import { PaymentTabs } from "@/features/payments/components/PaymentTabs.client";
+import { PaymentOverviewStats } from "@/features/payments/components/PaymentOverviewStats";
+import { PaymentsAddBalanceModalHost } from "@/features/payments/components/PaymentsAddBalanceModalHost.client";
+import { PaymentsGatewaySection } from "@/features/payments/components/PaymentsGatewaySection.client";
+import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
+import { PaymentsTabContent } from "@/features/payments/components/PaymentsTabContent";
+import { PaymentsTabNav } from "@/features/payments/components/PaymentsTabNav.client";
+import { WalletSummaryPremium } from "@/features/payments/components/WalletSummaryPremium.client";
+import { requirePermission } from "@/lib/auth/guards.server";
+import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
+import { getSearchParam } from "@/lib/search-params";
 import { getPaymentOverview } from "@/services/payments.mock.service";
+import type { PaymentGatewayId, PaymentTabKey } from "@/types/payment";
+import { Suspense } from "react";
 
-export default async function PaymentsPage() {
+const VALID_TABS: PaymentTabKey[] = [
+  "assignment",
+  "account-tx",
+  "wallet-tx",
+  "refunds",
+];
+
+interface PaymentsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
+  await requirePermission("payments:read");
+  const params = await searchParams;
   const data = await getPaymentOverview();
 
+  const tabParam = getSearchParam(params, "tab", "assignment");
+  const tab: PaymentTabKey = VALID_TABS.includes(tabParam as PaymentTabKey)
+    ? (tabParam as PaymentTabKey)
+    : "assignment";
+
+  const search = getSearchParam(params, "q");
+  const status = getSearchParam(params, "status", "all");
+
+  const gatewayParam = getSearchParam(params, "gateway");
+  const selectedGateway: PaymentGatewayId =
+    data.gateways.some((g) => g.id === gatewayParam)
+      ? (gatewayParam as PaymentGatewayId)
+      : data.selectedGateway;
+
+  const activeGateway =
+    data.gateways.find((g) => g.id === selectedGateway) ?? data.gateways[0];
+
+  const preferredGateway =
+    data.gateways.find((g) => g.id === data.wallet.preferredGateway) ??
+    data.gateways[0];
+
+  const filteredAccounts = filterPaymentAccounts(data.adAccountsForAllocation, {
+    search,
+    status,
+  });
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Pago</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Gestiona saldo, pasarelas de pago y transacciones
-        </p>
+    <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
+      <PaymentsPageHeader data={data} />
+
+      <div className="space-y-6 lg:space-y-8">
+        <WalletSummaryPremium
+          wallet={data.wallet}
+          preferredGateway={preferredGateway}
+        />
+
+        <PaymentOverviewStats
+          wallet={data.wallet}
+          summary={data.summary}
+          activeGateway={activeGateway}
+        />
+
+        <Suspense fallback={null}>
+          <PaymentsGatewaySection
+            gateways={data.gateways}
+            selected={selectedGateway}
+            defaultGateway={data.selectedGateway}
+          />
+        </Suspense>
+
+        <Card padding="none" className="min-w-0 overflow-hidden">
+          <Suspense fallback={null}>
+            <PaymentsTabNav activeTab={tab} />
+          </Suspense>
+          <PaymentsTabContent
+            data={data}
+            tab={tab}
+            filteredAccounts={filteredAccounts}
+            initialSearch={search}
+            initialStatus={status}
+          />
+        </Card>
+
+        <PaymentsAddBalanceModalHost selectedGateway={selectedGateway} />
       </div>
-
-      <WalletBalancePanel
-        walletName={data.wallet.name}
-        balance={data.wallet.balance}
-        currency={data.wallet.currency}
-      />
-
-      <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
-          Método de pago
-        </h2>
-        <PaymentGatewaySelector gateways={data.gateways} />
-      </div>
-
-      <Card>
-        <PaymentTabs data={data} />
-      </Card>
     </div>
   );
 }

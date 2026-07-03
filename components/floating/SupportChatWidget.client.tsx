@@ -133,7 +133,7 @@ export function SupportChatWidget({
       {isOpen && (
         <div
           className={cn(
-            "absolute bottom-[calc(100%+12px)] right-0 w-[340px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-slate-200/50 transition-all duration-200 ease-out",
+            "absolute bottom-[calc(100%+10px)] right-0 w-[min(340px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-slate-200/50 transition-all duration-200 ease-out sm:bottom-[calc(100%+12px)]",
           )}
         >
           <button
