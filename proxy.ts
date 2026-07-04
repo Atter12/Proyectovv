@@ -10,7 +10,7 @@ import { routes } from "@/config/routes";
 import { userCanAccessDashboard } from "@/lib/auth/dashboard-access";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { user, supabase, supabaseResponse } = await updateSession(request);
 
@@ -93,6 +93,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(verifyUrl);
     }
 
+    if (canAccessDashboard) {
+      const overviewUrl = request.nextUrl.clone();
+      overviewUrl.pathname = routes.overview;
+      overviewUrl.search = "";
+      return NextResponse.redirect(overviewUrl);
+    }
   }
 
   return supabaseResponse;
