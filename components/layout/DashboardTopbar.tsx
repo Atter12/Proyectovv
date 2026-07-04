@@ -61,7 +61,7 @@ export function DashboardTopbar({
           </svg>
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-semibold text-[#0f172a] sm:text-base md:text-lg">
+          <h1 className="truncate text-sm font-bold text-[#0f172a] sm:text-base md:text-lg">
             {pageTitle}
           </h1>
           <p className="hidden truncate text-xs text-[#64748b] sm:block sm:text-sm">
