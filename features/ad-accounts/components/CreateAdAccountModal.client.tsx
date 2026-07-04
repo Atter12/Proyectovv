@@ -76,7 +76,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
     }
   }
 
-  const displayName = accountName.trim() || "Default Ads Account";
+  const displayName = accountName.trim() || "Cuenta publicitaria Default";
   const displayBcId = bcId.trim() || "BC-0001";
 
   return (
@@ -115,7 +115,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 </label>
                 <Input
                   id="account-name"
-                  placeholder="Default Ads Account"
+                  placeholder="Cuenta publicitaria Default"
                   value={accountName}
                   maxLength={MAX_NAME_LENGTH}
                   onChange={(e) => setAccountName(e.target.value)}
@@ -178,7 +178,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 <dd className="font-medium text-[#0f172a]">{displayName}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#64748b]">BC ID</dt>
+                <dt className="text-xs text-[#64748b]">ID de BC</dt>
                 <dd className="font-medium text-[#0f172a]">{displayBcId}</dd>
               </div>
               <div>

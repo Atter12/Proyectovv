@@ -78,7 +78,7 @@ export async function getCreativeAnalyzerOverview(
         label: "Usuarios activos",
         value: "1",
         hint: "Tu organización",
-        badge: totalCreatives > 0 ? "Live" : undefined,
+        badge: totalCreatives > 0 ? "En vivo" : undefined,
       },
       {
         id: "total-creatives",
@@ -90,37 +90,37 @@ export async function getCreativeAnalyzerOverview(
         id: "winning-creatives",
         label: "Análisis completados",
         value: String(completedJobs),
-        hint: "Jobs finalizados",
-        badge: completedJobs > 0 ? "Winners" : undefined,
+        hint: "Análisis finalizados",
+        badge: completedJobs > 0 ? "Ganadores" : undefined,
       },
       {
         id: "policy-checks",
         label: "Controles de políticas",
         value: `${policyChecks} / ${results.length}`,
         hint: "Creativos con cumplimiento alto",
-        badge: results.length > 0 ? "Policy" : undefined,
+        badge: results.length > 0 ? "Políticas" : undefined,
       },
     ],
     creativeSignals: latest
       ? [
           {
             id: "clarity",
-            label: "Clarity",
+            label: "Claridad del mensaje",
             score: Number(latest.clarity_score ?? 0),
           },
           {
             id: "brand",
-            label: "Brand alignment",
+            label: "Alineación de marca",
             score: Number(latest.brand_score ?? 0),
           },
           {
             id: "compliance",
-            label: "Policy safety",
+            label: "Seguridad de políticas",
             score: Number(latest.compliance_score ?? 0),
           },
           {
             id: "overall",
-            label: "Overall score",
+            label: "Puntuación general",
             score: Number(latest.overall_score ?? 0),
           },
         ]
@@ -133,7 +133,7 @@ export async function getCreativeAnalyzerOverview(
     benchmarkRecommendation:
       totalCreatives > 0
         ? "Sube más variaciones para comparar benchmarks con datos reales."
-        : "Aún no hay creativos analizados. Crea un job cuando subas tu primera pieza.",
+        : "Aún no hay creativos analizados. Sube tu primera pieza para comenzar.",
   };
 }
 
@@ -160,6 +160,6 @@ function emptyCreativeOverview(): CreativeAnalyzerOverview {
       score: 0,
     })),
     benchmarkRecommendation:
-      "Aún no hay creativos analizados. Crea un job cuando subas tu primera pieza.",
+      "Aún no hay creativos analizados. Sube tu primera pieza para comenzar.",
   };
 }

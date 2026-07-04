@@ -18,7 +18,7 @@ export function AdAccountsPageHeader({ summary }: AdAccountsPageHeaderProps) {
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
         <Badge variant="info" className="px-3 py-1">
-          Modo mock
+          Datos de ejemplo
         </Badge>
         {!hasActiveAccounts && (
           <Badge variant="default" className="px-3 py-1">

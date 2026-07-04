@@ -64,7 +64,7 @@ export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps)
 
       <p className="mt-4 text-center text-sm text-slate-500">
         <Link href={routes.login} className="font-medium text-indigo-600 hover:text-indigo-700">
-          Volver al login
+          Volver al inicio de sesión
         </Link>
       </p>
     </Card>

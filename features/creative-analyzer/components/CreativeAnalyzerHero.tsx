@@ -26,21 +26,21 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
       <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
         <div className="min-w-0 max-w-xl">
           <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90 backdrop-blur-sm">
-            AI Creative Director
+            Director creativo con IA
           </span>
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-[2.5rem] lg:leading-tight">
-            Creative Analyzer
+            Analizador creativo
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
-            Analyze, score &amp; generate new creatives from real campaign
-            signals.
+            Analiza, puntúa y genera nuevas piezas creativas a partir de señales
+            reales de campaña.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="#creative-benchmark"
               className="inline-flex h-11 items-center rounded-xl bg-[#4056ff] px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4056ff]/90"
             >
-              Analyze your first video
+              Analiza tu primer video
             </a>
             <a
               href="#creative-workflow"
@@ -56,7 +56,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-wider text-white/50">
-                  Creative Score
+                  Puntuación creativa
                 </p>
                 <p className="mt-1 text-3xl font-bold text-white">
                   {metrics.averageScore}
@@ -65,10 +65,10 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                  Winner signal
+                  Señal ganadora
                 </span>
                 <span className="rounded-full bg-[#4056ff]/30 px-2 py-0.5 text-[10px] font-semibold text-blue-200">
-                  Policy safe
+                  Cumple políticas
                 </span>
               </div>
             </div>
@@ -102,7 +102,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {["HOOK", "RETENTION", "CTA"].map((tag) => (
+              {["GANCHO", "RETENCIÓN", "CTA"].map((tag) => (
                 <span
                   key={tag}
                   className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-semibold tracking-wide text-white/60"

@@ -45,7 +45,7 @@ export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
             <TableHead>Identificación de BC</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Costo</TableHead>
-            <TableHead>Balance</TableHead>
+            <TableHead>Saldo</TableHead>
             <TableHead>Recarga automática</TableHead>
             <TableHead>Umbral</TableHead>
             <TableHead>Huso horario</TableHead>

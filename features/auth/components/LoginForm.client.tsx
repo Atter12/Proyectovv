@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
+import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 
 function BrandMark() {
   return (
@@ -71,7 +72,7 @@ export function LoginForm() {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      setError(mapAuthErrorMessage(signInError.message));
       setLoading(false);
       return;
     }

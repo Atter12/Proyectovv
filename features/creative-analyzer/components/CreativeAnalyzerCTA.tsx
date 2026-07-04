@@ -14,7 +14,7 @@ export function CreativeAnalyzerCTA() {
 
       <div className="relative z-10 text-center">
         <div className="mb-4 flex flex-wrap justify-center gap-2">
-          {["Score creativo", "Benchmarks", "Policy check"].map((chip) => (
+          {["Puntuación creativa", "Referencias", "Control de políticas"].map((chip) => (
             <span
               key={chip}
               className="rounded-full border border-[#dbe1ea] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#64748b] backdrop-blur-sm"

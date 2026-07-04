@@ -117,7 +117,7 @@ export function BannerPreviewPanel({ size, referralUrl }: BannerPreviewPanelProp
               <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">
                 Formato
               </dt>
-              <dd className="mt-0.5 text-[#0f172a]">Mock display ad — {size.formatName}</dd>
+              <dd className="mt-0.5 text-[#0f172a]">Banner de ejemplo — {size.formatName}</dd>
             </div>
             <div>
               <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">

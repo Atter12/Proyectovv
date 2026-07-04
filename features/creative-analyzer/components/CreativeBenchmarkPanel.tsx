@@ -17,10 +17,10 @@ export function CreativeBenchmarkPanel({
       <Card className="overflow-hidden p-0">
         <div className="border-b border-[#e5e7eb] bg-gradient-to-r from-slate-50 to-white px-6 py-4">
           <h2 className="text-base font-semibold text-[#0f172a]">
-            Creative performance snapshot
+            Resumen de rendimiento creativo
           </h2>
           <p className="mt-0.5 text-sm text-[#64748b]">
-            Señales mock basadas en patrones de alto rendimiento
+            Señales de ejemplo basadas en patrones de alto rendimiento
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export function CreativeBenchmarkPanel({
                 <span className="text-xl font-medium text-[#64748b]">/100</span>
               </p>
               <span className="mb-1 rounded-full bg-[#4056ff]/10 px-2.5 py-0.5 text-xs font-semibold text-[#4056ff]">
-                Overall score
+                Puntuación general
               </span>
             </div>
 
@@ -65,13 +65,13 @@ export function CreativeBenchmarkPanel({
               </svg>
             </div>
             <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-              Recommended action
+              Acción recomendada
             </p>
             <p className="mt-2 text-sm leading-relaxed text-white/90">
               {recommendation}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {["HOOK", "RETENTION", "CTA"].map((tag) => (
+              {["GANCHO", "RETENCIÓN", "CTA"].map((tag) => (
                 <span
                   key={tag}
                   className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-semibold text-white/60"

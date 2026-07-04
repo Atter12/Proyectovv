@@ -13,7 +13,7 @@ import type { AdAccount } from "@/types/ad-account";
 const overviewColumns = [
   "Cuenta publicitaria",
   "Costo",
-  "Balance",
+  "Saldo",
   "CPC",
   "CPM",
   "Impresiones",
@@ -37,7 +37,7 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
             Cuentas publicitarias
           </h2>
           <p className="mt-0.5 text-sm text-[#64748b]">
-            Administra tus cuentas, balance y métricas principales.
+            Administra tus cuentas, saldo y métricas principales.
           </p>
         </div>
         <Link

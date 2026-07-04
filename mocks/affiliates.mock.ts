@@ -14,13 +14,13 @@ export const affiliatesMock: AffiliateProgramOverview = {
   },
   selectedBannerSize: "300x250",
   bannerSizes: [
-    { id: "300x250", label: "300×250", width: 300, height: 250, formatName: "Medium" },
-    { id: "300x300", label: "300×300", width: 300, height: 300, formatName: "Square" },
-    { id: "300x600", label: "300×600", width: 300, height: 600, formatName: "Half Page" },
-    { id: "320x100", label: "320×100", width: 320, height: 100, formatName: "Mobile" },
-    { id: "336x280", label: "336×280", width: 336, height: 280, formatName: "Large Rectangle" },
-    { id: "600x314", label: "600×314", width: 600, height: 314, formatName: "Wide" },
-    { id: "728x90", label: "728×90", width: 728, height: 90, formatName: "Leaderboard" },
+    { id: "300x250", label: "300×250", width: 300, height: 250, formatName: "Mediano" },
+    { id: "300x300", label: "300×300", width: 300, height: 300, formatName: "Cuadrado" },
+    { id: "300x600", label: "300×600", width: 300, height: 600, formatName: "Media página" },
+    { id: "320x100", label: "320×100", width: 320, height: 100, formatName: "Móvil" },
+    { id: "336x280", label: "336×280", width: 336, height: 280, formatName: "Rectángulo grande" },
+    { id: "600x314", label: "600×314", width: 600, height: 314, formatName: "Ancho" },
+    { id: "728x90", label: "728×90", width: 728, height: 90, formatName: "Encabezado" },
   ],
   milestones: [
     {

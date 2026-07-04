@@ -1,4 +1,6 @@
 import { formatMoney } from "@/lib/format-money";
+import { mapTransactionStatusLabel } from "@/lib/ui/labels";
+import type { DbTransactionStatus } from "@/types/database";
 import type { TransactionHistoryItem } from "@/types/payment";
 
 interface PaymentsTransactionsListProps {
@@ -31,8 +33,8 @@ export function PaymentsTransactionsList({
               <td className="px-4 py-3 font-medium text-[#0f172a] sm:px-6">
                 {formatMoney(tx.amount, tx.currency)}
               </td>
-              <td className="px-4 py-3 capitalize text-[#64748b] sm:px-6">
-                {tx.status}
+              <td className="px-4 py-3 text-[#64748b] sm:px-6">
+                {mapTransactionStatusLabel(tx.status as DbTransactionStatus)}
               </td>
             </tr>
           ))}

@@ -17,7 +17,7 @@ const TAB_ITEMS: {
   },
   {
     id: "wallet-tx",
-    label: "Historial de transacciones de la billetera Default",
+    label: "Historial de transacciones de la Cartera Default",
     shortLabel: "Hist. cartera",
   },
   { id: "refunds", label: "Historial de reembolsos", shortLabel: "Reembolsos" },

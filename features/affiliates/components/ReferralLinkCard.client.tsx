@@ -28,7 +28,7 @@ export function ReferralLinkCard({ data }: ReferralLinkCardProps) {
   }
 
   const metrics = [
-    { label: "Clicks", value: data.stats.clicks },
+    { label: "Clics", value: data.stats.clicks },
     { label: "Registros", value: data.stats.registrations },
     { label: "Activos", value: data.stats.activeReferrals },
   ];

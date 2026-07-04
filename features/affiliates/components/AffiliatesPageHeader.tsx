@@ -16,7 +16,7 @@ export function AffiliatesPageHeader({ data }: AffiliatesPageHeaderProps) {
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
         <Badge variant="info" className="px-3 py-1">
-          Comisiones mock
+          Datos de ejemplo
         </Badge>
         <Badge variant="default" className="px-3 py-1">
           {data.stats.activeReferrals} referidos activos

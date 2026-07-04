@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { createClient } from "@/lib/supabase/client";
+import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 
 export function VerifyOtpForm() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function VerifyOtpForm() {
     setSuccess(null);
 
     if (!email) {
-      setError("Falta el correo electrónico. Vuelve al registro o al login.");
+      setError("Falta el correo electrónico. Vuelve al registro o al inicio de sesión.");
       setLoading(false);
       return;
     }
@@ -47,11 +48,7 @@ export function VerifyOtpForm() {
     });
 
     if (verifyError) {
-      setError(
-        verifyError.message.includes("expired")
-          ? "El código expiró. Solicita uno nuevo."
-          : verifyError.message,
-      );
+      setError(mapAuthErrorMessage(verifyError.message));
       setLoading(false);
       return;
     }
@@ -77,7 +74,7 @@ export function VerifyOtpForm() {
     });
 
     if (resendError) {
-      setError(resendError.message);
+      setError(mapAuthErrorMessage(resendError.message));
     } else {
       setSuccess("Te enviamos un nuevo código a tu correo.");
     }
@@ -101,7 +98,7 @@ export function VerifyOtpForm() {
       <form onSubmit={handleVerify} className="space-y-4">
         <div>
           <label htmlFor="otp" className="mb-1.5 block text-xs font-medium text-slate-600">
-            Código OTP
+            Código de verificación
           </label>
           <Input
             id="otp"
@@ -147,13 +144,13 @@ export function VerifyOtpForm() {
         </button>
         <p className="text-slate-500">
           <Link href={routes.login} className="hover:text-slate-700">
-            Volver al login
+            Volver al inicio de sesión
           </Link>
         </p>
       </div>
 
       <p className="mt-4 text-center text-xs text-slate-400">
-        {siteConfig.name} — verificación por email
+        {siteConfig.name} — verificación por correo
       </p>
     </Card>
   );

@@ -11,7 +11,7 @@ export const onboardingMock: OnboardingProgress = {
     },
     {
       id: "add-wallet-balance",
-      label: "Agrega saldo a tu billetera Default",
+      label: "Agrega saldo a tu Cartera Default",
       completed: false,
     },
     {

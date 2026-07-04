@@ -25,7 +25,7 @@ const DEFAULT_STEPS: Array<{
   },
   {
     stepKey: "add-wallet-balance",
-    title: "Agrega saldo a tu billetera Default",
+    title: "Agrega saldo a tu Cartera Default",
     description: "Recarga fondos mediante tu pasarela preferida.",
     sortOrder: 2,
   },

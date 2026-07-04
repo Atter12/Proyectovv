@@ -9,7 +9,7 @@ export const adAccountsMock: AdAccount[] = [];
  */
 export const sampleAdAccount: AdAccount = {
   id: "acc-001",
-  name: "Default Ads Account",
+  name: "Cuenta publicitaria Default",
   bcId: "BC-0001",
   status: "pending",
   cost: 0,

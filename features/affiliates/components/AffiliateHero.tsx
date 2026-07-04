@@ -52,7 +52,7 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
       <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 max-w-xl">
           <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-sm">
-            Referral Program
+            Referidos
           </span>
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-[2rem] lg:leading-tight">
             Programa de afiliados de {siteConfig.companyName}

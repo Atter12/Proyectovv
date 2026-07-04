@@ -7,7 +7,7 @@ const FEATURES = [
 
 const TESTIMONIAL = {
   name: "María González",
-  location: "México",
+  location: "Lima, Perú",
   quote:
     "Default Media simplificó por completo la gestión de nuestras campañas. El panel es claro, rápido y el soporte responde al instante.",
   initials: "MG",

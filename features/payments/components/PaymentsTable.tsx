@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { formatMoney } from "@/lib/format-money";
+import { mapAdAccountStatusLabel } from "@/lib/ui/labels";
 import { PaymentsEmptyState } from "./PaymentsEmptyState";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -26,7 +27,7 @@ export function PaymentsTable({ accounts }: PaymentsTableProps) {
           <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
             <TableHead>Cuenta publicitaria</TableHead>
             <TableHead>Estado de la cuenta publicitaria</TableHead>
-            <TableHead>Balance</TableHead>
+            <TableHead>Saldo</TableHead>
             <TableHead>Recarga automática</TableHead>
             <TableHead>Información de umbral</TableHead>
             <TableHead>Acción</TableHead>
@@ -39,7 +40,9 @@ export function PaymentsTable({ accounts }: PaymentsTableProps) {
                 {account.name}
               </TableCell>
               <TableCell>
-                <Badge variant="warning">{account.status}</Badge>
+                <Badge variant="warning">
+                  {mapAdAccountStatusLabel(account.status)}
+                </Badge>
               </TableCell>
               <TableCell>{formatMoney(account.balance)}</TableCell>
               <TableCell>
