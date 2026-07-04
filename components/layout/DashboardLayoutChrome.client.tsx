@@ -5,9 +5,7 @@ import { useEffect, useState } from "react";
 import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
 import { cn } from "@/lib/cn";
-import type { OnboardingProgress } from "@/features/onboarding/types/onboarding.types";
 import type { User } from "@/types/user";
-import type { Wallet } from "@/types/wallet";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -20,15 +18,11 @@ const FloatingSupportStack = dynamic(
 interface DashboardLayoutChromeProps {
   children: React.ReactNode;
   user: User;
-  wallet: Wallet;
-  onboarding: OnboardingProgress;
 }
 
 export function DashboardLayoutChrome({
   children,
   user,
-  wallet,
-  onboarding,
 }: DashboardLayoutChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -79,7 +73,6 @@ export function DashboardLayoutChrome({
             </svg>
           </button>
           <DashboardMobileSidebar
-            wallet={wallet}
             onNavigate={() => setSidebarOpen(false)}
             className="h-full w-full"
           />
@@ -97,7 +90,7 @@ export function DashboardLayoutChrome({
         </main>
       </div>
 
-      <FloatingSupportStack onboarding={onboarding} />
+      <FloatingSupportStack />
     </>
   );
 }

@@ -14,16 +14,18 @@ export const routes = {
       logout: "/api/auth/logout",
       session: "/api/auth/session",
     },
+    onboarding: {
+      status: "/api/onboarding/status",
+    },
+    wallet: "/api/wallet",
     payments: {
       intents: "/api/payments/intents",
+      transactions: "/api/payments/transactions",
     },
     adAccounts: "/api/ad-accounts",
     support: {
       tickets: "/api/support/tickets",
     },
     notifications: "/api/notifications",
-    onboarding: {
-      status: "/api/onboarding/status",
-    },
   },
 } as const;

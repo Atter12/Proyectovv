@@ -5,6 +5,7 @@ import type { SessionUser } from "@/types/auth";
 import type {
   DbAdAccountRow,
   DbAdAccountBalanceRow,
+  DbAdAccountsPageSummaryRow,
   DbAdPlatform,
 } from "@/types/database";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
@@ -18,7 +19,7 @@ export async function getAdAccountsOverview(
   }
 
   const supabase = await createClient();
-  const [accountsRes, balancesRes] = await Promise.all([
+  const [accountsRes, balancesRes, summaryRes] = await Promise.all([
     supabase
       .from("ad_accounts")
       .select("id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at")
@@ -28,6 +29,11 @@ export async function getAdAccountsOverview(
       .from("ad_account_balances")
       .select("ad_account_id, organization_id, balance_cents, currency")
       .eq("organization_id", organizationId),
+    supabase
+      .from("v_ad_accounts_page_summary")
+      .select("organization_id, total_accounts, active_accounts, pending_setup, assigned_balance_cents")
+      .eq("organization_id", organizationId)
+      .maybeSingle<DbAdAccountsPageSummaryRow>(),
   ]);
 
   const accountRows = (accountsRes.data ?? []) as DbAdAccountRow[];
@@ -38,11 +44,12 @@ export async function getAdAccountsOverview(
 
   const accounts = accountRows.map((row) => mapAdAccountRow(row, balanceByAccount));
 
+  const pageSummary = summaryRes.data;
   const summary = {
-    totalAccounts: accounts.length,
-    activeAccounts: accounts.filter((a) => a.status === "active").length,
-    assignedBalance: accounts.reduce((sum, a) => sum + a.balance, 0),
-    pendingSetup: accounts.filter((a) => a.status === "pending").length,
+    totalAccounts: pageSummary?.total_accounts ?? accounts.length,
+    activeAccounts: pageSummary?.active_accounts ?? accounts.filter((a) => a.status === "active").length,
+    assignedBalance: centsToAmount(pageSummary?.assigned_balance_cents ?? 0),
+    pendingSetup: pageSummary?.pending_setup ?? accounts.filter((a) => a.status === "pending").length,
   };
 
   return { summary, accounts };

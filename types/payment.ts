@@ -44,7 +44,7 @@ export interface TransactionHistoryItem {
   status: string;
 }
 
-export interface PaymentOverview {
+export interface PaymentPageCore {
   wallet: WalletOverview;
   summary: {
     pendingRefunds: number;
@@ -53,6 +53,9 @@ export interface PaymentOverview {
   selectedGateway: PaymentGatewayId;
   gateways: PaymentGateway[];
   adAccountsForAllocation: PaymentAccountAllocation[];
+}
+
+export interface PaymentOverview extends PaymentPageCore {
   accountTransactions: TransactionHistoryItem[];
   walletTransactions: TransactionHistoryItem[];
   refunds: TransactionHistoryItem[];

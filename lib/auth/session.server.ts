@@ -37,28 +37,29 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
 
   const emailConfirmed = Boolean(user.email_confirmed_at);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, status, email_verified, onboarding_status")
-    .eq("id", user.id)
-    .maybeSingle<ProfileRow>();
+  const [{ data: profile }, { data: membership }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, status, email_verified, onboarding_status")
+      .eq("id", user.id)
+      .maybeSingle<ProfileRow>(),
+    supabase
+      .from("organization_memberships")
+      .select(
+        "id, organization_id, user_id, role, status, organizations(id, name)",
+      )
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle<OrganizationMembershipRow>(),
+  ]);
 
   const fullName =
     profile?.full_name?.trim() ||
     getUserMetadataValue(user.user_metadata, "full_name") ||
     user.email?.split("@")[0] ||
     "Usuario";
-
-  const { data: membership } = await supabase
-    .from("organization_memberships")
-    .select(
-      "id, organization_id, user_id, role, status, organizations(id, name)",
-    )
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle<OrganizationMembershipRow>();
 
   const organization = membership ? resolveOrganization(membership) : null;
   const role = membership?.role ?? "viewer";

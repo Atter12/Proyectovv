@@ -1,18 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { supportMock } from "@/features/support/mocks/support.mock";
-import type { OnboardingProgress } from "@/features/onboarding/types/onboarding.types";
 import { WhatsAppFloatingButton } from "./WhatsAppFloatingButton.client";
 import { SupportChatWidget } from "./SupportChatWidget.client";
-import { OnboardingProgressWidget } from "./OnboardingProgressWidget.client";
 
-interface FloatingSupportStackProps {
-  onboarding: OnboardingProgress;
-}
+const OnboardingWidgetLoader = dynamic(
+  () =>
+    import("./OnboardingWidgetLoader.client").then(
+      (m) => m.OnboardingWidgetLoader,
+    ),
+  { ssr: false },
+);
 
-export function FloatingSupportStack({ onboarding }: FloatingSupportStackProps) {
+export function FloatingSupportStack() {
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
@@ -22,7 +25,7 @@ export function FloatingSupportStack({ onboarding }: FloatingSupportStackProps) 
       )}
     >
       <div className="pointer-events-auto flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:max-w-none sm:gap-3">
-        <OnboardingProgressWidget chatOpen={chatOpen} initialProgress={onboarding} />
+        <OnboardingWidgetLoader chatOpen={chatOpen} />
 
         <div className="flex flex-row items-end justify-end gap-2 sm:flex-col sm:gap-3">
           <WhatsAppFloatingButton url={supportMock.whatsappUrl} />

@@ -1,38 +1,48 @@
+import { Suspense } from "react";
 import { Card } from "@/components/ui/Card";
-import { PaymentsGatewayBlock } from "@/features/payments/components/PaymentsGatewayBlock.client";
+import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
 import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
-import { PaymentsTabsBlock } from "@/features/payments/components/PaymentsTabsBlock.client";
-import { WalletSummaryPremium } from "@/features/payments/components/WalletSummaryPremium.client";
+import {
+  PaymentsSectionSkeleton,
+  PaymentsStatsSkeleton,
+} from "@/features/payments/components/PaymentsSectionSkeleton";
+import { PaymentsTabsShell } from "@/features/payments/components/PaymentsTabsShell";
+import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getPaymentOverview } from "@/services/payments.service";
+import { parsePaymentTab } from "@/lib/payments/tab-params";
+import { getSearchParam } from "@/lib/search-params";
 
-export default async function PaymentsPage() {
+interface PaymentsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
   const session = await requirePermission("payments:read");
-  const data = await getPaymentOverview(session);
-
-  const preferredGateway =
-    data.gateways.find((g) => g.id === data.wallet.preferredGateway) ??
-    data.gateways[0];
+  const params = await searchParams;
+  const tab = parsePaymentTab(getSearchParam(params, "tab"));
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
-      <PaymentsPageHeader data={data} />
+      <PaymentsPageHeader />
 
       <div className="space-y-6 lg:space-y-8">
-        <WalletSummaryPremium
-          wallet={data.wallet}
-          preferredGateway={preferredGateway}
-        />
+        <Suspense fallback={<PaymentsSectionSkeleton />}>
+          <PaymentsWalletSection session={session} />
+        </Suspense>
 
-        <PaymentsGatewayBlock
-          gateways={data.gateways}
-          initialSelected={data.selectedGateway}
-          wallet={data.wallet}
-          summary={data.summary}
-        />
+        <Suspense
+          fallback={
+            <div className="space-y-6 lg:space-y-8">
+              <PaymentsStatsSkeleton />
+              <PaymentsSectionSkeleton />
+            </div>
+          }
+        >
+          <PaymentsGatewayPanel session={session} />
+        </Suspense>
 
         <Card padding="none" className="min-w-0 overflow-hidden">
-          <PaymentsTabsBlock data={data} />
+          <PaymentsTabsShell session={session} tab={tab} />
         </Card>
       </div>
     </div>

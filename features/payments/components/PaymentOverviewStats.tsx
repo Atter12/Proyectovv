@@ -1,13 +1,11 @@
-"use client";
-
 import { Card } from "@/components/ui/Card";
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
-import type { PaymentGateway, PaymentOverview } from "@/types/payment";
+import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
 
 interface PaymentOverviewStatsProps {
-  wallet: PaymentOverview["wallet"];
-  summary: PaymentOverview["summary"];
+  wallet: PaymentPageCore["wallet"];
+  summary: PaymentPageCore["summary"];
   activeGateway: PaymentGateway;
 }
 

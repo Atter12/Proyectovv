@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
 import type { PaymentTabKey } from "@/types/payment";
 
@@ -24,10 +25,24 @@ const TAB_ITEMS: {
 
 interface PaymentsTabNavProps {
   activeTab: PaymentTabKey;
-  onTabChange: (tab: PaymentTabKey) => void;
 }
 
-export function PaymentsTabNav({ activeTab, onTabChange }: PaymentsTabNavProps) {
+export function PaymentsTabNav({ activeTab }: PaymentsTabNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function handleTabChange(tab: PaymentTabKey) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "assignment") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }
+
   return (
     <div className="scrollbar-thin overflow-x-auto border-b border-[#e5e7eb]">
       <div className="flex min-w-max gap-1 px-2 pt-2 sm:px-4">
@@ -35,7 +50,7 @@ export function PaymentsTabNav({ activeTab, onTabChange }: PaymentsTabNavProps) 
           <button
             key={tab.id}
             type="button"
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={cn(
               "shrink-0 whitespace-nowrap rounded-t-xl px-3 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 sm:px-4",
               activeTab === tab.id

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { siteConfig } from "@/config/site";
 import { getOrganizationWallet } from "@/lib/auth/wallet.server";
 import { createClient } from "@/lib/supabase/server";
@@ -6,7 +7,7 @@ import type { SessionUser } from "@/types/auth";
 import type {
   DbAdAccountRow,
   DbAdAccountBalanceRow,
-  DbOrganizationDashboardCountsRow,
+  DbOverviewPageSummaryRow,
   DbReferralRow,
 } from "@/types/database";
 import type { DashboardOverview, DashboardOnboardingStep } from "@/types/dashboard";
@@ -31,16 +32,7 @@ const DEFAULT_ONBOARDING: Omit<DashboardOnboardingStep, "completed">[] = [
   },
 ];
 
-interface CampaignPerformanceRow {
-  organization_id: string;
-  spend_cents: number | null;
-  impressions: number | null;
-  clicks: number | null;
-  conversions: number | null;
-  revenue_cents: number | null;
-}
-
-export async function getDashboardOverview(
+export const getDashboardOverview = cache(async function getDashboardOverview(
   session: SessionUser,
 ): Promise<DashboardOverview> {
   const organizationId = session.organizationId;
@@ -65,93 +57,36 @@ export async function getDashboardOverview(
   }
 
   const supabase = await createClient();
-  const since30d = new Date();
-  since30d.setDate(since30d.getDate() - 30);
-  const since30dDate = since30d.toISOString().slice(0, 10);
-  const sinceToday = new Date();
-  sinceToday.setHours(0, 0, 0, 0);
-  const todayDate = sinceToday.toISOString().slice(0, 10);
 
-  const [
-    adAccountsRes,
-    balancesRes,
-    referralsRes,
-    perfRes,
-    dashboardCountsRes,
-    todayMetricsRes,
-    onboardingProgress,
-  ] = await Promise.all([
-    supabase
-      .from("ad_accounts")
-      .select(
-        "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
-      )
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("ad_account_balances")
-      .select("ad_account_id, organization_id, balance_cents, currency")
-      .eq("organization_id", organizationId),
-    supabase
-      .from("referrals")
-      .select(
-        "id, referral_code_id, referrer_user_id, referred_organization_id, status, commission_rate, commission_amount_cents, created_at, converted_at",
-      )
-      .eq("referrer_user_id", session.id),
-    supabase
-      .from("v_campaign_performance_30d")
-      .select("organization_id, spend_cents, impressions, clicks, conversions, revenue_cents")
-      .eq("organization_id", organizationId)
-      .maybeSingle<CampaignPerformanceRow>(),
-    supabase
-      .from("v_organization_dashboard_counts")
-      .select("organization_id, total_ad_accounts, total_campaigns, active_ad_accounts")
-      .eq("organization_id", organizationId)
-      .maybeSingle<DbOrganizationDashboardCountsRow>(),
-    supabase
-      .from("ad_account_daily_metrics")
-      .select("spend_cents")
-      .eq("organization_id", organizationId)
-      .eq("metric_date", todayDate),
-    getOnboardingStatus(session),
-  ]);
+  const [pageSummaryRes, adAccountsRes, balancesRes, referralsRes, onboardingProgress] =
+    await Promise.all([
+      supabase
+        .from("v_overview_page_summary")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .maybeSingle<DbOverviewPageSummaryRow>(),
+      supabase
+        .from("ad_accounts")
+        .select(
+          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("ad_account_balances")
+        .select("ad_account_id, organization_id, balance_cents, currency")
+        .eq("organization_id", organizationId),
+      supabase
+        .from("referrals")
+        .select(
+          "id, referral_code_id, referrer_user_id, referred_organization_id, status, commission_rate, commission_amount_cents, created_at, converted_at",
+        )
+        .eq("referrer_user_id", session.id),
+      getOnboardingStatus(session),
+    ]);
 
-  let perf = perfRes.data;
-  if (perfRes.error || !perf) {
-    const { data: fallbackMetrics } = await supabase
-      .from("ad_account_daily_metrics")
-      .select("spend_cents, impressions, clicks, conversions, revenue_cents")
-      .eq("organization_id", organizationId)
-      .gte("metric_date", since30dDate);
-
-    if (fallbackMetrics && fallbackMetrics.length > 0) {
-      perf = {
-        organization_id: organizationId,
-        spend_cents: fallbackMetrics.reduce(
-          (sum, row) => sum + Number(row.spend_cents ?? 0),
-          0,
-        ),
-        impressions: fallbackMetrics.reduce(
-          (sum, row) => sum + Number(row.impressions ?? 0),
-          0,
-        ),
-        clicks: fallbackMetrics.reduce(
-          (sum, row) => sum + Number(row.clicks ?? 0),
-          0,
-        ),
-        conversions: fallbackMetrics.reduce(
-          (sum, row) => sum + Number(row.conversions ?? 0),
-          0,
-        ),
-        revenue_cents: fallbackMetrics.reduce(
-          (sum, row) => sum + Number(row.revenue_cents ?? 0),
-          0,
-        ),
-      };
-    }
-  }
-
+  const pageSummary = pageSummaryRes.data;
   const accountRows = (adAccountsRes.data ?? []) as DbAdAccountRow[];
   const balanceRows = (balancesRes.data ?? []) as DbAdAccountBalanceRow[];
   const referralRows = (referralsRes.data ?? []) as DbReferralRow[];
@@ -171,11 +106,6 @@ export async function getDashboardOverview(
     timezone: "UTC",
   }));
 
-  const todaySpend = (todayMetricsRes.data ?? []).reduce(
-    (sum, row) => sum + Number(row.spend_cents ?? 0),
-    0,
-  );
-
   const referralEarnings =
     referralRows.reduce(
       (sum, row) => sum + Number(row.commission_amount_cents ?? 0),
@@ -190,27 +120,32 @@ export async function getDashboardOverview(
     ),
   });
 
-  const dashboardCounts = dashboardCountsRes.data;
-
   return {
-    wallet,
+    wallet: pageSummary?.wallet_id
+      ? {
+          id: pageSummary.wallet_id,
+          name: pageSummary.wallet_name ?? siteConfig.walletName,
+          balance: centsToAmount(pageSummary.wallet_balance_cents ?? 0),
+          currency: pageSummary.wallet_currency ?? "USD",
+        }
+      : wallet,
     metrics: {
-      todaySpend: centsToAmount(todaySpend),
+      todaySpend: centsToAmount(Number(pageSummary?.today_spend_cents ?? 0)),
       referralEarnings,
       referralMembers: referralRows.length,
       totalAdAccounts:
-        dashboardCounts?.total_ad_accounts ?? accountRows.length,
-      spend30d: centsToAmount(Number(perf?.spend_cents ?? 0)),
-      impressions30d: Number(perf?.impressions ?? 0),
-      clicks30d: Number(perf?.clicks ?? 0),
-      conversions30d: Number(perf?.conversions ?? 0),
-      revenue30d: centsToAmount(Number(perf?.revenue_cents ?? 0)),
-      totalCampaigns: dashboardCounts?.total_campaigns ?? 0,
+        pageSummary?.total_ad_accounts ?? accountRows.length,
+      spend30d: centsToAmount(Number(pageSummary?.spend_30d_cents ?? 0)),
+      impressions30d: Number(pageSummary?.impressions_30d ?? 0),
+      clicks30d: Number(pageSummary?.clicks_30d ?? 0),
+      conversions30d: Number(pageSummary?.conversions_30d ?? 0),
+      revenue30d: centsToAmount(Number(pageSummary?.revenue_30d_cents ?? 0)),
+      totalCampaigns: pageSummary?.total_campaigns ?? 0,
     },
     adAccounts,
     onboardingSteps,
   };
-}
+});
 
 function mapOnboardingProgressToSteps(
   progress: Awaited<ReturnType<typeof getOnboardingStatus>>,

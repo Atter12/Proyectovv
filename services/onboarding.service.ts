@@ -1,5 +1,8 @@
+import { unstable_cache } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { CACHE_TAGS } from "@/lib/cache/tags";
 import type { SessionUser } from "@/types/auth";
 import type {
   OnboardingProgress,
@@ -34,6 +37,26 @@ const DEFAULT_STEPS: Array<{
   },
 ];
 
+const getCachedOnboardingSteps = (organizationId: string) =>
+  unstable_cache(
+    async () => {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("organization_onboarding_steps")
+        .select("step_key, title, completed_at, sort_order")
+        .eq("organization_id", organizationId)
+        .order("sort_order", { ascending: true });
+
+      if (error) return null;
+      return data;
+    },
+    [`onboarding-steps-${organizationId}`],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.onboarding(organizationId)],
+    },
+  )();
+
 export const getOnboardingStatus = cache(async (
   session: SessionUser,
 ): Promise<OnboardingProgress> => {
@@ -41,16 +64,10 @@ export const getOnboardingStatus = cache(async (
     return { ...onboardingMock, completedSteps: 0 };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("organization_onboarding_steps")
-    .select("step_key, title, completed_at, sort_order")
-    .eq("organization_id", session.organizationId)
-    .order("sort_order", { ascending: true });
+  const data = await getCachedOnboardingSteps(session.organizationId);
 
-  if (error || !data || data.length === 0) {
-    const inferred = await inferOnboardingFromData(session);
-    return inferred;
+  if (!data || data.length === 0) {
+    return inferOnboardingFromData(session);
   }
 
   const steps: OnboardingStep[] = data.map((row) => ({
@@ -98,6 +115,7 @@ export async function completeOnboardingStep(
     throw new Error(error.message);
   }
 
+  revalidateTag(CACHE_TAGS.onboarding(session.organizationId), "max");
   return getOnboardingStatus(session);
 }
 

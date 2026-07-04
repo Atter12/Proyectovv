@@ -1,32 +1,33 @@
-import { Card } from "@/components/ui/Card";
+import { Suspense } from "react";
 import { OverviewHero } from "@/features/dashboard/components/OverviewHero";
-import { WalletOverviewCard } from "@/features/dashboard/components/WalletOverviewCard";
-import { MetricsGrid } from "@/features/dashboard/components/MetricsGrid";
-import { OnboardingStepsCard } from "@/features/dashboard/components/OnboardingStepsCard";
-import { AdAccountsOverviewTable } from "@/features/dashboard/components/AdAccountsOverviewTable";
+import {
+  OverviewAccountsSection,
+  OverviewDashboardSection,
+} from "@/features/dashboard/components/OverviewDashboardSection";
+import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { requireSession } from "@/lib/auth/guards.server";
-import { getDashboardOverview } from "@/services/dashboard.service";
 
 export default async function OverviewPage() {
   const session = await requireSession();
-  const data = await getDashboardOverview(session);
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
       <OverviewHero />
 
-      <div className="grid min-w-0 gap-5 lg:grid-cols-3 lg:gap-6">
-        <div className="min-w-0 lg:col-span-2">
-          <OnboardingStepsCard steps={data.onboardingSteps} />
-        </div>
-        <WalletOverviewCard wallet={data.wallet} />
-      </div>
+      <Suspense
+        fallback={
+          <div className="space-y-5 lg:space-y-6">
+            <PaymentsSectionSkeleton rows={2} />
+            <PaymentsSectionSkeleton rows={1} />
+          </div>
+        }
+      >
+        <OverviewDashboardSection session={session} />
+      </Suspense>
 
-      <MetricsGrid metrics={data.metrics} />
-
-      <Card padding="none" className="overflow-hidden">
-        <AdAccountsOverviewTable accounts={data.adAccounts} />
-      </Card>
+      <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
+        <OverviewAccountsSection session={session} />
+      </Suspense>
     </div>
   );
 }

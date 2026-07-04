@@ -151,3 +151,28 @@ export interface DbOrganizationDashboardCountsRow {
   total_campaigns: number;
   active_ad_accounts: number;
 }
+
+export interface DbOverviewPageSummaryRow {
+  organization_id: string;
+  wallet_id: string | null;
+  wallet_name: string | null;
+  wallet_currency: string | null;
+  wallet_balance_cents: number | null;
+  total_ad_accounts: number | null;
+  total_campaigns: number | null;
+  active_ad_accounts: number | null;
+  spend_30d_cents: number | null;
+  impressions_30d: number | null;
+  clicks_30d: number | null;
+  conversions_30d: number | null;
+  revenue_30d_cents: number | null;
+  today_spend_cents: number | null;
+}
+
+export interface DbAdAccountsPageSummaryRow {
+  organization_id: string;
+  total_accounts: number;
+  active_accounts: number;
+  pending_setup: number;
+  assigned_balance_cents: number;
+}

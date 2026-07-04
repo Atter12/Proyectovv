@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { mainNavigation } from "@/config/navigation";
 import type { NavItem } from "@/types/navigation";
@@ -49,6 +49,7 @@ interface DashboardNavLinksProps {
 
 export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
@@ -58,6 +59,9 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
+            onMouseEnter={() => router.prefetch(item.href)}
+            onFocus={() => router.prefetch(item.href)}
             onClick={onNavigate}
             className={cn(
               "relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
