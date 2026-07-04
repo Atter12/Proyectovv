@@ -31,7 +31,7 @@ export function ChatHome({
       <div className="max-h-[420px] overflow-y-auto bg-white">
         <div className="border-b border-slate-100 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Chat with us
+            Chatea con nosotros
           </p>
         </div>
 
@@ -40,16 +40,16 @@ export function ChatHome({
           onClick={onOpenConversation}
           className="w-full border-b border-slate-100 px-4 py-4 text-left transition-colors hover:bg-slate-50"
         >
-          <p className="text-sm font-bold text-slate-900">Message Us!!!</p>
+          <p className="text-sm font-bold text-slate-900">Escríbenos</p>
           <p className="mt-1 text-xs text-slate-500">
-            Welcome! Our support team is ready to assist you.
+            ¡Bienvenido! Nuestro equipo de soporte está listo para ayudarte.
           </p>
         </button>
 
         <div className="px-4 py-3">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              FAQs
+              Preguntas frecuentes
             </p>
             <button
               type="button"
@@ -61,7 +61,7 @@ export function ChatHome({
           </div>
           <input
             type="search"
-            placeholder="Search FAQs..."
+            placeholder="Buscar preguntas frecuentes..."
             aria-label="Buscar en FAQs"
             className="mb-3 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
           />

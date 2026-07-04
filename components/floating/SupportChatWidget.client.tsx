@@ -77,7 +77,7 @@ export function SupportChatWidget({
       id: `user-${Date.now()}`,
       role: "user",
       text,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
     };
     setMessages((prev) => [...prev, optimistic]);
 

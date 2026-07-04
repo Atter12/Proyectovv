@@ -35,11 +35,11 @@ export function ChatConversation({
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Back
+          Volver
         </button>
-        <p className="text-sm font-bold text-white">Message Us!!!</p>
+        <p className="text-sm font-bold text-white">Escríbenos</p>
         <p className="text-xs text-white/70">
-          We&apos;re currently away. Please leave us a message!
+          No estamos en línea. ¡Déjanos un mensaje!
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function ChatConversation({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Reply here..."
+            placeholder="Escribe tu respuesta..."
             aria-label="Escribir mensaje"
             className="h-9 flex-1 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
           />

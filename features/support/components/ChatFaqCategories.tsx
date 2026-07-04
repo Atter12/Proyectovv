@@ -25,7 +25,7 @@ export function ChatFaqCategories({
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Back
+          Volver
         </button>
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[10px] font-bold text-white">
@@ -38,7 +38,7 @@ export function ChatFaqCategories({
       <div className="max-h-[420px] overflow-y-auto bg-white p-4">
         <input
           type="search"
-          placeholder="Search FAQs..."
+          placeholder="Buscar preguntas frecuentes..."
           aria-label="Buscar en FAQs"
           className="mb-4 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
         />

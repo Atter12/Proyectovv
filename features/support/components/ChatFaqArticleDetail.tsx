@@ -18,7 +18,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Back
+          Volver
         </button>
         <p className="text-sm font-semibold text-white">{article.title}</p>
       </div>
@@ -38,7 +38,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
 
         <div className="mt-6 border-t border-slate-100 pt-4">
           <p className="text-center text-sm font-medium text-slate-700">
-            Was this article useful?
+            ¿Te resultó útil este artículo?
           </p>
           <div className="mt-3 flex justify-center gap-3">
             <button
