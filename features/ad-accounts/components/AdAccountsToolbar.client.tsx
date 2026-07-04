@@ -69,7 +69,7 @@ export function AdAccountsToolbar({
 
   return (
     <>
-      <div className="border-b border-[#e5e7eb] p-4 sm:p-5">
+      <div className="border-b border-[var(--border-subtle)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row">
             <div className="relative min-w-0 flex-1 sm:max-w-sm">

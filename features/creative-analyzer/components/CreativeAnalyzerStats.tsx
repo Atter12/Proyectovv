@@ -40,10 +40,7 @@ export function CreativeAnalyzerStats({ stats }: CreativeAnalyzerStatsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (
-        <Card
-          key={stat.id}
-          className="min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-        >
+        <Card key={stat.id} elevated className="min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
               <StatIcon id={stat.id} />

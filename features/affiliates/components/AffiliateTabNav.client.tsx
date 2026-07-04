@@ -27,7 +27,7 @@ export function AffiliateTabNav({ activeTab }: AffiliateTabNavProps) {
   }
 
   return (
-    <div className="scrollbar-thin overflow-x-auto border-b border-[#e5e7eb]">
+    <div className="scrollbar-thin overflow-x-auto border-b border-[var(--border-subtle)] bg-white/60 backdrop-blur-sm">
       <div className="flex min-w-max gap-1 px-1">
         {TAB_ITEMS.map((tab) => (
           <button

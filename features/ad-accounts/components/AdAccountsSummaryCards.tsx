@@ -56,7 +56,8 @@ export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps)
       {items.map((item) => (
         <Card
           key={item.label}
-          className="min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          elevated
+          className="min-w-0"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">

@@ -63,8 +63,8 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
             className={cn(
               "relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               isActive
-                ? "bg-[#4056ff]/8 text-[#4056ff]"
-                : "text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]",
+                ? "bg-gradient-to-r from-[#4056ff]/10 to-[#4056ff]/5 text-[#4056ff] shadow-sm shadow-[#4056ff]/5"
+                : "text-[#64748b] hover:bg-slate-50/80 hover:text-[#0f172a]",
             )}
           >
             {isActive && (

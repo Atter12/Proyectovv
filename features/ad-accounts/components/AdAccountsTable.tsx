@@ -38,7 +38,7 @@ export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
 
   return (
     <div>
-      <Table className="rounded-none border-0 shadow-none">
+      <Table embedded className="rounded-none">
         <TableHeader>
           <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
             <TableHead>Cuenta publicitaria</TableHead>

@@ -20,7 +20,7 @@ export function SidebarWalletCard({
   return (
     <div
       className={cn(
-        "mt-4 rounded-2xl border border-[#4056ff]/10 bg-gradient-to-br from-[#4056ff]/10 to-[#7c3aed]/5 p-3.5",
+        "mt-4 rounded-2xl border border-[#4056ff]/12 bg-gradient-to-br from-[#4056ff]/10 via-[#4056ff]/5 to-[#7c3aed]/5 p-3.5 shadow-sm shadow-[#4056ff]/5",
         className,
       )}
     >
@@ -40,7 +40,7 @@ export function SidebarWalletCard({
         href={routes.payments}
         prefetch
         onClick={onNavigate}
-        className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4056ff] text-xs font-semibold text-white transition-all duration-200 hover:bg-[#4056ff]/90"
+        className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#4056ff] text-xs font-semibold text-white shadow-sm shadow-[#4056ff]/20 transition-all duration-200 hover:bg-[#4d62ff] hover:shadow-md hover:shadow-[#4056ff]/25"
       >
         Agregar saldo
       </Link>

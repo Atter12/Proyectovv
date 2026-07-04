@@ -45,7 +45,7 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
   return (
-    <Card className="h-full transition-all duration-200 hover:shadow-md">
+    <Card className="h-full transition-all duration-200" elevated>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-[#0f172a]">Pasos iniciales</h3>

@@ -3,6 +3,17 @@
 :root {
   --background: #f5f7fb;
   --foreground: #0f172a;
+  --brand-primary: #4056ff;
+  --brand-accent: #7c3aed;
+  --surface: #ffffff;
+  --border-subtle: #e8ecf2;
+  --shadow-card:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 4px 16px rgb(15 23 42 / 0.03);
+  --shadow-card-hover:
+    0 4px 8px rgb(15 23 42 / 0.05),
+    0 12px 28px rgb(15 23 42 / 0.07);
+  --shadow-topbar: 0 1px 0 rgb(15 23 42 / 0.04);
 }
 
 @theme inline {
@@ -87,4 +98,17 @@ body {
   .dashboard-page-enter {
     animation: none;
   }
+}
+
+.dashboard-canvas {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 80% 55% at 0% 0%, rgb(64 86 255 / 0.045), transparent),
+    radial-gradient(ellipse 60% 45% at 100% 5%, rgb(124 58 237 / 0.035), transparent);
+}
+
+.dashboard-glass {
+  background: rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

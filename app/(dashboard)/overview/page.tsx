@@ -1,3 +1,4 @@
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { Suspense } from "react";
 import { OverviewHero } from "@/features/dashboard/components/OverviewHero";
 import {
@@ -11,7 +12,7 @@ export default async function OverviewPage() {
   const session = await requireSession();
 
   return (
-    <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
+    <div className={dashboardClasses.page}>
       <OverviewHero />
 
       <Suspense

@@ -3,6 +3,7 @@ import type { HTMLAttributes } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: "none" | "sm" | "md" | "lg";
+  elevated?: boolean;
 }
 
 const paddingClasses = {
@@ -15,13 +16,16 @@ const paddingClasses = {
 export function Card({
   className,
   padding = "md",
+  elevated = false,
   children,
   ...props
 }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[#e5e7eb] bg-white shadow-sm",
+        "rounded-2xl border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)] ring-1 ring-black/[0.02]",
+        elevated &&
+          "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]",
         paddingClasses[padding],
         className,
       )}
@@ -47,7 +51,10 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("text-base font-semibold text-slate-900", className)}
+      className={cn(
+        "text-base font-semibold tracking-tight text-slate-900",
+        className,
+      )}
       {...props}
     />
   );

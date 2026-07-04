@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AffiliateHero } from "@/features/affiliates/components/AffiliateHero";
 import { AffiliateOverviewStats } from "@/features/affiliates/components/AffiliateOverviewStats";
 import { AffiliateTabContent } from "@/features/affiliates/components/AffiliateTabContent";
@@ -6,8 +7,8 @@ import { AffiliatesPageHeader } from "@/features/affiliates/components/Affiliate
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getSearchParam } from "@/lib/search-params";
 import { getAffiliateProgram } from "@/services/affiliates.service";
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import type { AffiliateTabKey } from "@/types/affiliate";
-import { Suspense } from "react";
 
 interface AffiliatesPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -24,7 +25,7 @@ export default async function AffiliatesPage({
   const data = await getAffiliateProgram(session);
 
   return (
-    <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
+    <div className={dashboardClasses.page}>
       <AffiliatesPageHeader data={data} />
       <AffiliateHero data={data} />
       <AffiliateOverviewStats stats={data.stats} />
@@ -32,7 +33,7 @@ export default async function AffiliatesPage({
         <Suspense fallback={null}>
           <AffiliateTabNav activeTab={tab} />
         </Suspense>
-        <div className="rounded-b-2xl rounded-tr-2xl border border-t-0 border-[#e5e7eb] bg-white p-4 sm:p-6">
+        <div className={`${dashboardClasses.tabPanel} p-4 sm:p-6`}>
           <AffiliateTabContent data={data} tab={tab} />
         </div>
       </div>

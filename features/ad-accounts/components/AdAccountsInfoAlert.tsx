@@ -3,7 +3,7 @@ import { routes } from "@/config/routes";
 
 export function AdAccountsInfoAlert() {
   return (
-    <div className="flex gap-4 rounded-2xl border border-[#4056ff]/15 bg-gradient-to-r from-[#4056ff]/5 to-[#7c3aed]/5 p-4 sm:p-5">
+    <div className="flex gap-4 rounded-2xl border border-[#4056ff]/15 bg-gradient-to-r from-[#4056ff]/5 to-[#7c3aed]/5 p-4 shadow-sm shadow-[#4056ff]/5 ring-1 ring-[#4056ff]/10 sm:p-5">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4056ff]/10 text-[#4056ff]">
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path

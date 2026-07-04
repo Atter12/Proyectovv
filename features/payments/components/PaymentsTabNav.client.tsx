@@ -44,7 +44,7 @@ export function PaymentsTabNav({ activeTab }: PaymentsTabNavProps) {
   }
 
   return (
-    <div className="scrollbar-thin overflow-x-auto border-b border-[#e5e7eb]">
+    <div className="scrollbar-thin overflow-x-auto border-b border-[var(--border-subtle)] bg-white/60 backdrop-blur-sm">
       <div className="flex min-w-max gap-1 px-2 pt-2 sm:px-4">
         {TAB_ITEMS.map((tab) => (
           <button

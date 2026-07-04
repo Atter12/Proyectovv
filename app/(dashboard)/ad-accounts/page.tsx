@@ -1,3 +1,4 @@
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { Card } from "@/components/ui/Card";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsInfoAlert } from "@/features/ad-accounts/components/AdAccountsInfoAlert";
@@ -23,7 +24,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
 
   return (
-    <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
+    <div className={dashboardClasses.page}>
       <AdAccountsPageHeader summary={data.summary} />
       <AdAccountsInfoAlert />
       <AdAccountsSummaryCards summary={data.summary} />

@@ -46,7 +46,7 @@ export function DashboardTopbar({
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 border-b border-[#e5e7eb] bg-white/90 px-4 backdrop-blur-md sm:h-16 sm:px-5 lg:px-6">
+    <header className="dashboard-glass sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-4 shadow-[var(--shadow-topbar)] sm:h-16 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <button
           type="button"
@@ -61,7 +61,7 @@ export function DashboardTopbar({
           </svg>
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-bold text-[#0f172a] sm:text-base md:text-lg">
+          <h1 className="truncate text-sm font-bold tracking-tight text-[#0f172a] sm:text-base md:text-lg">
             {pageTitle}
           </h1>
           <p className="hidden truncate text-xs text-[#64748b] sm:block sm:text-sm">

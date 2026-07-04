@@ -17,7 +17,7 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden bg-[#f5f7fb]">
+    <div className="dashboard-canvas flex min-h-screen overflow-x-hidden">
       <div className="hidden lg:block">
         <DashboardSidebar className="fixed inset-y-0 left-0 z-30 h-full w-64" />
       </div>

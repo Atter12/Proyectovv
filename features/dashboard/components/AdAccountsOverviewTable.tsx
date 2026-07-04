@@ -31,7 +31,7 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
 
   return (
     <div>
-      <div className="flex flex-col gap-3 border-b border-[#e5e7eb] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-[var(--border-subtle)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-[#0f172a]">
             Cuentas publicitarias
@@ -48,7 +48,7 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
         </Link>
       </div>
 
-      <Table className="rounded-none border-0 shadow-none">
+      <Table embedded className="rounded-none border-0 shadow-none">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             {overviewColumns.map((col) => (

@@ -8,10 +8,10 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-700",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-700",
-  info: "bg-indigo-50 text-indigo-700",
+  default: "bg-slate-100 text-slate-700 ring-1 ring-slate-200/60",
+  success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60",
+  warning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200/60",
+  info: "bg-[#4056ff]/8 text-[#4056ff] ring-1 ring-[#4056ff]/15",
 };
 
 export function Badge({

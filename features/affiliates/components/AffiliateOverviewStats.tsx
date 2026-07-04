@@ -54,10 +54,7 @@ export function AffiliateOverviewStats({ stats }: AffiliateOverviewStatsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
-        <Card
-          key={item.label}
-          className="min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-        >
+        <Card key={item.label} elevated className="min-w-0">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
             {item.icon}
           </div>

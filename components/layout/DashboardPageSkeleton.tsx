@@ -10,12 +10,12 @@ export function DashboardPageSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-24 rounded-2xl border border-[#e5e7eb] bg-white"
+            className="h-24 rounded-2xl border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)]"
           />
         ))}
       </div>
 
-      <div className="h-64 rounded-2xl border border-[#e5e7eb] bg-white sm:h-72" />
+      <div className="h-64 rounded-2xl border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)] sm:h-72" />
     </div>
   );
 }

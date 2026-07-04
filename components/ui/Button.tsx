@@ -11,18 +11,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-600/20",
+    "bg-[#4056ff] text-white shadow-sm shadow-[#4056ff]/20 hover:bg-[#4d62ff]",
   secondary:
-    "bg-violet-600 text-white hover:bg-violet-700 shadow-sm shadow-violet-600/20",
+    "bg-[#7c3aed] text-white shadow-sm shadow-[#7c3aed]/20 hover:bg-[#8b5cf6]",
   outline:
-    "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+    "border border-[var(--border-subtle)] bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300",
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-9 px-4 text-sm",
-  lg: "h-11 px-6 text-sm",
+  sm: "h-8 px-3 text-xs rounded-lg",
+  md: "h-9 px-4 text-sm rounded-xl",
+  lg: "h-11 px-6 text-sm rounded-xl",
 };
 
 export function Button({
@@ -36,7 +36,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
         className,

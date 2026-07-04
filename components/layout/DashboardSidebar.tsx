@@ -14,11 +14,11 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
     <aside
       id="dashboard-sidebar"
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-[#e5e7eb] bg-white",
+        "flex h-full shrink-0 flex-col border-r border-[var(--border-subtle)] bg-gradient-to-b from-white via-white to-slate-50/60 shadow-[2px_0_16px_rgb(15_23_42_/_0.03)]",
         className,
       )}
     >
-      <div className="border-b border-[#e5e7eb] px-4 py-4">
+      <div className="border-b border-[var(--border-subtle)] px-4 py-4">
         <Link
           href={routes.overview}
           prefetch
