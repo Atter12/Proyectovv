@@ -18,6 +18,14 @@ function resolveOrganization(
   return Array.isArray(org) ? (org[0] ?? null) : org;
 }
 
+function getUserMetadataValue(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export async function getSession(): Promise<SessionUser | null> {
   const supabase = await createClient();
   const {
@@ -30,24 +38,26 @@ export async function getSession(): Promise<SessionUser | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, full_name, avatar_initials, status")
+    .select(
+      "id, email, full_name, avatar_url, phone, status, email_verified, onboarding_status, last_active_at, created_at, updated_at",
+    )
     .eq("id", user.id)
     .maybeSingle<ProfileRow>();
 
   const fullName =
-    profile?.full_name ??
-    (typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name
-      : user.email?.split("@")[0] ?? "Usuario");
+    profile?.full_name?.trim() ||
+    getUserMetadataValue(user.user_metadata, "full_name") ||
+    user.email?.split("@")[0] ||
+    "Usuario";
 
   const { data: membership } = await supabase
     .from("organization_memberships")
     .select(
-      "id, organization_id, user_id, role, status, is_default, organizations(id, name, slug, status)",
+      "id, organization_id, user_id, role, status, invited_by, created_at, updated_at, organizations(id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at)",
     )
     .eq("user_id", user.id)
     .eq("status", "active")
-    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle<OrganizationMembershipRow>();
 
@@ -58,8 +68,7 @@ export async function getSession(): Promise<SessionUser | null> {
     id: user.id,
     name: fullName,
     email: profile?.email ?? user.email ?? "",
-    avatarInitials:
-      profile?.avatar_initials || getAvatarInitials(fullName),
+    avatarInitials: getAvatarInitials(fullName),
     role,
     permissions: getPermissionsForRole(role),
     companyId: membership?.organization_id ?? "",

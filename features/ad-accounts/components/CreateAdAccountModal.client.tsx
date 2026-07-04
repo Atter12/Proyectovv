@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -25,10 +25,10 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
     setTimezone("UTC-05 Lima");
   }
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     resetForm();
     onClose();
-  }
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +37,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
     }
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   if (!open) return null;
 

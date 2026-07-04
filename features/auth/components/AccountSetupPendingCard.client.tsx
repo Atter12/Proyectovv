@@ -8,7 +8,11 @@ import { Card } from "@/components/ui/Card";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 
-export function AccountSetupPendingCard() {
+interface AccountSetupPendingCardProps {
+  error?: string;
+}
+
+export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -34,13 +38,16 @@ export function AccountSetupPendingCard() {
       </div>
 
       <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700" role="alert">
+            {error}
+          </p>
+        )}
         <p>Si esta pantalla no avanza en unos segundos:</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>Pulsa <strong>Reintentar</strong> para comprobar de nuevo.</li>
           <li>
-            Confirma que ejecutaste el SQL de{" "}
-            <code className="text-xs">supabase/migrations/001_initial_schema.sql</code>{" "}
-            en tu proyecto Supabase.
+            Confirma que las variables de Vercel incluyen <strong>SUPABASE_SERVICE_ROLE_KEY</strong> y que la base tiene las tablas de Supabase ya creadas.
           </li>
         </ul>
       </div>

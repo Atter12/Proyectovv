@@ -11,7 +11,7 @@ export async function getOrganizationWallet(
   const supabase = await createClient();
   const { data: wallet } = await supabase
     .from("wallets")
-    .select("id, name, balance, currency")
+    .select("id, name, balance_cents, currency")
     .eq("organization_id", session.organizationId)
     .eq("status", "active")
     .order("created_at", { ascending: true })
@@ -19,7 +19,7 @@ export async function getOrganizationWallet(
     .maybeSingle<{
       id: string;
       name: string;
-      balance: number;
+      balance_cents: number;
       currency: string;
     }>();
 
@@ -28,7 +28,7 @@ export async function getOrganizationWallet(
   return {
     id: wallet.id,
     name: wallet.name || siteConfig.walletName,
-    balance: Number(wallet.balance),
+    balance: Number(wallet.balance_cents) / 100,
     currency: wallet.currency,
   };
 }
