@@ -6,11 +6,11 @@ import { CreativeBenchmarkPanel } from "@/features/creative-analyzer/components/
 import { CreativeValueGrid } from "@/features/creative-analyzer/components/CreativeValueGrid";
 import { CreativeAnalyzerCTA } from "@/features/creative-analyzer/components/CreativeAnalyzerCTA";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getCreativeAnalyzerOverview } from "@/services/creative-analyzer.mock.service";
+import { getCreativeAnalyzerOverview } from "@/services/creative-analyzer.service";
 
 export default async function CreativeAnalyzerPage() {
-  await requirePermission("creativeAnalyzer:read");
-  const data = await getCreativeAnalyzerOverview();
+  const session = await requirePermission("creativeAnalyzer:read");
+  const data = await getCreativeAnalyzerOverview(session);
 
   return (
     <div className="min-w-0 space-y-6 sm:space-y-8 lg:space-y-10">

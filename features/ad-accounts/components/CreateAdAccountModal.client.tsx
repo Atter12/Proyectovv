@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
+import { routes } from "@/config/routes";
 
 interface CreateAdAccountModalProps {
   open: boolean;
@@ -17,12 +20,17 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
   const [bcId, setBcId] = useState("");
   const [timezone, setTimezone] = useState("UTC-05 Lima");
   const [step, setStep] = useState<"form" | "confirm">("form");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   function resetForm() {
     setStep("form");
     setAccountName("");
     setBcId("");
     setTimezone("UTC-05 Lima");
+    setError(null);
+    setLoading(false);
   }
 
   const handleClose = useCallback(() => {
@@ -41,8 +49,31 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
 
   if (!open) return null;
 
-  function handleCreate() {
-    handleClose();
+  async function handleCreate() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiClient(routes.api.adAccounts, {
+        method: "POST",
+        body: JSON.stringify({
+          name: displayName,
+          platform: "meta",
+          externalAccountId: displayBcId === "BC-0001" ? undefined : displayBcId,
+          timezone,
+        }),
+      });
+      handleClose();
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo crear la cuenta publicitaria.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   const displayName = accountName.trim() || "Default Ads Account";
@@ -71,7 +102,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
               Crear cuenta publicitaria
             </h2>
             <p className="mt-1 text-sm text-[#64748b]">
-              Vista mock — los datos no se guardan en backend.
+              Configura una nueva cuenta publicitaria para tu organización.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -139,7 +170,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
               Confirmar creación
             </h2>
             <p className="mt-1 text-sm text-[#64748b]">
-              Revisa los datos antes de crear la cuenta mock.
+              Revisa los datos antes de crear la cuenta.
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm">
               <div>
@@ -155,15 +186,21 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 <dd className="font-medium text-[#0f172a]">{timezone}</dd>
               </div>
             </dl>
+            {error && (
+              <p className="mt-3 text-xs text-red-600" role="alert">
+                {error}
+              </p>
+            )}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={() => setStep("form")} className="sm:w-auto">
+              <Button variant="outline" onClick={() => setStep("form")} className="sm:w-auto" disabled={loading}>
                 Volver
               </Button>
               <Button
                 onClick={handleCreate}
+                disabled={loading}
                 className="bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto"
               >
-                Crear cuenta mock
+                {loading ? "Creando…" : "Crear cuenta"}
               </Button>
             </div>
           </>

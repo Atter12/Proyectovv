@@ -9,7 +9,7 @@ import { WalletSummaryPremium } from "@/features/payments/components/WalletSumma
 import { requirePermission } from "@/lib/auth/guards.server";
 import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
 import { getSearchParam } from "@/lib/search-params";
-import { getPaymentOverview } from "@/services/payments.mock.service";
+import { getPaymentOverview } from "@/services/payments.service";
 import type { PaymentGatewayId, PaymentTabKey } from "@/types/payment";
 import { Suspense } from "react";
 
@@ -25,9 +25,9 @@ interface PaymentsPageProps {
 }
 
 export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
-  await requirePermission("payments:read");
+  const session = await requirePermission("payments:read");
   const params = await searchParams;
-  const data = await getPaymentOverview();
+  const data = await getPaymentOverview(session);
 
   const tabParam = getSearchParam(params, "tab", "assignment");
   const tab: PaymentTabKey = VALID_TABS.includes(tabParam as PaymentTabKey)

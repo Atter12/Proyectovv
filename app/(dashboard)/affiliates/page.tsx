@@ -5,7 +5,7 @@ import { AffiliateTabNav } from "@/features/affiliates/components/AffiliateTabNa
 import { AffiliatesPageHeader } from "@/features/affiliates/components/AffiliatesPageHeader";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getSearchParam } from "@/lib/search-params";
-import { getAffiliateProgram } from "@/services/affiliates.mock.service";
+import { getAffiliateProgram } from "@/services/affiliates.service";
 import type { AffiliateTabKey } from "@/types/affiliate";
 import { Suspense } from "react";
 
@@ -16,12 +16,12 @@ interface AffiliatesPageProps {
 export default async function AffiliatesPage({
   searchParams,
 }: AffiliatesPageProps) {
-  await requirePermission("affiliates:read");
+  const session = await requirePermission("affiliates:read");
   const params = await searchParams;
   const tabParam = getSearchParam(params, "tab", "earn");
   const tab: AffiliateTabKey =
     tabParam === "payments" ? "payments" : "earn";
-  const data = await getAffiliateProgram();
+  const data = await getAffiliateProgram(session);
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">

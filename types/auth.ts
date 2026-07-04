@@ -16,13 +16,23 @@ export type OnboardingStatus =
 export type MembershipStatus = "active" | "invited" | "removed";
 
 export type Permission =
+  | "dashboard:read"
   | "wallet:read"
   | "wallet:deposit"
   | "payments:read"
+  | "payments:create"
   | "adAccounts:read"
   | "adAccounts:create"
+  | "campaigns:read"
+  | "campaigns:create"
   | "affiliates:read"
-  | "creativeAnalyzer:read";
+  | "creativeAnalyzer:read"
+  | "creativeAnalyzer:create"
+  | "support:read"
+  | "support:create"
+  | "notifications:read"
+  | "settings:read"
+  | "settings:update";
 
 export interface SessionUser {
   id: string;

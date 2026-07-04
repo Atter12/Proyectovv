@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
-import type { DashboardMetrics } from "@/mocks/dashboard.mock";
+import type { DashboardMetrics } from "@/types/dashboard";
 
 interface MetricsGridProps {
   metrics: DashboardMetrics;

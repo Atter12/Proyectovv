@@ -7,6 +7,7 @@ interface OnboardingStep {
   step: number;
   title: string;
   description: string;
+  completed?: boolean;
 }
 
 interface OnboardingStepsCardProps {
@@ -39,7 +40,7 @@ function StepIcon({ step }: { step: number }) {
 }
 
 export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
-  const completed = 0;
+  const completed = steps.filter((step) => step.completed).length;
   const total = steps.length;
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
@@ -81,8 +82,14 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
                   </span>
                   <p className="text-sm font-semibold text-[#0f172a]">{step.title}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-                  Pendiente
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    step.completed
+                      ? "bg-green-50 text-green-700"
+                      : "bg-amber-50 text-amber-600"
+                  }`}
+                >
+                  {step.completed ? "Completado" : "Pendiente"}
                 </span>
               </div>
               <p className="mt-1.5 pl-9 text-sm text-[#64748b]">{step.description}</p>

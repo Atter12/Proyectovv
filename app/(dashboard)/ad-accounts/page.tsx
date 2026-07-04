@@ -7,7 +7,7 @@ import { AdAccountsToolbar } from "@/features/ad-accounts/components/AdAccountsT
 import { requirePermission } from "@/lib/auth/guards.server";
 import { filterAdAccounts } from "@/lib/filter/ad-accounts";
 import { getSearchParam } from "@/lib/search-params";
-import { getAdAccountsOverview } from "@/services/ad-accounts.mock.service";
+import { getAdAccountsOverview } from "@/services/ad-accounts.service";
 import { Suspense } from "react";
 
 interface AdAccountsPageProps {
@@ -15,11 +15,11 @@ interface AdAccountsPageProps {
 }
 
 export default async function AdAccountsPage({ searchParams }: AdAccountsPageProps) {
-  await requirePermission("adAccounts:read");
+  const session = await requirePermission("adAccounts:read");
   const params = await searchParams;
   const search = getSearchParam(params, "q");
   const status = getSearchParam(params, "status", "all");
-  const data = await getAdAccountsOverview();
+  const data = await getAdAccountsOverview(session);
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
 
   return (

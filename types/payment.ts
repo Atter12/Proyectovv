@@ -1,9 +1,9 @@
+/** Proveedores reales alineados al enum payment_provider de Supabase. */
 export type PaymentGatewayId =
   | "stripe"
-  | "paypal"
-  | "payoneer"
-  | "usdt"
-  | "airwallex";
+  | "culqi"
+  | "mercadopago"
+  | "manual";
 
 export type PaymentTabKey =
   | "assignment"
@@ -20,6 +20,7 @@ export interface PaymentGateway {
 export interface WalletOverview {
   name: string;
   balance: number;
+  reservedBalance?: number;
   currency: string;
   lastTopUp: string | null;
   preferredGateway: PaymentGatewayId;
@@ -55,4 +56,15 @@ export interface PaymentOverview {
   accountTransactions: TransactionHistoryItem[];
   walletTransactions: TransactionHistoryItem[];
   refunds: TransactionHistoryItem[];
+}
+
+export const PAYMENT_GATEWAY_IDS: PaymentGatewayId[] = [
+  "stripe",
+  "culqi",
+  "mercadopago",
+  "manual",
+];
+
+export function isPaymentGatewayId(value: string): value is PaymentGatewayId {
+  return PAYMENT_GATEWAY_IDS.includes(value as PaymentGatewayId);
 }

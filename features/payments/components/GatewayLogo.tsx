@@ -16,24 +16,18 @@ const GATEWAY_LOGOS: Record<PaymentGatewayId, GatewayLogoConfig> = {
     fallback: "S",
     brandColor: "#635BFF",
   },
-  paypal: {
-    cdnUrl: "https://cdn.simpleicons.org/paypal/00457C",
-    fallback: "P",
-    brandColor: "#00457C",
+  culqi: {
+    fallback: "C",
+    brandColor: "#00A19A",
   },
-  payoneer: {
-    cdnUrl: "https://cdn.simpleicons.org/payoneer/FF4800",
-    fallback: "Po",
-    brandColor: "#FF4800",
+  mercadopago: {
+    cdnUrl: "https://cdn.simpleicons.org/mercadopago/00B1EA",
+    fallback: "MP",
+    brandColor: "#00B1EA",
   },
-  usdt: {
-    cdnUrl: "https://cdn.simpleicons.org/tether/26A17B",
-    fallback: "₮",
-    brandColor: "#26A17B",
-  },
-  airwallex: {
-    fallback: "A",
-    brandColor: "#612FFF",
+  manual: {
+    fallback: "M",
+    brandColor: "#64748B",
   },
 };
 

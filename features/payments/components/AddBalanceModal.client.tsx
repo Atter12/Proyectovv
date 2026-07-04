@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { formatMoney } from "@/lib/format-money";
+import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { PaymentGatewayId } from "@/types/payment";
 
 interface AddBalanceModalProps {
@@ -12,12 +14,22 @@ interface AddBalanceModalProps {
   selectedGateway?: PaymentGatewayId;
 }
 
+interface CreateIntentResponse {
+  ok: boolean;
+  paymentIntent: {
+    paymentIntentId: string;
+    status: string;
+    checkoutUrl: string | null;
+    providerConfigured: boolean;
+    message?: string;
+  };
+}
+
 const gatewayLabels: Record<PaymentGatewayId, string> = {
   stripe: "Stripe",
-  paypal: "PayPal",
-  payoneer: "Payoneer",
-  usdt: "USDT",
-  airwallex: "Airwallex",
+  culqi: "Culqi",
+  mercadopago: "Mercado Pago",
+  manual: "Pago manual",
 };
 
 const MIN_AMOUNT = 1;
@@ -28,9 +40,12 @@ export function AddBalanceModal({
   onClose,
   selectedGateway = "stripe",
 }: AddBalanceModalProps) {
+  const router = useRouter();
   const [amount, setAmount] = useState("");
-  const [step, setStep] = useState<"form" | "confirm">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "result">("form");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -44,6 +59,8 @@ export function AddBalanceModal({
     setStep("form");
     setAmount("");
     setError(null);
+    setResultMessage(null);
+    setLoading(false);
     onClose();
   }
 
@@ -58,8 +75,42 @@ export function AddBalanceModal({
     setStep("confirm");
   }
 
-  function handleConfirm() {
-    handleClose();
+  async function handleConfirm() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await apiClient<CreateIntentResponse>("/api/payments/intents", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: parsedAmount,
+          currency: "USD",
+          provider: selectedGateway,
+        }),
+      });
+
+      if (data.paymentIntent.checkoutUrl) {
+        window.location.assign(data.paymentIntent.checkoutUrl);
+        return;
+      }
+
+      setResultMessage(
+        data.paymentIntent.message ??
+          (data.paymentIntent.providerConfigured
+            ? "Intención de pago creada. Te avisaremos cuando se confirme el depósito."
+            : "La pasarela aún no está configurada. Se registró una intención pendiente."),
+      );
+      setStep("result");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo crear la intención de pago.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -79,7 +130,7 @@ export function AddBalanceModal({
           <>
             <h2 className="text-lg font-semibold text-[#0f172a]">Agregar saldo</h2>
             <p className="mt-1 text-sm text-[#64748b]">
-              Vista mock — el monto no se procesa ni guarda.
+              Recarga tu cartera mediante la pasarela seleccionada.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -114,25 +165,25 @@ export function AddBalanceModal({
               </div>
             </div>
 
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={handleClose} className="h-11 w-full sm:w-auto">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleContinueToConfirm}
-            className="h-11 w-full bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto"
-          >
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={handleClose} className="h-11 w-full sm:w-auto">
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleContinueToConfirm}
+                className="h-11 w-full bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto"
+              >
                 Continuar
               </Button>
             </div>
           </>
-        ) : (
+        ) : step === "confirm" ? (
           <>
             <h2 className="text-lg font-semibold text-[#0f172a]">
-              Confirmar depósito mock
+              Confirmar depósito
             </h2>
             <p className="mt-1 text-sm text-[#64748b]">
-              Esta acción no procesará un pago real.
+              Se creará una intención de pago real en tu organización.
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm">
               <div>
@@ -148,15 +199,33 @@ export function AddBalanceModal({
                 </dd>
               </div>
             </dl>
+            {error && (
+              <p className="mt-3 text-xs text-red-600" role="alert">
+                {error}
+              </p>
+            )}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={() => setStep("form")}>
+              <Button variant="outline" onClick={() => setStep("form")} disabled={loading}>
                 Volver
               </Button>
               <Button
                 onClick={handleConfirm}
+                disabled={loading}
                 className="bg-[#4056ff] hover:bg-[#4056ff]/90"
               >
-                Confirmar depósito mock
+                {loading ? "Procesando…" : "Confirmar depósito"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold text-[#0f172a]">
+              Intención registrada
+            </h2>
+            <p className="mt-3 text-sm text-[#64748b]">{resultMessage}</p>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={handleClose} className="bg-[#4056ff] hover:bg-[#4056ff]/90">
+                Cerrar
               </Button>
             </div>
           </>

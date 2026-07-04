@@ -1,38 +1,70 @@
 import type { Permission, UserRole } from "@/types/auth";
 
 const ALL_PERMISSIONS: Permission[] = [
+  "dashboard:read",
   "wallet:read",
   "wallet:deposit",
   "payments:read",
+  "payments:create",
   "adAccounts:read",
   "adAccounts:create",
+  "campaigns:read",
+  "campaigns:create",
   "affiliates:read",
   "creativeAnalyzer:read",
+  "creativeAnalyzer:create",
+  "support:read",
+  "support:create",
+  "notifications:read",
+  "settings:read",
+  "settings:update",
 ];
 
 const READ_PERMISSIONS: Permission[] = [
+  "dashboard:read",
   "wallet:read",
   "payments:read",
   "adAccounts:read",
+  "campaigns:read",
   "affiliates:read",
   "creativeAnalyzer:read",
+  "support:read",
+  "notifications:read",
+  "settings:read",
 ];
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   owner: ALL_PERMISSIONS,
   admin: ALL_PERMISSIONS,
   advertiser: [
+    "dashboard:read",
     "wallet:read",
     "wallet:deposit",
     "payments:read",
+    "payments:create",
     "adAccounts:read",
     "adAccounts:create",
+    "campaigns:read",
     "affiliates:read",
     "creativeAnalyzer:read",
+    "creativeAnalyzer:create",
+    "support:read",
+    "support:create",
+    "notifications:read",
+    "settings:read",
   ],
-  finance: ["wallet:read", "wallet:deposit", "payments:read"],
+  finance: [
+    "dashboard:read",
+    "wallet:read",
+    "wallet:deposit",
+    "payments:read",
+    "payments:create",
+    "support:read",
+    "notifications:read",
+    "settings:read",
+  ],
   viewer: READ_PERMISSIONS,
-  support: READ_PERMISSIONS,
+  support: [...READ_PERMISSIONS, "support:create"],
 };
 
 export function getPermissionsForRole(role: UserRole): Permission[] {

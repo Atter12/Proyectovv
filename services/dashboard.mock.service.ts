@@ -1,5 +1,4 @@
-import { dashboardMock } from "@/mocks/dashboard.mock";
-
-export async function getDashboardOverview() {
-  return dashboardMock;
-}
+/**
+ * @deprecated Usar `services/dashboard.service.ts` con sesión server-side.
+ */
+export { dashboardMock as getDashboardOverview } from "@/mocks/dashboard.mock";

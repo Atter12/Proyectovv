@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
-import { onboardingMock } from "@/features/onboarding/mocks/onboarding.mock";
+import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { OnboardingProgressCard } from "@/features/onboarding/components/OnboardingProgressCard";
-import type { OnboardingStep, OnboardingWidgetState } from "@/features/onboarding/types/onboarding.types";
+import type {
+  OnboardingStep,
+  OnboardingWidgetState,
+} from "@/features/onboarding/types/onboarding.types";
+
+interface OnboardingStatusResponse {
+  ok: boolean;
+  steps: OnboardingStep[];
+  totalSteps: number;
+  completedSteps: number;
+}
 
 interface OnboardingProgressWidgetProps {
   chatOpen: boolean;
@@ -12,17 +22,51 @@ interface OnboardingProgressWidgetProps {
 
 export function OnboardingProgressWidget({ chatOpen }: OnboardingProgressWidgetProps) {
   const [widgetState, setWidgetState] = useState<OnboardingWidgetState>("collapsed");
-  const [steps, setSteps] = useState<OnboardingStep[]>(onboardingMock.steps);
+  const [steps, setSteps] = useState<OnboardingStep[]>([]);
+  const [totalSteps, setTotalSteps] = useState(3);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStatus() {
+      try {
+        const data = await apiClient<OnboardingStatusResponse>("/api/onboarding/status");
+        if (!cancelled) {
+          setSteps(data.steps);
+          setTotalSteps(data.totalSteps);
+        }
+      } catch {
+        if (!cancelled) setSteps([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const completedSteps = steps.filter((s) => s.completed).length;
-  const totalSteps = onboardingMock.totalSteps;
 
-  function handleToggleStep(stepId: string) {
-    setSteps((prev) =>
-      prev.map((step) =>
-        step.id === stepId ? { ...step, completed: !step.completed } : step,
-      ),
-    );
+  async function handleToggleStep(stepId: string) {
+    const step = steps.find((item) => item.id === stepId);
+    if (!step || step.completed) return;
+
+    try {
+      const data = await apiClient<OnboardingStatusResponse>(
+        `/api/onboarding/steps/${stepId}/complete`,
+        { method: "POST" },
+      );
+      setSteps(data.steps);
+      setTotalSteps(data.totalSteps);
+    } catch (error) {
+      if (error instanceof ApiClientError) return;
+    }
+  }
+
+  if (loading || steps.length === 0) {
+    return null;
   }
 
   if (widgetState === "closed") {

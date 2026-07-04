@@ -5,11 +5,11 @@ import { MetricsGrid } from "@/features/dashboard/components/MetricsGrid";
 import { OnboardingStepsCard } from "@/features/dashboard/components/OnboardingStepsCard";
 import { AdAccountsOverviewTable } from "@/features/dashboard/components/AdAccountsOverviewTable";
 import { requireSession } from "@/lib/auth/guards.server";
-import { getDashboardOverview } from "@/services/dashboard.mock.service";
+import { getDashboardOverview } from "@/services/dashboard.service";
 
 export default async function OverviewPage() {
-  await requireSession();
-  const data = await getDashboardOverview();
+  const session = await requireSession();
+  const data = await getDashboardOverview(session);
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">

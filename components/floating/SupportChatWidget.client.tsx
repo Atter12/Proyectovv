@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { supportMock } from "@/features/support/mocks/support.mock";
 import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
 import { ChatHome } from "@/features/support/components/ChatHome";
@@ -16,6 +17,16 @@ interface SupportChatWidgetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface CreateTicketResponse {
+  ok: boolean;
+  ticketId: string;
+}
+
+interface PostMessageResponse {
+  ok: boolean;
+  message: ChatMessage;
+}
+
 export function SupportChatWidget({
   isOpen,
   onToggle,
@@ -26,6 +37,8 @@ export function SupportChatWidget({
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(supportMock.initialMessages);
   const [inputValue, setInputValue] = useState("");
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   const selectedCategory = supportMock.categories.find(
     (c) => c.id === selectedCategoryId,
@@ -53,19 +66,48 @@ export function SupportChatWidget({
     }
   }
 
-  function handleSend() {
+  async function handleSend() {
     const text = inputValue.trim();
-    if (!text) return;
+    if (!text || sending) return;
 
-    const userMessage: ChatMessage = {
+    setSending(true);
+    setInputValue("");
+
+    const optimistic: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
       text,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
+    setMessages((prev) => [...prev, optimistic]);
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
+    try {
+      if (!ticketId) {
+        const data = await apiClient<CreateTicketResponse>("/api/support/tickets", {
+          method: "POST",
+          body: JSON.stringify({ message: text }),
+        });
+        setTicketId(data.ticketId);
+      } else {
+        const data = await apiClient<PostMessageResponse>(
+          `/api/support/tickets/${ticketId}/messages`,
+          {
+            method: "POST",
+            body: JSON.stringify({ message: text }),
+          },
+        );
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
+        );
+      }
+    } catch (error) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
+      if (error instanceof ApiClientError) {
+        setInputValue(text);
+      }
+    } finally {
+      setSending(false);
+    }
   }
 
   function renderContent() {
