@@ -14,6 +14,7 @@ export const authRoutes = [
   routes.login,
   routes.register,
   routes.verifyOtp,
+  routes.accountSetup,
 ] as const;
 
 /** Rutas públicas de auth donde un usuario ya verificado no debe entrar. */
@@ -41,5 +42,12 @@ export function isVerifyOtpPath(pathname: string): boolean {
   return (
     pathname === routes.verifyOtp ||
     pathname.startsWith(`${routes.verifyOtp}/`)
+  );
+}
+
+export function isAccountSetupPath(pathname: string): boolean {
+  return (
+    pathname === routes.accountSetup ||
+    pathname.startsWith(`${routes.accountSetup}/`)
   );
 }

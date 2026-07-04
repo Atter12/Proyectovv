@@ -3,6 +3,7 @@ export const routes = {
   login: "/login",
   register: "/register",
   verifyOtp: "/verify-otp",
+  accountSetup: "/account-setup",
   overview: "/overview",
   adAccounts: "/ad-accounts",
   payments: "/payments",

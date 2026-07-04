@@ -90,7 +90,7 @@ export async function requireVerifiedSession(): Promise<SessionUser> {
   }
 
   if (session.profileStatus !== "active" || !session.organizationId) {
-    redirect(routes.login);
+    redirect(routes.accountSetup);
   }
 
   return session;
