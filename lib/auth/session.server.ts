@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { getPermissionsForRole } from "@/lib/auth/permissions";
@@ -26,7 +27,7 @@ function getUserMetadataValue(
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+export const getSession = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,9 +39,7 @@ export async function getSession(): Promise<SessionUser | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      "id, email, full_name, avatar_url, phone, status, email_verified, onboarding_status, last_active_at, created_at, updated_at",
-    )
+    .select("id, email, full_name, status, email_verified, onboarding_status")
     .eq("id", user.id)
     .maybeSingle<ProfileRow>();
 
@@ -53,7 +52,7 @@ export async function getSession(): Promise<SessionUser | null> {
   const { data: membership } = await supabase
     .from("organization_memberships")
     .select(
-      "id, organization_id, user_id, role, status, invited_by, created_at, updated_at, organizations(id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at)",
+      "id, organization_id, user_id, role, status, organizations(id, name)",
     )
     .eq("user_id", user.id)
     .eq("status", "active")
@@ -77,7 +76,7 @@ export async function getSession(): Promise<SessionUser | null> {
     emailConfirmed,
     profileStatus: profile?.status ?? "email_pending",
   };
-}
+});
 
 export async function getAuthUser() {
   const supabase = await createClient();
@@ -87,7 +86,7 @@ export async function getAuthUser() {
   return user;
 }
 
-export async function requireVerifiedSession(): Promise<SessionUser> {
+export const requireVerifiedSession = cache(async (): Promise<SessionUser> => {
   const session = await getSession();
   if (!session) {
     redirect(routes.login);
@@ -103,4 +102,4 @@ export async function requireVerifiedSession(): Promise<SessionUser> {
   }
 
   return session;
-}
+});

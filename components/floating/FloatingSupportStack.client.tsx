@@ -3,11 +3,16 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { supportMock } from "@/features/support/mocks/support.mock";
+import type { OnboardingProgress } from "@/features/onboarding/types/onboarding.types";
 import { WhatsAppFloatingButton } from "./WhatsAppFloatingButton.client";
 import { SupportChatWidget } from "./SupportChatWidget.client";
 import { OnboardingProgressWidget } from "./OnboardingProgressWidget.client";
 
-export function FloatingSupportStack() {
+interface FloatingSupportStackProps {
+  onboarding: OnboardingProgress;
+}
+
+export function FloatingSupportStack({ onboarding }: FloatingSupportStackProps) {
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
@@ -17,7 +22,7 @@ export function FloatingSupportStack() {
       )}
     >
       <div className="pointer-events-auto flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:max-w-none sm:gap-3">
-        <OnboardingProgressWidget chatOpen={chatOpen} />
+        <OnboardingProgressWidget chatOpen={chatOpen} initialProgress={onboarding} />
 
         <div className="flex flex-row items-end justify-end gap-2 sm:flex-col sm:gap-3">
           <WhatsAppFloatingButton url={supportMock.whatsappUrl} />

@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { DashboardSidebar } from "./DashboardSidebar.client";
+import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
 import { cn } from "@/lib/cn";
+import type { OnboardingProgress } from "@/features/onboarding/types/onboarding.types";
 import type { User } from "@/types/user";
 import type { Wallet } from "@/types/wallet";
 
@@ -16,13 +17,19 @@ const FloatingSupportStack = dynamic(
   { ssr: false },
 );
 
-interface DashboardShellProps {
+interface DashboardLayoutChromeProps {
   children: React.ReactNode;
   user: User;
   wallet: Wallet;
+  onboarding: OnboardingProgress;
 }
 
-export function DashboardShell({ children, user, wallet }: DashboardShellProps) {
+export function DashboardLayoutChrome({
+  children,
+  user,
+  wallet,
+  onboarding,
+}: DashboardLayoutChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -39,14 +46,7 @@ export function DashboardShell({ children, user, wallet }: DashboardShellProps) 
   }, [sidebarOpen]);
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden bg-[#f5f7fb]">
-      <div className="hidden lg:block">
-        <DashboardSidebar
-          wallet={wallet}
-          className="fixed inset-y-0 left-0 z-30 h-full w-64"
-        />
-      </div>
-
+    <>
       {sidebarOpen && (
         <button
           type="button"
@@ -67,13 +67,23 @@ export function DashboardShell({ children, user, wallet }: DashboardShellProps) 
         aria-modal={sidebarOpen}
         aria-hidden={!sidebarOpen}
       >
-        <DashboardSidebar
-          wallet={wallet}
-          onNavigate={() => setSidebarOpen(false)}
-          onClose={() => setSidebarOpen(false)}
-          isMobileDrawer
-          className="h-full w-full shadow-2xl"
-        />
+        <div className="relative h-full shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Cerrar menú"
+            className="absolute right-2 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <DashboardMobileSidebar
+            wallet={wallet}
+            onNavigate={() => setSidebarOpen(false)}
+            className="h-full w-full"
+          />
+        </div>
       </div>
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
@@ -87,7 +97,7 @@ export function DashboardShell({ children, user, wallet }: DashboardShellProps) 
         </main>
       </div>
 
-      <FloatingSupportStack />
-    </div>
+      <FloatingSupportStack onboarding={onboarding} />
+    </>
   );
 }

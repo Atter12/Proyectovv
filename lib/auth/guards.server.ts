@@ -41,5 +41,4 @@ export async function requireCompanyAccess(
   return session;
 }
 
-/** Sesión parcial (p. ej. usuario autenticado pero sin verificar email). */
 export { getSession };

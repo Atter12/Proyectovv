@@ -139,3 +139,15 @@ export interface DbOrganizationWalletSummaryRow {
   last_deposit_at: string | null;
   pending_payment_intents: number;
 }
+
+export interface DbPaymentsPageSummaryRow extends DbOrganizationWalletSummaryRow {
+  pending_refunds: number;
+  accounts_ready_for_allocation: number;
+}
+
+export interface DbOrganizationDashboardCountsRow {
+  organization_id: string;
+  total_ad_accounts: number;
+  total_campaigns: number;
+  active_ad_accounts: number;
+}

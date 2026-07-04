@@ -1,54 +1,18 @@
 import { Card } from "@/components/ui/Card";
 import { PaymentsGatewayBlock } from "@/features/payments/components/PaymentsGatewayBlock.client";
 import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
-import { PaymentsTabContent } from "@/features/payments/components/PaymentsTabContent";
-import { PaymentsTabNav } from "@/features/payments/components/PaymentsTabNav.client";
+import { PaymentsTabsBlock } from "@/features/payments/components/PaymentsTabsBlock.client";
 import { WalletSummaryPremium } from "@/features/payments/components/WalletSummaryPremium.client";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
-import { getSearchParam } from "@/lib/search-params";
 import { getPaymentOverview } from "@/services/payments.service";
-import type { PaymentGatewayId, PaymentTabKey } from "@/types/payment";
-import { Suspense } from "react";
 
-const VALID_TABS: PaymentTabKey[] = [
-  "assignment",
-  "account-tx",
-  "wallet-tx",
-  "refunds",
-];
-
-interface PaymentsPageProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
+export default async function PaymentsPage() {
   const session = await requirePermission("payments:read");
-  const params = await searchParams;
   const data = await getPaymentOverview(session);
-
-  const tabParam = getSearchParam(params, "tab", "assignment");
-  const tab: PaymentTabKey = VALID_TABS.includes(tabParam as PaymentTabKey)
-    ? (tabParam as PaymentTabKey)
-    : "assignment";
-
-  const search = getSearchParam(params, "q");
-  const status = getSearchParam(params, "status", "all");
-
-  const gatewayParam = getSearchParam(params, "gateway");
-  const selectedGateway: PaymentGatewayId =
-    data.gateways.some((g) => g.id === gatewayParam)
-      ? (gatewayParam as PaymentGatewayId)
-      : data.selectedGateway;
 
   const preferredGateway =
     data.gateways.find((g) => g.id === data.wallet.preferredGateway) ??
     data.gateways[0];
-
-  const filteredAccounts = filterPaymentAccounts(data.adAccountsForAllocation, {
-    search,
-    status,
-  });
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
@@ -62,22 +26,13 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
 
         <PaymentsGatewayBlock
           gateways={data.gateways}
-          initialSelected={selectedGateway}
+          initialSelected={data.selectedGateway}
           wallet={data.wallet}
           summary={data.summary}
         />
 
         <Card padding="none" className="min-w-0 overflow-hidden">
-          <Suspense fallback={null}>
-            <PaymentsTabNav activeTab={tab} />
-          </Suspense>
-          <PaymentsTabContent
-            data={data}
-            tab={tab}
-            filteredAccounts={filteredAccounts}
-            initialSearch={search}
-            initialStatus={status}
-          />
+          <PaymentsTabsBlock data={data} />
         </Card>
       </div>
     </div>

@@ -6,10 +6,12 @@ import type { SessionUser } from "@/types/auth";
 import type {
   DbAdAccountRow,
   DbAdAccountBalanceRow,
+  DbOrganizationDashboardCountsRow,
   DbReferralRow,
 } from "@/types/database";
 import type { DashboardOverview, DashboardOnboardingStep } from "@/types/dashboard";
 import type { AdAccount } from "@/types/ad-account";
+import { getOnboardingStatus } from "@/services/onboarding.service";
 
 const DEFAULT_ONBOARDING: Omit<DashboardOnboardingStep, "completed">[] = [
   {
@@ -75,9 +77,9 @@ export async function getDashboardOverview(
     balancesRes,
     referralsRes,
     perfRes,
-    campaignsRes,
+    dashboardCountsRes,
     todayMetricsRes,
-    onboardingRes,
+    onboardingProgress,
   ] = await Promise.all([
     supabase
       .from("ad_accounts")
@@ -103,19 +105,16 @@ export async function getDashboardOverview(
       .eq("organization_id", organizationId)
       .maybeSingle<CampaignPerformanceRow>(),
     supabase
-      .from("campaigns")
-      .select("id, status", { count: "exact" })
-      .eq("organization_id", organizationId),
+      .from("v_organization_dashboard_counts")
+      .select("organization_id, total_ad_accounts, total_campaigns, active_ad_accounts")
+      .eq("organization_id", organizationId)
+      .maybeSingle<DbOrganizationDashboardCountsRow>(),
     supabase
       .from("ad_account_daily_metrics")
       .select("spend_cents")
       .eq("organization_id", organizationId)
       .eq("metric_date", todayDate),
-    supabase
-      .from("organization_onboarding_steps")
-      .select("step_key, title, description, sort_order, completed_at")
-      .eq("organization_id", organizationId)
-      .order("sort_order", { ascending: true }),
+    getOnboardingStatus(session),
   ]);
 
   let perf = perfRes.data;
@@ -183,17 +182,15 @@ export async function getDashboardOverview(
       0,
     ) / 100;
 
-  const hasAdAccount = accountRows.length > 0;
-  const hasDeposit = wallet.balance > 0;
-  const hasAllocation = accountRows.some(
-    (account) => (balanceByAccount.get(account.id) ?? 0) > 0,
-  );
-
-  const onboardingSteps = buildOnboardingSteps(onboardingRes.data ?? [], {
-    hasAdAccount,
-    hasDeposit,
-    hasAllocation,
+  const onboardingSteps = mapOnboardingProgressToSteps(onboardingProgress, {
+    hasAdAccount: accountRows.length > 0,
+    hasDeposit: wallet.balance > 0,
+    hasAllocation: accountRows.some(
+      (account) => (balanceByAccount.get(account.id) ?? 0) > 0,
+    ),
   });
+
+  const dashboardCounts = dashboardCountsRes.data;
 
   return {
     wallet,
@@ -201,17 +198,38 @@ export async function getDashboardOverview(
       todaySpend: centsToAmount(todaySpend),
       referralEarnings,
       referralMembers: referralRows.length,
-      totalAdAccounts: accountRows.length,
+      totalAdAccounts:
+        dashboardCounts?.total_ad_accounts ?? accountRows.length,
       spend30d: centsToAmount(Number(perf?.spend_cents ?? 0)),
       impressions30d: Number(perf?.impressions ?? 0),
       clicks30d: Number(perf?.clicks ?? 0),
       conversions30d: Number(perf?.conversions ?? 0),
       revenue30d: centsToAmount(Number(perf?.revenue_cents ?? 0)),
-      totalCampaigns: campaignsRes.count ?? 0,
+      totalCampaigns: dashboardCounts?.total_campaigns ?? 0,
     },
     adAccounts,
     onboardingSteps,
   };
+}
+
+function mapOnboardingProgressToSteps(
+  progress: Awaited<ReturnType<typeof getOnboardingStatus>>,
+  fallback: {
+    hasAdAccount: boolean;
+    hasDeposit: boolean;
+    hasAllocation: boolean;
+  },
+): DashboardOnboardingStep[] {
+  if (progress.steps.length === 0) {
+    return buildOnboardingSteps([], fallback);
+  }
+
+  return progress.steps.map((step, index) => ({
+    step: index + 1,
+    title: step.label,
+    description: "",
+    completed: step.completed,
+  }));
 }
 
 function buildOnboardingSteps(

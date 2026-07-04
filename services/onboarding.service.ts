@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionUser } from "@/types/auth";
 import type {
@@ -33,9 +34,9 @@ const DEFAULT_STEPS: Array<{
   },
 ];
 
-export async function getOnboardingStatus(
+export const getOnboardingStatus = cache(async (
   session: SessionUser,
-): Promise<OnboardingProgress> {
+): Promise<OnboardingProgress> => {
   if (!session.organizationId) {
     return { ...onboardingMock, completedSteps: 0 };
   }
@@ -64,7 +65,7 @@ export async function getOnboardingStatus(
     totalSteps: steps.length,
     completedSteps,
   };
-}
+});
 
 export async function completeOnboardingStep(
   session: SessionUser,

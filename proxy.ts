@@ -16,8 +16,14 @@ export async function proxy(request: NextRequest) {
 
   const isAuthenticated = Boolean(user);
   const isEmailConfirmed = Boolean(user?.email_confirmed_at);
+
+  const needsDashboardAccessCheck =
+    isGuestOnlyPath(pathname) ||
+    isVerifyOtpPath(pathname) ||
+    isAccountSetupPath(pathname);
+
   const canAccessDashboard =
-    isAuthenticated && user
+    needsDashboardAccessCheck && isAuthenticated && user
       ? await userCanAccessDashboard(supabase, user.id)
       : false;
 
@@ -37,13 +43,6 @@ export async function proxy(request: NextRequest) {
         verifyUrl.searchParams.set("email", user.email);
       }
       return NextResponse.redirect(verifyUrl);
-    }
-
-    if (!canAccessDashboard) {
-      const setupUrl = request.nextUrl.clone();
-      setupUrl.pathname = routes.accountSetup;
-      setupUrl.search = "";
-      return NextResponse.redirect(setupUrl);
     }
   }
 

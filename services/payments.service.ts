@@ -9,7 +9,7 @@ import type { SessionUser } from "@/types/auth";
 import type {
   DbAdAccountRow,
   DbAdAccountBalanceRow,
-  DbOrganizationWalletSummaryRow,
+  DbPaymentsPageSummaryRow,
   DbWalletTransactionRow,
 } from "@/types/database";
 import type {
@@ -17,6 +17,8 @@ import type {
   PaymentOverview,
   TransactionHistoryItem,
 } from "@/types/payment";
+
+const TRANSACTION_PAGE_SIZE = 25;
 
 export async function getPaymentOverview(
   session: SessionUser,
@@ -28,33 +30,55 @@ export async function getPaymentOverview(
 
   const supabase = await createClient();
 
-  const [walletSummaryRes, walletTx, adAccounts, adBalances] = await Promise.all([
-    supabase
-      .from("v_organization_wallet_summary")
-      .select("*")
-      .eq("organization_id", organizationId)
-      .maybeSingle<DbOrganizationWalletSummaryRow>(),
-    supabase
-      .from("wallet_transactions")
-      .select(
-        "id, wallet_id, organization_id, type, amount_cents, currency, status, balance_after_cents, description, external_reference, idempotency_key, created_at",
-      )
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("ad_accounts")
-      .select("id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at")
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("ad_account_balances")
-      .select("ad_account_id, organization_id, balance_cents, currency")
-      .eq("organization_id", organizationId),
-  ]);
+  const [pageSummaryRes, adAccounts, adBalances, allocationTx, walletTx, refundTx] =
+    await Promise.all([
+      supabase
+        .from("v_payments_page_summary")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .maybeSingle<DbPaymentsPageSummaryRow>(),
+      supabase
+        .from("ad_accounts")
+        .select(
+          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("ad_account_balances")
+        .select("ad_account_id, organization_id, balance_cents, currency")
+        .eq("organization_id", organizationId),
+      supabase
+        .from("wallet_transactions")
+        .select(
+          "id, wallet_id, organization_id, type, amount_cents, currency, status, balance_after_cents, description, external_reference, idempotency_key, created_at",
+        )
+        .eq("organization_id", organizationId)
+        .eq("type", "allocation")
+        .order("created_at", { ascending: false })
+        .limit(TRANSACTION_PAGE_SIZE),
+      supabase
+        .from("wallet_transactions")
+        .select(
+          "id, wallet_id, organization_id, type, amount_cents, currency, status, balance_after_cents, description, external_reference, idempotency_key, created_at",
+        )
+        .eq("organization_id", organizationId)
+        .in("type", ["deposit", "withdrawal", "adjustment"])
+        .order("created_at", { ascending: false })
+        .limit(TRANSACTION_PAGE_SIZE),
+      supabase
+        .from("wallet_transactions")
+        .select(
+          "id, wallet_id, organization_id, type, amount_cents, currency, status, balance_after_cents, description, external_reference, idempotency_key, created_at",
+        )
+        .eq("organization_id", organizationId)
+        .eq("type", "refund")
+        .order("created_at", { ascending: false })
+        .limit(TRANSACTION_PAGE_SIZE),
+    ]);
 
-  let walletRow = walletSummaryRes.data;
-  if (walletSummaryRes.error || !walletRow) {
+  let pageSummary = pageSummaryRes.data;
+  if (pageSummaryRes.error || !pageSummary) {
     const { data: fallbackWallet } = await supabase
       .from("wallets")
       .select("id, organization_id, name, currency, balance_cents, status")
@@ -62,7 +86,7 @@ export async function getPaymentOverview(
       .eq("status", "active")
       .maybeSingle();
     if (fallbackWallet) {
-      walletRow = {
+      pageSummary = {
         organization_id: fallbackWallet.organization_id,
         wallet_id: fallbackWallet.id,
         name: fallbackWallet.name,
@@ -71,26 +95,27 @@ export async function getPaymentOverview(
         status: fallbackWallet.status,
         last_deposit_at: null,
         pending_payment_intents: 0,
+        pending_refunds: 0,
+        accounts_ready_for_allocation: 0,
       };
     }
   }
 
-  const txRows = (walletTx.data ?? []) as DbWalletTransactionRow[];
   const accountRows = (adAccounts.data ?? []) as DbAdAccountRow[];
   const balanceRows = (adBalances.data ?? []) as DbAdAccountBalanceRow[];
   const balanceByAccount = new Map(
     balanceRows.map((row) => [row.ad_account_id, row.balance_cents]),
   );
 
-  const walletTransactions = txRows
-    .filter((row) => row.type !== "refund")
-    .map(mapWalletTransactionRow);
-  const refunds = txRows
-    .filter((row) => row.type === "refund")
-    .map(mapWalletTransactionRow);
-  const accountTransactions = txRows
-    .filter((row) => row.type === "allocation")
-    .map(mapWalletTransactionRow);
+  const accountTransactions = ((allocationTx.data ?? []) as DbWalletTransactionRow[]).map(
+    mapWalletTransactionRow,
+  );
+  const walletTransactions = ((walletTx.data ?? []) as DbWalletTransactionRow[]).map(
+    mapWalletTransactionRow,
+  );
+  const refunds = ((refundTx.data ?? []) as DbWalletTransactionRow[]).map(
+    mapWalletTransactionRow,
+  );
 
   const adAccountsForAllocation: PaymentAccountAllocation[] = accountRows.map(
     (account) => ({
@@ -103,27 +128,19 @@ export async function getPaymentOverview(
     }),
   );
 
-  const pendingRefunds = txRows.filter(
-    (row) => row.type === "refund" && row.status === "pending",
-  ).length;
-
-  const accountsReadyForAllocation = adAccountsForAllocation.filter(
-    (account) => account.status === "active" && account.balance <= 0,
-  ).length;
-
   const preferredGateway = getDefaultGatewayId();
 
   return {
     wallet: {
-      name: walletRow?.name ?? siteConfig.walletName,
-      balance: centsToAmount(walletRow?.balance_cents ?? 0),
-      currency: walletRow?.currency ?? "USD",
-      lastTopUp: walletRow?.last_deposit_at ?? null,
+      name: pageSummary?.name ?? siteConfig.walletName,
+      balance: centsToAmount(pageSummary?.balance_cents ?? 0),
+      currency: pageSummary?.currency ?? "USD",
+      lastTopUp: pageSummary?.last_deposit_at ?? null,
       preferredGateway,
     },
     summary: {
-      pendingRefunds,
-      accountsReadyForAllocation,
+      pendingRefunds: pageSummary?.pending_refunds ?? 0,
+      accountsReadyForAllocation: pageSummary?.accounts_ready_for_allocation ?? 0,
     },
     selectedGateway: preferredGateway,
     gateways: PAYMENT_GATEWAYS,

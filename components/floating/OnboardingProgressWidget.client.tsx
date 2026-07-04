@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { OnboardingProgressCard } from "@/features/onboarding/components/OnboardingProgressCard";
 import type {
+  OnboardingProgress,
   OnboardingStep,
   OnboardingWidgetState,
 } from "@/features/onboarding/types/onboarding.types";
@@ -18,36 +19,41 @@ interface OnboardingStatusResponse {
 
 interface OnboardingProgressWidgetProps {
   chatOpen: boolean;
+  initialProgress: OnboardingProgress;
 }
 
-export function OnboardingProgressWidget({ chatOpen }: OnboardingProgressWidgetProps) {
+export function OnboardingProgressWidget({
+  chatOpen,
+  initialProgress,
+}: OnboardingProgressWidgetProps) {
   const [widgetState, setWidgetState] = useState<OnboardingWidgetState>("collapsed");
-  const [steps, setSteps] = useState<OnboardingStep[]>([]);
-  const [totalSteps, setTotalSteps] = useState(3);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadStatus() {
-      try {
-        const data = await apiClient<OnboardingStatusResponse>("/api/onboarding/status");
-        if (!cancelled) {
-          setSteps(data.steps);
-          setTotalSteps(data.totalSteps);
-        }
-      } catch {
-        if (!cancelled) setSteps([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void loadStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [steps, setSteps] = useState<OnboardingStep[]>(initialProgress.steps);
+  const [totalSteps, setTotalSteps] = useState(initialProgress.totalSteps);
+  const [loadedExpanded, setLoadedExpanded] = useState(false);
 
   const completedSteps = steps.filter((s) => s.completed).length;
+
+  if (initialProgress.steps.length === 0) {
+    return null;
+  }
+
+  async function refreshStatus() {
+    try {
+      const data = await apiClient<OnboardingStatusResponse>("/api/onboarding/status");
+      setSteps(data.steps);
+      setTotalSteps(data.totalSteps);
+    } catch {
+      // Mantener datos del servidor si falla el refresh.
+    }
+  }
+
+  async function handleExpand() {
+    setWidgetState("expanded");
+    if (!loadedExpanded) {
+      setLoadedExpanded(true);
+      await refreshStatus();
+    }
+  }
 
   async function handleToggleStep(stepId: string) {
     const step = steps.find((item) => item.id === stepId);
@@ -63,10 +69,6 @@ export function OnboardingProgressWidget({ chatOpen }: OnboardingProgressWidgetP
     } catch (error) {
       if (error instanceof ApiClientError) return;
     }
-  }
-
-  if (loading || steps.length === 0) {
-    return null;
   }
 
   if (widgetState === "closed") {
@@ -92,7 +94,7 @@ export function OnboardingProgressWidget({ chatOpen }: OnboardingProgressWidgetP
     return (
       <button
         type="button"
-        onClick={() => setWidgetState("expanded")}
+        onClick={handleExpand}
         className={cn(
           "flex items-center gap-2 rounded-full bg-[#090b16] px-3 py-2 text-white shadow-xl shadow-black/30 ring-1 ring-white/10 transition-all duration-200 ease-out hover:ring-white/20",
           chatOpen && "-translate-x-2 sm:-translate-x-4",
