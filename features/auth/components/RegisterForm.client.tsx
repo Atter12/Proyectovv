@@ -63,28 +63,38 @@ export function RegisterForm() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const email = values.email.trim();
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password: values.password,
-      options: {
-        data: {
-          full_name: values.fullName.trim(),
-          organization_name: values.organizationName.trim(),
+    try {
+      const supabase = createClient();
+      const email = values.email.trim();
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName.trim(),
+            organization_name: values.organizationName.trim(),
+          },
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      router.push(`${routes.verifyOtp}?email=${encodeURIComponent(email)}`);
+      router.refresh();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "No se pudo conectar con Supabase. Revisa la configuración del servidor.";
+      setError(message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push(`${routes.verifyOtp}?email=${encodeURIComponent(email)}`);
-    router.refresh();
   }
 
   return (
