@@ -20,28 +20,45 @@ interface WalletResponse {
   wallet: Wallet;
 }
 
+async function fetchWallet(): Promise<Wallet> {
+  try {
+    const data = await apiClient<WalletResponse>(routes.api.wallet);
+    return data.wallet;
+  } catch {
+    return FALLBACK_WALLET;
+  }
+}
+
 export function useWallet() {
   const [wallet, setWallet] = useState<Wallet>(FALLBACK_WALLET);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    try {
-      const data = await apiClient<WalletResponse>(routes.api.wallet);
-      setWallet(data.wallet);
-    } catch {
-      setWallet(FALLBACK_WALLET);
-    } finally {
-      setLoading(false);
-    }
+    const nextWallet = await fetchWallet();
+    setWallet(nextWallet);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+
+    async function load(isInitial: boolean) {
+      const nextWallet = await fetchWallet();
+      if (cancelled) return;
+      setWallet(nextWallet);
+      if (isInitial) setLoading(false);
+    }
+
+    void load(true);
     const interval = setInterval(() => {
-      void refresh();
+      void load(false);
     }, WALLET_REFRESH_MS);
-    return () => clearInterval(interval);
-  }, [refresh]);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   return { wallet, loading, refresh };
 }

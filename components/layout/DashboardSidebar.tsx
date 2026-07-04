@@ -21,6 +21,7 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
       <div className="border-b border-[#e5e7eb] px-4 py-4">
         <Link
           href={routes.overview}
+          prefetch
           className="flex min-w-0 items-center gap-2.5"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-bold text-white shadow-sm shadow-indigo-500/20">

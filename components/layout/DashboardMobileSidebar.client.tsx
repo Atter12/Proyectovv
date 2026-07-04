@@ -26,6 +26,7 @@ export function DashboardMobileSidebar({
       <div className="border-b border-[#e5e7eb] px-4 py-4 pt-14">
         <Link
           href={routes.overview}
+          prefetch
           onClick={onNavigate}
           className="flex min-w-0 items-center gap-2.5"
         >

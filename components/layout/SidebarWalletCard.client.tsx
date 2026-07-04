@@ -38,6 +38,7 @@ export function SidebarWalletCard({
       </p>
       <Link
         href={routes.payments}
+        prefetch
         onClick={onNavigate}
         className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#4056ff] text-xs font-semibold text-white transition-all duration-200 hover:bg-[#4056ff]/90"
       >
