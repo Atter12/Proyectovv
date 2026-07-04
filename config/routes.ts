@@ -1,6 +1,8 @@
 export const routes = {
   home: "/",
   login: "/login",
+  register: "/register",
+  verifyOtp: "/verify-otp",
   overview: "/overview",
   adAccounts: "/ad-accounts",
   payments: "/payments",
@@ -8,7 +10,6 @@ export const routes = {
   creativeAnalyzer: "/creative-analyzer",
   api: {
     auth: {
-      login: "/api/auth/login",
       logout: "/api/auth/logout",
       session: "/api/auth/session",
     },

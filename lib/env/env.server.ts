@@ -1,20 +1,23 @@
-type AuthMode = "mock" | "oauth";
-
-function resolveSessionSecret(): string {
-  return (
-    process.env.SESSION_SECRET ??
-    "dev-mock-session-secret-change-in-production"
-  );
-}
-
-/**
- * Valida secretos obligatorios en runtime de producción (no durante next build).
- */
 export function assertProductionSecrets(): void {
   if (process.env.NODE_ENV !== "production") return;
-  if (!process.env.SESSION_SECRET) {
+
+  const missing: string[] = [];
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL) {
+    missing.push("NEXT_PUBLIC_SUPABASE_URL o SUPABASE_URL");
+  }
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    !process.env.SUPABASE_ANON_KEY
+  ) {
+    missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY o SUPABASE_ANON_KEY");
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  if (missing.length > 0) {
     throw new Error(
-      "[env] La variable SESSION_SECRET es obligatoria en producción.",
+      `[env] Variables obligatorias en producción: ${missing.join(", ")}`,
     );
   }
 }
@@ -22,19 +25,20 @@ export function assertProductionSecrets(): void {
 const isProduction = process.env.NODE_ENV === "production";
 
 export const serverEnv = {
-  /** mock = sesión simulada; oauth = Google OAuth (futuro). */
-  authMode: (process.env.AUTH_MODE ?? "mock") as AuthMode,
-
-  get sessionSecret(): string {
-    return resolveSessionSecret();
-  },
-
-  /** URL base del backend privado (futuro). */
+  supabaseUrl:
+    process.env.SUPABASE_URL ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    "",
+  supabaseAnonKey:
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    "",
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  directUrl: process.env.DIRECT_URL ?? "",
   apiBaseUrl: process.env.API_BASE_URL ?? "",
-
-  /** Clave de API del backend (futuro, solo servidor). */
   apiKey: process.env.API_KEY ?? "",
-
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction,
 } as const;

@@ -1,48 +1,75 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isAuthPath, isProtectedPath } from "@/config/auth";
+import {
+  isGuestOnlyPath,
+  isProtectedPath,
+  isVerifyOtpPath,
+} from "@/config/auth";
 import { routes } from "@/config/routes";
-import { verifySessionToken } from "@/lib/auth/session-token";
-
-const SESSION_COOKIE_NAME = "dm_session";
-
-function getSessionSecret(): string {
-  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
-    throw new Error("[middleware] SESSION_SECRET es obligatorio en producción.");
-  }
-  return (
-    process.env.SESSION_SECRET ??
-    "dev-mock-session-secret-change-in-production"
-  );
-}
+import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token
-    ? await verifySessionToken(token, getSessionSecret())
-    : null;
+  const { user, supabaseResponse } = await updateSession(request);
 
-  if (isProtectedPath(pathname) && !session) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = routes.login;
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+  const isAuthenticated = Boolean(user);
+  const isEmailConfirmed = Boolean(user?.email_confirmed_at);
+
+  if (isProtectedPath(pathname)) {
+    if (!isAuthenticated) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = routes.login;
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (!isEmailConfirmed) {
+      const verifyUrl = request.nextUrl.clone();
+      verifyUrl.pathname = routes.verifyOtp;
+      verifyUrl.search = "";
+      if (user?.email) {
+        verifyUrl.searchParams.set("email", user.email);
+      }
+      return NextResponse.redirect(verifyUrl);
+    }
   }
 
-  if (isAuthPath(pathname) && session) {
+  if (isGuestOnlyPath(pathname) && isAuthenticated && isEmailConfirmed) {
     const overviewUrl = request.nextUrl.clone();
     overviewUrl.pathname = routes.overview;
     overviewUrl.search = "";
     return NextResponse.redirect(overviewUrl);
   }
 
-  return NextResponse.next();
+  if (
+    isGuestOnlyPath(pathname) &&
+    isAuthenticated &&
+    !isEmailConfirmed
+  ) {
+    const verifyUrl = request.nextUrl.clone();
+    verifyUrl.pathname = routes.verifyOtp;
+    verifyUrl.search = "";
+    if (user?.email) {
+      verifyUrl.searchParams.set("email", user.email);
+    }
+    return NextResponse.redirect(verifyUrl);
+  }
+
+  if (isVerifyOtpPath(pathname) && isAuthenticated && isEmailConfirmed) {
+    const overviewUrl = request.nextUrl.clone();
+    overviewUrl.pathname = routes.overview;
+    overviewUrl.search = "";
+    return NextResponse.redirect(overviewUrl);
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
     "/login",
+    "/register",
+    "/verify-otp",
     "/overview/:path*",
     "/ad-accounts/:path*",
     "/payments/:path*",

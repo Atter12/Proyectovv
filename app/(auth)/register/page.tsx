@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LoginForm } from "@/features/auth/components/LoginForm.client";
+import { RegisterForm } from "@/features/auth/components/RegisterForm.client";
 import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
@@ -11,11 +11,11 @@ function AuthCardFallback() {
   );
 }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-slate-50 px-4 py-8 sm:px-6">
       <Suspense fallback={<AuthCardFallback />}>
-        <LoginForm />
+        <RegisterForm />
       </Suspense>
       <p className="mt-8 text-xs text-slate-400">
         © {new Date().getFullYear()} {siteConfig.companyName}

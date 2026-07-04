@@ -10,11 +10,15 @@ export async function GET() {
 
   return NextResponse.json({
     authenticated: true,
+    emailConfirmed: session.emailConfirmed,
+    profileStatus: session.profileStatus,
     user: {
       id: session.id,
       name: session.name,
       email: session.email,
       role: session.role,
+      organizationId: session.organizationId,
+      organizationName: session.organizationName,
     },
   });
 }

@@ -16,6 +16,7 @@ Documento de referencia actualizado para desarrollo con IA, onboarding de equipo
 | Protección de rutas | **Implementada** — `middleware.ts` + guards server-side |
 | Base de datos | No |
 | Modo | Mock visual completo, compilable, responsive y con controles de acceso |
+| Deploy | Vercel (`NEXT_PUBLIC_APP_URL` + `SESSION_SECRET` obligatorios en producción) |
 | Marca ficticia | **Default Media** |
 | Usuario mock | **Sandro Wong Mera** (`sandro.wong@defaultmedia.mock`) |
 | Rol mock | `advertiser` (todos los permisos del panel) |
@@ -73,7 +74,7 @@ Ver `.env.example`. Variables clave:
 | Variable | Ámbito | Descripción |
 |---|---|---|
 | `AUTH_MODE` | Server | `mock` (actual) \| `oauth` (futuro) |
-| `SESSION_SECRET` | Server | Firma de cookies — **obligatorio en producción** |
+| `SESSION_SECRET` | Server | Firma de cookies — **obligatorio en producción** (Vercel: Settings → Environment Variables + redeploy) |
 | `NEXT_PUBLIC_APP_URL` | Client | URL pública de la app |
 | `NEXT_PUBLIC_AUTH_MODE` | Client | Modo de auth visible al cliente |
 | `API_BASE_URL` | Server | Backend privado (futuro) |
@@ -132,6 +133,9 @@ description: "Panel publicitario — cartera, cuentas, pagos y afiliados"
 
 - **Server Components por defecto** en `page.tsx`, layouts y componentes visuales sin interacción.
 - **`"use client"`** solo donde hay estado, tabs, filtros, modales, clipboard, sidebar móvil o widgets flotantes.
+- **Composición server/client** — tablas, stats y contenido estático en `page.tsx` (server); toolbars y navegación en client mínimos. Filtros y tabs sincronizados vía **URL** (`searchParams`).
+- **Lazy load** — `dynamic(..., { ssr: false })` para `FloatingSupportStack` y modales pesados (`CreateAdAccountModal`, `AddBalanceModal`).
+- **Eventos de modal** — `lib/events/modal-events.ts` permite abrir modales desde Server Components sin callbacks server→client.
 - **Datos mock** en `mocks/` consumidos por `services/*.mock.service.ts` que devuelven `Promise` (listos para reemplazar por `fetch` server-side).
 - **BFF de auth** en `app/api/auth/*` — Client Components llaman `/api` interna, nunca al backend privado directo.
 - **Sesión mock real** — cookie `HttpOnly` firmada con HMAC-SHA256 (Web Crypto, compatible Edge).
@@ -151,12 +155,17 @@ features/<módulo>/      → Componentes de negocio por dominio
 lib/auth/               → Sesión, guards, permisos, token firmado
 lib/env/                → env.server.ts, env.client.ts
 lib/api/                → api-client.client.ts, api-client.server.ts
+lib/filter/             → Filtros server-side (ad-accounts, payment-accounts)
+lib/events/             → Eventos custom para modales (client)
+lib/search-params.ts    → Parser de searchParams en páginas server
 mocks/                  → Datos ficticios globales
 services/               → Capa async mock (simula API de negocio)
 types/                  → Contratos TypeScript (incl. auth.ts)
 config/                 → Site, rutas, navegación, auth
 lib/                    → cn, formatMoney, formatNumber
 ```
+
+> **Nota `cn()`:** concatena clases sin `tailwind-merge`. Evitar conflictos (ej. no mezclar `w-full` y `w-64` en el mismo componente).
 
 ### Separación de responsabilidades (seguridad)
 
@@ -190,9 +199,9 @@ app/
 └── (dashboard)/
     ├── layout.tsx             # requireSession() → DashboardShell(user, wallet)
     ├── overview/page.tsx      # requireSession()
-    ├── ad-accounts/page.tsx   # requirePermission("adAccounts:read")
-    ├── payments/page.tsx      # requirePermission("payments:read")
-    ├── affiliates/page.tsx    # requirePermission("affiliates:read")
+    ├── ad-accounts/page.tsx   # requirePermission + searchParams (?q, ?status)
+    ├── payments/page.tsx      # requirePermission + searchParams (?tab, ?q, ?status, ?gateway)
+    ├── affiliates/page.tsx    # requirePermission + searchParams (?tab)
     └── creative-analyzer/page.tsx  # requirePermission("creativeAnalyzer:read")
 ```
 
@@ -202,6 +211,7 @@ app/
 |---|---|
 | Pública | `/`, `/login` |
 | Privada (sesión) | `/overview`, `/ad-accounts`, `/payments`, `/affiliates`, `/creative-analyzer` |
+| Dinámicas (searchParams) | `/ad-accounts`, `/payments`, `/affiliates` |
 | API auth | `/api/auth/login`, `/api/auth/logout`, `/api/auth/session` |
 
 ---
@@ -213,7 +223,7 @@ app/
 ```
 1. Usuario en /login pulsa "Continuar con Google"
 2. LoginMockCard → POST /api/auth/login (credentials: include)
-3. API crea SessionPayload (usuario mock Sandro Wong Mera, rol advertiser)
+3. API valida `SESSION_SECRET` en producción (503 JSON si falta) y crea `SessionPayload`
 4. API firma token HMAC-SHA256 y setea cookie dm_session (HttpOnly, SameSite=Lax)
 5. Cliente redirige a /overview (o ?next= si venía de middleware)
 6. middleware.ts valida cookie en cada request al dashboard
@@ -275,7 +285,7 @@ requireCompanyAccess(companyId)
 | `lib/auth/mock-session.ts` | Payload mock desde `userMock` |
 | `lib/auth/guards.server.ts` | Guards server-side para páginas y API |
 | `lib/auth/permissions.ts` | Mapa rol → permisos |
-| `lib/env/env.server.ts` | Variables privadas + `assertProductionSecrets()` |
+| `lib/env/env.server.ts` | Variables privadas + `assertProductionSecrets()` (helper; login valida explícitamente) |
 | `lib/env/env.client.ts` | Variables públicas (`NEXT_PUBLIC_*`) |
 | `lib/api/api-client.client.ts` | Fetch a `/api` con `credentials: include` |
 | `lib/api/api-client.server.ts` | Stub HTTP al backend privado (futuro) |
@@ -301,15 +311,17 @@ requireCompanyAccess(companyId)
 ### `DashboardShell.client.tsx`
 
 - Recibe `user` y `wallet` como props.
-- Sidebar fijo desktop (`w-64`), drawer en móvil.
+- Sidebar fijo desktop (`w-64`), drawer móvil (`w-[min(280px,85vw)]`, `pointer-events-none` cuando cerrado).
 - Topbar con título dinámico, usuario de sesión y avatar.
-- `FloatingSupportStack` en esquina inferior derecha.
+- `FloatingSupportStack` cargado con `dynamic(..., { ssr: false })` — no bloquea el bundle inicial.
 - Fondo app: `#f5f7fb`.
+- Contenedor principal: `max-w-[1600px]`, `overflow-x-hidden`.
 - Padding inferior extra en móvil (`pb-28`) para no tapar widgets flotantes.
 
 ### `DashboardSidebar.client.tsx`
 
 - Recibe `wallet` como prop (no importa `walletMock` directamente).
+- **Ancho controlado por el padre** — no usar `w-full` en clases base (conflicto con `w-64` en desktop).
 - Logo **DM** + "Default Media".
 - Card compacta de **Cartera Default** con saldo y CTA "Agregar saldo".
 - Navegación con indicador lateral activo (`#4056ff`).
@@ -376,7 +388,7 @@ requireCompanyAccess(companyId)
 
 ## 10. Widgets flotantes (`components/floating/`)
 
-Integrados una sola vez en `DashboardShell`. Visibles en todas las vistas del dashboard.
+Integrados una sola vez en `DashboardShell` (lazy). Visibles en todas las vistas del dashboard.
 
 | Componente | Tipo | Función |
 |---|---|---|
@@ -431,19 +443,21 @@ Integrados una sola vez en `DashboardShell`. Visibles en todas las vistas del da
 ### `/ad-accounts` — Cuentas publicitarias
 
 **Guard:** `requirePermission("adAccounts:read")`  
-**Service:** `getAdAccountsOverview()` → `mocks/ad-accounts.mock.ts`
+**Service:** `getAdAccountsOverview()` → `mocks/ad-accounts.mock.ts`  
+**URL:** `?q=` (búsqueda), `?status=` (filtro estado)
+
+**Composición en `page.tsx` (server):** filtra con `lib/filter/ad-accounts.ts` → renderiza tabla server.
 
 | Componente | Tipo |
 |---|---|
 | `AdAccountsPageHeader` | Server |
 | `AdAccountsInfoAlert` | Server |
 | `AdAccountsSummaryCards` | Server — 4 KPIs |
-| `AdAccountsToolbar.client` | Client — búsqueda, filtro, modal crear |
-| `AdAccountsTable` | Server* |
-| `AdAccountsEmptyState` | Server* |
-| `CreateAdAccountModal.client` | Client — formulario + confirmación |
-
-\*Importados por toolbar client → bundle client.
+| `AdAccountsToolbar.client` | Client — búsqueda/filtro (URL), modal lazy |
+| `AdAccountsTable` | Server |
+| `AdAccountsEmptyState` | Server — usa `AdAccountsOpenCreateModalButton.client` |
+| `AdAccountsOpenCreateModalButton.client` | Client — dispara evento `ad-accounts:open-create-modal` |
+| `CreateAdAccountModal.client` | Client — `dynamic()`, formulario + confirmación |
 
 **Tipos:** `types/ad-account.ts` — `AdAccountStatus`: active | pending | disabled | review
 
@@ -454,19 +468,27 @@ Integrados una sola vez en `DashboardShell`. Visibles en todas las vistas del da
 ### `/payments` — Pagos y cartera
 
 **Guard:** `requirePermission("payments:read")`  
-**Service:** `getPaymentOverview()` → `mocks/payments.mock.ts`
+**Service:** `getPaymentOverview()` → `mocks/payments.mock.ts`  
+**URL:** `?tab=` (assignment \| account-tx \| wallet-tx \| refunds), `?q=`, `?status=`, `?gateway=`
+
+**Composición en `page.tsx` (server):** stats, filtrado y tab content en servidor; controles interactivos en client mínimos.
 
 | Componente | Tipo |
 |---|---|
 | `PaymentsPageHeader` | Server |
-| `PaymentsWorkspace.client` | Client — orquesta wallet, stats, pasarelas, tabs |
-| `WalletSummaryPremium.client` | Client |
+| `WalletSummaryPremium.client` | Client — CTA agregar saldo vía evento |
 | `PaymentOverviewStats` | Server |
+| `PaymentsGatewaySection.client` | Client — selector pasarela (URL `?gateway=`) |
 | `PaymentGatewaySelector.client` | Client |
 | `GatewayLogo` | Client — logos CDN Simple Icons + fallback |
-| `PaymentToolbar.client` | Client |
+| `PaymentsTabNav.client` | Client — tabs (URL `?tab=`) |
+| `PaymentsTabContent` | Server — orquesta contenido por tab |
+| `PaymentToolbar.client` | Client — búsqueda/filtro (URL) |
 | `PaymentsTable` | Server |
-| `PaymentsEmptyState` | Client |
+| `PaymentsEmptyState` | Server — usa `PaymentsOpenAddBalanceButton.client` |
+| `PaymentsHistoryEmpty` | Server — empty state tabs de historial |
+| `PaymentsOpenAddBalanceButton.client` | Client — evento `payments:open-add-balance-modal` |
+| `PaymentsAddBalanceModalHost.client` | Client — `dynamic(AddBalanceModal)`, escucha evento |
 | `AddBalanceModal.client` | Client — validación monto + confirmación |
 
 **Pasarelas mock:** Stripe, PayPal, Payoneer, USDT, Airwallex
@@ -480,14 +502,18 @@ Integrados una sola vez en `DashboardShell`. Visibles en todas las vistas del da
 ### `/affiliates` — Programa de afiliados
 
 **Guard:** `requirePermission("affiliates:read")`  
-**Service:** `getAffiliateProgram()` → `mocks/affiliates.mock.ts`
+**Service:** `getAffiliateProgram()` → `mocks/affiliates.mock.ts`  
+**URL:** `?tab=` (earn \| payments)
+
+**Composición en `page.tsx` (server):** contenido de tab en `AffiliateTabContent` (server).
 
 | Componente | Tipo |
 |---|---|
 | `AffiliatesPageHeader` | Server |
 | `AffiliateHero` | Client — hero + copiar enlace |
 | `AffiliateOverviewStats` | Server — 4 KPIs |
-| `AffiliateTabs.client` | Client |
+| `AffiliateTabNav.client` | Client — tabs (URL) |
+| `AffiliateTabContent` | Server — earn: workflow, link, banners, milestones, notes |
 | `ReferralWorkflow` | Server |
 | `ReferralLinkCard.client` | Client — copiar + métricas |
 | `AffiliateBannerStudio.client` | Client |
@@ -563,6 +589,25 @@ export async function getDashboardOverview() {
 
 ## 14. Criterio Server vs Client
 
+### Patrón de composición (performance)
+
+Evitar importar Server Components dentro de Client Components “orquestadores”. Patrón actual:
+
+```
+page.tsx (server)
+├── lee searchParams, filtra datos
+├── renderiza tablas/stats/content (server)
+├── Suspense + toolbar/nav client (solo interacción)
+└── modal host client con dynamic()
+```
+
+**Eventos de modal** (`lib/events/modal-events.ts`):
+
+| Evento | Uso |
+|---|---|
+| `ad-accounts:open-create-modal` | Empty state / toolbar → `CreateAdAccountModal` |
+| `payments:open-add-balance-modal` | Wallet / empty state → `AddBalanceModal` |
+
 ### Server Components (por defecto)
 
 - Todas las `page.tsx` y `(dashboard)/layout.tsx`
@@ -576,11 +621,11 @@ export async function getDashboardOverview() {
 |---|---|
 | Auth | `LoginMockCard` |
 | Layout | `DashboardShell`, `DashboardSidebar`, `DashboardTopbar` |
-| Floating | `FloatingSupportStack`, `WhatsAppFloatingButton`, `SupportChatWidget`, `OnboardingProgressWidget` |
+| Floating | `FloatingSupportStack` (lazy), `WhatsAppFloatingButton`, `SupportChatWidget`, `OnboardingProgressWidget` |
 | UI interactiva | `Tabs` (genérico) |
-| Ad accounts | `AdAccountsToolbar`, `CreateAdAccountModal` |
-| Payments | `PaymentsWorkspace`, `PaymentGatewaySelector`, `PaymentToolbar`, `AddBalanceModal`, `GatewayLogo` |
-| Affiliates | `AffiliateHero`, `AffiliateTabs`, `ReferralLinkCard`, `AffiliateBannerStudio`, `BannerSizeSelector`, `BannerPreviewPanel` |
+| Ad accounts | `AdAccountsToolbar`, `AdAccountsOpenCreateModalButton`, `CreateAdAccountModal` (lazy) |
+| Payments | `WalletSummaryPremium`, `PaymentsGatewaySection`, `PaymentsTabNav`, `PaymentToolbar`, `PaymentsOpenAddBalanceButton`, `PaymentsAddBalanceModalHost`, `AddBalanceModal` (lazy), `GatewayLogo` |
+| Affiliates | `AffiliateHero`, `AffiliateTabNav`, `ReferralLinkCard`, `AffiliateBannerStudio`, `BannerSizeSelector`, `BannerPreviewPanel` |
 | Support chat | Componentes importados por `SupportChatWidget` |
 
 ### Reglas de datos sensibles
@@ -612,7 +657,8 @@ export async function getDashboardOverview() {
 
 - Trabajar sobre **main** (sin ramas obligatorias para features mock).
 - Copiar `.env.example` → `.env.local` para desarrollo; **no commitear `.env*`**.
-- `SESSION_SECRET` obligatorio en producción (`openssl rand -base64 32`).
+- `SESSION_SECRET` obligatorio en producción (`openssl rand -base64 32` o `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`).
+- En **Vercel**: configurar `SESSION_SECRET`, `AUTH_MODE=mock`, `NEXT_PUBLIC_AUTH_MODE=mock`, `NEXT_PUBLIC_APP_URL` y **redesplegar** tras añadir variables.
 - **No instalar dependencias** sin aprobación — usar SVG inline.
 - Mantener **`npm run build`** compilable tras cada cambio.
 - Commits solo cuando el usuario lo solicite.
@@ -657,6 +703,9 @@ web-base/
 │   ├── auth/
 │   ├── env/
 │   ├── api/
+│   ├── filter/              # ad-accounts.ts, payment-accounts.ts
+│   ├── events/              # modal-events.ts
+│   ├── search-params.ts
 │   ├── cn.ts
 │   ├── format-money.ts
 │   └── format-number.ts
@@ -682,12 +731,14 @@ web-base/
 | `/login` | Mock Google → POST API → cookie → `/overview` |
 | `/login` con sesión activa | Redirect automático a `/overview` |
 | `/overview` | Hero, onboarding, cartera, KPIs, tabla vacía |
-| `/ad-accounts` | Summary cards, toolbar, modal crear (con confirmación), empty state |
-| `/payments` | Wallet, pasarelas, tabs, modal agregar saldo (con confirmación) |
-| `/affiliates` | Hero, copiar enlace, banners, hitos, tabs |
+| `/ad-accounts` | Summary cards, toolbar (URL filters), modal crear lazy, empty state con evento |
+| `/payments` | Wallet, pasarelas (`?gateway=`), tabs (`?tab=`), filtros (`?q`, `?status`), modal lazy |
+| `/affiliates` | Hero, copiar enlace, banners, hitos, tabs (`?tab=earn\|payments`) |
 | `/creative-analyzer` | Hero dark, benchmark, workflow, CTA |
 | **Salir** (topbar) | `POST /api/auth/logout` → `/login` |
 | `GET /api/auth/session` | 401 sin cookie; 200 con datos de usuario si hay sesión |
+| `/login` sin `SESSION_SECRET` (prod) | Mensaje 503 claro en UI (configurar Vercel env) |
+| Responsive | Sidebar `w-64` desktop; drawer móvil; tablas con scroll horizontal |
 | Todas (dashboard) | Widgets flotantes: WhatsApp, chat, onboarding 0/3 |
 
 ---
@@ -718,7 +769,8 @@ web-base/
 ### Producción
 - [x] Security headers + CSP
 - [x] `error.tsx` / `not-found.tsx`
-- [ ] `SESSION_SECRET` en entorno de producción
+- [x] Login devuelve error JSON si falta `SESSION_SECRET` (503)
+- [ ] `SESSION_SECRET` configurado en Vercel/producción + redeploy
 - [ ] Branch protection + Dependabot + CodeQL
 
 ---
@@ -731,4 +783,4 @@ web-base/
 
 ---
 
-*Última actualización: julio 2026 — panel mock Default Media con infraestructura de seguridad (sesión, middleware, guards, BFF auth, headers).*
+*Última actualización: julio 2026 — panel mock Default Media con seguridad (sesión, middleware, guards, BFF auth), composición server/client (URL filters/tabs, lazy modales/widgets), responsive y deploy Vercel.*

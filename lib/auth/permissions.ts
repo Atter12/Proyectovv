@@ -10,8 +10,17 @@ const ALL_PERMISSIONS: Permission[] = [
   "creativeAnalyzer:read",
 ];
 
+const READ_PERMISSIONS: Permission[] = [
+  "wallet:read",
+  "payments:read",
+  "adAccounts:read",
+  "affiliates:read",
+  "creativeAnalyzer:read",
+];
+
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  user: ["wallet:read", "payments:read", "affiliates:read", "creativeAnalyzer:read"],
+  owner: ALL_PERMISSIONS,
+  admin: ALL_PERMISSIONS,
   advertiser: [
     "wallet:read",
     "wallet:deposit",
@@ -21,18 +30,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "affiliates:read",
     "creativeAnalyzer:read",
   ],
-  admin: ALL_PERMISSIONS,
-  support: [
-    "wallet:read",
-    "payments:read",
-    "adAccounts:read",
-    "affiliates:read",
-    "creativeAnalyzer:read",
-  ],
+  finance: ["wallet:read", "wallet:deposit", "payments:read"],
+  viewer: READ_PERMISSIONS,
+  support: READ_PERMISSIONS,
 };
 
 export function getPermissionsForRole(role: UserRole): Permission[] {
-  return ROLE_PERMISSIONS[role];
+  return ROLE_PERMISSIONS[role] ?? READ_PERMISSIONS;
 }
 
 export function hasPermission(
@@ -42,7 +46,10 @@ export function hasPermission(
   return permissions.includes(required);
 }
 
-export function hasRole(userRole: UserRole, allowed: UserRole | UserRole[]): boolean {
+export function hasRole(
+  userRole: UserRole,
+  allowed: UserRole | UserRole[],
+): boolean {
   const allowedRoles = Array.isArray(allowed) ? allowed : [allowed];
   return allowedRoles.includes(userRole);
 }

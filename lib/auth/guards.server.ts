@@ -1,15 +1,14 @@
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { hasPermission, hasRole } from "@/lib/auth/permissions";
-import { getSession } from "@/lib/auth/session.server";
+import {
+  getSession,
+  requireVerifiedSession,
+} from "@/lib/auth/session.server";
 import type { Permission, SessionUser, UserRole } from "@/types/auth";
 
 export async function requireSession(): Promise<SessionUser> {
-  const session = await getSession();
-  if (!session) {
-    redirect(routes.login);
-  }
-  return session;
+  return requireVerifiedSession();
 }
 
 export async function requireRole(
@@ -41,3 +40,6 @@ export async function requireCompanyAccess(
   }
   return session;
 }
+
+/** Sesión parcial (p. ej. usuario autenticado pero sin verificar email). */
+export { getSession };

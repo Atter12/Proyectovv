@@ -1,6 +1,6 @@
 import { routes } from "@/config/routes";
 
-/** Rutas que requieren sesión válida (middleware + guards). */
+/** Rutas que requieren sesión verificada (middleware + guards). */
 export const protectedRoutes = [
   routes.overview,
   routes.adAccounts,
@@ -9,13 +9,15 @@ export const protectedRoutes = [
   routes.creativeAnalyzer,
 ] as const;
 
-/** Rutas solo para usuarios sin sesión (redirigen al dashboard si ya hay sesión). */
-export const authRoutes = [routes.login] as const;
+/** Rutas de auth pre-dashboard. */
+export const authRoutes = [
+  routes.login,
+  routes.register,
+  routes.verifyOtp,
+] as const;
 
-export const SESSION_COOKIE_NAME = "dm_session";
-
-/** Duración de sesión mock: 7 días. */
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+/** Rutas públicas de auth donde un usuario ya verificado no debe entrar. */
+export const guestOnlyRoutes = [routes.login, routes.register] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return protectedRoutes.some(
@@ -26,5 +28,18 @@ export function isProtectedPath(pathname: string): boolean {
 export function isAuthPath(pathname: string): boolean {
   return authRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+export function isGuestOnlyPath(pathname: string): boolean {
+  return guestOnlyRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+export function isVerifyOtpPath(pathname: string): boolean {
+  return (
+    pathname === routes.verifyOtp ||
+    pathname.startsWith(`${routes.verifyOtp}/`)
   );
 }

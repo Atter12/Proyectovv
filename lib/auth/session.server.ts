@@ -1,62 +1,97 @@
-import { cookies } from "next/headers";
-import {
-  SESSION_COOKIE_NAME,
-  SESSION_MAX_AGE_SECONDS,
-} from "@/config/auth";
-import { serverEnv } from "@/lib/env/env.server";
-import { createMockSessionPayload } from "@/lib/auth/mock-session";
-import { signSessionToken, verifySessionToken } from "@/lib/auth/session-token";
-import type { SessionPayload, SessionUser } from "@/types/auth";
+import { redirect } from "next/navigation";
+import { routes } from "@/config/routes";
+import { getPermissionsForRole } from "@/lib/auth/permissions";
+import { getAvatarInitials } from "@/lib/auth/utils";
+import { createClient } from "@/lib/supabase/server";
+import type {
+  OrganizationMembershipRow,
+  OrganizationRow,
+  ProfileRow,
+  SessionUser,
+} from "@/types/auth";
 
-function getSessionCookieOptions() {
-  return {
-    httpOnly: true,
-    secure: serverEnv.isProduction,
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  };
-}
-
-export function sessionPayloadToUser(payload: SessionPayload): SessionUser {
-  return {
-    id: payload.sub,
-    name: payload.name,
-    email: payload.email,
-    avatarInitials: payload.avatarInitials,
-    role: payload.role,
-    permissions: payload.permissions,
-    companyId: payload.companyId,
-  };
+function resolveOrganization(
+  membership: OrganizationMembershipRow,
+): OrganizationRow | null {
+  const org = membership.organizations;
+  if (!org) return null;
+  return Array.isArray(org) ? (org[0] ?? null) : org;
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const payload = await verifySessionToken(token, serverEnv.sessionSecret);
-  if (!payload) return null;
+  if (!user) return null;
 
-  return sessionPayloadToUser(payload);
+  const emailConfirmed = Boolean(user.email_confirmed_at);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, avatar_initials, status")
+    .eq("id", user.id)
+    .maybeSingle<ProfileRow>();
+
+  const fullName =
+    profile?.full_name ??
+    (typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name
+      : user.email?.split("@")[0] ?? "Usuario");
+
+  const { data: membership } = await supabase
+    .from("organization_memberships")
+    .select(
+      "id, organization_id, user_id, role, status, is_default, organizations(id, name, slug, status)",
+    )
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("is_default", { ascending: false })
+    .limit(1)
+    .maybeSingle<OrganizationMembershipRow>();
+
+  const organization = membership ? resolveOrganization(membership) : null;
+  const role = membership?.role ?? "viewer";
+
+  return {
+    id: user.id,
+    name: fullName,
+    email: profile?.email ?? user.email ?? "",
+    avatarInitials:
+      profile?.avatar_initials || getAvatarInitials(fullName),
+    role,
+    permissions: getPermissionsForRole(role),
+    companyId: membership?.organization_id ?? "",
+    organizationId: membership?.organization_id ?? "",
+    organizationName: organization?.name ?? "",
+    emailConfirmed,
+    profileStatus: profile?.status ?? "email_pending",
+  };
 }
 
-export async function createMockSession(): Promise<string> {
-  const payload = createMockSessionPayload();
-  return signSessionToken(payload, serverEnv.sessionSecret);
+export async function getAuthUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
 }
 
-export async function setSessionCookie(token: string): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions());
-}
+export async function requireVerifiedSession(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) {
+    redirect(routes.login);
+  }
 
-export async function clearSessionCookie(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, "", {
-    ...getSessionCookieOptions(),
-    maxAge: 0,
-  });
-}
+  if (!session.emailConfirmed) {
+    const verifyUrl = `${routes.verifyOtp}?email=${encodeURIComponent(session.email)}`;
+    redirect(verifyUrl);
+  }
 
-export { verifySessionToken };
+  if (session.profileStatus !== "active" || !session.organizationId) {
+    redirect(routes.login);
+  }
+
+  return session;
+}
