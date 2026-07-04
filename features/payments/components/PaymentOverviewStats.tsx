@@ -1,3 +1,5 @@
+"use client";
+
 import { Card } from "@/components/ui/Card";
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";

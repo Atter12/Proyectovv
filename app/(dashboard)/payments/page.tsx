@@ -1,7 +1,5 @@
 import { Card } from "@/components/ui/Card";
-import { PaymentOverviewStats } from "@/features/payments/components/PaymentOverviewStats";
-import { PaymentsAddBalanceModalHost } from "@/features/payments/components/PaymentsAddBalanceModalHost.client";
-import { PaymentsGatewaySection } from "@/features/payments/components/PaymentsGatewaySection.client";
+import { PaymentsGatewayBlock } from "@/features/payments/components/PaymentsGatewayBlock.client";
 import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
 import { PaymentsTabContent } from "@/features/payments/components/PaymentsTabContent";
 import { PaymentsTabNav } from "@/features/payments/components/PaymentsTabNav.client";
@@ -43,9 +41,6 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
       ? (gatewayParam as PaymentGatewayId)
       : data.selectedGateway;
 
-  const activeGateway =
-    data.gateways.find((g) => g.id === selectedGateway) ?? data.gateways[0];
-
   const preferredGateway =
     data.gateways.find((g) => g.id === data.wallet.preferredGateway) ??
     data.gateways[0];
@@ -65,19 +60,12 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
           preferredGateway={preferredGateway}
         />
 
-        <PaymentOverviewStats
+        <PaymentsGatewayBlock
+          gateways={data.gateways}
+          initialSelected={selectedGateway}
           wallet={data.wallet}
           summary={data.summary}
-          activeGateway={activeGateway}
         />
-
-        <Suspense fallback={null}>
-          <PaymentsGatewaySection
-            gateways={data.gateways}
-            selected={selectedGateway}
-            defaultGateway={data.selectedGateway}
-          />
-        </Suspense>
 
         <Card padding="none" className="min-w-0 overflow-hidden">
           <Suspense fallback={null}>
@@ -91,8 +79,6 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
             initialStatus={status}
           />
         </Card>
-
-        <PaymentsAddBalanceModalHost selectedGateway={selectedGateway} />
       </div>
     </div>
   );
