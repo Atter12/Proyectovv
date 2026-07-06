@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Default Media",
-  walletName: "Cartera Default",
-  description: "Panel publicitario — cartera, cuentas, pagos y afiliados",
-  companyName: "Default Media",
+  name: "Proyectovv",
+  walletName: "Cartera Proyectovv",
+  description: "Panel SaaS/adtech — cartera, cuentas publicitarias, pagos e integraciones",
+  companyName: "Proyectovv",
 } as const;

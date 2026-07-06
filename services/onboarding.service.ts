@@ -131,21 +131,20 @@ async function inferOnboardingFromData(
       .select("id", { count: "exact", head: true })
       .eq("organization_id", organizationId),
     supabase
-      .from("wallets")
-      .select("balance_cents")
+      .from("v_wallet_ledger_balances")
+      .select("available_balance_cents")
       .eq("organization_id", organizationId)
-      .eq("status", "active")
-      .maybeSingle<{ balance_cents: number }>(),
+      .maybeSingle<{ available_balance_cents: number }>(),
     supabase
-      .from("ad_account_balances")
-      .select("balance_cents")
+      .from("v_ad_account_ledger_balances")
+      .select("available_balance_cents")
       .eq("organization_id", organizationId),
   ]);
 
   const hasAdAccount = (accountsRes.count ?? 0) > 0;
-  const hasDeposit = Number(walletRes.data?.balance_cents ?? 0) > 0;
+  const hasDeposit = Number(walletRes.data?.available_balance_cents ?? 0) > 0;
   const hasAllocation = (balancesRes.data ?? []).some(
-    (row) => Number(row.balance_cents ?? 0) > 0,
+    (row) => Number(row.available_balance_cents ?? 0) > 0,
   );
 
   const steps: OnboardingStep[] = [

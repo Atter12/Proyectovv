@@ -6,8 +6,18 @@ import {
 } from "@/lib/payments/providers";
 import {
   createPaymentIntentRecord,
+  getPaymentIntentByIdInternal,
+  getPaymentIntentByProviderReference,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
+import { confirmDepositInLedger } from "@/lib/ledger/ledger.server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendTransactionalEmail } from "@/lib/email/email.server";
+import {
+  manualPaymentCreatedTemplate,
+  paymentSucceededTemplate,
+} from "@/lib/email/templates/payments";
+import { serverEnv } from "@/lib/env/env.server";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId } from "@/types/payment";
 
@@ -68,7 +78,7 @@ export async function createPaymentIntentForSession(
     provider,
     createdBy: session.id,
     idempotencyKey,
-    metadata: { provider },
+    metadata: { provider, source: "dashboard" },
   });
 
   const checkoutResult = await providerImpl.createCheckout({
@@ -95,6 +105,17 @@ export async function createPaymentIntentForSession(
     providerReference: checkoutResult.providerReference,
     checkoutUrl: checkoutResult.checkoutUrl,
   });
+
+  if (provider === "manual") {
+    await sendManualPaymentEmailBestEffort({
+      to: session.email,
+      userId: session.id,
+      organizationId: session.organizationId,
+      paymentIntentId: intent.id,
+      amountCents,
+      currency,
+    });
+  }
 
   return {
     paymentIntentId: intent.id,
@@ -124,6 +145,84 @@ async function resolveWalletId(organizationId: string): Promise<string> {
   return data.id;
 }
 
+async function getUserEmail(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle<{ email: string }>();
+  return data?.email ?? null;
+}
+
+async function sendManualPaymentEmailBestEffort(input: {
+  to: string;
+  userId: string;
+  organizationId: string;
+  paymentIntentId: string;
+  amountCents: number;
+  currency: string;
+}): Promise<void> {
+  try {
+    const template = manualPaymentCreatedTemplate({
+      appName: serverEnv.appName,
+      amountCents: input.amountCents,
+      currency: input.currency,
+      dashboardUrl: `${serverEnv.appUrl}/payments`,
+    });
+
+    await sendTransactionalEmail({
+      to: input.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      templateKey: "payment.manual.created",
+      organizationId: input.organizationId,
+      userId: input.userId,
+      idempotencyKey: `email:payment_manual_created:${input.paymentIntentId}`,
+      metadata: { payment_intent_id: input.paymentIntentId },
+    });
+  } catch (error) {
+    console.error("[email] manual payment email failed", error);
+  }
+}
+
+async function sendPaymentSucceededEmailBestEffort(input: {
+  to: string | null;
+  userId: string | null;
+  organizationId: string;
+  paymentIntentId: string;
+  provider: string;
+  amountCents: number;
+  currency: string;
+}): Promise<void> {
+  if (!input.to) return;
+  try {
+    const template = paymentSucceededTemplate({
+      appName: serverEnv.appName,
+      amountCents: input.amountCents,
+      currency: input.currency,
+      provider: input.provider,
+      dashboardUrl: `${serverEnv.appUrl}/payments`,
+    });
+
+    await sendTransactionalEmail({
+      to: input.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      templateKey: "payment.deposit.succeeded",
+      organizationId: input.organizationId,
+      userId: input.userId,
+      idempotencyKey: `email:payment_succeeded:${input.paymentIntentId}`,
+      metadata: { payment_intent_id: input.paymentIntentId, provider: input.provider },
+    });
+  } catch (error) {
+    console.error("[email] payment success email failed", error);
+  }
+}
+
 export async function processSuccessfulPaymentIntent(input: {
   provider: PaymentGatewayId;
   providerReference?: string | null;
@@ -133,13 +232,6 @@ export async function processSuccessfulPaymentIntent(input: {
   createdBy?: string;
   webhookEventId?: string;
 }): Promise<void> {
-  const {
-    getPaymentIntentByProviderReference,
-    getPaymentIntentByIdInternal,
-    updatePaymentIntentRecord,
-    postWalletTransaction,
-  } = await import("@/lib/payments/payment-intents.server");
-
   const intent =
     (input.paymentIntentId
       ? await getPaymentIntentByIdInternal(input.paymentIntentId)
@@ -175,32 +267,35 @@ export async function processSuccessfulPaymentIntent(input: {
     throw new Error("La moneda del webhook no coincide con la intención.");
   }
 
-  const idempotencyKey = input.webhookEventId
-    ? `wallet_deposit_webhook_${input.webhookEventId}`
-    : intent.idempotencyKey
-      ? `wallet_deposit_${intent.idempotencyKey}`
-      : `wallet_deposit_${intent.id}`;
-
-  await postWalletTransaction({
-    organizationId: intent.organizationId,
-    walletId: intent.walletId,
-    type: "deposit",
-    amountCents: intent.amountCents,
-    currency: intent.currency,
-    status: "completed",
-    description: `Depósito vía ${input.provider}`,
-    externalReference: input.providerReference ?? intent.providerReference ?? intent.id,
-    idempotencyKey,
-    createdBy: input.createdBy,
+  const ledgerJournalId = await confirmDepositInLedger({
+    paymentIntentId: intent.id,
+    providerReference: input.providerReference ?? intent.providerReference,
+    webhookEventId: input.webhookEventId,
     metadata: {
-      payment_intent_id: intent.id,
       provider: input.provider,
       webhook_event_id: input.webhookEventId ?? null,
+      provider_reference: input.providerReference ?? intent.providerReference,
     },
+  });
+
+  const to = await getUserEmail(intent.createdBy);
+  await sendPaymentSucceededEmailBestEffort({
+    to,
+    userId: intent.createdBy,
+    organizationId: intent.organizationId,
+    paymentIntentId: intent.id,
+    provider: input.provider,
+    amountCents: intent.amountCents,
+    currency: intent.currency,
   });
 
   await updatePaymentIntentRecord(intent.id, {
     status: "succeeded",
     succeededAt: new Date().toISOString(),
+    metadata: {
+      ...intent.metadata,
+      ledger_journal_id: ledgerJournalId,
+      provider_reference: input.providerReference ?? intent.providerReference,
+    },
   });
 }

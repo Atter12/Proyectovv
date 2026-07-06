@@ -74,8 +74,8 @@ export const getDashboardOverview = cache(async function getDashboardOverview(
         .order("created_at", { ascending: false })
         .limit(10),
       supabase
-        .from("ad_account_balances")
-        .select("ad_account_id, organization_id, balance_cents, currency")
+        .from("v_ad_account_ledger_balances")
+        .select("ad_account_id, organization_id, available_balance_cents, currency")
         .eq("organization_id", organizationId),
       supabase
         .from("referrals")
@@ -88,10 +88,10 @@ export const getDashboardOverview = cache(async function getDashboardOverview(
 
   const pageSummary = pageSummaryRes.data;
   const accountRows = (adAccountsRes.data ?? []) as DbAdAccountRow[];
-  const balanceRows = (balancesRes.data ?? []) as DbAdAccountBalanceRow[];
+  const balanceRows = (balancesRes.data ?? []) as Array<DbAdAccountBalanceRow & { available_balance_cents?: number }>;
   const referralRows = (referralsRes.data ?? []) as DbReferralRow[];
   const balanceByAccount = new Map(
-    balanceRows.map((row) => [row.ad_account_id, row.balance_cents]),
+    balanceRows.map((row) => [row.ad_account_id, Number(row.available_balance_cents ?? row.balance_cents ?? 0)]),
   );
 
   const adAccounts: AdAccount[] = accountRows.map((account) => ({
@@ -125,7 +125,7 @@ export const getDashboardOverview = cache(async function getDashboardOverview(
       ? {
           id: pageSummary.wallet_id,
           name: pageSummary.wallet_name ?? siteConfig.walletName,
-          balance: centsToAmount(pageSummary.wallet_balance_cents ?? 0),
+          balance: wallet.balance,
           currency: pageSummary.wallet_currency ?? "USD",
         }
       : wallet,

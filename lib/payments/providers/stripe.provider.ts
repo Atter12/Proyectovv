@@ -13,37 +13,50 @@ function stripeConfigured(): boolean {
   return Boolean(serverEnv.stripeSecretKey);
 }
 
+function parseStripeSignatureHeader(signatureHeader: string): {
+  timestamp?: number;
+  signatures: string[];
+} {
+  const result: { timestamp?: number; signatures: string[] } = { signatures: [] };
+
+  for (const part of signatureHeader.split(",")) {
+    const [key, value] = part.split("=");
+    if (!key || !value) continue;
+    if (key.trim() === "t") result.timestamp = Number(value.trim());
+    if (key.trim() === "v1") result.signatures.push(value.trim());
+  }
+
+  return result;
+}
+
+function safeCompareHex(a: string, b: string): boolean {
+  try {
+    const left = Buffer.from(a, "hex");
+    const right = Buffer.from(b, "hex");
+    if (left.length !== right.length) return false;
+    return timingSafeEqual(left, right);
+  } catch {
+    return false;
+  }
+}
+
 function verifyStripeSignature(
   payload: string,
   signatureHeader: string,
   secret: string,
 ): boolean {
-  const parts = signatureHeader.split(",").reduce<Record<string, string>>(
-    (acc, part) => {
-      const [key, value] = part.split("=");
-      if (key && value) acc[key.trim()] = value.trim();
-      return acc;
-    },
-    {},
-  );
+  const parsed = parseStripeSignatureHeader(signatureHeader);
+  if (!parsed.timestamp || parsed.signatures.length === 0) return false;
 
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
+  const ageSeconds = Math.abs(Date.now() / 1000 - parsed.timestamp);
+  if (ageSeconds > serverEnv.stripeWebhookToleranceSeconds) return false;
 
-  const signedPayload = `${timestamp}.${payload}`;
+  const signedPayload = `${parsed.timestamp}.${payload}`;
   const expected = createHmac("sha256", secret)
     .update(signedPayload, "utf8")
     .digest("hex");
 
-  try {
-    return timingSafeEqual(
-      Buffer.from(signature, "hex"),
-      Buffer.from(expected, "hex"),
-    );
-  } catch {
-    return false;
-  }
+  return parsed.signatures.some((signature) => safeCompareHex(signature, expected));
 }
 
 export class StripePaymentProvider implements PaymentProviderAdapter {
@@ -65,6 +78,7 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
     params.set("client_reference_id", input.paymentIntentId);
     params.set("metadata[payment_intent_id]", input.paymentIntentId);
     params.set("metadata[organization_id]", input.organizationId);
+    params.set("metadata[wallet_id]", input.walletId);
     params.set("line_items[0][price_data][currency]", input.currency.toLowerCase());
     params.set("line_items[0][price_data][unit_amount]", String(input.amountCents));
     params.set("line_items[0][price_data][product_data][name]", "Recarga de cartera");
@@ -78,6 +92,7 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
       headers: {
         Authorization: `Bearer ${serverEnv.stripeSecretKey}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        "Idempotency-Key": input.idempotencyKey,
       },
       body: params.toString(),
     });
@@ -127,6 +142,8 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
             client_reference_id?: string;
             metadata?: { payment_intent_id?: string };
             amount_total?: number;
+            amount_received?: number;
+            amount?: number;
             currency?: string;
           };
         };
@@ -144,11 +161,15 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
         eventType: data.type ?? "unknown",
         providerReference,
         paymentIntentId,
-        amountCents: object?.amount_total,
+        amountCents: object?.amount_total ?? object?.amount_received ?? object?.amount,
         currency: object?.currency?.toUpperCase(),
-        succeeded: data.type === "checkout.session.completed",
+        succeeded:
+          data.type === "checkout.session.completed" ||
+          data.type === "payment_intent.succeeded",
         failed: data.type === "payment_intent.payment_failed",
-        cancelled: data.type === "checkout.session.expired",
+        cancelled:
+          data.type === "checkout.session.expired" ||
+          data.type === "payment_intent.canceled",
       };
     } catch {
       return null;

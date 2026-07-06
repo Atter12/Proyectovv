@@ -16,7 +16,8 @@ export class ManualPaymentProvider implements PaymentProviderAdapter {
     );
   }
 
-  async createCheckout(_input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+  async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+    void input;
     return {
       providerReference: null,
       checkoutUrl: null,

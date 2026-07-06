@@ -16,6 +16,10 @@ export interface PostWalletTransactionInput {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Legacy compatibility helper. New production money movements should use the
+ * ledger_* RPCs in lib/ledger/ledger.server.ts instead of this semi-ledger RPC.
+ */
 export async function postWalletTransaction(
   input: PostWalletTransactionInput,
 ): Promise<string> {
@@ -63,7 +67,12 @@ export interface PaymentIntentRecord {
   providerReference: string | null;
   checkoutUrl: string | null;
   idempotencyKey: string | null;
+  createdBy: string | null;
+  metadata: Record<string, unknown>;
 }
+
+const PAYMENT_INTENT_SELECT =
+  "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key, created_by, metadata";
 
 export async function createPaymentIntentRecord(
   input: CreatePaymentIntentInput,
@@ -84,18 +93,15 @@ export async function createPaymentIntentRecord(
       created_by: input.createdBy,
       metadata: input.metadata ?? {},
     })
-    .select(
-      "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key",
-    )
+    .select(PAYMENT_INTENT_SELECT)
     .single();
 
   if (error) {
     if (error.code === "23505" && input.idempotencyKey) {
       const { data: existing } = await admin
         .from("payment_intents")
-        .select(
-          "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key",
-        )
+        .select(PAYMENT_INTENT_SELECT)
+        .eq("organization_id", input.organizationId)
         .eq("idempotency_key", input.idempotencyKey)
         .maybeSingle();
       if (existing) return mapIntentRow(existing);
@@ -146,9 +152,7 @@ export async function getPaymentIntentByIdInternal(
   const admin = createAdminClient();
   const { data } = await admin
     .from("payment_intents")
-    .select(
-      "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key",
-    )
+    .select(PAYMENT_INTENT_SELECT)
     .eq("id", id)
     .maybeSingle();
 
@@ -162,9 +166,7 @@ export async function getPaymentIntentById(
   const admin = createAdminClient();
   const { data } = await admin
     .from("payment_intents")
-    .select(
-      "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key",
-    )
+    .select(PAYMENT_INTENT_SELECT)
     .eq("id", id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -179,9 +181,7 @@ export async function getPaymentIntentByProviderReference(
   const admin = createAdminClient();
   const { data } = await admin
     .from("payment_intents")
-    .select(
-      "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key",
-    )
+    .select(PAYMENT_INTENT_SELECT)
     .eq("provider", provider)
     .eq("provider_reference", providerReference)
     .maybeSingle();
@@ -200,6 +200,8 @@ function mapIntentRow(row: {
   provider_reference: string | null;
   checkout_url: string | null;
   idempotency_key: string | null;
+  created_by?: string | null;
+  metadata?: Record<string, unknown> | null;
 }): PaymentIntentRecord {
   return {
     id: row.id,
@@ -212,6 +214,8 @@ function mapIntentRow(row: {
     providerReference: row.provider_reference,
     checkoutUrl: row.checkout_url,
     idempotencyKey: row.idempotency_key,
+    createdBy: row.created_by ?? null,
+    metadata: row.metadata ?? {},
   };
 }
 
@@ -227,7 +231,7 @@ export async function recordWebhookEvent(input: {
     .insert({
       provider: input.provider,
       event_id: input.eventId,
-      event_type: input.eventType ?? null,
+      event_type: input.eventType ?? "unknown",
       payload: input.payload,
       status: "received",
     })

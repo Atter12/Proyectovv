@@ -99,9 +99,13 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (parsed.cancelled) {
-      const intent = parsed.providerReference
-        ? await getPaymentIntentByProviderReference(provider, parsed.providerReference)
-        : null;
+      const intent =
+        (parsed.paymentIntentId
+          ? await getPaymentIntentByIdInternal(parsed.paymentIntentId)
+          : null) ??
+        (parsed.providerReference
+          ? await getPaymentIntentByProviderReference(provider, parsed.providerReference)
+          : null);
       if (intent) {
         await updatePaymentIntentRecord(intent.id, {
           status: "cancelled",

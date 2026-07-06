@@ -49,13 +49,54 @@ export type DbCreativeAnalysisStatus =
   | "completed"
   | "failed";
 
+export type DbLedgerJournalStatus = "draft" | "posted" | "reversed" | "void";
+
 export interface DbWalletRow {
   id: string;
   organization_id: string;
   name: string;
   currency: string;
   balance_cents: number;
+  reserved_balance_cents?: number;
   status: string;
+}
+
+export interface DbWalletLedgerBalanceRow {
+  wallet_id: string;
+  organization_id: string;
+  currency: string;
+  available_balance_cents: number;
+  reserved_balance_cents: number;
+  calculated_at?: string;
+}
+
+export interface DbAdAccountLedgerBalanceRow {
+  ad_account_id: string;
+  organization_id: string;
+  wallet_id: string;
+  currency: string;
+  available_balance_cents: number;
+  reserved_balance_cents: number;
+  lifetime_spend_cents: number;
+  calculated_at?: string;
+}
+
+export interface DbLedgerJournalRow {
+  id: string;
+  organization_id: string;
+  wallet_id: string;
+  journal_type: string;
+  status: DbLedgerJournalStatus;
+  amount_cents: number;
+  currency: string;
+  source_table: string | null;
+  source_id: string | null;
+  provider: string | null;
+  provider_reference: string | null;
+  idempotency_key: string | null;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface DbWalletTransactionRow {
@@ -85,6 +126,7 @@ export interface DbPaymentIntentRow {
   idempotency_key: string | null;
   checkout_url: string | null;
   metadata: Record<string, unknown>;
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -106,6 +148,7 @@ export interface DbAdAccountBalanceRow {
   ad_account_id: string;
   organization_id: string;
   balance_cents: number;
+  reserved_balance_cents?: number;
   currency: string;
 }
 
@@ -175,4 +218,21 @@ export interface DbAdAccountsPageSummaryRow {
   active_accounts: number;
   pending_setup: number;
   assigned_balance_cents: number;
+}
+
+export interface DbIntegrationConnectionRow {
+  id: string;
+  organization_id: string;
+  provider: string;
+  name: string;
+  status: "active" | "disabled" | "expired" | "error" | "revoked";
+  external_account_id: string | null;
+  encrypted_credentials: Record<string, unknown>;
+  scopes: string[];
+  last_synced_at: string | null;
+  last_error: string | null;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }

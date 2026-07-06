@@ -5,6 +5,7 @@ import {
   createSupportTicket,
   listSupportTickets,
 } from "@/services/support.service";
+import { notifySupportTicketCreated } from "@/lib/email/email.server";
 
 export async function GET() {
   const session = await getSession();
@@ -40,10 +41,24 @@ export async function POST(request: Request) {
   }
 
   try {
+    const subject = body.subject ?? "Consulta de soporte";
     const result = await createSupportTicket(session, {
-      subject: body.subject ?? "Consulta de soporte",
+      subject,
       message: body.message,
     });
+
+    try {
+      await notifySupportTicketCreated({
+        requesterEmail: session.email,
+        organizationId: session.organizationId,
+        userId: session.id,
+        ticketId: result.ticketId,
+        subject,
+      });
+    } catch (emailError) {
+      console.error("[support] no se pudo enviar email del ticket", emailError);
+    }
+
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message =
