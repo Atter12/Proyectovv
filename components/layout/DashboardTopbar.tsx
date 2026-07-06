@@ -46,7 +46,7 @@ export function DashboardTopbar({
   }
 
   return (
-    <header className="dashboard-glass sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-4 shadow-[var(--shadow-topbar)] sm:h-16 sm:px-5 lg:px-6">
+    <header className="dashboard-glass sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 border-b border-white/70 px-4 shadow-[var(--shadow-topbar)] sm:h-16 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <button
           type="button"
@@ -54,17 +54,17 @@ export function DashboardTopbar({
           aria-label="Abrir menú de navegación"
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 lg:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[#64748b] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 lg:hidden"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-bold tracking-tight text-[#0f172a] sm:text-base md:text-lg">
+          <h1 className="truncate text-sm font-black tracking-[-0.03em] text-[#0f172a] sm:text-base md:text-lg">
             {pageTitle}
           </h1>
-          <p className="hidden truncate text-xs text-[#64748b] sm:block sm:text-sm">
+          <p className="hidden truncate text-xs font-medium text-[#64748b] sm:block sm:text-sm">
             Bienvenido de nuevo, {user.name}
           </p>
         </div>
@@ -73,7 +73,7 @@ export function DashboardTopbar({
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-3">
         <button
           type="button"
-          className="hidden h-10 w-10 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 md:inline-flex"
+          className="hidden h-10 w-10 items-center justify-center rounded-2xl text-[#64748b] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 md:inline-flex"
           aria-label="Notificaciones"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -82,7 +82,7 @@ export function DashboardTopbar({
         </button>
         <button
           type="button"
-          className="hidden h-10 w-10 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 lg:inline-flex"
+          className="hidden h-10 w-10 items-center justify-center rounded-2xl text-[#64748b] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 lg:inline-flex"
           aria-label="Ayuda"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -93,7 +93,7 @@ export function DashboardTopbar({
           <p className="truncate text-xs text-[#64748b]">{user.email}</p>
         </div>
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-semibold text-white ring-2 ring-white sm:h-10 sm:w-10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-xs font-bold text-white shadow-lg shadow-[#4056ff]/20 ring-2 ring-white sm:h-10 sm:w-10"
           aria-hidden
         >
           {user.avatarInitials}
@@ -103,7 +103,7 @@ export function DashboardTopbar({
           onClick={handleLogout}
           disabled={loggingOut}
           aria-label="Cerrar sesión"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#e5e7eb] text-[#64748b] transition-colors hover:bg-slate-50 hover:text-[#0f172a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 disabled:opacity-50 sm:h-auto sm:w-auto sm:px-3 sm:text-xs sm:font-medium"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e5e7eb] bg-white/60 text-[#64748b] shadow-sm transition-colors hover:bg-white hover:text-[#0f172a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 disabled:opacity-50 sm:h-auto sm:w-auto sm:px-3 sm:text-xs sm:font-medium"
         >
           <span className="hidden sm:inline">{loggingOut ? "Saliendo…" : "Salir"}</span>
           <svg className="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>

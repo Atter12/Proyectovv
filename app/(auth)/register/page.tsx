@@ -5,7 +5,7 @@ import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
   return (
-    <div className="w-full max-w-[460px] animate-pulse rounded-2xl border border-white/10 bg-[#141c2e]/80 p-8">
+    <div className="w-full max-w-[460px] animate-pulse rounded-[1.6rem] border border-white/10 bg-white/[0.06] p-8 shadow-2xl shadow-black/30 backdrop-blur-2xl">
       <div className="mb-6 flex items-start justify-between">
         <div className="space-y-2">
           <div className="h-6 w-32 rounded bg-white/10" />
@@ -29,7 +29,7 @@ function AuthCardFallback() {
 
 export default function RegisterPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070b1f]">
+    <div className="auth-luxury-canvas relative min-h-screen overflow-hidden">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_40%,rgba(64,86,255,0.18),transparent)]"
         aria-hidden
@@ -48,12 +48,12 @@ export default function RegisterPage() {
         aria-hidden
       />
 
-      <div className="relative grid min-h-screen lg:grid-cols-2">
+      <div className="relative grid min-h-screen lg:grid-cols-[1.08fr_0.92fr]">
         <RegisterHeroPanel />
 
         <div className="flex min-h-screen flex-col items-center justify-center overflow-y-auto px-4 py-10 sm:px-6 lg:px-10 xl:px-16">
           <div className="mb-8 text-center lg:hidden">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-bold text-white">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] shadow-xl shadow-[#4056ff]/25 text-xs font-bold text-white">
               DM
             </div>
             <p className="text-lg font-semibold text-white">{siteConfig.name}</p>
@@ -64,7 +64,7 @@ export default function RegisterPage() {
             <RegisterForm />
           </Suspense>
 
-          <p className="mt-8 text-xs text-slate-600">
+          <p className="mt-8 text-xs text-slate-500">
             © {new Date().getFullYear()} {siteConfig.companyName}
           </p>
         </div>

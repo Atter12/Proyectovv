@@ -20,7 +20,7 @@ interface RegisterFormValues {
 function BrandMark() {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-[10px] font-bold text-white">
+      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-[10px] font-bold text-white shadow-lg shadow-[#4056ff]/25 ring-1 ring-white/15">
         DM
       </div>
       <span className="text-sm font-semibold text-white">{siteConfig.name}</span>
@@ -39,7 +39,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-300"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-200"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -57,7 +57,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm text-white placeholder:text-slate-500 transition-colors focus:border-[#4056ff]/60 focus:outline-none focus:ring-2 focus:ring-[#4056ff]/25";
+  "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.065] px-4 text-sm text-white shadow-inner shadow-black/10 placeholder:text-slate-500 transition-all focus:border-[#8aa4ff]/60 focus:bg-white/[0.09] focus:outline-none focus:ring-4 focus:ring-[#4056ff]/15";
 
 function validateForm(values: RegisterFormValues): string | null {
   if (!values.fullName.trim()) return "El nombre completo es obligatorio.";
@@ -141,10 +141,11 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="w-full max-w-[460px] rounded-2xl border border-white/10 bg-[#141c2edb] p-7 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-8">
+    <div className="luxury-card w-full max-w-[470px] rounded-[1.65rem] p-7 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-8">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Crear cuenta</h1>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#12d6a3]">Onboarding premium</p>
+          <h1 className="text-2xl font-bold tracking-[-0.03em] text-white">Crear cuenta</h1>
           <p className="mt-1 text-sm text-slate-400">
             Regístrate como anunciante en {siteConfig.name}
           </p>
@@ -157,7 +158,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="fullName"
-              className="mb-2 block text-xs font-medium text-slate-400"
+              className="mb-2 block text-xs font-semibold text-slate-400"
             >
               Nombre completo
             </label>
@@ -173,7 +174,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="organizationName"
-              className="mb-2 block text-xs font-medium text-slate-400"
+              className="mb-2 block text-xs font-semibold text-slate-400"
             >
               Organización
             </label>
@@ -193,7 +194,7 @@ export function RegisterForm() {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-xs font-medium text-slate-400"
+            className="mb-2 block text-xs font-semibold text-slate-400"
           >
             Correo electrónico
           </label>
@@ -213,7 +214,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="password"
-              className="mb-2 block text-xs font-medium text-slate-400"
+              className="mb-2 block text-xs font-semibold text-slate-400"
             >
               Contraseña
             </label>
@@ -237,7 +238,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="confirmPassword"
-              className="mb-2 block text-xs font-medium text-slate-400"
+              className="mb-2 block text-xs font-semibold text-slate-400"
             >
               Confirmar
             </label>
@@ -264,7 +265,7 @@ export function RegisterForm() {
 
         {error && (
           <p
-            className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300"
+            className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200"
             role="alert"
           >
             {error}
@@ -274,7 +275,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="flex h-11 w-full items-center justify-center rounded-xl bg-[#4056ff] text-sm font-semibold text-white shadow-lg shadow-[#4056ff]/25 transition-all hover:bg-[#4d62ff] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>
@@ -289,7 +290,7 @@ export function RegisterForm() {
         ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
-          className="font-medium text-[#6b8cff] transition-colors hover:text-[#8aa4ff] hover:underline"
+          className="font-semibold text-[#8aa4ff] transition-colors hover:text-white hover:underline"
         >
           Inicia sesión
         </Link>

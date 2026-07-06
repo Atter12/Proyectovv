@@ -15,12 +15,12 @@ export function DashboardPageIntro({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+        "rounded-[1.45rem] border border-white/70 bg-white/70 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
-        <p className="max-w-2xl text-sm leading-relaxed text-[#64748b]">
+        <p className="max-w-3xl text-sm font-medium leading-relaxed text-[#64748b]">
           {description}
         </p>
       </div>

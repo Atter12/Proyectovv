@@ -14,7 +14,7 @@ const STEPS = [
 function CheckIcon() {
   return (
     <svg
-      className="h-5 w-5 shrink-0 text-emerald-400"
+      className="h-5 w-5 shrink-0 text-emerald-300"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -27,19 +27,19 @@ function CheckIcon() {
 
 export function RegisterHeroPanel() {
   return (
-    <div className="relative hidden flex-col justify-center px-10 py-12 lg:flex xl:px-16">
-      <div className="pointer-events-none absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#4056ff]/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-1/4 right-0 h-48 w-48 rounded-full bg-[#7c3aed]/10 blur-3xl" />
+    <div className="relative hidden min-h-screen flex-col justify-center overflow-hidden px-10 py-12 lg:flex xl:px-16">
+      <div className="pointer-events-none absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-[#4056ff]/20 blur-3xl auth-luxury-orb" />
+      <div className="pointer-events-none absolute bottom-1/4 right-0 h-48 w-48 rounded-full bg-[#7c3aed]/18 blur-3xl auth-luxury-orb" />
 
       <div className="relative z-10 max-w-xl">
-        <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90 backdrop-blur-sm">
+        <span className="inline-flex rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-slate-200 shadow-2xl shadow-black/10 backdrop-blur-xl">
           Registro gratuito
         </span>
 
-        <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-white xl:text-4xl">
+        <h1 className="mt-5 text-4xl font-bold leading-[1.06] tracking-[-0.04em] text-white xl:text-5xl">
           Crea tu cuenta y publica con confianza
         </h1>
-        <p className="mt-4 text-sm leading-relaxed text-slate-400 sm:text-base">
+        <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
           Únete a anunciantes y agencias que centralizan campañas, pagos y
           creatividades en un solo panel.
         </p>
@@ -47,22 +47,22 @@ export function RegisterHeroPanel() {
         <ul className="mt-8 space-y-4">
           {BENEFITS.map((benefit) => (
             <li key={benefit} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15">
+              <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-emerald-300/10 bg-emerald-400/10 shadow-lg shadow-emerald-950/20">
                 <CheckIcon />
               </span>
-              <span className="text-sm leading-relaxed text-slate-300">{benefit}</span>
+              <span className="text-sm leading-relaxed text-slate-200">{benefit}</span>
             </li>
           ))}
         </ul>
 
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+        <div className="luxury-card mt-10 rounded-[1.55rem] p-5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
             Cómo empezar
           </p>
           <ol className="mt-4 space-y-4">
             {STEPS.map((item) => (
               <li key={item.step} className="flex items-start gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-bold text-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-xs font-bold text-white shadow-lg shadow-[#4056ff]/25 ring-1 ring-white/20">
                   {item.step}
                 </span>
                 <div>

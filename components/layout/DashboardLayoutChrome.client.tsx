@@ -44,7 +44,7 @@ export function DashboardLayoutChrome({
       {sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[1px] lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"
           aria-label="Cerrar menú"
           onClick={() => setSidebarOpen(false)}
         />
@@ -85,7 +85,7 @@ export function DashboardLayoutChrome({
           sidebarOpen={sidebarOpen}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="mx-auto min-w-0 w-full max-w-[1600px] flex-1 px-4 py-4 pb-32 sm:px-5 md:px-6 md:py-6 md:pb-28 lg:pb-8 xl:px-8">
+        <main className="mx-auto min-w-0 w-full max-w-[1620px] flex-1 px-4 py-4 pb-32 sm:px-5 md:px-6 md:py-6 md:pb-28 lg:pb-8 xl:px-8">
           {children}
         </main>
       </div>
