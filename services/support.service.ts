@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import type { SessionUser } from "@/types/auth";
 import type { ChatMessage } from "@/features/support/types/support.types";
 
@@ -7,6 +9,27 @@ export interface SupportTicketSummary {
   subject: string;
   status: string;
   createdAt: string;
+  updatedAt?: string | null;
+}
+
+interface SupportMessageRow {
+  id: string;
+  body: string;
+  sender_user_id: string | null;
+  internal_note: boolean;
+  created_at: string;
+}
+
+function toChatMessage(row: SupportMessageRow, session: SessionUser): ChatMessage {
+  return {
+    id: row.id,
+    role: row.sender_user_id === session.id ? "user" : "bot",
+    text: row.body,
+    timestamp: new Date(row.created_at).toLocaleTimeString("es", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
 }
 
 export async function listSupportTickets(
@@ -17,9 +40,9 @@ export async function listSupportTickets(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("support_tickets")
-    .select("id, subject, status, created_at")
+    .select("id, subject, status, created_at, updated_at")
     .eq("organization_id", session.organizationId)
-    .order("created_at", { ascending: false })
+    .order("updated_at", { ascending: false })
     .limit(20);
 
   if (error) return [];
@@ -29,25 +52,31 @@ export async function listSupportTickets(
     subject: row.subject,
     status: row.status,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }));
 }
 
 export async function createSupportTicket(
   session: SessionUser,
   input: { subject: string; message: string },
-): Promise<{ ticketId: string }> {
+): Promise<{ ticketId: string; message: ChatMessage }> {
   if (!session.organizationId) {
     throw new Error("Organización no disponible.");
   }
 
-  const supabase = await createClient();
-  const { data: ticket, error: ticketError } = await supabase
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const { data: ticket, error: ticketError } = await admin
     .from("support_tickets")
     .insert({
       organization_id: session.organizationId,
-      created_by: session.id,
+      requester_user_id: session.id,
       subject: input.subject.trim() || "Consulta de soporte",
       status: "open",
+      priority: "normal",
+      category: "chat",
+      metadata: { source: "floating_chat" },
+      updated_at: now,
     })
     .select("id")
     .single<{ id: string }>();
@@ -56,19 +85,32 @@ export async function createSupportTicket(
     throw new Error(ticketError?.message ?? "No se pudo crear el ticket.");
   }
 
-  const { error: messageError } = await supabase.from("support_messages").insert({
-    ticket_id: ticket.id,
-    organization_id: session.organizationId,
-    author_user_id: session.id,
-    body: input.message.trim(),
-    is_internal_note: false,
-  });
+  const { data: message, error: messageError } = await admin
+    .from("support_messages")
+    .insert({
+      ticket_id: ticket.id,
+      organization_id: session.organizationId,
+      sender_user_id: session.id,
+      body: input.message.trim(),
+      attachments: [],
+      internal_note: false,
+    })
+    .select("id, body, sender_user_id, internal_note, created_at")
+    .single<SupportMessageRow>();
 
-  if (messageError) {
-    throw new Error(messageError.message);
+  if (messageError || !message) {
+    throw new Error(messageError?.message ?? "No se pudo guardar el mensaje.");
   }
 
-  return { ticketId: ticket.id };
+  await createNotificationBestEffort({
+    organizationId: session.organizationId,
+    title: "Nuevo ticket de soporte",
+    body: input.subject.trim() || "Consulta de soporte",
+    type: "support_ticket_created",
+    data: { ticket_id: ticket.id, url: "/support" },
+  });
+
+  return { ticketId: ticket.id, message: toChatMessage(message, session) };
 }
 
 export async function listTicketMessages(
@@ -85,27 +127,21 @@ export async function listTicketMessages(
 
   let query = supabase
     .from("support_messages")
-    .select("id, body, author_user_id, is_internal_note, created_at")
+    .select("id, body, sender_user_id, internal_note, created_at")
     .eq("ticket_id", ticketId)
     .eq("organization_id", session.organizationId)
     .order("created_at", { ascending: true });
 
   if (!canSeeInternal) {
-    query = query.eq("is_internal_note", false);
+    query = query.eq("internal_note", false);
   }
 
   const { data, error } = await query;
   if (error) return [];
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    role: row.author_user_id === session.id ? "user" : "bot",
-    text: row.body,
-    timestamp: new Date(row.created_at).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  }));
+  return ((data ?? []) as SupportMessageRow[]).map((row) =>
+    toChatMessage(row, session),
+  );
 }
 
 export async function postTicketMessage(
@@ -117,30 +153,43 @@ export async function postTicketMessage(
     throw new Error("Organización no disponible.");
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id, status")
+    .eq("id", ticketId)
+    .eq("organization_id", session.organizationId)
+    .maybeSingle<{ id: string; status: string }>();
+
+  if (!ticket) {
+    throw new Error("Ticket no encontrado.");
+  }
+  if (["closed", "resolved"].includes(ticket.status)) {
+    throw new Error("Este ticket ya está cerrado.");
+  }
+
+  const { data, error } = await admin
     .from("support_messages")
     .insert({
       ticket_id: ticketId,
       organization_id: session.organizationId,
-      author_user_id: session.id,
+      sender_user_id: session.id,
       body: body.trim(),
-      is_internal_note: false,
+      attachments: [],
+      internal_note: false,
     })
-    .select("id, body, created_at")
-    .single<{ id: string; body: string; created_at: string }>();
+    .select("id, body, sender_user_id, internal_note, created_at")
+    .single<SupportMessageRow>();
 
   if (error || !data) {
     throw new Error(error?.message ?? "No se pudo enviar el mensaje.");
   }
 
-  return {
-    id: data.id,
-    role: "user",
-    text: data.body,
-    timestamp: new Date(data.created_at).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  };
+  await admin
+    .from("support_tickets")
+    .update({ status: "open", updated_at: new Date().toISOString() })
+    .eq("id", ticketId)
+    .eq("organization_id", session.organizationId);
+
+  return toChatMessage(data, session);
 }

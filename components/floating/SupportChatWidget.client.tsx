@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { supportMock } from "@/features/support/mocks/support.mock";
@@ -17,14 +17,41 @@ interface SupportChatWidgetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface SupportTicketSummary {
+  id: string;
+  subject: string;
+  status: string;
+  createdAt: string;
+}
+
+interface TicketsResponse {
+  ok: boolean;
+  tickets: SupportTicketSummary[];
+}
+
+interface MessagesResponse {
+  ok: boolean;
+  messages: ChatMessage[];
+}
+
 interface CreateTicketResponse {
   ok: boolean;
   ticketId: string;
+  message: ChatMessage;
 }
 
 interface PostMessageResponse {
   ok: boolean;
   message: ChatMessage;
+}
+
+function greetingMessage(): ChatMessage {
+  return {
+    id: "support-greeting",
+    role: "bot",
+    text: "Hola, cuéntanos qué necesitas y crearemos un ticket para darle seguimiento.",
+    timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+  };
 }
 
 export function SupportChatWidget({
@@ -35,10 +62,13 @@ export function SupportChatWidget({
   const [view, setView] = useState<SupportView>("home");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>(supportMock.initialMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
   const [inputValue, setInputValue] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [loadingConversation, setLoadingConversation] = useState(false);
+  const [conversationLoaded, setConversationLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedCategory = supportMock.categories.find(
     (c) => c.id === selectedCategoryId,
@@ -49,6 +79,37 @@ export function SupportChatWidget({
   const selectedArticle = supportMock.articles.find(
     (a) => a.id === selectedArticleId,
   );
+
+  const loadConversation = useCallback(async () => {
+    if (conversationLoaded || loadingConversation) return;
+    setLoadingConversation(true);
+    setError(null);
+    try {
+      const ticketsData = await apiClient<TicketsResponse>("/api/support/tickets");
+      const activeTicket = ticketsData.tickets.find(
+        (ticket) => !["closed", "resolved"].includes(ticket.status),
+      ) ?? ticketsData.tickets[0];
+
+      if (activeTicket) {
+        setTicketId(activeTicket.id);
+        const messagesData = await apiClient<MessagesResponse>(
+          `/api/support/tickets/${activeTicket.id}/messages`,
+        );
+        setMessages(messagesData.messages.length > 0 ? messagesData.messages : [greetingMessage()]);
+      } else {
+        setMessages([greetingMessage()]);
+      }
+      setConversationLoaded(true);
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo cargar el historial de soporte.",
+      );
+    } finally {
+      setLoadingConversation(false);
+    }
+  }, [conversationLoaded, loadingConversation]);
 
   function handleClose() {
     onOpenChange(false);
@@ -66,11 +127,17 @@ export function SupportChatWidget({
     }
   }
 
+  async function openConversation() {
+    setView("conversation");
+    await loadConversation();
+  }
+
   async function handleSend() {
     const text = inputValue.trim();
     if (!text || sending) return;
 
     setSending(true);
+    setError(null);
     setInputValue("");
 
     const optimistic: ChatMessage = {
@@ -79,7 +146,10 @@ export function SupportChatWidget({
       text,
       timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
     };
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((prev) => [
+      ...prev.filter((msg) => msg.id !== "support-greeting"),
+      optimistic,
+    ]);
 
     try {
       if (!ticketId) {
@@ -88,6 +158,10 @@ export function SupportChatWidget({
           body: JSON.stringify({ message: text }),
         });
         setTicketId(data.ticketId);
+        setConversationLoaded(true);
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
+        );
       } else {
         const data = await apiClient<PostMessageResponse>(
           `/api/support/tickets/${ticketId}/messages`,
@@ -100,11 +174,14 @@ export function SupportChatWidget({
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
         );
       }
-    } catch (error) {
+    } catch (err) {
       setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
-      if (error instanceof ApiClientError) {
-        setInputValue(text);
-      }
+      setInputValue(text);
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo enviar el mensaje.",
+      );
     } finally {
       setSending(false);
     }
@@ -117,6 +194,9 @@ export function SupportChatWidget({
           <ChatConversation
             messages={messages}
             inputValue={inputValue}
+            sending={sending}
+            loading={loadingConversation}
+            error={error}
             onInputChange={setInputValue}
             onSend={handleSend}
             onBack={() => setView("home")}
@@ -159,7 +239,7 @@ export function SupportChatWidget({
             brandName={supportMock.brandName}
             poweredByLabel={supportMock.poweredByLabel}
             categories={supportMock.categories}
-            onOpenConversation={() => setView("conversation")}
+            onOpenConversation={openConversation}
             onOpenFaqCategories={() => setView("faqCategories")}
             onSelectCategory={(id) => {
               setSelectedCategoryId(id);
@@ -184,7 +264,7 @@ export function SupportChatWidget({
             className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white transition-colors hover:bg-black/40"
             aria-label="Cerrar soporte"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -196,13 +276,10 @@ export function SupportChatWidget({
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? "Cerrar chat de soporte" : "Abrir chat de soporte"}
-        className={cn(
-          "flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#ff2056] text-white shadow-lg shadow-[#ff2056]/40 transition-all duration-200 ease-out hover:scale-105",
-          isOpen && "rotate-0 bg-slate-700 shadow-slate-700/30",
-        )}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#10344a] text-white shadow-xl shadow-black/20 transition-transform duration-200 hover:scale-105 sm:h-14 sm:w-14"
       >
         {isOpen ? (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
@@ -210,7 +287,7 @@ export function SupportChatWidget({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+              d="M2.25 12c0 4.556 4.03 8.25 9 8.25a9.764 9.764 0 002.555-.337 5.972 5.972 0 003.235 1.057 5.969 5.969 0 00.474-.065 4.48 4.48 0 01-.978-2.025c-.09-.457.133-.901.467-1.226C18.57 16.178 19.5 14.189 19.5 12c0-4.556-4.03-8.25-9-8.25s-9 3.694-9 8.25z"
             />
           </svg>
         )}

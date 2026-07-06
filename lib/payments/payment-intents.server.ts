@@ -69,10 +69,11 @@ export interface PaymentIntentRecord {
   idempotencyKey: string | null;
   createdBy: string | null;
   metadata: Record<string, unknown>;
+  failureReason?: string | null;
 }
 
 const PAYMENT_INTENT_SELECT =
-  "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key, created_by, metadata";
+  "id, organization_id, wallet_id, amount_cents, currency, provider, status, provider_reference, checkout_url, idempotency_key, created_by, metadata, failure_reason";
 
 export async function createPaymentIntentRecord(
   input: CreatePaymentIntentInput,
@@ -202,6 +203,7 @@ function mapIntentRow(row: {
   idempotency_key: string | null;
   created_by?: string | null;
   metadata?: Record<string, unknown> | null;
+  failure_reason?: string | null;
 }): PaymentIntentRecord {
   return {
     id: row.id,
@@ -216,6 +218,7 @@ function mapIntentRow(row: {
     idempotencyKey: row.idempotency_key,
     createdBy: row.created_by ?? null,
     metadata: row.metadata ?? {},
+    failureReason: row.failure_reason ?? null,
   };
 }
 

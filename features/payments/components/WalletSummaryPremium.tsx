@@ -60,7 +60,7 @@ export function WalletSummaryPremium({
           </div>
         </div>
 
-        <WalletSummaryActions />
+        <WalletSummaryActions availableBalance={wallet.balance} currency={wallet.currency} />
       </div>
     </Card>
   );

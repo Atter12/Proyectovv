@@ -68,7 +68,7 @@ export const getDashboardOverview = cache(async function getDashboardOverview(
       supabase
         .from("ad_accounts")
         .select(
-          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+          "id, organization_id, name, platform, external_account_id, external_business_id, external_account_name, status, daily_budget_cents, monthly_limit_cents, auto_recharge_enabled, recharge_threshold_cents, timezone, currency, metadata, created_at, updated_at",
         )
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false })
@@ -94,17 +94,34 @@ export const getDashboardOverview = cache(async function getDashboardOverview(
     balanceRows.map((row) => [row.ad_account_id, Number(row.available_balance_cents ?? row.balance_cents ?? 0)]),
   );
 
-  const adAccounts: AdAccount[] = accountRows.map((account) => ({
-    id: account.id,
-    name: account.name,
-    bcId: account.external_account_id ?? "—",
-    status: account.status,
-    cost: centsToAmount(account.daily_budget_cents),
-    balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
-    autoRecharge: false,
-    thresholdInfo: "Sin umbral configurado",
-    timezone: "UTC",
-  }));
+  const adAccounts: AdAccount[] = accountRows.map((account) => {
+    const dailyBudget = centsToAmount(account.daily_budget_cents ?? 0);
+    const monthlyLimit = centsToAmount(account.monthly_limit_cents ?? 0);
+    const rechargeThreshold = centsToAmount(account.recharge_threshold_cents ?? 0);
+    const metadata = account.metadata ?? {};
+    const isArchived = Boolean(metadata.archived_at);
+
+    return {
+      id: account.id,
+      name: account.name,
+      platform: account.platform,
+      bcId: account.external_business_id ?? account.external_account_id ?? "—",
+      externalAccountId: account.external_account_id ?? null,
+      externalBusinessId: account.external_business_id ?? null,
+      externalAccountName: account.external_account_name ?? null,
+      status: isArchived ? "archived" : account.status,
+      cost: dailyBudget,
+      dailyBudget,
+      monthlyLimit,
+      balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
+      autoRecharge: Boolean(account.auto_recharge_enabled),
+      rechargeThreshold,
+      thresholdInfo: rechargeThreshold > 0 ? `${rechargeThreshold} ${account.currency}` : "Sin umbral configurado",
+      timezone: account.timezone ?? "America/Lima",
+      connectionLabel: account.external_account_id ? "Conectada/manual" : "Manual/Demo",
+      isArchived,
+    };
+  });
 
   const referralEarnings =
     referralRows.reduce(

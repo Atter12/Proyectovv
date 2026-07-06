@@ -36,6 +36,18 @@ export interface CreativeAnalyzerMetrics {
   topMetric: string;
 }
 
+
+export interface CreativeAnalysisActivityItem {
+  id: string;
+  assetId: string | null;
+  assetName: string;
+  status: "queued" | "pending" | "processing" | "completed" | "failed";
+  provider: string;
+  createdAt: string;
+  finishedAt: string | null;
+  errorMessage: string | null;
+}
+
 export interface CreativeAnalyzerOverview {
   metrics: CreativeAnalyzerMetrics;
   stats: CreativeAnalyzerMetric[];
@@ -43,6 +55,7 @@ export interface CreativeAnalyzerOverview {
   workflowSteps: CreativeWorkflowStep[];
   features: CreativeValueItem[];
   benchmarkRecommendation: string;
+  recentActivity?: CreativeAnalysisActivityItem[];
 }
 
 /** @deprecated */

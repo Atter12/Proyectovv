@@ -5,6 +5,8 @@ import { CreativeAnalysisWorkflow } from "@/features/creative-analyzer/component
 import { CreativeBenchmarkPanel } from "@/features/creative-analyzer/components/CreativeBenchmarkPanel";
 import { CreativeValueGrid } from "@/features/creative-analyzer/components/CreativeValueGrid";
 import { CreativeAnalyzerCTA } from "@/features/creative-analyzer/components/CreativeAnalyzerCTA";
+import { CreativeUploadPanel } from "@/features/creative-analyzer/components/CreativeUploadPanel.client";
+import { CreativeAnalysisActivity } from "@/features/creative-analyzer/components/CreativeAnalysisActivity";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getCreativeAnalyzerOverview } from "@/services/creative-analyzer.service";
@@ -18,6 +20,8 @@ export default async function CreativeAnalyzerPage() {
       <CreativeAnalyzerPageHeader />
       <CreativeAnalyzerHero metrics={data.metrics} />
       <CreativeAnalyzerStats stats={data.stats} />
+      <CreativeUploadPanel />
+      <CreativeAnalysisActivity items={data.recentActivity ?? []} />
       <CreativeAnalysisWorkflow steps={data.workflowSteps} />
       <CreativeBenchmarkPanel
         metrics={data.metrics}

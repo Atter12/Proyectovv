@@ -44,6 +44,7 @@ export type DbReferralStatus =
   | "converted";
 
 export type DbCreativeAnalysisStatus =
+  | "queued"
   | "pending"
   | "processing"
   | "completed"
@@ -127,9 +128,11 @@ export interface DbPaymentIntentRow {
   checkout_url: string | null;
   metadata: Record<string, unknown>;
   created_by?: string | null;
+  failure_reason?: string | null;
   created_at: string;
   updated_at: string;
 }
+
 
 export interface DbAdAccountRow {
   id: string;
@@ -137,9 +140,16 @@ export interface DbAdAccountRow {
   name: string;
   platform: DbAdPlatform;
   external_account_id: string | null;
+  external_business_id?: string | null;
+  external_account_name?: string | null;
   status: DbAdAccountStatus;
   daily_budget_cents: number;
+  monthly_limit_cents?: number;
+  auto_recharge_enabled?: boolean;
+  recharge_threshold_cents?: number;
+  timezone?: string;
   currency: string;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -158,6 +168,7 @@ export interface DbReferralCodeRow {
   user_id: string;
   code: string;
   status: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface DbReferralRow {

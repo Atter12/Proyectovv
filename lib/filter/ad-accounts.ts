@@ -5,6 +5,7 @@ const statusLabels: Record<AdAccountStatus, string> = {
   pending: "pendiente",
   disabled: "desactivada",
   review: "revisión",
+  archived: "archivada",
 };
 
 export interface AdAccountFilterParams {
@@ -25,6 +26,11 @@ export function filterAdAccounts(
       account.id.toLowerCase().includes(searchLower) ||
       account.bcId.toLowerCase().includes(searchLower) ||
       account.name.toLowerCase().includes(searchLower) ||
+      account.platform.toLowerCase().includes(searchLower) ||
+      (account.externalAccountId ?? "").toLowerCase().includes(searchLower) ||
+      (account.externalBusinessId ?? "").toLowerCase().includes(searchLower) ||
+      (account.externalAccountName ?? "").toLowerCase().includes(searchLower) ||
+      account.connectionLabel.toLowerCase().includes(searchLower) ||
       statusLabel.includes(searchLower);
     const matchesStatus = status === "all" || account.status === status;
     return matchesSearch && matchesStatus;

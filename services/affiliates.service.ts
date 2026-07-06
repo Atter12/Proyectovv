@@ -2,6 +2,7 @@ import { serverEnv } from "@/lib/env/env.server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { centsToAmount } from "@/lib/services/mappers";
+import { getNumber, isRecord } from "@/lib/records";
 import type { SessionUser } from "@/types/auth";
 import type { DbReferralCodeRow, DbReferralRow } from "@/types/database";
 import type { AffiliateProgramOverview } from "@/types/affiliate";
@@ -18,7 +19,7 @@ export async function getAffiliateProgram(
   const supabase = await createClient();
   const initialCode = await supabase
     .from("referral_codes")
-    .select("id, organization_id, user_id, code, status")
+    .select("id, organization_id, user_id, code, status, metadata")
     .eq("organization_id", organizationId)
     .eq("user_id", session.id)
     .eq("status", "active")
@@ -57,7 +58,7 @@ export async function getAffiliateProgram(
       activeReferrals,
       estimatedCommission: centsToAmount(estimatedCommission),
       paidCommission: centsToAmount(paidCommission),
-      clicks: 0,
+      clicks: getReferralClicks(ensuredCode?.metadata),
       registrations: referralRows.length,
     },
     selectedBannerSize: "300x250",
@@ -66,6 +67,13 @@ export async function getAffiliateProgram(
     steps: affiliatesMock.steps,
     notes: affiliatesMock.notes,
   };
+}
+
+
+function getReferralClicks(metadata: unknown): number {
+  if (!isRecord(metadata)) return 0;
+  const value = getNumber(metadata.clicks);
+  return value && value > 0 ? value : 0;
 }
 
 async function ensureReferralCode(
@@ -89,14 +97,14 @@ async function ensureReferralCode(
       code,
       status: "active",
     })
-    .select("id, organization_id, user_id, code, status")
+    .select("id, organization_id, user_id, code, status, metadata")
     .single<DbReferralCodeRow>();
 
   if (error?.code === "23505") {
     const supabase = await createClient();
     const existing = await supabase
       .from("referral_codes")
-      .select("id, organization_id, user_id, code, status")
+      .select("id, organization_id, user_id, code, status, metadata")
       .eq("organization_id", organizationId)
       .eq("user_id", session.id)
       .maybeSingle<DbReferralCodeRow>();

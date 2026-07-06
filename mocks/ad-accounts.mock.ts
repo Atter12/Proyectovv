@@ -10,13 +10,22 @@ export const adAccountsMock: AdAccount[] = [];
 export const sampleAdAccount: AdAccount = {
   id: "acc-001",
   name: "Cuenta publicitaria Default",
+  platform: "tiktok",
   bcId: "BC-0001",
+  externalAccountId: null,
+  externalBusinessId: "BC-0001",
+  externalAccountName: null,
   status: "pending",
   cost: 0,
+  dailyBudget: 0,
+  monthlyLimit: 0,
   balance: 0,
   autoRecharge: false,
+  rechargeThreshold: 0,
   thresholdInfo: "Sin umbral",
   timezone: "UTC-05 Lima",
+  connectionLabel: "Manual/Demo",
+  isArchived: false,
 };
 
 export const adAccountsOverviewMock: AdAccountsOverview = {

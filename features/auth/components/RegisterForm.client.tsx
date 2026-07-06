@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
@@ -59,6 +59,31 @@ function PasswordToggle({
 const inputClassName =
   "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.065] px-4 text-sm text-white shadow-inner shadow-black/10 placeholder:text-slate-500 transition-all focus:border-[#8aa4ff]/60 focus:bg-white/[0.09] focus:outline-none focus:ring-4 focus:ring-[#4056ff]/15";
 
+function readStoredReferralCode(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = window.localStorage.getItem("vv_referral_code");
+  return value && value.trim() ? value.trim() : null;
+}
+
+function persistReferralCode(code: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("vv_referral_code", code);
+  document.cookie = `vv_referral_code=${encodeURIComponent(code)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+}
+
+async function trackReferralClick(code: string): Promise<void> {
+  try {
+    await fetch("/api/affiliates/track-referral", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, event: "click" }),
+    });
+  } catch {
+    // El tracking no debe bloquear el registro.
+  }
+}
+
+
 function validateForm(values: RegisterFormValues): string | null {
   if (!values.fullName.trim()) return "El nombre completo es obligatorio.";
   if (!values.organizationName.trim()) {
@@ -76,6 +101,8 @@ function validateForm(values: RegisterFormValues): string | null {
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get("ref")?.trim() || null;
   const [values, setValues] = useState<RegisterFormValues>({
     fullName: "",
     organizationName: "",
@@ -87,6 +114,13 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!referralCode) return;
+
+    persistReferralCode(referralCode);
+    void trackReferralClick(referralCode);
+  }, [referralCode]);
 
   function updateField<K extends keyof RegisterFormValues>(
     key: K,
@@ -110,6 +144,7 @@ export function RegisterForm() {
     try {
       const supabase = createClient();
       const email = values.email.trim();
+      const storedReferralCode = readStoredReferralCode() ?? referralCode;
 
       const { error: signUpError } = await supabase.auth.signUp({
         email,
@@ -118,6 +153,7 @@ export function RegisterForm() {
           data: {
             full_name: values.fullName.trim(),
             organization_name: values.organizationName.trim(),
+            ...(storedReferralCode ? { referral_code: storedReferralCode } : {}),
           },
         },
       });
@@ -262,6 +298,12 @@ export function RegisterForm() {
             </div>
           </div>
         </div>
+
+        {referralCode && (
+          <div className="rounded-2xl border border-[#12d6a3]/20 bg-[#12d6a3]/10 px-3 py-2 text-xs font-medium text-[#b7f7e6]">
+            Código referido aplicado: <span className="font-black">{referralCode}</span>
+          </div>
+        )}
 
         {error && (
           <p

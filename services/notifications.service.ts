@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
+import { isRecord } from "@/lib/records";
 import type { SessionUser } from "@/types/auth";
 
 export interface NotificationItem {
   id: string;
   title: string;
   body: string | null;
+  type: string;
+  data: Record<string, unknown>;
   readAt: string | null;
   createdAt: string;
 }
@@ -15,7 +18,7 @@ export async function listNotifications(
   const supabase = await createClient();
   let query = supabase
     .from("notifications")
-    .select("id, title, body, read_at, created_at")
+    .select("id, title, body, type, data, read_at, created_at")
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -34,6 +37,8 @@ export async function listNotifications(
     id: row.id,
     title: row.title,
     body: row.body,
+    type: row.type ?? "info",
+    data: isRecord(row.data) ? row.data : {},
     readAt: row.read_at,
     createdAt: row.created_at,
   }));

@@ -25,22 +25,26 @@ const statusOptions: { value: AdAccountStatus | "all"; label: string }[] = [
   { value: "pending", label: "Pendiente" },
   { value: "disabled", label: "Desactivada" },
   { value: "review", label: "En revisión" },
+  { value: "archived", label: "Archivada" },
 ];
 
 interface AdAccountsToolbarProps {
   initialSearch?: string;
   initialStatus?: string;
+  initialIncludeArchived?: boolean;
 }
 
 export function AdAccountsToolbar({
   initialSearch = "",
   initialStatus = "all",
+  initialIncludeArchived = false,
 }: AdAccountsToolbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
+  const [includeArchived, setIncludeArchived] = useState(initialIncludeArchived);
   const [modalOpen, setModalOpen] = useState(false);
 
   const updateParams = useCallback(
@@ -71,7 +75,7 @@ export function AdAccountsToolbar({
     <>
       <div className="border-b border-[var(--border-subtle)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
             <div className="relative min-w-0 flex-1 sm:max-w-sm">
               <svg
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"
@@ -87,7 +91,7 @@ export function AdAccountsToolbar({
                 />
               </svg>
               <Input
-                placeholder="Buscar por ID, nombre o estado"
+                placeholder="Buscar por ID, nombre, plataforma o estado"
                 value={search}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -112,6 +116,19 @@ export function AdAccountsToolbar({
                 </option>
               ))}
             </select>
+            <label className="flex h-11 items-center gap-2 rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm font-medium text-[#475569]">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  setIncludeArchived(checked);
+                  updateParams({ archived: checked ? "1" : null });
+                }}
+                className="h-4 w-4 rounded border-[#cbd5e1] text-[#4056ff] focus:ring-[#4056ff]"
+              />
+              Ver archivadas
+            </label>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link href={routes.creativeAnalyzer} className="w-full sm:w-auto">

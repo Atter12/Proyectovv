@@ -20,7 +20,8 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const params = await searchParams;
   const search = getSearchParam(params, "q");
   const status = getSearchParam(params, "status", "all");
-  const data = await getAdAccountsOverview(session);
+  const includeArchived = getSearchParam(params, "archived") === "1";
+  const data = await getAdAccountsOverview(session, { includeArchived });
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
 
   return (
@@ -30,7 +31,11 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       <AdAccountsSummaryCards summary={data.summary} />
       <Card padding="none" className="overflow-hidden">
         <Suspense fallback={null}>
-          <AdAccountsToolbar initialSearch={search} initialStatus={status} />
+          <AdAccountsToolbar
+            initialSearch={search}
+            initialStatus={status}
+            initialIncludeArchived={includeArchived}
+          />
         </Suspense>
         <AdAccountsTable accounts={filteredAccounts} />
       </Card>

@@ -4,6 +4,9 @@ import type { ChatMessage } from "../types/support.types";
 interface ChatConversationProps {
   messages: ChatMessage[];
   inputValue: string;
+  sending?: boolean;
+  loading?: boolean;
+  error?: string | null;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onBack: () => void;
@@ -12,6 +15,9 @@ interface ChatConversationProps {
 export function ChatConversation({
   messages,
   inputValue,
+  sending = false,
+  loading = false,
+  error = null,
   onInputChange,
   onSend,
   onBack,
@@ -39,67 +45,72 @@ export function ChatConversation({
         </button>
         <p className="text-sm font-bold text-white">Escríbenos</p>
         <p className="text-xs text-white/70">
-          No estamos en línea. ¡Déjanos un mensaje!
+          Tu conversación queda guardada como ticket de soporte.
         </p>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                message.role === "user"
-                  ? "bg-[#4056ff] text-white"
-                  : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200"
-              }`}
-            >
-              {message.text}
-            </div>
+        {loading ? (
+          <p className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">
+            Cargando historial…
+          </p>
+        ) : messages.length === 0 ? (
+          <div className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+            Cuéntanos en qué podemos ayudarte y crearemos un ticket para darle seguimiento.
           </div>
-        ))}
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                  message.role === "user"
+                    ? "bg-[#4056ff] text-white"
+                    : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200"
+                }`}
+              >
+                <p>{message.text}</p>
+                <p className={`mt-1 text-[10px] ${message.role === "user" ? "text-white/70" : "text-slate-400"}`}>
+                  {message.timestamp}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+        {error ? (
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {error}
+          </p>
+        ) : null}
       </div>
 
       <div className="border-t border-slate-200 bg-white p-3">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label="Adjuntar archivo"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-            </svg>
-          </button>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribe tu respuesta..."
+            placeholder="Escribe tu mensaje..."
             aria-label="Escribir mensaje"
             className="h-9 flex-1 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
           />
           <button
             type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label="Insertar emoji"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.008H9.375V9.75zm3 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.008H12V9.75z" />
-            </svg>
-          </button>
-          <button
-            type="button"
             onClick={onSend}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4056ff] text-white hover:bg-[#4056ff]/90"
+            disabled={sending || !inputValue.trim()}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4056ff] text-white hover:bg-[#4056ff]/90 disabled:opacity-50"
             aria-label="Enviar mensaje"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-            </svg>
+            {sending ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

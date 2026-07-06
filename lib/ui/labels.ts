@@ -6,6 +6,7 @@ export const AD_ACCOUNT_STATUS_LABELS: Record<AdAccountStatus, string> = {
   pending: "Pendiente",
   disabled: "Desactivada",
   review: "En revisión",
+  archived: "Archivada",
 };
 
 export function mapAdAccountStatusLabel(status: string): string {

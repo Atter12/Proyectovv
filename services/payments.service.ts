@@ -6,11 +6,13 @@ import {
 } from "@/lib/cache/gateways.server";
 import { createClient } from "@/lib/supabase/server";
 import { centsToAmount, mapWalletTransactionRow } from "@/lib/services/mappers";
+import { getString, isRecord } from "@/lib/records";
 import { listFinancialActivity } from "@/lib/ledger/ledger.server";
 import type { SessionUser } from "@/types/auth";
 import type {
   DbAdAccountRow,
   DbAdAccountBalanceRow,
+  DbPaymentIntentRow,
   DbPaymentsPageSummaryRow,
   DbWalletTransactionRow,
 } from "@/types/database";
@@ -252,6 +254,67 @@ export async function getPaymentTransactions(
 
   const { data } = await query;
   return ((data ?? []) as DbWalletTransactionRow[]).map(mapWalletTransactionRow);
+}
+
+
+export interface ManualPaymentIntentItem {
+  id: string;
+  createdAt: string;
+  amount: number;
+  currency: string;
+  status: string;
+  reviewStatus: "awaiting_proof" | "pending_review" | "approved" | "rejected" | "cancelled";
+  proofFileName: string | null;
+  failureReason: string | null;
+}
+
+function getManualIntentReviewStatus(
+  row: DbPaymentIntentRow,
+): ManualPaymentIntentItem["reviewStatus"] {
+  if (row.status === "succeeded") return "approved";
+  if (row.status === "failed") return "rejected";
+  if (row.status === "cancelled") return "cancelled";
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  const reviewStatus = getString(metadata.manual_review_status);
+  if (reviewStatus === "pending_review") return "pending_review";
+  if (row.status === "processing") return "pending_review";
+  return "awaiting_proof";
+}
+
+function getManualProofFileName(metadata: unknown): string | null {
+  if (!isRecord(metadata)) return null;
+  const proof = metadata.manual_proof;
+  if (!isRecord(proof)) return null;
+  return getString(proof.file_name);
+}
+
+export async function getRecentManualPaymentIntents(
+  session: SessionUser,
+): Promise<ManualPaymentIntentItem[]> {
+  const organizationId = session.organizationId;
+  if (!organizationId) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("payment_intents")
+    .select("id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at")
+    .eq("organization_id", organizationId)
+    .eq("provider", "manual")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) return [];
+
+  return ((data ?? []) as DbPaymentIntentRow[]).map((row) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    amount: centsToAmount(row.amount_cents),
+    currency: row.currency,
+    status: row.status,
+    reviewStatus: getManualIntentReviewStatus(row),
+    proofFileName: getManualProofFileName(row.metadata),
+    failureReason: row.failure_reason ?? null,
+  }));
 }
 
 /** @deprecated Usar getPaymentPageCore + getPaymentTransactions */

@@ -25,6 +25,17 @@ interface CreateIntentResponse {
   };
 }
 
+interface ProofUploadResponse {
+  ok: boolean;
+  paymentIntent: {
+    id: string;
+    status: string;
+    manualReviewStatus: string;
+    proofFileName: string;
+    submittedAt: string;
+  };
+}
+
 const gatewayLabels: Record<PaymentGatewayId, string> = {
   stripe: "Stripe",
   culqi: "Culqi",
@@ -42,10 +53,13 @@ export function AddBalanceModal({
 }: AddBalanceModalProps) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
-  const [step, setStep] = useState<"form" | "confirm" | "result">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "proof" | "result">("form");
   const [loading, setLoading] = useState(false);
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
 
   if (!open) return null;
 
@@ -54,13 +68,17 @@ export function AddBalanceModal({
     Number.isFinite(parsedAmount) &&
     parsedAmount >= MIN_AMOUNT &&
     parsedAmount <= MAX_AMOUNT;
+  const isManual = selectedGateway === "manual";
 
   function handleClose() {
     setStep("form");
     setAmount("");
     setError(null);
     setResultMessage(null);
+    setPaymentIntentId(null);
+    setProofFile(null);
     setLoading(false);
+    setUploadingProof(false);
     onClose();
   }
 
@@ -94,13 +112,13 @@ export function AddBalanceModal({
         return;
       }
 
-      setResultMessage(
-        data.paymentIntent.message ??
-          (data.paymentIntent.providerConfigured
-            ? "Intención de pago creada. Te avisaremos cuando se confirme el depósito."
-            : "La pasarela aún no está configurada. Se registró una intención pendiente."),
-      );
-      setStep("result");
+      setPaymentIntentId(data.paymentIntent.paymentIntentId);
+      const defaultMessage = data.paymentIntent.providerConfigured
+        ? "Intención de pago creada. Te avisaremos cuando se confirme el depósito."
+        : "La pasarela aún no está configurada. Se registró una intención pendiente.";
+
+      setResultMessage(data.paymentIntent.message ?? defaultMessage);
+      setStep(isManual ? "proof" : "result");
       router.refresh();
     } catch (err) {
       setError(
@@ -110,6 +128,46 @@ export function AddBalanceModal({
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleProofUpload() {
+    if (!paymentIntentId) {
+      setError("Primero crea la intención de pago manual.");
+      return;
+    }
+    if (!proofFile) {
+      setError("Selecciona el voucher o comprobante de transferencia.");
+      return;
+    }
+
+    setUploadingProof(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("proof", proofFile);
+
+    try {
+      const data = await apiClient<ProofUploadResponse>(
+        `/api/payments/intents/${paymentIntentId}/proof`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+      setResultMessage(
+        `Voucher ${data.paymentIntent.proofFileName} enviado. Tu pago quedó en revisión manual.`,
+      );
+      setStep("result");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "No se pudo subir el comprobante.",
+      );
+    } finally {
+      setUploadingProof(false);
     }
   }
 
@@ -162,6 +220,11 @@ export function AddBalanceModal({
                 <p className="mt-0.5 text-sm font-semibold text-[#0f172a]">
                   {gatewayLabels[selectedGateway]}
                 </p>
+                {isManual ? (
+                  <p className="mt-1 text-xs text-[#64748b]">
+                    Después de crear la intención podrás subir el voucher para revisión.
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -214,6 +277,51 @@ export function AddBalanceModal({
                 className="bg-[#4056ff] hover:bg-[#4056ff]/90"
               >
                 {loading ? "Procesando…" : "Confirmar depósito"}
+              </Button>
+            </div>
+          </>
+        ) : step === "proof" ? (
+          <>
+            <h2 className="text-lg font-semibold text-[#0f172a]">
+              Subir voucher
+            </h2>
+            <p className="mt-1 text-sm text-[#64748b]">
+              Adjunta el comprobante del pago manual para que el equipo lo revise desde el panel admin.
+            </p>
+            <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm">
+              <p className="font-semibold text-[#0f172a]">{formatMoney(parsedAmount)}</p>
+              <p className="mt-1 text-xs text-[#64748b]">
+                ID de intención: <span className="font-mono">{paymentIntentId}</span>
+              </p>
+            </div>
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs font-medium text-[#64748b]">
+                Voucher o comprobante
+              </label>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,application/pdf"
+                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+              />
+              <p className="mt-1.5 text-xs text-[#64748b]">
+                Formatos permitidos: JPG, PNG, WEBP o PDF. Máximo 10 MB.
+              </p>
+            </div>
+            {error && (
+              <p className="mt-3 text-xs text-red-600" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={handleClose} disabled={uploadingProof}>
+                Subir luego
+              </Button>
+              <Button
+                onClick={handleProofUpload}
+                disabled={uploadingProof}
+                className="bg-[#4056ff] hover:bg-[#4056ff]/90"
+              >
+                {uploadingProof ? "Subiendo…" : "Enviar voucher"}
               </Button>
             </div>
           </>

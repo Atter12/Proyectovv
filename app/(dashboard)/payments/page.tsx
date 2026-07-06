@@ -9,6 +9,7 @@ import {
 } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsTabsShell } from "@/features/payments/components/PaymentsTabsShell";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
+import { ManualPaymentsPanel } from "@/features/payments/components/ManualPaymentsPanel";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { parsePaymentTab } from "@/lib/payments/tab-params";
 import { getSearchParam } from "@/lib/search-params";
@@ -40,6 +41,10 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
           }
         >
           <PaymentsGatewayPanel session={session} />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <ManualPaymentsPanel session={session} />
         </Suspense>
 
         <Card padding="none" className="min-w-0 overflow-hidden">

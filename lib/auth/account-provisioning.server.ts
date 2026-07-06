@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 
 interface ProvisioningResult {
   ready: boolean;
@@ -184,6 +185,72 @@ async function ensureWallet(
   });
 }
 
+
+async function recordReferralAttribution(
+  admin: ReturnType<typeof createAdminClient>,
+  user: User,
+  organizationId: string,
+): Promise<void> {
+  const referralCode = getMetadataString(user.user_metadata, "referral_code");
+  if (!referralCode) return;
+
+  const { data: codeRow, error } = await admin
+    .from("referral_codes")
+    .select("id, user_id, organization_id, code")
+    .eq("code", referralCode)
+    .eq("status", "active")
+    .maybeSingle<{
+      id: string;
+      user_id: string;
+      organization_id: string;
+      code: string;
+    }>();
+
+  if (error || !codeRow) return;
+  if (codeRow.user_id === user.id || codeRow.organization_id === organizationId) {
+    return;
+  }
+
+  const { data: existingReferral } = await admin
+    .from("referrals")
+    .select("id")
+    .eq("referred_organization_id", organizationId)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (existingReferral?.id) return;
+
+  const { error: insertError } = await admin.from("referrals").insert({
+    referral_code_id: codeRow.id,
+    referrer_user_id: codeRow.user_id,
+    referred_organization_id: organizationId,
+    status: "active",
+    commission_rate: 0,
+    commission_amount_cents: 0,
+    metadata: {
+      source: "registration",
+      referral_code: codeRow.code,
+      referred_user_id: user.id,
+      referred_email: user.email ?? null,
+    },
+  });
+
+  if (insertError) return;
+
+  await createNotificationBestEffort({
+    organizationId: codeRow.organization_id,
+    userId: codeRow.user_id,
+    title: "Nuevo referido registrado",
+    body: `${getFullName(user)} creó una cuenta con tu enlace de referido.`,
+    type: "affiliate_referral_registered",
+    data: {
+      url: "/affiliates",
+      referred_organization_id: organizationId,
+      referral_code: codeRow.code,
+    },
+  });
+}
+
 async function writeBestEffortAuditLog(
   admin: ReturnType<typeof createAdminClient>,
   organizationId: string,
@@ -252,6 +319,7 @@ export async function ensureAccountProvisionedForUser(
 
     await ensureWallet(admin, organization.id);
     await writeBestEffortAuditLog(admin, organization.id, user.id);
+    await recordReferralAttribution(admin, user, organization.id);
 
     return { ready: true, organizationId: organization.id };
   } catch (error) {

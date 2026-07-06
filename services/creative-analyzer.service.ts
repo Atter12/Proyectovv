@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SessionUser } from "@/types/auth";
-import type { CreativeAnalyzerOverview } from "@/types/creative-analyzer";
+import type { CreativeAnalysisActivityItem, CreativeAnalyzerOverview } from "@/types/creative-analyzer";
 import { creativeAnalyzerMock } from "@/mocks/creative-analyzer.mock";
 
 interface CreativeResultRow {
@@ -13,6 +13,22 @@ interface CreativeResultRow {
   created_at: string;
 }
 
+
+interface CreativeJobRow {
+  id: string;
+  creative_asset_id: string | null;
+  status: CreativeAnalysisActivityItem["status"];
+  provider: string | null;
+  error_message: string | null;
+  created_at: string;
+  finished_at: string | null;
+}
+
+interface CreativeAssetNameRow {
+  id: string;
+  name: string;
+}
+
 export async function getCreativeAnalyzerOverview(
   session: SessionUser,
 ): Promise<CreativeAnalyzerOverview> {
@@ -23,7 +39,7 @@ export async function getCreativeAnalyzerOverview(
 
   const supabase = await createClient();
 
-  const [assetsRes, jobsRes, resultsRes] = await Promise.all([
+  const [assetsRes, jobsRes, resultsRes, recentJobsRes] = await Promise.all([
     supabase
       .from("creative_assets")
       .select("id", { count: "exact", head: true })
@@ -40,6 +56,12 @@ export async function getCreativeAnalyzerOverview(
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("creative_analysis_jobs")
+      .select("id, creative_asset_id, status, provider, error_message, created_at, finished_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
 
   const totalCreatives = assetsRes.count ?? 0;
@@ -61,6 +83,10 @@ export async function getCreativeAnalyzerOverview(
       : 0;
 
   const latest = results[0];
+  const recentActivity = await mapCreativeActivity(
+    organizationId,
+    ((recentJobsRes.data ?? []) as CreativeJobRow[]),
+  );
 
   return {
     metrics: {
@@ -130,11 +156,51 @@ export async function getCreativeAnalyzerOverview(
         })),
     workflowSteps: creativeAnalyzerMock.workflowSteps,
     features: creativeAnalyzerMock.features,
+    recentActivity,
     benchmarkRecommendation:
       totalCreatives > 0
         ? "Sube más variaciones para comparar benchmarks con datos reales."
         : "Aún no hay creativos analizados. Sube tu primera pieza para comenzar.",
   };
+}
+
+
+async function mapCreativeActivity(
+  organizationId: string,
+  jobs: CreativeJobRow[],
+): Promise<CreativeAnalysisActivityItem[]> {
+  if (jobs.length === 0) return [];
+
+  const assetIds = jobs
+    .map((job) => job.creative_asset_id)
+    .filter((assetId): assetId is string => Boolean(assetId));
+
+  const assetNames = new Map<string, string>();
+  if (assetIds.length > 0) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("creative_assets")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .in("id", assetIds);
+
+    for (const asset of (data ?? []) as CreativeAssetNameRow[]) {
+      assetNames.set(asset.id, asset.name);
+    }
+  }
+
+  return jobs.map((job) => ({
+    id: job.id,
+    assetId: job.creative_asset_id,
+    assetName: job.creative_asset_id
+      ? assetNames.get(job.creative_asset_id) ?? "Creativo sin nombre"
+      : "Creativo sin archivo",
+    status: job.status,
+    provider: job.provider ?? "internal",
+    createdAt: job.created_at,
+    finishedAt: job.finished_at,
+    errorMessage: job.error_message,
+  }));
 }
 
 function emptyCreativeOverview(): CreativeAnalyzerOverview {
@@ -159,6 +225,7 @@ function emptyCreativeOverview(): CreativeAnalyzerOverview {
       ...signal,
       score: 0,
     })),
+    recentActivity: [],
     benchmarkRecommendation:
       "Aún no hay creativos analizados. Sube tu primera pieza para comenzar.",
   };
