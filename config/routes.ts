@@ -3,6 +3,7 @@ export const routes = {
   login: "/login",
   register: "/register",
   verifyOtp: "/verify-otp",
+  forgotPassword: "/forgot-password",
   accountSetup: "/account-setup",
   overview: "/overview",
   adAccounts: "/ad-accounts",

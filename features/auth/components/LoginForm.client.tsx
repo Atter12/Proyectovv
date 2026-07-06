@@ -149,9 +149,12 @@ export function LoginForm() {
             />
           </div>
           <div className="mt-2 flex justify-end">
-            <span className="cursor-default text-xs text-slate-500">
+            <Link
+              href={routes.forgotPassword}
+              className="text-xs font-medium text-slate-500 transition-colors hover:text-[#8aa4ff] hover:underline"
+            >
               ¿Olvidaste tu contraseña?
-            </span>
+            </Link>
           </div>
         </div>
 

@@ -108,6 +108,7 @@ export const config = {
     "/login",
     "/register",
     "/verify-otp",
+    "/forgot-password",
     "/account-setup",
     "/overview/:path*",
     "/ad-accounts/:path*",

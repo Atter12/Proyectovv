@@ -14,11 +14,12 @@ export const authRoutes = [
   routes.login,
   routes.register,
   routes.verifyOtp,
+  routes.forgotPassword,
   routes.accountSetup,
 ] as const;
 
 /** Rutas públicas de auth donde un usuario ya verificado no debe entrar. */
-export const guestOnlyRoutes = [routes.login, routes.register] as const;
+export const guestOnlyRoutes = [routes.login, routes.register, routes.forgotPassword] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return protectedRoutes.some(
