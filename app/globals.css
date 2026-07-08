@@ -341,3 +341,78 @@ body {
     transform: none !important;
   }
 }
+
+/* Admin sidebar v3: cleaner rail hierarchy */
+:root {
+  --admin-sidebar-panel: rgba(11, 34, 49, 0.94);
+  --admin-surface-soft: rgba(18, 52, 72, 0.52);
+  --admin-surface: rgba(18, 52, 72, 0.62);
+  --admin-surface-hover: rgba(28, 69, 94, 0.56);
+  --admin-accent: #74d3b4;
+  --admin-info: #78cce8;
+  --admin-border: rgba(255, 255, 255, 0.075);
+  --admin-divider: rgba(255, 255, 255, 0.055);
+  --admin-sidebar-shadow: 14px 0 38px rgba(8, 28, 42, 0.14), inset 0 1px 0 rgba(255,255,255,0.045);
+}
+
+.admin-sidebar {
+  background:
+    radial-gradient(480px 280px at -8% -12%, rgb(116 211 180 / 0.065), transparent 66%),
+    radial-gradient(420px 260px at 120% 10%, rgb(117 199 232 / 0.08), transparent 62%),
+    linear-gradient(180deg, #081c2a 0%, #092231 52%, #0b293a 100%);
+  box-shadow: 14px 0 38px rgb(8 28 42 / 0.13);
+}
+
+.admin-sidebar-shell::before {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 28%);
+}
+
+.admin-brand,
+.admin-health-strip,
+.admin-quick-card {
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+}
+
+.admin-health-strip,
+.admin-quick-card {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.admin-nav-branch {
+  background: linear-gradient(180deg, transparent 0%, rgb(120 204 232 / 0.22) 12%, rgb(255 255 255 / 0.08) 88%, transparent 100%);
+}
+
+.admin-nav-group::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 0.15rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgb(120 204 232 / 0.32);
+  background: rgb(11 34 49 / 0.96);
+  box-shadow: 0 0 0 3px rgb(120 204 232 / 0.035);
+}
+
+.admin-nav-item {
+  box-shadow: none !important;
+  will-change: background-color, transform;
+}
+
+.admin-nav-item:hover {
+  transform: translateX(2px);
+}
+
+.admin-nav-item.is-active {
+  box-shadow: none !important;
+}
+
+.admin-nav-item.is-active::after {
+  display: none;
+}
+
+.admin-branch-node {
+  box-shadow: 0 0 0 3px rgb(11 34 49 / 0.96);
+}
