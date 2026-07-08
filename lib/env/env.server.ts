@@ -49,6 +49,9 @@ export function assertProductionSecrets(): void {
   if (!process.env.INTERNAL_JOB_SECRET && !process.env.CRON_SECRET) {
     missing.push("INTERNAL_JOB_SECRET o CRON_SECRET");
   }
+  if (!process.env.ADMIN_ALLOWED_EMAILS && !process.env.ADMIN_ALLOWED_USER_IDS) {
+    missing.push("ADMIN_ALLOWED_EMAILS o ADMIN_ALLOWED_USER_IDS");
+  }
 
   if (process.env.EMAIL_PROVIDER === "resend" && !process.env.RESEND_API_KEY) {
     missing.push("RESEND_API_KEY");
@@ -87,7 +90,9 @@ export const serverEnv = {
   internalJobSecret: process.env.INTERNAL_JOB_SECRET ?? process.env.CRON_SECRET ?? "",
   cronSecret: process.env.CRON_SECRET ?? process.env.INTERNAL_JOB_SECRET ?? "",
   webhookGlobalSecret: process.env.WEBHOOK_GLOBAL_SECRET ?? "",
-  adminAllowedEmails: splitCsv(process.env.ADMIN_ALLOWED_EMAILS),
+  adminAllowedEmails: splitCsv(process.env.ADMIN_ALLOWED_EMAILS).map((email) => email.toLowerCase()),
+  adminAllowedUserIds: splitCsv(process.env.ADMIN_ALLOWED_USER_IDS),
+  customerAppUrl: process.env.CUSTOMER_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 
   paymentsDefaultProvider: process.env.PAYMENTS_DEFAULT_PROVIDER ?? "manual",
   paymentsAllowManualProvider: parseBoolean(process.env.PAYMENTS_ALLOW_MANUAL_PROVIDER),

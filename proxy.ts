@@ -115,5 +115,6 @@ export const config = {
     "/payments/:path*",
     "/affiliates/:path*",
     "/creative-analyzer/:path*",
+    "/admin/:path*",
   ],
 };

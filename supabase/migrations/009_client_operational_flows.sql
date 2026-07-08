@@ -9,6 +9,39 @@
 BEGIN;
 
 -- ----------------------------------------------------------------
+-- Compatibility helper used by RLS policies.
+-- Some Supabase projects were initialized from a table-only schema export,
+-- which does not include helper functions from the repo migrations. Define
+-- it here so 009 can run independently on that database.
+-- ----------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.user_has_org_access(target_org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT target_org_id IS NOT NULL
+    AND (
+      EXISTS (
+        SELECT 1
+        FROM public.organization_memberships om
+        WHERE om.user_id = auth.uid()
+          AND om.organization_id = target_org_id
+          AND om.status::text = 'active'
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.organizations o
+        WHERE o.id = target_org_id
+          AND o.created_by = auth.uid()
+      )
+    );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.user_has_org_access(uuid) TO authenticated;
+
+-- ----------------------------------------------------------------
 -- Ad accounts: customer-side configuration fields.
 -- Archiving is represented with metadata.archived_at to avoid destructive
 -- deletes and keep financial history intact.
@@ -139,7 +172,7 @@ FOR SELECT USING (
       SELECT 1 FROM public.organization_memberships om
       WHERE om.user_id = auth.uid()
         AND om.organization_id = support_messages.organization_id
-        AND om.status = 'active'
+        AND om.status::text = 'active'
         AND om.role::text IN ('owner', 'admin', 'support')
     )
   )
