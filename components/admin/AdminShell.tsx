@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/Button";
 
 export function AdminShell({ admin, children }: { admin: AdminSession; children: ReactNode }) {
   return (
-    <div className="admin-canvas min-h-screen lg:grid lg:grid-cols-[22rem_1fr]">
-      <aside className="admin-sidebar hidden px-5 py-5 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
+    <div className="admin-canvas admin-perspective-layout min-h-screen lg:grid lg:grid-cols-[23rem_1fr]">
+      <aside className="admin-sidebar admin-sidebar-3d hidden px-5 py-5 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
         <div className="admin-sidebar-shell flex min-h-[calc(100vh-2.5rem)] flex-col rounded-[1.45rem] bg-[var(--admin-sidebar-panel)] p-4 shadow-[var(--admin-sidebar-shadow)]">
           <section className="admin-identity-panel mb-5 rounded-[1.25rem] bg-[var(--admin-surface-soft)] p-4">
             <Link href="/admin/overview" className="admin-brand group flex items-center gap-3 rounded-[1rem] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/55">
@@ -48,7 +48,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
         </div>
       </aside>
 
-      <main className="min-w-0">
+      <main className="admin-content-plane min-w-0">
         <header className="sticky top-0 z-30 border-b border-[#d7e7ee]/80 bg-white/82 px-4 py-3 shadow-[var(--shadow-topbar)] backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4">
             <div className="min-w-0">

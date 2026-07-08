@@ -508,3 +508,129 @@ body {
     transform: none;
   }
 }
+
+
+/* Admin sidebar v5: subtle 3D command-center perspective */
+@media (min-width: 1024px) {
+  .admin-perspective-layout {
+    position: relative;
+    overflow-x: clip;
+    perspective: 1800px;
+    perspective-origin: 18rem 45%;
+  }
+
+  .admin-perspective-layout::before {
+    content: "";
+    position: fixed;
+    z-index: 3;
+    top: 0;
+    bottom: 0;
+    left: 22.25rem;
+    width: 4.25rem;
+    pointer-events: none;
+    background:
+      linear-gradient(100deg, rgba(8, 28, 42, 0.32) 0%, rgba(8, 28, 42, 0.14) 34%, rgba(116, 211, 180, 0.035) 58%, rgba(255, 255, 255, 0) 100%);
+    filter: blur(0.2px);
+    opacity: 0.92;
+  }
+
+  .admin-perspective-layout::after {
+    content: "";
+    position: fixed;
+    z-index: 2;
+    top: 1.25rem;
+    bottom: 1.25rem;
+    left: 22.15rem;
+    width: 1px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(116, 211, 180, 0.20), rgba(120, 204, 232, 0.12), transparent);
+    opacity: 0.7;
+  }
+
+  .admin-sidebar-3d {
+    width: 23rem;
+    transform-style: preserve-3d;
+    overflow: visible;
+    padding-right: 1.6rem;
+  }
+
+  .admin-sidebar-3d::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 1.1rem;
+    right: 0.45rem;
+    bottom: 1.1rem;
+    width: 2.15rem;
+    border-radius: 0 1.4rem 1.4rem 0;
+    background:
+      linear-gradient(90deg, rgba(6, 22, 34, 0.0), rgba(6, 22, 34, 0.34) 45%, rgba(5, 17, 27, 0.18)),
+      linear-gradient(180deg, rgba(116, 211, 180, 0.07), rgba(120, 204, 232, 0.025) 50%, rgba(8, 28, 42, 0.18));
+    transform: skewY(-3.5deg);
+    transform-origin: left center;
+    box-shadow: 18px 0 38px rgba(8, 28, 42, 0.16);
+    pointer-events: none;
+  }
+
+  .admin-sidebar-3d::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 1.8rem;
+    right: 1.42rem;
+    bottom: 1.8rem;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.10), rgba(116, 211, 180, 0.10), transparent);
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  .admin-sidebar-3d > .admin-sidebar-shell {
+    z-index: 1;
+    transform: rotateY(-1.35deg) translateZ(0);
+    transform-origin: left center;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+    box-shadow:
+      10px 0 30px rgba(8, 28, 42, 0.10),
+      24px 18px 58px rgba(8, 28, 42, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .admin-sidebar-3d:hover > .admin-sidebar-shell {
+    transform: rotateY(-0.55deg) translateZ(0);
+  }
+
+  .admin-content-plane {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    background:
+      linear-gradient(90deg, rgba(237, 246, 248, 0.94) 0%, rgba(247, 252, 253, 0.98) 5.5rem, rgba(247, 252, 253, 0) 18rem);
+  }
+
+  .admin-content-plane::before {
+    content: "";
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    left: 23rem;
+    width: 5.5rem;
+    pointer-events: none;
+    background:
+      linear-gradient(95deg, rgba(8, 28, 42, 0.12), rgba(116, 211, 180, 0.035) 48%, rgba(255, 255, 255, 0));
+  }
+
+  .admin-content-plane > header,
+  .admin-content-plane > div {
+    position: relative;
+    z-index: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar-3d > .admin-sidebar-shell,
+  .admin-sidebar-3d:hover > .admin-sidebar-shell {
+    transform: none !important;
+  }
+}
