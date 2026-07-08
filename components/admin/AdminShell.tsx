@@ -11,7 +11,7 @@ import { AdminMotionFrame } from "@/components/admin/AdminMotionFrame.client";
 export function AdminShell({ admin, children }: { admin: AdminSession; children: ReactNode }) {
   return (
     <AdminMotionFrame>
-      <div className="admin-canvas admin-perspective-layout min-h-screen lg:grid lg:grid-cols-[24rem_minmax(0,1fr)]">
+      <div className="admin-canvas admin-perspective-layout min-h-screen lg:grid lg:grid-cols-[25rem_minmax(0,1fr)]">
       <aside className="admin-sidebar admin-sidebar-3d hidden px-5 py-5 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-visible">
         <div className="admin-sidebar-shell flex min-h-[calc(100vh-2.5rem)] flex-col rounded-[1.45rem] bg-[var(--admin-sidebar-panel)] p-4 shadow-[var(--admin-sidebar-shadow)]">
           <section className="admin-identity-panel mb-5 rounded-[1.25rem] bg-[var(--admin-surface-soft)] p-4">

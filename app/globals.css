@@ -877,3 +877,67 @@ body {
     display: none;
   }
 }
+
+
+/* Admin sidebar v6.2: wider black depth face */
+@media (min-width: 1024px) {
+  .admin-perspective-layout {
+    perspective-origin: 21rem 42%;
+  }
+
+  .admin-sidebar-3d {
+    width: 23.5rem;
+    padding-right: 3rem;
+  }
+
+  .admin-sidebar-3d::before {
+    top: 1.65rem;
+    right: -0.08rem;
+    bottom: 1.65rem;
+    width: 3.25rem;
+    border-radius: 0 1.7rem 1.7rem 0;
+    transform: rotateY(62deg) skewY(-2.8deg) translateZ(-20px);
+    background:
+      linear-gradient(90deg, rgba(1, 5, 9, 0.98) 0%, rgba(3, 11, 18, 0.94) 38%, rgba(8, 24, 36, 0.72) 68%, rgba(16, 49, 67, 0.28) 100%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(0, 0, 0, 0.18) 44%, rgba(0, 0, 0, 0.58) 100%);
+    border-right: 1px solid rgba(116, 211, 180, 0.075);
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow:
+      28px 0 58px rgba(0, 0, 0, 0.34),
+      16px 0 42px rgba(8, 28, 42, 0.26),
+      inset -1px 0 0 rgba(255, 255, 255, 0.028),
+      inset 14px 0 24px rgba(0, 0, 0, 0.26);
+  }
+
+  .admin-sidebar-3d::after {
+    right: 2.82rem;
+    opacity: 0.58;
+    background: linear-gradient(180deg, transparent 0%, rgba(116, 211, 180, 0.18) 18%, rgba(120, 204, 232, 0.08) 68%, transparent 100%);
+  }
+
+  .admin-sidebar-3d > .admin-sidebar-shell {
+    box-shadow:
+      calc(20px + (18px * var(--admin-depth-glow))) 18px 68px rgba(0, 0, 0, 0.22),
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      -14px 0 42px rgba(116, 211, 180, 0.03) inset;
+  }
+
+  .admin-content-plane {
+    margin-left: -0.2rem;
+    padding-left: 1.1rem;
+    box-shadow: -26px 0 64px rgba(8, 28, 42, 0.10);
+  }
+
+  .admin-content-plane::before {
+    left: -1.15rem;
+    width: 3.25rem;
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.24) 0%, rgba(8, 28, 42, 0.16) 32%, rgba(116, 211, 180, 0.055) 64%, rgba(255, 255, 255, 0.00) 100%);
+    border-left: 1px solid rgba(0, 0, 0, 0.13);
+  }
+
+  .admin-content-plane::after {
+    left: -0.78rem;
+    opacity: 0.34;
+  }
+}
