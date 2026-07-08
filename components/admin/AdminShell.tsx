@@ -9,37 +9,40 @@ import { Button } from "@/components/ui/Button";
 
 export function AdminShell({ admin, children }: { admin: AdminSession; children: ReactNode }) {
   return (
-    <div className="admin-canvas min-h-screen lg:grid lg:grid-cols-[20.5rem_1fr]">
+    <div className="admin-canvas min-h-screen lg:grid lg:grid-cols-[22rem_1fr]">
       <aside className="admin-sidebar hidden px-5 py-5 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
-        <div className="admin-sidebar-shell flex min-h-[calc(100vh-2.5rem)] flex-col rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-sidebar-panel)] p-3 shadow-[var(--admin-sidebar-shadow)]">
-          <Link href="/admin/overview" className="admin-brand group mb-3 flex items-center gap-3 rounded-[1.05rem] border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-3 py-2.5 transition duration-200 hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/60">
-            <span className="grid h-10 w-10 place-items-center rounded-[0.9rem] bg-[var(--admin-accent)] text-base font-black text-[#082131] shadow-[0_10px_22px_rgba(0,0,0,0.18)] transition duration-200 group-hover:scale-[1.02]">VV</span>
-            <span className="min-w-0">
-              <span className="block truncate text-[0.98rem] font-black tracking-[-0.03em] text-[var(--admin-text)]">Proyectovv</span>
-              <span className="block text-[0.62rem] font-black uppercase tracking-[0.20em] text-[var(--admin-text-muted)]">Admin console</span>
-            </span>
-          </Link>
+        <div className="admin-sidebar-shell flex min-h-[calc(100vh-2.5rem)] flex-col rounded-[1.45rem] bg-[var(--admin-sidebar-panel)] p-4 shadow-[var(--admin-sidebar-shadow)]">
+          <section className="admin-identity-panel mb-5 rounded-[1.25rem] bg-[var(--admin-surface-soft)] p-4">
+            <Link href="/admin/overview" className="admin-brand group flex items-center gap-3 rounded-[1rem] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/55">
+              <span className="grid h-11 w-11 place-items-center rounded-[0.95rem] bg-[var(--admin-accent)] text-base font-black text-[#082131] shadow-[0_10px_24px_rgba(0,0,0,0.16)] transition duration-200 group-hover:scale-[1.025]">VV</span>
+              <span className="min-w-0">
+                <span className="block truncate text-[1rem] font-black tracking-[-0.035em] text-[var(--admin-text)]">Proyectovv</span>
+                <span className="block text-[0.62rem] font-black uppercase tracking-[0.24em] text-[var(--admin-text-muted)]">Admin console</span>
+              </span>
+            </Link>
 
-          <div className="admin-health-strip mb-4 flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-3 py-2.5">
-            <div className="min-w-0">
-              <p className="text-[0.58rem] font-black uppercase tracking-[0.20em] text-[var(--admin-info)]">Estado operativo</p>
-              <p className="mt-0.5 truncate text-sm font-black text-[var(--admin-text)]">Sistema estable</p>
+            <div className="my-3 h-px bg-[var(--admin-divider)]" />
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.22em] text-[var(--admin-info)]">Estado operativo</p>
+                <p className="mt-1 truncate text-sm font-black text-[var(--admin-text)]">Sistema estable</p>
+              </div>
+              <div className="admin-live-pill inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[var(--admin-text-muted)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-success)]" />
+                Live
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.10em] text-[var(--admin-text-muted)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--admin-success)]" />
-              Live
-            </div>
-          </div>
+          </section>
 
           <div className="min-h-0 flex-1">
             <AdminNavLinks />
           </div>
 
-          <div className="admin-quick-card mt-4 rounded-[1rem] border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] p-3">
-            <p className="text-[0.6rem] font-black uppercase tracking-[0.20em] text-[var(--admin-text-muted)]">Acción rápida</p>
-            <Link href="/admin/payments" className="mt-2 flex items-center justify-between rounded-[0.85rem] bg-[var(--admin-accent)] px-3 py-2 text-sm font-black text-[#082131] transition duration-200 hover:bg-[#7ed9be] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/70">
+          <div className="admin-quick-row mt-5 rounded-[1rem] px-2 py-2">
+            <Link href="/admin/payments" className="group flex items-center justify-between rounded-[0.9rem] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--admin-text-muted)] transition duration-200 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50">
               Revisar pagos
-              <span aria-hidden>↗</span>
+              <span className="text-[var(--admin-accent)] transition group-hover:translate-x-0.5" aria-hidden>↗</span>
             </Link>
           </div>
         </div>
