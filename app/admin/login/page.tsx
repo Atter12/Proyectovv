@@ -22,9 +22,9 @@ export default function AdminLoginPage() {
   return (
     <div className="admin-login-canvas relative min-h-screen overflow-hidden">
       <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
-        <AdminLoginHeroPanel className="absolute inset-0 lg:relative lg:min-h-screen" />
+        <AdminLoginHeroPanel className="hidden lg:relative lg:block lg:min-h-screen" />
 
-        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-10 xl:px-14">
+        <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-10 xl:px-14">
           <div className="absolute inset-y-8 left-0 hidden w-px bg-gradient-to-b from-transparent via-white/12 to-transparent lg:block" />
 
           <div className="mb-6 flex items-center gap-3 lg:hidden">
