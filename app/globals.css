@@ -1046,3 +1046,138 @@ body {
     transform: none !important;
   }
 }
+
+/* Admin dashboard v7: 9.5 premium content polish */
+:root {
+  --background: #eef8fa;
+  --shadow-card:
+    0 1px 2px rgb(6 25 37 / 0.035),
+    0 16px 45px rgb(14 48 72 / 0.075);
+  --shadow-card-hover:
+    0 10px 24px rgb(6 25 37 / 0.08),
+    0 28px 70px rgb(14 48 72 / 0.13);
+  --shadow-topbar:
+    0 1px 0 rgb(14 48 72 / 0.05),
+    0 18px 48px rgb(14 48 72 / 0.07);
+}
+
+.admin-canvas {
+  background-color: #eef8fa;
+  background-image:
+    radial-gradient(880px 440px at 0% -12%, rgb(14 116 144 / 0.10), transparent 64%),
+    radial-gradient(760px 420px at 100% -10%, rgb(116 211 180 / 0.12), transparent 62%),
+    linear-gradient(180deg, #f8fdfe 0%, #eef8fa 42%, #eaf5f8 100%);
+}
+
+.admin-content-plane {
+  background:
+    linear-gradient(90deg, rgba(238, 248, 250, 0.96) 0%, rgba(248, 253, 254, 0.98) 5.5rem, rgba(248, 253, 254, 0) 18rem),
+    radial-gradient(900px 440px at 92% 4%, rgba(116, 211, 180, 0.12), transparent 60%);
+}
+
+.admin-topbar {
+  box-shadow: var(--shadow-topbar);
+}
+
+.admin-topbar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14, 116, 144, 0.18), rgba(116, 211, 180, 0.20), transparent);
+  pointer-events: none;
+}
+
+.admin-page-hero {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.88), rgba(243,251,252,0.78)),
+    radial-gradient(620px 220px at 92% 0%, rgba(116,211,180,0.18), transparent 62%),
+    radial-gradient(420px 180px at 0% 0%, rgba(14,116,144,0.09), transparent 58%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.75) inset,
+    0 22px 65px rgba(14,48,72,0.08);
+}
+
+.admin-page-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(120deg, rgba(255,255,255,0.48), transparent 42%);
+  opacity: 0.7;
+}
+
+.admin-page-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-priority-panel {
+  background:
+    linear-gradient(135deg, #102f42 0%, #15394e 52%, #0e2a3a 100%);
+  box-shadow:
+    0 22px 65px rgba(6,25,37,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+.admin-priority-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.05), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 36%);
+  opacity: 0.9;
+}
+
+.admin-kpi-card {
+  min-height: 9.25rem;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.90), rgba(249,253,254,0.80)),
+    radial-gradient(220px 100px at 100% 0%, rgba(116,211,180,0.12), transparent 64%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.78) inset,
+    0 16px 44px rgba(14,48,72,0.075);
+}
+
+.admin-kpi-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 1.25rem 1rem 1.25rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14,116,144,0.12), transparent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.admin-kpi-card:hover::after { opacity: 1; }
+
+.admin-data-panel,
+.admin-audit-panel {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.70) inset,
+    0 18px 52px rgba(14,48,72,0.075);
+}
+
+.admin-table-wrap table {
+  border-spacing: 0;
+}
+
+.admin-table-wrap thead tr {
+  box-shadow: 0 1px 0 rgba(14,116,144,0.09);
+}
+
+.admin-table-wrap tbody tr:last-child td:first-child { border-bottom-left-radius: 1rem; }
+.admin-table-wrap tbody tr:last-child td:last-child { border-bottom-right-radius: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-kpi-card,
+  .admin-priority-panel a,
+  .admin-data-panel a {
+    transition: none !important;
+    transform: none !important;
+  }
+}

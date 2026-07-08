@@ -15,10 +15,10 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "border-[#d7e7ee] bg-white/94 shadow-[var(--shadow-card)] ring-1 ring-white/80",
-  soft: "border-[#d7e7ee] bg-white/82 shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
-  premium: "border-[#b7d5e1] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,250,252,0.9))] shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
-  dark: "border-white/10 bg-[#062235]/92 text-white shadow-2xl shadow-[#062235]/25 ring-1 ring-white/10 backdrop-blur-xl",
+  default: "border-[#d5e8ee] bg-white/[0.88] shadow-[var(--shadow-card)] ring-1 ring-white/70 backdrop-blur-xl",
+  soft: "border-[#d5e8ee] bg-white/[0.76] shadow-[var(--shadow-card)] ring-1 ring-white/75 backdrop-blur-xl",
+  premium: "border-[#bdd9e4] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,251,252,0.82))] shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
+  dark: "border-white/10 bg-[#102f42] text-white shadow-2xl shadow-[#062235]/25 ring-1 ring-white/10 backdrop-blur-xl",
 };
 
 export function Card({

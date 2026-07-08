@@ -44,7 +44,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
       </aside>
 
       <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">
-        <header className="sticky top-0 z-30 border-b border-[#d7e7ee]/80 bg-white/82 px-4 py-3 shadow-[var(--shadow-topbar)] backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="admin-topbar sticky top-0 z-30 border-b border-[#d7e7ee]/70 bg-white/[0.78] px-4 py-3 shadow-[var(--shadow-topbar)] backdrop-blur-2xl sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#0e7490]">{serverEnv.appName}</p>
@@ -56,7 +56,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
                 href={serverEnv.customerAppUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="hidden rounded-2xl border border-[#cfe1e9] bg-white px-3 py-2 text-xs font-black text-[#16445a] transition hover:border-[#74d3b4] hover:bg-[#f2fff8] sm:inline-flex"
+                className="hidden rounded-full border border-[#cfe1e9] bg-white/75 px-3 py-2 text-xs font-black text-[#16445a] shadow-sm transition hover:border-[#74d3b4] hover:bg-[#f2fff8] sm:inline-flex"
               >
                 App cliente ↗
               </a>
@@ -70,7 +70,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
             </div>
           </div>
         </header>
-        <div className="mx-auto max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 xl:py-7">
           <div className="mb-5 rounded-xl border border-[#d7e7ee] bg-white p-3 shadow-[var(--shadow-card)] lg:hidden">
             <AdminNavLinks />
           </div>
