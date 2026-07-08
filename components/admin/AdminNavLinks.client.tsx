@@ -14,7 +14,7 @@ const groups = [
 
 const signalItems = new Set(["/admin/payments", "/admin/support", "/admin/webhooks"]);
 
-export function AdminNavLinks() {
+export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -33,6 +33,7 @@ export function AdminNavLinks() {
                     key={item.href}
                     href={item.href}
                     title={item.description}
+                    onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "admin-nav-item group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50",
