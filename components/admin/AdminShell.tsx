@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/Button";
 
 export function AdminShell({ admin, children }: { admin: AdminSession; children: ReactNode }) {
   return (
-    <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-      <aside className="admin-sidebar admin-sidebar-operational hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
-        <div className="admin-sidebar-shell flex min-h-full flex-col">
+    <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
+      <aside className="admin-sidebar admin-sidebar-operational hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
+        <div className="admin-sidebar-shell flex h-full flex-col">
           <Link
             href="/admin/overview"
             className="admin-brand mb-3 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50"
@@ -43,7 +43,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
         </div>
       </aside>
 
-      <main className="admin-content-plane min-w-0">
+      <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">
         <header className="sticky top-0 z-30 border-b border-[#d7e7ee]/80 bg-white/82 px-4 py-3 shadow-[var(--shadow-topbar)] backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4">
             <div className="min-w-0">

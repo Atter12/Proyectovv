@@ -1003,7 +1003,7 @@ body {
     width: auto;
     padding-right: 0.75rem;
     contain: none !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
   }
 
   .admin-perspective-layout--operational .admin-sidebar-operational::before,
@@ -1014,17 +1014,19 @@ body {
   .admin-perspective-layout--operational .admin-sidebar-operational > .admin-sidebar-shell {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 1.5rem);
-    max-height: none;
+    height: 100%;
+    max-height: 100%;
     transform: none !important;
-    overflow: visible !important;
-    scrollbar-width: auto;
+    overflow: hidden !important;
   }
 
   .admin-perspective-layout--operational .admin-content-plane {
     margin-left: 0 !important;
     padding-left: 0 !important;
-    min-height: 100vh;
+    height: 100vh;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: transparent !important;
     box-shadow: none !important;
   }
