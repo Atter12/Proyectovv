@@ -10,10 +10,14 @@ export const routes = {
   payments: "/payments",
   affiliates: "/affiliates",
   creativeAnalyzer: "/creative-analyzer",
+  adminLogin: "/admin/login",
+  adminOverview: "/admin/overview",
+  adminUnauthorized: "/admin/unauthorized",
   api: {
     auth: {
       logout: "/api/auth/logout",
       session: "/api/auth/session",
+      adminAccess: "/api/auth/admin-access",
     },
     onboarding: {
       status: "/api/onboarding/status",

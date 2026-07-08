@@ -52,3 +52,25 @@ export function isAccountSetupPath(pathname: string): boolean {
     pathname.startsWith(`${routes.accountSetup}/`)
   );
 }
+
+export function isAdminLoginPath(pathname: string): boolean {
+  return (
+    pathname === routes.adminLogin ||
+    pathname.startsWith(`${routes.adminLogin}/`)
+  );
+}
+
+export function isAdminUnauthorizedPath(pathname: string): boolean {
+  return (
+    pathname === routes.adminUnauthorized ||
+    pathname.startsWith(`${routes.adminUnauthorized}/`)
+  );
+}
+
+export function isAdminProtectedPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/admin") &&
+    !isAdminLoginPath(pathname) &&
+    !isAdminUnauthorizedPath(pathname)
+  );
+}

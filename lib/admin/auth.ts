@@ -1,8 +1,10 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { routes } from "@/config/routes";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env/env.server";
+import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
 
 export interface AdminSession {
   id: string;
@@ -12,24 +14,11 @@ export interface AdminSession {
   accessMode: "allowlist" | "development-open";
 }
 
-function isAllowedAdmin(user: { id: string; email?: string | null }): boolean {
-  const email = (user.email ?? "").toLowerCase();
-  const emailAllowed = serverEnv.adminAllowedEmails.includes(email);
-  const idAllowed = serverEnv.adminAllowedUserIds.includes(user.id);
-
-  if (emailAllowed || idAllowed) return true;
-
-  // Developer-friendly mode: local/dev environments can sign in with any user
-  // when no explicit allowlist is configured. Production denies by default.
-  const noAllowlist = serverEnv.adminAllowedEmails.length === 0 && serverEnv.adminAllowedUserIds.length === 0;
-  return noAllowlist && !serverEnv.isProduction;
-}
-
 export async function getCurrentAdmin(): Promise<AdminSession | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !user.email) return null;
-  if (!isAllowedAdmin({ id: user.id, email: user.email })) return null;
+  if (!userIsAllowedAdmin({ id: user.id, email: user.email })) return null;
 
   let fullName: string | null = null;
   let avatarUrl: string | null = null;
@@ -62,9 +51,9 @@ export async function getCurrentAdmin(): Promise<AdminSession | null> {
 export async function requireAdmin(): Promise<AdminSession> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(routes.adminLogin);
 
   const admin = await getCurrentAdmin();
-  if (!admin) redirect("/admin/unauthorized");
+  if (!admin) redirect(routes.adminUnauthorized);
   return admin;
 }

@@ -10,11 +10,23 @@ import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
+
+async function assertAdminAccess(): Promise<boolean> {
+  const response = await fetch(routes.api.auth.adminAccess, { cache: "no-store" });
+  return response.ok;
+}
 
 export function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") ?? "";
+  const isAdminContext = searchParams.get("context") === "admin";
+  const adminDestination = resolveSafeNextPath(
+    searchParams.get("next"),
+    routes.adminOverview,
+    { requiredPrefix: "/admin" },
+  );
   const [email] = useState(emailParam);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,6 +62,13 @@ export function VerifyOtpForm() {
     if (verifyError) {
       setError(mapAuthErrorMessage(verifyError.message));
       setLoading(false);
+      return;
+    }
+
+    if (isAdminContext) {
+      const allowed = await assertAdminAccess();
+      router.push(allowed ? adminDestination : routes.adminUnauthorized);
+      router.refresh();
       return;
     }
 
@@ -143,7 +162,10 @@ export function VerifyOtpForm() {
           {resending ? "Reenviando…" : "Reenviar código"}
         </button>
         <p className="text-slate-500">
-          <Link href={routes.login} className="hover:text-slate-700">
+          <Link
+            href={isAdminContext ? routes.adminLogin : routes.login}
+            className="hover:text-slate-700"
+          >
             Volver al inicio de sesión
           </Link>
         </p>
