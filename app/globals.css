@@ -831,3 +831,49 @@ body {
 }
 
 @media (min-width: 1024px) { .admin-sidebar-3d { contain: none !important; } }
+
+
+/* Admin sidebar v6.1: fixed bottom action overlap in 3D shell */
+.admin-nav-scroll {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.admin-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-quick-row {
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(9, 31, 45, 0.88), rgba(9, 31, 45, 0.96));
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+}
+
+.admin-quick-row::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  top: -0.35rem;
+  height: 0.65rem;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(9, 31, 45, 0), rgba(9, 31, 45, 0.86));
+}
+
+@media (min-width: 1024px) {
+  .admin-sidebar-3d > .admin-sidebar-shell {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+  }
+
+  .admin-sidebar-3d > .admin-sidebar-shell::-webkit-scrollbar {
+    display: none;
+  }
+}

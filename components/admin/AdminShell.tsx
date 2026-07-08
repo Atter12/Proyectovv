@@ -37,11 +37,11 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
             </div>
           </section>
 
-          <div className="min-h-0 flex-1">
+          <div className="admin-nav-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">
             <AdminNavLinks />
           </div>
 
-          <div className="admin-quick-row mt-5 rounded-[1rem] px-2 py-2">
+          <div className="admin-quick-row mt-3 shrink-0 rounded-[1rem] px-2 py-2">
             <Link href="/admin/payments" className="group flex items-center justify-between rounded-[0.9rem] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--admin-text-muted)] transition duration-200 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50">
               Revisar pagos
               <span className="text-[var(--admin-accent)] transition group-hover:translate-x-0.5" aria-hidden>↗</span>
