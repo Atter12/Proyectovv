@@ -6,45 +6,38 @@ import type { AdminSession } from "@/lib/admin/auth";
 import { serverEnv } from "@/lib/env/env.server";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { AdminMotionFrame } from "@/components/admin/AdminMotionFrame.client";
 
 export function AdminShell({ admin, children }: { admin: AdminSession; children: ReactNode }) {
   return (
-    <AdminMotionFrame>
-      <div className="admin-canvas admin-perspective-layout min-h-screen lg:grid lg:grid-cols-[25rem_minmax(0,1fr)]">
-      <aside className="admin-sidebar admin-sidebar-3d hidden px-5 py-5 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-visible">
-        <div className="admin-sidebar-shell flex min-h-[calc(100vh-2.5rem)] flex-col rounded-[1.45rem] bg-[var(--admin-sidebar-panel)] p-4 shadow-[var(--admin-sidebar-shadow)]">
-          <section className="admin-identity-panel mb-5 rounded-[1.25rem] bg-[var(--admin-surface-soft)] p-4">
-            <Link href="/admin/overview" className="admin-brand group flex items-center gap-3 rounded-[1rem] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/55">
-              <span className="grid h-11 w-11 place-items-center rounded-[0.95rem] bg-[var(--admin-accent)] text-base font-black text-[#082131] shadow-[0_10px_24px_rgba(0,0,0,0.16)] transition duration-200 group-hover:scale-[1.025]">VV</span>
-              <span className="min-w-0">
-                <span className="block truncate text-[1rem] font-black tracking-[-0.035em] text-[var(--admin-text)]">Proyectovv</span>
-                <span className="block text-[0.62rem] font-black uppercase tracking-[0.24em] text-[var(--admin-text-muted)]">Admin console</span>
-              </span>
-            </Link>
+    <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+      <aside className="admin-sidebar admin-sidebar-operational hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
+        <div className="admin-sidebar-shell flex min-h-full flex-col">
+          <Link
+            href="/admin/overview"
+            className="admin-brand mb-3 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50"
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--admin-accent)] text-xs font-black text-[#082131]">VV</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-bold text-[var(--admin-text)]">Proyectovv</span>
+              <span className="block text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Admin</span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--admin-border)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-[var(--admin-text-soft)]" title="Sistema estable">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-success)]" aria-hidden />
+              Live
+            </span>
+          </Link>
 
-            <div className="my-3 h-px bg-[var(--admin-divider)]" />
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[0.58rem] font-black uppercase tracking-[0.22em] text-[var(--admin-info)]">Estado operativo</p>
-                <p className="mt-1 truncate text-sm font-black text-[var(--admin-text)]">Sistema estable</p>
-              </div>
-              <div className="admin-live-pill inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[var(--admin-text-muted)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-success)]" />
-                Live
-              </div>
-            </div>
-          </section>
-
-          <div className="admin-nav-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">
+          <div className="admin-nav-scroll min-h-0 flex-1 overflow-y-auto pb-2">
             <AdminNavLinks />
           </div>
 
-          <div className="admin-quick-row mt-3 shrink-0 rounded-[1rem] px-2 py-2">
-            <Link href="/admin/payments" className="group flex items-center justify-between rounded-[0.9rem] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--admin-text-muted)] transition duration-200 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50">
+          <div className="admin-quick-row mt-2 shrink-0 border-t border-[var(--admin-divider)] pt-2">
+            <Link
+              href="/admin/payments"
+              className="flex items-center justify-between rounded-md px-2 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--admin-text-muted)] transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50"
+            >
               Revisar pagos
-              <span className="text-[var(--admin-accent)] transition group-hover:translate-x-0.5" aria-hidden>↗</span>
+              <span className="text-[var(--admin-accent)]" aria-hidden>→</span>
             </Link>
           </div>
         </div>
@@ -78,13 +71,12 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
           </div>
         </header>
         <div className="mx-auto max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-5 rounded-[1.4rem] border border-[#d7e7ee] bg-white/88 p-3 shadow-[var(--shadow-card)] backdrop-blur-xl lg:hidden">
+          <div className="mb-5 rounded-xl border border-[#d7e7ee] bg-white p-3 shadow-[var(--shadow-card)] lg:hidden">
             <AdminNavLinks />
           </div>
           <div className="page-enter">{children}</div>
         </div>
       </main>
-      </div>
-    </AdminMotionFrame>
+    </div>
   );
 }

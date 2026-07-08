@@ -1,0 +1,41 @@
+[33mf870e22[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix sidebar panel adminv9
+[33mae6d312[m fix sidebar panel adminv8
+[33mc970d64[m fix sidebar panel adminv7
+[33mdbf5a4e[m fix sidebar panel adminv6
+[33m1313f89[m fix sidebar panel adminv5
+[33mb38686c[m fix sidebar panel adminv4
+[33m81498a9[m fix sidebar panel adminv3
+[33me356cd3[m fix sidebar panel adminv2
+[33mf37e3a9[m fix sidebar panel admin
+[33m2866343[m panel admi rediseño
+[33m897e1df[m fix: regenerar lockfile con registry.npmjs.org para builds en Vercel.
+[33m5f3e414[m fix: actualizar Node a 24.x para builds en Vercel y compatibilidad con Supabase.
+[33mbbc81e1[m fix: evitar error 500 del admin en produccion sin allowlist configurada.
+[33m5b00cab[m feat: integrar panel administrativo bajo /admin para operaciones internas.
+[33me420494[m fix correccion cliente
+[33md88b881[m fix add forgot password
+[33med6d996[m fix diseño premium
+[33me93a562[m fix npm lockfile registry
+[33mcc168a5[m fix preview prod ecomedy
+[33mb34da0a[m upgrade diseño web
+[33m26c24db[m cambio de diseño en registro y traducción de la web a español
+[33m81c0e82[m mejora login y correccion de redundancia en paneles
+[33m534e22f[m performance slidebar
+[33mb313992[m traduccion al español en floating button mensaje
+[33me7c361a[m performance navigation select
+[33m23af02b[m Optimizar performance del dashboard con cache por request, proxy slim y UI client-side.
+[33m0b4bc0f[m pagos performance select
+[33m079970d[m Alinear app con BD Supabase profesional: pagos, webhooks, dashboard, creative analyzer, support y onboarding.
+[33mc6f0863[m fix package lock registry
+[33mbd03edc[m fix package lock registry
+[33mbe0f77e[m integration supabase v4
+[33ma1b6d65[m integration supabase v3
+[33m8869a34[m integration supabase v2
+[33m121d2d0[m Validate Supabase client config and show clearer registration errors.
+[33m90dbab6[m Remove legacy mock auth routes and helpers after Supabase migration to fix Vercel build.
+[33m62c8c25[m integration supabase
+[33me88a05e[m deploy in vercel
+[33m90db664[m seguridad y responsive
+[33maa61e23[m Add floating support and onboarding widgets
+[33m33a1a87[m Add primer avance
+[33m5b33cd8[m Initial commit
