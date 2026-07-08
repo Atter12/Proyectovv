@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { AdminNavLinks } from "@/components/admin/AdminNavLinks.client";
 import { signOutAdminAction } from "@/app/actions/admin-auth";
+import { routes } from "@/config/routes";
 import type { AdminSession } from "@/lib/admin/auth";
 import { serverEnv } from "@/lib/env/env.server";
 import { Badge } from "@/components/ui/Badge";
@@ -52,14 +53,12 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
             </div>
             <div className="flex items-center gap-3">
               {admin.accessMode === "development-open" ? <Badge tone="warning">Dev open</Badge> : <Badge tone="success">Allowlist</Badge>}
-              <a
-                href={serverEnv.customerAppUrl}
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                href={routes.overview}
                 className="hidden rounded-full border border-[#cfe1e9] bg-white/75 px-3 py-2 text-xs font-black text-[#16445a] shadow-sm transition hover:border-[#74d3b4] hover:bg-[#f2fff8] sm:inline-flex"
               >
-                App cliente ↗
-              </a>
+                Panel cliente
+              </Link>
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-black text-[#061925]">{admin.fullName ?? admin.email}</p>
                 <p className="text-xs font-bold text-[#7b91a0]">{admin.email}</p>
