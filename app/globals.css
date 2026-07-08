@@ -975,6 +975,10 @@ body {
   box-shadow: none !important;
 }
 
+.admin-nav--operational .admin-nav-group::before {
+  display: none;
+}
+
 .admin-nav--operational .admin-nav-item:hover,
 .admin-nav--operational .admin-nav-item.is-active {
   transform: none !important;

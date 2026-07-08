@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AdminNavLinks } from "@/components/admin/AdminNavLinks.client";
-import { signOutAction } from "@/app/actions/auth";
+import { signOutAdminAction } from "@/app/actions/admin-auth";
 import type { AdminSession } from "@/lib/admin/auth";
 import { serverEnv } from "@/lib/env/env.server";
 import { Badge } from "@/components/ui/Badge";
@@ -64,7 +64,7 @@ export function AdminShell({ admin, children }: { admin: AdminSession; children:
                 <p className="text-sm font-black text-[#061925]">{admin.fullName ?? admin.email}</p>
                 <p className="text-xs font-bold text-[#7b91a0]">{admin.email}</p>
               </div>
-              <form action={signOutAction}>
+              <form action={signOutAdminAction}>
                 <Button type="submit" variant="secondary" size="sm">Salir</Button>
               </form>
             </div>

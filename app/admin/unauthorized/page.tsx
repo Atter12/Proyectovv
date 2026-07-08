@@ -1,4 +1,4 @@
-import { signOutAction } from "@/app/actions/auth";
+import { signOutAdminAction } from "@/app/actions/admin-auth";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -21,7 +21,7 @@ export default function UnauthorizedPage() {
           >
             Volver al login admin
           </a>
-          <form action={signOutAction}>
+          <form action={signOutAdminAction}>
             <Button type="submit" variant="secondary">Cerrar sesión</Button>
           </form>
         </div>
