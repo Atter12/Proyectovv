@@ -44,12 +44,12 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         <TableWrap>
           <Table>
             <thead><tr><Th>Ticket</Th><Th>Cliente</Th><Th>Solicitante</Th><Th>Prioridad</Th><Th>Estado</Th><Th></Th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e4eef3]">
               {tickets.map(({ row, organization, requester, assignee }) => (
                 <tr key={row.id}>
-                  <Td><Link href={`/admin/support/${row.id}`} className="font-black text-slate-950 hover:text-indigo-600">{row.subject}</Link><p className="text-xs text-slate-400">{formatDateTime(row.updated_at ?? row.created_at)}</p></Td>
-                  <Td>{organization?.name ?? "—"}<p className="text-xs text-slate-400">{row.category ?? "general"}</p></Td>
-                  <Td>{requester?.email ?? "—"}<p className="text-xs text-slate-400">Asignado: {assignee?.email ?? "sin asignar"}</p></Td>
+                  <Td><Link href={`/admin/support/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.subject}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p></Td>
+                  <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{row.category ?? "general"}</p></Td>
+                  <Td>{requester?.email ?? "—"}<p className="text-xs text-[#789bad]">Asignado: {assignee?.email ?? "sin asignar"}</p></Td>
                   <Td><Badge tone={row.priority === "urgent" || row.priority === "high" ? "danger" : "neutral"}>{row.priority}</Badge></Td>
                   <Td><StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} /></Td>
                   <Td><Button asChild href={`/admin/support/${row.id}`} variant="secondary" size="sm">Responder</Button></Td>

@@ -37,18 +37,18 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <TableWrap>
           <Table>
             <thead><tr><Th>Organización</Th><Th>Wallet</Th><Th>Miembros</Th><Th>Cuentas Ads</Th><Th>Estado</Th><Th></Th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e4eef3]">
               {organizations.map(({ row, wallets, activeMembers, adAccountCount }) => {
                 const wallet = wallets[0];
                 return (
                   <tr key={row.id}>
                     <Td>
-                      <Link href={`/admin/organizations/${row.id}`} className="font-black text-slate-950 hover:text-indigo-600">{row.name}</Link>
-                      <p className="text-xs text-slate-400">/{row.slug} · {formatDateTime(row.created_at)}</p>
+                      <Link href={`/admin/organizations/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.name}</Link>
+                      <p className="text-xs text-[#789bad]">/{row.slug} · {formatDateTime(row.created_at)}</p>
                     </Td>
-                    <Td>{wallet ? <span className="font-black text-slate-950">{formatMoney(wallet.balance_cents, wallet.currency)}</span> : "—"}<p className="text-xs text-slate-400">{wallet?.status ?? "sin wallet"}</p></Td>
-                    <Td className="font-black text-slate-950">{activeMembers}</Td>
-                    <Td className="font-black text-slate-950">{adAccountCount}</Td>
+                    <Td>{wallet ? <span className="font-black text-[#061925]">{formatMoney(wallet.balance_cents, wallet.currency)}</span> : "—"}<p className="text-xs text-[#789bad]">{wallet?.status ?? "sin wallet"}</p></Td>
+                    <Td className="font-black text-[#061925]">{activeMembers}</Td>
+                    <Td className="font-black text-[#061925]">{adAccountCount}</Td>
                     <Td><StatusBadge status={row.status} /></Td>
                     <Td><Button asChild href={`/admin/organizations/${row.id}`} variant="secondary" size="sm">Abrir</Button></Td>
                   </tr>

@@ -10,15 +10,15 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-700 ring-1 ring-slate-200/70",
-  success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70",
+  default: "bg-[#e8f6f8] text-[#16445a] ring-1 ring-[#cfe1e9]",
+  success: "bg-[#effff7] text-[#047857] ring-1 ring-[#9af7c9]/70",
   warning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200/70",
   danger: "bg-rose-50 text-rose-700 ring-1 ring-rose-200/70",
-  info: "bg-[#4056ff]/8 text-[#4056ff] ring-1 ring-[#4056ff]/15",
-  neutral: "bg-slate-50 text-slate-600 ring-1 ring-slate-200/70",
+  info: "bg-[#e8f6f8] text-[#0e7490] ring-1 ring-[#0e7490]/15",
+  neutral: "bg-[#f1fafc] text-[#5d7280] ring-1 ring-[#d7e7ee]",
   purple: "bg-violet-50 text-violet-700 ring-1 ring-violet-200/70",
   premium:
-    "bg-[linear-gradient(135deg,rgba(64,86,255,0.12),rgba(124,58,237,0.10))] text-[#3340d6] ring-1 ring-[#4056ff]/15 shadow-sm",
+    "bg-[linear-gradient(135deg,rgba(14,116,144,0.12),rgba(154,247,201,0.24))] text-[#0e7490] ring-1 ring-[#0e7490]/15 shadow-sm",
 };
 
 export function Badge({ className, variant = "default", tone, ...props }: BadgeProps) {

@@ -15,14 +15,10 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default:
-    "border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)] ring-1 ring-black/[0.02]",
-  soft:
-    "border-white/70 bg-white/78 shadow-[var(--shadow-card)] ring-1 ring-white/70 backdrop-blur-xl",
-  premium:
-    "border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.88))] shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
-  dark:
-    "border-white/10 bg-slate-950/80 text-white shadow-2xl shadow-slate-950/30 ring-1 ring-white/10 backdrop-blur-xl",
+  default: "border-[#d7e7ee] bg-white/94 shadow-[var(--shadow-card)] ring-1 ring-white/80",
+  soft: "border-[#d7e7ee] bg-white/82 shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
+  premium: "border-[#b7d5e1] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,250,252,0.9))] shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
+  dark: "border-white/10 bg-[#062235]/92 text-white shadow-2xl shadow-[#062235]/25 ring-1 ring-white/10 backdrop-blur-xl",
 };
 
 export function Card({
@@ -36,46 +32,26 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.35rem] border",
+        "relative overflow-hidden rounded-[1.25rem] border",
         toneClasses[tone],
-        elevated &&
-          "transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-card-hover)]",
+        elevated && "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]",
         paddingClasses[padding],
         className,
       )}
       {...props}
     >
       {tone === "premium" ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
-        />
+        <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
       ) : null}
       {children}
     </div>
   );
 }
 
-export function CardHeader({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("mb-4 flex flex-col gap-1.5", className)} {...props} />
-  );
+export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("mb-4 flex flex-col gap-1.5", className)} {...props} />;
 }
 
-export function CardTitle({
-  className,
-  ...props
-}: HTMLAttributes<HTMLHeadingElement>) {
-  return (
-    <h3
-      className={cn(
-        "text-base font-semibold tracking-tight text-slate-950",
-        className,
-      )}
-      {...props}
-    />
-  );
+export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn("text-base font-semibold tracking-tight text-[#061925]", className)} {...props} />;
 }

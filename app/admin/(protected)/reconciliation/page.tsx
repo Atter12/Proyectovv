@@ -19,31 +19,31 @@ export default async function ReconciliationPage() {
       <AdminPageHeader eyebrow="Control financiero" title="Conciliación" description="Runs internos para detectar pagos aprobados sin journal, diferencias de proveedor o inconsistencias operativas." />
       <div className="grid gap-6 xl:grid-cols-[22rem_1fr]">
         <Card className="p-5">
-          <h2 className="text-lg font-black text-slate-950">Nuevo run</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Genera una revisión inicial contra metadata de ledger. Los conectores externos pueden extender este flujo.</p>
+          <h2 className="text-lg font-black text-[#061925]">Nuevo run</h2>
+          <p className="mt-2 text-sm leading-6 text-[#5d7280]">Genera una revisión inicial contra metadata de ledger. Los conectores externos pueden extender este flujo.</p>
           <form action={createReconciliationRunAction} className="mt-5 space-y-3">
-            <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Provider</label>
+            <label className="block text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Provider</label>
             <Input name="provider" defaultValue="internal" />
-            <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Tipo</label>
+            <label className="block text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Tipo</label>
             <Select name="reconciliation_type" defaultValue="full"><option value="full">Full</option><option value="payments">Payments</option><option value="wallet">Wallet</option><option value="ad_spend">Ad spend</option></Select>
-            <label className="block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Organization ID opcional</label>
+            <label className="block text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Organization ID opcional</label>
             <Input name="organization_id" placeholder="uuid opcional" />
             <Button type="submit" className="w-full">Crear run</Button>
           </form>
         </Card>
         <Card className="p-5">
-          <h2 className="text-lg font-black text-slate-950">Runs recientes</h2>
+          <h2 className="text-lg font-black text-[#061925]">Runs recientes</h2>
           <TableWrap className="mt-4">
             <Table>
               <thead><tr><Th>Run</Th><Th>Cliente</Th><Th>Tipo</Th><Th>Estado</Th><Th>Issues</Th></tr></thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#e4eef3]">
                 {runs.map(({ row, organization, items: runItems }) => (
                   <tr key={row.id}>
-                    <Td><p className="font-mono text-xs font-black text-slate-950">{row.id}</p><p className="text-xs text-slate-400">{formatDateTime(row.started_at)}</p></Td>
+                    <Td><p className="font-mono text-xs font-black text-[#061925]">{row.id}</p><p className="text-xs text-[#789bad]">{formatDateTime(row.started_at)}</p></Td>
                     <Td>{organization?.name ?? "Global"}</Td>
                     <Td>{row.provider} / {row.reconciliation_type}</Td>
                     <Td><StatusBadge status={row.status} /></Td>
-                    <Td className="font-black text-slate-950">{runItems.length}</Td>
+                    <Td className="font-black text-[#061925]">{runItems.length}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -52,14 +52,14 @@ export default async function ReconciliationPage() {
         </Card>
       </div>
       <Card className="mt-6 p-5">
-        <h2 className="text-lg font-black text-slate-950">Items recientes</h2>
+        <h2 className="text-lg font-black text-[#061925]">Items recientes</h2>
         <TableWrap className="mt-4">
           <Table>
             <thead><tr><Th>Item</Th><Th>Cliente</Th><Th>Referencia</Th><Th>Estado</Th><Th>Montos</Th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#e4eef3]">
               {items.map(({ row, organization }) => (
                 <tr key={row.id}>
-                  <Td>{row.item_type}<p className="font-mono text-xs text-slate-400">{row.id}</p></Td>
+                  <Td>{row.item_type}<p className="font-mono text-xs text-[#789bad]">{row.id}</p></Td>
                   <Td>{organization?.name ?? "Global"}</Td>
                   <Td className="font-mono text-xs">{row.source_reference ?? row.ledger_journal_id ?? "—"}</Td>
                   <Td><StatusBadge status={row.status} /></Td>

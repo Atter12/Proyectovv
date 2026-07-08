@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6fb;
-  --foreground: #0b1220;
-  --brand-primary: #4056ff;
-  --brand-primary-deep: #2638d8;
-  --brand-accent: #7c3aed;
-  --brand-mint: #12d6a3;
+  --background: #edf6f8;
+  --foreground: #061925;
+  --brand-primary: #0e7490;
+  --brand-primary-deep: #063048;
+  --brand-accent: #9af7c9;
+  --brand-mint: #9af7c9;
   --brand-gold: #f6c76b;
   --surface: #ffffff;
   --surface-soft: #f8fafc;
-  --border-subtle: #e6ebf3;
-  --border-strong: #d7deea;
+  --border-subtle: #d7e7ee;
+  --border-strong: #b7d5e1;
   --shadow-card:
     0 1px 2px rgb(15 23 42 / 0.04),
     0 10px 30px rgb(15 23 42 / 0.06);
@@ -220,3 +220,30 @@ body {
 }
 
 .page-enter { animation: page-enter 180ms ease-out both; }
+
+
+/* Admin redesign: celeste oscuro + verde claro */
+.admin-canvas {
+  background-color: #edf6f8;
+  background-image:
+    radial-gradient(900px 420px at 0% -10%, rgb(14 116 144 / 0.14), transparent 62%),
+    radial-gradient(720px 360px at 100% 0%, rgb(154 247 201 / 0.18), transparent 58%),
+    linear-gradient(180deg, #f7fcfd 0%, #edf6f8 48%, #eaf4f7 100%);
+}
+
+.admin-sidebar {
+  border-right: 1px solid rgb(183 213 225 / 0.22);
+  background:
+    radial-gradient(480px 280px at 24% -8%, rgb(154 247 201 / 0.20), transparent 62%),
+    radial-gradient(480px 320px at 110% 14%, rgb(14 116 144 / 0.28), transparent 56%),
+    linear-gradient(180deg, #061925 0%, #062235 48%, #063048 100%);
+  box-shadow: 18px 0 50px rgb(6 25 37 / 0.14);
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb { background-color: rgb(143 199 216 / 0.36); }
+
+.admin-hero {
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(241 250 252 / 0.88)),
+    radial-gradient(560px 180px at 100% 0%, rgb(154 247 201 / 0.26), transparent 60%);
+}

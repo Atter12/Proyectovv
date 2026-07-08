@@ -20,14 +20,14 @@ type LinkButtonProps = ComponentPropsWithoutRef<typeof Link> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#4056ff] text-white shadow-lg shadow-[#4056ff]/20 hover:-translate-y-0.5 hover:bg-[#4d62ff] hover:shadow-[#4056ff]/30",
+    "bg-[#0e7490] text-white shadow-lg shadow-[#0e7490]/20 hover:-translate-y-0.5 hover:bg-[#155e75] hover:shadow-[#0e7490]/30",
   secondary:
-    "bg-[#7c3aed] text-white shadow-lg shadow-[#7c3aed]/20 hover:-translate-y-0.5 hover:bg-[#8b5cf6] hover:shadow-[#7c3aed]/30",
+    "bg-[#9af7c9] text-[#063048] shadow-lg shadow-[#9af7c9]/25 hover:-translate-y-0.5 hover:bg-[#b8fbd9] hover:shadow-[#9af7c9]/35",
   outline:
-    "border border-[var(--border-subtle)] bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+    "border border-[#cfe1e9] bg-white text-[#16445a] shadow-sm hover:-translate-y-0.5 hover:border-[#9af7c9] hover:bg-[#f2fff8] hover:text-[#063048]",
+  ghost: "text-[#5d7280] hover:bg-[#e8f6f8] hover:text-[#063048]",
   luxury:
-    "bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-white shadow-xl shadow-[#4056ff]/25 hover:-translate-y-0.5 hover:shadow-[#4056ff]/35",
+    "bg-[linear-gradient(135deg,#0e7490,#9af7c9)] text-white shadow-xl shadow-[#0e7490]/25 hover:-translate-y-0.5 hover:shadow-[#0e7490]/35",
   danger: "bg-rose-600 text-white shadow-sm hover:bg-rose-700 focus-visible:outline-rose-600",
   success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-emerald-600",
 };
@@ -39,7 +39,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490]/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
 export function Button(props: NativeButtonProps | LinkButtonProps) {
   const { variant = "primary", size = "md", className } = props;

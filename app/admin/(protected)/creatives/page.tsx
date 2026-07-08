@@ -35,17 +35,17 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
         </form>
         <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <section>
-            <h2 className="mb-3 text-lg font-black text-slate-950">Jobs</h2>
+            <h2 className="mb-3 text-lg font-black text-[#061925]">Jobs</h2>
             <TableWrap>
               <Table>
                 <thead><tr><Th>Job</Th><Th>Asset</Th><Th>Proveedor</Th><Th>Score</Th><Th>Acción</Th></tr></thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#e4eef3]">
                   {jobs.map(({ row, organization, asset, result }) => (
                     <tr key={row.id}>
-                      <Td><p className="font-black text-slate-950">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /><p className="text-xs text-slate-400">{formatDateTime(row.created_at)}</p></Td>
-                      <Td>{asset?.name ?? "—"}<p className="text-xs text-slate-400">{organization?.name ?? "—"}</p></Td>
-                      <Td><Badge tone="purple">{row.provider}</Badge><p className="text-xs text-slate-400">{row.model ?? "modelo pendiente"}</p></Td>
-                      <Td className="font-black text-slate-950">{result?.overall_score ?? "—"}</Td>
+                      <Td><p className="font-black text-[#061925]">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /><p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p></Td>
+                      <Td>{asset?.name ?? "—"}<p className="text-xs text-[#789bad]">{organization?.name ?? "—"}</p></Td>
+                      <Td><Badge tone="purple">{row.provider}</Badge><p className="text-xs text-[#789bad]">{row.model ?? "modelo pendiente"}</p></Td>
+                      <Td className="font-black text-[#061925]">{result?.overall_score ?? "—"}</Td>
                       <Td>
                         <form action={updateCreativeJobAction} className="grid gap-2">
                           <input type="hidden" name="id" value={row.id} />
@@ -65,13 +65,13 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
             </TableWrap>
           </section>
           <section>
-            <h2 className="mb-3 text-lg font-black text-slate-950">Assets recientes</h2>
+            <h2 className="mb-3 text-lg font-black text-[#061925]">Assets recientes</h2>
             <div className="space-y-3">
               {assets.slice(0, 8).map(({ row, organization }) => (
-                <div key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-950">{row.name}</p><p className="text-xs text-slate-400">{organization?.name ?? "—"}</p></div><StatusBadge status={row.status} /></div>
-                  <p className="mt-2 text-sm text-slate-500">{row.asset_type} · {row.mime_type ?? "mime n/a"} · {formatInteger(row.file_size_bytes)} bytes</p>
-                  {row.public_url ? <a href={row.public_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-black text-indigo-600">Abrir asset ↗</a> : null}
+                <div key={row.id} className="rounded-2xl border border-[#d7e7ee] bg-white p-4">
+                  <div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#061925]">{row.name}</p><p className="text-xs text-[#789bad]">{organization?.name ?? "—"}</p></div><StatusBadge status={row.status} /></div>
+                  <p className="mt-2 text-sm text-[#5d7280]">{row.asset_type} · {row.mime_type ?? "mime n/a"} · {formatInteger(row.file_size_bytes)} bytes</p>
+                  {row.public_url ? <a href={row.public_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-black text-[#0e7490]">Abrir asset ↗</a> : null}
                 </div>
               ))}
             </div>

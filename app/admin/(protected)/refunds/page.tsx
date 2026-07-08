@@ -38,19 +38,19 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
         </form>
         <div className="grid gap-5">
           {refunds.map(({ row, organization, actor, wallet }) => (
-            <section key={row.id} className="rounded-[1.35rem] border border-slate-200 bg-white p-4">
+            <section key={row.id} className="rounded-[1.35rem] border border-[#d7e7ee] bg-white p-4">
               <div className="grid gap-4 lg:grid-cols-[1fr_16rem_14rem] lg:items-start">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-black text-slate-950">{organization?.name ?? "—"}</h2>
+                    <h2 className="font-black text-[#061925]">{organization?.name ?? "—"}</h2>
                     <StatusBadge status={row.status} label={TRANSACTION_STATUS_LABELS[row.status] ?? row.status} />
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">{row.description ?? "Solicitud sin descripción"}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-400">{actor?.email ?? "—"} · {formatDateTime(row.created_at)} · Wallet {wallet?.name ?? row.wallet_id.slice(0, 8)}</p>
+                  <p className="mt-1 text-sm text-[#5d7280]">{row.description ?? "Solicitud sin descripción"}</p>
+                  <p className="mt-1 text-xs font-bold text-[#789bad]">{actor?.email ?? "—"} · {formatDateTime(row.created_at)} · Wallet {wallet?.name ?? row.wallet_id.slice(0, 8)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Monto solicitado</p>
-                  <p className="mt-1 text-2xl font-black text-slate-950">{formatMoney(row.amount_cents, row.currency)}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Monto solicitado</p>
+                  <p className="mt-1 text-2xl font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</p>
                 </div>
                 {row.status === "pending" ? (
                   <div className="space-y-3">
@@ -70,7 +70,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
             </section>
           ))}
         </div>
-        {refunds.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No hay solicitudes con los filtros actuales.</p> : null}
+        {refunds.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-[#5d7280]">No hay solicitudes con los filtros actuales.</p> : null}
       </Card>
     </>
   );
