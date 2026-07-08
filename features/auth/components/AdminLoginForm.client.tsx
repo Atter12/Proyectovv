@@ -100,7 +100,7 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="w-full max-w-[420px] rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-sidebar-panel)] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-8">
+    <div className="w-full max-w-[420px] rounded-[1.35rem] border border-[var(--admin-border)] bg-[rgba(9,31,45,0.88)] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-8">
       <div className="mb-7">
         <div className="mb-4 flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--admin-accent)] text-sm font-black text-[#082131]">VV</span>

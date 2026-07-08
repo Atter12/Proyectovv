@@ -1060,6 +1060,33 @@ body {
   }
 }
 
+
+/* Admin login: immersive carousel backdrop */
+.admin-login-canvas {
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgb(14 116 144 / 0.14), transparent 62%),
+    linear-gradient(180deg, #061925 0%, #081c2a 52%, #0a2333 100%);
+}
+
+.admin-login-hero {
+  min-height: 100vh;
+}
+
+@keyframes admin-login-slide-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-login-slide-copy {
+  animation: admin-login-slide-enter 500ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-login-slide-copy {
+    animation: none !important;
+  }
+}
+
 /* Admin dashboard v7: 9.5 premium content polish */
 :root {
   --background: #eef8fa;

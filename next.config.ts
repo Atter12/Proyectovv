@@ -9,7 +9,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://cdn.simpleicons.org",
+  "img-src 'self' data: https://cdn.simpleicons.org https://images.unsplash.com",
   "font-src 'self'",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-ancestors 'none'",
