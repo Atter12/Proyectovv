@@ -49,9 +49,6 @@ export function assertProductionSecrets(): void {
   if (!process.env.INTERNAL_JOB_SECRET && !process.env.CRON_SECRET) {
     missing.push("INTERNAL_JOB_SECRET o CRON_SECRET");
   }
-  if (!process.env.ADMIN_ALLOWED_EMAILS && !process.env.ADMIN_ALLOWED_USER_IDS) {
-    missing.push("ADMIN_ALLOWED_EMAILS o ADMIN_ALLOWED_USER_IDS");
-  }
 
   if (process.env.EMAIL_PROVIDER === "resend" && !process.env.RESEND_API_KEY) {
     missing.push("RESEND_API_KEY");
