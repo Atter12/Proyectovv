@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/format";
 
 type AuditFeedItem = {
@@ -19,26 +20,26 @@ export function RecentAuditFeed({ items }: { items: AuditFeedItem[] }) {
 
   if (visibleItems.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#cfe8ee] bg-white/45 px-3 py-5 text-center text-xs font-bold text-[#789bad]">
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-xs font-medium text-slate-500">
         Sin actividad auditada reciente.
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-[#e8f2f6] rounded-xl border border-[#e1edf2] bg-white/55">
+    <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
       {visibleItems.map(({ row, organization, actor }) => (
         <div key={row.id} className="flex gap-2 px-3 py-2.5">
-          <span className="mt-0.5 h-8 w-0.5 shrink-0 rounded-full bg-[#74d3b4]" aria-hidden />
+          <span className="mt-0.5 h-8 w-0.5 shrink-0 rounded-full bg-[#178BFF]" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <p className="truncate text-xs font-black text-[#061925]" title={row.action}>
+              <p className="truncate text-xs font-medium text-slate-900" title={row.action}>
                 {row.action}
               </p>
-              <time className="shrink-0 text-[0.62rem] font-bold text-[#789bad]">{formatDateTime(row.created_at)}</time>
+              <time className="shrink-0 text-[0.62rem] text-slate-500">{formatDateTime(row.created_at)}</time>
             </div>
             <p
-              className="mt-0.5 truncate text-[0.68rem] font-semibold text-[#587080]"
+              className="mt-0.5 truncate text-[0.68rem] text-slate-500"
               title={`${organization?.name ?? "Sistema"} · ${actor?.email ?? "Backend/service role"} · ${row.entity_type}`}
             >
               {organization?.name ?? "Sistema"} · {actor?.email ?? "Backend/service role"} · {row.entity_type}
@@ -52,10 +53,7 @@ export function RecentAuditFeed({ items }: { items: AuditFeedItem[] }) {
 
 export function RecentAuditFeedHeaderLink() {
   return (
-    <Link
-      href="/admin/audit"
-      className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]"
-    >
+    <Link href="/admin/audit" className={buttonClass("outline", "sm")}>
       Ver todo
     </Link>
   );

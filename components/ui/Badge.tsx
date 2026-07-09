@@ -10,14 +10,14 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-[#f3f6f8] text-[#4a6270]",
-  success: "bg-[#f0f8f4] text-[#2d7a62]",
-  warning: "bg-[#faf7f0] text-[#8a6d2e]",
-  danger: "bg-[#faf4f5] text-[#9a4056]",
-  info: "bg-[#f2f7fa] text-[#4a8fa3]",
-  neutral: "bg-[#f5f7f9] text-[#5d7280]",
-  purple: "bg-violet-50/80 text-violet-700/85",
-  premium: "bg-[#f2f8f7] text-[#4a8fa3]",
+  default: "bg-slate-100 text-slate-600",
+  success: "bg-emerald-50 text-emerald-700",
+  warning: "bg-amber-50 text-amber-700",
+  danger: "bg-red-50 text-red-700",
+  info: "bg-[#EAF4FF] text-[#178BFF]",
+  neutral: "bg-slate-100 text-slate-600",
+  purple: "bg-violet-50 text-violet-700",
+  premium: "bg-[#EAF4FF] text-[#178BFF]",
 };
 
 export function Badge({ className, variant = "default", tone, ...props }: BadgeProps) {
@@ -25,7 +25,7 @@ export function Badge({ className, variant = "default", tone, ...props }: BadgeP
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-[6px] px-2 text-[0.6875rem] font-medium tracking-[0.03em]",
+        "inline-flex h-5 items-center rounded-md px-2 text-[0.6875rem] font-medium",
         variantClasses[resolvedVariant],
         className,
       )}

@@ -6,18 +6,31 @@ export const adminSpace = {
   grid: "gap-5",
   stack: "space-y-4",
   stackTight: "space-y-3",
+  page: "px-4 py-6 sm:px-6 lg:px-8 xl:py-7",
 } as const;
 
-/** Radius hierarchy: controls ≈10px → inputs ≈12px → cards ≈18px → panels ≈22px */
+/** Radius hierarchy aligned with Rockads-style SaaS surfaces */
 export const adminRadius = {
-  control: "rounded-[10px]",
-  input: "rounded-xl",
-  button: "rounded-[10px]",
-  metric: "rounded-[14px]",
-  card: "rounded-[18px]",
-  panel: "rounded-[22px]",
+  control: "rounded-lg",
+  input: "rounded-lg",
+  button: "rounded-lg",
+  metric: "rounded-xl",
+  card: "rounded-xl",
+  panel: "rounded-2xl",
   table: "rounded-xl",
-  badge: "rounded-[6px]",
+  badge: "rounded-md",
+} as const;
+
+/** Semantic color tokens (Tailwind classes referencing CSS variables) */
+export const adminColors = {
+  bg: "bg-[var(--admin-bg)]",
+  card: "bg-white",
+  border: "border-[var(--admin-border)]",
+  text: "text-[var(--admin-text)]",
+  textMuted: "text-[var(--admin-text-muted)]",
+  primary: "text-[var(--admin-accent)]",
+  primaryBg: "bg-[var(--admin-primary-soft)]",
+  primaryBorder: "border-[var(--admin-accent)]/20",
 } as const;
 
 export const adminMotion = {

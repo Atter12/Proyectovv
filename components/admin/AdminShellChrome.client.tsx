@@ -8,6 +8,7 @@ import type { AdminSession } from "@/lib/admin/auth";
 import type { AdminNavSignals } from "@/lib/admin/data";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
+import { buttonClass } from "@/components/ui/Button";
 
 type AdminShellChromeProps = {
   admin: AdminSession;
@@ -40,7 +41,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
       {sidebarOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-[#061925]/55 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm lg:hidden"
           aria-label="Cerrar menú"
           onClick={() => setSidebarOpen(false)}
         />
@@ -57,12 +58,12 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
         aria-hidden={!sidebarOpen}
         aria-label="Menú de navegación admin"
       >
-        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium admin-mobile-sidebar relative h-full overflow-hidden px-3 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium admin-mobile-sidebar relative h-full overflow-hidden px-3 py-3">
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Cerrar menú"
-            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--admin-text-muted)] transition-colors hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]"
+            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -75,12 +76,12 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
       </div>
 
       <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
-        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
+        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium hidden px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
           <AdminSidebarPanel admin={admin} navSignals={navSignals} />
         </aside>
 
         <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">
-          <header className="admin-topbar sticky top-0 z-30 border-b border-[#e8f0f3]/80 bg-white/[0.82] px-4 py-3.5 shadow-[var(--admin-shadow-1)] backdrop-blur-xl sm:px-6 sm:py-4 lg:px-8">
+          <header className="admin-topbar sticky top-0 z-30 border-b px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
             <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <button
@@ -89,25 +90,26 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                   aria-label="Abrir menú de navegación"
                   aria-expanded={sidebarOpen}
                   aria-controls="admin-sidebar"
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#cfe1e9] bg-white/80 text-[#16445a] shadow-sm transition hover:border-[#74d3b4] hover:bg-[#f2fff8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50 lg:hidden"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30 lg:hidden"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                   </svg>
                 </button>
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-semibold tracking-tight text-[#061925] sm:text-xl">
+                  <p className="truncate text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
                     Panel administrativo
                   </p>
-                  <p className="mt-0.5 truncate text-sm font-medium tracking-[0.01em] text-[#6d8494]">{appName}</p>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">{appName}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                {admin.accessMode === "development-open" ? <Badge tone="warning">Dev open</Badge> : <Badge tone="success">Allowlist</Badge>}
-                <Link
-                  href={routes.overview}
-                  className="hidden h-9 items-center rounded-[10px] border border-[var(--admin-content-border)] bg-white/90 px-3 text-xs font-medium text-[#16445a] shadow-[var(--admin-shadow-1)] transition duration-[180ms] ease-out hover:border-[#c5e5d8] hover:bg-[#f8fcfa] hover:shadow-[var(--admin-shadow-2)] sm:inline-flex"
-                >
+                {admin.accessMode === "development-open" ? (
+                  <Badge tone="warning">Dev open</Badge>
+                ) : (
+                  <Badge tone="info">Allowlist</Badge>
+                )}
+                <Link href={routes.overview} className={buttonClass("outline", "sm", "hidden sm:inline-flex")}>
                   Panel cliente
                 </Link>
               </div>

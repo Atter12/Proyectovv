@@ -36,13 +36,11 @@ function OperationalMetricChip({
     <Link
       href={href}
       title={label}
-      className="flex h-[2.625rem] min-w-0 w-full flex-col justify-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1.5 transition hover:border-[#74d3b4]/28 hover:bg-white/[0.09]"
+      className="flex h-[2.625rem] min-w-0 w-full flex-col justify-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 transition hover:border-[#178BFF]/30 hover:bg-[#EAF4FF]/50"
     >
-      <span className="truncate text-[0.625rem] font-semibold leading-none tracking-normal text-[#9dd5e3]">
-        {shortLabel}
-      </span>
+      <span className="truncate text-[0.625rem] font-medium leading-none text-slate-500">{shortLabel}</span>
       <strong
-        className={`truncate text-base font-bold leading-none tabular-nums ${active ? "text-white" : "text-[#8eb5c8]"}`}
+        className={`truncate text-base font-semibold leading-none tabular-nums ${active ? "text-slate-900" : "text-slate-400"}`}
       >
         {value}
       </strong>

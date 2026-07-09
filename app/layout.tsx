@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: siteConfig.name,
@@ -16,8 +23,8 @@ export default function RootLayout({
   assertProductionSecrets();
 
   return (
-    <html lang="es" className="h-full antialiased">
-      <body className="min-h-full overflow-x-hidden bg-[#f5f7fb] font-sans text-[#0f172a]">
+    <html lang="es" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full overflow-x-hidden bg-[#F7F9FC] font-sans text-slate-900">
         {children}
       </body>
     </html>

@@ -23,7 +23,7 @@ export function AdminExecutiveOverview({
 }) {
   return (
     <section
-      className="admin-executive-overview mb-5 grid gap-4 lg:grid-cols-[minmax(0,48%)_minmax(0,52%)] lg:items-stretch"
+      className="admin-executive-overview mb-6 grid gap-5 lg:grid-cols-[minmax(0,48%)_minmax(0,52%)] lg:items-stretch"
       aria-label="Resumen ejecutivo"
     >
       <AdminMetricGrid metrics={metrics} layout="executive" />

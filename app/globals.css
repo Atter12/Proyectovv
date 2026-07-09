@@ -37,7 +37,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -1171,23 +1171,12 @@ body {
 }
 
 .admin-page-hero {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.88), rgba(243,251,252,0.78)),
-    radial-gradient(620px 220px at 92% 0%, rgba(116,211,180,0.18), transparent 62%),
-    radial-gradient(420px 180px at 0% 0%, rgba(14,116,144,0.09), transparent 58%);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.75) inset,
-    0 22px 65px rgba(14,48,72,0.08);
+  background: #ffffff;
+  box-shadow: var(--admin-shadow-1);
 }
 
 .admin-page-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(120deg, rgba(255,255,255,0.48), transparent 42%);
-  opacity: 0.7;
+  display: none;
 }
 
 .admin-page-hero > * {
@@ -1363,4 +1352,145 @@ body {
   .admin-session-panel--premium button {
     transition: none !important;
   }
+}
+
+
+/* Admin dashboard v9: Rockads-inspired light SaaS theme */
+:root {
+  --background: #f7f9fc;
+  --foreground: #111827;
+  --brand-primary: #178bff;
+  --brand-primary-deep: #0f7ae5;
+  --brand-accent: #178bff;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --border-subtle: #e5eaf0;
+  --border-strong: #d1d9e6;
+  --admin-bg: #f7f9fc;
+  --admin-sidebar: #ffffff;
+  --admin-sidebar-panel: #ffffff;
+  --admin-surface: #ffffff;
+  --admin-surface-hover: #f1f5f9;
+  --admin-surface-soft: #f8fafc;
+  --admin-accent: #178bff;
+  --admin-primary-soft: #eaf4ff;
+  --admin-success: #16a34a;
+  --admin-warning: #d97706;
+  --admin-danger: #dc2626;
+  --admin-info: #178bff;
+  --admin-text: #111827;
+  --admin-text-muted: #6b7280;
+  --admin-text-soft: #9ca3af;
+  --admin-border: #e5eaf0;
+  --admin-divider: #e5eaf0;
+  --admin-content-border: #e5eaf0;
+  --admin-shadow-1: 0 1px 2px rgb(15 23 42 / 0.04);
+  --admin-shadow-2: 0 1px 3px rgb(15 23 42 / 0.05), 0 4px 12px rgb(15 23 42 / 0.04);
+  --admin-shadow-3: 0 2px 8px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06);
+  --admin-radius-control: 8px;
+  --admin-radius-input: 8px;
+  --admin-radius-card: 12px;
+  --admin-radius-panel: 16px;
+  --shadow-topbar: 0 1px 0 rgb(15 23 42 / 0.04);
+}
+
+.admin-canvas {
+  background-color: var(--admin-bg) !important;
+}
+
+.admin-content-plane {
+  background-color: var(--admin-bg) !important;
+  background-image: none !important;
+}
+
+.admin-content-plane::before,
+.admin-content-plane::after {
+  display: none !important;
+}
+
+.admin-sidebar-operational,
+.admin-sidebar-premium {
+  background: var(--admin-sidebar) !important;
+  border-right: 1px solid var(--admin-border) !important;
+  box-shadow: none !important;
+}
+
+.admin-mobile-sidebar {
+  background: var(--admin-sidebar) !important;
+  border-right: 1px solid var(--admin-border) !important;
+  box-shadow: 0 8px 32px rgb(15 23 42 / 0.12) !important;
+}
+
+.admin-brand-divider {
+  background: var(--admin-divider);
+}
+
+.admin-nav--premium .admin-nav-group--divided {
+  border-top-color: var(--admin-divider);
+}
+
+.admin-nav--operational .admin-nav-item.is-active,
+.admin-nav--premium .admin-nav-item.is-active {
+  background: var(--admin-primary-soft) !important;
+  color: var(--admin-accent) !important;
+  box-shadow: none !important;
+}
+
+.admin-nav--operational .admin-nav-item.is-active::before,
+.admin-nav--premium .admin-nav-item.is-active::before {
+  display: none !important;
+}
+
+.admin-nav--operational .admin-nav-item.is-active {
+  box-shadow: none !important;
+}
+
+.admin-nav--premium .admin-nav-item:hover:not(.is-active) {
+  background: var(--admin-surface-hover);
+  transform: none !important;
+}
+
+.admin-topbar {
+  background: rgb(255 255 255 / 0.92) !important;
+  border-bottom-color: var(--admin-border) !important;
+  box-shadow: var(--shadow-topbar) !important;
+}
+
+.admin-topbar::after {
+  display: none;
+}
+
+.admin-metric-card {
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-shadow-1) !important;
+  min-height: 7rem;
+}
+
+.admin-metric-card:hover {
+  box-shadow: var(--admin-shadow-2) !important;
+}
+
+.admin-data-panel,
+.admin-audit-panel {
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-shadow-1) !important;
+}
+
+.admin-priority-compact {
+  background: #ffffff !important;
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-shadow-1) !important;
+  border-radius: var(--admin-radius-panel) !important;
+}
+
+.admin-executive-overview .admin-priority-compact {
+  min-height: auto;
+}
+
+.admin-overview-header {
+  border-bottom-color: var(--admin-border);
+}
+
+.admin-session-panel--premium {
+  border-top-color: var(--admin-divider) !important;
 }

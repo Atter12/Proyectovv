@@ -27,13 +27,13 @@ export function OperationalProgressHoverDetail({
   return (
     <div
       role="tooltip"
-      className={`pointer-events-none absolute z-20 min-w-[6.75rem] rounded-lg border border-white/12 bg-[rgba(12,38,54,0.94)] px-2.5 py-1.5 shadow-[0_10px_28px_rgba(0,0,0,0.28)] backdrop-blur-sm ${placementClass}`}
+      className={`pointer-events-none absolute z-20 min-w-[6.75rem] rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 shadow-[var(--admin-shadow-3)] ${placementClass}`}
     >
       <div className="flex items-center gap-1.5">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} aria-hidden />
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#9dd5e3]">{segment.name}</p>
+        <p className="text-[0.62rem] font-medium uppercase tracking-[0.06em] text-slate-500">{segment.name}</p>
       </div>
-      <p className="mt-0.5 text-sm font-black leading-none text-white">{segment.value}</p>
+      <p className="mt-0.5 text-sm font-semibold leading-none text-slate-900">{segment.value}</p>
     </div>
   );
 }

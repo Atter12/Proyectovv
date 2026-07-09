@@ -64,13 +64,13 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
       </div>
 
       {limitedActivity ? (
-        <p className="rounded-lg border border-[#dbeaf0] bg-[#f7fcfe] px-3 py-2 text-xs font-semibold text-[#6d8494]">
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
           Actividad limitada: se muestran los movimientos disponibles.
         </p>
       ) : null}
 
       {!hasActivity ? (
-        <p className="rounded-lg border border-dashed border-[#cfe8ee] bg-white/50 px-3 py-2 text-xs font-semibold text-[#789bad]">
+        <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-500">
           Sin actividad de pagos en el rango seleccionado.
         </p>
       ) : null}
@@ -116,7 +116,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <Legend
               iconType="circle"
               iconSize={8}
-              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#6d8494", paddingTop: "12px" }}
+              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#6B7280", paddingTop: "12px" }}
             />
             <Bar
               yAxisId="count"

@@ -15,11 +15,10 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "bg-white/[0.96] shadow-[var(--admin-shadow-2)]",
-  soft: "bg-white/[0.94] shadow-[var(--admin-shadow-2)]",
-  premium:
-    "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,252,253,0.94))] shadow-[var(--admin-shadow-2)]",
-  dark: "bg-[#102f42] text-white shadow-[var(--admin-shadow-3)]",
+  default: "bg-white shadow-[var(--admin-shadow-1)]",
+  soft: "bg-white shadow-[var(--admin-shadow-1)]",
+  premium: "bg-white shadow-[var(--admin-shadow-2)]",
+  dark: "bg-slate-900 text-white shadow-[var(--admin-shadow-3)]",
 };
 
 export function Card({
@@ -30,16 +29,16 @@ export function Card({
   children,
   ...props
 }: CardProps) {
-  const radiusClass = tone === "dark" ? "rounded-[22px]" : "rounded-[18px]";
+  const radiusClass = tone === "dark" ? "rounded-2xl" : "rounded-xl";
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden",
+        "relative overflow-hidden border border-[var(--admin-border)]",
         radiusClass,
         toneClasses[tone],
         elevated &&
-          "transition-[box-shadow,transform] duration-[180ms] ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-3)]",
+          "transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-2)]",
         paddingClasses[padding],
         className,
       )}
@@ -55,5 +54,5 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold tracking-tight text-[#061925]", className)} {...props} />;
+  return <h3 className={cn("text-base font-semibold tracking-tight text-slate-900", className)} {...props} />;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OperationalMetricChips } from "@/components/admin/overview/OperationalMetricChips";
 import { OperationalProgressDonut } from "@/components/admin/overview/OperationalProgressDonut.client";
+import { buttonClass } from "@/components/ui/Button";
 import type { OperationalMonthlyProgress } from "@/lib/admin/data";
 import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/Card";
@@ -42,16 +43,10 @@ function priorityOperationalHint(counts: PriorityCounts, total: number): string 
 function PriorityActions() {
   return (
     <div className="flex flex-wrap gap-2">
-      <Link
-        href="/admin/payments"
-        className="rounded-lg bg-[#6bc4a5] px-3 py-1.5 text-xs font-semibold text-[#062235] transition duration-150 ease-out hover:bg-[#84d3b8]"
-      >
+      <Link href="/admin/payments" className={buttonClass("primary", "sm")}>
         Revisar cola
       </Link>
-      <Link
-        href="/admin/audit"
-        className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/90 transition duration-150 ease-out hover:border-white/16 hover:bg-white/[0.07]"
-      >
+      <Link href="/admin/audit" className={buttonClass("outline", "sm")}>
         Auditoría
       </Link>
     </div>
@@ -70,29 +65,18 @@ export function AdminPriorityCard({
   className?: string;
 }) {
   return (
-    <Card tone="dark" className={cn("admin-priority-compact overflow-hidden p-0", className)}>
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(380px_140px_at_0%_0%,rgba(116,211,180,0.06),transparent_62%),radial-gradient(320px_120px_at_100%_0%,rgba(117,199,232,0.04),transparent_58%)]"
-        aria-hidden
-      />
-
+    <Card tone="default" padding="none" className={cn("admin-priority-compact overflow-hidden", className)}>
       <div className="relative flex h-full min-h-0 flex-col p-5 sm:p-6">
         <div className="grid min-h-0 flex-1 gap-6 max-lg:grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_auto_minmax(11.5rem,12.5rem)] lg:items-center">
           <div className="min-w-0 space-y-4">
             <div className="space-y-2.5">
-              <div className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#74d3b4]/12 bg-[#74d3b4]/6 px-2.5 py-1 text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[#9dd5e3]/90">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#74d3b4]/85" aria-hidden />
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-[#EAF4FF] px-2.5 py-1 text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[#178BFF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#178BFF]" aria-hidden />
                 Prioridad del día
               </div>
-              <h2 className="text-[1.05rem] font-semibold tracking-tight text-white sm:text-lg">
-                {priorityTitle(priorityTotal)}
-              </h2>
-              <p className="text-sm font-medium tracking-[0.005em] text-[#b0c8d6]">
-                Cola financiera, soporte y webhooks.
-              </p>
-              <p className="text-xs font-medium tracking-[0.01em] text-[#9ab7c8]">
-                {priorityOperationalHint(counts, priorityTotal)}
-              </p>
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">{priorityTitle(priorityTotal)}</h2>
+              <p className="text-sm text-slate-600">Cola financiera, soporte y webhooks.</p>
+              <p className="text-xs text-slate-500">{priorityOperationalHint(counts, priorityTotal)}</p>
             </div>
             <PriorityActions />
           </div>

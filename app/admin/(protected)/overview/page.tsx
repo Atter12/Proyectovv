@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
-import { adminPanelTypography } from "@/components/admin/overview/adminPanelTypography";
+import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { WalletExposureRanking } from "@/components/admin/overview/WalletExposureRanking";
 import { AdminExecutiveOverview } from "@/components/admin/overview/AdminExecutiveOverview";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
@@ -8,6 +8,7 @@ import { buildOverviewMetrics } from "@/components/admin/overview/buildOverviewM
 import { paymentOverviewActionClass, paymentOverviewActionLabel } from "@/components/admin/overview/overviewActions";
 import { RecentAuditFeed, RecentAuditFeedHeaderLink } from "@/components/admin/overview/RecentAuditFeed";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { buttonClass } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
 import { getOverviewAnalyticsData, getOverviewData } from "@/lib/admin/data";
@@ -34,39 +35,35 @@ export default async function OverviewPage() {
       />
 
       <Card className="admin-data-panel" tone="soft">
-        <div className="mb-4">
-          <p className={adminPanelTypography.sectionEyebrow}>Tendencia financiera</p>
-          <h2 className={adminPanelTypography.sectionTitle}>Flujo de pagos</h2>
-          <p className={adminPanelTypography.sectionSubtitle}>
-            Pagos creados, aprobados y pendientes según el rango seleccionado.
-          </p>
-        </div>
+        <SectionHeader
+          eyebrow="Tendencia financiera"
+          title="Flujo de pagos"
+          subtitle="Pagos creados, aprobados y pendientes según el rango seleccionado."
+        />
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="admin-data-panel" tone="soft">
-          <div className="mb-4">
-            <p className={adminPanelTypography.sectionEyebrow}>Exposición financiera</p>
-            <h2 className={adminPanelTypography.sectionTitle}>Top wallets por organización</h2>
-            <p className={adminPanelTypography.sectionSubtitle}>
-              Saldos activos y concentración por organización.
-            </p>
-          </div>
+          <SectionHeader
+            eyebrow="Exposición financiera"
+            title="Top wallets por organización"
+            subtitle="Saldos activos y concentración por organización."
+          />
           <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
 
         <Card className="admin-data-panel" tone="soft">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className={adminPanelTypography.sectionEyebrow}>Flujo operativo</p>
-              <h2 className={adminPanelTypography.sectionTitle}>Pagos recientes</h2>
-              <p className={adminPanelTypography.sectionSubtitle}>
-                Últimos pagos manuales y externos para revisión.
-              </p>
-            </div>
-            <Link href="/admin/payments" className="shrink-0 rounded-lg border border-[var(--admin-content-border)] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#3d8fa8] transition duration-150 ease-out hover:border-[#b8e8d4] hover:bg-[#f7fcfa]">Ver pagos</Link>
-          </div>
+          <SectionHeader
+            eyebrow="Flujo operativo"
+            title="Pagos recientes"
+            subtitle="Últimos pagos manuales y externos para revisión."
+            actions={
+              <Link href="/admin/payments" className={buttonClass("outline", "sm")}>
+                Ver pagos
+              </Link>
+            }
+          />
           <TableWrap>
             <Table>
               <thead>
@@ -78,29 +75,29 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#f0f4f6]">
+              <tbody className="divide-y divide-slate-100">
                 {data.recentPayments.map(({ row, organization }) => (
-                  <tr key={row.id} className="transition-colors duration-[180ms] ease-out hover:bg-[#f9fbfc]">
+                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-slate-50">
                     <Td className="align-middle py-2.5">
-                      <Link href={`/admin/payments/${row.id}`} className="font-semibold text-[#061925] hover:text-[#0e7490]">
+                      <Link href={`/admin/payments/${row.id}`} className="font-medium text-slate-900 hover:text-[#178BFF]">
                         {row.id.slice(0, 8)}
                       </Link>
-                      <p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p>
+                      <p className="text-xs text-slate-500">{formatDateTime(row.created_at)}</p>
                     </Td>
                     <Td className="align-middle py-2.5">
                       <p className="max-w-[8rem] truncate" title={organization?.name ?? undefined}>
                         {organization?.name ?? "—"}
                       </p>
-                      <p className="truncate text-xs text-[#789bad]">{row.provider}</p>
+                      <p className="truncate text-xs text-slate-500">{row.provider}</p>
                     </Td>
-                    <Td className="align-middle whitespace-nowrap py-2.5 font-semibold tabular-nums text-[#061925]">
+                    <Td className="align-middle whitespace-nowrap py-2.5 font-medium tabular-nums text-slate-900">
                       {formatMoney(row.amount_cents, row.currency)}
                     </Td>
                     <Td className="align-middle py-2.5">
                       <StatusBadge
                         status={row.status}
                         label={PAYMENT_STATUS_LABELS[row.status] ?? row.status}
-                        className="!py-0.5 !text-[0.625rem] !font-semibold !normal-case !tracking-normal"
+                        className="!py-0.5 !text-[0.625rem] !font-medium !normal-case !tracking-normal"
                       />
                     </Td>
                     <Td className="align-middle py-2.5 text-right">
@@ -116,14 +113,16 @@ export default async function OverviewPage() {
         </Card>
 
         <Card className="admin-data-panel" tone="soft">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className={adminPanelTypography.sectionEyebrow}>Soporte</p>
-              <h2 className={adminPanelTypography.sectionTitle}>Tickets recientes</h2>
-              <p className={adminPanelTypography.sectionSubtitle}>Conversaciones recientes del chat con clientes.</p>
-            </div>
-            <Link href="/admin/support" className="shrink-0 rounded-lg border border-[var(--admin-content-border)] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#3d8fa8] transition duration-150 ease-out hover:border-[#b8e8d4] hover:bg-[#f7fcfa]">Ver soporte</Link>
-          </div>
+          <SectionHeader
+            eyebrow="Soporte"
+            title="Tickets recientes"
+            subtitle="Conversaciones recientes del chat con clientes."
+            actions={
+              <Link href="/admin/support" className={buttonClass("outline", "sm")}>
+                Ver soporte
+              </Link>
+            }
+          />
           <TableWrap>
             <Table>
               <thead>
@@ -135,32 +134,29 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e1edf2]">
+              <tbody className="divide-y divide-slate-100">
                 {data.recentTickets.map(({ row, organization, requester }) => (
-                  <tr key={row.id} className="transition-colors duration-[180ms] ease-out hover:bg-[#f9fbfc]">
+                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-slate-50">
                     <Td className="py-3">
-                      <p className="max-w-[9rem] truncate font-black text-[#061925]" title={row.subject}>
+                      <p className="max-w-[9rem] truncate font-medium text-slate-900" title={row.subject}>
                         {row.subject}
                       </p>
-                      <p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p>
+                      <p className="text-xs text-slate-500">{formatDateTime(row.updated_at ?? row.created_at)}</p>
                     </Td>
                     <Td className="py-3">
                       <p className="max-w-[7rem] truncate" title={organization?.name ?? undefined}>
                         {organization?.name ?? "—"}
                       </p>
-                      <p className="max-w-[7rem] truncate text-xs text-[#789bad]" title={requester?.email ?? undefined}>
+                      <p className="max-w-[7rem] truncate text-xs text-slate-500" title={requester?.email ?? undefined}>
                         {requester?.email ?? "—"}
                       </p>
                     </Td>
-                    <Td className="whitespace-nowrap font-bold capitalize">{row.priority}</Td>
+                    <Td className="whitespace-nowrap font-medium capitalize text-slate-700">{row.priority}</Td>
                     <Td className="py-3">
                       <StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} />
                     </Td>
                     <Td className="text-right">
-                      <Link
-                        href={`/admin/support/${row.id}`}
-                        className="inline-flex rounded-md border border-[#cfe8ee] bg-white/80 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.06em] text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]"
-                      >
+                      <Link href={`/admin/support/${row.id}`} className={buttonClass("outline", "sm", "h-7 px-2 text-xs")}>
                         Abrir
                       </Link>
                     </Td>
@@ -172,14 +168,12 @@ export default async function OverviewPage() {
         </Card>
 
         <Card className="admin-data-panel" tone="soft">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className={adminPanelTypography.sectionEyebrow}>Trazabilidad</p>
-              <h2 className={adminPanelTypography.sectionTitle}>Última actividad auditada</h2>
-              <p className={adminPanelTypography.sectionSubtitle}>Registro reciente de acciones del sistema.</p>
-            </div>
-            <RecentAuditFeedHeaderLink />
-          </div>
+          <SectionHeader
+            eyebrow="Trazabilidad"
+            title="Última actividad auditada"
+            subtitle="Registro reciente de acciones del sistema."
+            actions={<RecentAuditFeedHeaderLink />}
+          />
           <RecentAuditFeed items={data.recentAudit} />
         </Card>
       </div>
