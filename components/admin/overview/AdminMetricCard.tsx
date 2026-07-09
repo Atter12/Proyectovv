@@ -25,7 +25,7 @@ const accentStyles: Record<
     label: "text-[#1a6578]",
     detail: "text-[#3d5f6f]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(247,252,254,0.68)_0%,rgba(236,247,251,0.58)_52%,rgba(228,242,248,0.48)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(247,252,254,0.18)_0%,rgba(236,247,251,0.18)_52%,rgba(228,242,248,0.18)_100%)]",
     symbol: "Org",
     fallback: "bg-[linear-gradient(135deg,#f7fcfe_0%,#eef7fb_100%)]",
   },
@@ -36,7 +36,7 @@ const accentStyles: Record<
     label: "text-[#1a7560]",
     detail: "text-[#3d6358]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(243,255,249,0.68)_0%,rgba(233,250,242,0.58)_52%,rgba(220,245,234,0.48)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(243,255,249,0.18)_0%,rgba(233,250,242,0.18)_52%,rgba(220,245,234,0.18)_100%)]",
     symbol: "$",
     fallback: "bg-[linear-gradient(135deg,#f3fff9_0%,#e9faf2_100%)]",
   },
@@ -47,7 +47,7 @@ const accentStyles: Record<
     label: "text-[#8a6010]",
     detail: "text-[#6b5530]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(255,253,246,0.68)_0%,rgba(255,247,228,0.58)_52%,rgba(255,240,210,0.48)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(255,253,246,0.18)_0%,rgba(255,247,228,0.18)_52%,rgba(255,240,210,0.18)_100%)]",
     symbol: "Pay",
     fallback: "bg-[linear-gradient(135deg,#fffdf6_0%,#fff7e4_100%)]",
   },
@@ -58,7 +58,7 @@ const accentStyles: Record<
     label: "text-[#9a4056]",
     detail: "text-[#6f4a55]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(255,249,251,0.68)_0%,rgba(255,240,244,0.58)_52%,rgba(255,228,234,0.48)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(255,249,251,0.18)_0%,rgba(255,240,244,0.18)_52%,rgba(255,228,234,0.18)_100%)]",
     symbol: "!",
     fallback: "bg-[linear-gradient(135deg,#fff9fb_0%,#fff0f4_100%)]",
   },
@@ -85,7 +85,7 @@ export function AdminMetricCard({
     >
       {!imageFailed ? (
         <div
-          className="absolute inset-0 scale-110 bg-cover bg-center opacity-[0.62] saturate-[1.08] transition duration-300 group-hover:scale-[1.14] group-hover:opacity-[0.72]"
+          className="absolute inset-0 scale-110 bg-cover bg-center opacity-[0.78] saturate-[1.1] transition duration-300 group-hover:scale-[1.14] group-hover:opacity-[0.86]"
           style={{ backgroundImage: `url("${backgroundUrl}")` }}
           aria-hidden
         >
@@ -102,11 +102,11 @@ export function AdminMetricCard({
 
       <div className={`absolute inset-0 ${style.overlay}`} aria-hidden />
       <div
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,transparent_40%,rgba(6,25,37,0.05)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_40%,rgba(6,25,37,0.03)_100%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-[linear-gradient(270deg,rgba(255,255,255,0.28)_0%,transparent_100%)]"
+        className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-[linear-gradient(270deg,rgba(255,255,255,0.10)_0%,transparent_100%)]"
         aria-hidden
       />
 
@@ -120,7 +120,7 @@ export function AdminMetricCard({
           {style.symbol}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1 rounded-lg bg-white/30 px-2 py-1.5 backdrop-blur-[4px]">
+        <div className="min-w-0 flex-1 space-y-1 rounded-lg bg-white/45 px-2 py-1.5 backdrop-blur-[6px]">
           <p className={`text-[0.6rem] font-bold uppercase tracking-[0.16em] ${style.label}`}>{label}</p>
           <p className="truncate text-[1.65rem] font-black leading-[1.05] tracking-tight text-[#03121c] [text-shadow:0_1px_0_rgba(255,255,255,0.65)] sm:text-[1.75rem]">
             {value}
