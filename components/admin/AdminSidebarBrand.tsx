@@ -7,26 +7,30 @@ type AdminSidebarBrandProps = {
 
 export function AdminSidebarBrand({ onNavigate }: AdminSidebarBrandProps) {
   return (
-    <Link
-      href="/admin/overview"
-      onClick={onNavigate}
-      className="admin-brand mb-5 flex w-full flex-col items-center gap-2.5 rounded-xl px-3 pb-4 pt-3.5 text-center transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50"
-    >
-      <span
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--admin-accent)] text-sm font-black tracking-tight text-[#082131] ring-1 ring-white/10"
-        aria-hidden
+    <div className="admin-brand-block shrink-0">
+      <Link
+        href="/admin/overview"
+        onClick={onNavigate}
+        className="admin-brand flex w-full flex-col items-center gap-2 rounded-xl px-2 pb-2.5 pt-2 text-center transition-colors duration-200 ease-out hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45"
       >
-        VV
-      </span>
+        <span
+          className="admin-brand-logo grid h-9 w-9 shrink-0 place-items-center rounded-[0.65rem] bg-gradient-to-br from-[#74d3b4] to-[#5bc4a3] text-sm font-bold tracking-tight text-[#062235] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_4px_16px_rgba(116,211,180,0.16)] ring-1 ring-white/8"
+          aria-hidden
+        >
+          VV
+        </span>
 
-      <span className="flex w-full min-w-0 flex-col items-center gap-1">
-        <span className="max-w-full truncate text-base font-semibold leading-tight tracking-tight text-[var(--admin-text)]">
-          {siteConfig.name}
+        <span className="flex w-full min-w-0 flex-col items-center gap-0.5">
+          <span className="max-w-full truncate text-[0.9375rem] font-semibold leading-tight tracking-tight text-[var(--admin-text)]">
+            {siteConfig.name}
+          </span>
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.1em] text-[#9dd5e3]/85">
+            Admin
+          </span>
         </span>
-        <span className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-[var(--admin-text-muted)]">
-          Admin
-        </span>
-      </span>
-    </Link>
+      </Link>
+
+      <div className="admin-brand-divider mt-3" aria-hidden />
+    </div>
   );
 }

@@ -666,6 +666,32 @@ export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData>
   };
 }
 
+export type AdminNavSignals = {
+  "/admin/payments": number;
+  "/admin/support": number;
+  "/admin/webhooks": number;
+};
+
+export async function getAdminNavSignals(): Promise<AdminNavSignals> {
+  const admin = createAdminClient();
+
+  const [pendingPaymentsResult, openTicketsResult, failedWebhooksResult] = await Promise.all([
+    admin
+      .from("payment_intents")
+      .select("*", { count: "exact", head: true })
+      .eq("provider", "manual")
+      .in("status", [...PENDING_PAYMENT_STATUSES]),
+    admin.from("support_tickets").select("*", { count: "exact", head: true }).in("status", ["open", "pending"]),
+    admin.from("webhook_events").select("*", { count: "exact", head: true }).eq("status", "failed"),
+  ]);
+
+  return {
+    "/admin/payments": pendingPaymentsResult.count ?? 0,
+    "/admin/support": openTicketsResult.count ?? 0,
+    "/admin/webhooks": failedWebhooksResult.count ?? 0,
+  };
+}
+
 export async function getOverviewData() {
   const admin = createAdminClient();
 

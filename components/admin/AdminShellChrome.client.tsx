@@ -5,16 +5,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AdminSidebarPanel } from "@/components/admin/AdminSidebarPanel";
 import { routes } from "@/config/routes";
 import type { AdminSession } from "@/lib/admin/auth";
+import type { AdminNavSignals } from "@/lib/admin/data";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 
 type AdminShellChromeProps = {
   admin: AdminSession;
   appName: string;
+  navSignals: AdminNavSignals;
   children: ReactNode;
 };
 
-export function AdminShellChrome({ admin, appName, children }: AdminShellChromeProps) {
+export function AdminShellChrome({ admin, appName, navSignals, children }: AdminShellChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function AdminShellChrome({ admin, appName, children }: AdminShellChromeP
         aria-hidden={!sidebarOpen}
         aria-label="Menú de navegación admin"
       >
-        <aside className="admin-sidebar admin-sidebar-operational admin-mobile-sidebar relative h-full overflow-hidden px-3 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium admin-mobile-sidebar relative h-full overflow-hidden px-3 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
@@ -67,14 +69,14 @@ export function AdminShellChrome({ admin, appName, children }: AdminShellChromeP
             </svg>
           </button>
           <div className="h-full pt-10">
-            <AdminSidebarPanel admin={admin} onNavigate={() => setSidebarOpen(false)} />
+            <AdminSidebarPanel admin={admin} navSignals={navSignals} onNavigate={() => setSidebarOpen(false)} />
           </div>
         </aside>
       </div>
 
       <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
-        <aside className="admin-sidebar admin-sidebar-operational hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
-          <AdminSidebarPanel admin={admin} />
+        <aside className="admin-sidebar admin-sidebar-operational admin-sidebar-premium hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
+          <AdminSidebarPanel admin={admin} navSignals={navSignals} />
         </aside>
 
         <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">

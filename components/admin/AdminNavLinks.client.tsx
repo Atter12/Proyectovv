@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AdminNavSignal } from "@/components/admin/AdminNavSignal";
 import { adminNavigation } from "@/config/navigation";
+import type { AdminNavSignals } from "@/lib/admin/data";
 import { cn } from "@/lib/cn";
 
 const groups = [
@@ -12,22 +14,48 @@ const groups = [
   { title: "Sistema", items: ["/admin/webhooks", "/admin/audit", "/admin/integrations", "/admin/settings"] },
 ];
 
-const signalItems = new Set(["/admin/payments", "/admin/support", "/admin/webhooks"]);
+const signalTitles: Partial<Record<string, string>> = {
+  "/admin/payments": "Pagos manuales pendientes",
+  "/admin/support": "Tickets abiertos",
+  "/admin/webhooks": "Webhooks fallidos",
+};
 
-export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function getSignalCount(href: string, signals?: AdminNavSignals): number {
+  if (!signals) return 0;
+  if (href === "/admin/payments") return signals["/admin/payments"];
+  if (href === "/admin/support") return signals["/admin/support"];
+  if (href === "/admin/webhooks") return signals["/admin/webhooks"];
+  return 0;
+}
+
+export function AdminNavLinks({
+  onNavigate,
+  navSignals,
+}: {
+  onNavigate?: () => void;
+  navSignals?: AdminNavSignals;
+}) {
   const pathname = usePathname();
 
   return (
-    <nav className="admin-nav admin-nav--operational space-y-3.5" aria-label="Navegación administrativa">
-      {groups.map((group) => {
+    <nav className="admin-nav admin-nav--operational admin-nav--premium space-y-1" aria-label="Navegación administrativa">
+      {groups.map((group, groupIndex) => {
         const items = adminNavigation.filter((item) => group.items.includes(item.href));
+
         return (
-          <section key={group.title} className="admin-nav-group">
-            <p className="mb-1 px-2 text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[var(--admin-text-soft)]">{group.title}</p>
-            <div className="space-y-px">
+          <section
+            key={group.title}
+            className={cn("admin-nav-group", groupIndex > 0 ? "admin-nav-group--divided" : "")}
+          >
+            <p className="admin-nav-section-label mb-1.5 px-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-[#6d8a9a]">
+              {group.title}
+            </p>
+            <div className="space-y-0.5">
               {items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const hasSignal = signalItems.has(item.href);
+                const signalCount = getSignalCount(item.href, navSignals);
+                const signalTitle = signalTitles[item.href] ?? "Requiere revisión";
+
                 return (
                   <Link
                     key={item.href}
@@ -36,25 +64,25 @@ export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "admin-nav-item group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50",
+                      "admin-nav-item group relative flex min-h-[2.125rem] items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45",
                       active
-                        ? "is-active bg-[var(--admin-surface-hover)] font-semibold text-[var(--admin-text)]"
-                        : "font-medium text-[var(--admin-text-muted)] hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]",
+                        ? "is-active bg-white/[0.06] font-semibold text-[var(--admin-text)] shadow-[inset_2px_0_0_var(--admin-accent),inset_0_0_18px_rgba(116,211,180,0.04)]"
+                        : "font-medium text-[#b0c8d6] hover:bg-white/[0.04] hover:text-[var(--admin-text)]",
                     )}
                   >
                     <span
                       className={cn(
-                        "grid h-6 w-6 shrink-0 place-items-center rounded text-[0.7rem] leading-none",
-                        active ? "text-[var(--admin-accent)]" : "text-[var(--admin-info)] group-hover:text-[var(--admin-accent)]",
+                        "grid h-7 w-7 shrink-0 place-items-center rounded-md text-[0.72rem] leading-none transition-colors duration-200 ease-out",
+                        active
+                          ? "bg-[var(--admin-accent)]/12 text-[var(--admin-accent)]"
+                          : "text-[#78c0dc]/90 group-hover:text-[var(--admin-accent)]",
                       )}
                       aria-hidden
                     >
                       {item.icon}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {hasSignal && !active ? (
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--admin-warning)]" title="Requiere revisión" />
-                    ) : null}
+                    {!active ? <AdminNavSignal count={signalCount} title={signalTitle} /> : null}
                   </Link>
                 );
               })}
