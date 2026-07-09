@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -32,13 +33,27 @@ export function RefundRequestModal({
   currency,
 }: RefundRequestModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   const parsedAmount = Number.parseFloat(amount);
   const isValidAmount =
@@ -80,8 +95,10 @@ export function RefundRequestModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center">
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/40 backdrop-blur-sm"
@@ -91,11 +108,14 @@ export function RefundRequestModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-md rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-xl sm:p-6"
+        aria-labelledby="refund-request-title"
+        className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-xl sm:p-6"
       >
         {success ? (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">Reembolso solicitado</h2>
+            <h2 id="refund-request-title" className="text-lg font-semibold text-[#0f172a]">
+              Reembolso solicitado
+            </h2>
             <p className="mt-3 text-sm text-[#64748b]">{success}</p>
             <div className="mt-6 flex justify-end">
               <Button onClick={resetAndClose}>Cerrar</Button>
@@ -103,7 +123,9 @@ export function RefundRequestModal({
           </>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">Solicitar reembolso</h2>
+            <h2 id="refund-request-title" className="text-lg font-semibold text-[#0f172a]">
+              Solicitar reembolso
+            </h2>
             <p className="mt-1 text-sm text-[#64748b]">
               La solicitud quedará pendiente para aprobación en el panel admin.
             </p>
@@ -161,6 +183,7 @@ export function RefundRequestModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
