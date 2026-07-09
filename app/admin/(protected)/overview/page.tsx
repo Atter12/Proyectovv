@@ -28,7 +28,11 @@ export default async function OverviewPage() {
 
       <AdminMetricGrid metrics={metrics} />
 
-      <AdminPriorityCard priorityTotal={priorityTotal} counts={counts} />
+      <AdminPriorityCard
+        priorityTotal={priorityTotal}
+        counts={counts}
+        operationalProgress={analytics.operationalProgress}
+      />
 
       <Card className="admin-data-panel p-5" tone="soft">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

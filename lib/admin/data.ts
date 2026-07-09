@@ -439,6 +439,105 @@ export interface OverviewAnalyticsData {
   paymentFlow: PaymentFlowDayPoint[];
   walletExposure: WalletExposurePoint[];
   primaryCurrency: string;
+  operationalProgress: OperationalMonthlyProgress;
+}
+
+export interface OperationalMonthlyProgress {
+  total: number;
+  emitted: number;
+  completed: number;
+  completionRate: number;
+}
+
+function getCurrentMonthStartUtcIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
+function buildOperationalMonthlyProgress(emitted: number, completed: number): OperationalMonthlyProgress {
+  const total = emitted + completed;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, emitted, completed, completionRate };
+}
+
+/**
+ * Monthly operational throughput across the four admin queue domains.
+ * Emitted = items created this month still pending/open/failed.
+ * Completed = items resolved this month (succeeded payments, completed refunds,
+ * closed tickets, processed webhooks).
+ */
+export async function getOperationalMonthlyProgress(): Promise<OperationalMonthlyProgress> {
+  const admin = createAdminClient();
+  const monthStart = getCurrentMonthStartUtcIso();
+
+  const [
+    paymentsEmitted,
+    refundsEmitted,
+    ticketsEmitted,
+    webhooksEmitted,
+    paymentsCompleted,
+    refundsCompleted,
+    ticketsCompleted,
+    webhooksCompleted,
+  ] = await Promise.all([
+    admin
+      .from("payment_intents")
+      .select("*", { count: "exact", head: true })
+      .eq("provider", "manual")
+      .gte("created_at", monthStart)
+      .in("status", [...PENDING_PAYMENT_STATUSES]),
+    admin
+      .from("wallet_transactions")
+      .select("*", { count: "exact", head: true })
+      .eq("type", "refund")
+      .eq("status", "pending")
+      .gte("created_at", monthStart),
+    admin
+      .from("support_tickets")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["open", "pending"])
+      .gte("created_at", monthStart),
+    admin
+      .from("webhook_events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "failed")
+      .gte("created_at", monthStart),
+    admin
+      .from("payment_intents")
+      .select("*", { count: "exact", head: true })
+      .eq("provider", "manual")
+      .eq("status", COMPLETED_PAYMENT_STATUS)
+      .gte("succeeded_at", monthStart),
+    admin
+      .from("wallet_transactions")
+      .select("*", { count: "exact", head: true })
+      .eq("type", "refund")
+      .eq("status", "completed")
+      .gte("created_at", monthStart),
+    admin
+      .from("support_tickets")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["resolved", "closed"])
+      .gte("closed_at", monthStart),
+    admin
+      .from("webhook_events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "processed")
+      .gte("processed_at", monthStart),
+  ]);
+
+  const emitted =
+    (paymentsEmitted.count ?? 0) +
+    (refundsEmitted.count ?? 0) +
+    (ticketsEmitted.count ?? 0) +
+    (webhooksEmitted.count ?? 0);
+  const completed =
+    (paymentsCompleted.count ?? 0) +
+    (refundsCompleted.count ?? 0) +
+    (ticketsCompleted.count ?? 0) +
+    (webhooksCompleted.count ?? 0);
+
+  return buildOperationalMonthlyProgress(emitted, completed);
 }
 
 function toUtcDateKey(iso: string): string {
@@ -483,7 +582,7 @@ export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData>
   since.setUTCDate(since.getUTCDate() - 29);
   const sinceIso = since.toISOString();
 
-  const [paymentsResult, walletsResult] = await Promise.all([
+  const [paymentsResult, walletsResult, operationalProgress] = await Promise.all([
     admin
       .from("payment_intents")
       .select("created_at, status, amount_cents")
@@ -492,6 +591,7 @@ export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData>
       .from("wallets")
       .select("organization_id, balance_cents, reserved_balance_cents, currency, status")
       .eq("status", "active"),
+    getOperationalMonthlyProgress(),
   ]);
 
   const dayKeys = buildLast30UtcDateKeys();
@@ -561,6 +661,7 @@ export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData>
     paymentFlow,
     walletExposure,
     primaryCurrency: walletRows[0]?.currency ?? "USD",
+    operationalProgress,
   };
 }
 
