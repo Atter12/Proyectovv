@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { OperationalQueueChart } from "@/components/admin/charts/OperationalQueueChart.client";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
 import { WalletExposureChart } from "@/components/admin/charts/WalletExposureChart.client";
 import { AdminMetricGrid } from "@/components/admin/overview/AdminMetricGrid";
@@ -9,7 +8,7 @@ import { buildOverviewMetrics } from "@/components/admin/overview/buildOverviewM
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
-import { buildOperationalQueueFromCounts, getOverviewAnalyticsData, getOverviewData } from "@/lib/admin/data";
+import { getOverviewAnalyticsData, getOverviewData } from "@/lib/admin/data";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { PAYMENT_STATUS_LABELS, TICKET_STATUS_LABELS } from "@/lib/constants/status";
 
@@ -19,7 +18,6 @@ export default async function OverviewPage() {
   const [data, analytics] = await Promise.all([getOverviewData(), getOverviewAnalyticsData()]);
   const { counts } = data;
   const priorityTotal = counts.pendingPayments + counts.pendingRefunds + counts.openTickets + counts.failedWebhooks;
-  const operationalQueue = buildOperationalQueueFromCounts(counts);
   const metrics = buildOverviewMetrics(counts, priorityTotal);
 
   return (
@@ -46,25 +44,14 @@ export default async function OverviewPage() {
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <Card className="admin-data-panel p-5" tone="soft">
-          <div className="mb-4">
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Cola operativa</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Carga por categoría</h2>
-            <p className="text-sm text-[#587080]">Distribución de pendientes por área.</p>
-          </div>
-          <OperationalQueueChart data={operationalQueue} />
-        </Card>
-
-        <Card className="admin-data-panel p-5" tone="soft">
-          <div className="mb-4">
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
-            <p className="text-sm text-[#587080]">Saldo disponible y reservado · top 10.</p>
-          </div>
-          <WalletExposureChart data={analytics.walletExposure} currency={analytics.primaryCurrency} />
-        </Card>
-      </div>
+      <Card className="admin-data-panel mt-6 p-5" tone="soft">
+        <div className="mb-4">
+          <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
+          <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
+          <p className="text-sm text-[#587080]">Saldo disponible y reservado · top 10.</p>
+        </div>
+        <WalletExposureChart data={analytics.walletExposure} currency={analytics.primaryCurrency} />
+      </Card>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <Card className="admin-data-panel p-5" tone="soft">
