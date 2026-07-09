@@ -5,6 +5,7 @@ import { WalletExposureChart } from "@/components/admin/charts/WalletExposureCha
 import { AdminMetricGrid } from "@/components/admin/overview/AdminMetricGrid";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
 import { AdminPriorityCard } from "@/components/admin/overview/AdminPriorityCard";
+import { buildOverviewMetrics } from "@/components/admin/overview/buildOverviewMetrics";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
@@ -19,33 +20,7 @@ export default async function OverviewPage() {
   const { counts } = data;
   const priorityTotal = counts.pendingPayments + counts.pendingRefunds + counts.openTickets + counts.failedWebhooks;
   const operationalQueue = buildOperationalQueueFromCounts(counts);
-
-  const metrics = [
-    {
-      label: "Organizaciones",
-      value: String(counts.organizations),
-      detail: `${counts.profiles} perfiles`,
-      accent: "indigo" as const,
-    },
-    {
-      label: "Saldo wallets",
-      value: formatMoney(counts.totalWalletBalanceCents, counts.primaryCurrency),
-      detail: `${formatMoney(counts.totalReservedCents, counts.primaryCurrency)} reservado`,
-      accent: "emerald" as const,
-    },
-    {
-      label: "Pagos por revisar",
-      value: String(counts.pendingPayments),
-      detail: "Manual / voucher",
-      accent: "amber" as const,
-    },
-    {
-      label: "Alertas operativas",
-      value: String(priorityTotal),
-      detail: `${counts.openTickets} tickets · ${counts.failedWebhooks} webhooks`,
-      accent: "rose" as const,
-    },
-  ];
+  const metrics = buildOverviewMetrics(counts, priorityTotal);
 
   return (
     <>

@@ -19,10 +19,6 @@ export function AdminOverviewHeader() {
         <p className="mt-0.5 text-sm font-semibold text-[#587080]">Estado financiero, soporte y operación en tiempo real.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-[#cfe8ee] bg-white/85 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[#1f7f68]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#59c493]" aria-hidden />
-          Live
-        </span>
         <span className="rounded-md border border-[#dbeaf0] bg-white/70 px-2.5 py-1 text-xs font-bold capitalize text-[#789bad]">
           {todayLabel}
         </span>

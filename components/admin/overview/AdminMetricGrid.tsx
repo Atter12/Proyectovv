@@ -1,11 +1,7 @@
 import { AdminMetricCard, type AdminMetricAccent } from "./AdminMetricCard";
+import type { AdminOverviewMetric } from "./buildOverviewMetrics";
 
-export type AdminOverviewMetric = {
-  label: string;
-  value: string;
-  detail?: string;
-  accent: AdminMetricAccent;
-};
+export type { AdminMetricAccent, AdminOverviewMetric };
 
 export function AdminMetricGrid({ metrics }: { metrics: AdminOverviewMetric[] }) {
   return (

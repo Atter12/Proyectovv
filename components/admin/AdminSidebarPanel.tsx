@@ -21,10 +21,6 @@ export function AdminSidebarPanel({ admin, onNavigate }: AdminSidebarPanelProps)
           <span className="block truncate text-sm font-bold text-[var(--admin-text)]">Proyectovv</span>
           <span className="block text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Admin</span>
         </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--admin-border)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-[var(--admin-text-soft)]" title="Sistema estable">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-success)]" aria-hidden />
-          Live
-        </span>
       </Link>
 
       <div className="admin-nav-scroll min-h-0 flex-1 overflow-y-auto pb-2">
