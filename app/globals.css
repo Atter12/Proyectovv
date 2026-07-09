@@ -1,6 +1,7 @@
 ﻿@import "tailwindcss";
 
-:root {
+:root,
+.light {
   --background: #f6f8fb;
   --foreground: #0f172a;
   --brand-primary: #178bff;
@@ -48,6 +49,136 @@
   --admin-text: #0f172a;
   --admin-text-muted: #64748b;
   --admin-text-soft: #94a3b8;
+  --admin-nav-active-bg: #eaf4ff;
+  --admin-nav-active-text: #178bff;
+  --admin-nav-active-icon-bg: #ffffff;
+  --admin-nav-active-icon-text: #178bff;
+  --admin-nav-active-ring: #dbeafe;
+  --admin-nav-text: #475569;
+  --admin-nav-hover-bg: #f8fafc;
+  --admin-nav-hover-text: #0f172a;
+  --admin-nav-icon: #94a3b8;
+  --admin-nav-icon-hover: #475569;
+  --admin-topbar-bg: rgb(255 255 255 / 0.9);
+  --admin-scrollbar: #cbd5e1;
+  --admin-overlay: rgb(15 23 42 / 0.2);
+  --admin-theme-toggle-bg: #ffffff;
+  --admin-theme-toggle-border: #e5eaf0;
+  --admin-theme-toggle-text: #334155;
+  --admin-theme-toggle-hover-bg: #eaf4ff;
+  --admin-theme-toggle-hover-text: #178bff;
+  --admin-badge-neutral-bg: #f1f5f9;
+  --admin-badge-neutral-text: #475569;
+  --admin-badge-info-bg: #eaf4ff;
+  --admin-badge-info-text: #178bff;
+  --admin-badge-success-bg: #ecfdf5;
+  --admin-badge-success-text: #047857;
+  --admin-badge-warning-bg: #fffbeb;
+  --admin-badge-warning-text: #b45309;
+  --admin-badge-danger-bg: #fef2f2;
+  --admin-badge-danger-text: #b91c1c;
+  --admin-badge-purple-bg: #f5f3ff;
+  --admin-badge-purple-text: #6d28d9;
+  --admin-control-bg: #ffffff;
+  --admin-control-border: #e5eaf0;
+  --admin-control-text: #0f172a;
+  --admin-control-muted: #64748b;
+  --admin-control-hover-bg: #f8fafc;
+  --admin-table-head-bg: rgb(248 250 252 / 0.8);
+  --admin-table-row-hover: rgb(248 250 252 / 0.8);
+  --admin-table-divider: #f1f5f9;
+  --admin-session-bg: #f8fafc;
+  --admin-session-hover-bg: #ffffff;
+  --admin-metric-accent-indigo: #eaf4ff;
+  --admin-metric-accent-indigo-text: #178bff;
+  --admin-metric-accent-emerald: #ecfdf5;
+  --admin-metric-accent-emerald-text: #059669;
+  --admin-metric-accent-amber: #fffbeb;
+  --admin-metric-accent-amber-text: #d97706;
+  --admin-metric-accent-rose: #fff1f2;
+  --admin-metric-accent-rose-text: #e11d48;
+}
+
+.dark {
+  --background: #080d14;
+  --foreground: #f8fafc;
+  --surface: #111821;
+  --surface-soft: #151e2a;
+  --border-subtle: #223044;
+  --border-strong: #314158;
+  --shadow-card: 0 8px 24px rgb(0 0 0 / 0.32);
+  --shadow-card-hover: 0 12px 32px rgb(0 0 0 / 0.38);
+  --shadow-topbar: 0 1px 0 rgb(34 48 68 / 0.5), 0 8px 24px rgb(0 0 0 / 0.28);
+  --admin-shadow-1: 0 1px 2px rgb(0 0 0 / 0.28);
+  --admin-shadow-2: 0 8px 24px rgb(0 0 0 / 0.32);
+  --admin-shadow-3: 0 18px 42px rgb(0 0 0 / 0.45);
+  --admin-content-border: #223044;
+  --admin-bg: #080d14;
+  --admin-sidebar: #0b111a;
+  --admin-surface: #111821;
+  --admin-surface-soft: #151e2a;
+  --admin-surface-hover: #1b2635;
+  --admin-border: #223044;
+  --admin-border-strong: #314158;
+  --admin-divider: #223044;
+  --admin-accent: #2997ff;
+  --admin-accent-hover: #178bff;
+  --admin-accent-soft: rgb(41 151 255 / 0.14);
+  --admin-success: #39d98a;
+  --admin-warning: #f5b84b;
+  --admin-danger: #ff5c7a;
+  --admin-info: #2997ff;
+  --admin-text: #f8fafc;
+  --admin-text-muted: #a8b3c5;
+  --admin-text-soft: #718096;
+  --admin-nav-active-bg: rgb(41 151 255 / 0.14);
+  --admin-nav-active-text: #7cc3ff;
+  --admin-nav-active-icon-bg: rgb(41 151 255 / 0.18);
+  --admin-nav-active-icon-text: #7cc3ff;
+  --admin-nav-active-ring: rgb(41 151 255 / 0.22);
+  --admin-nav-text: #a8b3c5;
+  --admin-nav-hover-bg: #151e2a;
+  --admin-nav-hover-text: #f8fafc;
+  --admin-nav-icon: #718096;
+  --admin-nav-icon-hover: #a8b3c5;
+  --admin-topbar-bg: rgb(11 17 26 / 0.86);
+  --admin-scrollbar: #314158;
+  --admin-overlay: rgb(0 0 0 / 0.45);
+  --admin-theme-toggle-bg: #111821;
+  --admin-theme-toggle-border: #223044;
+  --admin-theme-toggle-text: #f8fafc;
+  --admin-theme-toggle-hover-bg: #151e2a;
+  --admin-theme-toggle-hover-text: #7cc3ff;
+  --admin-badge-neutral-bg: #151e2a;
+  --admin-badge-neutral-text: #a8b3c5;
+  --admin-badge-info-bg: rgb(41 151 255 / 0.14);
+  --admin-badge-info-text: #7cc3ff;
+  --admin-badge-success-bg: rgb(57 217 138 / 0.12);
+  --admin-badge-success-text: #39d98a;
+  --admin-badge-warning-bg: rgb(245 184 75 / 0.12);
+  --admin-badge-warning-text: #f5b84b;
+  --admin-badge-danger-bg: rgb(255 92 122 / 0.12);
+  --admin-badge-danger-text: #ff5c7a;
+  --admin-badge-purple-bg: rgb(139 92 246 / 0.12);
+  --admin-badge-purple-text: #c4b5fd;
+  --admin-control-bg: #111821;
+  --admin-control-border: #223044;
+  --admin-control-text: #f8fafc;
+  --admin-control-muted: #a8b3c5;
+  --admin-control-hover-bg: #1b2635;
+  --admin-table-head-bg: rgb(21 30 42 / 0.9);
+  --admin-table-row-hover: rgb(27 38 53 / 0.72);
+  --admin-table-divider: #1b2635;
+  --admin-session-bg: #151e2a;
+  --admin-session-hover-bg: #1b2635;
+  --admin-metric-accent-indigo: rgb(41 151 255 / 0.14);
+  --admin-metric-accent-indigo-text: #7cc3ff;
+  --admin-metric-accent-emerald: rgb(57 217 138 / 0.12);
+  --admin-metric-accent-emerald-text: #39d98a;
+  --admin-metric-accent-amber: rgb(245 184 75 / 0.12);
+  --admin-metric-accent-amber-text: #f5b84b;
+  --admin-metric-accent-rose: rgb(255 92 122 / 0.12);
+  --admin-metric-accent-rose-text: #ff5c7a;
 }
 
 @theme inline {
@@ -80,7 +211,7 @@ body {
 
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--admin-scrollbar) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -90,7 +221,7 @@ body {
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background-color: #cbd5e1;
+  background-color: var(--admin-scrollbar);
 }
 
 @keyframes float-scale {
@@ -235,9 +366,9 @@ body {
 
 /* Admin panel utilities */
 .admin-glass {
-  background: rgb(255 255 255 / 0.86);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  background: var(--admin-topbar-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 @keyframes page-enter {
@@ -273,9 +404,9 @@ body {
 }
 
 .admin-topbar {
-  background: rgb(255 255 255 / 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--admin-topbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--admin-border);
 }
 
@@ -283,7 +414,7 @@ body {
   background: var(--admin-sidebar);
   border-right: 1px solid var(--admin-border);
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--admin-scrollbar) transparent;
 }
 
 .admin-sidebar::-webkit-scrollbar {
@@ -292,11 +423,11 @@ body {
 
 .admin-sidebar::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background-color: #cbd5e1;
+  background-color: var(--admin-scrollbar);
 }
 
 .admin-mobile-sidebar {
-  box-shadow: 0 12px 40px rgb(15 23 42 / 0.12);
+  box-shadow: var(--admin-shadow-3);
 }
 
 .admin-sidebar-shell {
@@ -311,7 +442,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--admin-scrollbar) transparent;
 }
 
 .admin-brand-divider {
@@ -444,5 +575,111 @@ body {
     animation: none !important;
     transition: none !important;
     transform: none !important;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Admin theme transition — diagonal wipe via View Transitions API
+   ------------------------------------------------------------------------- */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-transitioning,
+html.theme-transitioning * {
+  pointer-events: none;
+}
+
+html[data-theme-direction="dark"]::view-transition-new(root) {
+  clip-path: polygon(-20% 100%, -20% 100%, -20% 100%, -20% 100%);
+  animation: admin-diagonal-theme-in 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+html[data-theme-direction="light"]::view-transition-new(root) {
+  clip-path: polygon(120% 0%, 120% 0%, 120% 0%, 120% 0%);
+  animation: admin-diagonal-theme-in-reverse 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes admin-diagonal-theme-in {
+  from {
+    clip-path: polygon(-20% 100%, -20% 100%, -20% 100%, -20% 100%);
+  }
+  to {
+    clip-path: polygon(-20% -40%, 140% -40%, 140% 100%, -20% 140%);
+  }
+}
+
+@keyframes admin-diagonal-theme-in-reverse {
+  from {
+    clip-path: polygon(120% 0%, 120% 0%, 120% 0%, 120% 0%);
+  }
+  to {
+    clip-path: polygon(-40% -40%, 140% -40%, 140% 140%, -40% 140%);
+  }
+}
+
+.admin-theme-toggle {
+  background: var(--admin-theme-toggle-bg);
+  border-color: var(--admin-theme-toggle-border);
+  color: var(--admin-theme-toggle-text);
+}
+
+.admin-theme-toggle:hover {
+  background: var(--admin-theme-toggle-hover-bg);
+  color: var(--admin-theme-toggle-hover-text);
+}
+
+.admin-nav-link {
+  color: var(--admin-nav-text);
+}
+
+.admin-nav-link:hover {
+  background: var(--admin-nav-hover-bg);
+  color: var(--admin-nav-hover-text);
+}
+
+.admin-nav-link--active {
+  background: var(--admin-nav-active-bg);
+  color: var(--admin-nav-active-text);
+  box-shadow: inset 0 0 0 1px var(--admin-nav-active-ring);
+}
+
+.admin-nav-link__icon {
+  color: var(--admin-nav-icon);
+}
+
+.admin-nav-link:hover .admin-nav-link__icon {
+  color: var(--admin-nav-icon-hover);
+}
+
+.admin-nav-link--active .admin-nav-link__icon {
+  background: var(--admin-nav-active-icon-bg);
+  color: var(--admin-nav-active-icon-text);
+  box-shadow: inset 0 0 0 1px var(--admin-nav-active-ring);
+}
+
+.admin-control-surface {
+  border: 1px solid var(--admin-control-border);
+  background: var(--admin-control-bg);
+  color: var(--admin-control-text);
+}
+
+.admin-control-surface:hover {
+  background: var(--admin-control-hover-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
+
+  html[data-theme-direction="dark"]::view-transition-new(root),
+  html[data-theme-direction="light"]::view-transition-new(root) {
+    animation: none !important;
+    clip-path: none !important;
   }
 }

@@ -11,20 +11,20 @@ export function AdminSidebarBrand({ onNavigate }: AdminSidebarBrandProps) {
       <Link
         href="/admin/overview"
         onClick={onNavigate}
-        className="admin-brand flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30"
+        className="admin-brand flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30"
       >
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#178BFF] text-sm font-bold tracking-tight text-white shadow-sm"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--admin-accent)] text-sm font-bold tracking-tight text-white shadow-sm"
           aria-hidden
         >
           VV
         </span>
 
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-semibold leading-tight tracking-tight text-slate-900">
+          <span className="truncate text-sm font-semibold leading-tight tracking-tight text-[var(--admin-text)]">
             {siteConfig.name}
           </span>
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-slate-400">Admin</span>
+          <span className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-[var(--admin-text-soft)]">Admin</span>
         </span>
       </Link>
 

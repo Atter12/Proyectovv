@@ -1,0 +1,2 @@
+/** Inline script source — applied before paint to avoid admin theme flash. */
+export const adminThemeInitScript = `(function(){try{var t=localStorage.getItem("admin-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}var r=document.documentElement;r.classList.remove("light","dark");r.classList.add(t);r.dataset.themeDirection=t}catch(e){document.documentElement.classList.add("light")}})();`;

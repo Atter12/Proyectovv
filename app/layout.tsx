@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { siteConfig } from "@/config/site";
+import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
@@ -23,8 +24,11 @@ export default function RootLayout({
   assertProductionSecrets();
 
   return (
-    <html lang="es" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full overflow-x-hidden bg-[#F6F8FB] font-sans text-slate-950">
+    <html lang="es" className={`${inter.variable} light h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: adminThemeInitScript }} />
+      </head>
+      <body className="min-h-full overflow-x-hidden bg-[var(--background)] font-sans text-[var(--foreground)]">
         {children}
       </body>
     </html>

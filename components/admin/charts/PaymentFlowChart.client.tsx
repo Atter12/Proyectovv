@@ -23,7 +23,8 @@ import {
 import { formatMoney } from "@/lib/format";
 import { PaymentFlowRangeSelector } from "@/components/admin/overview/PaymentFlowRangeSelector";
 import { PaymentFlowSummary } from "@/components/admin/overview/PaymentFlowSummary";
-import { ADMIN_CHART_COLORS, ADMIN_CHART_SERIES, adminChartTooltipStyle } from "./chartTheme";
+import { getAdminChartSeries, getAdminChartTheme, getAdminChartTooltipStyle } from "./chartTheme";
+import { useAdminChartThemeMode } from "./useAdminChartTheme";
 
 interface PaymentFlowChartProps {
   data: PaymentFlowDayPoint[];
@@ -37,6 +38,11 @@ const CHART_HEIGHT_BY_RANGE: Record<PaymentFlowRange, string> = {
 };
 
 export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
+  const themeMode = useAdminChartThemeMode();
+  const chartTheme = useMemo(() => getAdminChartTheme(themeMode), [themeMode]);
+  const chartSeries = useMemo(() => getAdminChartSeries(chartTheme), [chartTheme]);
+  const tooltipStyle = useMemo(() => getAdminChartTooltipStyle(chartTheme), [chartTheme]);
+
   const suggestedRange = useMemo(() => suggestPaymentFlowRange(data), [data]);
   const [range, setRange] = useState<PaymentFlowRange>(() => suggestPaymentFlowRange(data));
 
@@ -64,13 +70,13 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
       </div>
 
       {limitedActivity ? (
-        <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+        <p className="rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-3 py-2 text-xs font-medium text-[var(--admin-text-muted)]">
           Actividad limitada: se muestran los movimientos disponibles.
         </p>
       ) : null}
 
       {!hasActivity ? (
-        <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-500">
+        <p className="rounded-lg border border-dashed border-[var(--admin-border)] bg-[var(--admin-surface-soft)]/50 px-3 py-2 text-xs font-medium text-[var(--admin-text-muted)]">
           Sin actividad de pagos en el rango seleccionado.
         </p>
       ) : null}
@@ -78,10 +84,10 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
       <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: -6, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="2 6" stroke={ADMIN_CHART_COLORS.grid} vertical={false} />
+            <CartesianGrid strokeDasharray="2 6" stroke={chartTheme.grid} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
+              tick={{ fill: chartTheme.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               dy={4}
@@ -90,7 +96,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <YAxis
               yAxisId="count"
               allowDecimals={false}
-              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
+              tick={{ fill: chartTheme.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               width={28}
@@ -98,14 +104,14 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <YAxis
               yAxisId="amount"
               orientation="right"
-              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
+              tick={{ fill: chartTheme.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               width={48}
               tickFormatter={(value: number) => formatMoney(value * 100, currency).replace(/\s/g, "")}
             />
             <Tooltip
-              {...adminChartTooltipStyle}
+              {...tooltipStyle}
               formatter={(value, name) => {
                 const numeric = typeof value === "number" ? value : Number(value ?? 0);
                 const label = String(name ?? "");
@@ -116,13 +122,13 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <Legend
               iconType="circle"
               iconSize={8}
-              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#64748B", paddingTop: "14px" }}
+              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: chartTheme.muted, paddingTop: "14px" }}
             />
             <Bar
               yAxisId="count"
               dataKey="created"
               name="Creados"
-              fill={ADMIN_CHART_SERIES.created}
+              fill={chartSeries.created}
               fillOpacity={0.75}
               radius={[4, 4, 0, 0]}
               maxBarSize={10}
@@ -133,7 +139,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               yAxisId="count"
               dataKey="completed"
               name="Completados"
-              fill={ADMIN_CHART_SERIES.completed}
+              fill={chartSeries.completed}
               fillOpacity={0.75}
               radius={[4, 4, 0, 0]}
               maxBarSize={10}
@@ -144,7 +150,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               yAxisId="count"
               dataKey="pending"
               name="Pendientes"
-              fill={ADMIN_CHART_SERIES.pending}
+              fill={chartSeries.pending}
               fillOpacity={0.75}
               radius={[4, 4, 0, 0]}
               maxBarSize={10}
@@ -156,10 +162,10 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               type="natural"
               dataKey="processedAmount"
               name="Monto procesado"
-              stroke={ADMIN_CHART_SERIES.processed}
+              stroke={chartSeries.processed}
               strokeWidth={2.25}
               dot={false}
-              activeDot={{ r: 4, fill: ADMIN_CHART_SERIES.processed, stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: chartSeries.processed, stroke: chartTheme.tooltipBg, strokeWidth: 2 }}
               animationDuration={750}
               animationEasing="ease-out"
             />

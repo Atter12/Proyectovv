@@ -24,7 +24,7 @@ export function MetricToggle<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm",
+        "inline-flex rounded-lg border border-[var(--admin-control-border)] bg-[var(--admin-control-bg)] p-0.5 shadow-[var(--admin-shadow-1)]",
         className,
       )}
       role="group"
@@ -41,15 +41,15 @@ export function MetricToggle<T extends string>({
             className={cn(
               "relative rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150",
               isActive
-                ? "bg-[#178BFF] text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                ? "bg-[var(--admin-accent)] text-white shadow-sm"
+                : "text-[var(--admin-control-muted)] hover:bg-[var(--admin-control-hover-bg)] hover:text-[var(--admin-control-text)]",
             )}
             aria-pressed={isActive}
           >
             {option.label}
             {option.suggested && !isActive ? (
               <span
-                className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500"
+                className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--admin-success)]"
                 aria-hidden
               />
             ) : null}

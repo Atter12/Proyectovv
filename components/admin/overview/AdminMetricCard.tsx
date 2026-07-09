@@ -6,10 +6,10 @@ import { cn } from "@/lib/cn";
 export type AdminMetricAccent = "indigo" | "emerald" | "amber" | "rose";
 
 const accentStyles: Record<AdminMetricAccent, { iconWrap: string }> = {
-  indigo: { iconWrap: "bg-[#EAF4FF] text-[#178BFF]" },
-  emerald: { iconWrap: "bg-emerald-50 text-emerald-600" },
-  amber: { iconWrap: "bg-amber-50 text-amber-600" },
-  rose: { iconWrap: "bg-rose-50 text-rose-600" },
+  indigo: { iconWrap: "bg-[var(--admin-metric-accent-indigo)] text-[var(--admin-metric-accent-indigo-text)]" },
+  emerald: { iconWrap: "bg-[var(--admin-metric-accent-emerald)] text-[var(--admin-metric-accent-emerald-text)]" },
+  amber: { iconWrap: "bg-[var(--admin-metric-accent-amber)] text-[var(--admin-metric-accent-amber-text)]" },
+  rose: { iconWrap: "bg-[var(--admin-metric-accent-rose)] text-[var(--admin-metric-accent-rose-text)]" },
 };
 
 export function AdminMetricCard({
@@ -33,11 +33,11 @@ export function AdminMetricCard({
   return (
     <article
       className={cn(
-        "admin-metric-card relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
+        "admin-metric-card relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[var(--admin-shadow-1)]",
         adminRadius.metric,
         adminMotion.base,
-        "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md",
-        showAlert && "border-amber-200/90 bg-amber-50/40",
+        "hover:-translate-y-0.5 hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
+        showAlert && "border-[var(--admin-warning)]/30 bg-[var(--admin-metric-accent-amber)]/40",
         stretch ? "flex h-full min-h-0 flex-col" : "",
       )}
     >
@@ -55,7 +55,7 @@ export function AdminMetricCard({
             <AdminMetricIcon accent={accent} emphasized={showAlert} />
           </div>
           {showAlert ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.625rem] font-semibold text-amber-700">
+            <span className="rounded-full bg-[var(--admin-badge-warning-bg)] px-2 py-0.5 text-[0.625rem] font-semibold text-[var(--admin-badge-warning-text)]">
               Alerta
             </span>
           ) : null}

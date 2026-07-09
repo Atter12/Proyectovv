@@ -20,14 +20,15 @@ type LinkButtonProps = ComponentPropsWithoutRef<typeof Link> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#178BFF] text-white shadow-sm hover:bg-[#0F7AE5] active:scale-[0.99]",
+    "bg-[var(--admin-accent)] text-white shadow-sm hover:bg-[var(--admin-accent-hover)] active:scale-[0.99]",
   secondary:
-    "bg-[#EAF4FF] text-[#178BFF] shadow-sm hover:bg-[#D6EBFF] active:scale-[0.99]",
+    "bg-[var(--admin-accent-soft)] text-[var(--admin-accent)] shadow-sm hover:opacity-90 active:scale-[0.99]",
   outline:
-    "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    "border border-[var(--admin-control-border)] bg-[var(--admin-control-bg)] text-[var(--admin-control-muted)] hover:border-[var(--admin-border-strong)] hover:bg-[var(--admin-control-hover-bg)] hover:text-[var(--admin-control-text)]",
+  ghost:
+    "text-[var(--admin-text-muted)] hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]",
   luxury:
-    "bg-[linear-gradient(135deg,#178BFF,#60A5FA)] text-white shadow-sm hover:shadow-md active:scale-[0.99]",
+    "bg-[linear-gradient(135deg,var(--admin-accent),#60A5FA)] text-white shadow-sm hover:shadow-md active:scale-[0.99]",
   danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 active:scale-[0.99]",
   success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:scale-[0.99]",
 };
@@ -39,7 +40,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-bg)] disabled:pointer-events-none disabled:opacity-45";
 
 export function buttonClass(
   variant: ButtonVariant = "primary",

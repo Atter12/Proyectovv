@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { OperationalProgressHoverDetail } from "@/components/admin/overview/OperationalProgressTooltip";
 import type { OperationalMonthlyProgress } from "@/lib/admin/data";
+import { getAdminChartTheme } from "@/components/admin/charts/chartTheme";
+import { useAdminChartThemeMode } from "@/components/admin/charts/useAdminChartTheme";
 
 export type OperationalProgressDonutProps = OperationalMonthlyProgress;
-
-const COLORS = {
-  completed: "#16A34A",
-  emitted: "#D97706",
-  empty: "#E5EAF0",
-} as const;
 
 type ChartSegment = {
   name: string;
@@ -43,16 +39,18 @@ export function OperationalProgressDonut({
   const chartRef = useRef<HTMLDivElement>(null);
   const [hoveredSegment, setHoveredSegment] = useState<ChartSegment | null>(null);
   const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement>("right");
+  const themeMode = useAdminChartThemeMode();
+  const chartTheme = useMemo(() => getAdminChartTheme(themeMode), [themeMode]);
 
   const chartData: ChartSegment[] =
     total === 0
-      ? [{ name: "Sin actividad", value: 1, color: COLORS.empty }]
+      ? [{ name: "Sin actividad", value: 1, color: chartTheme.empty }]
       : [
-          ...(completed > 0 ? [{ name: "Cumplidas", value: completed, color: COLORS.completed }] : []),
-          ...(emitted > 0 ? [{ name: "Emitidas", value: emitted, color: COLORS.emitted }] : []),
+          ...(completed > 0 ? [{ name: "Cumplidas", value: completed, color: chartTheme.completedDonut }] : []),
+          ...(emitted > 0 ? [{ name: "Emitidas", value: emitted, color: chartTheme.emittedDonut }] : []),
         ];
 
-  const safeData = chartData.length > 0 ? chartData : [{ name: "Sin actividad", value: 1, color: COLORS.empty }];
+  const safeData = chartData.length > 0 ? chartData : [{ name: "Sin actividad", value: 1, color: chartTheme.empty }];
 
   useEffect(() => {
     if (!hoveredSegment) return;
@@ -87,7 +85,7 @@ export function OperationalProgressDonut({
               nameKey="name"
               innerRadius="68%"
               outerRadius="100%"
-              stroke="#ffffff"
+              stroke={chartTheme.donutStroke}
               strokeWidth={2}
               paddingAngle={total > 0 && emitted > 0 && completed > 0 ? 3 : 0}
               isAnimationActive
@@ -108,10 +106,10 @@ export function OperationalProgressDonut({
         </ResponsiveContainer>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-xl font-semibold leading-none tracking-tight text-slate-950 sm:text-[1.3rem]">
+          <span className="text-xl font-semibold leading-none tracking-tight text-[var(--admin-text)] sm:text-[1.3rem]">
             {total > 0 ? `${completionRate}%` : "0"}
           </span>
-          <span className="mt-0.5 text-[0.6rem] font-medium uppercase tracking-[0.06em] text-slate-400">
+          <span className="mt-0.5 text-[0.6rem] font-medium uppercase tracking-[0.06em] text-[var(--admin-text-soft)]">
             {total > 0 ? "cumplido" : "sin actividad"}
           </span>
         </div>
@@ -120,11 +118,11 @@ export function OperationalProgressDonut({
       </div>
 
       <div className="mt-2 max-w-[9rem] text-center">
-        <p className="text-[0.625rem] font-medium uppercase tracking-[0.07em] text-slate-500">
+        <p className="text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[var(--admin-text-muted)]">
           {total > 0 ? "Solicitudes del mes" : "Sin actividad este mes"}
         </p>
         {total > 0 ? (
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[var(--admin-text-muted)]">
             {completed} cumplidas · {emitted} emitidas
           </p>
         ) : null}

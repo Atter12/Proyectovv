@@ -1,20 +1,20 @@
-/** Consolidated admin design tokens — Rockads-inspired light SaaS */
+/** Consolidated admin design tokens — CSS variable backed for light/dark */
 export const adminTokens = {
-  bg: "#F6F8FB",
-  surface: "#FFFFFF",
-  surfaceSoft: "#F9FBFD",
-  border: "#E5EAF0",
-  borderStrong: "#D7DEE8",
-  text: "#0F172A",
-  textMuted: "#64748B",
-  textSoft: "#94A3B8",
-  primary: "#178BFF",
-  primaryHover: "#0F7AE5",
-  primarySoft: "#EAF4FF",
-  success: "#16A34A",
-  warning: "#D97706",
-  danger: "#DC2626",
-  info: "#178BFF",
+  bg: "var(--admin-bg)",
+  surface: "var(--admin-surface)",
+  surfaceSoft: "var(--admin-surface-soft)",
+  border: "var(--admin-border)",
+  borderStrong: "var(--admin-border-strong)",
+  text: "var(--admin-text)",
+  textMuted: "var(--admin-text-muted)",
+  textSoft: "var(--admin-text-soft)",
+  primary: "var(--admin-accent)",
+  primaryHover: "var(--admin-accent-hover)",
+  primarySoft: "var(--admin-accent-soft)",
+  success: "var(--admin-success)",
+  warning: "var(--admin-warning)",
+  danger: "var(--admin-danger)",
+  info: "var(--admin-info)",
 } as const;
 
 /** 4px-based spacing scale for admin content surfaces */
@@ -41,16 +41,16 @@ export const adminRadius = {
 } as const;
 
 export const adminColors = {
-  bg: "bg-[#F6F8FB]",
-  card: "bg-white",
-  border: "border-slate-200",
-  borderStrong: "border-slate-300",
-  text: "text-slate-950",
-  textMuted: "text-slate-500",
-  textSoft: "text-slate-400",
-  primary: "text-[#178BFF]",
-  primaryBg: "bg-[#EAF4FF]",
-  primaryBorder: "border-blue-100",
+  bg: "bg-[var(--admin-bg)]",
+  card: "bg-[var(--admin-surface)]",
+  border: "border-[var(--admin-border)]",
+  borderStrong: "border-[var(--admin-border-strong)]",
+  text: "text-[var(--admin-text)]",
+  textMuted: "text-[var(--admin-text-muted)]",
+  textSoft: "text-[var(--admin-text-soft)]",
+  primary: "text-[var(--admin-accent)]",
+  primaryBg: "bg-[var(--admin-accent-soft)]",
+  primaryBorder: "border-[var(--admin-accent-soft)]",
 } as const;
 
 export const adminMotion = {
@@ -60,7 +60,7 @@ export const adminMotion = {
 } as const;
 
 export const adminShadow = {
-  surface: "shadow-sm",
-  surfaceHover: "hover:shadow-md",
+  surface: "shadow-[var(--admin-shadow-1)]",
+  surfaceHover: "hover:shadow-[var(--admin-shadow-2)]",
   panel: "shadow-[var(--admin-shadow-2)]",
 } as const;

@@ -15,10 +15,10 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "bg-white shadow-sm",
-  soft: "bg-white shadow-sm",
-  premium: "bg-white shadow-[var(--admin-shadow-2)]",
-  dark: "bg-slate-950 text-white shadow-[var(--admin-shadow-3)]",
+  default: "bg-[var(--admin-surface)] shadow-[var(--admin-shadow-1)]",
+  soft: "bg-[var(--admin-surface)] shadow-[var(--admin-shadow-1)]",
+  premium: "bg-[var(--admin-surface)] shadow-[var(--admin-shadow-2)]",
+  dark: "bg-[var(--admin-surface-soft)] text-[var(--admin-text)] shadow-[var(--admin-shadow-3)]",
 };
 
 export function Card({
@@ -34,11 +34,11 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-slate-200",
+        "relative overflow-hidden border border-[var(--admin-border)]",
         radiusClass,
         toneClasses[tone],
         elevated &&
-          "transition-[box-shadow,transform,border-color] duration-150 ease-out hover:-translate-y-px hover:border-slate-300 hover:shadow-md",
+          "transition-[box-shadow,transform,border-color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
         paddingClasses[padding],
         className,
       )}
@@ -54,5 +54,5 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold tracking-tight text-slate-950", className)} {...props} />;
+  return <h3 className={cn("text-base font-semibold tracking-tight text-[var(--admin-text)]", className)} {...props} />;
 }

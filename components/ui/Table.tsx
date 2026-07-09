@@ -9,7 +9,7 @@ export function Table({ className, embedded = false, ...props }: TableProps) {
   if (embedded) return <table className={cn("w-full min-w-[520px] border-collapse text-sm", className)} {...props} />;
 
   return (
-    <div className="scrollbar-thin w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="scrollbar-thin w-full overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[var(--admin-shadow-1)]">
       <table className={cn("w-full min-w-[520px] border-collapse text-sm", className)} {...props} />
     </div>
   );
@@ -28,17 +28,17 @@ export function TableWrap({ className, ...props }: ComponentPropsWithoutRef<"div
 }
 
 export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("bg-slate-50/80", className)} {...props} />;
+  return <thead className={cn("bg-[var(--admin-table-head-bg)]", className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("divide-y divide-slate-100", className)} {...props} />;
+  return <tbody className={cn("divide-y divide-[var(--admin-table-divider)]", className)} {...props} />;
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("transition-colors duration-150 hover:bg-slate-50/80", className)}
+      className={cn("transition-colors duration-150 hover:bg-[var(--admin-table-row-hover)]", className)}
       {...props}
     />
   );
@@ -48,7 +48,7 @@ export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCel
   return (
     <th
       className={cn(
-        "whitespace-nowrap px-4 py-3 text-left text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-slate-400",
+        "whitespace-nowrap px-4 py-3 text-left text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-soft)]",
         className,
       )}
       {...props}
@@ -57,14 +57,14 @@ export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCel
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-4 py-3 text-sm text-slate-700 sm:whitespace-nowrap", className)} {...props} />;
+  return <td className={cn("px-4 py-3 text-sm text-[var(--admin-text-muted)] sm:whitespace-nowrap", className)} {...props} />;
 }
 
 export function Th({ className, ...props }: ComponentPropsWithoutRef<"th">) {
   return (
     <th
       className={cn(
-        "bg-slate-50/80 px-4 py-3 text-left text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-slate-400 first:rounded-tl-xl last:rounded-tr-xl",
+        "bg-[var(--admin-table-head-bg)] px-4 py-3 text-left text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-soft)] first:rounded-tl-xl last:rounded-tr-xl",
         className,
       )}
       {...props}
@@ -73,5 +73,5 @@ export function Th({ className, ...props }: ComponentPropsWithoutRef<"th">) {
 }
 
 export function Td({ className, ...props }: ComponentPropsWithoutRef<"td">) {
-  return <td className={cn("px-4 py-3 align-middle text-sm text-slate-700", className)} {...props} />;
+  return <td className={cn("px-4 py-3 align-middle text-sm text-[var(--admin-text-muted)]", className)} {...props} />;
 }

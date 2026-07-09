@@ -75,22 +75,22 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--admin-table-divider)]">
                 {data.recentPayments.map(({ row, organization }) => (
-                  <tr key={row.id} className="transition-colors duration-150 hover:bg-slate-50/80">
+                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[var(--admin-table-row-hover)]">
                     <Td className="align-middle py-2.5">
-                      <Link href={`/admin/payments/${row.id}`} className="font-medium text-slate-900 hover:text-[#178BFF]">
+                      <Link href={`/admin/payments/${row.id}`} className="font-medium text-[var(--admin-text)] hover:text-[var(--admin-accent)]">
                         {row.id.slice(0, 8)}
                       </Link>
-                      <p className="text-xs text-slate-500">{formatDateTime(row.created_at)}</p>
+                      <p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</p>
                     </Td>
                     <Td className="align-middle py-2.5">
                       <p className="max-w-[8rem] truncate" title={organization?.name ?? undefined}>
                         {organization?.name ?? "—"}
                       </p>
-                      <p className="truncate text-xs text-slate-500">{row.provider}</p>
+                      <p className="truncate text-xs text-[var(--admin-text-muted)]">{row.provider}</p>
                     </Td>
-                    <Td className="align-middle whitespace-nowrap py-2.5 font-medium tabular-nums text-slate-900">
+                    <Td className="align-middle whitespace-nowrap py-2.5 font-medium tabular-nums text-[var(--admin-text)]">
                       {formatMoney(row.amount_cents, row.currency)}
                     </Td>
                     <Td className="align-middle py-2.5">
@@ -134,24 +134,24 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--admin-table-divider)]">
                 {data.recentTickets.map(({ row, organization, requester }) => (
-                  <tr key={row.id} className="transition-colors duration-150 hover:bg-slate-50/80">
+                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[var(--admin-table-row-hover)]">
                     <Td className="py-3">
-                      <p className="max-w-[9rem] truncate font-medium text-slate-900" title={row.subject}>
+                      <p className="max-w-[9rem] truncate font-medium text-[var(--admin-text)]" title={row.subject}>
                         {row.subject}
                       </p>
-                      <p className="text-xs text-slate-500">{formatDateTime(row.updated_at ?? row.created_at)}</p>
+                      <p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.updated_at ?? row.created_at)}</p>
                     </Td>
                     <Td className="py-3">
                       <p className="max-w-[7rem] truncate" title={organization?.name ?? undefined}>
                         {organization?.name ?? "—"}
                       </p>
-                      <p className="max-w-[7rem] truncate text-xs text-slate-500" title={requester?.email ?? undefined}>
+                      <p className="max-w-[7rem] truncate text-xs text-[var(--admin-text-muted)]" title={requester?.email ?? undefined}>
                         {requester?.email ?? "—"}
                       </p>
                     </Td>
-                    <Td className="whitespace-nowrap font-medium capitalize text-slate-700">{row.priority}</Td>
+                    <Td className="whitespace-nowrap font-medium capitalize text-[var(--admin-text-muted)]">{row.priority}</Td>
                     <Td className="py-3">
                       <StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} />
                     </Td>

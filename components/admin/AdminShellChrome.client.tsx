@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { AdminSidebarPanel } from "@/components/admin/AdminSidebarPanel";
+import { AdminThemeToggle } from "@/components/admin/AdminThemeToggle";
 import { routes } from "@/config/routes";
 import type { AdminSession } from "@/lib/admin/auth";
 import type { AdminNavSignals } from "@/lib/admin/data";
@@ -41,7 +42,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
       {sidebarOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--admin-overlay)] backdrop-blur-sm lg:hidden"
           aria-label="Cerrar menú"
           onClick={() => setSidebarOpen(false)}
         />
@@ -63,7 +64,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
             type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Cerrar menú"
-            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900"
+            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--admin-text-muted)] transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -90,17 +91,17 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                   aria-label="Abrir menú de navegación"
                   aria-expanded={sidebarOpen}
                   aria-controls="admin-sidebar"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors duration-150 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30 lg:hidden"
+                  className="admin-control-surface inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 lg:hidden"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                   </svg>
                 </button>
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+                  <p className="truncate text-lg font-semibold tracking-tight text-[var(--admin-text)] sm:text-xl">
                     Panel administrativo
                   </p>
-                  <p className="mt-0.5 truncate text-sm text-slate-500">{appName}</p>
+                  <p className="mt-0.5 truncate text-sm text-[var(--admin-text-muted)]">{appName}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -109,6 +110,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                 ) : (
                   <Badge tone="info">Allowlist</Badge>
                 )}
+                <AdminThemeToggle />
                 <Link href={routes.overview} className={buttonClass("outline", "sm", "hidden sm:inline-flex")}>
                   Panel cliente
                 </Link>

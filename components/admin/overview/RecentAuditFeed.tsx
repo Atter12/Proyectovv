@@ -20,26 +20,26 @@ export function RecentAuditFeed({ items }: { items: AuditFeedItem[] }) {
 
   if (visibleItems.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-xs font-medium text-slate-500">
+      <div className="rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-3 py-5 text-center text-xs font-medium text-[var(--admin-text-muted)]">
         Sin actividad auditada reciente.
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+    <div className="divide-y divide-[var(--admin-table-divider)] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
       {visibleItems.map(({ row, organization, actor }) => (
         <div key={row.id} className="flex gap-2 px-3 py-2.5">
-          <span className="mt-0.5 h-8 w-0.5 shrink-0 rounded-full bg-[#178BFF]" aria-hidden />
+          <span className="mt-0.5 h-8 w-0.5 shrink-0 rounded-full bg-[var(--admin-accent)]" aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <p className="truncate text-xs font-medium text-slate-900" title={row.action}>
+              <p className="truncate text-xs font-medium text-[var(--admin-text)]" title={row.action}>
                 {row.action}
               </p>
-              <time className="shrink-0 text-[0.62rem] text-slate-500">{formatDateTime(row.created_at)}</time>
+              <time className="shrink-0 text-[0.62rem] text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</time>
             </div>
             <p
-              className="mt-0.5 truncate text-[0.68rem] text-slate-500"
+              className="mt-0.5 truncate text-[0.68rem] text-[var(--admin-text-muted)]"
               title={`${organization?.name ?? "Sistema"} · ${actor?.email ?? "Backend/service role"} · ${row.entity_type}`}
             >
               {organization?.name ?? "Sistema"} · {actor?.email ?? "Backend/service role"} · {row.entity_type}

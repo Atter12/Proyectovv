@@ -10,14 +10,14 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-600",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-700",
-  danger: "bg-red-50 text-red-700",
-  info: "bg-[#EAF4FF] text-[#178BFF]",
-  neutral: "bg-slate-100 text-slate-600",
-  purple: "bg-violet-50 text-violet-700",
-  premium: "bg-[#EAF4FF] text-[#178BFF]",
+  default: "bg-[var(--admin-badge-neutral-bg)] text-[var(--admin-badge-neutral-text)]",
+  success: "bg-[var(--admin-badge-success-bg)] text-[var(--admin-badge-success-text)]",
+  warning: "bg-[var(--admin-badge-warning-bg)] text-[var(--admin-badge-warning-text)]",
+  danger: "bg-[var(--admin-badge-danger-bg)] text-[var(--admin-badge-danger-text)]",
+  info: "bg-[var(--admin-badge-info-bg)] text-[var(--admin-badge-info-text)]",
+  neutral: "bg-[var(--admin-badge-neutral-bg)] text-[var(--admin-badge-neutral-text)]",
+  purple: "bg-[var(--admin-badge-purple-bg)] text-[var(--admin-badge-purple-text)]",
+  premium: "bg-[var(--admin-badge-info-bg)] text-[var(--admin-badge-info-text)]",
 };
 
 export function Badge({ className, variant = "default", tone, ...props }: BadgeProps) {
