@@ -1,36 +1,66 @@
+"use client";
+
+import { useState } from "react";
+import { KPI_CARD_BACKGROUNDS } from "./kpiCardBackgrounds";
+
 export type AdminMetricAccent = "indigo" | "emerald" | "amber" | "rose";
 
 const accentStyles: Record<
   AdminMetricAccent,
-  { card: string; stripe: string; icon: string; label: string; symbol: string }
+  {
+    border: string;
+    stripe: string;
+    icon: string;
+    label: string;
+    detail: string;
+    overlay: string;
+    symbol: string;
+    fallback: string;
+  }
 > = {
   indigo: {
-    card: "border-[#c5e4ee] bg-[linear-gradient(135deg,#f7fcfe_0%,#eef7fb_100%)]",
+    border: "border-[#b8dce8]/80",
     stripe: "bg-[#0e7490]",
-    icon: "bg-[#0e7490]/10 text-[#0e7490] ring-[#bfe4ee]",
-    label: "text-[#23718b]",
+    icon: "bg-[#0e7490]/14 text-[#0e7490] ring-[#bfe4ee]/90 backdrop-blur-sm",
+    label: "text-[#1a6578]",
+    detail: "text-[#3d5f6f]",
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(247,252,254,0.94)_0%,rgba(236,247,251,0.90)_48%,rgba(228,242,248,0.86)_100%)]",
     symbol: "Org",
+    fallback: "bg-[linear-gradient(135deg,#f7fcfe_0%,#eef7fb_100%)]",
   },
   emerald: {
-    card: "border-[#b9ead8] bg-[linear-gradient(135deg,#f3fff9_0%,#e9faf2_100%)]",
+    border: "border-[#b5e5d4]/80",
     stripe: "bg-[#59c493]",
-    icon: "bg-[#59c493]/12 text-[#1f9272] ring-[#b9f0d7]",
-    label: "text-[#1f7f68]",
+    icon: "bg-[#59c493]/14 text-[#1a8f6e] ring-[#b9f0d7]/90 backdrop-blur-sm",
+    label: "text-[#1a7560]",
+    detail: "text-[#3d6358]",
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(243,255,249,0.94)_0%,rgba(233,250,242,0.90)_48%,rgba(220,245,234,0.86)_100%)]",
     symbol: "$",
+    fallback: "bg-[linear-gradient(135deg,#f3fff9_0%,#e9faf2_100%)]",
   },
   amber: {
-    card: "border-[#f0dfa8] bg-[linear-gradient(135deg,#fffdf6_0%,#fff7e4_100%)]",
+    border: "border-[#ecd9a0]/80",
     stripe: "bg-[#f4c95d]",
-    icon: "bg-[#f4c95d]/16 text-[#9a6a13] ring-[#f7dfaa]",
-    label: "text-[#9a6a13]",
+    icon: "bg-[#f4c95d]/18 text-[#8f6410] ring-[#f7dfaa]/90 backdrop-blur-sm",
+    label: "text-[#8a6010]",
+    detail: "text-[#6b5530]",
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(255,253,246,0.94)_0%,rgba(255,247,228,0.90)_48%,rgba(255,240,210,0.86)_100%)]",
     symbol: "Pay",
+    fallback: "bg-[linear-gradient(135deg,#fffdf6_0%,#fff7e4_100%)]",
   },
   rose: {
-    card: "border-[#f0c5d0] bg-[linear-gradient(135deg,#fff9fb_0%,#fff0f4_100%)]",
+    border: "border-[#ebc0cc]/80",
     stripe: "bg-[#e76f8a]",
-    icon: "bg-[#e76f8a]/12 text-[#c35670] ring-[#f3c0cd]",
-    label: "text-[#a1485d]",
+    icon: "bg-[#e76f8a]/14 text-[#b84d66] ring-[#f3c0cd]/90 backdrop-blur-sm",
+    label: "text-[#9a4056]",
+    detail: "text-[#6f4a55]",
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(255,249,251,0.94)_0%,rgba(255,240,244,0.90)_48%,rgba(255,228,234,0.86)_100%)]",
     symbol: "!",
+    fallback: "bg-[linear-gradient(135deg,#fff9fb_0%,#fff0f4_100%)]",
   },
 };
 
@@ -46,23 +76,54 @@ export function AdminMetricCard({
   accent?: AdminMetricAccent;
 }) {
   const style = accentStyles[accent];
+  const [imageFailed, setImageFailed] = useState(false);
+  const backgroundUrl = KPI_CARD_BACKGROUNDS[accent];
 
   return (
     <article
-      className={`admin-metric-card group relative overflow-hidden rounded-xl border shadow-[0_1px_0_rgba(255,255,255,0.8)_inset,0_10px_28px_rgba(14,48,72,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(14,48,72,0.08)] ${style.card}`}
+      className={`admin-metric-card group relative overflow-hidden rounded-xl border shadow-[0_1px_0_rgba(255,255,255,0.85)_inset,0_12px_32px_rgba(14,48,72,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(14,48,72,0.09)] ${style.border} ${imageFailed ? style.fallback : ""}`}
     >
-      <span className={`absolute inset-y-0 left-0 w-1 ${style.stripe}`} aria-hidden />
-      <div className="flex items-center gap-3 px-3.5 py-3 pl-4">
+      {!imageFailed ? (
         <div
-          className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[0.62rem] font-black uppercase tracking-wide ring-1 ${style.icon}`}
+          className="absolute inset-0 scale-105 bg-cover bg-center opacity-[0.38] transition duration-300 group-hover:scale-110 group-hover:opacity-[0.44]"
+          style={{ backgroundImage: `url("${backgroundUrl}")` }}
+          aria-hidden
+        >
+          <img
+            src={backgroundUrl}
+            alt=""
+            className="hidden"
+            onError={() => setImageFailed(true)}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      ) : null}
+
+      <div className={`absolute inset-0 ${style.overlay}`} aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22)_0%,transparent_38%,rgba(6,25,37,0.03)_100%)]"
+        aria-hidden
+      />
+
+      <span className={`absolute inset-y-0 left-0 z-10 w-1 ${style.stripe}`} aria-hidden />
+
+      <div className="relative z-10 flex items-start gap-3.5 px-4 py-4 pl-[1.15rem]">
+        <div
+          className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[0.62rem] font-black uppercase tracking-wide ring-1 ${style.icon}`}
           aria-hidden
         >
           {style.symbol}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className={`text-[0.62rem] font-black uppercase tracking-[0.14em] ${style.label}`}>{label}</p>
-          <p className="truncate text-[1.35rem] font-black leading-tight tracking-tight text-[#061925]">{value}</p>
-          {detail ? <p className="truncate text-xs font-bold text-[#6d8494]">{detail}</p> : null}
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className={`text-[0.6rem] font-bold uppercase tracking-[0.16em] ${style.label}`}>{label}</p>
+          <p className="truncate text-[1.65rem] font-black leading-[1.05] tracking-tight text-[#041a28] sm:text-[1.75rem]">
+            {value}
+          </p>
+          {detail ? (
+            <p className={`truncate pt-0.5 text-[0.8rem] font-semibold leading-snug ${style.detail}`}>{detail}</p>
+          ) : null}
         </div>
       </div>
     </article>
