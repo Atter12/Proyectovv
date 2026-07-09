@@ -36,11 +36,11 @@ function OperationalMetricChip({
     <Link
       href={href}
       title={label}
-      className="flex h-[2.625rem] min-w-0 w-full flex-col justify-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 transition hover:border-[#178BFF]/30 hover:bg-[#EAF4FF]/50"
+      className="flex min-h-[2.75rem] min-w-0 w-full flex-col justify-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition-colors duration-150 hover:border-blue-200 hover:bg-blue-50/60"
     >
       <span className="truncate text-[0.625rem] font-medium leading-none text-slate-500">{shortLabel}</span>
       <strong
-        className={`truncate text-base font-semibold leading-none tabular-nums ${active ? "text-slate-900" : "text-slate-400"}`}
+        className={`truncate text-base font-semibold leading-none tabular-nums ${active ? "text-slate-950" : "text-slate-400"}`}
       >
         {value}
       </strong>
@@ -50,7 +50,7 @@ function OperationalMetricChip({
 
 export function OperationalMetricChips({ counts }: { counts: PriorityCounts }) {
   return (
-    <div className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:min-w-[10.5rem] lg:min-w-[12.25rem]">
+    <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:min-w-[10.5rem] lg:min-w-[12.25rem]">
       {OPERATIONAL_METRICS.map((metric) => (
         <OperationalMetricChip
           key={metric.key}

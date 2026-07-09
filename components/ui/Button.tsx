@@ -20,16 +20,16 @@ type LinkButtonProps = ComponentPropsWithoutRef<typeof Link> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#178BFF] text-white shadow-[var(--admin-shadow-1)] hover:bg-[#0F7AE5] hover:shadow-[var(--admin-shadow-2)] active:scale-[0.99]",
+    "bg-[#178BFF] text-white shadow-sm hover:bg-[#0F7AE5] active:scale-[0.99]",
   secondary:
-    "bg-[#EAF4FF] text-[#178BFF] shadow-[var(--admin-shadow-1)] hover:bg-[#D6EBFF] active:scale-[0.99]",
+    "bg-[#EAF4FF] text-[#178BFF] shadow-sm hover:bg-[#D6EBFF] active:scale-[0.99]",
   outline:
-    "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[var(--admin-shadow-1)]",
+    "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900",
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
   luxury:
-    "bg-[linear-gradient(135deg,#178BFF,#60A5FA)] text-white shadow-[var(--admin-shadow-2)] hover:shadow-[var(--admin-shadow-3)] active:scale-[0.99]",
-  danger: "bg-red-600 text-white shadow-[var(--admin-shadow-1)] hover:bg-red-700 active:scale-[0.99]",
-  success: "bg-emerald-600 text-white shadow-[var(--admin-shadow-1)] hover:bg-emerald-700 active:scale-[0.99]",
+    "bg-[linear-gradient(135deg,#178BFF,#60A5FA)] text-white shadow-sm hover:shadow-md active:scale-[0.99]",
+  danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 active:scale-[0.99]",
+  success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:scale-[0.99]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -39,7 +39,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 font-medium transition-[color,background-color,box-shadow,transform,border-color,opacity] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178BFF]/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45";
 
 export function buttonClass(
   variant: ButtonVariant = "primary",

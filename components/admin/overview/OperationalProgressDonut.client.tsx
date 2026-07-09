@@ -85,10 +85,10 @@ export function OperationalProgressDonut({
               data={safeData}
               dataKey="value"
               nameKey="name"
-              innerRadius="62%"
+              innerRadius="68%"
               outerRadius="100%"
               stroke="#ffffff"
-              strokeWidth={3}
+              strokeWidth={2}
               paddingAngle={total > 0 && emitted > 0 && completed > 0 ? 3 : 0}
               isAnimationActive
               animationDuration={700}
@@ -108,10 +108,10 @@ export function OperationalProgressDonut({
         </ResponsiveContainer>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-xl font-semibold leading-none tracking-tight text-slate-900 sm:text-[1.35rem]">
+          <span className="text-xl font-semibold leading-none tracking-tight text-slate-950 sm:text-[1.3rem]">
             {total > 0 ? `${completionRate}%` : "0"}
           </span>
-          <span className="mt-1 text-[0.625rem] font-medium uppercase tracking-[0.07em] text-slate-500">
+          <span className="mt-0.5 text-[0.6rem] font-medium uppercase tracking-[0.06em] text-slate-400">
             {total > 0 ? "cumplido" : "sin actividad"}
           </span>
         </div>

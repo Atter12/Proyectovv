@@ -19,34 +19,34 @@ export function AdminSidebarUserSession({ admin }: AdminSidebarUserSessionProps)
   const initials = getInitials(admin.fullName, admin.email);
 
   return (
-    <div className="admin-session-panel admin-session-panel--premium mt-3 shrink-0 border-t border-slate-200 pt-3">
-      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+    <div className="admin-session-panel mt-3 shrink-0 pt-3">
+      <div className="rounded-lg bg-slate-50 px-2.5 py-2.5">
         <div className="flex items-center gap-2.5">
           {admin.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={admin.avatarUrl}
               alt=""
-              className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white"
+              className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white"
             />
           ) : (
             <span
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#EAF4FF] text-[0.65rem] font-semibold text-[#178BFF] ring-2 ring-white"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#EAF4FF] text-[0.625rem] font-semibold text-[#178BFF] ring-2 ring-white"
               aria-hidden
             >
               {initials}
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="truncate text-sm font-medium text-slate-900">{displayName}</p>
             <p className="truncate text-xs text-slate-500">{admin.email}</p>
           </div>
         </div>
 
-        <form action={signOutAdminAction} className="mt-2.5">
+        <form action={signOutAdminAction} className="mt-2">
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-600 transition duration-150 ease-out hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-500 transition-colors duration-150 hover:bg-white hover:text-slate-900"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />

@@ -1,11 +1,11 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
-  --background: #edf6f8;
-  --foreground: #061925;
-  --brand-primary: #0e7490;
-  --brand-primary-deep: #063048;
-  --brand-accent: #9af7c9;
+  --background: #f6f8fb;
+  --foreground: #0f172a;
+  --brand-primary: #178bff;
+  --brand-primary-deep: #0f7ae5;
+  --brand-accent: #178bff;
   --brand-mint: #9af7c9;
   --brand-gold: #f6c76b;
   --surface: #ffffff;
@@ -22,16 +22,32 @@
   --shadow-luxury:
     0 14px 40px rgb(15 23 42 / 0.1),
     inset 0 1px 0 rgb(255 255 255 / 0.5);
-  --admin-shadow-1: 0 1px 2px rgb(15 23 42 / 0.018);
-  --admin-shadow-2: 0 1px 3px rgb(15 23 42 / 0.022), 0 6px 20px rgb(15 23 42 / 0.032);
-  --admin-shadow-3: 0 2px 6px rgb(15 23 42 / 0.028), 0 12px 32px rgb(15 23 42 / 0.042);
-  --admin-shadow-4: 0 4px 10px rgb(15 23 42 / 0.04), 0 18px 44px rgb(15 23 42 / 0.06);
-  --admin-shadow-5: 0 8px 24px rgb(15 23 42 / 0.08), 0 28px 64px rgb(15 23 42 / 0.1);
-  --admin-content-border: rgb(14 72 90 / 0.05);
-  --admin-radius-control: 10px;
-  --admin-radius-input: 12px;
-  --admin-radius-card: 18px;
-  --admin-radius-panel: 22px;
+  --admin-shadow-1: 0 1px 2px rgb(15 23 42 / 0.04);
+  --admin-shadow-2: 0 1px 3px rgb(15 23 42 / 0.05), 0 8px 24px rgb(15 23 42 / 0.04);
+  --admin-shadow-3: 0 12px 32px rgb(15 23 42 / 0.07);
+  --admin-content-border: #e5eaf0;
+  --admin-radius-control: 8px;
+  --admin-radius-input: 8px;
+  --admin-radius-card: 12px;
+  --admin-radius-panel: 16px;
+  --admin-bg: #f6f8fb;
+  --admin-sidebar: #ffffff;
+  --admin-surface: #ffffff;
+  --admin-surface-soft: #f9fbfd;
+  --admin-surface-hover: #f1f5f9;
+  --admin-border: #e5eaf0;
+  --admin-border-strong: #d7dee8;
+  --admin-divider: #e5eaf0;
+  --admin-accent: #178bff;
+  --admin-accent-hover: #0f7ae5;
+  --admin-accent-soft: #eaf4ff;
+  --admin-success: #16a34a;
+  --admin-warning: #d97706;
+  --admin-danger: #dc2626;
+  --admin-info: #178bff;
+  --admin-text: #0f172a;
+  --admin-text-muted: #64748b;
+  --admin-text-soft: #94a3b8;
 }
 
 @theme inline {
@@ -219,257 +235,93 @@ body {
 
 /* Admin panel utilities */
 .admin-glass {
-  background: rgb(255 255 255 / 0.84);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  background: rgb(255 255 255 / 0.86);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
 }
 
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.995); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.page-enter { animation: page-enter 180ms ease-out both; }
-
-
-/* Admin redesign v2: enterprise petroleum blue + muted jade */
-:root {
-  --admin-bg: #081c2a;
-  --admin-sidebar: #0e2a3a;
-  --admin-sidebar-panel: rgba(14, 42, 58, 0.92);
-  --admin-surface: rgba(20, 56, 77, 0.78);
-  --admin-surface-hover: rgba(28, 69, 94, 0.86);
-  --admin-accent: #74d3b4;
-  --admin-success: #59c493;
-  --admin-warning: #f4c95d;
-  --admin-danger: #e76f6f;
-  --admin-info: #75c7e8;
-  --admin-text: #f7fafc;
-  --admin-text-muted: #9ab7c8;
-  --admin-text-soft: #6f8797;
-  --admin-border: rgba(255, 255, 255, 0.08);
-  --admin-divider: rgba(255, 255, 255, 0.05);
-  --admin-sidebar-shadow: 18px 0 50px rgba(8, 28, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.page-enter {
+  animation: page-enter 160ms ease-out both;
 }
+
+/* -------------------------------------------------------------------------
+   Admin design system — flat light SaaS (Rockads-inspired)
+   ------------------------------------------------------------------------- */
 
 .admin-canvas {
-  background-color: #f3fbfd;
+  background-color: var(--admin-bg);
 }
 
-.admin-sidebar {
-  border-right: 1px solid rgb(255 255 255 / 0.06);
-  background:
-    radial-gradient(520px 300px at 8% -10%, rgb(116 211 180 / 0.10), transparent 64%),
-    radial-gradient(460px 280px at 110% 16%, rgb(117 199 232 / 0.14), transparent 58%),
-    linear-gradient(180deg, #081c2a 0%, #0a2333 42%, #0e2a3a 100%);
-  box-shadow: 18px 0 50px rgb(8 28 42 / 0.16);
-  padding-right: 0.9rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(154 183 200 / 0.24) transparent;
-}
-
-.admin-sidebar::-webkit-scrollbar { width: 8px; }
-.admin-sidebar::-webkit-scrollbar-track { background: transparent; }
-.admin-sidebar::-webkit-scrollbar-thumb {
-  background-color: rgb(154 183 200 / 0.22);
-  border-radius: 999px;
-}
-.admin-sidebar::-webkit-scrollbar-thumb:hover { background-color: rgb(154 183 200 / 0.34); }
-
-.admin-hero {
-  background:
-    linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(241 250 252 / 0.88)),
-    radial-gradient(560px 180px at 100% 0%, rgb(116 211 180 / 0.18), transparent 60%);
-}
-
-.admin-sidebar-shell {
+.admin-content-plane {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
+  min-width: 0;
+  background-color: var(--admin-bg);
 }
 
-.admin-sidebar-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.055), transparent 26%),
-    radial-gradient(340px 140px at 50% 0%, rgb(116 211 180 / 0.08), transparent 72%);
-  pointer-events: none;
-}
-
-.admin-sidebar-shell::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.16), transparent);
-  pointer-events: none;
-}
-
-.admin-brand,
-.admin-health-card,
-.admin-quick-card {
-  backdrop-filter: blur(18px) saturate(145%);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-}
-
-.admin-health-card,
-.admin-quick-card {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.055), 0 14px 30px rgb(0 0 0 / 0.13);
-}
-
-.admin-nav-group { scroll-margin-top: 1rem; }
-
-.admin-nav-item {
-  will-change: transform, background-color, box-shadow;
-}
-
-.admin-nav-item.is-active::after {
-  content: "";
-  position: absolute;
-  inset: auto 1.1rem -0.35rem 1.1rem;
-  height: 0.5rem;
-  border-radius: 999px;
-  background: rgb(8 33 49 / 0.20);
-  filter: blur(10px);
-}
-
-.admin-nav-item:active { transform: translateY(0) scale(0.99); }
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-nav-item,
-  .admin-brand,
-  .admin-sidebar a {
-    transition: none !important;
-    transform: none !important;
+@media (min-width: 1024px) {
+  .admin-content-plane {
+    height: 100vh;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 
-/* Admin sidebar v3: cleaner rail hierarchy */
-:root {
-  --admin-sidebar-panel: rgba(11, 34, 49, 0.94);
-  --admin-surface-soft: rgba(18, 52, 72, 0.52);
-  --admin-surface: rgba(18, 52, 72, 0.62);
-  --admin-surface-hover: rgba(28, 69, 94, 0.56);
-  --admin-accent: #74d3b4;
-  --admin-info: #78cce8;
-  --admin-border: rgba(255, 255, 255, 0.075);
-  --admin-divider: rgba(255, 255, 255, 0.055);
-  --admin-sidebar-shadow: 14px 0 38px rgba(8, 28, 42, 0.14), inset 0 1px 0 rgba(255,255,255,0.045);
+.admin-topbar {
+  background: rgb(255 255 255 / 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--admin-border);
 }
 
 .admin-sidebar {
-  background:
-    radial-gradient(480px 280px at -8% -12%, rgb(116 211 180 / 0.065), transparent 66%),
-    radial-gradient(420px 260px at 120% 10%, rgb(117 199 232 / 0.08), transparent 62%),
-    linear-gradient(180deg, #081c2a 0%, #092231 52%, #0b293a 100%);
-  box-shadow: 14px 0 38px rgb(8 28 42 / 0.13);
+  background: var(--admin-sidebar);
+  border-right: 1px solid var(--admin-border);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.admin-sidebar-shell::before {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 28%);
+.admin-sidebar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.admin-brand,
-.admin-health-strip,
-.admin-quick-card {
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
-}
-
-.admin-health-strip,
-.admin-quick-card {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
-}
-
-.admin-nav-branch {
-  background: linear-gradient(180deg, transparent 0%, rgb(120 204 232 / 0.22) 12%, rgb(255 255 255 / 0.08) 88%, transparent 100%);
-}
-
-.admin-nav-group::before {
-  content: "";
-  position: absolute;
-  left: 0.2rem;
-  top: 0.15rem;
-  width: 0.55rem;
-  height: 0.55rem;
+.admin-sidebar::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  border: 1px solid rgb(120 204 232 / 0.32);
-  background: rgb(11 34 49 / 0.96);
-  box-shadow: 0 0 0 3px rgb(120 204 232 / 0.035);
+  background-color: #cbd5e1;
 }
 
-.admin-nav-item {
-  box-shadow: none !important;
-  will-change: background-color, transform;
-}
-
-.admin-nav-item:hover {
-  transform: translateX(2px);
-}
-
-.admin-nav-item.is-active {
-  box-shadow: none !important;
-}
-
-.admin-nav-item.is-active::after {
-  display: none;
-}
-
-.admin-branch-node {
-  box-shadow: 0 0 0 3px rgb(11 34 49 / 0.96);
-}
-
-/* Admin sidebar v4: quieter enterprise rail */
-:root {
-  --admin-sidebar-panel: rgba(9, 31, 45, 0.96);
-  --admin-surface-soft: rgba(18, 52, 72, 0.40);
-  --admin-surface-hover: rgba(28, 69, 94, 0.34);
-  --admin-accent: #74d3b4;
-  --admin-info: #78cce8;
-  --admin-border: rgba(255, 255, 255, 0.052);
-  --admin-divider: rgba(255, 255, 255, 0.048);
-  --admin-sidebar-shadow: 10px 0 30px rgba(8, 28, 42, 0.10), inset 0 1px 0 rgba(255,255,255,0.035);
-}
-
-.admin-sidebar {
-  background:
-    radial-gradient(500px 260px at -12% -8%, rgb(116 211 180 / 0.045), transparent 68%),
-    radial-gradient(420px 250px at 112% 8%, rgb(117 199 232 / 0.055), transparent 62%),
-    linear-gradient(180deg, #081c2a 0%, #092231 52%, #0b2938 100%);
-  box-shadow: 10px 0 30px rgb(8 28 42 / 0.10);
-  padding-right: 1rem;
+.admin-mobile-sidebar {
+  box-shadow: 0 12px 40px rgb(15 23 42 / 0.12);
 }
 
 .admin-sidebar-shell {
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.035);
+  display: flex;
+  height: 100%;
+  flex-direction: column;
 }
 
-.admin-sidebar-shell::before {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.026), transparent 25%);
+.admin-nav-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.admin-sidebar-shell::after {
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+.admin-brand-divider {
+  height: 1px;
+  background: var(--admin-divider);
 }
 
-.admin-identity-panel {
-  border: 1px solid rgba(255,255,255,0.045);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035);
-  backdrop-filter: blur(16px) saturate(125%);
-  -webkit-backdrop-filter: blur(16px) saturate(125%);
-}
-
-.admin-live-pill {
-  background: rgba(255,255,255,0.028);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035);
-}
-
-.admin-quick-row {
+.admin-nav-group--divided {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--admin-divider);
 }
 
@@ -477,751 +329,71 @@ body {
   border-top: 1px solid var(--admin-divider);
 }
 
-.admin-perspective-layout--operational .admin-session-panel {
-  background: transparent;
-}
-
-.admin-nav-branch {
-  background: linear-gradient(180deg, transparent 0%, rgb(120 204 232 / 0.13) 14%, rgb(255 255 255 / 0.055) 86%, transparent 100%);
-}
-
-.admin-nav-group::before {
-  left: 0.19rem;
-  top: 0.13rem;
-  width: 0.52rem;
-  height: 0.52rem;
-  border-color: rgb(120 204 232 / 0.24);
-  background: rgb(9 31 45 / 0.98);
-  box-shadow: 0 0 0 3px rgb(120 204 232 / 0.02);
-}
-
-.admin-nav-item {
-  min-height: 2.75rem;
-  box-shadow: none !important;
-  will-change: background-color, transform;
-}
-
-.admin-nav-item:hover {
-  transform: translateX(2px);
-}
-
-.admin-nav-item.is-active {
-  box-shadow: inset 3px 0 0 var(--admin-accent), inset 0 0 0 1px rgba(116, 211, 180, 0.10) !important;
-}
-
-.admin-nav-item.is-active::after {
-  display: none !important;
-}
-
-.admin-branch-node {
-  box-shadow: 0 0 0 3px rgb(9 31 45 / 0.98);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-nav-item:hover {
-    transform: none;
-  }
-}
-
-
-/* Admin sidebar v5: subtle 3D command-center perspective */
-@media (min-width: 1024px) {
-  .admin-perspective-layout {
-    position: relative;
-    overflow-x: clip;
-    perspective: 1800px;
-    perspective-origin: 18rem 45%;
-  }
-
-  .admin-perspective-layout::before {
-    content: "";
-    position: fixed;
-    z-index: 3;
-    top: 0;
-    bottom: 0;
-    left: 22.25rem;
-    width: 4.25rem;
-    pointer-events: none;
-    background:
-      linear-gradient(100deg, rgba(8, 28, 42, 0.32) 0%, rgba(8, 28, 42, 0.14) 34%, rgba(116, 211, 180, 0.035) 58%, rgba(255, 255, 255, 0) 100%);
-    filter: blur(0.2px);
-    opacity: 0.92;
-  }
-
-  .admin-perspective-layout::after {
-    content: "";
-    position: fixed;
-    z-index: 2;
-    top: 1.25rem;
-    bottom: 1.25rem;
-    left: 22.15rem;
-    width: 1px;
-    pointer-events: none;
-    background: linear-gradient(180deg, transparent, rgba(116, 211, 180, 0.20), rgba(120, 204, 232, 0.12), transparent);
-    opacity: 0.7;
-  }
-
-  .admin-sidebar-3d {
-    width: 23rem;
-    transform-style: preserve-3d;
-    overflow: visible;
-    padding-right: 1.6rem;
-  }
-
-  .admin-sidebar-3d::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    top: 1.1rem;
-    right: 0.45rem;
-    bottom: 1.1rem;
-    width: 2.15rem;
-    border-radius: 0 1.4rem 1.4rem 0;
-    background:
-      linear-gradient(90deg, rgba(6, 22, 34, 0.0), rgba(6, 22, 34, 0.34) 45%, rgba(5, 17, 27, 0.18)),
-      linear-gradient(180deg, rgba(116, 211, 180, 0.07), rgba(120, 204, 232, 0.025) 50%, rgba(8, 28, 42, 0.18));
-    transform: skewY(-3.5deg);
-    transform-origin: left center;
-    box-shadow: 18px 0 38px rgba(8, 28, 42, 0.16);
-    pointer-events: none;
-  }
-
-  .admin-sidebar-3d::after {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    top: 1.8rem;
-    right: 1.42rem;
-    bottom: 1.8rem;
-    width: 1px;
-    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.10), rgba(116, 211, 180, 0.10), transparent);
-    opacity: 0.72;
-    pointer-events: none;
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell {
-    z-index: 1;
-    transform: rotateY(-1.35deg) translateZ(0);
-    transform-origin: left center;
-    transition: transform 220ms ease, box-shadow 220ms ease;
-    box-shadow:
-      10px 0 30px rgba(8, 28, 42, 0.10),
-      24px 18px 58px rgba(8, 28, 42, 0.16),
-      inset 0 1px 0 rgba(255, 255, 255, 0.035);
-  }
-
-  .admin-sidebar-3d:hover > .admin-sidebar-shell {
-    transform: rotateY(-0.55deg) translateZ(0);
-  }
-
-  .admin-content-plane {
-    position: relative;
-    z-index: 1;
-    min-height: 100vh;
-    background:
-      linear-gradient(90deg, rgba(237, 246, 248, 0.94) 0%, rgba(247, 252, 253, 0.98) 5.5rem, rgba(247, 252, 253, 0) 18rem);
-  }
-
-  .admin-content-plane::before {
-    content: "";
-    position: fixed;
-    z-index: 1;
-    top: 0;
-    bottom: 0;
-    left: 23rem;
-    width: 5.5rem;
-    pointer-events: none;
-    background:
-      linear-gradient(95deg, rgba(8, 28, 42, 0.12), rgba(116, 211, 180, 0.035) 48%, rgba(255, 255, 255, 0));
-  }
-
-  .admin-content-plane > header,
-  .admin-content-plane > div {
-    position: relative;
-    z-index: 2;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-sidebar-3d > .admin-sidebar-shell,
-  .admin-sidebar-3d:hover > .admin-sidebar-shell {
-    transform: none !important;
-  }
-}
-
-/* Admin sidebar v6: real CSS 3D geometry + motion microinteractions */
-.admin-motion-frame {
-  --admin-tilt-y: -4deg;
-  --admin-tilt-x: 0deg;
-  --admin-lift: 18px;
-  --admin-depth-glow: 0.16;
-  min-height: 100vh;
-}
-
-@media (min-width: 1024px) {
-  .admin-perspective-layout {
-    position: relative;
-    overflow-x: clip;
-    perspective: 2200px;
-    perspective-origin: 20rem 42%;
-    transform-style: preserve-3d;
-    isolation: isolate;
-  }
-
-  /* Disable the old flat overlay bridge from v5. The depth is now created by real CSS faces. */
-  .admin-perspective-layout::before,
-  .admin-perspective-layout::after {
-    display: none !important;
-  }
-
-  .admin-sidebar-3d {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    transform-style: preserve-3d;
-    overflow: visible !important;
-    padding-right: 2.15rem;
-    contain: layout paint;
-  }
-
-  /* Right 3D side face of the sidebar plate. */
-  .admin-sidebar-3d::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    top: 1.8rem;
-    right: 0.32rem;
-    bottom: 1.8rem;
-    width: 2.6rem;
-    border-radius: 0 1.55rem 1.55rem 0;
-    transform: rotateY(64deg) skewY(-2.8deg) translateZ(-18px);
-    transform-origin: left center;
-    background:
-      linear-gradient(90deg, rgba(6, 22, 34, 0.55) 0%, rgba(11, 42, 58, 0.34) 48%, rgba(116, 211, 180, 0.06) 100%),
-      linear-gradient(180deg, rgba(117, 199, 232, 0.10) 0%, rgba(9, 31, 45, 0.34) 46%, rgba(4, 14, 22, 0.42) 100%);
-    border-right: 1px solid rgba(116, 211, 180, 0.11);
-    border-top: 1px solid rgba(255, 255, 255, 0.035);
-    box-shadow:
-      22px 0 44px rgba(8, 28, 42, 0.23),
-      inset -1px 0 0 rgba(255, 255, 255, 0.035),
-      inset 9px 0 18px rgba(0, 0, 0, 0.10);
-    pointer-events: none;
-  }
-
-  /* Thin luminous bevel between the front plate and the side face. */
-  .admin-sidebar-3d::after {
-    content: "";
-    position: absolute;
-    z-index: 2;
-    top: 2.15rem;
-    right: 2.02rem;
-    bottom: 2.15rem;
-    width: 1px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, transparent 0%, rgba(116, 211, 180, 0.22) 18%, rgba(120, 204, 232, 0.11) 68%, transparent 100%);
-    opacity: 0.74;
-    pointer-events: none;
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell {
-    z-index: 1;
-    max-height: calc(100vh - 2.5rem);
-    overflow-y: auto;
-    overflow-x: hidden;
-    transform: rotateX(var(--admin-tilt-x)) rotateY(var(--admin-tilt-y)) translateZ(var(--admin-lift));
-    transform-origin: left center;
-    transition:
-      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 260ms cubic-bezier(0.22, 1, 0.36, 1);
-    border-color: rgba(255, 255, 255, 0.055);
-    box-shadow:
-      calc(18px + (18px * var(--admin-depth-glow))) 18px 62px rgba(8, 28, 42, 0.24),
-      0 1px 0 rgba(255, 255, 255, 0.04) inset,
-      -14px 0 42px rgba(116, 211, 180, 0.035) inset;
-    scrollbar-width: none;
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell::-webkit-scrollbar {
-    display: none;
-  }
-
-  .admin-sidebar-3d:hover > .admin-sidebar-shell {
-    border-color: rgba(116, 211, 180, 0.095);
-  }
-
-  /* The dashboard is the second plane. Its bevel starts at the edge, not as a flat overlay on top. */
-  .admin-content-plane {
-    position: relative;
-    z-index: 1;
-    min-height: 100vh;
-    margin-left: -1.05rem;
-    padding-left: 1.05rem;
-    background:
-      linear-gradient(90deg, rgba(218, 236, 241, 0.74) 0%, rgba(247, 252, 253, 0.98) 5.7rem, rgba(247, 252, 253, 0) 18rem),
-      radial-gradient(900px 360px at 0% 0%, rgba(116, 211, 180, 0.08), transparent 64%);
-    box-shadow: -22px 0 52px rgba(8, 28, 42, 0.08);
-  }
-
-  .admin-content-plane::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    top: 0;
-    bottom: 0;
-    left: -0.35rem;
-    width: 2.1rem;
-    pointer-events: none;
-    transform: skewY(-3deg);
-    transform-origin: left top;
-    background:
-      linear-gradient(90deg, rgba(8, 28, 42, 0.18) 0%, rgba(116, 211, 180, 0.06) 42%, rgba(255, 255, 255, 0.00) 100%);
-    border-left: 1px solid rgba(116, 211, 180, 0.08);
-    filter: blur(0.1px);
-  }
-
-  .admin-content-plane::after {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    top: 1.15rem;
-    bottom: 1.15rem;
-    left: -0.25rem;
-    width: 1px;
-    pointer-events: none;
-    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.7), rgba(116,211,180,0.24), transparent);
-    opacity: 0.50;
-  }
-
-  .admin-content-plane > header,
-  .admin-content-plane > div {
-    position: relative;
-    z-index: 2;
-  }
-
-  .admin-nav-item {
-    transition:
-      transform 190ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 190ms cubic-bezier(0.22, 1, 0.36, 1),
-      color 190ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 190ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-  }
-
-  .admin-nav-item:hover {
-    transform: translateX(3px) translateZ(10px);
-  }
-
-  .admin-nav-item.is-active {
-    transform: translateX(2px) translateZ(14px);
-    box-shadow:
-      inset 3px 0 0 var(--admin-accent),
-      inset 0 0 0 1px rgba(116, 211, 180, 0.11),
-      0 10px 24px rgba(0, 0, 0, 0.075) !important;
-  }
-
-  .admin-brand:hover {
-    transform: translateX(2px) translateZ(8px);
-  }
-
-  .admin-live-pill span {
-    box-shadow: 0 0 0 4px rgba(89, 196, 147, 0.10), 0 0 16px rgba(89, 196, 147, 0.30);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-motion-frame,
-  .admin-sidebar-3d > .admin-sidebar-shell,
-  .admin-nav-item,
-  .admin-brand {
-    transition: none !important;
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell,
-  .admin-nav-item:hover,
-  .admin-nav-item.is-active,
-  .admin-brand:hover {
-    transform: none !important;
-  }
-}
-
-@media (min-width: 1024px) { .admin-sidebar-3d { contain: none !important; } }
-
-
-/* Admin sidebar v6.1: fixed bottom action overlap in 3D shell */
-.admin-nav-scroll {
-  position: relative;
-  z-index: 1;
-  min-height: 0;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.admin-nav-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-quick-row {
-  position: relative;
-  z-index: 3;
-  flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(9, 31, 45, 0.88), rgba(9, 31, 45, 0.96));
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-}
-
-.admin-quick-row::before {
-  content: "";
-  position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  top: -0.35rem;
-  height: 0.65rem;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(9, 31, 45, 0), rgba(9, 31, 45, 0.86));
-}
-
-@media (min-width: 1024px) {
-  .admin-sidebar-3d > .admin-sidebar-shell {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden !important;
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-
-/* Admin sidebar v6.2: wider black depth face */
-@media (min-width: 1024px) {
-  .admin-perspective-layout {
-    perspective-origin: 21rem 42%;
-  }
-
-  .admin-sidebar-3d {
-    width: 23.5rem;
-    padding-right: 3rem;
-  }
-
-  .admin-sidebar-3d::before {
-    top: 1.65rem;
-    right: -0.08rem;
-    bottom: 1.65rem;
-    width: 3.25rem;
-    border-radius: 0 1.7rem 1.7rem 0;
-    transform: rotateY(62deg) skewY(-2.8deg) translateZ(-20px);
-    background:
-      linear-gradient(90deg, rgba(1, 5, 9, 0.98) 0%, rgba(3, 11, 18, 0.94) 38%, rgba(8, 24, 36, 0.72) 68%, rgba(16, 49, 67, 0.28) 100%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(0, 0, 0, 0.18) 44%, rgba(0, 0, 0, 0.58) 100%);
-    border-right: 1px solid rgba(116, 211, 180, 0.075);
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
-    box-shadow:
-      28px 0 58px rgba(0, 0, 0, 0.34),
-      16px 0 42px rgba(8, 28, 42, 0.26),
-      inset -1px 0 0 rgba(255, 255, 255, 0.028),
-      inset 14px 0 24px rgba(0, 0, 0, 0.26);
-  }
-
-  .admin-sidebar-3d::after {
-    right: 2.82rem;
-    opacity: 0.58;
-    background: linear-gradient(180deg, transparent 0%, rgba(116, 211, 180, 0.18) 18%, rgba(120, 204, 232, 0.08) 68%, transparent 100%);
-  }
-
-  .admin-sidebar-3d > .admin-sidebar-shell {
-    box-shadow:
-      calc(20px + (18px * var(--admin-depth-glow))) 18px 68px rgba(0, 0, 0, 0.22),
-      0 1px 0 rgba(255, 255, 255, 0.04) inset,
-      -14px 0 42px rgba(116, 211, 180, 0.03) inset;
-  }
-
-  .admin-content-plane {
-    margin-left: -0.2rem;
-    padding-left: 1.1rem;
-    box-shadow: -26px 0 64px rgba(8, 28, 42, 0.10);
-  }
-
-  .admin-content-plane::before {
-    left: -1.15rem;
-    width: 3.25rem;
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, 0.24) 0%, rgba(8, 28, 42, 0.16) 32%, rgba(116, 211, 180, 0.055) 64%, rgba(255, 255, 255, 0.00) 100%);
-    border-left: 1px solid rgba(0, 0, 0, 0.13);
-  }
-
-  .admin-content-plane::after {
-    left: -0.78rem;
-    opacity: 0.34;
-  }
-}
-
-
-/* Admin sidebar v7: operational flat rail */
-.admin-perspective-layout--operational {
-  perspective: none !important;
-  transform-style: flat !important;
-}
-
-.admin-sidebar-operational {
-  background: var(--admin-sidebar) !important;
-  box-shadow: none !important;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(154 183 200 / 0.2) transparent;
-}
-
-.admin-sidebar-operational .admin-sidebar-shell {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none !important;
-  overflow: visible;
-}
-
-.admin-sidebar-operational .admin-sidebar-shell::before,
-.admin-sidebar-operational .admin-sidebar-shell::after {
-  display: none;
-}
-
-.admin-nav--operational .admin-nav-item {
-  min-height: 2rem;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.admin-nav--operational .admin-nav-group::before {
-  display: none;
-}
-
-.admin-mobile-sidebar {
-  background:
-    radial-gradient(480px 280px at -8% -12%, rgb(116 211 180 / 0.065), transparent 66%),
-    radial-gradient(420px 260px at 120% 10%, rgb(117 199 232 / 0.08), transparent 62%),
-    linear-gradient(180deg, #081c2a 0%, #092231 52%, #0b293a 100%) !important;
-  border-right: 1px solid var(--admin-border);
-}
-
-.admin-mobile-sidebar .admin-sidebar-shell::before,
-.admin-mobile-sidebar .admin-sidebar-shell::after {
-  display: none;
-}
-
-.admin-nav--operational .admin-nav-item:hover,
-.admin-nav--operational .admin-nav-item.is-active {
-  transform: none !important;
-}
-
-.admin-nav--operational .admin-nav-item.is-active {
-  box-shadow: inset 2px 0 0 var(--admin-accent) !important;
-}
-
-.admin-nav--operational .admin-nav-item.is-active::after {
-  display: none !important;
-}
-
-.admin-perspective-layout--operational .admin-quick-row {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.admin-perspective-layout--operational .admin-quick-row::before {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .admin-perspective-layout--operational .admin-sidebar-operational {
-    width: auto;
-    padding-right: 0.75rem;
-    contain: none !important;
-    overflow: hidden !important;
-  }
-
-  .admin-perspective-layout--operational .admin-sidebar-operational::before,
-  .admin-perspective-layout--operational .admin-sidebar-operational::after {
-    display: none !important;
-  }
-
-  .admin-perspective-layout--operational .admin-sidebar-operational > .admin-sidebar-shell {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 100%;
-    transform: none !important;
-    overflow: hidden !important;
-  }
-
-  .admin-perspective-layout--operational .admin-content-plane {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    height: 100vh;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    box-shadow: none !important;
-  }
-
-  .admin-perspective-layout--operational .admin-nav-item:hover,
-  .admin-perspective-layout--operational .admin-nav-item.is-active,
-  .admin-perspective-layout--operational .admin-brand:hover {
-    transform: none !important;
-  }
-}
-
-
-/* Admin login: immersive carousel backdrop */
-.admin-login-canvas {
-  background:
-    radial-gradient(900px 420px at 0% -10%, rgb(14 116 144 / 0.14), transparent 62%),
-    linear-gradient(180deg, #061925 0%, #081c2a 52%, #0a2333 100%);
-}
-
-.admin-login-hero {
-  min-height: 100vh;
-}
-
-@keyframes admin-login-slide-enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.admin-login-slide-copy {
-  animation: admin-login-slide-enter 500ms ease-out both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-login-slide-copy {
-    animation: none !important;
-  }
-}
-
-/* Admin dashboard v7: 9.5 premium content polish */
-:root {
-  --background: #f3fbfd;
-  --shadow-card:
-    0 1px 2px rgb(6 25 37 / 0.035),
-    0 16px 45px rgb(14 48 72 / 0.075);
-  --shadow-card-hover:
-    0 10px 24px rgb(6 25 37 / 0.08),
-    0 28px 70px rgb(14 48 72 / 0.13);
-  --shadow-topbar:
-    0 1px 0 rgb(14 48 72 / 0.05),
-    0 18px 48px rgb(14 48 72 / 0.07);
-}
-
-.admin-canvas {
-  background-color: #f3fbfd;
-}
-
-/* Premium atmosphere for the main admin content column only. */
-.admin-content-plane {
-  position: relative;
-  isolation: isolate;
-  background-color: #f3fbfd;
-  background-image:
-    radial-gradient(circle at 18% 8%, rgba(94, 234, 212, 0.16), transparent 30%),
-    radial-gradient(circle at 82% 0%, rgba(14, 116, 144, 0.12), transparent 32%),
-    linear-gradient(180deg, #f3fbfd 0%, #eef8fb 45%, #f8fcfd 100%);
-}
-
-.admin-content-plane::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(14, 116, 144, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 116, 144, 0.045) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.28) 72%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.28) 72%, transparent 100%);
-}
-
-.admin-content-plane::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.04;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-}
-
-.admin-content-plane > header,
-.admin-content-plane > div {
-  position: relative;
-  z-index: 1;
-}
-
-.admin-topbar {
-  box-shadow: var(--shadow-topbar);
-}
-
-.admin-topbar::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(14, 116, 144, 0.18), rgba(116, 211, 180, 0.20), transparent);
-  pointer-events: none;
-}
-
-.admin-page-hero {
-  background: #ffffff;
+.admin-page-hero,
+.admin-hero {
+  background: var(--admin-surface);
   box-shadow: var(--admin-shadow-1);
 }
 
-.admin-page-hero::after {
-  display: none;
+.admin-overview-header {
+  background: transparent;
 }
 
-.admin-page-hero > * {
-  position: relative;
-  z-index: 1;
+.admin-metric-card {
+  min-height: 7rem;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-1);
+  transition:
+    box-shadow 150ms ease-out,
+    transform 150ms ease-out,
+    border-color 150ms ease-out;
 }
 
-.admin-priority-panel {
-  background:
-    linear-gradient(135deg, #102f42 0%, #15394e 52%, #0e2a3a 100%);
-  box-shadow:
-    0 22px 65px rgba(6,25,37,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.07);
+.admin-metric-card:hover {
+  border-color: var(--admin-border-strong);
+  box-shadow: var(--admin-shadow-2);
+  transform: translateY(-1px);
 }
 
-.admin-priority-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.05), transparent 30%),
-    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 36%);
-  opacity: 0.9;
+.admin-kpi-card {
+  min-height: 8.5rem;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-1);
+  transition:
+    box-shadow 150ms ease-out,
+    transform 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.admin-kpi-card:hover {
+  border-color: var(--admin-border-strong);
+  box-shadow: var(--admin-shadow-2);
+  transform: translateY(-1px);
+}
+
+.admin-data-panel,
+.admin-audit-panel {
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-shadow-1);
 }
 
 .admin-priority-compact {
-  background:
-    linear-gradient(145deg, #0e2a3c 0%, #123040 55%, #0d2736 100%);
-  box-shadow: var(--admin-shadow-3);
-  border-radius: 22px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface) !important;
+  box-shadow: var(--admin-shadow-1) !important;
+  border-radius: var(--admin-radius-panel) !important;
 }
 
 .admin-executive-overview {
   min-width: 0;
 }
 
-.admin-executive-overview .admin-priority-compact {
-  min-height: 15.5rem;
-}
-
 @media (min-width: 1024px) {
   .admin-executive-overview .admin-metric-card {
-    min-height: 0;
     height: 100%;
+    min-height: 0;
   }
 
   .admin-executive-overview .admin-priority-compact > .relative {
@@ -1229,50 +401,10 @@ body {
   }
 }
 
-.admin-overview-header {
-  background: transparent;
-}
-
-.admin-metric-card {
-  min-height: 6.75rem;
-  isolation: isolate;
-}
-
-@media (min-width: 640px) {
-  .admin-metric-card {
-    min-height: 7.25rem;
-  }
-}
-
-.admin-kpi-card {
-  min-height: 9.25rem;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.90), rgba(249,253,254,0.80)),
-    radial-gradient(220px 100px at 100% 0%, rgba(116,211,180,0.12), transparent 64%);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.78) inset,
-    0 16px 44px rgba(14,48,72,0.075);
-}
-
-.admin-kpi-card::after {
-  content: "";
-  position: absolute;
-  inset: auto 1.25rem 1rem 1.25rem;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(14,116,144,0.12), transparent);
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.admin-kpi-card:hover::after { opacity: 1; }
-
-.admin-data-panel,
-.admin-audit-panel {
-  box-shadow: var(--admin-shadow-2);
-}
-
-.admin-metric-card {
-  box-shadow: var(--admin-shadow-2);
+.admin-table-wrap {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-card);
+  background: var(--admin-surface);
 }
 
 .admin-table-wrap table {
@@ -1280,217 +412,37 @@ body {
 }
 
 .admin-table-wrap thead tr {
-  box-shadow: 0 1px 0 rgb(14 72 90 / 0.05);
+  border-bottom: 1px solid var(--admin-border);
 }
 
-.admin-table-wrap tbody tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
-.admin-table-wrap tbody tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
+/* Admin login */
+.admin-login-canvas {
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgb(23 139 255 / 0.12), transparent 62%),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
+}
+
+.admin-login-hero {
+  min-height: 100vh;
+}
+
+@keyframes admin-login-slide-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-login-slide-copy {
+  animation: admin-login-slide-enter 480ms ease-out both;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-kpi-card,
+  .page-enter,
+  .admin-login-slide-copy,
   .admin-metric-card,
-  .admin-priority-panel a,
-  .admin-priority-compact a,
+  .admin-kpi-card,
   .admin-data-panel a {
+    animation: none !important;
     transition: none !important;
     transform: none !important;
   }
-}
-
-
-/* Admin sidebar v8: premium operational polish */
-.admin-sidebar-premium {
-  background:
-    radial-gradient(380px 180px at 50% 0%, rgb(116 211 180 / 0.055), transparent 72%),
-    radial-gradient(420px 260px at -8% -12%, rgb(116 211 180 / 0.04), transparent 66%),
-    linear-gradient(180deg, #091f2d 0%, #081c2a 48%, #071824 100%) !important;
-  border-right-color: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
-}
-
-.admin-brand-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-}
-
-.admin-nav--premium .admin-nav-group--divided {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.admin-nav--premium .admin-nav-item.is-active {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 0 0 20px rgba(116, 211, 180, 0.03) !important;
-}
-
-.admin-nav--premium .admin-nav-item.is-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 2px;
-  border-radius: 999px;
-  background: var(--admin-accent);
-  box-shadow: 0 0 8px rgba(116, 211, 180, 0.18);
-}
-
-.admin-nav--premium .admin-nav-item:hover:not(.is-active) {
-  background: rgba(255, 255, 255, 0.03);
-  transform: translateX(1px);
-}
-
-.admin-session-panel--premium {
-  background: transparent;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-nav--premium .admin-nav-item,
-  .admin-brand,
-  .admin-session-panel--premium button {
-    transition: none !important;
-  }
-}
-
-
-/* Admin dashboard v9: Rockads-inspired light SaaS theme */
-:root {
-  --background: #f7f9fc;
-  --foreground: #111827;
-  --brand-primary: #178bff;
-  --brand-primary-deep: #0f7ae5;
-  --brand-accent: #178bff;
-  --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --border-subtle: #e5eaf0;
-  --border-strong: #d1d9e6;
-  --admin-bg: #f7f9fc;
-  --admin-sidebar: #ffffff;
-  --admin-sidebar-panel: #ffffff;
-  --admin-surface: #ffffff;
-  --admin-surface-hover: #f1f5f9;
-  --admin-surface-soft: #f8fafc;
-  --admin-accent: #178bff;
-  --admin-primary-soft: #eaf4ff;
-  --admin-success: #16a34a;
-  --admin-warning: #d97706;
-  --admin-danger: #dc2626;
-  --admin-info: #178bff;
-  --admin-text: #111827;
-  --admin-text-muted: #6b7280;
-  --admin-text-soft: #9ca3af;
-  --admin-border: #e5eaf0;
-  --admin-divider: #e5eaf0;
-  --admin-content-border: #e5eaf0;
-  --admin-shadow-1: 0 1px 2px rgb(15 23 42 / 0.04);
-  --admin-shadow-2: 0 1px 3px rgb(15 23 42 / 0.05), 0 4px 12px rgb(15 23 42 / 0.04);
-  --admin-shadow-3: 0 2px 8px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06);
-  --admin-radius-control: 8px;
-  --admin-radius-input: 8px;
-  --admin-radius-card: 12px;
-  --admin-radius-panel: 16px;
-  --shadow-topbar: 0 1px 0 rgb(15 23 42 / 0.04);
-}
-
-.admin-canvas {
-  background-color: var(--admin-bg) !important;
-}
-
-.admin-content-plane {
-  background-color: var(--admin-bg) !important;
-  background-image: none !important;
-}
-
-.admin-content-plane::before,
-.admin-content-plane::after {
-  display: none !important;
-}
-
-.admin-sidebar-operational,
-.admin-sidebar-premium {
-  background: var(--admin-sidebar) !important;
-  border-right: 1px solid var(--admin-border) !important;
-  box-shadow: none !important;
-}
-
-.admin-mobile-sidebar {
-  background: var(--admin-sidebar) !important;
-  border-right: 1px solid var(--admin-border) !important;
-  box-shadow: 0 8px 32px rgb(15 23 42 / 0.12) !important;
-}
-
-.admin-brand-divider {
-  background: var(--admin-divider);
-}
-
-.admin-nav--premium .admin-nav-group--divided {
-  border-top-color: var(--admin-divider);
-}
-
-.admin-nav--operational .admin-nav-item.is-active,
-.admin-nav--premium .admin-nav-item.is-active {
-  background: var(--admin-primary-soft) !important;
-  color: var(--admin-accent) !important;
-  box-shadow: none !important;
-}
-
-.admin-nav--operational .admin-nav-item.is-active::before,
-.admin-nav--premium .admin-nav-item.is-active::before {
-  display: none !important;
-}
-
-.admin-nav--operational .admin-nav-item.is-active {
-  box-shadow: none !important;
-}
-
-.admin-nav--premium .admin-nav-item:hover:not(.is-active) {
-  background: var(--admin-surface-hover);
-  transform: none !important;
-}
-
-.admin-topbar {
-  background: rgb(255 255 255 / 0.92) !important;
-  border-bottom-color: var(--admin-border) !important;
-  box-shadow: var(--shadow-topbar) !important;
-}
-
-.admin-topbar::after {
-  display: none;
-}
-
-.admin-metric-card {
-  border: 1px solid var(--admin-border);
-  box-shadow: var(--admin-shadow-1) !important;
-  min-height: 7rem;
-}
-
-.admin-metric-card:hover {
-  box-shadow: var(--admin-shadow-2) !important;
-}
-
-.admin-data-panel,
-.admin-audit-panel {
-  border: 1px solid var(--admin-border);
-  box-shadow: var(--admin-shadow-1) !important;
-}
-
-.admin-priority-compact {
-  background: #ffffff !important;
-  border: 1px solid var(--admin-border);
-  box-shadow: var(--admin-shadow-1) !important;
-  border-radius: var(--admin-radius-panel) !important;
-}
-
-.admin-executive-overview .admin-priority-compact {
-  min-height: auto;
-}
-
-.admin-overview-header {
-  border-bottom-color: var(--admin-border);
-}
-
-.admin-session-panel--premium {
-  border-top-color: var(--admin-divider) !important;
 }

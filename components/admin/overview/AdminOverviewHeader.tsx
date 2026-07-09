@@ -16,7 +16,7 @@ export function AdminOverviewHeader() {
   const todayLabel = formatOverviewDate(new Date());
 
   return (
-    <header className="admin-overview-header mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <header className="admin-overview-header mb-6 flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h1 className={adminPanelTypography.pageTitle}>Resumen administrativo</h1>
         <p className={adminPanelTypography.pageSubtitle}>

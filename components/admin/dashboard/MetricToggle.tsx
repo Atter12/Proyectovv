@@ -24,7 +24,7 @@ export function MetricToggle<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-[var(--admin-shadow-1)]",
+        "inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm",
         className,
       )}
       role="group"
@@ -39,10 +39,10 @@ export function MetricToggle<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "relative rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150",
               isActive
                 ? "bg-[#178BFF] text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-50 hover:text-[#178BFF]",
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
             )}
             aria-pressed={isActive}
           >

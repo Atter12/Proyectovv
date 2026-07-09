@@ -5,25 +5,11 @@ import { cn } from "@/lib/cn";
 
 export type AdminMetricAccent = "indigo" | "emerald" | "amber" | "rose";
 
-const accentStyles: Record<
-  AdminMetricAccent,
-  {
-    iconWrap: string;
-    trend?: string;
-  }
-> = {
-  indigo: {
-    iconWrap: "bg-[#EAF4FF] text-[#178BFF]",
-  },
-  emerald: {
-    iconWrap: "bg-emerald-50 text-emerald-600",
-  },
-  amber: {
-    iconWrap: "bg-amber-50 text-amber-600",
-  },
-  rose: {
-    iconWrap: "bg-rose-50 text-rose-600",
-  },
+const accentStyles: Record<AdminMetricAccent, { iconWrap: string }> = {
+  indigo: { iconWrap: "bg-[#EAF4FF] text-[#178BFF]" },
+  emerald: { iconWrap: "bg-emerald-50 text-emerald-600" },
+  amber: { iconWrap: "bg-amber-50 text-amber-600" },
+  rose: { iconWrap: "bg-rose-50 text-rose-600" },
 };
 
 export function AdminMetricCard({
@@ -47,11 +33,11 @@ export function AdminMetricCard({
   return (
     <article
       className={cn(
-        "admin-metric-card relative bg-white",
+        "admin-metric-card relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
         adminRadius.metric,
         adminMotion.base,
-        "hover:-translate-y-px",
-        showAlert && "border-amber-200/80 bg-amber-50/30",
+        "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md",
+        showAlert && "border-amber-200/90 bg-amber-50/40",
         stretch ? "flex h-full min-h-0 flex-col" : "",
       )}
     >
@@ -63,19 +49,19 @@ export function AdminMetricCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div
-            className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", style.iconWrap)}
+            className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", style.iconWrap)}
             aria-hidden
           >
             <AdminMetricIcon accent={accent} emphasized={showAlert} />
           </div>
           {showAlert ? (
-            <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[0.625rem] font-medium text-amber-700">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.625rem] font-semibold text-amber-700">
               Alerta
             </span>
           ) : null}
         </div>
 
-        <div className="mt-4 min-w-0 space-y-1">
+        <div className="mt-3.5 min-w-0 space-y-1">
           <p className={adminPanelTypography.metricLabel}>{label}</p>
           <p className={adminPanelTypography.metricValue}>{value}</p>
           {detail ? <p className={adminPanelTypography.metricHelper}>{detail}</p> : null}

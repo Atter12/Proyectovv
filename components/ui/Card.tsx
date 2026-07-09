@@ -15,10 +15,10 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "bg-white shadow-[var(--admin-shadow-1)]",
-  soft: "bg-white shadow-[var(--admin-shadow-1)]",
+  default: "bg-white shadow-sm",
+  soft: "bg-white shadow-sm",
   premium: "bg-white shadow-[var(--admin-shadow-2)]",
-  dark: "bg-slate-900 text-white shadow-[var(--admin-shadow-3)]",
+  dark: "bg-slate-950 text-white shadow-[var(--admin-shadow-3)]",
 };
 
 export function Card({
@@ -34,11 +34,11 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-[var(--admin-border)]",
+        "relative overflow-hidden border border-slate-200",
         radiusClass,
         toneClasses[tone],
         elevated &&
-          "transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-2)]",
+          "transition-[box-shadow,transform,border-color] duration-150 ease-out hover:-translate-y-px hover:border-slate-300 hover:shadow-md",
         paddingClasses[padding],
         className,
       )}
@@ -54,5 +54,5 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold tracking-tight text-slate-900", className)} {...props} />;
+  return <h3 className={cn("text-base font-semibold tracking-tight text-slate-950", className)} {...props} />;
 }

@@ -38,7 +38,7 @@ export function AdminNavLinks({
   const pathname = usePathname();
 
   return (
-    <nav className="admin-nav admin-nav--operational admin-nav--premium space-y-1 px-1" aria-label="Navegación administrativa">
+    <nav className="space-y-1 px-1" aria-label="Navegación administrativa">
       {groups.map((group, groupIndex) => {
         const items = adminNavigation.filter((item) => group.items.includes(item.href));
 
@@ -47,7 +47,7 @@ export function AdminNavLinks({
             key={group.title}
             className={cn("admin-nav-group", groupIndex > 0 ? "admin-nav-group--divided" : "")}
           >
-            <p className="admin-nav-section-label mb-1.5 px-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
+            <p className="mb-1.5 px-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
               {group.title}
             </p>
             <div className="space-y-0.5">
@@ -64,9 +64,9 @@ export function AdminNavLinks({
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "admin-nav-item group relative flex min-h-[2.25rem] items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#178BFF]/30",
+                      "group relative flex min-h-[2.25rem] items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-[#178BFF]/30",
                       active
-                        ? "is-active font-medium text-[#178BFF]"
+                        ? "bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-100"
                         : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                     )}
                   >
@@ -74,7 +74,7 @@ export function AdminNavLinks({
                       className={cn(
                         "grid h-7 w-7 shrink-0 place-items-center rounded-md text-[0.72rem] leading-none transition-colors duration-150 ease-out",
                         active
-                          ? "bg-[#178BFF]/10 text-[#178BFF]"
+                          ? "bg-white text-[#178BFF] shadow-sm ring-1 ring-blue-100"
                           : "text-slate-400 group-hover:text-slate-600",
                       )}
                       aria-hidden

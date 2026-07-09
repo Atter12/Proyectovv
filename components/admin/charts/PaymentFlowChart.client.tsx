@@ -57,7 +57,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
   const chartHeight = limitedActivity ? "10rem" : CHART_HEIGHT_BY_RANGE[range];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PaymentFlowSummary totals={totals} currency={currency} />
         <PaymentFlowRangeSelector value={range} suggestedRange={suggestedRange} onChange={setRange} />
@@ -77,7 +77,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
 
       <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: -8, bottom: 4 }}>
+          <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: -6, bottom: 4 }}>
             <CartesianGrid strokeDasharray="2 6" stroke={ADMIN_CHART_COLORS.grid} vertical={false} />
             <XAxis
               dataKey="label"
@@ -101,7 +101,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
-              width={56}
+              width={48}
               tickFormatter={(value: number) => formatMoney(value * 100, currency).replace(/\s/g, "")}
             />
             <Tooltip
@@ -116,16 +116,16 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <Legend
               iconType="circle"
               iconSize={8}
-              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#6B7280", paddingTop: "12px" }}
+              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#64748B", paddingTop: "14px" }}
             />
             <Bar
               yAxisId="count"
               dataKey="created"
               name="Creados"
               fill={ADMIN_CHART_SERIES.created}
-              fillOpacity={0.88}
-              radius={[3, 3, 0, 0]}
-              maxBarSize={12}
+              fillOpacity={0.75}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={10}
               animationDuration={600}
               animationEasing="ease-out"
             />
@@ -134,9 +134,9 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               dataKey="completed"
               name="Completados"
               fill={ADMIN_CHART_SERIES.completed}
-              fillOpacity={0.88}
-              radius={[3, 3, 0, 0]}
-              maxBarSize={12}
+              fillOpacity={0.75}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={10}
               animationDuration={650}
               animationEasing="ease-out"
             />
@@ -145,9 +145,9 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               dataKey="pending"
               name="Pendientes"
               fill={ADMIN_CHART_SERIES.pending}
-              fillOpacity={0.88}
-              radius={[3, 3, 0, 0]}
-              maxBarSize={12}
+              fillOpacity={0.75}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={10}
               animationDuration={700}
               animationEasing="ease-out"
             />
@@ -157,7 +157,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               dataKey="processedAmount"
               name="Monto procesado"
               stroke={ADMIN_CHART_SERIES.processed}
-              strokeWidth={2}
+              strokeWidth={2.25}
               dot={false}
               activeDot={{ r: 4, fill: ADMIN_CHART_SERIES.processed, stroke: "#fff", strokeWidth: 2 }}
               animationDuration={750}
