@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
-import { WalletExposureChart } from "@/components/admin/charts/WalletExposureChart.client";
+import { WalletExposureRanking } from "@/components/admin/overview/WalletExposureRanking";
 import { AdminMetricGrid } from "@/components/admin/overview/AdminMetricGrid";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
 import { AdminPriorityCard } from "@/components/admin/overview/AdminPriorityCard";
@@ -36,24 +36,24 @@ export default async function OverviewPage() {
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos · últimos 30 días</h2>
-            <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día.</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos</h2>
+            <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día · rango ajustable.</p>
           </div>
           <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
         </div>
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
 
-      <Card className="admin-data-panel mt-6 p-5" tone="soft">
-        <div className="mb-4">
-          <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
-          <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
-          <p className="text-sm text-[#587080]">Saldo disponible y reservado · top 10.</p>
-        </div>
-        <WalletExposureChart data={analytics.walletExposure} currency={analytics.primaryCurrency} />
-      </Card>
-
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Card className="admin-data-panel p-5" tone="soft">
+          <div className="mb-4">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
+            <p className="text-sm text-[#587080]">Ranking compacto por saldo real · top 5.</p>
+          </div>
+          <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
+        </Card>
+
         <Card className="admin-data-panel p-5" tone="soft">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>

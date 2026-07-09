@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -12,7 +13,16 @@ import {
   YAxis,
 } from "recharts";
 import type { PaymentFlowDayPoint } from "@/lib/admin/data";
+import {
+  countPaymentFlowActiveDays,
+  slicePaymentFlowByRange,
+  suggestPaymentFlowRange,
+  summarizePaymentFlowRange,
+  type PaymentFlowRange,
+} from "@/lib/admin/chartUtils";
 import { formatMoney } from "@/lib/format";
+import { PaymentFlowRangeSelector } from "@/components/admin/overview/PaymentFlowRangeSelector";
+import { PaymentFlowSummary } from "@/components/admin/overview/PaymentFlowSummary";
 import { ADMIN_CHART_SERIES, adminChartTooltipStyle } from "./chartTheme";
 
 interface PaymentFlowChartProps {
@@ -20,34 +30,52 @@ interface PaymentFlowChartProps {
   currency: string;
 }
 
-function countActiveDays(data: PaymentFlowDayPoint[]): number {
-  return data.filter(
-    (point) => point.created > 0 || point.completed > 0 || point.pending > 0 || point.processedCents > 0,
-  ).length;
-}
+const CHART_HEIGHT_BY_RANGE: Record<PaymentFlowRange, string> = {
+  "7D": "10rem",
+  "15D": "11rem",
+  "30D": "12rem",
+};
 
 export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
-  const chartData = data.map((point) => ({
-    ...point,
-    processedAmount: point.processedCents / 100,
-  }));
-  const activeDays = countActiveDays(chartData);
+  const suggestedRange = useMemo(() => suggestPaymentFlowRange(data), [data]);
+  const [range, setRange] = useState<PaymentFlowRange>(() => suggestPaymentFlowRange(data));
+
+  const rangedData = useMemo(() => slicePaymentFlowByRange(data, range), [data, range]);
+  const totals = useMemo(() => summarizePaymentFlowRange(rangedData), [rangedData]);
+  const chartData = useMemo(
+    () =>
+      rangedData.map((point) => ({
+        ...point,
+        processedAmount: point.processedCents / 100,
+      })),
+    [rangedData],
+  );
+
+  const activeDays = countPaymentFlowActiveDays(rangedData);
   const hasActivity = activeDays > 0;
   const limitedActivity = activeDays > 0 && activeDays < 3;
+  const chartHeight = limitedActivity ? "10rem" : CHART_HEIGHT_BY_RANGE[range];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PaymentFlowSummary totals={totals} currency={currency} />
+        <PaymentFlowRangeSelector value={range} suggestedRange={suggestedRange} onChange={setRange} />
+      </div>
+
       {limitedActivity ? (
         <p className="rounded-lg border border-[#dbeaf0] bg-[#f7fcfe] px-3 py-2 text-xs font-semibold text-[#6d8494]">
           Actividad limitada: se muestran los movimientos disponibles.
         </p>
       ) : null}
+
       {!hasActivity ? (
         <p className="rounded-lg border border-dashed border-[#cfe8ee] bg-white/50 px-3 py-2 text-xs font-semibold text-[#789bad]">
-          Sin actividad de pagos en los últimos 30 días. El gráfico refleja el período completo.
+          Sin actividad de pagos en el rango seleccionado.
         </p>
       ) : null}
-      <div className="h-[14rem] w-full">
+
+      <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid strokeDasharray="4 6" stroke="#e8f2f6" vertical={false} />
@@ -56,7 +84,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }}
               axisLine={false}
               tickLine={false}
-              minTickGap={18}
+              minTickGap={range === "7D" ? 12 : 18}
             />
             <YAxis
               yAxisId="count"
@@ -84,9 +112,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
                 return [numeric, label];
               }}
             />
-            <Legend
-              wrapperStyle={{ fontSize: "12px", fontWeight: 700, color: "#587080", paddingTop: "8px" }}
-            />
+            <Legend wrapperStyle={{ fontSize: "12px", fontWeight: 700, color: "#587080", paddingTop: "4px" }} />
             <Bar yAxisId="count" dataKey="created" name="Creados" fill={ADMIN_CHART_SERIES.created} radius={[6, 6, 0, 0]} maxBarSize={16} />
             <Bar yAxisId="count" dataKey="completed" name="Completados" fill={ADMIN_CHART_SERIES.completed} radius={[6, 6, 0, 0]} maxBarSize={16} />
             <Bar yAxisId="count" dataKey="pending" name="Pendientes" fill={ADMIN_CHART_SERIES.pending} radius={[6, 6, 0, 0]} maxBarSize={16} />

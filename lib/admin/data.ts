@@ -654,7 +654,8 @@ export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData>
       availableCents: Math.max(0, totals.balanceCents - totals.reservedCents),
       currency: totals.currency,
     }))
-    .sort((left, right) => right.availableCents - left.availableCents)
+    .filter((item) => item.availableCents + item.reservedCents > 0)
+    .sort((left, right) => right.availableCents + right.reservedCents - (left.availableCents + left.reservedCents))
     .slice(0, 10);
 
   return {
