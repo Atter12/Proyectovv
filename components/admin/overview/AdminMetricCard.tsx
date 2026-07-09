@@ -67,8 +67,14 @@ export function AdminMetricCard({
   accent?: AdminMetricAccent;
 }) {
   const style = accentStyles[accent];
-  const [imageFailed, setImageFailed] = useState(false);
-  const backgroundUrl = KPI_CARD_BACKGROUNDS[accent];
+  const backgroundUrls = KPI_CARD_BACKGROUNDS[accent];
+  const [urlIndex, setUrlIndex] = useState(0);
+  const imageFailed = urlIndex >= backgroundUrls.length;
+  const backgroundUrl = backgroundUrls[urlIndex];
+
+  function handleBackgroundError() {
+    setUrlIndex((current) => current + 1);
+  }
 
   return (
     <article
@@ -84,8 +90,8 @@ export function AdminMetricCard({
             src={backgroundUrl}
             alt=""
             className="hidden"
-            onError={() => setImageFailed(true)}
-            loading="lazy"
+            onError={handleBackgroundError}
+            loading={accent === "rose" ? "eager" : "lazy"}
             decoding="async"
           />
         </div>
