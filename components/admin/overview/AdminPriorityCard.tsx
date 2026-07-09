@@ -56,7 +56,7 @@ export function AdminPriorityCard({
       />
 
       <div className="relative flex h-full min-h-0 flex-col p-3.5 sm:p-4">
-        <div className="grid min-h-0 flex-1 gap-4 max-lg:grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(9.75rem,10.75rem)] lg:items-center lg:gap-5">
+        <div className="grid min-h-0 flex-1 gap-4 max-lg:grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(11.5rem,12.75rem)] lg:items-center lg:gap-5">
           <div className="min-w-0 space-y-3">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-md border border-[#74d3b4]/20 bg-[#74d3b4]/10 px-2 py-0.5 text-[0.56rem] font-black uppercase tracking-[0.12em] text-[#9af7c9]">

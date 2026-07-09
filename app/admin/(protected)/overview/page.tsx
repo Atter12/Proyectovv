@@ -4,6 +4,8 @@ import { WalletExposureRanking } from "@/components/admin/overview/WalletExposur
 import { AdminExecutiveOverview } from "@/components/admin/overview/AdminExecutiveOverview";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
 import { buildOverviewMetrics } from "@/components/admin/overview/buildOverviewMetrics";
+import { paymentOverviewActionClass, paymentOverviewActionLabel } from "@/components/admin/overview/overviewActions";
+import { RecentAuditFeed, RecentAuditFeedHeaderLink } from "@/components/admin/overview/RecentAuditFeed";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
@@ -31,7 +33,7 @@ export default async function OverviewPage() {
       />
 
       <Card className="admin-data-panel p-5" tone="soft">
-        <div className="mb-4">
+        <div className="mb-3">
           <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
           <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos</h2>
           <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día · rango ajustable.</p>
@@ -40,7 +42,7 @@ export default async function OverviewPage() {
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card className="admin-data-panel p-5" tone="soft">
+        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
           <div className="mb-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
             <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
@@ -49,9 +51,9 @@ export default async function OverviewPage() {
           <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
 
-        <Card className="admin-data-panel p-5" tone="soft">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
+        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Flujo operativo</p>
               <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Pagos recientes</h2>
               <p className="text-sm text-[#587080]">Manuales y proveedores externos · acceso directo a la cola.</p>
@@ -60,69 +62,114 @@ export default async function OverviewPage() {
           </div>
           <TableWrap>
             <Table>
-              <thead><tr><Th>Pago</Th><Th>Cliente</Th><Th>Monto</Th><Th>Estado</Th></tr></thead>
+              <thead>
+                <tr>
+                  <Th>Pago</Th>
+                  <Th>Cliente</Th>
+                  <Th>Monto</Th>
+                  <Th>Estado</Th>
+                  <Th className="text-right">Acción</Th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-[#e1edf2]">
                 {data.recentPayments.map(({ row, organization }) => (
                   <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
-                    <Td><Link href={`/admin/payments/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.id.slice(0, 8)}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p></Td>
-                    <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{row.provider}</p></Td>
-                    <Td className="font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</Td>
-                    <Td><StatusBadge status={row.status} label={PAYMENT_STATUS_LABELS[row.status] ?? row.status} /></Td>
+                    <Td className="py-3">
+                      <Link href={`/admin/payments/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">
+                        {row.id.slice(0, 8)}
+                      </Link>
+                      <p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p>
+                    </Td>
+                    <Td className="py-3">
+                      <p className="max-w-[8rem] truncate" title={organization?.name ?? undefined}>
+                        {organization?.name ?? "—"}
+                      </p>
+                      <p className="truncate text-xs text-[#789bad]">{row.provider}</p>
+                    </Td>
+                    <Td className="whitespace-nowrap font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</Td>
+                    <Td className="py-3">
+                      <StatusBadge status={row.status} label={PAYMENT_STATUS_LABELS[row.status] ?? row.status} />
+                    </Td>
+                    <Td className="text-right">
+                      <Link href={`/admin/payments/${row.id}`} className={paymentOverviewActionClass(row.status)}>
+                        {paymentOverviewActionLabel(row.status)}
+                      </Link>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
             </Table>
           </TableWrap>
         </Card>
-      </div>
 
-      <Card className="admin-data-panel mt-6 p-5" tone="soft">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
-            <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
-          </div>
-          <Link href="/admin/support" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
-        </div>
-        <TableWrap>
-          <Table>
-            <thead><tr><Th>Ticket</Th><Th>Cliente</Th><Th>Prioridad</Th><Th>Estado</Th></tr></thead>
-            <tbody className="divide-y divide-[#e1edf2]">
-              {data.recentTickets.map(({ row, organization, requester }) => (
-                <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
-                  <Td><Link href={`/admin/support/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.subject}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p></Td>
-                  <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{requester?.email ?? "—"}</p></Td>
-                  <Td className="font-bold capitalize">{row.priority}</Td>
-                  <Td><StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} /></Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </TableWrap>
-      </Card>
-
-      <Card className="admin-audit-panel mt-6 p-5" tone="premium">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Trazabilidad</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Última actividad auditada</h2>
-          </div>
-          <Link href="/admin/audit" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver todo</Link>
-        </div>
-        <div className="mt-4 grid gap-3">
-          {data.recentAudit.map(({ row, organization, actor }) => (
-            <div key={row.id} className="relative rounded-2xl border border-[#dbeaf0] bg-white/[0.68] p-4 pl-5 transition-colors hover:bg-white/[0.86]">
-              <span className="absolute left-0 top-5 h-8 w-1 rounded-r-full bg-[#74d3b4]" aria-hidden />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-black text-[#061925]">{row.action}</p>
-                <span className="text-xs font-bold text-[#789bad]">{formatDateTime(row.created_at)}</span>
-              </div>
-              <p className="mt-1 text-sm text-[#587080]">{organization?.name ?? "Sistema"} · {actor?.email ?? "Backend/service role"} · {row.entity_type}</p>
+        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
+              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
+              <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
             </div>
-          ))}
-        </div>
-      </Card>
+            <Link href="/admin/support" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
+          </div>
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Ticket</Th>
+                  <Th>Cliente</Th>
+                  <Th>Prioridad</Th>
+                  <Th>Estado</Th>
+                  <Th className="text-right">Acción</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e1edf2]">
+                {data.recentTickets.map(({ row, organization, requester }) => (
+                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
+                    <Td className="py-3">
+                      <p className="max-w-[9rem] truncate font-black text-[#061925]" title={row.subject}>
+                        {row.subject}
+                      </p>
+                      <p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p>
+                    </Td>
+                    <Td className="py-3">
+                      <p className="max-w-[7rem] truncate" title={organization?.name ?? undefined}>
+                        {organization?.name ?? "—"}
+                      </p>
+                      <p className="max-w-[7rem] truncate text-xs text-[#789bad]" title={requester?.email ?? undefined}>
+                        {requester?.email ?? "—"}
+                      </p>
+                    </Td>
+                    <Td className="whitespace-nowrap font-bold capitalize">{row.priority}</Td>
+                    <Td className="py-3">
+                      <StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} />
+                    </Td>
+                    <Td className="text-right">
+                      <Link
+                        href={`/admin/support/${row.id}`}
+                        className="inline-flex rounded-md border border-[#cfe8ee] bg-white/80 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.06em] text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]"
+                      >
+                        Abrir
+                      </Link>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        </Card>
+
+        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Trazabilidad</p>
+              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Última actividad auditada</h2>
+              <p className="text-sm text-[#587080]">Eventos recientes del sistema.</p>
+            </div>
+            <RecentAuditFeedHeaderLink />
+          </div>
+          <RecentAuditFeed items={data.recentAudit} />
+        </Card>
+      </div>
     </>
   );
 }

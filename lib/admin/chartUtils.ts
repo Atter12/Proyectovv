@@ -83,8 +83,29 @@ export interface WalletExposureInsights {
   totalReserved: number;
   totalExposure: number;
   topOrganizationName: string | null;
+  topConcentrationShare: number;
+  concentrationLevel: WalletConcentrationLevel;
   activeWalletOrganizationsCount: number;
   ranked: WalletExposureRankingItem[];
+}
+
+export type WalletConcentrationLevel = "alta" | "media" | "baja";
+
+export function resolveWalletConcentrationLevel(topShare: number): WalletConcentrationLevel {
+  if (topShare >= 70) return "alta";
+  if (topShare >= 40) return "media";
+  return "baja";
+}
+
+export function formatWalletConcentrationLevelLabel(level: WalletConcentrationLevel): string {
+  if (level === "alta") return "Alta";
+  if (level === "media") return "Media";
+  return "Baja";
+}
+
+export function formatConcentrationShare(share: number): string {
+  if (share > 0 && share < 0.1) return "<0.1%";
+  return `${share.toFixed(1)}%`;
 }
 
 export function summarizeWalletExposure(data: WalletExposurePoint[]): WalletExposureTotals {
@@ -132,11 +153,15 @@ export function buildWalletExposureInsights(data: WalletExposurePoint[], limit =
     };
   });
 
+  const topConcentrationShare = ranked[0]?.concentrationShare ?? 0;
+
   return {
     totalAvailable,
     totalReserved,
     totalExposure,
     topOrganizationName: withBalance[0]?.organizationName ?? null,
+    topConcentrationShare,
+    concentrationLevel: resolveWalletConcentrationLevel(topConcentrationShare),
     activeWalletOrganizationsCount: withBalance.length,
     ranked,
   };

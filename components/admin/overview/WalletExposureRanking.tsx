@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import type { WalletExposurePoint } from "@/lib/admin/data";
-import { buildWalletExposureInsights, formatOrganizationDisplayName } from "@/lib/admin/chartUtils";
+import {
+  buildWalletExposureInsights,
+  formatConcentrationShare,
+  formatOrganizationDisplayName,
+  formatWalletConcentrationLevelLabel,
+} from "@/lib/admin/chartUtils";
 import { formatMoney } from "@/lib/format";
 import { ADMIN_CHART_SERIES } from "@/components/admin/charts/chartTheme";
 
@@ -11,10 +17,11 @@ interface WalletExposureRankingProps {
   limit?: number;
 }
 
-function formatConcentrationShare(share: number): string {
-  if (share > 0 && share < 0.1) return "<0.1%";
-  return `${share.toFixed(1)}%`;
-}
+const CONCENTRATION_BADGE: Record<"alta" | "media" | "baja", string> = {
+  alta: "border-[#ebc0cc]/70 bg-[#fff0f4] text-[#9a4056]",
+  media: "border-[#ecd9a0]/70 bg-[#fff8e8] text-[#8a6010]",
+  baja: "border-[#b5e5d4]/70 bg-[#f3fff9] text-[#1a7560]",
+};
 
 function activeOrganizationsLabel(count: number): string {
   if (count === 1) return "1 organización con saldo activo";
@@ -26,7 +33,7 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
 
   if (insights.ranked.length === 0) {
     return (
-      <div className="flex min-h-[5.5rem] items-center justify-center rounded-xl border border-dashed border-[#cfe8ee] bg-white/50 px-4 py-6 text-center text-sm font-bold text-[#789bad]">
+      <div className="flex min-h-[5rem] items-center justify-center rounded-xl border border-dashed border-[#cfe8ee] bg-white/50 px-4 py-5 text-center text-sm font-bold text-[#789bad]">
         Sin exposición financiera activa.
       </div>
     );
@@ -41,14 +48,27 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
     summaryParts.push(`Top: ${formatOrganizationDisplayName(insights.topOrganizationName)}`);
   }
 
+  const concentrationLabel = formatWalletConcentrationLevelLabel(insights.concentrationLevel);
+
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       <p className="text-xs font-bold leading-5 text-[#587080]">{summaryParts.join(" · ")}</p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-flex rounded-md border px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.06em] ${CONCENTRATION_BADGE[insights.concentrationLevel]}`}
+        >
+          Concentración {concentrationLabel.toLowerCase()}
+        </span>
+        <span className="text-[0.66rem] font-bold text-[#6d8494]">
+          Top wallet {formatConcentrationShare(insights.topConcentrationShare)}
+        </span>
+      </div>
 
       <div className="divide-y divide-[#e8f2f6] rounded-xl border border-[#e1edf2] bg-white/55">
         {insights.ranked.map((item) => (
-          <div key={item.organizationId} className="space-y-1.5 px-3 py-2.5">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3">
+          <div key={item.organizationId} className="space-y-1.5 px-3 py-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2.5">
               <p
                 className="truncate text-xs font-extrabold text-[#365c6d]"
                 title={formatOrganizationDisplayName(item.organizationName)}
@@ -58,7 +78,7 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
               <p className="text-right text-[0.68rem] font-black tabular-nums text-[#061925] sm:text-xs">
                 {formatMoney(item.exposureCents, currency)}
               </p>
-              <p className="min-w-[3.25rem] text-right text-[0.68rem] font-black tabular-nums text-[#0e7490] sm:text-xs">
+              <p className="min-w-[3rem] text-right text-[0.68rem] font-black tabular-nums text-[#0e7490] sm:text-xs">
                 {formatConcentrationShare(item.concentrationShare)}
               </p>
             </div>
@@ -75,17 +95,25 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
         ))}
       </div>
 
-      <div className="space-y-0.5 pt-0.5">
-        <p className="text-[0.66rem] font-bold text-[#6d8494]">
-          {activeOrganizationsLabel(insights.activeWalletOrganizationsCount)}
-        </p>
-        {insights.totalReserved === 0 ? (
-          <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">Sin saldo reservado actualmente.</p>
-        ) : (
-          <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">
-            {formatMoney(insights.totalReserved, currency)} en reserva distribuidos entre las organizaciones activas.
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-0.5">
+        <div className="space-y-0.5">
+          <p className="text-[0.66rem] font-bold text-[#6d8494]">
+            {activeOrganizationsLabel(insights.activeWalletOrganizationsCount)}
           </p>
-        )}
+          {insights.totalReserved === 0 ? (
+            <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">Sin saldo reservado actualmente.</p>
+          ) : (
+            <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">
+              {formatMoney(insights.totalReserved, currency)} en reserva distribuidos entre las organizaciones activas.
+            </p>
+          )}
+        </div>
+        <Link
+          href="/admin/organizations"
+          className="shrink-0 text-[0.66rem] font-black text-[#0e7490] transition hover:text-[#59c493]"
+        >
+          Ver organizaciones →
+        </Link>
       </div>
     </div>
   );
