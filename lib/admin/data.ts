@@ -407,6 +407,163 @@ async function safeCount(table: string): Promise<number> {
   return count ?? 0;
 }
 
+const PENDING_PAYMENT_STATUSES = ["created", "requires_payment", "processing"] as const;
+const COMPLETED_PAYMENT_STATUS = "succeeded";
+
+export interface PaymentFlowDayPoint {
+  date: string;
+  label: string;
+  created: number;
+  completed: number;
+  pending: number;
+  processedCents: number;
+}
+
+export interface OperationalQueuePoint {
+  category: string;
+  label: string;
+  count: number;
+  href: string;
+}
+
+export interface WalletExposurePoint {
+  organizationId: string;
+  organizationName: string;
+  balanceCents: number;
+  reservedCents: number;
+  availableCents: number;
+  currency: string;
+}
+
+export interface OverviewAnalyticsData {
+  paymentFlow: PaymentFlowDayPoint[];
+  walletExposure: WalletExposurePoint[];
+  primaryCurrency: string;
+}
+
+function toUtcDateKey(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function buildLast30UtcDateKeys(): string[] {
+  const days: string[] = [];
+  const anchor = new Date();
+  anchor.setUTCHours(0, 0, 0, 0);
+  for (let offset = 29; offset >= 0; offset -= 1) {
+    const day = new Date(anchor);
+    day.setUTCDate(anchor.getUTCDate() - offset);
+    days.push(day.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+function formatChartDayLabel(dateKey: string): string {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" }).format(date);
+}
+
+export function buildOperationalQueueFromCounts(counts: {
+  pendingPayments: number;
+  pendingRefunds: number;
+  openTickets: number;
+  failedWebhooks: number;
+}): OperationalQueuePoint[] {
+  return [
+    { category: "payments", label: "Pagos pendientes", count: counts.pendingPayments, href: "/admin/payments" },
+    { category: "refunds", label: "Reembolsos pendientes", count: counts.pendingRefunds, href: "/admin/refunds" },
+    { category: "tickets", label: "Tickets abiertos", count: counts.openTickets, href: "/admin/support" },
+    { category: "webhooks", label: "Webhooks fallidos", count: counts.failedWebhooks, href: "/admin/webhooks" },
+  ];
+}
+
+export async function getOverviewAnalyticsData(): Promise<OverviewAnalyticsData> {
+  const admin = createAdminClient();
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - 29);
+  const sinceIso = since.toISOString();
+
+  const [paymentsResult, walletsResult] = await Promise.all([
+    admin
+      .from("payment_intents")
+      .select("created_at, status, amount_cents")
+      .gte("created_at", sinceIso),
+    admin
+      .from("wallets")
+      .select("organization_id, balance_cents, reserved_balance_cents, currency, status")
+      .eq("status", "active"),
+  ]);
+
+  const dayKeys = buildLast30UtcDateKeys();
+  const flowByDay = new Map<string, { created: number; completed: number; pending: number; processedCents: number }>();
+  for (const day of dayKeys) {
+    flowByDay.set(day, { created: 0, completed: 0, pending: 0, processedCents: 0 });
+  }
+
+  for (const payment of rows(paymentsResult.data as Array<{ created_at: string; status: string; amount_cents: number }> | null)) {
+    const day = toUtcDateKey(payment.created_at);
+    const bucket = flowByDay.get(day);
+    if (!bucket) continue;
+    bucket.created += 1;
+    if (payment.status === COMPLETED_PAYMENT_STATUS) {
+      bucket.completed += 1;
+      bucket.processedCents += Number(payment.amount_cents ?? 0);
+    } else if ((PENDING_PAYMENT_STATUSES as readonly string[]).includes(payment.status)) {
+      bucket.pending += 1;
+    }
+  }
+
+  const paymentFlow: PaymentFlowDayPoint[] = dayKeys.map((date) => {
+    const bucket = flowByDay.get(date) ?? { created: 0, completed: 0, pending: 0, processedCents: 0 };
+    return {
+      date,
+      label: formatChartDayLabel(date),
+      created: bucket.created,
+      completed: bucket.completed,
+      pending: bucket.pending,
+      processedCents: bucket.processedCents,
+    };
+  });
+
+  const walletRows = rows(walletsResult.data as Array<{
+    organization_id: string;
+    balance_cents: number;
+    reserved_balance_cents: number | null;
+    currency: string;
+  }> | null);
+
+  const exposureByOrg = new Map<string, { balanceCents: number; reservedCents: number; currency: string }>();
+  for (const wallet of walletRows) {
+    const current = exposureByOrg.get(wallet.organization_id) ?? {
+      balanceCents: 0,
+      reservedCents: 0,
+      currency: wallet.currency,
+    };
+    current.balanceCents += Number(wallet.balance_cents ?? 0);
+    current.reservedCents += Number(wallet.reserved_balance_cents ?? 0);
+    exposureByOrg.set(wallet.organization_id, current);
+  }
+
+  const orgMap = await getOrganizationMap(Array.from(exposureByOrg.keys()));
+  const walletExposure: WalletExposurePoint[] = Array.from(exposureByOrg.entries())
+    .map(([organizationId, totals]) => ({
+      organizationId,
+      organizationName: orgMap.get(organizationId)?.name ?? `${organizationId.slice(0, 8)}…`,
+      balanceCents: totals.balanceCents,
+      reservedCents: totals.reservedCents,
+      availableCents: Math.max(0, totals.balanceCents - totals.reservedCents),
+      currency: totals.currency,
+    }))
+    .sort((left, right) => right.availableCents - left.availableCents)
+    .slice(0, 10);
+
+  return {
+    paymentFlow,
+    walletExposure,
+    primaryCurrency: walletRows[0]?.currency ?? "USD",
+  };
+}
+
 export async function getOverviewData() {
   const admin = createAdminClient();
 

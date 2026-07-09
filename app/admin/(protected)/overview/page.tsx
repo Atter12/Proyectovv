@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { OperationalQueueChart } from "@/components/admin/charts/OperationalQueueChart.client";
+import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
+import { WalletExposureChart } from "@/components/admin/charts/WalletExposureChart.client";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
-import { getOverviewData } from "@/lib/admin/data";
+import { buildOperationalQueueFromCounts, getOverviewAnalyticsData, getOverviewData } from "@/lib/admin/data";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { PAYMENT_STATUS_LABELS, TICKET_STATUS_LABELS } from "@/lib/constants/status";
 
@@ -27,9 +30,10 @@ function WorkloadChip({ label, value, href }: { label: string; value: number; hr
 }
 
 export default async function OverviewPage() {
-  const data = await getOverviewData();
+  const [data, analytics] = await Promise.all([getOverviewData(), getOverviewAnalyticsData()]);
   const { counts } = data;
   const priorityTotal = counts.pendingPayments + counts.pendingRefunds + counts.openTickets + counts.failedWebhooks;
+  const operationalQueue = buildOperationalQueueFromCounts(counts);
 
   return (
     <>
@@ -74,6 +78,38 @@ export default async function OverviewPage() {
         <KpiCard label="Saldo wallets" value={formatMoney(counts.totalWalletBalanceCents, counts.primaryCurrency)} detail={`${formatMoney(counts.totalReservedCents, counts.primaryCurrency)} reservado`} accent="emerald" />
         <KpiCard label="Pagos por revisar" value={String(counts.pendingPayments)} detail="Manual / voucher pendiente" accent="amber" />
         <KpiCard label="Alertas operativas" value={String(priorityTotal)} detail={`${counts.openTickets} tickets, ${counts.failedWebhooks} webhooks fallidos`} accent="rose" />
+      </div>
+
+      <Card className="admin-data-panel mt-6 p-5" tone="soft">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Flujo de pagos · últimos 30 días</h2>
+            <p className="text-sm text-[#587080]">Volumen diario de intents creados, completados y pendientes, con monto procesado.</p>
+          </div>
+          <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
+        </div>
+        <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
+      </Card>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Card className="admin-data-panel p-5" tone="soft">
+          <div className="mb-4">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Cola operativa</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Carga por categoría</h2>
+            <p className="text-sm text-[#587080]">Complementa la prioridad del día con distribución visual de pendientes.</p>
+          </div>
+          <OperationalQueueChart data={operationalQueue} />
+        </Card>
+
+        <Card className="admin-data-panel p-5" tone="soft">
+          <div className="mb-4">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
+            <p className="text-sm text-[#587080]">Concentración de saldo disponible y reservado en las 10 organizaciones principales.</p>
+          </div>
+          <WalletExposureChart data={analytics.walletExposure} currency={analytics.primaryCurrency} />
+        </Card>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
