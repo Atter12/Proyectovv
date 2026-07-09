@@ -78,9 +78,9 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#edf2f5]">
+              <tbody className="divide-y divide-[#f0f4f6]">
                 {data.recentPayments.map(({ row, organization }) => (
-                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-[#f8fcfd]">
+                  <tr key={row.id} className="transition-colors duration-[180ms] ease-out hover:bg-[#f9fbfc]">
                     <Td className="align-middle py-2.5">
                       <Link href={`/admin/payments/${row.id}`} className="font-semibold text-[#061925] hover:text-[#0e7490]">
                         {row.id.slice(0, 8)}
@@ -137,7 +137,7 @@ export default async function OverviewPage() {
               </thead>
               <tbody className="divide-y divide-[#e1edf2]">
                 {data.recentTickets.map(({ row, organization, requester }) => (
-                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-[#f8fcfd]">
+                  <tr key={row.id} className="transition-colors duration-[180ms] ease-out hover:bg-[#f9fbfc]">
                     <Td className="py-3">
                       <p className="max-w-[9rem] truncate font-black text-[#061925]" title={row.subject}>
                         {row.subject}

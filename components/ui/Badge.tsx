@@ -10,14 +10,14 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-[#f2f7f9] text-[#3d5a68]",
-  success: "bg-[#edf8f3] text-[#1a7560]",
-  warning: "bg-[#faf5eb] text-[#8a6d2e]",
-  danger: "bg-[#faf0f2] text-[#9a4056]",
-  info: "bg-[#f0f7fa] text-[#3d8fa8]",
-  neutral: "bg-[#f4f7f9] text-[#5d7280]",
-  purple: "bg-violet-50/90 text-violet-700/90",
-  premium: "bg-[linear-gradient(135deg,rgba(14,116,144,0.08),rgba(125,211,176,0.14))] text-[#3d8fa8]",
+  default: "bg-[#f3f6f8] text-[#4a6270]",
+  success: "bg-[#f0f8f4] text-[#2d7a62]",
+  warning: "bg-[#faf7f0] text-[#8a6d2e]",
+  danger: "bg-[#faf4f5] text-[#9a4056]",
+  info: "bg-[#f2f7fa] text-[#4a8fa3]",
+  neutral: "bg-[#f5f7f9] text-[#5d7280]",
+  purple: "bg-violet-50/80 text-violet-700/85",
+  premium: "bg-[#f2f8f7] text-[#4a8fa3]",
 };
 
 export function Badge({ className, variant = "default", tone, ...props }: BadgeProps) {
@@ -25,7 +25,7 @@ export function Badge({ className, variant = "default", tone, ...props }: BadgeP
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-[0.6875rem] font-semibold tracking-[0.02em]",
+        "inline-flex h-5 items-center rounded-[6px] px-2 text-[0.6875rem] font-medium tracking-[0.03em]",
         variantClasses[resolvedVariant],
         className,
       )}

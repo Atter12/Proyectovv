@@ -31,9 +31,9 @@ interface PaymentFlowChartProps {
 }
 
 const CHART_HEIGHT_BY_RANGE: Record<PaymentFlowRange, string> = {
-  "7D": "10rem",
-  "15D": "11rem",
-  "30D": "12rem",
+  "7D": "11rem",
+  "15D": "12rem",
+  "30D": "13rem",
 };
 
 export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
@@ -57,8 +57,8 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
   const chartHeight = limitedActivity ? "10rem" : CHART_HEIGHT_BY_RANGE[range];
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <PaymentFlowSummary totals={totals} currency={currency} />
         <PaymentFlowRangeSelector value={range} suggestedRange={suggestedRange} onChange={setRange} />
       </div>
@@ -77,13 +77,14 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
 
       <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 4" stroke={ADMIN_CHART_COLORS.grid} vertical={false} />
+          <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: -8, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="2 6" stroke={ADMIN_CHART_COLORS.grid} vertical={false} />
             <XAxis
               dataKey="label"
               tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
+              dy={4}
               minTickGap={range === "7D" ? 12 : 18}
             />
             <YAxis
@@ -112,15 +113,20 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
                 return [numeric, label];
               }}
             />
-            <Legend wrapperStyle={{ fontSize: "12px", fontWeight: 600, color: "#6d8494", paddingTop: "8px" }} />
+            <Legend
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: "12px", fontWeight: 500, color: "#6d8494", paddingTop: "12px" }}
+            />
             <Bar
               yAxisId="count"
               dataKey="created"
               name="Creados"
               fill={ADMIN_CHART_SERIES.created}
-              radius={[4, 4, 0, 0]}
-              maxBarSize={14}
-              animationDuration={500}
+              fillOpacity={0.88}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={12}
+              animationDuration={600}
               animationEasing="ease-out"
             />
             <Bar
@@ -128,9 +134,10 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               dataKey="completed"
               name="Completados"
               fill={ADMIN_CHART_SERIES.completed}
-              radius={[4, 4, 0, 0]}
-              maxBarSize={14}
-              animationDuration={550}
+              fillOpacity={0.88}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={12}
+              animationDuration={650}
               animationEasing="ease-out"
             />
             <Bar
@@ -138,21 +145,22 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
               dataKey="pending"
               name="Pendientes"
               fill={ADMIN_CHART_SERIES.pending}
-              radius={[4, 4, 0, 0]}
-              maxBarSize={14}
-              animationDuration={600}
+              fillOpacity={0.88}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={12}
+              animationDuration={700}
               animationEasing="ease-out"
             />
             <Line
               yAxisId="amount"
-              type="monotone"
+              type="natural"
               dataKey="processedAmount"
               name="Monto procesado"
               stroke={ADMIN_CHART_SERIES.processed}
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4, fill: ADMIN_CHART_SERIES.processed, stroke: "#fff", strokeWidth: 2 }}
-              animationDuration={650}
+              animationDuration={750}
               animationEasing="ease-out"
             />
           </ComposedChart>

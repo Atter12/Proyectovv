@@ -1,12 +1,12 @@
 export const ADMIN_CHART_COLORS = {
-  teal: "#3d8fa8",
-  mint: "#5aab8a",
-  amber: "#c9a24e",
-  rose: "#c96a82",
-  sky: "#6eb0c8",
+  teal: "#4a8fa3",
+  mint: "#5a9e7f",
+  amber: "#b89547",
+  rose: "#b86a7f",
+  sky: "#6aadc4",
   slate: "#6d8494",
-  grid: "#f0f5f7",
-  axis: "#8fa3b0",
+  grid: "#f5f8fa",
+  axis: "#94a8b4",
 } as const;
 
 export const ADMIN_CHART_SERIES = {
@@ -24,24 +24,25 @@ export const ADMIN_CHART_SERIES = {
 
 export const adminChartTooltipStyle = {
   contentStyle: {
-    borderRadius: "10px",
-    border: "1px solid rgb(14 72 90 / 0.08)",
+    borderRadius: "12px",
+    border: "none",
     background: "rgba(255,255,255,0.98)",
-    boxShadow: "var(--admin-shadow-3)",
+    boxShadow: "var(--admin-shadow-4)",
     fontSize: "12px",
     color: "#061925",
-    padding: "10px 12px",
+    padding: "12px 14px",
   },
   labelStyle: {
-    color: "#5d7280",
-    fontWeight: 600,
-    marginBottom: "6px",
+    color: "#6d8494",
+    fontWeight: 500,
+    marginBottom: "8px",
     fontSize: "11px",
+    letterSpacing: "0.02em",
   },
   itemStyle: {
     color: "#061925",
     fontWeight: 500,
-    paddingTop: "2px",
+    paddingTop: "3px",
   },
-  cursor: { fill: "rgba(14, 116, 144, 0.04)" },
+  cursor: { fill: "rgba(14, 116, 144, 0.03)", stroke: "rgba(14, 116, 144, 0.06)", strokeWidth: 1 },
 } as const;

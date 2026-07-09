@@ -24,8 +24,8 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     "bg-[#d4f5e6] text-[#063048] shadow-[var(--admin-shadow-1)] hover:bg-[#e2f9ee] active:scale-[0.99]",
   outline:
-    "border border-[var(--admin-content-border)] bg-white text-[#16445a] hover:border-[#b8e8d4] hover:bg-[#f7fcfa]",
-  ghost: "text-[#5d7280] hover:bg-[#f0f7f9] hover:text-[#063048]",
+    "border border-[var(--admin-content-border)] bg-white text-[#16445a] hover:border-[#c5e5d8] hover:bg-[#f8fcfa] hover:shadow-[var(--admin-shadow-1)]",
+  ghost: "text-[#5d7280] hover:bg-[#f3f7f9] hover:text-[#063048]",
   luxury:
     "bg-[linear-gradient(135deg,#0e7490,#7dd3b0)] text-white shadow-[var(--admin-shadow-2)] hover:shadow-[var(--admin-shadow-3)] active:scale-[0.99]",
   danger: "bg-rose-600/95 text-white shadow-[var(--admin-shadow-1)] hover:bg-rose-700 active:scale-[0.99]",
@@ -33,13 +33,13 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs rounded-md",
-  md: "h-9 px-4 text-sm rounded-lg",
-  lg: "h-11 px-6 text-sm rounded-lg",
+  sm: "h-8 px-3 text-xs rounded-[10px]",
+  md: "h-9 px-4 text-sm rounded-[10px]",
+  lg: "h-11 px-6 text-sm rounded-xl",
 };
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 font-semibold transition-[color,background-color,box-shadow,transform,border-color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490]/35 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 font-medium transition-[color,background-color,box-shadow,transform,border-color,opacity] duration-[180ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0e7490]/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45";
 
 export function Button(props: NativeButtonProps | LinkButtonProps) {
   const { variant = "primary", size = "md", className } = props;

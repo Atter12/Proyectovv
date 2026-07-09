@@ -80,9 +80,9 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
         </aside>
 
         <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">
-          <header className="admin-topbar sticky top-0 z-30 border-b border-[#d7e7ee]/70 bg-white/[0.78] px-4 py-3 shadow-[var(--shadow-topbar)] backdrop-blur-2xl sm:px-6 lg:px-8">
-            <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-3 sm:gap-4">
-              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <header className="admin-topbar sticky top-0 z-30 border-b border-[#e8f0f3]/80 bg-white/[0.82] px-4 py-3.5 shadow-[var(--admin-shadow-1)] backdrop-blur-xl sm:px-6 sm:py-4 lg:px-8">
+            <div className="mx-auto flex max-w-[96rem] items-center justify-between gap-4">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
@@ -96,17 +96,17 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                   </svg>
                 </button>
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-bold tracking-tight text-[#061925] sm:text-xl">
+                  <p className="truncate text-lg font-semibold tracking-tight text-[#061925] sm:text-xl">
                     Panel administrativo
                   </p>
-                  <p className="mt-0.5 truncate text-sm font-medium text-[#587080]">{appName}</p>
+                  <p className="mt-0.5 truncate text-sm font-medium tracking-[0.01em] text-[#6d8494]">{appName}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 {admin.accessMode === "development-open" ? <Badge tone="warning">Dev open</Badge> : <Badge tone="success">Allowlist</Badge>}
                 <Link
                   href={routes.overview}
-                  className="hidden rounded-full border border-[#cfe1e9] bg-white/75 px-3 py-2 text-xs font-black text-[#16445a] shadow-sm transition hover:border-[#74d3b4] hover:bg-[#f2fff8] sm:inline-flex"
+                  className="hidden h-9 items-center rounded-[10px] border border-[var(--admin-content-border)] bg-white/90 px-3 text-xs font-medium text-[#16445a] shadow-[var(--admin-shadow-1)] transition duration-[180ms] ease-out hover:border-[#c5e5d8] hover:bg-[#f8fcfa] hover:shadow-[var(--admin-shadow-2)] sm:inline-flex"
                 >
                   Panel cliente
                 </Link>

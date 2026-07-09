@@ -15,30 +15,30 @@ const accentStyles: Record<
 > = {
   indigo: {
     surface: "bg-white",
-    stripe: "bg-[#3d8fa8]",
-    iconWrap: "bg-[#f4f9fb] text-[#3d8fa8]",
+    stripe: "bg-[#4a8fa3]",
+    iconWrap: "bg-[#f6fafb] text-[#4a8fa3]",
   },
   emerald: {
     surface: "bg-white",
-    stripe: "bg-[#4fa882]",
-    iconWrap: "bg-[#f3faf7] text-[#3d8f6e]",
+    stripe: "bg-[#5a9e7f]",
+    iconWrap: "bg-[#f6faf8] text-[#4d9172]",
   },
   amber: {
     surface: "bg-white",
-    stripe: "bg-[#c9a24e]",
-    iconWrap: "bg-[#faf8f3] text-[#8a6d2e]",
+    stripe: "bg-[#b89547]",
+    iconWrap: "bg-[#faf9f6] text-[#8a6d2e]",
   },
   rose: {
     surface: "bg-white",
-    stripe: "bg-[#c96a82]",
-    iconWrap: "bg-[#faf5f7] text-[#a84d66]",
+    stripe: "bg-[#b86a7f]",
+    iconWrap: "bg-[#faf7f8] text-[#a0586c]",
   },
 };
 
 const roseEmphasizedStyles = {
-  surface: "bg-[#fffbfc]",
-  stripe: "bg-[#b85a72] w-[3px]",
-  iconWrap: "bg-[#faf0f3] text-[#a84d66] ring-1 ring-[#ecd0d8]/80",
+  surface: "bg-[#fffcfd]",
+  stripe: "bg-[#a8586c] w-[3px]",
+  iconWrap: "bg-[#faf3f5] text-[#a0586c]",
 };
 
 export function AdminMetricCard({
@@ -63,7 +63,7 @@ export function AdminMetricCard({
   return (
     <article
       className={cn(
-        "admin-metric-card relative overflow-hidden border border-[var(--admin-content-border)]",
+        "admin-metric-card relative overflow-hidden",
         adminRadius.metric,
         adminShadow.surface,
         adminMotion.base,
@@ -76,21 +76,18 @@ export function AdminMetricCard({
 
       <div
         className={cn(
-          "relative flex items-center gap-3 px-4 py-4 pl-[0.9rem]",
+          "relative flex items-center gap-3.5 px-5 py-4 pl-[1rem]",
           stretch ? "min-h-0 flex-1" : "",
         )}
       >
         <div
-          className={cn(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
-            style.iconWrap,
-          )}
+          className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-[10px] opacity-90", style.iconWrap)}
           aria-hidden
         >
           <AdminMetricIcon accent={accent} emphasized={accent === "rose" && emphasized} />
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <p className={adminPanelTypography.metricLabel}>{label}</p>
           <p className={adminPanelTypography.metricValue}>{value}</p>
           {detail ? <p className={adminPanelTypography.metricHelper}>{detail}</p> : null}

@@ -8,9 +8,9 @@ import type { OperationalMonthlyProgress } from "@/lib/admin/data";
 export type OperationalProgressDonutProps = OperationalMonthlyProgress;
 
 const COLORS = {
-  completed: "#6ee7b7",
-  emitted: "#fbbf24",
-  empty: "rgba(255,255,255,0.12)",
+  completed: "#5fd4a8",
+  emitted: "#d4b35c",
+  empty: "rgba(255,255,255,0.1)",
 } as const;
 
 type ChartSegment = {
@@ -73,7 +73,7 @@ export function OperationalProgressDonut({
   };
 
   const chartSizeClass = integrated
-    ? "h-[7rem] w-[7rem] sm:h-[7.75rem] sm:w-[7.75rem]"
+    ? "h-[7.75rem] w-[7.75rem] sm:h-[8.25rem] sm:w-[8.25rem]"
     : "h-[5.5rem] w-[5.5rem] sm:h-[6.5rem] sm:w-[6.5rem]";
 
   return (
@@ -85,11 +85,14 @@ export function OperationalProgressDonut({
               data={safeData}
               dataKey="value"
               nameKey="name"
-              innerRadius="68%"
+              innerRadius="62%"
               outerRadius="100%"
-              stroke="none"
-              paddingAngle={total > 0 && emitted > 0 && completed > 0 ? 2 : 0}
-              isAnimationActive={false}
+              stroke="#0f2d3f"
+              strokeWidth={2}
+              paddingAngle={total > 0 && emitted > 0 && completed > 0 ? 3 : 0}
+              isAnimationActive
+              animationDuration={700}
+              animationEasing="ease-out"
               onMouseLeave={() => setHoveredSegment(null)}
             >
               {safeData.map((entry) => (
@@ -105,10 +108,10 @@ export function OperationalProgressDonut({
         </ResponsiveContainer>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-lg font-black leading-none text-white sm:text-xl">
+          <span className="text-xl font-bold leading-none tracking-tight text-white sm:text-[1.35rem]">
             {total > 0 ? `${completionRate}%` : "0"}
           </span>
-          <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[#9dd5e3]">
+          <span className="mt-1 text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[#9dd5e3]/90">
             {total > 0 ? "cumplido" : "sin actividad"}
           </span>
         </div>
@@ -116,12 +119,12 @@ export function OperationalProgressDonut({
         {total > 0 ? <OperationalProgressHoverDetail segment={hoveredSegment} placement={tooltipPlacement} /> : null}
       </div>
 
-      <div className="mt-1.5 max-w-[8.5rem] text-center">
-        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[#9dd5e3]">
+      <div className="mt-2 max-w-[9rem] text-center">
+        <p className="text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[#9dd5e3]/85">
           {total > 0 ? "Solicitudes del mes" : "Sin actividad este mes"}
         </p>
         {total > 0 ? (
-          <p className="mt-0.5 text-[0.68rem] font-semibold text-[#b8d2df]">
+          <p className="mt-1 text-xs font-medium tracking-[0.01em] text-[#b0c8d6]">
             {completed} cumplidas · {emitted} emitidas
           </p>
         ) : null}

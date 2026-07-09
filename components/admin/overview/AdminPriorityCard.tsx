@@ -76,28 +76,28 @@ export function AdminPriorityCard({
         aria-hidden
       />
 
-      <div className="relative flex h-full min-h-0 flex-col p-4 sm:p-5">
-        <div className="grid min-h-0 flex-1 gap-5 max-lg:grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_auto_minmax(11.5rem,12.75rem)] lg:items-center lg:gap-5">
-          <div className="min-w-0 space-y-3">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 rounded-md border border-[#74d3b4]/16 bg-[#74d3b4]/8 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05em] text-[#9dd5e3]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#74d3b4]/90" aria-hidden />
+      <div className="relative flex h-full min-h-0 flex-col p-5 sm:p-6">
+        <div className="grid min-h-0 flex-1 gap-6 max-lg:grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_auto_minmax(11.5rem,12.5rem)] lg:items-center">
+          <div className="min-w-0 space-y-4">
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#74d3b4]/12 bg-[#74d3b4]/6 px-2.5 py-1 text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[#9dd5e3]/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#74d3b4]/85" aria-hidden />
                 Prioridad del día
               </div>
-              <h2 className="text-base font-semibold tracking-tight text-white sm:text-[1.05rem]">
+              <h2 className="text-[1.05rem] font-semibold tracking-tight text-white sm:text-lg">
                 {priorityTitle(priorityTotal)}
               </h2>
-              <p className="text-sm font-medium text-[#b0c8d6]">
+              <p className="text-sm font-medium tracking-[0.005em] text-[#b0c8d6]">
                 Cola financiera, soporte y webhooks.
               </p>
-              <p className="text-xs font-medium text-[#9ab7c8]">
+              <p className="text-xs font-medium tracking-[0.01em] text-[#9ab7c8]">
                 {priorityOperationalHint(counts, priorityTotal)}
               </p>
             </div>
             <PriorityActions />
           </div>
 
-          <div className="flex min-w-0 justify-center lg:justify-center">
+          <div className="flex min-w-0 justify-center px-2 lg:px-3">
             <OperationalProgressDonut {...operationalProgress} integrated />
           </div>
 

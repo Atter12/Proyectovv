@@ -15,11 +15,11 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "border border-[var(--admin-content-border)] bg-white/[0.94] shadow-[var(--admin-shadow-2)]",
-  soft: "bg-white/[0.9] shadow-[var(--admin-shadow-2)]",
+  default: "bg-white/[0.96] shadow-[var(--admin-shadow-2)]",
+  soft: "bg-white/[0.94] shadow-[var(--admin-shadow-2)]",
   premium:
-    "border border-[var(--admin-content-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,252,253,0.9))] shadow-[var(--admin-shadow-2)]",
-  dark: "border border-white/8 bg-[#102f42] text-white shadow-[var(--admin-shadow-3)]",
+    "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,252,253,0.94))] shadow-[var(--admin-shadow-2)]",
+  dark: "bg-[#102f42] text-white shadow-[var(--admin-shadow-3)]",
 };
 
 export function Card({
@@ -30,28 +30,28 @@ export function Card({
   children,
   ...props
 }: CardProps) {
+  const radiusClass = tone === "dark" ? "rounded-[22px]" : "rounded-[18px]";
+
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl",
+        "relative overflow-hidden",
+        radiusClass,
         toneClasses[tone],
         elevated &&
-          "transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-3)]",
+          "transition-[box-shadow,transform] duration-[180ms] ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-3)]",
         paddingClasses[padding],
         className,
       )}
       {...props}
     >
-      {tone === "premium" ? (
-        <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-      ) : null}
       {children}
     </div>
   );
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mb-4 flex flex-col gap-1.5", className)} {...props} />;
+  return <div className={cn("mb-4 flex flex-col gap-1", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
