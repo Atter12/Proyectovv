@@ -25,7 +25,7 @@ const accentStyles: Record<
     label: "text-[#1a6578]",
     detail: "text-[#3d5f6f]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(247,252,254,0.18)_0%,rgba(236,247,251,0.18)_52%,rgba(228,242,248,0.18)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(247,252,254,0.08)_0%,rgba(236,247,251,0.08)_52%,rgba(228,242,248,0.08)_100%)]",
     symbol: "Org",
     fallback: "bg-[linear-gradient(135deg,#f7fcfe_0%,#eef7fb_100%)]",
   },
@@ -36,7 +36,7 @@ const accentStyles: Record<
     label: "text-[#1a7560]",
     detail: "text-[#3d6358]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(243,255,249,0.18)_0%,rgba(233,250,242,0.18)_52%,rgba(220,245,234,0.18)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(243,255,249,0.08)_0%,rgba(233,250,242,0.08)_52%,rgba(220,245,234,0.08)_100%)]",
     symbol: "$",
     fallback: "bg-[linear-gradient(135deg,#f3fff9_0%,#e9faf2_100%)]",
   },
@@ -47,7 +47,7 @@ const accentStyles: Record<
     label: "text-[#8a6010]",
     detail: "text-[#6b5530]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(255,253,246,0.18)_0%,rgba(255,247,228,0.18)_52%,rgba(255,240,210,0.18)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(255,253,246,0.08)_0%,rgba(255,247,228,0.08)_52%,rgba(255,240,210,0.08)_100%)]",
     symbol: "Pay",
     fallback: "bg-[linear-gradient(135deg,#fffdf6_0%,#fff7e4_100%)]",
   },
@@ -58,7 +58,7 @@ const accentStyles: Record<
     label: "text-[#9a4056]",
     detail: "text-[#6f4a55]",
     overlay:
-      "bg-[linear-gradient(135deg,rgba(255,249,251,0.18)_0%,rgba(255,240,244,0.18)_52%,rgba(255,228,234,0.18)_100%)]",
+      "bg-[linear-gradient(135deg,rgba(255,249,251,0.08)_0%,rgba(255,240,244,0.08)_52%,rgba(255,228,234,0.08)_100%)]",
     symbol: "!",
     fallback: "bg-[linear-gradient(135deg,#fff9fb_0%,#fff0f4_100%)]",
   },
