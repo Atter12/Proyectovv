@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { AdminNavLinks } from "@/components/admin/AdminNavLinks.client";
+import { AdminSidebarUserSession } from "@/components/admin/AdminSidebarUserSession";
+import type { AdminSession } from "@/lib/admin/auth";
 
 type AdminSidebarPanelProps = {
+  admin: AdminSession;
   onNavigate?: () => void;
 };
 
-export function AdminSidebarPanel({ onNavigate }: AdminSidebarPanelProps) {
+export function AdminSidebarPanel({ admin, onNavigate }: AdminSidebarPanelProps) {
   return (
     <div className="admin-sidebar-shell flex h-full flex-col">
       <Link
@@ -28,16 +31,7 @@ export function AdminSidebarPanel({ onNavigate }: AdminSidebarPanelProps) {
         <AdminNavLinks onNavigate={onNavigate} />
       </div>
 
-      <div className="admin-quick-row mt-2 shrink-0 border-t border-[var(--admin-divider)] pt-2">
-        <Link
-          href="/admin/payments"
-          onClick={onNavigate}
-          className="flex items-center justify-between rounded-md px-2 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--admin-text-muted)] transition-colors duration-150 hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/50"
-        >
-          Revisar pagos
-          <span className="text-[var(--admin-accent)]" aria-hidden>→</span>
-        </Link>
-      </div>
+      <AdminSidebarUserSession admin={admin} />
     </div>
   );
 }

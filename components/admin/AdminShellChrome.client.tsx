@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { signOutAdminAction } from "@/app/actions/admin-auth";
 import { AdminSidebarPanel } from "@/components/admin/AdminSidebarPanel";
 import { routes } from "@/config/routes";
 import type { AdminSession } from "@/lib/admin/auth";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 
 type AdminShellChromeProps = {
   admin: AdminSession;
@@ -69,14 +67,14 @@ export function AdminShellChrome({ admin, appName, children }: AdminShellChromeP
             </svg>
           </button>
           <div className="h-full pt-10">
-            <AdminSidebarPanel onNavigate={() => setSidebarOpen(false)} />
+            <AdminSidebarPanel admin={admin} onNavigate={() => setSidebarOpen(false)} />
           </div>
         </aside>
       </div>
 
       <div className="admin-canvas admin-perspective-layout admin-perspective-layout--operational min-h-screen lg:grid lg:h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
         <aside className="admin-sidebar admin-sidebar-operational hidden border-r border-[var(--admin-border)] px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
-          <AdminSidebarPanel />
+          <AdminSidebarPanel admin={admin} />
         </aside>
 
         <main className="admin-content-plane min-w-0 lg:h-screen lg:overflow-y-auto">
@@ -108,13 +106,6 @@ export function AdminShellChrome({ admin, appName, children }: AdminShellChromeP
                 >
                   Panel cliente
                 </Link>
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm font-black text-[#061925]">{admin.fullName ?? admin.email}</p>
-                  <p className="text-xs font-bold text-[#7b91a0]">{admin.email}</p>
-                </div>
-                <form action={signOutAdminAction}>
-                  <Button type="submit" variant="secondary" size="sm">Salir</Button>
-                </form>
               </div>
             </div>
           </header>

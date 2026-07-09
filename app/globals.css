@@ -467,6 +467,14 @@ body {
   border-top: 1px solid var(--admin-divider);
 }
 
+.admin-session-panel {
+  border-top: 1px solid var(--admin-divider);
+}
+
+.admin-perspective-layout--operational .admin-session-panel {
+  background: transparent;
+}
+
 .admin-nav-branch {
   background: linear-gradient(180deg, transparent 0%, rgb(120 204 232 / 0.13) 14%, rgb(255 255 255 / 0.055) 86%, transparent 100%);
 }
