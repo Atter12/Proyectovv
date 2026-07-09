@@ -96,8 +96,10 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                   </svg>
                 </button>
                 <div className="min-w-0">
-                  <p className="text-[0.68rem] font-black uppercase tracking-[0.24em] text-[#0e7490]">{appName}</p>
-                  <p className="truncate text-sm font-bold text-[#5d7280]">Centro de control financiero, soporte y auditoría en tiempo real</p>
+                  <p className="truncate text-lg font-bold tracking-tight text-[#061925] sm:text-xl">
+                    Panel administrativo
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-medium text-[#587080]">{appName}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
