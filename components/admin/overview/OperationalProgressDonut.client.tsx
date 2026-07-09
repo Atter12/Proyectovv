@@ -22,17 +22,14 @@ type ChartSegment = {
 type TooltipPlacement = "right" | "left" | "below";
 
 function resolveTooltipPlacement(container: HTMLDivElement | null): TooltipPlacement {
-  if (!container || typeof window === "undefined") return "right";
+  if (!container || typeof window === "undefined") return "left";
 
   const rect = container.getBoundingClientRect();
   const spaceRight = window.innerWidth - rect.right;
   const spaceLeft = rect.left;
-  const isWideLayout = window.matchMedia("(min-width: 1024px)").matches;
 
-  // Priority card places queue stats to the right on desktop — bias tooltip left.
-  if (isWideLayout && spaceLeft >= 110) return "left";
-  if (spaceRight >= 110) return "right";
   if (spaceLeft >= 110) return "left";
+  if (spaceRight >= 110) return "right";
   return "below";
 }
 
@@ -41,7 +38,8 @@ export function OperationalProgressDonut({
   emitted,
   completed,
   completionRate,
-}: OperationalProgressDonutProps) {
+  integrated = false,
+}: OperationalProgressDonutProps & { integrated?: boolean }) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [hoveredSegment, setHoveredSegment] = useState<ChartSegment | null>(null);
   const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement>("right");
@@ -74,9 +72,13 @@ export function OperationalProgressDonut({
     setHoveredSegment(segment);
   };
 
+  const chartSizeClass = integrated
+    ? "h-[6rem] w-[6rem] sm:h-[7.25rem] sm:w-[7.25rem]"
+    : "h-[5.5rem] w-[5.5rem] sm:h-[6.5rem] sm:w-[6.5rem]";
+
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center">
-      <div ref={chartRef} className="relative h-[5.5rem] w-[5.5rem] sm:h-[6.5rem] sm:w-[6.5rem]">
+    <div className={`flex shrink-0 flex-col items-center justify-center ${integrated ? "lg:items-end" : ""}`}>
+      <div ref={chartRef} className={`relative ${chartSizeClass}`}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -114,7 +116,7 @@ export function OperationalProgressDonut({
         {total > 0 ? <OperationalProgressHoverDetail segment={hoveredSegment} placement={tooltipPlacement} /> : null}
       </div>
 
-      <div className="mt-1.5 text-center">
+      <div className={`mt-1.5 text-center ${integrated ? "lg:text-right" : ""}`}>
         <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#9dd5e3]">
           {total > 0 ? "Solicitudes del mes" : "Sin actividad este mes"}
         </p>
