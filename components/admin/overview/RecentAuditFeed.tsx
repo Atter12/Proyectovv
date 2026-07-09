@@ -54,7 +54,7 @@ export function RecentAuditFeedHeaderLink() {
   return (
     <Link
       href="/admin/audit"
-      className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]"
+      className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]"
     >
       Ver todo
     </Link>

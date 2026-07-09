@@ -18,7 +18,7 @@ export function PaymentFlowSummary({ totals, currency }: PaymentFlowSummaryProps
   }
 
   return (
-    <p className="text-xs font-bold leading-5 text-[#587080]">
+    <p className="text-xs font-medium leading-5 text-[#587080]">
       {parts.join(" · ")}
     </p>
   );

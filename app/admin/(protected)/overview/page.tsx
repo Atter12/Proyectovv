@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
+import { adminPanelTypography } from "@/components/admin/overview/adminPanelTypography";
 import { WalletExposureRanking } from "@/components/admin/overview/WalletExposureRanking";
 import { AdminExecutiveOverview } from "@/components/admin/overview/AdminExecutiveOverview";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
@@ -34,9 +35,11 @@ export default async function OverviewPage() {
 
       <Card className="admin-data-panel p-5" tone="soft">
         <div className="mb-3">
-          <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
-          <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos</h2>
-          <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día · rango ajustable.</p>
+          <p className={adminPanelTypography.sectionEyebrow}>Tendencia financiera</p>
+          <h2 className={adminPanelTypography.sectionTitle}>Flujo de pagos</h2>
+          <p className={adminPanelTypography.sectionSubtitle}>
+            Pagos creados, aprobados y pendientes según el rango seleccionado.
+          </p>
         </div>
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
@@ -44,9 +47,11 @@ export default async function OverviewPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
           <div className="mb-3">
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
-            <p className="text-sm text-[#587080]">Concentración de saldo y exposición por cliente.</p>
+            <p className={adminPanelTypography.sectionEyebrow}>Exposición financiera</p>
+            <h2 className={adminPanelTypography.sectionTitle}>Top wallets por organización</h2>
+            <p className={adminPanelTypography.sectionSubtitle}>
+              Saldos activos y concentración por organización.
+            </p>
           </div>
           <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
@@ -54,11 +59,13 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Flujo operativo</p>
-              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Pagos recientes</h2>
-              <p className="text-sm text-[#587080]">Manuales y proveedores externos · acceso directo a la cola.</p>
+              <p className={adminPanelTypography.sectionEyebrow}>Flujo operativo</p>
+              <h2 className={adminPanelTypography.sectionTitle}>Pagos recientes</h2>
+              <p className={adminPanelTypography.sectionSubtitle}>
+                Últimos pagos manuales y externos para revisión.
+              </p>
             </div>
-            <Link href="/admin/payments" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
+            <Link href="/admin/payments" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
           </div>
           <TableWrap>
             <Table>
@@ -105,11 +112,11 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
-              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
-              <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
+              <p className={adminPanelTypography.sectionEyebrow}>Soporte</p>
+              <h2 className={adminPanelTypography.sectionTitle}>Tickets recientes</h2>
+              <p className={adminPanelTypography.sectionSubtitle}>Conversaciones recientes del chat con clientes.</p>
             </div>
-            <Link href="/admin/support" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
+            <Link href="/admin/support" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
           </div>
           <TableWrap>
             <Table>
@@ -161,9 +168,9 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Trazabilidad</p>
-              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Última actividad auditada</h2>
-              <p className="text-sm text-[#587080]">Eventos recientes del sistema.</p>
+              <p className={adminPanelTypography.sectionEyebrow}>Trazabilidad</p>
+              <h2 className={adminPanelTypography.sectionTitle}>Última actividad auditada</h2>
+              <p className={adminPanelTypography.sectionSubtitle}>Registro reciente de acciones del sistema.</p>
             </div>
             <RecentAuditFeedHeaderLink />
           </div>

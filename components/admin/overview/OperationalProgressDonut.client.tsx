@@ -108,7 +108,7 @@ export function OperationalProgressDonut({
           <span className="text-lg font-black leading-none text-white sm:text-xl">
             {total > 0 ? `${completionRate}%` : "0"}
           </span>
-          <span className="mt-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-[#9dd5e3]">
+          <span className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[#9dd5e3]">
             {total > 0 ? "cumplido" : "sin actividad"}
           </span>
         </div>
@@ -117,7 +117,7 @@ export function OperationalProgressDonut({
       </div>
 
       <div className="mt-1.5 max-w-[8.5rem] text-center">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#9dd5e3]">
+        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.06em] text-[#9dd5e3]">
           {total > 0 ? "Solicitudes del mes" : "Sin actividad este mes"}
         </p>
         {total > 0 ? (
