@@ -1,11 +1,7 @@
 "use client";
 
 import type { WalletExposurePoint } from "@/lib/admin/data";
-import {
-  filterWalletExposureWithBalance,
-  formatOrganizationDisplayName,
-  summarizeWalletExposure,
-} from "@/lib/admin/chartUtils";
+import { buildWalletExposureInsights, formatOrganizationDisplayName } from "@/lib/admin/chartUtils";
 import { formatMoney } from "@/lib/format";
 import { ADMIN_CHART_SERIES } from "@/components/admin/charts/chartTheme";
 
@@ -15,47 +11,44 @@ interface WalletExposureRankingProps {
   limit?: number;
 }
 
-export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExposureRankingProps) {
-  const ranked = filterWalletExposureWithBalance(data, limit);
-  const totals = summarizeWalletExposure(data);
-  const hasReserved = ranked.some((item) => item.reservedCents > 0);
-  const maxExposureCents = ranked.reduce(
-    (max, item) => Math.max(max, item.availableCents + item.reservedCents),
-    0,
-  );
+function formatConcentrationShare(share: number): string {
+  if (share > 0 && share < 0.1) return "<0.1%";
+  return `${share.toFixed(1)}%`;
+}
 
-  if (ranked.length === 0) {
+function activeOrganizationsLabel(count: number): string {
+  if (count === 1) return "1 organización con saldo activo";
+  return `${count} organizaciones con saldo activo`;
+}
+
+export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExposureRankingProps) {
+  const insights = buildWalletExposureInsights(data, limit);
+
+  if (insights.ranked.length === 0) {
     return (
-      <div className="flex min-h-[7rem] items-center justify-center rounded-2xl border border-dashed border-[#cfe8ee] bg-white/50 px-4 text-center text-sm font-bold text-[#789bad]">
+      <div className="flex min-h-[5.5rem] items-center justify-center rounded-xl border border-dashed border-[#cfe8ee] bg-white/50 px-4 py-6 text-center text-sm font-bold text-[#789bad]">
         Sin exposición financiera activa.
       </div>
     );
   }
 
   const summaryParts = [
-    `${formatMoney(totals.availableCents, currency)} disponible`,
-    `${formatMoney(totals.reservedCents, currency)} reservado`,
+    `${formatMoney(insights.totalAvailable, currency)} disponible`,
+    `${formatMoney(insights.totalReserved, currency)} reservado`,
   ];
 
-  if (totals.topOrganizationName) {
-    summaryParts.push(`Top: ${formatOrganizationDisplayName(totals.topOrganizationName)}`);
+  if (insights.topOrganizationName) {
+    summaryParts.push(`Top: ${formatOrganizationDisplayName(insights.topOrganizationName)}`);
   }
 
-  const rowHeight = 2.35;
-  const blockHeight = Math.min(14, 3.2 + ranked.length * rowHeight);
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <p className="text-xs font-bold leading-5 text-[#587080]">{summaryParts.join(" · ")}</p>
 
-      <div className="space-y-2.5" style={{ minHeight: `${blockHeight}rem` }}>
-        {ranked.map((item) => {
-          const totalCents = item.availableCents + item.reservedCents;
-          const availablePct = maxExposureCents > 0 ? (item.availableCents / maxExposureCents) * 100 : 0;
-          const reservedPct = maxExposureCents > 0 ? (item.reservedCents / maxExposureCents) * 100 : 0;
-
-          return (
-            <div key={item.organizationId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,7.5rem)_auto_minmax(0,1fr)]">
+      <div className="divide-y divide-[#e8f2f6] rounded-xl border border-[#e1edf2] bg-white/55">
+        {insights.ranked.map((item) => (
+          <div key={item.organizationId} className="space-y-1.5 px-3 py-2.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3">
               <p
                 className="truncate text-xs font-extrabold text-[#365c6d]"
                 title={formatOrganizationDisplayName(item.organizationName)}
@@ -63,41 +56,37 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
                 {formatOrganizationDisplayName(item.organizationName)}
               </p>
               <p className="text-right text-[0.68rem] font-black tabular-nums text-[#061925] sm:text-xs">
-                {formatMoney(totalCents, currency)}
+                {formatMoney(item.exposureCents, currency)}
               </p>
-              <div className="col-span-2 flex h-2 overflow-hidden rounded-full bg-[#e8f2f6] sm:col-span-1">
-                {availablePct > 0 ? (
-                  <span
-                    className="h-full"
-                    style={{ width: `${availablePct}%`, backgroundColor: ADMIN_CHART_SERIES.available }}
-                  />
-                ) : null}
-                {reservedPct > 0 ? (
-                  <span
-                    className="h-full"
-                    style={{ width: `${reservedPct}%`, backgroundColor: ADMIN_CHART_SERIES.reserved }}
-                  />
-                ) : null}
-              </div>
+              <p className="min-w-[3.25rem] text-right text-[0.68rem] font-black tabular-nums text-[#0e7490] sm:text-xs">
+                {formatConcentrationShare(item.concentrationShare)}
+              </p>
             </div>
-          );
-        })}
+            <div className="h-1.5 overflow-hidden rounded-full bg-[#e8f2f6]">
+              <span
+                className="block h-full rounded-full"
+                style={{
+                  width: `${Math.max(item.concentrationShare, item.concentrationShare > 0 ? 4 : 0)}%`,
+                  backgroundColor: ADMIN_CHART_SERIES.available,
+                }}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
-      {hasReserved ? (
-        <div className="flex flex-wrap items-center gap-3 text-[0.66rem] font-bold text-[#789bad]">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ADMIN_CHART_SERIES.available }} />
-            Disponible
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ADMIN_CHART_SERIES.reserved }} />
-            Reservado
-          </span>
-        </div>
-      ) : (
-        <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">Sin saldo reservado en el período actual.</p>
-      )}
+      <div className="space-y-0.5 pt-0.5">
+        <p className="text-[0.66rem] font-bold text-[#6d8494]">
+          {activeOrganizationsLabel(insights.activeWalletOrganizationsCount)}
+        </p>
+        {insights.totalReserved === 0 ? (
+          <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">Sin saldo reservado actualmente.</p>
+        ) : (
+          <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">
+            {formatMoney(insights.totalReserved, currency)} en reserva distribuidos entre las organizaciones activas.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

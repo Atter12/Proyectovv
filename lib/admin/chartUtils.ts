@@ -73,6 +73,20 @@ export interface WalletExposureTotals {
   topOrganizationName: string | null;
 }
 
+export interface WalletExposureRankingItem extends WalletExposurePoint {
+  exposureCents: number;
+  concentrationShare: number;
+}
+
+export interface WalletExposureInsights {
+  totalAvailable: number;
+  totalReserved: number;
+  totalExposure: number;
+  topOrganizationName: string | null;
+  activeWalletOrganizationsCount: number;
+  ranked: WalletExposureRankingItem[];
+}
+
 export function summarizeWalletExposure(data: WalletExposurePoint[]): WalletExposureTotals {
   const withBalance = filterWalletExposureWithBalance(data, data.length);
   let availableCents = 0;
@@ -83,9 +97,47 @@ export function summarizeWalletExposure(data: WalletExposurePoint[]): WalletExpo
     reservedCents += item.reservedCents;
   }
 
+  const sorted = [...withBalance].sort(
+    (left, right) => right.availableCents + right.reservedCents - (left.availableCents + left.reservedCents),
+  );
+
   return {
     availableCents,
     reservedCents,
+    topOrganizationName: sorted[0]?.organizationName ?? null,
+  };
+}
+
+export function buildWalletExposureInsights(data: WalletExposurePoint[], limit = 5): WalletExposureInsights {
+  const withBalance = [...filterWalletExposureWithBalance(data, data.length)].sort(
+    (left, right) => right.availableCents + right.reservedCents - (left.availableCents + left.reservedCents),
+  );
+
+  let totalAvailable = 0;
+  let totalReserved = 0;
+
+  for (const item of withBalance) {
+    totalAvailable += item.availableCents;
+    totalReserved += item.reservedCents;
+  }
+
+  const totalExposure = totalAvailable + totalReserved;
+
+  const ranked: WalletExposureRankingItem[] = withBalance.slice(0, limit).map((item) => {
+    const exposureCents = item.availableCents + item.reservedCents;
+    return {
+      ...item,
+      exposureCents,
+      concentrationShare: totalExposure > 0 ? (exposureCents / totalExposure) * 100 : 0,
+    };
+  });
+
+  return {
+    totalAvailable,
+    totalReserved,
+    totalExposure,
     topOrganizationName: withBalance[0]?.organizationName ?? null,
+    activeWalletOrganizationsCount: withBalance.length,
+    ranked,
   };
 }

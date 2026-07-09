@@ -31,23 +31,20 @@ export default async function OverviewPage() {
       />
 
       <Card className="admin-data-panel p-5" tone="soft">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
-            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos</h2>
-            <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día · rango ajustable.</p>
-          </div>
-          <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
+        <div className="mb-4">
+          <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
+          <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos</h2>
+          <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día · rango ajustable.</p>
         </div>
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="admin-data-panel p-5" tone="soft">
-          <div className="mb-4">
+          <div className="mb-3">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
             <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
-            <p className="text-sm text-[#587080]">Ranking compacto por saldo real · top 5.</p>
+            <p className="text-sm text-[#587080]">Concentración de saldo y exposición por cliente.</p>
           </div>
           <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
@@ -55,11 +52,11 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-5" tone="soft">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Flujo financiero</p>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Flujo operativo</p>
               <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Pagos recientes</h2>
-              <p className="text-sm text-[#587080]">Manuales y proveedores externos.</p>
+              <p className="text-sm text-[#587080]">Manuales y proveedores externos · acceso directo a la cola.</p>
             </div>
-            <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
+            <Link href="/admin/payments" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
           </div>
           <TableWrap>
             <Table>
@@ -77,33 +74,33 @@ export default async function OverviewPage() {
             </Table>
           </TableWrap>
         </Card>
-
-        <Card className="admin-data-panel p-5" tone="soft">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
-              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
-              <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
-            </div>
-            <Link href="/admin/support" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
-          </div>
-          <TableWrap>
-            <Table>
-              <thead><tr><Th>Ticket</Th><Th>Cliente</Th><Th>Prioridad</Th><Th>Estado</Th></tr></thead>
-              <tbody className="divide-y divide-[#e1edf2]">
-                {data.recentTickets.map(({ row, organization, requester }) => (
-                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
-                    <Td><Link href={`/admin/support/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.subject}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p></Td>
-                    <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{requester?.email ?? "—"}</p></Td>
-                    <Td className="font-bold capitalize">{row.priority}</Td>
-                    <Td><StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} /></Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </TableWrap>
-        </Card>
       </div>
+
+      <Card className="admin-data-panel mt-6 p-5" tone="soft">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
+            <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
+          </div>
+          <Link href="/admin/support" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
+        </div>
+        <TableWrap>
+          <Table>
+            <thead><tr><Th>Ticket</Th><Th>Cliente</Th><Th>Prioridad</Th><Th>Estado</Th></tr></thead>
+            <tbody className="divide-y divide-[#e1edf2]">
+              {data.recentTickets.map(({ row, organization, requester }) => (
+                <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
+                  <Td><Link href={`/admin/support/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.subject}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.updated_at ?? row.created_at)}</p></Td>
+                  <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{requester?.email ?? "—"}</p></Td>
+                  <Td className="font-bold capitalize">{row.priority}</Td>
+                  <Td><StatusBadge status={row.status} label={TICKET_STATUS_LABELS[row.status] ?? row.status} /></Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </TableWrap>
+      </Card>
 
       <Card className="admin-audit-panel mt-6 p-5" tone="premium">
         <div className="flex flex-wrap items-center justify-between gap-3">
