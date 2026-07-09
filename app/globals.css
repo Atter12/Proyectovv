@@ -1181,6 +1181,22 @@ body {
   opacity: 0.9;
 }
 
+.admin-priority-compact {
+  background:
+    linear-gradient(135deg, #102f42 0%, #15394e 58%, #0e2a3a 100%);
+  box-shadow:
+    0 12px 36px rgba(6,25,37,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.admin-overview-header {
+  background: transparent;
+}
+
+.admin-metric-card {
+  min-height: 0;
+}
+
 .admin-kpi-card {
   min-height: 9.25rem;
   background:
@@ -1223,7 +1239,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .admin-kpi-card,
+  .admin-metric-card,
   .admin-priority-panel a,
+  .admin-priority-compact a,
   .admin-data-panel a {
     transition: none !important;
     transform: none !important;

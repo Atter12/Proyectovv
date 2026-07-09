@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { OperationalQueueChart } from "@/components/admin/charts/OperationalQueueChart.client";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
 import { WalletExposureChart } from "@/components/admin/charts/WalletExposureChart.client";
-import { KpiCard } from "@/components/admin/KpiCard";
+import { AdminMetricGrid } from "@/components/admin/overview/AdminMetricGrid";
+import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
+import { AdminPriorityCard } from "@/components/admin/overview/AdminPriorityCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
@@ -13,79 +14,53 @@ import { PAYMENT_STATUS_LABELS, TICKET_STATUS_LABELS } from "@/lib/constants/sta
 
 export const dynamic = "force-dynamic";
 
-function WorkloadChip({ label, value, href }: { label: string; value: number; href: string }) {
-  const hasWork = value > 0;
-  return (
-    <Link
-      href={href}
-      className="group rounded-2xl border border-white/10 bg-white/[0.065] p-3 transition duration-200 hover:-translate-y-0.5 hover:border-[#74d3b4]/35 hover:bg-white/[0.09]"
-    >
-      <span className="flex items-center justify-between gap-3 text-[#9dd5e3]">
-        <span className="text-sm font-bold">{label}</span>
-        <span className={hasWork ? "h-2 w-2 rounded-full bg-[#f4c95d]" : "h-2 w-2 rounded-full bg-[#59c493]"} aria-hidden />
-      </span>
-      <strong className="mt-2 block text-2xl font-black tracking-tight text-white">{value}</strong>
-    </Link>
-  );
-}
-
 export default async function OverviewPage() {
   const [data, analytics] = await Promise.all([getOverviewData(), getOverviewAnalyticsData()]);
   const { counts } = data;
   const priorityTotal = counts.pendingPayments + counts.pendingRefunds + counts.openTickets + counts.failedWebhooks;
   const operationalQueue = buildOperationalQueueFromCounts(counts);
 
+  const metrics = [
+    {
+      label: "Organizaciones",
+      value: String(counts.organizations),
+      detail: `${counts.profiles} perfiles`,
+      accent: "indigo" as const,
+    },
+    {
+      label: "Saldo wallets",
+      value: formatMoney(counts.totalWalletBalanceCents, counts.primaryCurrency),
+      detail: `${formatMoney(counts.totalReservedCents, counts.primaryCurrency)} reservado`,
+      accent: "emerald" as const,
+    },
+    {
+      label: "Pagos por revisar",
+      value: String(counts.pendingPayments),
+      detail: "Manual / voucher",
+      accent: "amber" as const,
+    },
+    {
+      label: "Alertas operativas",
+      value: String(priorityTotal),
+      detail: `${counts.openTickets} tickets · ${counts.failedWebhooks} webhooks`,
+      accent: "rose" as const,
+    },
+  ];
+
   return (
     <>
-      <AdminPageHeader
-        eyebrow="Centro operativo"
-        title="Resumen administrativo"
-        description="Vista ejecutiva del estado de la plataforma: usuarios, organizaciones, pagos pendientes, reembolsos, soporte, webhooks y exposición de wallets."
-      />
+      <AdminOverviewHeader />
 
-      <Card tone="dark" className="admin-priority-panel mb-6 p-0">
-        <div className="absolute inset-0 bg-[radial-gradient(620px_240px_at_0%_0%,rgba(116,211,180,0.16),transparent_58%),radial-gradient(520px_260px_at_100%_0%,rgba(117,199,232,0.12),transparent_58%)]" aria-hidden />
-        <div className="relative grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-stretch lg:p-6">
-          <div className="flex min-h-[9rem] flex-col justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#74d3b4]/18 bg-[#74d3b4]/8 px-3 py-1 text-[0.66rem] font-black uppercase tracking-[0.22em] text-[#9af7c9]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#74d3b4]" aria-hidden />
-                Prioridad del día
-              </div>
-              <h2 className="mt-4 max-w-3xl text-2xl font-black tracking-[-0.025em] text-white sm:text-3xl">
-                {priorityTotal} asuntos requieren seguimiento operativo
-              </h2>
-              <p className="mt-3 max-w-4xl text-sm leading-7 text-[#c7dce5]">
-                Pagos manuales, reembolsos, tickets y webhooks se muestran como cola de trabajo para que el administrador actúe primero sobre lo crítico.
-              </p>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link href="/admin/payments" className="rounded-full bg-[#74d3b4] px-4 py-2 text-xs font-black text-[#062235] transition hover:bg-[#9af7c9]">Revisar cola financiera</Link>
-              <Link href="/admin/audit" className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black text-white transition hover:border-white/20 hover:bg-white/[0.10]">Ver auditoría</Link>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <WorkloadChip label="Pagos" value={counts.pendingPayments} href="/admin/payments" />
-            <WorkloadChip label="Tickets" value={counts.openTickets} href="/admin/support" />
-            <WorkloadChip label="Reembolsos" value={counts.pendingRefunds} href="/admin/refunds" />
-            <WorkloadChip label="Webhooks" value={counts.failedWebhooks} href="/admin/webhooks" />
-          </div>
-        </div>
-      </Card>
+      <AdminMetricGrid metrics={metrics} />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Organizaciones" value={String(counts.organizations)} detail={`${counts.profiles} perfiles registrados`} accent="indigo" />
-        <KpiCard label="Saldo wallets" value={formatMoney(counts.totalWalletBalanceCents, counts.primaryCurrency)} detail={`${formatMoney(counts.totalReservedCents, counts.primaryCurrency)} reservado`} accent="emerald" />
-        <KpiCard label="Pagos por revisar" value={String(counts.pendingPayments)} detail="Manual / voucher pendiente" accent="amber" />
-        <KpiCard label="Alertas operativas" value={String(priorityTotal)} detail={`${counts.openTickets} tickets, ${counts.failedWebhooks} webhooks fallidos`} accent="rose" />
-      </div>
+      <AdminPriorityCard priorityTotal={priorityTotal} counts={counts} />
 
-      <Card className="admin-data-panel mt-6 p-5" tone="soft">
+      <Card className="admin-data-panel p-5" tone="soft">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Tendencia financiera</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Flujo de pagos · últimos 30 días</h2>
-            <p className="text-sm text-[#587080]">Volumen diario de intents creados, completados y pendientes, con monto procesado.</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Flujo de pagos · últimos 30 días</h2>
+            <p className="text-sm text-[#587080]">Intents creados, completados y pendientes por día.</p>
           </div>
           <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
         </div>
@@ -96,8 +71,8 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-5" tone="soft">
           <div className="mb-4">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Cola operativa</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Carga por categoría</h2>
-            <p className="text-sm text-[#587080]">Complementa la prioridad del día con distribución visual de pendientes.</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Carga por categoría</h2>
+            <p className="text-sm text-[#587080]">Distribución de pendientes por área.</p>
           </div>
           <OperationalQueueChart data={operationalQueue} />
         </Card>
@@ -105,8 +80,8 @@ export default async function OverviewPage() {
         <Card className="admin-data-panel p-5" tone="soft">
           <div className="mb-4">
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Exposición financiera</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
-            <p className="text-sm text-[#587080]">Concentración de saldo disponible y reservado en las 10 organizaciones principales.</p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Top wallets por organización</h2>
+            <p className="text-sm text-[#587080]">Saldo disponible y reservado · top 10.</p>
           </div>
           <WalletExposureChart data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
@@ -117,8 +92,8 @@ export default async function OverviewPage() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Flujo financiero</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Pagos recientes</h2>
-              <p className="text-sm text-[#587080]">Incluye manuales y proveedores externos.</p>
+              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Pagos recientes</h2>
+              <p className="text-sm text-[#587080]">Manuales y proveedores externos.</p>
             </div>
             <Link href="/admin/payments" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
           </div>
@@ -143,8 +118,8 @@ export default async function OverviewPage() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Soporte vivo</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Tickets recientes</h2>
-              <p className="text-sm text-[#587080]">Conversaciones reales desde el chat cliente.</p>
+              <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Tickets recientes</h2>
+              <p className="text-sm text-[#587080]">Conversaciones desde el chat cliente.</p>
             </div>
             <Link href="/admin/support" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
           </div>
@@ -170,7 +145,7 @@ export default async function OverviewPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#23718b]">Trazabilidad</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-[#061925]">Última actividad auditada</h2>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-[#061925]">Última actividad auditada</h2>
           </div>
           <Link href="/admin/audit" className="rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-black text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver todo</Link>
         </div>
