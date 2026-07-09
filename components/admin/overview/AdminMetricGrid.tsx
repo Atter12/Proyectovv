@@ -18,8 +18,8 @@ export function AdminMetricGrid({
       className={cn(
         "grid gap-3",
         layout === "executive"
-          ? "h-full min-h-0 auto-rows-fr sm:grid-cols-2"
-          : "mb-4 sm:grid-cols-2 xl:grid-cols-4",
+          ? "h-full min-h-0 auto-rows-fr gap-4 sm:grid-cols-2"
+          : "mb-4 gap-4 sm:grid-cols-2 xl:grid-cols-4",
       )}
     >
       {metrics.map((metric) => (

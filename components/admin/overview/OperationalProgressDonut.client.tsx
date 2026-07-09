@@ -73,7 +73,7 @@ export function OperationalProgressDonut({
   };
 
   const chartSizeClass = integrated
-    ? "h-[6.5rem] w-[6.5rem] sm:h-[7.5rem] sm:w-[7.5rem]"
+    ? "h-[7rem] w-[7rem] sm:h-[7.75rem] sm:w-[7.75rem]"
     : "h-[5.5rem] w-[5.5rem] sm:h-[6.5rem] sm:w-[6.5rem]";
 
   return (

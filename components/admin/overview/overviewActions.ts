@@ -6,11 +6,11 @@ export function paymentOverviewActionLabel(status: string): "Revisar" | "Ver" {
 
 export function paymentOverviewActionClass(status: string): string {
   const base =
-    "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-normal transition";
+    "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-normal transition duration-150 ease-out";
 
   if (PAYMENT_REVIEW_STATUSES.has(status)) {
-    return `${base} border border-[#f4c95d]/50 bg-[#fff8e8] text-[#8a6010] hover:border-[#f4c95d] hover:bg-[#fff3d4]`;
+    return `${base} border border-[#e8d9b0]/80 bg-[#faf5eb] text-[#8a6d2e] hover:border-[#d9c48a] hover:bg-[#f5f0e4]`;
   }
 
-  return `${base} border border-[#cfe8ee] bg-white/80 text-[#0e7490] hover:border-[#74d3b4] hover:bg-[#effff7]`;
+  return `${base} border border-[var(--admin-content-border)] bg-white/90 text-[#3d8fa8] hover:border-[#b8e8d4] hover:bg-[#f7fcfa]`;
 }

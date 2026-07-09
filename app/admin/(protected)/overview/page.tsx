@@ -33,8 +33,8 @@ export default async function OverviewPage() {
         operationalProgress={analytics.operationalProgress}
       />
 
-      <Card className="admin-data-panel p-5" tone="soft">
-        <div className="mb-3">
+      <Card className="admin-data-panel" tone="soft">
+        <div className="mb-4">
           <p className={adminPanelTypography.sectionEyebrow}>Tendencia financiera</p>
           <h2 className={adminPanelTypography.sectionTitle}>Flujo de pagos</h2>
           <p className={adminPanelTypography.sectionSubtitle}>
@@ -44,9 +44,9 @@ export default async function OverviewPage() {
         <PaymentFlowChart data={analytics.paymentFlow} currency={analytics.primaryCurrency} />
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
-          <div className="mb-3">
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <Card className="admin-data-panel" tone="soft">
+          <div className="mb-4">
             <p className={adminPanelTypography.sectionEyebrow}>Exposición financiera</p>
             <h2 className={adminPanelTypography.sectionTitle}>Top wallets por organización</h2>
             <p className={adminPanelTypography.sectionSubtitle}>
@@ -56,8 +56,8 @@ export default async function OverviewPage() {
           <WalletExposureRanking data={analytics.walletExposure} currency={analytics.primaryCurrency} />
         </Card>
 
-        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <Card className="admin-data-panel" tone="soft">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className={adminPanelTypography.sectionEyebrow}>Flujo operativo</p>
               <h2 className={adminPanelTypography.sectionTitle}>Pagos recientes</h2>
@@ -65,7 +65,7 @@ export default async function OverviewPage() {
                 Últimos pagos manuales y externos para revisión.
               </p>
             </div>
-            <Link href="/admin/payments" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver pagos</Link>
+            <Link href="/admin/payments" className="shrink-0 rounded-lg border border-[var(--admin-content-border)] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#3d8fa8] transition duration-150 ease-out hover:border-[#b8e8d4] hover:bg-[#f7fcfa]">Ver pagos</Link>
           </div>
           <TableWrap>
             <Table>
@@ -78,9 +78,9 @@ export default async function OverviewPage() {
                   <Th className="text-right">Acción</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e1edf2]">
+              <tbody className="divide-y divide-[#edf2f5]">
                 {data.recentPayments.map(({ row, organization }) => (
-                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
+                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-[#f8fcfd]">
                     <Td className="align-middle py-2.5">
                       <Link href={`/admin/payments/${row.id}`} className="font-semibold text-[#061925] hover:text-[#0e7490]">
                         {row.id.slice(0, 8)}
@@ -115,14 +115,14 @@ export default async function OverviewPage() {
           </TableWrap>
         </Card>
 
-        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <Card className="admin-data-panel" tone="soft">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className={adminPanelTypography.sectionEyebrow}>Soporte</p>
               <h2 className={adminPanelTypography.sectionTitle}>Tickets recientes</h2>
               <p className={adminPanelTypography.sectionSubtitle}>Conversaciones recientes del chat con clientes.</p>
             </div>
-            <Link href="/admin/support" className="shrink-0 rounded-full border border-[#cfe8ee] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#0e7490] transition hover:border-[#74d3b4] hover:bg-[#effff7]">Ver soporte</Link>
+            <Link href="/admin/support" className="shrink-0 rounded-lg border border-[var(--admin-content-border)] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#3d8fa8] transition duration-150 ease-out hover:border-[#b8e8d4] hover:bg-[#f7fcfa]">Ver soporte</Link>
           </div>
           <TableWrap>
             <Table>
@@ -137,7 +137,7 @@ export default async function OverviewPage() {
               </thead>
               <tbody className="divide-y divide-[#e1edf2]">
                 {data.recentTickets.map(({ row, organization, requester }) => (
-                  <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
+                  <tr key={row.id} className="transition-colors duration-150 ease-out hover:bg-[#f8fcfd]">
                     <Td className="py-3">
                       <p className="max-w-[9rem] truncate font-black text-[#061925]" title={row.subject}>
                         {row.subject}
@@ -171,8 +171,8 @@ export default async function OverviewPage() {
           </TableWrap>
         </Card>
 
-        <Card className="admin-data-panel p-4 sm:p-5" tone="soft">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <Card className="admin-data-panel" tone="soft">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className={adminPanelTypography.sectionEyebrow}>Trazabilidad</p>
               <h2 className={adminPanelTypography.sectionTitle}>Última actividad auditada</h2>

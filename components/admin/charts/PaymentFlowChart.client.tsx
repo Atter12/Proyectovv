@@ -23,7 +23,7 @@ import {
 import { formatMoney } from "@/lib/format";
 import { PaymentFlowRangeSelector } from "@/components/admin/overview/PaymentFlowRangeSelector";
 import { PaymentFlowSummary } from "@/components/admin/overview/PaymentFlowSummary";
-import { ADMIN_CHART_SERIES, adminChartTooltipStyle } from "./chartTheme";
+import { ADMIN_CHART_COLORS, ADMIN_CHART_SERIES, adminChartTooltipStyle } from "./chartTheme";
 
 interface PaymentFlowChartProps {
   data: PaymentFlowDayPoint[];
@@ -77,11 +77,11 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
 
       <div className="w-full" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="4 6" stroke="#e8f2f6" vertical={false} />
+          <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 4" stroke={ADMIN_CHART_COLORS.grid} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }}
+              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               minTickGap={range === "7D" ? 12 : 18}
@@ -89,7 +89,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <YAxis
               yAxisId="count"
               allowDecimals={false}
-              tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }}
+              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               width={28}
@@ -97,7 +97,7 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
             <YAxis
               yAxisId="amount"
               orientation="right"
-              tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }}
+              tick={{ fill: ADMIN_CHART_COLORS.axis, fontSize: 11, fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               width={56}
@@ -112,19 +112,48 @@ export function PaymentFlowChart({ data, currency }: PaymentFlowChartProps) {
                 return [numeric, label];
               }}
             />
-            <Legend wrapperStyle={{ fontSize: "12px", fontWeight: 700, color: "#587080", paddingTop: "4px" }} />
-            <Bar yAxisId="count" dataKey="created" name="Creados" fill={ADMIN_CHART_SERIES.created} radius={[6, 6, 0, 0]} maxBarSize={16} />
-            <Bar yAxisId="count" dataKey="completed" name="Completados" fill={ADMIN_CHART_SERIES.completed} radius={[6, 6, 0, 0]} maxBarSize={16} />
-            <Bar yAxisId="count" dataKey="pending" name="Pendientes" fill={ADMIN_CHART_SERIES.pending} radius={[6, 6, 0, 0]} maxBarSize={16} />
+            <Legend wrapperStyle={{ fontSize: "12px", fontWeight: 600, color: "#6d8494", paddingTop: "8px" }} />
+            <Bar
+              yAxisId="count"
+              dataKey="created"
+              name="Creados"
+              fill={ADMIN_CHART_SERIES.created}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={14}
+              animationDuration={500}
+              animationEasing="ease-out"
+            />
+            <Bar
+              yAxisId="count"
+              dataKey="completed"
+              name="Completados"
+              fill={ADMIN_CHART_SERIES.completed}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={14}
+              animationDuration={550}
+              animationEasing="ease-out"
+            />
+            <Bar
+              yAxisId="count"
+              dataKey="pending"
+              name="Pendientes"
+              fill={ADMIN_CHART_SERIES.pending}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={14}
+              animationDuration={600}
+              animationEasing="ease-out"
+            />
             <Line
               yAxisId="amount"
               type="monotone"
               dataKey="processedAmount"
               name="Monto procesado"
               stroke={ADMIN_CHART_SERIES.processed}
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={false}
-              activeDot={{ r: 4, fill: ADMIN_CHART_SERIES.processed }}
+              activeDot={{ r: 4, fill: ADMIN_CHART_SERIES.processed, stroke: "#fff", strokeWidth: 2 }}
+              animationDuration={650}
+              animationEasing="ease-out"
             />
           </ComposedChart>
         </ResponsiveContainer>

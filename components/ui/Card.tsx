@@ -15,10 +15,11 @@ const paddingClasses = {
 };
 
 const toneClasses = {
-  default: "border-[#d5e8ee] bg-white/[0.88] shadow-[var(--shadow-card)] ring-1 ring-white/70 backdrop-blur-xl",
-  soft: "border-[#d5e8ee] bg-white/[0.76] shadow-[var(--shadow-card)] ring-1 ring-white/75 backdrop-blur-xl",
-  premium: "border-[#bdd9e4] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,251,252,0.82))] shadow-[var(--shadow-card)] ring-1 ring-white/80 backdrop-blur-xl",
-  dark: "border-white/10 bg-[#102f42] text-white shadow-2xl shadow-[#062235]/25 ring-1 ring-white/10 backdrop-blur-xl",
+  default: "border border-[var(--admin-content-border)] bg-white/[0.94] shadow-[var(--admin-shadow-2)]",
+  soft: "bg-white/[0.9] shadow-[var(--admin-shadow-2)]",
+  premium:
+    "border border-[var(--admin-content-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,252,253,0.9))] shadow-[var(--admin-shadow-2)]",
+  dark: "border border-white/8 bg-[#102f42] text-white shadow-[var(--admin-shadow-3)]",
 };
 
 export function Card({
@@ -32,9 +33,10 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.25rem] border",
+        "relative overflow-hidden rounded-2xl",
         toneClasses[tone],
-        elevated && "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]",
+        elevated &&
+          "transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[var(--admin-shadow-3)]",
         paddingClasses[padding],
         className,
       )}

@@ -1,10 +1,11 @@
 export const adminPanelTypography = {
-  pageTitle: "text-xl font-bold tracking-tight text-[#061925] sm:text-[1.35rem]",
-  pageSubtitle: "mt-0.5 text-sm font-medium text-[#587080]",
-  sectionEyebrow: "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#23718b]",
-  sectionTitle: "mt-1 text-lg font-bold tracking-tight text-[#061925]",
-  sectionSubtitle: "text-sm font-medium text-[#587080]",
-  metricLabel: "text-xs font-semibold tracking-normal text-[#445a65]",
-  metricValue: "truncate text-[1.55rem] font-bold leading-none tracking-tight text-[#061925] sm:text-[1.65rem]",
-  metricHelper: "truncate text-[0.8125rem] font-medium leading-snug text-[#546a78]",
+  pageTitle: "text-xl font-semibold tracking-tight text-[#061925] sm:text-[1.3rem]",
+  pageSubtitle: "mt-1 text-sm font-medium text-[#6d8494]",
+  sectionEyebrow: "text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[#6d8494]",
+  sectionTitle: "mt-1 text-base font-semibold tracking-tight text-[#061925]",
+  sectionSubtitle: "text-sm font-medium text-[#6d8494]",
+  metricLabel: "text-xs font-medium tracking-[0.01em] text-[#5d7280]",
+  metricValue:
+    "truncate text-[1.6rem] font-semibold leading-none tracking-tight tabular-nums text-[#061925] sm:text-[1.7rem]",
+  metricHelper: "truncate text-xs font-medium leading-snug text-[#6d8494]",
 } as const;

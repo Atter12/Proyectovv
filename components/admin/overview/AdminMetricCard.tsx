@@ -1,4 +1,5 @@
 import { AdminMetricIcon } from "./AdminMetricIcon";
+import { adminMotion, adminRadius, adminShadow } from "@/components/admin/adminDesignSystem";
 import { adminPanelTypography } from "./adminPanelTypography";
 import { cn } from "@/lib/cn";
 
@@ -8,42 +9,36 @@ const accentStyles: Record<
   AdminMetricAccent,
   {
     surface: string;
-    border: string;
     stripe: string;
     iconWrap: string;
   }
 > = {
   indigo: {
-    surface: "bg-gradient-to-br from-[#eef8fb] to-[#e3f2f8]",
-    border: "border-[#c5e0ea]",
-    stripe: "bg-[#0e7490]",
-    iconWrap: "bg-white/85 text-[#0e7490] ring-1 ring-[#cfe8ee]",
+    surface: "bg-white",
+    stripe: "bg-[#3d8fa8]",
+    iconWrap: "bg-[#f4f9fb] text-[#3d8fa8]",
   },
   emerald: {
-    surface: "bg-gradient-to-br from-[#f0faf6] to-[#e8f5ef]",
-    border: "border-[#c8e8d8]",
-    stripe: "bg-[#59c493]",
-    iconWrap: "bg-white/85 text-[#1a8f6e] ring-1 ring-[#ccefe0]",
+    surface: "bg-white",
+    stripe: "bg-[#4fa882]",
+    iconWrap: "bg-[#f3faf7] text-[#3d8f6e]",
   },
   amber: {
-    surface: "bg-gradient-to-br from-[#fffbf0] to-[#fff6e5]",
-    border: "border-[#ecd9a0]",
-    stripe: "bg-[#d4a843]",
-    iconWrap: "bg-white/85 text-[#8f6410] ring-1 ring-[#f0e0b8]",
+    surface: "bg-white",
+    stripe: "bg-[#c9a24e]",
+    iconWrap: "bg-[#faf8f3] text-[#8a6d2e]",
   },
   rose: {
-    surface: "bg-gradient-to-br from-[#fff8f9] to-[#fff0f3]",
-    border: "border-[#ebc0cc]",
-    stripe: "bg-[#e76f8a]",
-    iconWrap: "bg-white/85 text-[#b84d66] ring-1 ring-[#f3d0da]",
+    surface: "bg-white",
+    stripe: "bg-[#c96a82]",
+    iconWrap: "bg-[#faf5f7] text-[#a84d66]",
   },
 };
 
 const roseEmphasizedStyles = {
-  surface: "bg-gradient-to-br from-[#fff5f7] to-[#ffe8ee]",
-  border: "border-[#deb0bc] ring-1 ring-[#ebc0cc]/55",
-  stripe: "bg-[#d45d7a] w-1.5",
-  iconWrap: "bg-[#fff0f4] text-[#a83d58] ring-1 ring-[#e8b4c0]",
+  surface: "bg-[#fffbfc]",
+  stripe: "bg-[#b85a72] w-[3px]",
+  iconWrap: "bg-[#faf0f3] text-[#a84d66] ring-1 ring-[#ecd0d8]/80",
 };
 
 export function AdminMetricCard({
@@ -63,14 +58,17 @@ export function AdminMetricCard({
 }) {
   const baseStyle = accentStyles[accent];
   const style = accent === "rose" && emphasized ? { ...baseStyle, ...roseEmphasizedStyles } : baseStyle;
-  const stripeWidth = accent === "rose" && emphasized ? "" : "w-1";
+  const stripeWidth = accent === "rose" && emphasized ? "" : "w-[2px]";
 
   return (
     <article
       className={cn(
-        "admin-metric-card relative overflow-hidden rounded-xl border shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_8px_24px_rgba(14,48,72,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(14,48,72,0.08)]",
+        "admin-metric-card relative overflow-hidden border border-[var(--admin-content-border)]",
+        adminRadius.metric,
+        adminShadow.surface,
+        adminMotion.base,
+        "hover:-translate-y-px hover:shadow-[var(--admin-shadow-3)]",
         style.surface,
-        style.border,
         stretch ? "flex h-full min-h-0 flex-col" : "",
       )}
     >
@@ -78,15 +76,14 @@ export function AdminMetricCard({
 
       <div
         className={cn(
-          "relative flex items-start gap-3 px-4 py-3.5 pl-[1.1rem]",
+          "relative flex items-center gap-3 px-4 py-4 pl-[0.9rem]",
           stretch ? "min-h-0 flex-1" : "",
         )}
       >
         <div
           className={cn(
-            "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+            "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
             style.iconWrap,
-            accent === "rose" && emphasized ? "shadow-[0_0_0_1px_rgba(216,93,122,0.12)]" : "",
           )}
           aria-hidden
         >

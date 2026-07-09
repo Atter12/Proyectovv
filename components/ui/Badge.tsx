@@ -10,15 +10,14 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-[#e8f6f8] text-[#16445a] ring-1 ring-[#cfe1e9]",
-  success: "bg-[#effff7] text-[#047857] ring-1 ring-[#9af7c9]/70",
-  warning: "bg-amber-50 text-amber-700 ring-1 ring-amber-200/70",
-  danger: "bg-rose-50 text-rose-700 ring-1 ring-rose-200/70",
-  info: "bg-[#e8f6f8] text-[#0e7490] ring-1 ring-[#0e7490]/15",
-  neutral: "bg-[#f1fafc] text-[#5d7280] ring-1 ring-[#d7e7ee]",
-  purple: "bg-violet-50 text-violet-700 ring-1 ring-violet-200/70",
-  premium:
-    "bg-[linear-gradient(135deg,rgba(14,116,144,0.12),rgba(154,247,201,0.24))] text-[#0e7490] ring-1 ring-[#0e7490]/15 shadow-sm",
+  default: "bg-[#f2f7f9] text-[#3d5a68]",
+  success: "bg-[#edf8f3] text-[#1a7560]",
+  warning: "bg-[#faf5eb] text-[#8a6d2e]",
+  danger: "bg-[#faf0f2] text-[#9a4056]",
+  info: "bg-[#f0f7fa] text-[#3d8fa8]",
+  neutral: "bg-[#f4f7f9] text-[#5d7280]",
+  purple: "bg-violet-50/90 text-violet-700/90",
+  premium: "bg-[linear-gradient(135deg,rgba(14,116,144,0.08),rgba(125,211,176,0.14))] text-[#3d8fa8]",
 };
 
 export function Badge({ className, variant = "default", tone, ...props }: BadgeProps) {
@@ -26,8 +25,7 @@ export function Badge({ className, variant = "default", tone, ...props }: BadgeP
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-        tone ? "border py-1 text-[0.68rem] font-black uppercase tracking-[0.14em]" : null,
+        "inline-flex items-center rounded-md px-2 py-0.5 text-[0.6875rem] font-semibold tracking-[0.02em]",
         variantClasses[resolvedVariant],
         className,
       )}

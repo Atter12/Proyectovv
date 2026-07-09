@@ -66,8 +66,8 @@ export function AdminNavLinks({
                     className={cn(
                       "admin-nav-item group relative flex min-h-[2.125rem] items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45",
                       active
-                        ? "is-active bg-white/[0.06] font-semibold text-[var(--admin-text)] shadow-[inset_2px_0_0_var(--admin-accent),inset_0_0_18px_rgba(116,211,180,0.04)]"
-                        : "font-medium text-[#b0c8d6] hover:bg-white/[0.04] hover:text-[var(--admin-text)]",
+                        ? "is-active bg-white/[0.055] font-semibold text-[var(--admin-text)]"
+                        : "font-medium text-[#b0c8d6] hover:text-[var(--admin-text)]",
                     )}
                   >
                     <span
