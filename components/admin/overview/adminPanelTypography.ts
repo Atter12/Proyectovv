@@ -4,7 +4,7 @@ export const adminPanelTypography = {
   sectionEyebrow: "text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#23718b]",
   sectionTitle: "mt-1 text-lg font-bold tracking-tight text-[#061925]",
   sectionSubtitle: "text-sm font-medium text-[#587080]",
-  metricLabel: "text-xs font-semibold text-[#4a6570]",
-  metricValue: "truncate text-[1.6rem] font-bold leading-none tracking-tight text-[#061925] sm:text-[1.7rem]",
-  metricHelper: "truncate text-[0.8125rem] font-medium leading-snug text-[#5d7280]",
+  metricLabel: "text-xs font-semibold tracking-normal text-[#445a65]",
+  metricValue: "truncate text-[1.55rem] font-bold leading-none tracking-tight text-[#061925] sm:text-[1.65rem]",
+  metricHelper: "truncate text-[0.8125rem] font-medium leading-snug text-[#546a78]",
 } as const;

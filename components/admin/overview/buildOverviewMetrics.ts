@@ -17,6 +17,7 @@ export type AdminOverviewMetric = {
   value: string;
   detail?: string;
   accent: AdminMetricAccent;
+  emphasized?: boolean;
 };
 
 export function buildOverviewMetrics(
@@ -53,6 +54,7 @@ export function buildOverviewMetrics(
           ? `${counts.openTickets} tickets · ${counts.failedWebhooks} webhooks`
           : "Sin incidencias",
       accent: "rose",
+      emphasized: operationalAlerts > 0,
     },
   ];
 }

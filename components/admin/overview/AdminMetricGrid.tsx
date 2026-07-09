@@ -29,6 +29,7 @@ export function AdminMetricGrid({
           value={metric.value}
           detail={metric.detail}
           accent={metric.accent}
+          emphasized={metric.emphasized}
           stretch={layout === "executive"}
         />
       ))}

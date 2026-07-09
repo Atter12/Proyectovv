@@ -51,23 +51,23 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
   const concentrationLabel = formatWalletConcentrationLevelLabel(insights.concentrationLevel);
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-bold leading-5 text-[#587080]">{summaryParts.join(" · ")}</p>
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold leading-5 text-[#587080]">{summaryParts.join(" · ")}</p>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span
-          className={`inline-flex rounded-md border px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.05em] ${CONCENTRATION_BADGE[insights.concentrationLevel]}`}
+          className={`inline-flex rounded-md border px-2 py-0.5 text-[0.6875rem] font-semibold tracking-normal ${CONCENTRATION_BADGE[insights.concentrationLevel]}`}
         >
           Concentración {concentrationLabel.toLowerCase()}
         </span>
-        <span className="text-[0.66rem] font-bold text-[#6d8494]">
+        <span className="text-xs font-semibold tabular-nums text-[#546a78]">
           Top wallet {formatConcentrationShare(insights.topConcentrationShare)}
         </span>
       </div>
 
       <div className="divide-y divide-[#e8f2f6] rounded-xl border border-[#e1edf2] bg-white/55">
         {insights.ranked.map((item) => (
-          <div key={item.organizationId} className="space-y-1.5 px-3 py-2">
+          <div key={item.organizationId} className="space-y-1 px-3 py-1.5">
             <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2.5">
               <p
                 className="truncate text-xs font-extrabold text-[#365c6d]"
@@ -95,24 +95,18 @@ export function WalletExposureRanking({ data, currency, limit = 5 }: WalletExpos
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-0.5">
-        <div className="space-y-0.5">
-          <p className="text-[0.66rem] font-bold text-[#6d8494]">
-            {activeOrganizationsLabel(insights.activeWalletOrganizationsCount)}
-          </p>
-          {insights.totalReserved === 0 ? (
-            <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">Sin saldo reservado actualmente.</p>
-          ) : (
-            <p className="text-[0.66rem] font-semibold text-[#9ab0bc]">
-              {formatMoney(insights.totalReserved, currency)} en reserva distribuidos entre las organizaciones activas.
-            </p>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="text-[0.6875rem] font-medium text-[#6d8494]">
+          {activeOrganizationsLabel(insights.activeWalletOrganizationsCount)}
+          {insights.totalReserved > 0
+            ? ` · ${formatMoney(insights.totalReserved, currency)} reservado`
+            : ""}
+        </p>
         <Link
           href="/admin/organizations"
-          className="shrink-0 text-[0.66rem] font-black text-[#0e7490] transition hover:text-[#59c493]"
+          className="shrink-0 text-xs font-semibold text-[#0e7490] transition hover:text-[#59c493]"
         >
-          Ver organizaciones →
+          Ver organizaciones
         </Link>
       </div>
     </div>

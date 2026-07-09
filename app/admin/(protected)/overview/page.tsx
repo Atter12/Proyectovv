@@ -81,23 +81,29 @@ export default async function OverviewPage() {
               <tbody className="divide-y divide-[#e1edf2]">
                 {data.recentPayments.map(({ row, organization }) => (
                   <tr key={row.id} className="transition-colors duration-150 hover:bg-[#f1fff8]/70">
-                    <Td className="py-3">
-                      <Link href={`/admin/payments/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">
+                    <Td className="align-middle py-2.5">
+                      <Link href={`/admin/payments/${row.id}`} className="font-semibold text-[#061925] hover:text-[#0e7490]">
                         {row.id.slice(0, 8)}
                       </Link>
                       <p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p>
                     </Td>
-                    <Td className="py-3">
+                    <Td className="align-middle py-2.5">
                       <p className="max-w-[8rem] truncate" title={organization?.name ?? undefined}>
                         {organization?.name ?? "—"}
                       </p>
                       <p className="truncate text-xs text-[#789bad]">{row.provider}</p>
                     </Td>
-                    <Td className="whitespace-nowrap font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</Td>
-                    <Td className="py-3">
-                      <StatusBadge status={row.status} label={PAYMENT_STATUS_LABELS[row.status] ?? row.status} />
+                    <Td className="align-middle whitespace-nowrap py-2.5 font-semibold tabular-nums text-[#061925]">
+                      {formatMoney(row.amount_cents, row.currency)}
                     </Td>
-                    <Td className="text-right">
+                    <Td className="align-middle py-2.5">
+                      <StatusBadge
+                        status={row.status}
+                        label={PAYMENT_STATUS_LABELS[row.status] ?? row.status}
+                        className="!py-0.5 !text-[0.625rem] !font-semibold !normal-case !tracking-normal"
+                      />
+                    </Td>
+                    <Td className="align-middle py-2.5 text-right">
                       <Link href={`/admin/payments/${row.id}`} className={paymentOverviewActionClass(row.status)}>
                         {paymentOverviewActionLabel(row.status)}
                       </Link>

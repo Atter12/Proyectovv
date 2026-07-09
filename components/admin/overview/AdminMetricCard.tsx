@@ -39,20 +39,31 @@ const accentStyles: Record<
   },
 };
 
+const roseEmphasizedStyles = {
+  surface: "bg-gradient-to-br from-[#fff5f7] to-[#ffe8ee]",
+  border: "border-[#deb0bc] ring-1 ring-[#ebc0cc]/55",
+  stripe: "bg-[#d45d7a] w-1.5",
+  iconWrap: "bg-[#fff0f4] text-[#a83d58] ring-1 ring-[#e8b4c0]",
+};
+
 export function AdminMetricCard({
   label,
   value,
   detail,
   accent = "indigo",
+  emphasized = false,
   stretch = false,
 }: {
   label: string;
   value: string;
   detail?: string;
   accent?: AdminMetricAccent;
+  emphasized?: boolean;
   stretch?: boolean;
 }) {
-  const style = accentStyles[accent];
+  const baseStyle = accentStyles[accent];
+  const style = accent === "rose" && emphasized ? { ...baseStyle, ...roseEmphasizedStyles } : baseStyle;
+  const stripeWidth = accent === "rose" && emphasized ? "" : "w-1";
 
   return (
     <article
@@ -63,19 +74,23 @@ export function AdminMetricCard({
         stretch ? "flex h-full min-h-0 flex-col" : "",
       )}
     >
-      <span className={cn("absolute inset-y-0 left-0 w-1", style.stripe)} aria-hidden />
+      <span className={cn("absolute inset-y-0 left-0", stripeWidth, style.stripe)} aria-hidden />
 
       <div
         className={cn(
-          "relative flex items-start gap-3.5 px-4 py-4 pl-[1.15rem]",
+          "relative flex items-start gap-3 px-4 py-3.5 pl-[1.1rem]",
           stretch ? "min-h-0 flex-1" : "",
         )}
       >
         <div
-          className={cn("mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-xl", style.iconWrap)}
+          className={cn(
+            "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+            style.iconWrap,
+            accent === "rose" && emphasized ? "shadow-[0_0_0_1px_rgba(216,93,122,0.12)]" : "",
+          )}
           aria-hidden
         >
-          <AdminMetricIcon accent={accent} />
+          <AdminMetricIcon accent={accent} emphasized={accent === "rose" && emphasized} />
         </div>
 
         <div className="min-w-0 flex-1 space-y-1">

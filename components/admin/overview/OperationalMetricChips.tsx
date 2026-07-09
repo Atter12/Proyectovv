@@ -36,12 +36,14 @@ function OperationalMetricChip({
     <Link
       href={href}
       title={label}
-      className="flex min-h-[2.75rem] min-w-0 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1.5 transition hover:border-[#74d3b4]/28 hover:bg-white/[0.09]"
+      className="flex h-[2.625rem] min-w-0 w-full flex-col justify-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1.5 transition hover:border-[#74d3b4]/28 hover:bg-white/[0.09]"
     >
-      <span className="whitespace-nowrap text-[0.58rem] font-black uppercase tracking-[0.04em] text-[#9dd5e3]">
+      <span className="truncate text-[0.625rem] font-semibold leading-none tracking-normal text-[#9dd5e3]">
         {shortLabel}
       </span>
-      <strong className={`text-base font-black leading-none sm:text-lg ${active ? "text-white" : "text-[#8eb5c8]"}`}>
+      <strong
+        className={`truncate text-base font-bold leading-none tabular-nums ${active ? "text-white" : "text-[#8eb5c8]"}`}
+      >
         {value}
       </strong>
     </Link>
@@ -50,7 +52,7 @@ function OperationalMetricChip({
 
 export function OperationalMetricChips({ counts }: { counts: PriorityCounts }) {
   return (
-    <div className="grid min-w-0 grid-cols-2 gap-1.5 sm:min-w-[10.5rem] lg:min-w-[12.25rem]">
+    <div className="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:min-w-[10.5rem] lg:min-w-[12.25rem]">
       {OPERATIONAL_METRICS.map((metric) => (
         <OperationalMetricChip
           key={metric.key}

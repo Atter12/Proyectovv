@@ -2,7 +2,14 @@ import type { AdminMetricAccent } from "./AdminMetricCard";
 
 const iconClass = "h-5 w-5";
 
-export function AdminMetricIcon({ accent }: { accent: AdminMetricAccent }) {
+export function AdminMetricIcon({
+  accent,
+  emphasized = false,
+}: {
+  accent: AdminMetricAccent;
+  emphasized?: boolean;
+}) {
+  const strokeWidth = emphasized ? 2 : 1.75;
   switch (accent) {
     case "indigo":
       return (
@@ -48,17 +55,17 @@ export function AdminMetricIcon({ accent }: { accent: AdminMetricAccent }) {
       );
     case "rose":
       return (
-        <svg viewBox="0 0 24 24" fill="none" className={iconClass} aria-hidden>
+        <svg viewBox="0 0 24 24" fill="none" className={emphasized ? "h-[1.35rem] w-[1.35rem]" : iconClass} aria-hidden>
           <path
             d="M12 8.25V8.26M12 16h.01"
             stroke="currentColor"
-            strokeWidth="1.75"
+            strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
           <path
             d="M10.29 3.86 2.82 17.5a1.5 1.5 0 0 0 1.29 2.25h15.78a1.5 1.5 0 0 0 1.29-2.25L13.71 3.86a1.5 1.5 0 0 0-2.58 0Z"
             stroke="currentColor"
-            strokeWidth="1.75"
+            strokeWidth={strokeWidth}
             strokeLinejoin="round"
           />
         </svg>
