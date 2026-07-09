@@ -73,12 +73,12 @@ export function OperationalProgressDonut({
   };
 
   const chartSizeClass = integrated
-    ? "h-[6rem] w-[6rem] sm:h-[7.25rem] sm:w-[7.25rem]"
+    ? "h-[6.5rem] w-[6.5rem] sm:h-[7.5rem] sm:w-[7.5rem]"
     : "h-[5.5rem] w-[5.5rem] sm:h-[6.5rem] sm:w-[6.5rem]";
 
   return (
-    <div className={`flex shrink-0 flex-col items-center justify-center ${integrated ? "lg:items-end" : ""}`}>
-      <div ref={chartRef} className={`relative ${chartSizeClass}`}>
+    <div className="flex min-w-0 shrink-0 flex-col items-center justify-center">
+      <div ref={chartRef} className={`relative overflow-visible ${chartSizeClass}`}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -116,7 +116,7 @@ export function OperationalProgressDonut({
         {total > 0 ? <OperationalProgressHoverDetail segment={hoveredSegment} placement={tooltipPlacement} /> : null}
       </div>
 
-      <div className={`mt-1.5 text-center ${integrated ? "lg:text-right" : ""}`}>
+      <div className="mt-1.5 max-w-[8.5rem] text-center">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#9dd5e3]">
           {total > 0 ? "Solicitudes del mes" : "Sin actividad este mes"}
         </p>

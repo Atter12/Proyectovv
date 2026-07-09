@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { KPI_CARD_BACKGROUNDS } from "./kpiCardBackgrounds";
+import { cn } from "@/lib/cn";
 
 export type AdminMetricAccent = "indigo" | "emerald" | "amber" | "rose";
 
@@ -15,6 +16,7 @@ const accentStyles: Record<
     detail: string;
     symbol: string;
     fallback: string;
+    overlay: string;
   }
 > = {
   indigo: {
@@ -25,6 +27,7 @@ const accentStyles: Record<
     detail: "text-[#3d5f6f]",
     symbol: "Org",
     fallback: "bg-[linear-gradient(135deg,#f7fcfe_0%,#eef7fb_100%)]",
+    overlay: "from-white/82 via-white/64 to-white/76",
   },
   emerald: {
     border: "border-[#b5e5d4]/80",
@@ -34,6 +37,7 @@ const accentStyles: Record<
     detail: "text-[#3d6358]",
     symbol: "$",
     fallback: "bg-[linear-gradient(135deg,#f3fff9_0%,#e9faf2_100%)]",
+    overlay: "from-white/84 via-white/66 to-white/78",
   },
   amber: {
     border: "border-[#ecd9a0]/80",
@@ -43,6 +47,7 @@ const accentStyles: Record<
     detail: "text-[#6b5530]",
     symbol: "Pay",
     fallback: "bg-[linear-gradient(135deg,#fffdf6_0%,#fff7e4_100%)]",
+    overlay: "from-white/88 via-white/72 to-white/86",
   },
   rose: {
     border: "border-[#ebc0cc]/80",
@@ -52,6 +57,7 @@ const accentStyles: Record<
     detail: "text-[#6f4a55]",
     symbol: "!",
     fallback: "bg-[linear-gradient(135deg,#fff9fb_0%,#fff0f4_100%)]",
+    overlay: "from-white/86 via-white/70 to-white/82",
   },
 };
 
@@ -60,11 +66,13 @@ export function AdminMetricCard({
   value,
   detail,
   accent = "indigo",
+  stretch = false,
 }: {
   label: string;
   value: string;
   detail?: string;
   accent?: AdminMetricAccent;
+  stretch?: boolean;
 }) {
   const style = accentStyles[accent];
   const backgroundUrls = KPI_CARD_BACKGROUNDS[accent];
@@ -78,14 +86,20 @@ export function AdminMetricCard({
 
   return (
     <article
-      className={`admin-metric-card group relative overflow-hidden rounded-xl border shadow-[0_1px_0_rgba(255,255,255,0.85)_inset,0_12px_32px_rgba(14,48,72,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(14,48,72,0.09)] ${style.border} ${imageFailed ? style.fallback : ""}`}
+      className={cn(
+        "admin-metric-card group relative overflow-hidden rounded-xl border shadow-[0_1px_0_rgba(255,255,255,0.85)_inset,0_12px_32px_rgba(14,48,72,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(14,48,72,0.09)]",
+        style.border,
+        imageFailed ? style.fallback : "",
+        stretch ? "flex h-full min-h-0 flex-col" : "",
+      )}
     >
       {!imageFailed ? (
-        <div
-          className="absolute inset-0 scale-105 bg-cover bg-center opacity-[0.96] saturate-[1.12] contrast-[1.06] transition duration-300 group-hover:scale-[1.08] group-hover:saturate-[1.18]"
-          style={{ backgroundImage: `url("${backgroundUrl}")` }}
-          aria-hidden
-        >
+        <div className="absolute inset-0 overflow-hidden" aria-hidden>
+          <div
+            className="absolute inset-0 scale-[1.02] bg-cover bg-center opacity-[0.9] saturate-[1.03] contrast-[1.01] transition duration-300 group-hover:scale-[1.04]"
+            style={{ backgroundImage: `url("${backgroundUrl}")` }}
+          />
+          <div className={cn("absolute inset-0 bg-gradient-to-r", style.overlay)} />
           <img
             src={backgroundUrl}
             alt=""
@@ -99,7 +113,12 @@ export function AdminMetricCard({
 
       <span className={`absolute inset-y-0 left-0 z-10 w-1 ${style.stripe}`} aria-hidden />
 
-      <div className="relative z-10 flex items-start gap-3.5 px-4 py-4 pl-[1.15rem]">
+      <div
+        className={cn(
+          "relative z-10 flex items-start gap-3.5 px-4 py-4 pl-[1.15rem]",
+          stretch ? "min-h-0 flex-1" : "",
+        )}
+      >
         <div
           className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[0.62rem] font-black uppercase tracking-wide ring-1 ${style.icon}`}
           aria-hidden
@@ -107,8 +126,8 @@ export function AdminMetricCard({
           {style.symbol}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-1 rounded-lg bg-white/58 px-2.5 py-2 backdrop-blur-[10px] ring-1 ring-white/55">
-          <p className={`text-[0.6rem] font-bold uppercase tracking-[0.16em] ${style.label}`}>{label}</p>
+        <div className="min-w-0 flex-1 space-y-1 rounded-lg bg-white/72 px-2.5 py-2 ring-1 ring-white/60 backdrop-blur-[12px]">
+          <p className={`text-[0.6rem] font-bold uppercase tracking-[0.14em] ${style.label}`}>{label}</p>
           <p className="truncate text-[1.65rem] font-black leading-[1.05] tracking-tight text-[#03121c] [text-shadow:0_1px_0_rgba(255,255,255,0.65)] sm:text-[1.75rem]">
             {value}
           </p>

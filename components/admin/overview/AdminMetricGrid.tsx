@@ -1,11 +1,27 @@
 import { AdminMetricCard, type AdminMetricAccent } from "./AdminMetricCard";
 import type { AdminOverviewMetric } from "./buildOverviewMetrics";
+import { cn } from "@/lib/cn";
 
 export type { AdminMetricAccent, AdminOverviewMetric };
 
-export function AdminMetricGrid({ metrics }: { metrics: AdminOverviewMetric[] }) {
+type AdminMetricGridLayout = "default" | "executive";
+
+export function AdminMetricGrid({
+  metrics,
+  layout = "default",
+}: {
+  metrics: AdminOverviewMetric[];
+  layout?: AdminMetricGridLayout;
+}) {
   return (
-    <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div
+      className={cn(
+        "grid gap-3",
+        layout === "executive"
+          ? "h-full min-h-0 auto-rows-fr sm:grid-cols-2"
+          : "mb-4 sm:grid-cols-2 xl:grid-cols-4",
+      )}
+    >
       {metrics.map((metric) => (
         <AdminMetricCard
           key={metric.label}
@@ -13,6 +29,7 @@ export function AdminMetricGrid({ metrics }: { metrics: AdminOverviewMetric[] })
           value={metric.value}
           detail={metric.detail}
           accent={metric.accent}
+          stretch={layout === "executive"}
         />
       ))}
     </div>

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { PaymentFlowChart } from "@/components/admin/charts/PaymentFlowChart.client";
 import { WalletExposureRanking } from "@/components/admin/overview/WalletExposureRanking";
-import { AdminMetricGrid } from "@/components/admin/overview/AdminMetricGrid";
+import { AdminExecutiveOverview } from "@/components/admin/overview/AdminExecutiveOverview";
 import { AdminOverviewHeader } from "@/components/admin/overview/AdminOverviewHeader";
-import { AdminPriorityCard } from "@/components/admin/overview/AdminPriorityCard";
 import { buildOverviewMetrics } from "@/components/admin/overview/buildOverviewMetrics";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card } from "@/components/ui/Card";
@@ -24,9 +23,8 @@ export default async function OverviewPage() {
     <>
       <AdminOverviewHeader />
 
-      <AdminMetricGrid metrics={metrics} />
-
-      <AdminPriorityCard
+      <AdminExecutiveOverview
+        metrics={metrics}
         priorityTotal={priorityTotal}
         counts={counts}
         operationalProgress={analytics.operationalProgress}

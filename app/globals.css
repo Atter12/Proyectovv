@@ -1212,6 +1212,25 @@ body {
     inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
+.admin-executive-overview {
+  min-width: 0;
+}
+
+.admin-executive-overview .admin-priority-compact {
+  min-height: 15.5rem;
+}
+
+@media (min-width: 1024px) {
+  .admin-executive-overview .admin-metric-card {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .admin-executive-overview .admin-priority-compact > .relative {
+    min-height: 100%;
+  }
+}
+
 .admin-overview-header {
   background: transparent;
 }
