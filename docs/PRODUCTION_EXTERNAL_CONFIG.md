@@ -221,7 +221,7 @@ support.ticket.created.internal
 Variables:
 
 ```env
-TIKTOK_CLIENT_KEY=
+TIKTOK_APP_ID=
 TIKTOK_CLIENT_SECRET=
 TIKTOK_REDIRECT_URI=https://app.tudominio.com/api/integrations/tiktok/callback
 TIKTOK_AUTH_BASE_URL=https://business-api.tiktok.com/portal/auth
@@ -230,6 +230,9 @@ TIKTOK_SCOPES=
 TIKTOK_WEBHOOK_SECRET=
 ```
 
+`TIKTOK_CLIENT_KEY` también es aceptado como alias de `TIKTOK_APP_ID`.
+Después de cambiar variables en Vercel hay que volver a desplegar.
+
 Rutas:
 
 ```txt
@@ -237,7 +240,7 @@ GET /api/integrations/tiktok/connect
 GET /api/integrations/tiktok/callback
 GET /api/integrations/tiktok/ad-accounts
 POST /api/integrations/tiktok/ad-accounts
-POST /api/jobs/tiktok/sync
+GET|POST /api/jobs/tiktok/sync
 ```
 
 Flujo:
@@ -247,8 +250,17 @@ admin conecta TikTok
 → callback OAuth
 → exchange code por tokens
 → guardar tokens cifrados en integration_connections
+→ renovar automáticamente el access token antes de vencer
 → importar advertiser accounts
 → crear/actualizar ad_accounts
+→ consultar Reporting API (gasto de ayer y hoy)
+→ registrar únicamente el incremento pendiente en el ledger
+```
+
+Para reprocesar un rango concreto:
+
+```txt
+GET /api/jobs/tiktok/sync?start_date=2026-07-18&end_date=2026-07-19
 ```
 
 ## 11. Jobs internos
@@ -256,7 +268,7 @@ admin conecta TikTok
 Rutas protegidas:
 
 ```txt
-POST /api/jobs/tiktok/sync
+GET|POST /api/jobs/tiktok/sync
 POST /api/jobs/ad-spend
 ```
 
