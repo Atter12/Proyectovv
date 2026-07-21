@@ -8,7 +8,6 @@ import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
-import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 
 interface RegisterFormValues {
   fullName: string;
@@ -29,7 +28,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-200"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -47,7 +46,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.065] px-4 text-sm text-white shadow-inner shadow-black/10 placeholder:text-slate-500 transition-all focus:border-[#8aa4ff]/60 focus:bg-white/[0.09] focus:outline-none focus:ring-4 focus:ring-[#4056ff]/15";
+  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 function readStoredReferralCode(): string | null {
   if (typeof window === "undefined") return null;
@@ -72,7 +71,6 @@ async function trackReferralClick(code: string): Promise<void> {
     // El tracking no debe bloquear el registro.
   }
 }
-
 
 function validateForm(values: RegisterFormValues): string | null {
   if (!values.fullName.trim()) return "El nombre completo es obligatorio.";
@@ -167,24 +165,30 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="luxury-card w-full max-w-[470px] rounded-[1.65rem] p-7 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#12d6a3]">Onboarding premium</p>
-          <h1 className="text-2xl font-bold tracking-[-0.03em] text-white">Crear cuenta</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Regístrate como anunciante en {siteConfig.name}
-          </p>
-        </div>
-        <AuthBrandMark compact />
+    <div className="auth-panel auth-enter relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 sm:p-8 lg:max-w-none">
+      <div
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent)]/55 to-transparent"
+        aria-hidden
+      />
+
+      <div className="mb-7">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+          Registro
+        </p>
+        <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text)] sm:text-[2rem]">
+          Crear cuenta
+        </h1>
+        <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
+          Regístrate como anunciante en {siteConfig.name}
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label
               htmlFor="fullName"
-              className="mb-2 block text-xs font-semibold text-slate-400"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
             >
               Nombre completo
             </label>
@@ -200,7 +204,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="organizationName"
-              className="mb-2 block text-xs font-semibold text-slate-400"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
             >
               Organización
             </label>
@@ -220,7 +224,7 @@ export function RegisterForm() {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-xs font-semibold text-slate-400"
+            className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
           >
             Correo electrónico
           </label>
@@ -240,7 +244,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="password"
-              className="mb-2 block text-xs font-semibold text-slate-400"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
             >
               Contraseña
             </label>
@@ -264,7 +268,7 @@ export function RegisterForm() {
           <div>
             <label
               htmlFor="confirmPassword"
-              className="mb-2 block text-xs font-semibold text-slate-400"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
             >
               Confirmar
             </label>
@@ -290,14 +294,15 @@ export function RegisterForm() {
         </div>
 
         {referralCode && (
-          <div className="rounded-2xl border border-[#12d6a3]/20 bg-[#12d6a3]/10 px-3 py-2 text-xs font-medium text-[#b7f7e6]">
-            Código referido aplicado: <span className="font-black">{referralCode}</span>
+          <div className="rounded-xl border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[#b7d9ff]">
+            Código referido aplicado:{" "}
+            <span className="font-semibold text-[var(--auth-text)]">{referralCode}</span>
           </div>
         )}
 
         {error && (
           <p
-            className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+            className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
             role="alert"
           >
             {error}
@@ -307,26 +312,26 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(23_139_255_/_0.32)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>
 
-        <p className="text-center text-[11px] leading-relaxed text-slate-500">
+        <p className="text-center text-[13px] leading-5 text-[var(--auth-text-soft)]">
           Al registrarte aceptas nuestros términos de servicio y política de
           privacidad.
         </p>
       </form>
 
-      <p className="mt-5 text-center text-sm text-slate-400">
+      <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
         ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
-          className="font-semibold text-[#8aa4ff] transition-colors hover:text-white hover:underline"
+          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff]"
         >
           Inicia sesión
         </Link>
-      </p>
+      </div>
     </div>
   );
 }
