@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AdminLoginForm } from "@/features/auth/components/AdminLoginForm.client";
 import { AdminLoginHeroPanel } from "@/features/auth/components/AdminLoginHeroPanel.client";
 import { siteConfig } from "@/config/site";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default function AdminLoginPage() {
           <div className="absolute inset-y-8 left-0 hidden w-px bg-gradient-to-b from-transparent via-white/12 to-transparent lg:block" />
 
           <div className="mb-6 flex items-center gap-3 lg:hidden">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--admin-accent)] text-sm font-black text-[#082131] shadow-lg">VV</span>
+            <EcomdyLogo size={40} className="shadow-lg" />
             <div>
               <p className="text-sm font-bold text-white">{siteConfig.name}</p>
               <p className="text-[0.58rem] font-bold uppercase tracking-[0.18em] text-[#9af7c9]">Admin console</p>

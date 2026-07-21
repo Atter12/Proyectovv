@@ -63,7 +63,7 @@ export function assertProductionSecrets(): void {
 
 export const serverEnv = {
   appEnv,
-  appName: process.env.NEXT_PUBLIC_SITE_NAME ?? "Proyectovv",
+  appName: process.env.NEXT_PUBLIC_SITE_NAME ?? "Ecomdy",
   supportEmail: process.env.SUPPORT_EMAIL ?? "soporte@example.com",
   supabaseUrl:
     process.env.SUPABASE_URL ??
@@ -127,7 +127,7 @@ export const serverEnv = {
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom:
     process.env.EMAIL_FROM ??
-    `${process.env.NEXT_PUBLIC_SITE_NAME ?? "Proyectovv"} <no-reply@example.com>`,
+    `${process.env.NEXT_PUBLIC_SITE_NAME ?? "Ecomdy"} <no-reply@example.com>`,
   emailReplyTo: process.env.EMAIL_REPLY_TO ?? process.env.SUPPORT_EMAIL ?? "",
 
   tiktokClientKey: process.env.TIKTOK_CLIENT_KEY ?? process.env.TIKTOK_APP_ID ?? "",

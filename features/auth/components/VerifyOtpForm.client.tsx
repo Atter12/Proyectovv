@@ -11,6 +11,7 @@ import { routes } from "@/config/routes";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 
 async function assertAdminAccess(): Promise<boolean> {
   const response = await fetch(routes.api.auth.adminAccess, { cache: "no-store" });
@@ -104,8 +105,8 @@ export function VerifyOtpForm() {
   return (
     <Card className="w-full max-w-md" padding="lg">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-sm font-bold text-white">
-          DM
+        <div className="mx-auto mb-4 flex justify-center">
+          <EcomdyLogo size={48} />
         </div>
         <h1 className="text-xl font-bold text-slate-900">Verifica tu correo</h1>
         <p className="mt-2 text-sm text-slate-500">

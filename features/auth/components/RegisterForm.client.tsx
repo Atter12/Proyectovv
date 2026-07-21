@@ -8,6 +8,7 @@ import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 
 interface RegisterFormValues {
   fullName: string;
@@ -15,17 +16,6 @@ interface RegisterFormValues {
   email: string;
   password: string;
   confirmPassword: string;
-}
-
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-[10px] font-bold text-white shadow-lg shadow-[#4056ff]/25 ring-1 ring-white/15">
-        DM
-      </div>
-      <span className="text-sm font-semibold text-white">{siteConfig.name}</span>
-    </div>
-  );
 }
 
 function PasswordToggle({
@@ -186,7 +176,7 @@ export function RegisterForm() {
             Regístrate como anunciante en {siteConfig.name}
           </p>
         </div>
-        <BrandMark />
+        <AuthBrandMark compact />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 
 interface AccountSetupPendingCardProps {
   error?: string;
@@ -25,8 +26,8 @@ export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps)
   return (
     <Card className="w-full max-w-md" padding="lg">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-sm font-bold text-white">
-          DM
+        <div className="mx-auto mb-4 flex justify-center">
+          <EcomdyLogo size={48} />
         </div>
         <h1 className="text-xl font-bold text-slate-900">
           Configurando tu cuenta

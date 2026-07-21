@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 
 function PasswordToggle({
   visible,
@@ -103,7 +104,7 @@ export function AdminLoginForm() {
     <div className="w-full max-w-[420px] rounded-[1.35rem] border border-[var(--admin-border)] bg-[rgba(9,31,45,0.88)] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-8">
       <div className="mb-7">
         <div className="mb-4 flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--admin-accent)] text-sm font-black text-[#082131]">VV</span>
+          <EcomdyLogo size={40} />
           <div>
             <p className="text-sm font-bold text-[var(--admin-text)]">{siteConfig.name}</p>
             <p className="text-[0.58rem] font-bold uppercase tracking-[0.2em] text-[var(--admin-info)]">Admin console</p>
