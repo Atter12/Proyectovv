@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope, Newsreader } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-manrope",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-newsreader",
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +31,11 @@ export default function RootLayout({
   assertProductionSecrets();
 
   return (
-    <html lang="es" className={`${inter.variable} light h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${manrope.variable} ${newsreader.variable} light h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: adminThemeInitScript }} />
       </head>

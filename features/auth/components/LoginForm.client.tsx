@@ -3,22 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
-
-function BrandMark() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-[10px] font-bold text-white shadow-lg shadow-[#4056ff]/25 ring-1 ring-white/15">
-        DM
-      </div>
-      <span className="text-sm font-semibold text-white">{siteConfig.name}</span>
-    </div>
-  );
-}
+import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 
 function PasswordToggle({
   visible,
@@ -31,7 +20,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-200"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -49,7 +38,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.065] px-4 text-sm text-white shadow-inner shadow-black/10 placeholder:text-slate-500 transition-all focus:border-[#8aa4ff]/60 focus:bg-white/[0.09] focus:outline-none focus:ring-4 focus:ring-[#4056ff]/15";
+  "h-11 w-full rounded-[var(--auth-radius)] border border-[var(--auth-border)] bg-[var(--auth-bg-elevated)] px-3.5 text-sm text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] focus:border-[var(--auth-accent)] focus:bg-[var(--auth-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-ring)]";
 
 export function LoginForm() {
   const router = useRouter();
@@ -96,20 +85,24 @@ export function LoginForm() {
   }
 
   return (
-    <div className="luxury-card w-full max-w-[430px] rounded-[1.65rem] p-7 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-8">
-      <div className="mb-8 flex items-center justify-between gap-4">
+    <div className="auth-panel auth-enter w-full max-w-[420px] rounded-[var(--auth-radius-lg)] p-7 sm:p-8">
+      <div className="mb-7 flex items-start justify-between gap-4">
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#12d6a3]">Acceso seguro</p>
-          <h1 className="text-2xl font-bold tracking-[-0.03em] text-white">Iniciar sesión</h1>
+          <h1 className="font-display text-[1.75rem] leading-none tracking-tight text-[var(--auth-text)]">
+            Iniciar sesión
+          </h1>
+          <p className="mt-2 text-sm text-[var(--auth-text-muted)]">
+            Accede a tu panel de anunciante
+          </p>
         </div>
-        <BrandMark />
+        <AuthBrandMark className="hidden sm:flex" compact />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-xs font-semibold text-slate-400"
+            className="mb-1.5 block text-[13px] font-medium text-[var(--auth-text-muted)]"
           >
             Correo electrónico
           </label>
@@ -126,12 +119,20 @@ export function LoginForm() {
         </div>
 
         <div>
-          <label
-            htmlFor="password"
-            className="mb-2 block text-xs font-semibold text-slate-400"
-          >
-            Contraseña
-          </label>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <label
+              htmlFor="password"
+              className="block text-[13px] font-medium text-[var(--auth-text-muted)]"
+            >
+              Contraseña
+            </label>
+            <Link
+              href={routes.forgotPassword}
+              className="text-[12px] font-medium text-[var(--auth-accent)] transition-colors hover:text-[var(--auth-text)]"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
           <div className="relative">
             <input
               id="password"
@@ -148,18 +149,13 @@ export function LoginForm() {
               onToggle={() => setShowPassword((prev) => !prev)}
             />
           </div>
-          <div className="mt-2 flex justify-end">
-            <Link
-              href={routes.forgotPassword}
-              className="text-xs font-medium text-slate-500 transition-colors hover:text-[#8aa4ff] hover:underline"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
         </div>
 
         {error && (
-          <p className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200" role="alert">
+          <p
+            className="rounded-[var(--auth-radius)] border border-[var(--auth-danger)]/25 bg-[var(--auth-danger)]/10 px-3 py-2.5 text-[13px] text-red-200"
+            role="alert"
+          >
             {error}
           </p>
         )}
@@ -167,17 +163,17 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-1 flex h-11 w-full items-center justify-center rounded-[var(--auth-radius)] bg-[var(--auth-accent)] text-sm font-semibold text-white transition-[background-color,transform] hover:bg-[var(--auth-accent-hover)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55"
         >
           {loading ? "Iniciando sesión…" : "Iniciar sesión"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-400">
+      <p className="mt-6 text-center text-sm text-[var(--auth-text-muted)]">
         ¿No tienes cuenta?{" "}
         <Link
           href={routes.register}
-          className="font-semibold text-[#8aa4ff] transition-colors hover:text-white hover:underline"
+          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--auth-text)]"
         >
           Regístrate
         </Link>
