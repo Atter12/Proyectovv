@@ -38,7 +38,7 @@ export default function LoginPage() {
             <LoginForm />
           </Suspense>
 
-          <p className="mt-5 text-center text-[11px] tracking-wide text-[var(--auth-text-soft)] lg:text-left">
+          <p className="mt-5 text-center text-[11px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">
             © {new Date().getFullYear()} {siteConfig.companyName}
           </p>
         </div>

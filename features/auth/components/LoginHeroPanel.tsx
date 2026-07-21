@@ -69,52 +69,54 @@ export function LoginHeroPanel() {
 
   return (
     <div className="relative z-10 hidden min-h-0 flex-col justify-center py-10 lg:flex">
-      <AuthBrandMark />
+      <div className="auth-copy-well">
+        <AuthBrandMark />
 
-      <div className="relative z-10 mt-8 max-w-[34rem]">
-        <p className="text-[12px] font-medium tracking-[0.08em] text-[var(--auth-accent)]">
-          Panel para anunciantes
-        </p>
+        <div className="relative z-10 mt-8 max-w-[34rem]">
+          <p className="text-[12px] font-medium tracking-[0.08em] text-[var(--auth-accent)]">
+            Panel para anunciantes
+          </p>
 
-        {reduceMotion ? (
-          <h1 className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]">
-            {HERO_TITLE}
-          </h1>
-        ) : (
-          <BlurText
-            as="h1"
-            text={HERO_TITLE}
-            animateBy="words"
-            direction="top"
-            delay={80}
-            stepDuration={0.26}
-            className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]"
-          />
-        )}
+          {reduceMotion ? (
+            <h1 className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]">
+              {HERO_TITLE}
+            </h1>
+          ) : (
+            <BlurText
+              as="h1"
+              text={HERO_TITLE}
+              animateBy="words"
+              direction="top"
+              delay={80}
+              stepDuration={0.26}
+              className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]"
+            />
+          )}
 
-        <p className="mt-4 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
-          Una plataforma pensada para agencias y equipos de performance que
-          necesitan control real, no otra dashboard genérica.
-        </p>
+          <p className="mt-4 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
+            Una plataforma pensada para agencias y equipos de performance que
+            necesitan control real, no otra dashboard genérica.
+          </p>
 
-        <ul className="mt-7 space-y-3.5">
-          {FEATURES.map((feature) => (
-            <li key={feature.title} className="flex gap-3">
-              <span
-                className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_10px_rgb(23_139_255_/_0.55)]"
-                aria-hidden
-              />
-              <div>
-                <p className="text-[13px] font-semibold text-[var(--auth-text)]">
-                  {feature.title}
-                </p>
-                <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
-                  {feature.description}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-7 space-y-3.5">
+            {FEATURES.map((feature) => (
+              <li key={feature.title} className="flex gap-3">
+                <span
+                  className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_10px_rgb(23_139_255_/_0.55)]"
+                  aria-hidden
+                />
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--auth-text)]">
+                    {feature.title}
+                  </p>
+                  <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
+                    {feature.description}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div className="auth-panel relative z-10 mt-8 max-w-[34rem] rounded-[12px] p-4">
