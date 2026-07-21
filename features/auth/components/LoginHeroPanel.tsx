@@ -68,16 +68,16 @@ export function LoginHeroPanel() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative z-10 hidden min-h-screen flex-col justify-between overflow-hidden px-10 py-12 lg:flex xl:px-14">
+    <div className="relative z-10 hidden min-h-0 flex-col justify-center py-10 lg:flex">
       <AuthBrandMark />
 
-      <div className="relative z-10 max-w-lg py-10">
-        <p className="text-[13px] font-medium tracking-[0.04em] text-[var(--auth-accent)]">
+      <div className="relative z-10 mt-8 max-w-[34rem]">
+        <p className="text-[12px] font-medium tracking-[0.08em] text-[var(--auth-accent)]">
           Panel para anunciantes
         </p>
 
         {reduceMotion ? (
-          <h1 className="font-display mt-4 text-[2.75rem] leading-[1.08] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.15rem]">
+          <h1 className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]">
             {HERO_TITLE}
           </h1>
         ) : (
@@ -86,29 +86,29 @@ export function LoginHeroPanel() {
             text={HERO_TITLE}
             animateBy="words"
             direction="top"
-            delay={90}
-            stepDuration={0.28}
-            className="font-display mt-4 text-[2.75rem] leading-[1.08] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.15rem]"
+            delay={80}
+            stepDuration={0.26}
+            className="font-display mt-3 text-[2.35rem] leading-[1.1] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[2.65rem]"
           />
         )}
 
-        <p className="mt-5 max-w-md text-[15px] leading-7 text-[var(--auth-text-muted)]">
+        <p className="mt-4 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
           Una plataforma pensada para agencias y equipos de performance que
           necesitan control real, no otra dashboard genérica.
         </p>
 
-        <ul className="mt-10 space-y-5">
+        <ul className="mt-7 space-y-3.5">
           {FEATURES.map((feature) => (
-            <li key={feature.title} className="flex gap-3.5">
+            <li key={feature.title} className="flex gap-3">
               <span
-                className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)]"
+                className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_10px_rgb(23_139_255_/_0.55)]"
                 aria-hidden
               />
               <div>
-                <p className="text-sm font-semibold text-[var(--auth-text)]">
+                <p className="text-[13px] font-semibold text-[var(--auth-text)]">
                   {feature.title}
                 </p>
-                <p className="mt-0.5 text-sm leading-relaxed text-[var(--auth-text-muted)]">
+                <p className="mt-0.5 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
                   {feature.description}
                 </p>
               </div>
@@ -117,17 +117,17 @@ export function LoginHeroPanel() {
         </ul>
       </div>
 
-      <div className="auth-panel relative z-10 max-w-lg rounded-[var(--auth-radius-lg)] p-5">
+      <div className="auth-panel relative z-10 mt-8 max-w-[34rem] rounded-[12px] p-4">
         <div key={quote.name} className={cn(!reduceMotion && "testimonial-enter")}>
-          <p className="font-display text-[1.05rem] italic leading-7 text-[var(--auth-text)]">
+          <p className="font-display text-[15px] italic leading-6 text-[var(--auth-text)]">
             &ldquo;{quote.quote}&rdquo;
           </p>
-          <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="mt-3.5 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-[var(--auth-text)]">
+              <p className="text-[13px] font-semibold text-[var(--auth-text)]">
                 {quote.name}
               </p>
-              <p className="text-xs text-[var(--auth-text-soft)]">{quote.role}</p>
+              <p className="text-[11px] text-[var(--auth-text-soft)]">{quote.role}</p>
             </div>
             <div className="flex gap-1.5">
               {QUOTES.map((item, index) => (
@@ -139,7 +139,7 @@ export function LoginHeroPanel() {
                   className={cn(
                     "h-1.5 rounded-full transition-all duration-300",
                     index === activeIndex
-                      ? "w-5 bg-[var(--auth-accent)]"
+                      ? "w-4 bg-[var(--auth-accent)]"
                       : "w-1.5 bg-white/25 hover:bg-white/45",
                   )}
                 />
