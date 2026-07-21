@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoginForm } from "@/features/auth/components/LoginForm.client";
 import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
+import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
@@ -23,7 +24,9 @@ function AuthCardFallback() {
 export default function LoginPage() {
   return (
     <div className="auth-canvas relative min-h-screen overflow-hidden">
-      <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
+      <AuthDotGridBackground />
+
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <LoginHeroPanel />
 
         <div className="relative flex flex-col items-center justify-center px-4 py-10 sm:px-6 lg:border-l lg:border-white/[0.06] lg:px-10 xl:px-16">

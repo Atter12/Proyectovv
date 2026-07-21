@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
+import { BlurText } from "@/components/react-bits/BlurText";
 
 const FEATURES = [
   {
@@ -40,20 +41,34 @@ const QUOTES = [
   },
 ] as const;
 
+const HERO_TITLE = "Opera campañas, pagos y saldos en un solo lugar.";
+
 export function LoginHeroPanel() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const quote = QUOTES[activeIndex];
 
   useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduceMotion(media.matches);
+
+    const onChange = () => setReduceMotion(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % QUOTES.length);
     }, 5600);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [reduceMotion]);
 
   return (
-    <div className="relative hidden min-h-screen flex-col justify-between overflow-hidden px-10 py-12 lg:flex xl:px-14">
+    <div className="relative z-10 hidden min-h-screen flex-col justify-between overflow-hidden px-10 py-12 lg:flex xl:px-14">
       <AuthBrandMark />
 
       <div className="relative z-10 max-w-lg py-10">
@@ -61,9 +76,21 @@ export function LoginHeroPanel() {
           Panel para anunciantes
         </p>
 
-        <h1 className="font-display mt-4 text-[2.75rem] leading-[1.08] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.15rem]">
-          Opera campañas, pagos y saldos en un solo lugar.
-        </h1>
+        {reduceMotion ? (
+          <h1 className="font-display mt-4 text-[2.75rem] leading-[1.08] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.15rem]">
+            {HERO_TITLE}
+          </h1>
+        ) : (
+          <BlurText
+            as="h1"
+            text={HERO_TITLE}
+            animateBy="words"
+            direction="top"
+            delay={90}
+            stepDuration={0.28}
+            className="font-display mt-4 text-[2.75rem] leading-[1.08] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.15rem]"
+          />
+        )}
 
         <p className="mt-5 max-w-md text-[15px] leading-7 text-[var(--auth-text-muted)]">
           Una plataforma pensada para agencias y equipos de performance que
@@ -91,7 +118,7 @@ export function LoginHeroPanel() {
       </div>
 
       <div className="auth-panel relative z-10 max-w-lg rounded-[var(--auth-radius-lg)] p-5">
-        <div key={quote.name} className="testimonial-enter">
+        <div key={quote.name} className={cn(!reduceMotion && "testimonial-enter")}>
           <p className="font-display text-[1.05rem] italic leading-7 text-[var(--auth-text)]">
             &ldquo;{quote.quote}&rdquo;
           </p>
