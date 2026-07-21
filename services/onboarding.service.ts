@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { revalidateTag } from "next/cache";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -37,25 +36,17 @@ const DEFAULT_STEPS: Array<{
   },
 ];
 
-const getCachedOnboardingSteps = (organizationId: string) =>
-  unstable_cache(
-    async () => {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from("organization_onboarding_steps")
-        .select("step_key, title, completed_at, sort_order")
-        .eq("organization_id", organizationId)
-        .order("sort_order", { ascending: true });
+async function loadOnboardingSteps(organizationId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organization_onboarding_steps")
+    .select("step_key, title, completed_at, sort_order")
+    .eq("organization_id", organizationId)
+    .order("sort_order", { ascending: true });
 
-      if (error) return null;
-      return data;
-    },
-    [`onboarding-steps-${organizationId}`],
-    {
-      revalidate: 60,
-      tags: [CACHE_TAGS.onboarding(organizationId)],
-    },
-  )();
+  if (error) return null;
+  return data;
+}
 
 export const getOnboardingStatus = cache(async (
   session: SessionUser,
@@ -64,24 +55,28 @@ export const getOnboardingStatus = cache(async (
     return { ...onboardingMock, completedSteps: 0 };
   }
 
-  const data = await getCachedOnboardingSteps(session.organizationId);
+  try {
+    const data = await loadOnboardingSteps(session.organizationId);
 
-  if (!data || data.length === 0) {
-    return inferOnboardingFromData(session);
+    if (!data || data.length === 0) {
+      return await inferOnboardingFromData(session);
+    }
+
+    const steps: OnboardingStep[] = data.map((row) => ({
+      id: row.step_key as OnboardingStepId,
+      label: row.title,
+      completed: row.completed_at !== null,
+    }));
+
+    const completedSteps = steps.filter((step) => step.completed).length;
+    return {
+      steps,
+      totalSteps: steps.length,
+      completedSteps,
+    };
+  } catch {
+    return { ...onboardingMock, completedSteps: 0 };
   }
-
-  const steps: OnboardingStep[] = data.map((row) => ({
-    id: row.step_key as OnboardingStepId,
-    label: row.title,
-    completed: row.completed_at !== null,
-  }));
-
-  const completedSteps = steps.filter((step) => step.completed).length;
-  return {
-    steps,
-    totalSteps: steps.length,
-    completedSteps,
-  };
 });
 
 export async function completeOnboardingStep(

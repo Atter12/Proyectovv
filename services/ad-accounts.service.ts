@@ -372,8 +372,10 @@ function mapAdAccountRow(
   const monthlyLimit = centsToAmount(row.monthly_limit_cents ?? 0);
   const rechargeThreshold = centsToAmount(row.recharge_threshold_cents ?? 0);
   const connectionLabel = row.external_account_id
-    ? `${platformLabel(row.platform)} conectado/manual`
-    : "Manual/Demo";
+    ? row.platform === "tiktok"
+      ? "TikTok conectado"
+      : `${platformLabel(row.platform)} conectado`
+    : "Manual";
 
   return {
     id: row.id,

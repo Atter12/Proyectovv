@@ -131,6 +131,14 @@ export function AdAccountsToolbar({
             </label>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
+            <a href="/api/integrations/tiktok/connect" className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="h-11 w-full rounded-xl border-[var(--border-subtle)] sm:w-auto"
+              >
+                Conectar TikTok
+              </Button>
+            </a>
             <Link href={routes.creativeAnalyzer} className="w-full sm:w-auto">
               <Button
                 variant="outline"

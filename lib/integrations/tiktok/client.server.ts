@@ -306,6 +306,27 @@ function nextUtcDate(date: string): string {
   return value.toISOString();
 }
 
+function mapTikTokAdvertiserStatus(status?: string | null): "active" | "pending" | "disabled" {
+  const normalized = (status ?? "").toUpperCase();
+  if (
+    !normalized ||
+    normalized.includes("ENABLE") ||
+    normalized.includes("ACTIVE") ||
+    normalized === "STATUS_OK"
+  ) {
+    return "active";
+  }
+  if (
+    normalized.includes("DISABLE") ||
+    normalized.includes("CLOSE") ||
+    normalized.includes("PUNISH") ||
+    normalized.includes("BAN")
+  ) {
+    return "disabled";
+  }
+  return "pending";
+}
+
 export async function syncTikTokAdvertiserSpend(input: {
   organizationId: string;
   adAccountId: string;
@@ -390,12 +411,12 @@ export async function importTikTokAdvertiserAccounts(input: {
         platform: "tiktok",
         external_account_id: account.advertiserId,
         external_account_name: account.name,
-        status: account.status === "STATUS_ENABLE" ? "active" : "pending",
+        status: mapTikTokAdvertiserStatus(account.status),
         currency: account.currency ?? "USD",
         timezone: account.timezone ?? "America/Lima",
         created_by: input.userId ?? null,
         last_synced_at: new Date().toISOString(),
-        metadata: { tiktok: account.raw ?? {} },
+        metadata: { tiktok: account.raw ?? {}, source: "tiktok_oauth" },
       },
       { onConflict: "organization_id,platform,external_account_id" },
     );

@@ -8,6 +8,12 @@ export async function GET() {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const status = await getOnboardingStatus(session);
-  return NextResponse.json({ ok: true, ...status });
+  try {
+    const status = await getOnboardingStatus(session);
+    return NextResponse.json({ ok: true, ...status });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No se pudo cargar el onboarding.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

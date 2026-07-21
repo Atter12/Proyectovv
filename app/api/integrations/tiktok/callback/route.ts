@@ -7,10 +7,11 @@ import {
 } from "@/lib/integrations/tiktok/client.server";
 import { serverEnv } from "@/lib/env/env.server";
 
-function redirectToPayments(status: string, message?: string) {
+function redirectToAdAccounts(status: string, message?: string) {
   const url = new URL("/ad-accounts", serverEnv.appUrl);
   url.searchParams.set("integration", "tiktok");
-  url.searchParams.set("status", status);
+  // No usar "status": choca con el filtro de estado de cuentas (active/pending/...).
+  url.searchParams.set("integration_status", status);
   if (message) url.searchParams.set("message", message.slice(0, 160));
   return NextResponse.redirect(url);
 }
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
     url.searchParams.get("message");
 
   if (tiktokError) {
-    return redirectToPayments(
+    return redirectToAdAccounts(
       "failed",
       `TikTok: ${tiktokError}${tiktokErrorDescription ? ` - ${tiktokErrorDescription}` : ""}`,
     );
@@ -38,16 +39,16 @@ export async function GET(request: Request) {
   const state = verifyTikTokOAuthState(rawState);
 
   if (!authCode && !rawState) {
-    return redirectToPayments(
+    return redirectToAdAccounts(
       "failed",
       "Abre /api/integrations/tiktok/connect (no abras el callback directo)",
     );
   }
   if (!authCode) {
-    return redirectToPayments("failed", "TikTok no devolvió auth_code");
+    return redirectToAdAccounts("failed", "TikTok no devolvió auth_code");
   }
   if (!state) {
-    return redirectToPayments(
+    return redirectToAdAccounts(
       "failed",
       "State OAuth inválido o expirado (reintenta Connect en menos de 15 min)",
     );
@@ -64,9 +65,9 @@ export async function GET(request: Request) {
       organizationId: state.organizationId,
       userId: state.userId,
     });
-    return redirectToPayments("connected");
+    return redirectToAdAccounts("connected");
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo conectar TikTok.";
-    return redirectToPayments("failed", message);
+    return redirectToAdAccounts("failed", message);
   }
 }
