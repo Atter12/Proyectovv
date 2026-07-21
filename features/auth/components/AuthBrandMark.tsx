@@ -9,11 +9,11 @@ export function AuthBrandMark({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <div
         className={cn(
-          "flex items-center justify-center rounded-[10px] bg-[var(--auth-accent)] font-bold text-white",
-          compact ? "h-8 w-8 text-[10px]" : "h-9 w-9 text-[11px]",
+          "flex items-center justify-center rounded-[12px] bg-[var(--auth-accent)] font-bold text-white shadow-[0_8px_20px_rgb(23_139_255_/_0.28)]",
+          compact ? "h-9 w-9 text-[11px]" : "h-11 w-11 text-[13px]",
         )}
         aria-hidden
       >
@@ -22,7 +22,7 @@ export function AuthBrandMark({
       <span
         className={cn(
           "font-semibold tracking-tight text-[var(--auth-text)]",
-          compact ? "text-sm" : "text-[15px]",
+          compact ? "text-base" : "text-lg",
         )}
       >
         {siteConfig.name}
