@@ -6,6 +6,11 @@ export type AdminTheme = "light" | "dark";
 
 const STORAGE_KEY = "admin-theme";
 
+export function isAdminPathname(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export function getStoredAdminTheme(): AdminTheme {
   if (typeof window === "undefined") return "light";
 
@@ -16,7 +21,8 @@ export function getStoredAdminTheme(): AdminTheme {
     // localStorage may be unavailable in restricted contexts
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // Default light — do not inherit OS dark mode for the product UI.
+  return "light";
 }
 
 function readDomTheme(): AdminTheme {
@@ -24,11 +30,16 @@ function readDomTheme(): AdminTheme {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
-function applyThemeToDom(theme: AdminTheme) {
+export function applyThemeToDom(theme: AdminTheme) {
   const root = document.documentElement;
   root.classList.remove("light", "dark");
   root.classList.add(theme);
   root.dataset.themeDirection = theme;
+}
+
+/** Force document back to light (customer routes / leaving admin). */
+export function forceDocumentLightTheme() {
+  applyThemeToDom("light");
 }
 
 export function useAdminTheme() {

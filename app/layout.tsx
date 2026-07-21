@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Newsreader } from "next/font/google";
 import { siteConfig } from "@/config/site";
+import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
@@ -40,6 +41,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: adminThemeInitScript }} />
       </head>
       <body className="min-h-full overflow-x-hidden bg-[var(--background)] font-sans text-[var(--foreground)]">
+        <DocumentThemeScope />
         {children}
       </body>
     </html>

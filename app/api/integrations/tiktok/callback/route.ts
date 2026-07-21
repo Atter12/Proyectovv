@@ -17,11 +17,40 @@ function redirectToPayments(status: string, message?: string) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const authCode = url.searchParams.get("auth_code") ?? url.searchParams.get("code");
-  const state = verifyTikTokOAuthState(url.searchParams.get("state"));
+  const tiktokError =
+    url.searchParams.get("error") ??
+    url.searchParams.get("error_type") ??
+    url.searchParams.get("msg");
+  const tiktokErrorDescription =
+    url.searchParams.get("error_description") ??
+    url.searchParams.get("error_message") ??
+    url.searchParams.get("message");
 
-  if (!authCode || !state) {
-    return redirectToPayments("failed", "OAuth inválido o expirado");
+  if (tiktokError) {
+    return redirectToPayments(
+      "failed",
+      `TikTok: ${tiktokError}${tiktokErrorDescription ? ` - ${tiktokErrorDescription}` : ""}`,
+    );
+  }
+
+  const authCode = url.searchParams.get("auth_code") ?? url.searchParams.get("code");
+  const rawState = url.searchParams.get("state");
+  const state = verifyTikTokOAuthState(rawState);
+
+  if (!authCode && !rawState) {
+    return redirectToPayments(
+      "failed",
+      "Abre /api/integrations/tiktok/connect (no abras el callback directo)",
+    );
+  }
+  if (!authCode) {
+    return redirectToPayments("failed", "TikTok no devolvió auth_code");
+  }
+  if (!state) {
+    return redirectToPayments(
+      "failed",
+      "State OAuth inválido o expirado (reintenta Connect en menos de 15 min)",
+    );
   }
 
   try {
