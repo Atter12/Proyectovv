@@ -8,43 +8,44 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
   const barHeights = [40, 65, 55, 80, 70, 90, 75];
 
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#070b1f] via-[#0f172a] to-[#1e1b4b] shadow-xl shadow-indigo-950/20 sm:min-h-[300px] sm:rounded-3xl lg:min-h-[360px]">
-      <div className="pointer-events-none absolute inset-0">
+    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#07111f_0%,#0c2748_48%,#0b4f9c_100%)] shadow-[0_18px_40px_rgb(7_17_31_/_0.35)] sm:min-h-[300px] lg:min-h-[340px]">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.14]"
           style={{
             backgroundImage:
-              "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
+              "radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.45) 1px, transparent 0)",
+            backgroundSize: "22px 22px",
+            maskImage:
+              "radial-gradient(ellipse 65% 75% at 78% 30%, black, transparent)",
           }}
         />
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#4056ff]/25 blur-3xl" />
-        <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[#06b6d4]/15 blur-3xl" />
-        <div className="absolute right-1/4 top-1/2 h-px w-48 rotate-12 bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[var(--brand-primary)]/30 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[#9af7c9]/12 blur-3xl" />
       </div>
 
-      <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
+      <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-7 lg:flex-row lg:items-center lg:justify-between lg:p-8">
         <div className="min-w-0 max-w-xl">
-          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90 backdrop-blur-sm">
-            Director creativo con IA
-          </span>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-[2.5rem] lg:leading-tight">
+          <p className="text-[13px] font-semibold tracking-[0.04em] text-[var(--brand-mint)]">
+            Análisis creativo
+          </p>
+          <h2 className="font-display mt-2 text-[1.75rem] font-medium leading-[1.12] tracking-[-0.02em] text-white sm:text-[2rem] lg:text-[2.35rem]">
             Analizador creativo
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
-            Analiza, puntúa y genera nuevas piezas creativas a partir de señales
-            reales de campaña.
+          <p className="mt-3 max-w-lg text-[15px] leading-7 text-white/80">
+            Analiza, puntúa y mejora piezas creativas con señales reales de
+            campaña antes de escalar presupuesto.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="#creative-benchmark"
-              className="inline-flex h-11 items-center rounded-xl bg-[#4056ff] px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4056ff]/90"
+              className="inline-flex h-11 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_10px_24px_rgb(23_139_255_/_0.3)] transition-colors hover:bg-[var(--brand-primary-deep)]"
             >
               Analiza tu primer video
             </a>
             <a
               href="#creative-workflow"
-              className="inline-flex h-11 items-center rounded-xl border border-white/20 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/15"
+              className="inline-flex h-11 items-center rounded-xl border border-white/20 bg-white/10 px-5 text-[14px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/15"
             >
               Ver cómo funciona
             </a>
@@ -55,19 +56,19 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
           <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-md sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">
                   Puntuación creativa
                 </p>
-                <p className="mt-1 text-3xl font-bold text-white">
+                <p className="mt-1 font-display text-3xl font-medium text-white">
                   {metrics.averageScore}
                   <span className="text-lg font-medium text-white/50">/100</span>
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
                   Señal ganadora
                 </span>
-                <span className="rounded-full bg-[#4056ff]/30 px-2 py-0.5 text-[10px] font-semibold text-blue-200">
+                <span className="rounded-full bg-[var(--brand-primary)]/30 px-2 py-0.5 text-[10px] font-semibold text-[#b7d9ff]">
                   Cumple políticas
                 </span>
               </div>
@@ -86,7 +87,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
                   <p className="text-[9px] uppercase tracking-wide text-white/45">
                     {m.label}
                   </p>
-                  <p className="mt-0.5 text-sm font-bold text-white">{m.value}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-white">{m.value}</p>
                 </div>
               ))}
             </div>
@@ -95,8 +96,8 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
               {barHeights.map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-t bg-gradient-to-t from-[#4056ff] to-[#06b6d4]"
-                  style={{ height: `${h}%` }}
+                  className="flex-1 rounded-t bg-[var(--brand-primary)]"
+                  style={{ height: `${h}%`, opacity: 0.45 + i * 0.07 }}
                 />
               ))}
             </div>

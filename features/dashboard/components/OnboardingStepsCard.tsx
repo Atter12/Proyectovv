@@ -45,11 +45,13 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
   return (
-    <Card className="h-full transition-all duration-200" elevated>
+    <Card className="h-full" elevated>
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-[#0f172a]">Pasos iniciales</h3>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <h3 className="font-display text-[1.15rem] font-medium tracking-tight text-[var(--foreground)]">
+            Pasos iniciales
+          </h3>
+          <p className="mt-1 text-[14px] text-[var(--admin-text-muted,#64748b)]">
             Completa estos pasos para activar tu primera campaña.
           </p>
         </div>
@@ -58,9 +60,9 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
         </Badge>
       </div>
 
-      <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-[var(--surface-soft)]">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#4056ff] to-[#7c3aed] transition-all duration-300"
+          className="h-full rounded-full bg-[var(--brand-primary)] transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -69,45 +71,49 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
         {steps.map((step, index) => (
           <li key={step.step} className="relative flex gap-4 pb-6 last:pb-0">
             {index < steps.length - 1 && (
-              <div className="absolute left-4 top-9 h-[calc(100%-12px)] w-px bg-slate-200" />
+              <div className="absolute left-4 top-9 h-[calc(100%-12px)] w-px bg-[var(--border-subtle)]" />
             )}
-            <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#4056ff]/20 bg-[#4056ff]/5 text-sm font-semibold text-[#4056ff]">
+            <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--brand-primary)]/20 bg-[var(--brand-primary)]/10 text-sm font-semibold text-[var(--brand-primary)]">
               {step.step}
             </div>
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[#64748b]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--surface-soft)] text-[var(--admin-text-muted,#64748b)]">
                     <StepIcon step={step.step} />
                   </span>
-                  <p className="text-sm font-semibold text-[#0f172a]">{step.title}</p>
+                  <p className="text-[14px] font-semibold text-[var(--foreground)]">
+                    {step.title}
+                  </p>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
                     step.completed
-                      ? "bg-green-50 text-green-700"
-                      : "bg-amber-50 text-amber-600"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
                   }`}
                 >
                   {step.completed ? "Completado" : "Pendiente"}
                 </span>
               </div>
-              <p className="mt-1.5 pl-9 text-sm text-[#64748b]">{step.description}</p>
+              <p className="mt-1.5 pl-9 text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
+                {step.description}
+              </p>
             </div>
           </li>
         ))}
       </ol>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
+      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] pt-5">
         <Link
           href={routes.adAccounts}
-          className="inline-flex h-10 items-center rounded-xl bg-[#4056ff] px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4056ff]/90 hover:shadow-md"
+          className="inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]"
         >
           Crear cuenta publicitaria
         </Link>
         <Link
           href={routes.affiliates}
-          className="text-sm font-medium text-[#4056ff] transition-colors hover:text-[#7c3aed] hover:underline"
+          className="text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
         >
           Ver guía rápida
         </Link>

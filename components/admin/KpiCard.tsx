@@ -2,11 +2,26 @@ import { Card } from "@/components/ui/Card";
 import { adminPanelTypography } from "@/components/admin/overview/adminPanelTypography";
 
 const accentStyles = {
-  indigo: { icon: "bg-[#EAF4FF] text-[#178BFF]", label: "text-slate-500" },
-  emerald: { icon: "bg-emerald-50 text-emerald-600", label: "text-slate-500" },
-  amber: { icon: "bg-amber-50 text-amber-600", label: "text-slate-500" },
-  rose: { icon: "bg-rose-50 text-rose-600", label: "text-slate-500" },
-  slate: { icon: "bg-slate-100 text-slate-600", label: "text-slate-500" },
+  indigo: {
+    icon: "bg-[var(--admin-metric-accent-indigo)] text-[var(--admin-metric-accent-indigo-text)]",
+    label: "text-[var(--admin-text-muted)]",
+  },
+  emerald: {
+    icon: "bg-[var(--admin-metric-accent-emerald)] text-[var(--admin-metric-accent-emerald-text)]",
+    label: "text-[var(--admin-text-muted)]",
+  },
+  amber: {
+    icon: "bg-[var(--admin-metric-accent-amber)] text-[var(--admin-metric-accent-amber-text)]",
+    label: "text-[var(--admin-text-muted)]",
+  },
+  rose: {
+    icon: "bg-[var(--admin-metric-accent-rose)] text-[var(--admin-metric-accent-rose-text)]",
+    label: "text-[var(--admin-text-muted)]",
+  },
+  slate: {
+    icon: "bg-[var(--admin-badge-neutral-bg)] text-[var(--admin-badge-neutral-text)]",
+    label: "text-[var(--admin-text-muted)]",
+  },
 };
 
 export function KpiCard({

@@ -42,7 +42,7 @@ export function CreativeAnalyzerStats({ stats }: CreativeAnalyzerStatsProps) {
       {stats.map((stat) => (
         <Card key={stat.id} elevated className="min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
               <StatIcon id={stat.id} />
             </div>
             {stat.badge && (

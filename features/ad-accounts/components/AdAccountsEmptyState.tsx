@@ -5,9 +5,9 @@ import { AdAccountsOpenCreateModalButton } from "./AdAccountsOpenCreateModalButt
 export function AdAccountsEmptyState() {
   return (
     <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 ring-1 ring-[#e5e7eb]">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]/15">
         <svg
-          className="h-8 w-8 text-[#64748b]"
+          className="h-8 w-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -20,19 +20,19 @@ export function AdAccountsEmptyState() {
           />
         </svg>
       </div>
-      <h3 className="text-base font-semibold text-[#0f172a]">
+      <h3 className="font-display text-[1.1rem] font-medium text-[var(--foreground)]">
         Aún no tienes cuentas publicitarias
       </h3>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-[#64748b]">
+      <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
         Crea tu primera cuenta para asignar presupuesto, configurar campañas y
         empezar a publicar.
       </p>
-      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-xl bg-[#4056ff] px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4056ff]/90 hover:shadow-md">
+      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]">
         Crear cuenta publicitaria
       </AdAccountsOpenCreateModalButton>
       <Link
         href={routes.overview}
-        className="mt-3 text-sm font-medium text-[#4056ff] transition-colors hover:text-[#7c3aed] hover:underline"
+        className="mt-3 text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
       >
         Ver pasos de configuración
       </Link>

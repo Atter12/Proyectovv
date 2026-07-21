@@ -21,18 +21,18 @@ export function AffiliateMilestones({ milestones }: AffiliateMilestonesProps) {
             key={milestone.id}
             className={`relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
               milestone.isTop
-                ? "ring-2 ring-[#7c3aed]/20"
+                ? "ring-2 ring-[var(--brand-primary-deep)]/20"
                 : ""
             }`}
           >
             {milestone.isTop && (
-              <span className="absolute -top-2.5 right-4 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#4056ff] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              <span className="absolute -top-2.5 right-4 rounded-full bg-gradient-to-r from-[var(--brand-primary-deep)] to-[var(--brand-primary)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                 Destacado
               </span>
             )}
 
             <div className="flex items-start justify-between gap-2">
-              <span className="rounded-lg bg-[#4056ff]/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#4056ff]">
+              <span className="rounded-lg bg-[var(--brand-primary)]/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--brand-primary)]">
                 {milestone.name}
               </span>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
@@ -48,7 +48,7 @@ export function AffiliateMilestones({ milestones }: AffiliateMilestonesProps) {
             <p className="mt-1 text-xs text-[#64748b]">de comisión</p>
 
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full w-0 rounded-full bg-gradient-to-r from-[#4056ff] to-[#7c3aed]" />
+              <div className="h-full w-0 rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-deep)]" />
             </div>
             <p className="mt-1 text-[10px] text-[#64748b]">Progreso: 0%</p>
 

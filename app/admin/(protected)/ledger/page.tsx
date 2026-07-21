@@ -38,18 +38,18 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
             <section key={row.id} className="rounded-[1.35rem] border border-[#d7e7ee] bg-white p-4">
               <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2"><p className="font-mono text-sm font-black text-[#061925]">{row.id}</p><StatusBadge status={row.status} /></div>
-                  <p className="mt-1 text-sm text-[#5d7280]">{organization?.name ?? "—"} · {wallet?.name ?? row.wallet_id} · {formatDateTime(row.created_at)}</p>
+                  <div className="flex flex-wrap items-center gap-2"><p className="font-mono text-sm font-semibold text-[var(--admin-text)]">{row.id}</p><StatusBadge status={row.status} /></div>
+                  <p className="mt-1 text-sm text-[var(--admin-text-muted)]">{organization?.name ?? "—"} · {wallet?.name ?? row.wallet_id} · {formatDateTime(row.created_at)}</p>
                   <div className="mt-2 flex flex-wrap gap-2"><Badge tone="purple">{row.journal_type}</Badge>{row.source_table ? <Badge>{row.source_table}</Badge> : null}{row.provider ? <Badge tone="info">{row.provider}</Badge> : null}</div>
                 </div>
-                <div className="text-right"><p className="text-2xl font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</p><p className="text-xs text-[#789bad]">{row.description ?? row.provider_reference ?? "sin descripción"}</p></div>
+                <div className="text-right"><p className="text-2xl font-semibold text-[var(--admin-text)]">{formatMoney(row.amount_cents, row.currency)}</p><p className="text-xs text-[var(--admin-text-muted)]">{row.description ?? row.provider_reference ?? "sin descripción"}</p></div>
               </div>
               {entries.length > 0 ? (
                 <TableWrap className="mt-4">
                   <Table>
                     <thead><tr><Th>Entry</Th><Th>Cuenta</Th><Th>Dirección</Th><Th>Monto</Th></tr></thead>
-                    <tbody className="divide-y divide-[#e4eef3]">
-                      {entries.map((entry) => <tr key={entry.id}><Td className="font-mono text-xs">{entry.id}</Td><Td className="font-mono text-xs">{entry.account_id}</Td><Td><Badge tone={entry.direction === "debit" ? "info" : "warning"}>{entry.direction}</Badge></Td><Td className="font-black text-[#061925]">{formatMoney(entry.amount_cents, entry.currency)}</Td></tr>)}
+                    <tbody className="divide-y divide-[var(--admin-table-divider)]">
+                      {entries.map((entry) => <tr key={entry.id}><Td className="font-mono text-xs">{entry.id}</Td><Td className="font-mono text-xs">{entry.account_id}</Td><Td><Badge tone={entry.direction === "debit" ? "info" : "warning"}>{entry.direction}</Badge></Td><Td className="font-semibold text-[var(--admin-text)]">{formatMoney(entry.amount_cents, entry.currency)}</Td></tr>)}
                     </tbody>
                   </Table>
                 </TableWrap>

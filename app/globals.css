@@ -77,8 +77,8 @@
   --admin-badge-warning-text: #b45309;
   --admin-badge-danger-bg: #fef2f2;
   --admin-badge-danger-text: #b91c1c;
-  --admin-badge-purple-bg: #f5f3ff;
-  --admin-badge-purple-text: #6d28d9;
+  --admin-badge-purple-bg: #eef6ff;
+  --admin-badge-purple-text: #0f5ea8;
   --admin-control-bg: #ffffff;
   --admin-control-border: #e5eaf0;
   --admin-control-text: #0f172a;
@@ -159,8 +159,8 @@
   --admin-badge-warning-text: #f5b84b;
   --admin-badge-danger-bg: rgb(255 92 122 / 0.12);
   --admin-badge-danger-text: #ff5c7a;
-  --admin-badge-purple-bg: rgb(139 92 246 / 0.12);
-  --admin-badge-purple-text: #c4b5fd;
+  --admin-badge-purple-bg: rgb(23 139 255 / 0.14);
+  --admin-badge-purple-text: #7cc3ff;
   --admin-control-bg: #111821;
   --admin-control-border: #223044;
   --admin-control-text: #f8fafc;
@@ -399,21 +399,21 @@ body {
 .dashboard-canvas {
   background-color: var(--background);
   background-image:
-    radial-gradient(ellipse 72% 50% at 0% 0%, rgb(64 86 255 / 0.075), transparent 62%),
-    radial-gradient(ellipse 58% 42% at 100% 2%, rgb(124 58 237 / 0.06), transparent 58%),
+    radial-gradient(ellipse 72% 50% at 0% 0%, rgb(23 139 255 / 0.08), transparent 62%),
+    radial-gradient(ellipse 58% 42% at 100% 2%, rgb(23 139 255 / 0.04), transparent 58%),
     linear-gradient(180deg, #f7f9fd 0%, #f2f5fa 100%);
 }
 
 .dashboard-glass {
-  background: rgb(255 255 255 / 0.82);
+  background: rgb(255 255 255 / 0.86);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
 
 .dashboard-shell-accent {
   background:
-    radial-gradient(820px 260px at 36% -12%, rgb(64 86 255 / 0.12), transparent 65%),
-    radial-gradient(580px 220px at 96% -8%, rgb(124 58 237 / 0.09), transparent 62%);
+    radial-gradient(820px 260px at 36% -12%, rgb(23 139 255 / 0.1), transparent 65%),
+    radial-gradient(580px 220px at 96% -8%, rgb(23 139 255 / 0.06), transparent 62%);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -127,7 +127,7 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-[#4056ff]"
+                  className="text-[var(--brand-primary)]"
                   disabled={loadingAccountId === account.id}
                   onClick={() => (onAllocate ? onAllocate(account) : handleAllocate(account))}
                 >

@@ -50,9 +50,9 @@ export function ReferralWorkflow({ steps }: ReferralWorkflowProps) {
         {steps.map((step, index) => (
           <li key={step.id} className="relative flex gap-4 pb-5 last:pb-0">
             {index < steps.length - 1 && (
-              <div className="absolute left-5 top-10 h-[calc(100%-8px)] w-px bg-gradient-to-b from-[#4056ff]/30 to-[#7c3aed]/10" />
+              <div className="absolute left-5 top-10 h-[calc(100%-8px)] w-px bg-gradient-to-b from-[var(--brand-primary)]/30 to-[var(--brand-primary-deep)]/10" />
             )}
-            <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-sm font-bold text-white shadow-sm shadow-indigo-500/20">
+            <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-deep)] text-sm font-bold text-white shadow-sm shadow-indigo-500/20">
               {step.step}
             </div>
             <div className="min-w-0 flex-1 rounded-xl border border-[#e5e7eb] bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
@@ -77,7 +77,7 @@ export function ReferralWorkflow({ steps }: ReferralWorkflowProps) {
                 {step.description}
               </p>
               {step.optionalAction && (
-                <p className="mt-2 pl-9 text-xs font-medium text-[#4056ff]">
+                <p className="mt-2 pl-9 text-xs font-medium text-[var(--brand-primary)]">
                   → {step.optionalAction}
                 </p>
               )}

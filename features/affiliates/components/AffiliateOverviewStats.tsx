@@ -55,7 +55,7 @@ export function AffiliateOverviewStats({ stats }: AffiliateOverviewStatsProps) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
         <Card key={item.label} elevated className="min-w-0">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
             {item.icon}
           </div>
           <p className="mt-4 text-xs font-medium uppercase tracking-wide text-[#64748b]">

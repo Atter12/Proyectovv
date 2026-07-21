@@ -33,16 +33,16 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
     <div>
       <div className="flex flex-col gap-3 border-b border-[var(--border-subtle)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-[#0f172a]">
+          <h2 className="font-display text-[1.1rem] font-medium tracking-tight text-[var(--foreground)]">
             Cuentas publicitarias
           </h2>
-          <p className="mt-0.5 text-sm text-[#64748b]">
+          <p className="mt-0.5 text-[14px] text-[var(--admin-text-muted,#64748b)]">
             Administra tus cuentas, saldo y métricas principales.
           </p>
         </div>
         <Link
           href={routes.adAccounts}
-          className="inline-flex h-9 shrink-0 items-center rounded-xl border border-[#dbe1ea] bg-white px-4 text-sm font-medium text-[#0f172a] transition-all duration-200 hover:bg-slate-50 hover:shadow-sm"
+          className="inline-flex h-9 shrink-0 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-4 text-[13px] font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-soft)]"
         >
           Crear nueva
         </Link>
@@ -59,18 +59,20 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
         <TableBody>
           {!isEmpty &&
             accounts.map((account) => (
-              <tr key={account.id} className="hover:bg-slate-50/50">
-                <td className="px-4 py-3 text-sm font-medium text-slate-900">
+              <tr key={account.id} className="hover:bg-[var(--surface-soft)]/80">
+                <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">
                   {account.name}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">—</td>
-                <td className="px-4 py-3 text-sm text-slate-700">{account.timezone || "—"}</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">
+                  {account.timezone || "—"}
+                </td>
               </tr>
             ))}
         </TableBody>
@@ -84,7 +86,7 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
           action={
             <Link
               href={routes.adAccounts}
-              className="mt-4 inline-flex h-9 items-center rounded-xl border border-[#dbe1ea] bg-white px-4 text-sm font-medium text-[#4056ff] transition-all duration-200 hover:bg-[#4056ff]/5"
+              className="mt-4 inline-flex h-9 items-center rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--brand-primary-deep)]"
             >
               Crear cuenta publicitaria
             </Link>

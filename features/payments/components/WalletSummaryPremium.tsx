@@ -14,12 +14,12 @@ export function WalletSummaryPremium({
 }: WalletSummaryPremiumProps) {
   return (
     <Card className="relative overflow-hidden p-0">
-      <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-[5rem] bg-gradient-to-br from-[#4056ff]/8 to-[#7c3aed]/5" />
+      <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-[5rem] bg-[var(--brand-primary)]/[0.08]" />
 
       <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between lg:p-8">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
               <svg
                 className="h-6 w-6"
                 fill="none"
@@ -40,7 +40,7 @@ export function WalletSummaryPremium({
             </div>
           </div>
 
-          <p className="mt-5 text-4xl font-bold tracking-tight text-[#0f172a] sm:text-[2.75rem]">
+          <p className="mt-5 font-display text-[2.5rem] font-medium tracking-[-0.03em] text-[var(--foreground)] sm:text-[2.75rem]">
             {formatMoney(wallet.balance, wallet.currency)}
           </p>
 

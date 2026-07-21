@@ -15,12 +15,12 @@ export function DashboardPageIntro({
   return (
     <div
       className={cn(
-        "rounded-[1.45rem] border border-white/70 bg-white/70 p-5 shadow-[var(--shadow-card)] backdrop-blur-xl flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+        "flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
-        <p className="max-w-3xl text-sm font-medium leading-relaxed text-[#64748b]">
+        <p className="max-w-3xl text-[15px] leading-7 text-[var(--admin-text-muted,#64748b)]">
           {description}
         </p>
       </div>

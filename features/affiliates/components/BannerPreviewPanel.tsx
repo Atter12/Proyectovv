@@ -19,7 +19,7 @@ function BannerVisual({ size }: { size: BannerSize }) {
   return (
     <div
       style={{ width: w, height: h }}
-      className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[#7c3aed] via-[#4056ff] to-[#06b6d4] shadow-lg"
+      className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[var(--brand-primary-deep)] via-[var(--brand-primary)] to-[#06b6d4] shadow-lg"
     >
       <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/15 blur-md" />
       <div className="absolute -bottom-3 -left-3 h-12 w-12 rounded-full bg-amber-300/25 blur-sm" />
@@ -85,7 +85,7 @@ export function BannerPreviewPanel({ size, referralUrl }: BannerPreviewPanelProp
         <h3 className="text-sm font-semibold text-[#0f172a]">
           Vista previa del banner
         </h3>
-        <span className="rounded-full bg-[#4056ff]/10 px-2.5 py-0.5 text-xs font-semibold text-[#4056ff]">
+        <span className="rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary)]">
           {size.label}
         </span>
       </div>
@@ -139,7 +139,7 @@ export function BannerPreviewPanel({ size, referralUrl }: BannerPreviewPanelProp
             className={`mt-5 h-11 w-full rounded-xl px-4 text-sm font-semibold transition-all duration-200 ${
               copied
                 ? "bg-[#16a34a] text-white"
-                : "border border-[#dbe1ea] bg-white text-[#4056ff] hover:bg-[#4056ff]/5"
+                : "border border-[#dbe1ea] bg-white text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/5"
             }`}
           >
             {copied ? "¡Copiado!" : "Copiar código del banner"}

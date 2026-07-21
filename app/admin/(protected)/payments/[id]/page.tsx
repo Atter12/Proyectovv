@@ -26,40 +26,40 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
         eyebrow="Revisión de voucher"
         title={`Pago ${compactId(row.id)}`}
         description={`${organization?.name ?? "Sin organización"} · ${formatMoney(row.amount_cents, row.currency)} · ${formatDateTime(row.created_at)}`}
-        actions={<Link href="/admin/payments" className="text-sm font-black text-[#0e7490] hover:text-[#155e75]">← Volver</Link>}
+        actions={<Link href="/admin/payments" className="text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">← Volver</Link>}
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_26rem]">
         <div className="space-y-6">
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-[#5d7280]">Estado actual</p>
+                <p className="text-sm font-bold text-[var(--admin-text-muted)]">Estado actual</p>
                 <div className="mt-2"><StatusBadge status={row.status} label={PAYMENT_STATUS_LABELS[row.status] ?? row.status} /></div>
               </div>
-              <p className="text-3xl font-black tracking-tight text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</p>
+              <p className="text-3xl font-semibold tracking-tight text-[var(--admin-text)]">{formatMoney(row.amount_cents, row.currency)}</p>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl bg-[#f1fafc] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Cliente</p><p className="mt-1 font-black text-[#061925]">{organization?.name ?? "—"}</p><p className="text-xs text-[#789bad]">{organization?.slug}</p></div>
-              <div className="rounded-2xl bg-[#f1fafc] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Solicitado por</p><p className="mt-1 font-black text-[#061925]">{actor?.email ?? "—"}</p><p className="text-xs text-[#789bad]">{actor?.full_name ?? ""}</p></div>
-              <div className="rounded-2xl bg-[#f1fafc] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Wallet</p><p className="mt-1 font-black text-[#061925]">{wallet?.name ?? compactId(row.wallet_id)}</p><p className="text-xs text-[#789bad]">{wallet ? formatMoney(wallet.balance_cents, wallet.currency) : ""}</p></div>
-              <div className="rounded-2xl bg-[#f1fafc] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Referencia</p><p className="mt-1 font-black text-[#061925]">{row.provider_reference ?? "—"}</p><p className="text-xs text-[#789bad]">{row.failure_reason ?? ""}</p></div>
+              <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Cliente</p><p className="mt-1 font-semibold text-[var(--admin-text)]">{organization?.name ?? "—"}</p><p className="text-xs text-[var(--admin-text-muted)]">{organization?.slug}</p></div>
+              <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Solicitado por</p><p className="mt-1 font-semibold text-[var(--admin-text)]">{actor?.email ?? "—"}</p><p className="text-xs text-[var(--admin-text-muted)]">{actor?.full_name ?? ""}</p></div>
+              <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Wallet</p><p className="mt-1 font-semibold text-[var(--admin-text)]">{wallet?.name ?? compactId(row.wallet_id)}</p><p className="text-xs text-[var(--admin-text-muted)]">{wallet ? formatMoney(wallet.balance_cents, wallet.currency) : ""}</p></div>
+              <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Referencia</p><p className="mt-1 font-semibold text-[var(--admin-text)]">{row.provider_reference ?? "—"}</p><p className="text-xs text-[var(--admin-text-muted)]">{row.failure_reason ?? ""}</p></div>
             </div>
           </Card>
 
           <Card className="p-5">
-            <h2 className="text-lg font-black text-[#061925]">Voucher/comprobante</h2>
+            <h2 className="text-lg font-semibold text-[var(--admin-text)]">Voucher/comprobante</h2>
             {proof ? (
               <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                <p className="font-black text-emerald-800">{proof.fileName ?? "Comprobante cargado"}</p>
+                <p className="font-semibold text-emerald-800">{proof.fileName ?? "Comprobante cargado"}</p>
                 <p className="mt-1 text-sm text-emerald-700">{proof.storagePath ?? proof.publicUrl ?? "Sin path visible"}</p>
                 <p className="mt-1 text-xs font-bold text-emerald-600">Subido: {proof.uploadedAt ? formatDateTime(proof.uploadedAt) : "—"}</p>
-                {proof.publicUrl || proof.signedUrl ? <a href={proof.publicUrl ?? proof.signedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-black text-[#0e7490] hover:text-[#155e75]">Abrir archivo ↗</a> : null}
+                {proof.publicUrl || proof.signedUrl ? <a href={proof.publicUrl ?? proof.signedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">Abrir archivo ↗</a> : null}
               </div>
             ) : <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">El cliente todavía no adjuntó voucher.</p>}
           </Card>
 
           <Card className="p-5">
-            <h2 className="text-lg font-black text-[#061925]">Ledger relacionado</h2>
+            <h2 className="text-lg font-semibold text-[var(--admin-text)]">Ledger relacionado</h2>
             <TableWrap className="mt-4">
               <Table>
                 <thead><tr><Th>Journal</Th><Th>Tipo</Th><Th>Monto</Th><Th>Estado</Th></tr></thead>
@@ -68,7 +68,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                     <tr key={journal.id}>
                       <Td className="font-mono text-xs">{journal.id}</Td>
                       <Td>{journal.journal_type}</Td>
-                      <Td className="font-black text-[#061925]">{formatMoney(journal.amount_cents, journal.currency)}</Td>
+                      <Td className="font-semibold text-[var(--admin-text)]">{formatMoney(journal.amount_cents, journal.currency)}</Td>
                       <Td><StatusBadge status={journal.status} /></Td>
                     </tr>
                   ))}
@@ -81,7 +81,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
         <div className="space-y-6">
           {row.status !== "succeeded" && row.status !== "failed" ? (
             <Card className="p-5">
-              <h2 className="text-lg font-black text-[#061925]">Decisión administrativa</h2>
+              <h2 className="text-lg font-semibold text-[var(--admin-text)]">Decisión administrativa</h2>
               <form action={approveManualPaymentAction} className="mt-4 space-y-3">
                 <input type="hidden" name="id" value={row.id} />
                 <Textarea name="notes" placeholder="Notas internas de aprobación…" />

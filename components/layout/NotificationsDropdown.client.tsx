@@ -132,7 +132,7 @@ export function NotificationsDropdown() {
         onClick={() => {
           void handleToggle();
         }}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[#64748b] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--admin-text-muted,#64748b)] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35"
         aria-label="Notificaciones"
         aria-expanded={open}
       >
@@ -173,7 +173,7 @@ export function NotificationsDropdown() {
                 void loadNotifications();
               }}
               disabled={loading}
-              className="rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#4056ff] transition hover:bg-[#eef2ff] disabled:opacity-50"
+              className="rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary)]/10 disabled:opacity-50"
             >
               Actualizar
             </button>
@@ -209,7 +209,7 @@ export function NotificationsDropdown() {
                       <div className="flex gap-3">
                         <span
                           className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            isUnread ? "bg-[#4056ff]" : "bg-[#cbd5e1]"
+                            isUnread ? "bg-[var(--brand-primary)]" : "bg-[#cbd5e1]"
                           }`}
                           aria-hidden
                         />
@@ -228,7 +228,7 @@ export function NotificationsDropdown() {
                             </span>
                           )}
                           {url && (
-                            <span className="mt-1 inline-flex text-[11px] font-bold text-[#4056ff]">
+                            <span className="mt-1 inline-flex text-[11px] font-semibold text-[var(--brand-primary)]">
                               Abrir detalle
                             </span>
                           )}

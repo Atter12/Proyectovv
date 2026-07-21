@@ -36,10 +36,10 @@ export default async function WebhooksPage({ searchParams }: { searchParams: Pro
         <TableWrap>
           <Table>
             <thead><tr><Th>Evento</Th><Th>Provider</Th><Th>Tipo</Th><Th>Estado</Th><Th>Error</Th><Th>Acción</Th></tr></thead>
-            <tbody className="divide-y divide-[#e4eef3]">
+            <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {events.map((event) => (
                 <tr key={event.id}>
-                  <Td><p className="font-mono text-xs font-black text-[#061925]">{event.event_id}</p><p className="text-xs text-[#789bad]">{formatDateTime(event.created_at)}</p></Td>
+                  <Td><p className="font-mono text-xs font-semibold text-[var(--admin-text)]">{event.event_id}</p><p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(event.created_at)}</p></Td>
                   <Td><Badge tone="purple">{event.provider}</Badge></Td>
                   <Td>{event.event_type}</Td>
                   <Td><StatusBadge status={event.status} /></Td>

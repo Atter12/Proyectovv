@@ -27,7 +27,7 @@ function truncateLabel(name: string, max = 22): string {
 export function WalletExposureChart({ data, currency }: WalletExposureChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[16rem] items-center justify-center rounded-2xl border border-dashed border-[#cfe8ee] bg-white/50 text-sm font-bold text-[#789bad]">
+      <div className="flex h-[16rem] items-center justify-center rounded-2xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-surface)]/50 text-sm font-bold text-[var(--admin-text-muted)]">
         No hay wallets activas con saldo registrado.
       </div>
     );
@@ -44,10 +44,10 @@ export function WalletExposureChart({ data, currency }: WalletExposureChartProps
     <div className="h-[16rem] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 8, left: 4, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="4 6" stroke="#e8f2f6" horizontal={false} />
+          <CartesianGrid strokeDasharray="4 6" stroke="var(--admin-border)" horizontal={false} />
           <XAxis
             type="number"
-            tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }}
+            tick={{ fill: "var(--admin-text-muted)", fontSize: 11, fontWeight: 700 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(value: number) => formatMoney(value * 100, currency).replace(/\s/g, "")}
@@ -56,7 +56,7 @@ export function WalletExposureChart({ data, currency }: WalletExposureChartProps
             type="category"
             dataKey="shortName"
             width={108}
-            tick={{ fill: "#365c6d", fontSize: 11, fontWeight: 800 }}
+            tick={{ fill: "var(--admin-text)", fontSize: 11, fontWeight: 800 }}
             axisLine={false}
             tickLine={false}
           />

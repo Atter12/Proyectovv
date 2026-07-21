@@ -49,23 +49,25 @@ export function MetricsGrid({ metrics }: MetricsGridProps) {
       {items.map((item) => (
         <Card
           key={item.label}
-          className="min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          className="min-w-0 transition-shadow hover:shadow-[var(--shadow-card-hover)]"
         >
           <div className="flex items-start justify-between gap-2 sm:gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
               {item.icon}
             </div>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-[#64748b]">
+            <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--admin-text-muted,#64748b)]">
               {item.status}
             </span>
           </div>
-          <p className="mt-4 text-xs font-medium uppercase tracking-wide text-[#64748b]">
+          <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-muted,#64748b)]">
             {item.label}
           </p>
-          <p className="mt-1 truncate text-xl font-bold tracking-tight text-[#0f172a] sm:text-2xl">
+          <p className="mt-1 truncate font-display text-[1.35rem] font-medium tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
             {item.value}
           </p>
-          <p className="mt-1.5 text-xs text-[#64748b]">{item.hint}</p>
+          <p className="mt-1.5 text-[13px] text-[var(--admin-text-muted,#64748b)]">
+            {item.hint}
+          </p>
         </Card>
       ))}
     </div>

@@ -160,7 +160,7 @@ export function RefundRequestModal({
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
                   maxLength={240}
-                  className="w-full rounded-2xl border border-[var(--border-subtle)] bg-white/90 px-3.5 py-2.5 text-sm text-slate-950 shadow-sm shadow-slate-950/[0.03] transition-all placeholder:text-slate-400 focus:border-[#4056ff]/55 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4056ff]/10"
+                  className="w-full rounded-2xl border border-[var(--border-subtle)] bg-white/90 px-3.5 py-2.5 text-sm text-slate-950 shadow-sm shadow-slate-950/[0.03] transition-all placeholder:text-slate-400 focus:border-[var(--brand-primary)]/55 focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10"
                   placeholder="Ej. Reasignación de presupuesto"
                 />
               </div>

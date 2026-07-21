@@ -34,14 +34,14 @@ export default async function AffiliatesPage({ searchParams }: { searchParams: P
         </form>
         <div className="grid gap-6 xl:grid-cols-2">
           <section>
-            <h2 className="mb-3 text-lg font-black text-[#061925]">Códigos</h2>
+            <h2 className="mb-3 text-lg font-semibold text-[var(--admin-text)]">Códigos</h2>
             <TableWrap>
               <Table>
                 <thead><tr><Th>Código</Th><Th>Dueño</Th><Th>Org</Th><Th>Estado</Th></tr></thead>
-                <tbody className="divide-y divide-[#e4eef3]">
+                <tbody className="divide-y divide-[var(--admin-table-divider)]">
                   {codes.map(({ row, organization, actor }) => (
                     <tr key={row.id}>
-                      <Td><Badge tone="purple">{row.code}</Badge><p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p></Td>
+                      <Td><Badge tone="purple">{row.code}</Badge><p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</p></Td>
                       <Td>{actor?.email ?? "—"}</Td>
                       <Td>{organization?.name ?? "—"}</Td>
                       <Td><StatusBadge status={row.status} /></Td>
@@ -52,16 +52,16 @@ export default async function AffiliatesPage({ searchParams }: { searchParams: P
             </TableWrap>
           </section>
           <section>
-            <h2 className="mb-3 text-lg font-black text-[#061925]">Referrals y comisiones</h2>
+            <h2 className="mb-3 text-lg font-semibold text-[var(--admin-text)]">Referrals y comisiones</h2>
             <TableWrap>
               <Table>
                 <thead><tr><Th>Referral</Th><Th>Referido</Th><Th>Comisión</Th><Th>Acción</Th></tr></thead>
-                <tbody className="divide-y divide-[#e4eef3]">
+                <tbody className="divide-y divide-[var(--admin-table-divider)]">
                   {referrals.map(({ row, organization, actor }) => (
                     <tr key={row.id}>
-                      <Td><p className="font-black text-[#061925]">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /></Td>
-                      <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">Ref: {actor?.email ?? "—"}</p></Td>
-                      <Td><span className="font-black text-[#061925]">{formatMoney(row.commission_amount_cents, "USD")}</span><p className="text-xs text-[#789bad]">Rate {percent(Number(row.commission_rate) * 100)}</p></Td>
+                      <Td><p className="font-semibold text-[var(--admin-text)]">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /></Td>
+                      <Td>{organization?.name ?? "—"}<p className="text-xs text-[var(--admin-text-muted)]">Ref: {actor?.email ?? "—"}</p></Td>
+                      <Td><span className="font-semibold text-[var(--admin-text)]">{formatMoney(row.commission_amount_cents, "USD")}</span><p className="text-xs text-[var(--admin-text-muted)]">Rate {percent(Number(row.commission_rate) * 100)}</p></Td>
                       <Td>
                         <div className="flex flex-wrap gap-2">
                           <form action={updateReferralAction}><input type="hidden" name="id" value={row.id} /><input type="hidden" name="mode" value="approve" /><Button type="submit" variant="success" size="sm">Aprobar</Button></form>

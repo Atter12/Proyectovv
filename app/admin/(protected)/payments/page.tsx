@@ -41,13 +41,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         <TableWrap>
           <Table>
             <thead><tr><Th>Pago</Th><Th>Cliente</Th><Th>Voucher</Th><Th>Monto</Th><Th>Estado</Th><Th>Acción</Th></tr></thead>
-            <tbody className="divide-y divide-[#e4eef3]">
+            <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {payments.map(({ row, organization, actor, proof }) => (
                 <tr key={row.id}>
-                  <Td><Link href={`/admin/payments/${row.id}`} className="font-black text-[#061925] hover:text-[#0e7490]">{row.id.slice(0, 8)}</Link><p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p></Td>
-                  <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{actor?.email ?? "—"}</p></Td>
-                  <Td>{proof ? <span className="font-bold text-emerald-700">{proof.fileName ?? "Adjunto"}</span> : <span className="text-[#789bad]">Sin voucher</span>}<p className="text-xs text-[#789bad]">{proof?.uploadedAt ? formatDateTime(proof.uploadedAt) : ""}</p></Td>
-                  <Td className="font-black text-[#061925]">{formatMoney(row.amount_cents, row.currency)}</Td>
+                  <Td><Link href={`/admin/payments/${row.id}`} className="font-semibold text-[var(--admin-text)] hover:text-[var(--admin-accent)]">{row.id.slice(0, 8)}</Link><p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</p></Td>
+                  <Td>{organization?.name ?? "—"}<p className="text-xs text-[var(--admin-text-muted)]">{actor?.email ?? "—"}</p></Td>
+                  <Td>{proof ? <span className="font-bold text-emerald-700">{proof.fileName ?? "Adjunto"}</span> : <span className="text-[var(--admin-text-muted)]">Sin voucher</span>}<p className="text-xs text-[var(--admin-text-muted)]">{proof?.uploadedAt ? formatDateTime(proof.uploadedAt) : ""}</p></Td>
+                  <Td className="font-semibold text-[var(--admin-text)]">{formatMoney(row.amount_cents, row.currency)}</Td>
                   <Td><StatusBadge status={row.status} label={PAYMENT_STATUS_LABELS[row.status] ?? row.status} /></Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">

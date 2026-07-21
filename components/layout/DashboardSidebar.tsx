@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
 import { SidebarWalletCard } from "./SidebarWalletCard.client";
 
@@ -14,7 +15,7 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
     <aside
       id="dashboard-sidebar"
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.86))] shadow-[8px_0_36px_rgb(15_23_42_/_0.05)] backdrop-blur-2xl",
+        "flex h-full shrink-0 flex-col border-r border-[var(--border-subtle)] bg-white/95 shadow-[8px_0_28px_rgb(15_23_42_/_0.04)] backdrop-blur-xl",
         className,
       )}
     >
@@ -22,17 +23,21 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
         <Link
           href={routes.overview}
           prefetch
-          className="flex min-w-0 items-center gap-2.5"
+          className="flex min-w-0 items-center gap-3"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-xs font-bold text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/70">
-            DM
-          </div>
-          <span className="truncate text-sm font-black tracking-[-0.02em] text-[#0f172a]">
+          <EcomdyLogo size={40} className="shadow-[0_8px_18px_rgb(23_139_255_/_0.22)]" />
+          <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--foreground)]">
             {siteConfig.name}
           </span>
         </Link>
 
         <SidebarWalletCard />
+      </div>
+
+      <div className="px-3 pt-4">
+        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--admin-text-soft,#94a3b8)]">
+          Menú
+        </p>
       </div>
 
       <DashboardNavLinks />

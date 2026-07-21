@@ -1,62 +1,43 @@
 import { Suspense } from "react";
 import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm.client";
 import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
+import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
+import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
   return (
-    <div className="w-full max-w-[460px] animate-pulse rounded-[1.6rem] border border-white/10 bg-white/[0.06] p-8 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="mb-6 flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="h-6 w-44 rounded bg-white/10" />
-          <div className="h-4 w-56 rounded bg-white/10" />
-        </div>
-        <div className="h-9 w-24 rounded-xl bg-white/10" />
+    <div className="auth-panel w-full max-w-[420px] animate-pulse rounded-2xl p-8">
+      <div className="mb-7 space-y-2">
+        <div className="h-7 w-48 rounded bg-white/10" />
+        <div className="h-4 w-56 rounded bg-white/10" />
       </div>
-      <div className="h-12 rounded-2xl bg-white/10" />
-      <div className="mt-5 h-12 rounded-2xl bg-[#4056ff]/30" />
+      <div className="space-y-4">
+        <div className="h-12 rounded-xl bg-white/10" />
+        <div className="h-12 rounded-xl bg-[var(--auth-accent)]/30" />
+      </div>
     </div>
   );
 }
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="auth-luxury-canvas relative min-h-screen overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_40%,rgba(64,86,255,0.18),transparent)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_20%,rgba(124,58,237,0.12),transparent)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.03) 75%, transparent 75%, transparent)",
-          backgroundSize: "48px 48px",
-        }}
-        aria-hidden
-      />
+    <div className="auth-canvas relative min-h-screen overflow-hidden">
+      <AuthDotGridBackground />
 
-      <div className="relative grid min-h-screen lg:grid-cols-[1.08fr_0.92fr]">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1180px] flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">
         <LoginHeroPanel />
 
-        <div className="flex min-h-screen flex-col items-center justify-center overflow-y-auto px-4 py-10 sm:px-6 lg:px-10 xl:px-16">
-          <div className="mb-8 text-center lg:hidden">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4056ff] via-[#6d5df8] to-[#7c3aed] text-xs font-bold text-white shadow-xl shadow-[#4056ff]/25">
-              DM
-            </div>
-            <p className="text-lg font-semibold text-white">{siteConfig.name}</p>
-            <p className="mt-1 text-sm text-slate-400">Recupera tu acceso de forma segura</p>
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:flex-none lg:items-stretch lg:px-0 lg:py-10">
+          <div className="mb-6 lg:hidden">
+            <AuthBrandMark />
           </div>
 
           <Suspense fallback={<AuthCardFallback />}>
             <ForgotPasswordForm />
           </Suspense>
 
-          <p className="mt-8 text-xs text-slate-500">
+          <p className="mt-5 text-center text-[13px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">
             © {new Date().getFullYear()} {siteConfig.companyName}
           </p>
         </div>

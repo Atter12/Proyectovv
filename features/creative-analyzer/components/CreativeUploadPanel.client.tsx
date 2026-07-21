@@ -61,7 +61,7 @@ export function CreativeUploadPanel() {
     <Card className="overflow-hidden p-0">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
         <div className="p-5 sm:p-6">
-          <span className="inline-flex rounded-full bg-[#4056ff]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#4056ff]">
+          <span className="inline-flex rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[var(--brand-primary)]">
             Upload real
           </span>
           <h2 className="mt-3 text-xl font-black tracking-[-0.03em] text-[#0f172a]">
@@ -93,7 +93,7 @@ export function CreativeUploadPanel() {
                 type="file"
                 accept="image/*,video/*,application/pdf"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                className="block w-full rounded-2xl border border-[#dbe1ea] bg-white px-3 py-2.5 text-sm text-[#0f172a] file:mr-3 file:rounded-xl file:border-0 file:bg-[#eef2ff] file:px-3 file:py-1.5 file:text-xs file:font-black file:text-[#4056ff]"
+                className="block w-full rounded-2xl border border-[#dbe1ea] bg-white px-3 py-2.5 text-sm text-[#0f172a] file:mr-3 file:rounded-xl file:border-0 file:bg-[#eef2ff] file:px-3 file:py-1.5 file:text-xs file:font-black file:text-[var(--brand-primary)]"
               />
               <p className="mt-1 text-xs text-[#94a3b8]">
                 Máximo 50 MB. Formatos: imagen, video o PDF.

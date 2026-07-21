@@ -28,7 +28,7 @@ export function WalletSummaryActions({
         </Button>
         <Button
           onClick={dispatchPaymentsOpenAddBalanceModal}
-          className="h-10 w-full rounded-xl bg-[#4056ff] shadow-sm hover:bg-[#4056ff]/90 sm:w-auto"
+          className="h-10 w-full rounded-xl bg-[var(--brand-primary)] shadow-sm hover:bg-[var(--brand-primary)]/90 sm:w-auto"
         >
           Agregar saldo
         </Button>

@@ -64,10 +64,10 @@ export function CreativeValueGrid({ features }: CreativeValueGridProps) {
         {features.map((feature) => (
           <Card
             key={feature.id}
-            className="min-w-0 group transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4056ff]/25 hover:shadow-md"
+            className="min-w-0 group transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-primary)]/25 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff] transition-colors group-hover:bg-[#4056ff]/15">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] transition-colors group-hover:bg-[var(--brand-primary)]/15">
                 <FeatureIcon id={feature.id} />
               </div>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#64748b]">

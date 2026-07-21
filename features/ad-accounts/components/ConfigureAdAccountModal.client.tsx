@@ -112,7 +112,7 @@ export function ConfigureAdAccountModal({
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as AdAccountPlatform)}
-              className="h-10 w-full rounded-2xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[#4056ff]/55 focus:outline-none focus:ring-4 focus:ring-[#4056ff]/10"
+              className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[var(--brand-primary)]/55 focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10"
             >
               {platforms.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>
@@ -124,7 +124,7 @@ export function ConfigureAdAccountModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Exclude<AdAccountStatus, "archived">)}
-              className="h-10 w-full rounded-2xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[#4056ff]/55 focus:outline-none focus:ring-4 focus:ring-[#4056ff]/10"
+              className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[var(--brand-primary)]/55 focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10"
             >
               {statuses.map((item) => (
                 <option key={item.value} value={item.value}>{item.label}</option>

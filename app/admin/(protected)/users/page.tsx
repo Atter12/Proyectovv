@@ -33,10 +33,10 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         <TableWrap>
           <Table>
             <thead><tr><Th>Usuario</Th><Th>Estado</Th><Th>Onboarding</Th><Th>Organizaciones</Th><Th>Última actividad</Th></tr></thead>
-            <tbody className="divide-y divide-[#e4eef3]">
+            <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {users.map(({ row, memberships }) => (
                 <tr key={row.id}>
-                  <Td><p className="font-black text-[#061925]">{row.full_name ?? "Sin nombre"}</p><p className="text-xs text-[#789bad]">{row.email}</p></Td>
+                  <Td><p className="font-semibold text-[var(--admin-text)]">{row.full_name ?? "Sin nombre"}</p><p className="text-xs text-[var(--admin-text-muted)]">{row.email}</p></Td>
                   <Td><StatusBadge status={row.status ?? "unknown"} label={row.email_verified ? "Verificado" : row.status ?? "—"} /></Td>
                   <Td><Badge tone="neutral">{row.onboarding_status ?? "—"}</Badge></Td>
                   <Td>

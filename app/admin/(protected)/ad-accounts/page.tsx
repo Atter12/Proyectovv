@@ -50,24 +50,24 @@ export default async function AdAccountsPage({ searchParams }: { searchParams: P
         <TableWrap>
           <Table>
             <thead><tr><Th>Cuenta</Th><Th>Cliente</Th><Th>Saldo</Th><Th>Límites</Th><Th>Estado</Th><Th>Acción</Th></tr></thead>
-            <tbody className="divide-y divide-[#e4eef3]">
+            <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {accounts.map(({ row, organization, balance }) => {
                 const archived = isArchived(row.metadata);
                 return (
                   <tr key={row.id}>
                     <Td>
-                      <p className="font-black text-[#061925]">{row.name}</p>
+                      <p className="font-semibold text-[var(--admin-text)]">{row.name}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
                         <Badge tone="purple">{row.platform}</Badge>
                         <Badge tone={row.external_account_id ? "success" : "neutral"}>{row.external_account_id ? "Conectada" : "Manual"}</Badge>
                         {archived ? <Badge tone="danger">Archivada</Badge> : null}
                       </div>
-                      <p className="mt-1 text-xs text-[#789bad]">{row.external_account_id ?? row.id}</p>
+                      <p className="mt-1 text-xs text-[var(--admin-text-muted)]">{row.external_account_id ?? row.id}</p>
                     </Td>
-                    <Td>{organization?.name ?? "—"}<p className="text-xs text-[#789bad]">{organization?.slug}</p></Td>
-                    <Td><span className="font-black text-[#061925]">{formatMoney(balance?.balance_cents ?? 0, balance?.currency ?? row.currency)}</span><p className="text-xs text-[#789bad]">Reservado {formatMoney(balance?.reserved_balance_cents ?? 0, balance?.currency ?? row.currency)}</p></Td>
-                    <Td>{formatMoney(row.daily_budget_cents, row.currency)} / día<p className="text-xs text-[#789bad]">Mensual {formatMoney(row.monthly_limit_cents ?? 0, row.currency)}</p></Td>
-                    <Td><StatusBadge status={row.status} label={AD_ACCOUNT_STATUS_LABELS[row.status] ?? row.status} /><p className="mt-1 text-xs text-[#789bad]">Sync {formatDateTime(row.last_synced_at)}</p></Td>
+                    <Td>{organization?.name ?? "—"}<p className="text-xs text-[var(--admin-text-muted)]">{organization?.slug}</p></Td>
+                    <Td><span className="font-semibold text-[var(--admin-text)]">{formatMoney(balance?.balance_cents ?? 0, balance?.currency ?? row.currency)}</span><p className="text-xs text-[var(--admin-text-muted)]">Reservado {formatMoney(balance?.reserved_balance_cents ?? 0, balance?.currency ?? row.currency)}</p></Td>
+                    <Td>{formatMoney(row.daily_budget_cents, row.currency)} / día<p className="text-xs text-[var(--admin-text-muted)]">Mensual {formatMoney(row.monthly_limit_cents ?? 0, row.currency)}</p></Td>
+                    <Td><StatusBadge status={row.status} label={AD_ACCOUNT_STATUS_LABELS[row.status] ?? row.status} /><p className="mt-1 text-xs text-[var(--admin-text-muted)]">Sync {formatDateTime(row.last_synced_at)}</p></Td>
                     <Td>
                       <div className="grid gap-2">
                         <form action={updateAdAccountStatusAction} className="flex gap-2">

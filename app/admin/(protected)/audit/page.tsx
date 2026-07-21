@@ -28,13 +28,13 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         <TableWrap>
           <Table>
             <thead><tr><Th>Acción</Th><Th>Cliente</Th><Th>Actor</Th><Th>Entidad</Th><Th>Fecha</Th></tr></thead>
-            <tbody className="divide-y divide-[#e4eef3]">
+            <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {logs.map(({ row, organization, actor }) => (
                 <tr key={row.id}>
-                  <Td><p className="font-black text-[#061925]">{row.action}</p><Badge tone={row.severity === "warning" ? "warning" : row.severity === "error" || row.severity === "critical" ? "danger" : "neutral"}>{row.severity ?? "info"}</Badge></Td>
+                  <Td><p className="font-semibold text-[var(--admin-text)]">{row.action}</p><Badge tone={row.severity === "warning" ? "warning" : row.severity === "error" || row.severity === "critical" ? "danger" : "neutral"}>{row.severity ?? "info"}</Badge></Td>
                   <Td>{organization?.name ?? "Sistema"}</Td>
                   <Td>{actor?.email ?? "Backend/service role"}</Td>
-                  <Td>{row.entity_type}<p className="font-mono text-xs text-[#789bad]">{row.entity_id ?? "—"}</p></Td>
+                  <Td>{row.entity_type}<p className="font-mono text-xs text-[var(--admin-text-muted)]">{row.entity_id ?? "—"}</p></Td>
                   <Td>{formatDateTime(row.created_at)}</Td>
                 </tr>
               ))}

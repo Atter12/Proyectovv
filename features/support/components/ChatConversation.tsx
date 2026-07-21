@@ -67,7 +67,7 @@ export function ChatConversation({
               <div
                 className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                   message.role === "user"
-                    ? "bg-[#4056ff] text-white"
+                    ? "bg-[var(--brand-primary)] text-white"
                     : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200"
                 }`}
               >
@@ -95,13 +95,13 @@ export function ChatConversation({
             onKeyDown={handleKeyDown}
             placeholder="Escribe tu mensaje..."
             aria-label="Escribir mensaje"
-            className="h-9 flex-1 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
+            className="h-9 flex-1 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
           />
           <button
             type="button"
             onClick={onSend}
             disabled={sending || !inputValue.trim()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4056ff] text-white hover:bg-[#4056ff]/90 disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary)]/90 disabled:opacity-50"
             aria-label="Enviar mensaje"
           >
             {sending ? (

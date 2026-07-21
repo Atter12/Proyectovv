@@ -98,10 +98,12 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
                   </svg>
                 </button>
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-semibold tracking-tight text-[var(--admin-text)] sm:text-xl">
+                  <p className="font-display truncate text-lg font-medium tracking-tight text-[var(--admin-text)] sm:text-xl">
                     Panel administrativo
                   </p>
-                  <p className="mt-0.5 truncate text-sm text-[var(--admin-text-muted)]">{appName}</p>
+                  <p className="mt-0.5 truncate text-sm text-[var(--admin-text-muted)]">
+                    {appName}
+                  </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">

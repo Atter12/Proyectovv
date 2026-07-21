@@ -27,14 +27,14 @@ export function PaymentGatewaySelector({
             className={cn(
               "min-w-[148px] shrink-0 rounded-2xl border p-4 text-left transition-all duration-200 sm:min-w-0",
               isSelected
-                ? "border-[#4056ff] bg-[#4056ff]/5 shadow-md shadow-[#4056ff]/10 ring-2 ring-[#4056ff]/20"
+                ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 shadow-md shadow-[var(--brand-primary)]/10 ring-2 ring-[var(--brand-primary)]/20"
                 : "border-[#e5e7eb] bg-white hover:-translate-y-0.5 hover:border-[#dbe1ea] hover:shadow-md",
             )}
           >
             <div className="flex items-start justify-between gap-2">
               <GatewayLogo gatewayId={gateway.id} />
               {isSelected && (
-                <span className="rounded-full bg-[#4056ff]/10 px-2 py-0.5 text-[10px] font-semibold text-[#4056ff]">
+                <span className="rounded-full bg-[var(--brand-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--brand-primary)]">
                   Seleccionado
                 </span>
               )}

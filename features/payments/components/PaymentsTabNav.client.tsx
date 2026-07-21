@@ -52,9 +52,9 @@ export function PaymentsTabNav({ activeTab }: PaymentsTabNavProps) {
             type="button"
             onClick={() => handleTabChange(tab.id)}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-t-xl px-3 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4056ff]/40 sm:px-4",
+              "shrink-0 whitespace-nowrap rounded-t-xl px-3 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40 sm:px-4",
               activeTab === tab.id
-                ? "bg-white text-[#4056ff] shadow-sm ring-1 ring-[#e5e7eb] ring-b-white"
+                ? "bg-white text-[var(--brand-primary)] shadow-sm ring-1 ring-[#e5e7eb] ring-b-white"
                 : "text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]",
             )}
           >

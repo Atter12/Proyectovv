@@ -31,7 +31,7 @@ export function CreativeBenchmarkPanel({
                 {metrics.averageScore}
                 <span className="text-xl font-medium text-[#64748b]">/100</span>
               </p>
-              <span className="mb-1 rounded-full bg-[#4056ff]/10 px-2.5 py-0.5 text-xs font-semibold text-[#4056ff]">
+              <span className="mb-1 rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary)]">
                 Puntuación general
               </span>
             </div>
@@ -43,13 +43,13 @@ export function CreativeBenchmarkPanel({
                     <span className="font-medium text-[#0f172a]">
                       {signal.label}
                     </span>
-                    <span className="font-bold text-[#4056ff]">
+                    <span className="font-bold text-[var(--brand-primary)]">
                       {signal.score}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#4056ff] to-[#06b6d4] transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-[#06b6d4] transition-all duration-500"
                       style={{ width: `${signal.score}%` }}
                     />
                   </div>

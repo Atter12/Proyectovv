@@ -51,9 +51,11 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3 pt-2">
       {mainNavigation.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive =
+          pathname === item.href || pathname.startsWith(`${item.href}/`);
+
         return (
           <Link
             key={item.href}
@@ -61,15 +63,15 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
             prefetch
             onClick={onNavigate}
             className={cn(
-              "relative flex min-h-[44px] items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-300",
+              "relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
               isActive
-                ? "bg-white text-[#4056ff] shadow-md shadow-[#4056ff]/10 ring-1 ring-[#4056ff]/10"
-                : "text-[#64748b] hover:bg-white/80 hover:text-[#0f172a] hover:shadow-sm",
+                ? "bg-[var(--brand-primary)]/[0.08] text-[var(--brand-primary)] shadow-sm ring-1 ring-[var(--brand-primary)]/15"
+                : "text-[var(--admin-text-muted,#64748b)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
             )}
           >
-            {isActive && (
-              <span className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-[#4056ff] to-[#7c3aed]" />
-            )}
+            {isActive ? (
+              <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)]" />
+            ) : null}
             <NavIcon icon={item.icon} />
             <span className="min-w-0 leading-tight">{item.label}</span>
           </Link>

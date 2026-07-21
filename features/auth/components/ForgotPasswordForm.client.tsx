@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
-import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 
 type RecoveryStep = "request" | "verify" | "reset" | "done";
 
@@ -23,7 +21,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-200"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -41,14 +39,17 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-2xl border border-white/10 bg-white/[0.065] px-4 text-sm text-white shadow-inner shadow-black/10 placeholder:text-slate-500 transition-all focus:border-[#8aa4ff]/60 focus:bg-white/[0.09] focus:outline-none focus:ring-4 focus:ring-[#4056ff]/15";
+  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+
+const primaryButtonClassName =
+  "flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(23_139_255_/_0.32)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none";
 
 function StepPill({ active, children }: { active: boolean; children: React.ReactNode }) {
   return (
     <span
       className={cn(
         "h-1.5 rounded-full transition-all",
-        active ? "w-8 bg-[#12d6a3]" : "w-2 bg-white/20",
+        active ? "w-8 bg-[var(--auth-accent)]" : "w-2 bg-white/20",
       )}
       aria-hidden
     >
@@ -217,32 +218,37 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="luxury-card w-full max-w-[460px] rounded-[1.65rem] p-7 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-8">
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#12d6a3]">
-            Recuperación segura
-          </p>
-          <h1 className="text-2xl font-bold tracking-[-0.03em] text-white">
-            Restablecer contraseña
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">
-            Verificaremos tu correo con un código OTP de 6 dígitos antes de permitir el cambio.
-          </p>
-        </div>
-        <AuthBrandMark compact />
+    <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-2xl p-7 sm:p-8 lg:max-w-none">
+      <div
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent)]/55 to-transparent"
+        aria-hidden
+      />
+
+      <div className="mb-6">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+          Recuperación
+        </p>
+        <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text)] sm:text-[2rem]">
+          Restablecer contraseña
+        </h1>
+        <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
+          Verificamos tu correo con un código de 6 dígitos antes del cambio.
+        </p>
       </div>
 
-      <div className="mb-6 flex items-center gap-1.5" aria-label="Progreso del flujo">
+      <div className="mb-5 flex items-center gap-1.5" aria-label="Progreso del flujo">
         <StepPill active={["request", "verify", "reset", "done"].includes(step)}>1</StepPill>
         <StepPill active={["verify", "reset", "done"].includes(step)}>2</StepPill>
         <StepPill active={["reset", "done"].includes(step)}>3</StepPill>
       </div>
 
       {step === "request" && (
-        <form onSubmit={handleRequest} className="space-y-5">
+        <form onSubmit={handleRequest} className="space-y-4">
           <div>
-            <label htmlFor="recovery-email" className="mb-2 block text-xs font-semibold text-slate-400">
+            <label
+              htmlFor="recovery-email"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            >
               Correo electrónico
             </label>
             <input
@@ -258,29 +264,32 @@ export function ForgotPasswordForm() {
           </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200" role="alert">
+            <p
+              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+              role="alert"
+            >
               {error}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className={primaryButtonClassName}>
             {loading ? "Enviando código…" : "Enviar código OTP"}
           </button>
         </form>
       )}
 
       {step === "verify" && (
-        <form onSubmit={handleVerify} className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
-            Enviamos el código a <span className="font-semibold text-white">{normalizedEmail}</span>.
+        <form onSubmit={handleVerify} className="space-y-4">
+          <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 py-3 text-[14px] text-[var(--auth-text-muted)]">
+            Enviamos el código a{" "}
+            <span className="font-semibold text-[var(--auth-text)]">{normalizedEmail}</span>.
           </div>
 
           <div>
-            <label htmlFor="recovery-otp" className="mb-2 block text-xs font-semibold text-slate-400">
+            <label
+              htmlFor="recovery-otp"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            >
               Código de 6 dígitos
             </label>
             <input
@@ -298,22 +307,24 @@ export function ForgotPasswordForm() {
           </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200" role="alert">
+            <p
+              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+              role="alert"
+            >
               {error}
             </p>
           )}
 
           {success && (
-            <p className="rounded-2xl border border-emerald-400/10 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200" role="status">
+            <p
+              className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3.5 py-2.5 text-[14px] leading-5 text-emerald-200"
+              role="status"
+            >
               {success}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className={primaryButtonClassName}>
             {loading ? "Verificando…" : "Verificar código"}
           </button>
 
@@ -321,7 +332,7 @@ export function ForgotPasswordForm() {
             type="button"
             onClick={handleResend}
             disabled={resending}
-            className="w-full text-center text-sm font-semibold text-[#8aa4ff] transition-colors hover:text-white disabled:opacity-50"
+            className="w-full text-center text-[14px] font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff] disabled:opacity-50"
           >
             {resending ? "Reenviando…" : "Reenviar código"}
           </button>
@@ -329,9 +340,12 @@ export function ForgotPasswordForm() {
       )}
 
       {step === "reset" && (
-        <form onSubmit={handleResetPassword} className="space-y-5">
+        <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
-            <label htmlFor="new-password" className="mb-2 block text-xs font-semibold text-slate-400">
+            <label
+              htmlFor="new-password"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            >
               Nueva contraseña
             </label>
             <div className="relative">
@@ -350,7 +364,10 @@ export function ForgotPasswordForm() {
           </div>
 
           <div>
-            <label htmlFor="confirm-new-password" className="mb-2 block text-xs font-semibold text-slate-400">
+            <label
+              htmlFor="confirm-new-password"
+              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            >
               Confirmar nueva contraseña
             </label>
             <div className="relative">
@@ -364,48 +381,53 @@ export function ForgotPasswordForm() {
                 placeholder="Repite la nueva contraseña"
                 className={cn(inputClassName, "pr-11")}
               />
-              <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((prev) => !prev)} />
+              <PasswordToggle
+                visible={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword((prev) => !prev)}
+              />
             </div>
           </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-400/10 bg-red-500/10 px-3 py-2 text-xs text-red-200" role="alert">
+            <p
+              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+              role="alert"
+            >
               {error}
             </p>
           )}
 
           {success && (
-            <p className="rounded-2xl border border-emerald-400/10 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200" role="status">
+            <p
+              className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3.5 py-2.5 text-[14px] leading-5 text-emerald-200"
+              role="status"
+            >
               {success}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className={primaryButtonClassName}>
             {loading ? "Actualizando…" : "Cambiar contraseña"}
           </button>
         </form>
       )}
 
       {step === "done" && (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-emerald-400/10 bg-emerald-500/10 p-4 text-sm leading-relaxed text-emerald-100">
+        <div className="space-y-4">
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-[14px] leading-6 text-emerald-100">
             {success ?? "Contraseña actualizada correctamente."}
           </div>
-          <Link
-            href={routes.login}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4056ff,#7c3aed)] text-sm font-bold text-white shadow-xl shadow-[#4056ff]/25 transition-all hover:-translate-y-0.5 hover:shadow-[#4056ff]/35"
-          >
+          <Link href={routes.login} className={primaryButtonClassName}>
             Ir al inicio de sesión
           </Link>
         </div>
       )}
 
-      <div className="mt-6 text-center text-sm text-slate-400">
-        <Link href={routes.login} className="font-semibold text-[#8aa4ff] transition-colors hover:text-white hover:underline">
+      <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
+        <Link
+          href={routes.login}
+          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff]"
+        >
           Volver al inicio de sesión
         </Link>
       </div>

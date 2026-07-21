@@ -54,23 +54,19 @@ export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps)
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
-        <Card
-          key={item.label}
-          elevated
-          className="min-w-0"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
-              {item.icon}
-            </div>
+        <Card key={item.label} elevated className="min-w-0">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+            {item.icon}
           </div>
-          <p className="mt-4 text-xs font-medium uppercase tracking-wide text-[#64748b]">
+          <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-muted,#64748b)]">
             {item.label}
           </p>
-          <p className="mt-1 truncate text-xl font-bold tracking-tight text-[#0f172a] sm:text-2xl">
+          <p className="mt-1 truncate font-display text-[1.35rem] font-medium tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
             {item.value}
           </p>
-          <p className="mt-1 text-xs text-[#64748b]">{item.hint}</p>
+          <p className="mt-1 text-[13px] text-[var(--admin-text-muted,#64748b)]">
+            {item.hint}
+          </p>
         </Card>
       ))}
     </div>

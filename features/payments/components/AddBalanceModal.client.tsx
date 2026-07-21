@@ -234,7 +234,7 @@ export function AddBalanceModal({
               </Button>
               <Button
                 onClick={handleContinueToConfirm}
-                className="h-11 w-full bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto"
+                className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 sm:w-auto"
               >
                 Continuar
               </Button>
@@ -274,7 +274,7 @@ export function AddBalanceModal({
               <Button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="bg-[#4056ff] hover:bg-[#4056ff]/90"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
               >
                 {loading ? "Procesando…" : "Confirmar depósito"}
               </Button>
@@ -319,7 +319,7 @@ export function AddBalanceModal({
               <Button
                 onClick={handleProofUpload}
                 disabled={uploadingProof}
-                className="bg-[#4056ff] hover:bg-[#4056ff]/90"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
               >
                 {uploadingProof ? "Subiendo…" : "Enviar voucher"}
               </Button>
@@ -332,7 +332,7 @@ export function AddBalanceModal({
             </h2>
             <p className="mt-3 text-sm text-[#64748b]">{resultMessage}</p>
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleClose} className="bg-[#4056ff] hover:bg-[#4056ff]/90">
+              <Button onClick={handleClose} className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90">
                 Cerrar
               </Button>
             </div>

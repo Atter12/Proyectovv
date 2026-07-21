@@ -35,17 +35,17 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
         </form>
         <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <section>
-            <h2 className="mb-3 text-lg font-black text-[#061925]">Jobs</h2>
+            <h2 className="mb-3 text-lg font-semibold text-[var(--admin-text)]">Jobs</h2>
             <TableWrap>
               <Table>
                 <thead><tr><Th>Job</Th><Th>Asset</Th><Th>Proveedor</Th><Th>Score</Th><Th>Acción</Th></tr></thead>
-                <tbody className="divide-y divide-[#e4eef3]">
+                <tbody className="divide-y divide-[var(--admin-table-divider)]">
                   {jobs.map(({ row, organization, asset, result }) => (
                     <tr key={row.id}>
-                      <Td><p className="font-black text-[#061925]">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /><p className="text-xs text-[#789bad]">{formatDateTime(row.created_at)}</p></Td>
-                      <Td>{asset?.name ?? "—"}<p className="text-xs text-[#789bad]">{organization?.name ?? "—"}</p></Td>
-                      <Td><Badge tone="purple">{row.provider}</Badge><p className="text-xs text-[#789bad]">{row.model ?? "modelo pendiente"}</p></Td>
-                      <Td className="font-black text-[#061925]">{result?.overall_score ?? "—"}</Td>
+                      <Td><p className="font-semibold text-[var(--admin-text)]">{row.id.slice(0, 8)}</p><StatusBadge status={row.status} /><p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</p></Td>
+                      <Td>{asset?.name ?? "—"}<p className="text-xs text-[var(--admin-text-muted)]">{organization?.name ?? "—"}</p></Td>
+                      <Td><Badge tone="purple">{row.provider}</Badge><p className="text-xs text-[var(--admin-text-muted)]">{row.model ?? "modelo pendiente"}</p></Td>
+                      <Td className="font-semibold text-[var(--admin-text)]">{result?.overall_score ?? "—"}</Td>
                       <Td>
                         <form action={updateCreativeJobAction} className="grid gap-2">
                           <input type="hidden" name="id" value={row.id} />
@@ -65,13 +65,13 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
             </TableWrap>
           </section>
           <section>
-            <h2 className="mb-3 text-lg font-black text-[#061925]">Assets recientes</h2>
+            <h2 className="mb-3 text-lg font-semibold text-[var(--admin-text)]">Assets recientes</h2>
             <div className="space-y-3">
               {assets.slice(0, 8).map(({ row, organization }) => (
                 <div key={row.id} className="rounded-2xl border border-[#d7e7ee] bg-white p-4">
-                  <div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#061925]">{row.name}</p><p className="text-xs text-[#789bad]">{organization?.name ?? "—"}</p></div><StatusBadge status={row.status} /></div>
-                  <p className="mt-2 text-sm text-[#5d7280]">{row.asset_type} · {row.mime_type ?? "mime n/a"} · {formatInteger(row.file_size_bytes)} bytes</p>
-                  {row.public_url ? <a href={row.public_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-black text-[#0e7490]">Abrir asset ↗</a> : null}
+                  <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-[var(--admin-text)]">{row.name}</p><p className="text-xs text-[var(--admin-text-muted)]">{organization?.name ?? "—"}</p></div><StatusBadge status={row.status} /></div>
+                  <p className="mt-2 text-sm text-[var(--admin-text-muted)]">{row.asset_type} · {row.mime_type ?? "mime n/a"} · {formatInteger(row.file_size_bytes)} bytes</p>
+                  {row.public_url ? <a href={row.public_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-sm font-semibold text-[var(--admin-accent)]">Abrir asset ↗</a> : null}
                 </div>
               ))}
             </div>

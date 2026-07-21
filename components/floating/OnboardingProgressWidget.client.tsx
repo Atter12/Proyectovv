@@ -101,7 +101,7 @@ export function OnboardingProgressWidget({
         )}
         aria-label="Expandir guía de progreso"
       >
-        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#4056ff] px-1.5 text-xs font-bold">
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 text-xs font-bold">
           {completedSteps}/{totalSteps}
         </span>
         <span className="text-xs font-medium">Empieza con Default</span>

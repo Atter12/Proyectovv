@@ -164,7 +164,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 <select
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value as AdAccountPlatform)}
-                  className="h-10 w-full rounded-2xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[#4056ff]/55 focus:outline-none focus:ring-4 focus:ring-[#4056ff]/10"
+                  className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm text-slate-950 shadow-sm focus:border-[var(--brand-primary)]/55 focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10"
                 >
                   {platforms.map((item) => (
                     <option key={item.value} value={item.value}>{item.label}</option>
@@ -250,7 +250,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
               <Button variant="outline" onClick={handleClose} className="h-11 w-full sm:w-auto">
                 Cancelar
               </Button>
-              <Button onClick={validateBeforeConfirm} className="h-11 w-full bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto">
+              <Button onClick={validateBeforeConfirm} className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto">
                 Continuar
               </Button>
             </div>
@@ -270,7 +270,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
               <Button variant="outline" onClick={() => setStep("form")} className="sm:w-auto" disabled={loading}>
                 Volver
               </Button>
-              <Button onClick={handleCreate} disabled={loading} className="bg-[#4056ff] hover:bg-[#4056ff]/90 sm:w-auto">
+              <Button onClick={handleCreate} disabled={loading} className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto">
                 {loading ? "Creando…" : "Crear cuenta"}
               </Button>
             </div>

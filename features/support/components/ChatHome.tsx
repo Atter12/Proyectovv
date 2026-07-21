@@ -54,7 +54,7 @@ export function ChatHome({
             <button
               type="button"
               onClick={onOpenFaqCategories}
-              className="text-xs font-medium text-[#4056ff] hover:underline"
+              className="text-xs font-medium text-[var(--brand-primary)] hover:underline"
             >
               Ver todas
             </button>
@@ -63,7 +63,7 @@ export function ChatHome({
             type="search"
             placeholder="Buscar preguntas frecuentes..."
             aria-label="Buscar en FAQs"
-            className="mb-3 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
+            className="mb-3 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
           />
           <ul className="space-y-1">
             {categories.map((category) => (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
 import { SidebarWalletCard } from "./SidebarWalletCard.client";
 
@@ -19,26 +20,30 @@ export function DashboardMobileSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-[#e5e7eb] bg-white",
+        "flex h-full shrink-0 flex-col border-r border-[var(--border-subtle)] bg-white",
         className,
       )}
     >
-      <div className="border-b border-[#e5e7eb] px-4 py-4 pt-14">
+      <div className="border-b border-[var(--border-subtle)] px-4 py-4 pt-14">
         <Link
           href={routes.overview}
           prefetch
           onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2.5"
+          className="flex min-w-0 items-center gap-3"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-xs font-bold text-white shadow-sm shadow-indigo-500/20">
-            DM
-          </div>
-          <span className="truncate text-sm font-bold tracking-tight text-[#0f172a]">
+          <EcomdyLogo size={40} />
+          <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--foreground)]">
             {siteConfig.name}
           </span>
         </Link>
 
         <SidebarWalletCard onNavigate={onNavigate} />
+      </div>
+
+      <div className="px-3 pt-4">
+        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--admin-text-soft,#94a3b8)]">
+          Menú
+        </p>
       </div>
 
       <DashboardNavLinks onNavigate={onNavigate} />

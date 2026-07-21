@@ -66,17 +66,17 @@ export function PaymentOverviewStats({
           className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4056ff]/10 text-[#4056ff]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
               {item.icon}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#64748b]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-muted,#64748b)]">
                 {item.label}
               </p>
-              <p className="mt-0.5 truncate text-lg font-bold text-[#0f172a]">
+              <p className="mt-0.5 truncate font-display text-lg font-medium text-[var(--foreground)]">
                 {item.value}
               </p>
-              <p className="mt-0.5 text-xs text-[#64748b]">{item.hint}</p>
+              <p className="mt-0.5 text-xs text-[var(--admin-text-muted,#64748b)]">{item.hint}</p>
             </div>
           </div>
         </Card>

@@ -128,7 +128,7 @@ export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
               <TableCell className="text-[#64748b]">{account.timezone}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1.5">
-                  <Button variant="ghost" size="sm" className="text-[#4056ff]" onClick={() => setSelectedAccount(account)}>
+                  <Button variant="ghost" size="sm" className="text-[var(--brand-primary)]" onClick={() => setSelectedAccount(account)}>
                     Configurar
                   </Button>
                   {account.status === "active" ? (

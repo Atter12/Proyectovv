@@ -53,13 +53,13 @@ export function CreativeAnalysisWorkflow({ steps }: CreativeAnalysisWorkflowProp
         {steps.map((step, index) => (
           <Card
             key={step.id}
-            className="relative min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#4056ff]/20 hover:shadow-md"
+            className="relative min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-primary)]/20 hover:shadow-md"
           >
             {index < steps.length - 1 && (
-              <div className="absolute -right-2 top-1/2 z-10 hidden h-px w-4 bg-gradient-to-r from-[#4056ff]/40 to-transparent xl:block" />
+              <div className="absolute -right-2 top-1/2 z-10 hidden h-px w-4 bg-gradient-to-r from-[var(--brand-primary)]/40 to-transparent xl:block" />
             )}
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4056ff] to-[#7c3aed] text-sm font-bold text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-deep)] text-sm font-bold text-white">
                 {step.step}
               </div>
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[#64748b]">

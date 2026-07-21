@@ -37,7 +37,7 @@ export function OnboardingProgressCard({
 
       <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-[#4056ff] transition-all duration-300 ease-out"
+          className="h-full rounded-full bg-[var(--brand-primary)] transition-all duration-300 ease-out"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -53,7 +53,7 @@ export function OnboardingProgressCard({
               <div
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                   step.completed
-                    ? "border-[#4056ff] bg-[#4056ff]"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]"
                     : "border-white/30 bg-transparent"
                 }`}
               >

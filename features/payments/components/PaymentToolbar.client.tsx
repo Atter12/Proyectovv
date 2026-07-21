@@ -41,7 +41,7 @@ export function PaymentToolbar({
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value)}
-        className="h-10 rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm text-[#0f172a] focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20"
+        className="h-10 rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm text-[#0f172a] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
       >
         <option value="all">Todos los estados</option>
         <option value="active">Activa</option>

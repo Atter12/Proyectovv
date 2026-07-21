@@ -35,7 +35,7 @@ export function ReferralLinkCard({ data }: ReferralLinkCardProps) {
 
   return (
     <Card className="relative overflow-hidden">
-      <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-[3rem] bg-gradient-to-br from-[#4056ff]/5 to-[#7c3aed]/10" />
+      <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-[3rem] bg-gradient-to-br from-[var(--brand-primary)]/5 to-[var(--brand-primary-deep)]/10" />
 
       <div className="relative">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
@@ -67,7 +67,7 @@ export function ReferralLinkCard({ data }: ReferralLinkCardProps) {
             className={`inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 sm:w-auto ${
               copied
                 ? "bg-[#16a34a] hover:bg-[#16a34a]"
-                : "bg-[#4056ff] hover:-translate-y-0.5 hover:bg-[#4056ff]/90 hover:shadow-md"
+                : "bg-[var(--brand-primary)] hover:-translate-y-0.5 hover:bg-[var(--brand-primary)]/90 hover:shadow-md"
             }`}
           >
             {copied ? "¡Copiado!" : "Copiar enlace"}

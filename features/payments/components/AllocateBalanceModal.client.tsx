@@ -143,7 +143,7 @@ export function AllocateBalanceModal({
           <Button
             onClick={handleSubmit}
             disabled={loading || !isValidAmount}
-            className="bg-[#4056ff] hover:bg-[#4056ff]/90"
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
           >
             {loading ? "Asignando…" : "Asignar saldo"}
           </Button>

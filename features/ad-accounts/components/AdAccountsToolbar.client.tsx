@@ -108,7 +108,7 @@ export function AdAccountsToolbar({
                 setStatus(value);
                 updateParams({ status: value === "all" ? null : value });
               }}
-              className="h-11 w-full rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm text-[#0f172a] focus:border-[#4056ff] focus:outline-none focus:ring-2 focus:ring-[#4056ff]/20 sm:w-auto"
+              className="h-11 w-full rounded-xl border border-[var(--border-subtle)] bg-white px-3 text-sm text-[var(--foreground)] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 sm:w-auto"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -116,7 +116,7 @@ export function AdAccountsToolbar({
                 </option>
               ))}
             </select>
-            <label className="flex h-11 items-center gap-2 rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm font-medium text-[#475569]">
+            <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-white px-3 text-sm font-medium text-[var(--admin-text-muted,#64748b)]">
               <input
                 type="checkbox"
                 checked={includeArchived}
@@ -125,7 +125,7 @@ export function AdAccountsToolbar({
                   setIncludeArchived(checked);
                   updateParams({ archived: checked ? "1" : null });
                 }}
-                className="h-4 w-4 rounded border-[#cbd5e1] text-[#4056ff] focus:ring-[#4056ff]"
+                className="h-4 w-4 rounded border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
               />
               Ver archivadas
             </label>
@@ -134,14 +134,14 @@ export function AdAccountsToolbar({
             <Link href={routes.creativeAnalyzer} className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="h-11 w-full rounded-xl border-[#dbe1ea] sm:w-auto"
+                className="h-11 w-full rounded-xl border-[var(--border-subtle)] sm:w-auto"
               >
                 Analizador creativo
               </Button>
             </Link>
             <Button
               onClick={dispatchAdAccountsOpenCreateModal}
-              className="h-11 w-full rounded-xl bg-[#4056ff] shadow-sm hover:bg-[#4056ff]/90 sm:w-auto"
+              className="h-11 w-full rounded-xl bg-[var(--brand-primary)] shadow-sm hover:bg-[var(--brand-primary-deep)] sm:w-auto"
             >
               Crear nuevo
             </Button>

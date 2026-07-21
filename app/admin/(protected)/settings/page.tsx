@@ -24,16 +24,16 @@ export default async function SettingsPage() {
         <KpiCard label="Service role" value={serverEnv.supabaseServiceRoleKey ? "OK" : "Falta"} detail="Solo server-side" accent={serverEnv.supabaseServiceRoleKey ? "emerald" : "rose"} />
       </div>
       <Card className="mt-6 p-5">
-        <h2 className="text-lg font-black text-[#061925]">Variables principales</h2>
+        <h2 className="text-lg font-semibold text-[var(--admin-text)]">Variables principales</h2>
         <dl className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl bg-[#f1fafc] p-4"><dt className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">App URL</dt><dd className="mt-1 font-bold text-slate-800">{serverEnv.appUrl}</dd></div>
-          <div className="rounded-2xl bg-[#f1fafc] p-4"><dt className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Customer app</dt><dd className="mt-1 font-bold text-slate-800">{serverEnv.customerAppUrl}</dd></div>
-          <div className="rounded-2xl bg-[#f1fafc] p-4"><dt className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Supabase URL</dt><dd className="mt-1 font-bold text-slate-800">{serverEnv.supabaseUrl || "No configurado"}</dd></div>
-          <div className="rounded-2xl bg-[#f1fafc] p-4"><dt className="text-xs font-black uppercase tracking-[0.16em] text-[#789bad]">Service role</dt><dd className="mt-1 font-bold text-slate-800">{masked(serverEnv.supabaseServiceRoleKey)}</dd></div>
+          <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">App URL</dt><dd className="mt-1 font-bold text-[var(--admin-text)]">{serverEnv.appUrl}</dd></div>
+          <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Customer app</dt><dd className="mt-1 font-bold text-[var(--admin-text)]">{serverEnv.customerAppUrl}</dd></div>
+          <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Supabase URL</dt><dd className="mt-1 font-bold text-[var(--admin-text)]">{serverEnv.supabaseUrl || "No configurado"}</dd></div>
+          <div className="rounded-2xl bg-[var(--admin-surface-soft)] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--admin-text-muted)]">Service role</dt><dd className="mt-1 font-bold text-[var(--admin-text)]">{masked(serverEnv.supabaseServiceRoleKey)}</dd></div>
         </dl>
       </Card>
       <Card className="mt-6 p-5">
-        <h2 className="text-lg font-black text-[#061925]">Admin actual</h2>
+        <h2 className="text-lg font-semibold text-[var(--admin-text)]">Admin actual</h2>
         <div className="mt-4 flex flex-wrap items-center gap-2"><Badge tone="success">{admin.email}</Badge><Badge tone={admin.accessMode === "development-open" ? "warning" : "purple"}>{admin.accessMode}</Badge></div>
       </Card>
     </>

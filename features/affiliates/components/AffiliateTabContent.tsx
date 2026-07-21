@@ -16,7 +16,7 @@ export function AffiliateTabContent({ data, tab }: AffiliateTabContentProps) {
     return (
       <Card className="border-dashed bg-slate-50/50">
         <div className="flex flex-col items-center py-8 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#4056ff]/10 text-[#4056ff]">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
             <svg
               className="h-6 w-6"
               fill="none"

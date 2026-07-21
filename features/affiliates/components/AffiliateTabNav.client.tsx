@@ -37,7 +37,7 @@ export function AffiliateTabNav({ activeTab }: AffiliateTabNavProps) {
             className={cn(
               "shrink-0 rounded-t-xl px-5 py-3 text-sm font-medium transition-all duration-200",
               activeTab === tab.id
-                ? "bg-white text-[#4056ff] shadow-sm ring-1 ring-[#e5e7eb] ring-b-white"
+                ? "bg-white text-[var(--brand-primary)] shadow-sm ring-1 ring-[#e5e7eb] ring-b-white"
                 : "text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]",
             )}
           >

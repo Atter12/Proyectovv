@@ -29,7 +29,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
           <ul className="mt-4 space-y-2">
             {article.bullets.map((bullet) => (
               <li key={bullet} className="flex gap-2 text-sm text-slate-600">
-                <span className="text-[#4056ff]">•</span>
+                <span className="text-[var(--brand-primary)]">•</span>
                 <span>{bullet}</span>
               </li>
             ))}

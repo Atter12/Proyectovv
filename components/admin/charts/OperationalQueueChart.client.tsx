@@ -33,13 +33,13 @@ export function OperationalQueueChart({ data }: OperationalQueueChartProps) {
       <div className="h-[14rem] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, left: 4, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="4 6" stroke="#e8f2f6" horizontal={false} />
-            <XAxis type="number" allowDecimals={false} tick={{ fill: "#789bad", fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="4 6" stroke="var(--admin-border)" horizontal={false} />
+            <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--admin-text-muted)", fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
             <YAxis
               type="category"
               dataKey="label"
               width={118}
-              tick={{ fill: "#365c6d", fontSize: 11, fontWeight: 800 }}
+              tick={{ fill: "var(--admin-text)", fontSize: 11, fontWeight: 800 }}
               axisLine={false}
               tickLine={false}
             />
@@ -57,14 +57,14 @@ export function OperationalQueueChart({ data }: OperationalQueueChartProps) {
           <Link
             key={item.category}
             href={item.href}
-            className="rounded-xl border border-[#dbeaf0] bg-white/70 px-3 py-2 text-xs font-bold text-[#365c6d] transition hover:border-[#74d3b4] hover:bg-[#f1fff8]"
+            className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]/70 px-3 py-2 text-xs font-bold text-[var(--admin-text-muted)] transition hover:border-[var(--admin-accent)] hover:bg-[var(--admin-accent-soft)]"
           >
-            <span className="block text-[#789bad]">{item.label}</span>
-            <span className="mt-1 block text-lg font-black text-[#061925]">{item.count}</span>
+            <span className="block text-[var(--admin-text-muted)]">{item.label}</span>
+            <span className="mt-1 block text-lg font-semibold text-[var(--admin-text)]">{item.count}</span>
           </Link>
         ))}
       </div>
-      <p className="text-xs font-bold text-[#789bad]">
+      <p className="text-xs font-bold text-[var(--admin-text-muted)]">
         {total > 0 ? `${total} asuntos activos en cola operativa.` : "Cola operativa al día."}
       </p>
     </div>
