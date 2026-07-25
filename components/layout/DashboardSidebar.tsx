@@ -33,7 +33,7 @@ export function DashboardSidebar({
           className="flex min-w-0 items-center"
           aria-label={siteConfig.name}
         >
-          <HolisticLogo size={160} className="h-14 w-auto max-w-full" />
+          <HolisticLogo size={140} className="h-10 w-auto max-w-full" />
         </Link>
 
         <SidebarWalletCard selectedCliente={selectedCliente} />
