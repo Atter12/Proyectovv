@@ -98,10 +98,10 @@ export function RefundRequestModal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end justify-center p-4 sm:items-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1020]/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
         aria-label="Cerrar modal"
         onClick={resetAndClose}
       />
@@ -109,7 +109,7 @@ export function RefundRequestModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="refund-request-title"
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-xl sm:p-6"
+        className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         {success ? (
           <>
