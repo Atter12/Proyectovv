@@ -70,10 +70,8 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
         const isClientes = item.href === "/clientes";
 
         const className = cn(
-          "relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
-          isActive
-            ? "bg-[var(--brand-primary)]/[0.08] text-[var(--brand-primary)] shadow-sm ring-1 ring-[var(--brand-primary)]/15"
-            : "text-[var(--admin-text-muted,#64748b)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+          "dashboard-nav-item relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
+          isActive && "is-active",
         );
 
         // Native <a>: works even if Next client JS is broken (SyntaxError).
@@ -89,7 +87,7 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
               }}
             >
               {isActive ? (
-                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)]" />
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#178bff] shadow-[0_0_12px_rgb(23_139_255_/_0.8)]" />
               ) : null}
               <NavIcon icon={item.icon} />
               <span className="min-w-0 leading-tight">{item.label}</span>
@@ -106,7 +104,7 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
             className={className}
           >
             {isActive ? (
-              <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)]" />
+              <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#178bff] shadow-[0_0_12px_rgb(23_139_255_/_0.8)]" />
             ) : null}
             <NavIcon icon={item.icon} />
             <span className="min-w-0 leading-tight">{item.label}</span>

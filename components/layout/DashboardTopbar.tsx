@@ -25,7 +25,7 @@ export function DashboardTopbar({
   const pageTitle = currentPage?.label ?? "Panel";
 
   return (
-    <header className="dashboard-glass sticky top-0 z-20 flex h-16 min-h-[64px] items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-4 shadow-[var(--shadow-topbar)] sm:px-5 lg:px-6">
+    <header className="dashboard-glass sticky top-0 z-20 flex h-16 min-h-[64px] items-center justify-between gap-3 border-b border-[rgb(15_30_52_/_0.08)] px-4 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"
@@ -33,7 +33,7 @@ export function DashboardTopbar({
           aria-label="Abrir menú de navegación"
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--admin-text-muted,#64748b)] transition-colors hover:bg-white hover:text-[var(--foreground)] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35 lg:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5b6b82] transition-colors hover:bg-white hover:text-[#0b1628] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178bff]/35 lg:hidden"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -41,10 +41,10 @@ export function DashboardTopbar({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
-            Holistic Marketing
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#178bff]">
+            {siteConfig.name}
           </p>
-          <h1 className="truncate font-display text-[1.15rem] font-medium tracking-[-0.02em] text-[var(--foreground)] sm:text-[1.25rem]">
+          <h1 className="truncate font-display text-[1.2rem] font-medium tracking-[-0.02em] text-[#0b1628] sm:text-[1.3rem]">
             {pageTitle}
           </h1>
         </div>

@@ -161,17 +161,17 @@ export function ClientesPageClient() {
 
   return (
     <div className={dashboardClasses.page}>
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
+      <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#178bff]">
           Hecom Club · CRM
         </p>
-        <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+        <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#0b1628] sm:text-[1.85rem]">
           Elegir cliente
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--admin-text-muted,#64748b)]">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5b6b82]">
           Elegí un cliente Hecom. Después, en{" "}
-          <strong>Mis cuentas publicitarias</strong> solo vas a ver lo de esa
-          persona.
+          <strong className="font-semibold text-[#0b1628]">Mis cuentas publicitarias</strong>{" "}
+          solo vas a ver lo de esa persona.
         </p>
       </div>
 
