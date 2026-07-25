@@ -73,6 +73,11 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
     }
   }
 
+  function runAllocate(account: PaymentAccountAllocation) {
+    if (onAllocate) onAllocate(account);
+    else void handleAllocate(account);
+  }
+
   return (
     <div>
       {(message || error) && (
@@ -88,56 +93,118 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
         </div>
       )}
 
-      <Table embedded className="rounded-none">
-        <TableHeader>
-          <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-            <TableHead>Cuenta publicitaria</TableHead>
-            <TableHead>Estado de la cuenta publicitaria</TableHead>
-            <TableHead>Saldo</TableHead>
-            <TableHead>Recarga automática</TableHead>
-            <TableHead>Información de umbral</TableHead>
-            <TableHead>Acción</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      {!isEmpty ? (
+        <div className="space-y-3 p-4 md:hidden">
           {accounts.map((account) => (
-            <TableRow key={account.id}>
-              <TableCell className="font-medium text-[#0f172a]">
-                {account.name}
-              </TableCell>
-              <TableCell>
-                <Badge variant="warning">
-                  {mapAdAccountStatusLabel(account.status)}
-                </Badge>
-              </TableCell>
-              <TableCell>{formatMoney(account.balance)}</TableCell>
-              <TableCell>
-                <span
-                  className={
-                    account.autoRecharge ? "text-[#16a34a]" : "text-[#64748b]"
-                  }
-                >
-                  {account.autoRecharge ? "Activada" : "Desactivada"}
-                </span>
-              </TableCell>
-              <TableCell className="text-[#64748b]">
-                {account.thresholdInfo}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-[var(--brand-primary)]"
-                  disabled={loadingAccountId === account.id}
-                  onClick={() => (onAllocate ? onAllocate(account) : handleAllocate(account))}
-                >
-                  {loadingAccountId === account.id ? "Asignando…" : "Asignar"}
-                </Button>
-              </TableCell>
-            </TableRow>
+            <article
+              key={account.id}
+              className="rounded-xl border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-card)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--foreground)]">
+                    {account.name}
+                  </p>
+                  <div className="mt-1.5">
+                    <Badge variant="warning">
+                      {mapAdAccountStatusLabel(account.status)}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--foreground)]">
+                  {formatMoney(account.balance)}
+                </p>
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+                <div>
+                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">
+                    Recarga auto
+                  </dt>
+                  <dd
+                    className={
+                      account.autoRecharge
+                        ? "font-medium text-emerald-600"
+                        : "font-medium text-[var(--admin-text-muted,#64748b)]"
+                    }
+                  >
+                    {account.autoRecharge ? "Activada" : "Desactivada"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">Umbral</dt>
+                  <dd className="font-medium text-[var(--admin-text-muted,#64748b)]">
+                    {account.thresholdInfo}
+                  </dd>
+                </div>
+              </dl>
+              <Button
+                className="mt-4 h-11 w-full rounded-xl bg-[var(--brand-primary)] text-[14px] font-semibold hover:bg-[var(--brand-primary-deep)]"
+                disabled={loadingAccountId === account.id}
+                onClick={() => runAllocate(account)}
+              >
+                {loadingAccountId === account.id ? "Asignando…" : "Asignar saldo"}
+              </Button>
+            </article>
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      ) : null}
+
+      {!isEmpty ? (
+        <div className="hidden md:block">
+          <Table embedded className="rounded-none">
+            <TableHeader>
+              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                <TableHead>Cuenta publicitaria</TableHead>
+                <TableHead>Estado de la cuenta publicitaria</TableHead>
+                <TableHead>Saldo</TableHead>
+                <TableHead>Recarga automática</TableHead>
+                <TableHead>Información de umbral</TableHead>
+                <TableHead>Acción</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.map((account) => (
+                <TableRow key={account.id}>
+                  <TableCell className="font-medium text-[var(--foreground)]">
+                    {account.name}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="warning">
+                      {mapAdAccountStatusLabel(account.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatMoney(account.balance)}</TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        account.autoRecharge
+                          ? "text-emerald-600"
+                          : "text-[var(--admin-text-muted,#64748b)]"
+                      }
+                    >
+                      {account.autoRecharge ? "Activada" : "Desactivada"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-[var(--admin-text-muted,#64748b)]">
+                    {account.thresholdInfo}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[var(--brand-primary)]"
+                      disabled={loadingAccountId === account.id}
+                      onClick={() => runAllocate(account)}
+                    >
+                      {loadingAccountId === account.id ? "Asignando…" : "Asignar"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : null}
 
       {isEmpty && <PaymentsEmptyState />}
     </div>

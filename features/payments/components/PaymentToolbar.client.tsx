@@ -16,7 +16,11 @@ export function PaymentToolbar({
   onStatusChange,
 }: PaymentToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 border-b border-[#e5e7eb] p-4 sm:flex-row sm:items-center sm:p-5">
+    <div className="flex flex-col gap-3 border-b border-[var(--border-subtle)] p-4 sm:flex-row sm:items-center sm:p-5">
+      <p className="w-full text-[13px] leading-5 text-[var(--admin-text-muted,#64748b)] sm:hidden">
+        Usa <span className="font-semibold text-[var(--foreground)]">Asignar saldo</span> en
+        cada cuenta para mover fondos desde tu cartera.
+      </p>
       <div className="relative flex-1 sm:max-w-sm">
         <svg
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"

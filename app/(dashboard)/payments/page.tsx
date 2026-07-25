@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { Card } from "@/components/ui/Card";
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
+import { PaymentsMobileStickyCta } from "@/features/payments/components/PaymentsMobileStickyCta.client";
 import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
 import {
   PaymentsSectionSkeleton,
@@ -24,7 +25,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
   const tab = parsePaymentTab(getSearchParam(params, "tab"));
 
   return (
-    <div className={dashboardClasses.page}>
+    <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
       <PaymentsPageHeader />
 
       <div className="space-y-6 lg:space-y-8">
@@ -51,6 +52,8 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
           <PaymentsTabsShell session={session} tab={tab} />
         </Card>
       </div>
+
+      <PaymentsMobileStickyCta />
     </div>
   );
 }

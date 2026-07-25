@@ -4,12 +4,14 @@ import type { ReactNode } from "react";
 interface DashboardPageIntroProps {
   description: string;
   badges?: ReactNode;
+  actions?: ReactNode;
   className?: string;
 }
 
 export function DashboardPageIntro({
   description,
   badges,
+  actions,
   className,
 }: DashboardPageIntroProps) {
   return (
@@ -23,9 +25,14 @@ export function DashboardPageIntro({
         <p className="max-w-3xl text-[15px] leading-7 text-[var(--admin-text-muted,#64748b)]">
           {description}
         </p>
+        {badges ? (
+          <div className="mt-3 flex flex-wrap gap-2">{badges}</div>
+        ) : null}
       </div>
-      {badges ? (
-        <div className="flex shrink-0 flex-wrap gap-2">{badges}</div>
+      {actions ? (
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          {actions}
+        </div>
       ) : null}
     </div>
   );
