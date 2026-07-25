@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
@@ -47,17 +46,28 @@ export default async function ClientesPage({
   return (
     <>
       <AdminPageHeader
-        eyebrow="Demo / operación"
-        title="Clientes"
-        description="Entrá a cada cliente y mirá exactamente lo que vería al iniciar sesión: wallet, cuentas TikTok, gasto y campañas. Cada tarjeta es una organización aislada."
+        eyebrow="Operación"
+        title="Elegir cliente"
+        description="Seleccioná un cliente y mirá solo lo suyo: wallet, cuentas, campañas y gasto. Nada se mezcla entre Ely, Luis u otros."
       />
+
+      <Card className="mb-5 border-[var(--admin-accent)]/25 bg-[linear-gradient(135deg,var(--admin-accent-soft),transparent)] p-5">
+        <p className="text-sm font-semibold text-[var(--admin-text)]">
+          Flujo para demo / día a día
+        </p>
+        <p className="mt-1 text-sm text-[var(--admin-text-muted)]">
+          1) Elegí cliente → 2) Entrá a su vista → 3) Mostrás: “esto es lo único que ve al
+          entrar con su correo”. Los datos ya vienen de tu operación; no hace falta conectar
+          TikTok acá por ahora.
+        </p>
+      </Card>
 
       <Card className="mb-5 p-5">
         <form className="grid gap-3 md:grid-cols-[1fr_13rem_auto]">
           <Input
             name="q"
             defaultValue={q}
-            placeholder="Buscar por cliente, organización o correo… (ej. Ely Aguirre)"
+            placeholder="Buscar cliente… (ej. Ely Aguirre, Luis Vargas)"
           />
           <Select name="status" defaultValue={status}>
             <option value="all">Todos</option>
@@ -66,7 +76,7 @@ export default async function ClientesPage({
             <option value="archived">Archivados</option>
           </Select>
           <Button type="submit" variant="secondary">
-            Filtrar
+            Buscar
           </Button>
         </form>
       </Card>
@@ -74,7 +84,7 @@ export default async function ClientesPage({
       {filtered.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-sm text-[var(--admin-text-muted)]">
-            No hay clientes con ese filtro. Cuando se registren (Luis, Ely, etc.) aparecen aquí.
+            No hay clientes con ese filtro. Cuando existan orgs (Luis, Ely, etc.) aparecen aquí.
           </p>
         </Card>
       ) : (
@@ -100,7 +110,7 @@ export default async function ClientesPage({
                       <StatusBadge status={client.organization.status} />
                     </div>
                     <p className="mt-0.5 truncate text-xs text-[var(--admin-text-muted)]">
-                      Org: {client.organization.name}
+                      {client.organization.name}
                       {client.primaryContact?.email ? ` · ${client.primaryContact.email}` : ""}
                     </p>
                   </div>
@@ -119,26 +129,20 @@ export default async function ClientesPage({
                   </div>
                 </dl>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Badge tone={client.tiktokConnected ? "success" : "neutral"}>
-                    TikTok {client.tiktokConnected ? "conectado" : "sin conectar"}
-                  </Badge>
+                <div className="mt-3">
                   <Badge tone="info">
-                    {client.activeMemberCount} miembro{client.activeMemberCount === 1 ? "" : "s"}
+                    {client.activeMemberCount} miembro
+                    {client.activeMemberCount === 1 ? "" : "s"}
                   </Badge>
                 </div>
 
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                  <Button asChild href={`/admin/clientes/${client.organization.id}`} className="flex-1">
-                    Entrar a su vista
-                  </Button>
+                <div className="mt-5">
                   <Button
                     asChild
-                    href={`/admin/organizations/${client.organization.id}`}
-                    variant="outline"
-                    className="flex-1"
+                    href={`/admin/clientes/${client.organization.id}`}
+                    className="h-11 w-full text-[14px] font-semibold"
                   >
-                    Ficha ops
+                    Elegir este cliente
                   </Button>
                 </div>
               </Card>

@@ -52,10 +52,10 @@ export default async function ClienteVistaPage({
       />
 
       <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-        <p className="font-semibold">Modo demo / soporte · solo lectura</p>
+        <p className="font-semibold">Cliente seleccionado · solo lectura</p>
         <p className="mt-1 opacity-90">
-          No estás logueado como el cliente: estás viendo su panel desde admin. Ideal para
-          mostrarle a tu jefe: “si entra Ely, ve solo esto”.
+          Estás viendo únicamente lo de {contactName}. Ideal para el video: “elige cliente →
+          ve solo lo suyo”.
         </p>
       </div>
 
@@ -81,11 +81,7 @@ export default async function ClienteVistaPage({
         <KpiCard
           label="Campañas"
           value={String(Math.max(vista.summary.totalCampaigns, vista.campaigns.length))}
-          detail={
-            vista.tiktok.connected
-              ? "TikTok conectado"
-              : "TikTok sin conectar · sync campañas en progreso"
-          }
+          detail="Solo campañas de este cliente"
           accent="rose"
         />
       </div>
@@ -101,7 +97,7 @@ export default async function ClienteVistaPage({
             </div>
             {vista.adAccounts.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--admin-text-muted)]">
-                Aún no tiene cuentas. Cuando conecte TikTok o cree una manual, aparecen aquí.
+                Aún no hay cuentas cargadas para este cliente.
               </p>
             ) : (
               <TableWrap className="mt-4">
@@ -147,8 +143,8 @@ export default async function ClienteVistaPage({
             </div>
             {vista.campaigns.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--admin-text-muted)]">
-                Todavía no hay campañas sincronizadas para este cliente. El schema está listo;
-                cuando corra el sync de TikTok a nivel campaña, se listan acá (solo las suyas).
+                Todavía no hay campañas listadas para este cliente. Cuando las jalen de tu
+                sistema, aparecen acá filtradas solo para él.
               </p>
             ) : (
               <TableWrap className="mt-4">
@@ -187,30 +183,6 @@ export default async function ClienteVistaPage({
             clientLabel={contactName}
             initialInvites={vista.emailInvites}
           />
-
-          <Card className="p-5">
-            <h2 className="text-lg font-semibold text-[var(--admin-text)]">Conexión TikTok</h2>
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[var(--admin-text-muted)]">Estado</span>
-                <Badge tone={vista.tiktok.connected ? "success" : "warning"}>
-                  {vista.tiktok.connected ? "Conectado" : "Sin conectar"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[var(--admin-text-muted)]">Último sync</span>
-                <span className="font-medium text-[var(--admin-text)]">
-                  {vista.tiktok.lastSyncedAt
-                    ? formatDateTime(vista.tiktok.lastSyncedAt)
-                    : "—"}
-                </span>
-              </div>
-              <p className="rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-3 py-2 text-xs text-[var(--admin-text-muted)]">
-                La conexión OAuth vive en esta organización. Luis no ve el TikTok de Ely, ni al
-                revés.
-              </p>
-            </div>
-          </Card>
 
           <Card className="p-5">
             <h2 className="text-lg font-semibold text-[var(--admin-text)]">Quién entra aquí</h2>

@@ -27,6 +27,9 @@ export function AdminOverviewHeader() {
         <Badge tone="neutral" className="h-8 px-2.5 capitalize">
           {todayLabel}
         </Badge>
+        <Link href="/admin/clientes" className={buttonClass("primary", "sm")}>
+          Elegir cliente
+        </Link>
         <Link href="/admin/audit" className={buttonClass("outline", "sm")}>
           Ver auditoría
         </Link>

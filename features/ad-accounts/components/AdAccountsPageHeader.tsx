@@ -13,7 +13,7 @@ export function AdAccountsPageHeader({ summary }: AdAccountsPageHeaderProps) {
 
   return (
     <DashboardPageIntro
-      description="Administra tus cuentas conectadas, presupuesto asignado y estado operativo desde un solo lugar."
+      description="Administra las cuentas publicitarias de tu organización: presupuesto, estado y operación en un solo lugar."
       badges={
         <>
           {hasAccounts ? (

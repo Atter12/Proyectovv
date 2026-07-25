@@ -18,7 +18,7 @@ export interface AdminNavItem {
 
 export const adminNavigation: AdminNavItem[] = [
   { label: "Resumen", href: "/admin/overview", description: "KPIs operativos", icon: "◇" },
-  { label: "Clientes", href: "/admin/clientes", description: "Vista por cliente (demo)", icon: "◎" },
+  { label: "Clientes", href: "/admin/clientes", description: "Elegir cliente y ver solo lo suyo", icon: "◎" },
   { label: "Organizaciones", href: "/admin/organizations", description: "Ficha operativa CRM", icon: "⌂" },
   { label: "Usuarios", href: "/admin/users", description: "Perfiles y membresías", icon: "☷" },
   { label: "Pagos manuales", href: "/admin/payments", description: "Vouchers y abonos", icon: "$" },
