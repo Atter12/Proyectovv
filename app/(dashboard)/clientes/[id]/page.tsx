@@ -9,6 +9,8 @@ import { getClientVista } from "@/lib/admin/data";
 import { requireSession } from "@/lib/auth/guards.server";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { serverEnv } from "@/lib/env/env.server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +20,55 @@ export default async function ClienteVistaPage({
   params: Promise<{ id: string }>;
 }) {
   await requireSession();
-
   const { id } = await params;
-  const vista = await getClientVista(id);
-  if (!vista) notFound();
+
+  console.log("[Clientes/detalle] load", {
+    id,
+    hasServiceRole: Boolean(serverEnv.supabaseServiceRoleKey),
+    hasUrl: Boolean(serverEnv.supabaseUrl),
+  });
+
+  let vista: Awaited<ReturnType<typeof getClientVista>> = null;
+  let loadError: string | null = null;
+
+  try {
+    // Smoke-check admin client early for clearer errors
+    if (!serverEnv.supabaseServiceRoleKey) {
+      throw new Error(
+        "Falta SUPABASE_SERVICE_ROLE_KEY en el entorno. Sin eso no se puede ver la ficha completa del cliente.",
+      );
+    }
+    createAdminClient();
+    vista = await getClientVista(id);
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Error cargando cliente";
+    console.error("[Clientes/detalle] ERROR", loadError, error);
+  }
+
+  if (!loadError && !vista) {
+    notFound();
+  }
+
+  if (loadError || !vista) {
+    return (
+      <div className={dashboardClasses.page}>
+        <Card className="border-rose-200 bg-rose-50 p-5 text-sm text-rose-950">
+          <p className="font-semibold">No se pudo abrir este cliente</p>
+          <p className="mt-2">{loadError}</p>
+          <p className="mt-3 text-xs opacity-80">
+            Revisá la terminal del servidor (logs `[Clientes/detalle]`). El SQL 012 no es
+            necesario para esta vista.
+          </p>
+          <Link
+            href={routes.clientes}
+            className="mt-4 inline-flex text-sm font-semibold text-[var(--brand-primary)]"
+          >
+            ← Volver a Clientes
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   const contactName =
     vista.primaryContact?.full_name?.trim() ||
@@ -56,8 +103,7 @@ export default async function ClienteVistaPage({
       <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
         <p className="font-semibold">Vista filtrada por cliente</p>
         <p className="mt-1 opacity-90">
-          Estás viendo únicamente lo de {contactName}. Ideal para el video: “elige cliente → ve
-          solo lo suyo”.
+          Estás viendo únicamente lo de {contactName}.
         </p>
       </div>
 
@@ -77,9 +123,6 @@ export default async function ClienteVistaPage({
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
             {formatMoney(vista.summary.todaySpendCents, currency)}
           </p>
-          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            {formatMoney(vista.summary.spend30dCents, currency)} en 30 días
-          </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
@@ -88,9 +131,6 @@ export default async function ClienteVistaPage({
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
             {vista.summary.totalAdAccounts}
           </p>
-          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            {vista.summary.activeAdAccounts} activas
-          </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
@@ -98,9 +138,6 @@ export default async function ClienteVistaPage({
           </p>
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
             {Math.max(vista.summary.totalCampaigns, vista.campaigns.length)}
-          </p>
-          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            Solo de este cliente
           </p>
         </Card>
       </div>
@@ -154,16 +191,10 @@ export default async function ClienteVistaPage({
           </Card>
 
           <Card className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">Campañas</h2>
-              <Badge variant={vista.campaigns.length > 0 ? "success" : "neutral"}>
-                {vista.campaigns.length}
-              </Badge>
-            </div>
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Campañas</h2>
             {vista.campaigns.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
-                Todavía no hay campañas listadas para este cliente. Cuando las jalen de tu
-                sistema, aparecen acá filtradas solo para él.
+                Todavía no hay campañas listadas para este cliente.
               </p>
             ) : (
               <TableWrap className="mt-4">

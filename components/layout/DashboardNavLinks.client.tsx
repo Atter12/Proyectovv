@@ -66,8 +66,13 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
           <Link
             key={item.href}
             href={item.href}
-            prefetch
-            onClick={onNavigate}
+            prefetch={item.href === "/clientes" ? false : true}
+            onClick={() => {
+              if (item.href === "/clientes") {
+                console.log("[Clientes] click menú → navegando a /clientes");
+              }
+              onNavigate?.();
+            }}
             className={cn(
               "relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
               isActive

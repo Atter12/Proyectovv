@@ -189,6 +189,8 @@ export const config = {
     "/overview/:path*",
     "/clientes",
     "/clientes/:path*",
+    "/api/clientes",
+    "/api/clientes/:path*",
     "/ad-accounts",
     "/ad-accounts/:path*",
     "/payments",
