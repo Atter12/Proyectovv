@@ -19,8 +19,8 @@ export function ClienteScopedAffiliates({
         avatarUrl={data.cliente.avatarUrl}
       />
 
-      <Card className="dashboard-surface-card p-6 text-sm text-[#5b6b82]">
-        <p className="font-display text-lg font-medium text-[#0b1628]">
+      <Card className="dashboard-surface-card p-6 text-sm text-[#6b645c]">
+        <p className="font-display text-lg font-medium text-[#141210]">
           Sin afiliados por cliente en Hecom
         </p>
         <p className="mt-2 leading-relaxed">
@@ -32,21 +32,21 @@ export function ClienteScopedAffiliates({
           Seguís viendo solo el contexto de {data.cliente.name}:{" "}
           <Link
             href={routes.payments}
-            className="font-semibold text-[#178bff] hover:underline"
+            className="font-semibold text-[var(--brand-primary-deep)] hover:underline"
           >
             pagos
           </Link>
           ,{" "}
           <Link
             href={routes.adAccounts}
-            className="font-semibold text-[#178bff] hover:underline"
+            className="font-semibold text-[var(--brand-primary-deep)] hover:underline"
           >
             cuentas
           </Link>{" "}
           y{" "}
           <Link
             href={routes.creativeAnalyzer}
-            className="font-semibold text-[#178bff] hover:underline"
+            className="font-semibold text-[var(--brand-primary-deep)] hover:underline"
           >
             creativos
           </Link>

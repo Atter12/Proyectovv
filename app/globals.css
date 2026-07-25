@@ -91,14 +91,14 @@
   --admin-badge-purple-bg: #fff1e8;
   --admin-badge-purple-text: #c2410c;
   --admin-control-bg: #ffffff;
-  --admin-control-border: #e5eaf0;
-  --admin-control-text: #0f172a;
-  --admin-control-muted: #64748b;
-  --admin-control-hover-bg: #f8fafc;
-  --admin-table-head-bg: rgb(248 250 252 / 0.8);
-  --admin-table-row-hover: rgb(248 250 252 / 0.8);
-  --admin-table-divider: #f1f5f9;
-  --admin-session-bg: #f8fafc;
+  --admin-control-border: #e6e0d8;
+  --admin-control-text: #141210;
+  --admin-control-muted: #6b645c;
+  --admin-control-hover-bg: #faf8f5;
+  --admin-table-head-bg: rgb(250 248 245 / 0.85);
+  --admin-table-row-hover: rgb(250 248 245 / 0.9);
+  --admin-table-divider: #efebe6;
+  --admin-session-bg: #faf8f5;
   --admin-session-hover-bg: #ffffff;
   --admin-metric-accent-indigo: #fff1e8;
   --admin-metric-accent-indigo-text: #e8451a;
@@ -474,6 +474,25 @@ body {
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.9) inset,
     0 14px 36px rgb(20 18 16 / 0.06);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dashboard-surface-card:hover {
+  border-color: rgb(255 120 31 / 0.18);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.95) inset,
+    0 18px 40px rgb(255 120 31 / 0.1);
+}
+
+/* Focus ring Holistic — inputs / interactive */
+.brand-focus {
+  outline: none;
+}
+.brand-focus:focus-visible {
+  box-shadow: 0 0 0 3px rgb(255 120 31 / 0.22);
 }
 
 .dashboard-kpi {

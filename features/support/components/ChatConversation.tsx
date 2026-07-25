@@ -31,7 +31,7 @@ export function ChatConversation({
 
   return (
     <div className="flex h-[480px] flex-col">
-      <div className="bg-[#10344a] px-4 py-3">
+      <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -49,13 +49,13 @@ export function ChatConversation({
         </p>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
+      <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--surface-soft)] p-4">
         {loading ? (
-          <p className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">
+          <p className="rounded-2xl bg-white px-3 py-2 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
             Cargando historial…
           </p>
         ) : messages.length === 0 ? (
-          <div className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+          <div className="rounded-2xl bg-white px-3 py-2 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
             Cuéntanos en qué podemos ayudarte y crearemos un ticket para darle seguimiento.
           </div>
         ) : (
@@ -68,11 +68,11 @@ export function ChatConversation({
                 className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                   message.role === "user"
                     ? "bg-[var(--brand-primary)] text-white"
-                    : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200"
+                    : "bg-white text-[#3f3a34] shadow-sm ring-1 ring-[var(--border-subtle)]"
                 }`}
               >
                 <p>{message.text}</p>
-                <p className={`mt-1 text-[10px] ${message.role === "user" ? "text-white/70" : "text-slate-400"}`}>
+                <p className={`mt-1 text-[10px] ${message.role === "user" ? "text-white/70" : "text-[#9a9187]"}`}>
                   {message.timestamp}
                 </p>
               </div>
@@ -86,7 +86,7 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="border-t border-slate-200 bg-white p-3">
+      <div className="border-t border-[var(--border-subtle)] bg-white p-3">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -95,13 +95,13 @@ export function ChatConversation({
             onKeyDown={handleKeyDown}
             placeholder="Escribe tu mensaje..."
             aria-label="Escribir mensaje"
-            className="h-9 flex-1 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+            className="h-9 flex-1 rounded-full border border-[var(--border-subtle)] px-4 text-sm text-[#141210] placeholder:text-[#9a9187] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
           />
           <button
             type="button"
             onClick={onSend}
             disabled={sending || !inputValue.trim()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary)]/90 disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
             aria-label="Enviar mensaje"
           >
             {sending ? (

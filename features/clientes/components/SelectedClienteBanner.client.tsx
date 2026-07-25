@@ -46,7 +46,7 @@ export function SelectedClienteBanner({
   }
 
   return (
-    <div className="dashboard-surface-card rounded-2xl px-4 py-3.5 text-sm text-[#0b1628]">
+    <div className="dashboard-surface-card rounded-2xl px-4 py-3.5 text-sm text-[#141210]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <HecomClienteAvatar
@@ -59,7 +59,7 @@ export function SelectedClienteBanner({
               Cliente activo:{" "}
               <span className="font-display text-[1.05rem]">{clienteName}</span>
             </p>
-            <p className="mt-0.5 text-[#5b6b82]">
+            <p className="mt-0.5 text-[#6b645c]">
               {detail ??
                 "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
               <Link

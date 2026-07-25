@@ -60,10 +60,10 @@ export function ClienteScopeKpi({
 }) {
   return (
     <div className="dashboard-kpi rounded-2xl p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b645c]">
         {label}
       </p>
-      <p className="mt-1 font-display text-[1.35rem] font-medium tracking-[-0.02em] text-[#0b1628]">
+      <p className="mt-1 font-display text-[1.35rem] font-medium tracking-[-0.02em] text-[#141210]">
         {value}
       </p>
     </div>

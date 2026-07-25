@@ -40,8 +40,8 @@ export function ReferralWorkflow({ steps }: ReferralWorkflowProps) {
   return (
     <Card>
       <div className="mb-6">
-        <h3 className="text-base font-semibold text-[#0f172a]">Cómo funciona</h3>
-        <p className="mt-1 text-sm text-[#64748b]">
+        <h3 className="text-base font-semibold text-[#141210]">Cómo funciona</h3>
+        <p className="mt-1 text-sm text-[#6b645c]">
           Completa estos pasos para empezar a generar comisiones.
         </p>
       </div>
@@ -52,16 +52,16 @@ export function ReferralWorkflow({ steps }: ReferralWorkflowProps) {
             {index < steps.length - 1 && (
               <div className="absolute left-5 top-10 h-[calc(100%-8px)] w-px bg-gradient-to-b from-[var(--brand-primary)]/30 to-[var(--brand-primary-deep)]/10" />
             )}
-            <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-deep)] text-sm font-bold text-white shadow-sm shadow-indigo-500/20">
+            <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-primary-deep)] text-sm font-bold text-white shadow-sm shadow-[rgb(255_120_31_/_0.28)]">
               {step.step}
             </div>
-            <div className="min-w-0 flex-1 rounded-xl border border-[#e5e7eb] bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="min-w-0 flex-1 rounded-xl border border-[var(--border-subtle)] bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--brand-primary)]/25 hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.12)]">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[#64748b]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--surface-soft)] text-[#6b645c]">
                     <StepIcon step={step.step} />
                   </span>
-                  <p className="text-sm font-semibold text-[#0f172a]">{step.title}</p>
+                  <p className="text-sm font-semibold text-[#141210]">{step.title}</p>
                 </div>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
@@ -73,11 +73,11 @@ export function ReferralWorkflow({ steps }: ReferralWorkflowProps) {
                   {step.status === "available" ? "Disponible" : "Pendiente"}
                 </span>
               </div>
-              <p className="mt-2 pl-9 text-sm leading-relaxed text-[#64748b]">
+              <p className="mt-2 pl-9 text-sm leading-relaxed text-[#6b645c]">
                 {step.description}
               </p>
               {step.optionalAction && (
-                <p className="mt-2 pl-9 text-xs font-medium text-[var(--brand-primary)]">
+                <p className="mt-2 pl-9 text-xs font-medium text-[var(--brand-primary-deep)]">
                   → {step.optionalAction}
                 </p>
               )}

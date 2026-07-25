@@ -97,12 +97,12 @@ export function ClienteScopedOverview({
               {accounts.map((account) => (
                 <li
                   key={account.advertiserId}
-                  className="border-b border-[rgb(15_30_52_/_0.08)] pb-3 last:border-0"
+                  className="border-b border-[rgb(20_18_16_/_0.08)] pb-3 last:border-0"
                 >
-                  <p className="font-semibold text-[#0b1628]">
+                  <p className="font-semibold text-[#141210]">
                     {account.advertiserName ?? "TikTok Ads"}
                   </p>
-                  <p className="text-xs text-[#5b6b82]">
+                  <p className="text-xs text-[#6b645c]">
                     {account.advertiserId}
                     {account.bmBucket ? ` · BM ${account.bmBucket}` : ""}
                   </p>
@@ -130,12 +130,12 @@ export function ClienteScopedOverview({
                     <Th>Monto</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgb(15_30_52_/_0.08)]">
+                <tbody className="divide-y divide-[rgb(20_18_16_/_0.08)]">
                   {recentGastos.map((row) => (
                     <tr key={row.id}>
                       <Td>
                         <p className="font-semibold">{row.camp ?? "Gasto"}</p>
-                        <p className="text-xs text-[#5b6b82]">
+                        <p className="text-xs text-[#6b645c]">
                           {row.fecha ?? row.mes ?? ""}
                         </p>
                       </Td>
@@ -157,10 +157,10 @@ export function ClienteScopedOverview({
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <div className="dashboard-kpi rounded-2xl p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b645c]">
         {label}
       </p>
-      <p className="mt-1 font-display text-[1.35rem] font-medium tracking-[-0.02em] text-[#0b1628]">
+      <p className="mt-1 font-display text-[1.35rem] font-medium tracking-[-0.02em] text-[#141210]">
         {value}
       </p>
     </div>

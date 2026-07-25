@@ -15,11 +15,11 @@ export function CreativeBenchmarkPanel({
   return (
     <section id="creative-benchmark" className="scroll-mt-24">
       <Card className="overflow-hidden p-0">
-        <div className="border-b border-[#e5e7eb] bg-gradient-to-r from-slate-50 to-white px-6 py-4">
-          <h2 className="text-base font-semibold text-[#0f172a]">
+        <div className="border-b border-[var(--border-subtle)] bg-gradient-to-r from-[var(--surface-soft)] to-white px-6 py-4">
+          <h2 className="text-base font-semibold text-[#141210]">
             Resumen de rendimiento creativo
           </h2>
-          <p className="mt-0.5 text-sm text-[#64748b]">
+          <p className="mt-0.5 text-sm text-[#6b645c]">
             Señales de ejemplo basadas en patrones de alto rendimiento
           </p>
         </div>
@@ -27,11 +27,11 @@ export function CreativeBenchmarkPanel({
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,280px)]">
           <div className="min-w-0 p-4 sm:p-6">
             <div className="mb-6 flex flex-wrap items-end gap-2 sm:gap-3">
-              <p className="text-3xl font-bold tracking-tight text-[#0f172a] sm:text-4xl">
+              <p className="text-3xl font-bold tracking-tight text-[#141210] sm:text-4xl">
                 {metrics.averageScore}
-                <span className="text-xl font-medium text-[#64748b]">/100</span>
+                <span className="text-xl font-medium text-[#6b645c]">/100</span>
               </p>
-              <span className="mb-1 rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary)]">
+              <span className="mb-1 rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary-deep)]">
                 Puntuación general
               </span>
             </div>
@@ -40,16 +40,16 @@ export function CreativeBenchmarkPanel({
               {signals.map((signal) => (
                 <div key={signal.id}>
                   <div className="mb-1.5 flex items-center justify-between text-sm">
-                    <span className="font-medium text-[#0f172a]">
+                    <span className="font-medium text-[#141210]">
                       {signal.label}
                     </span>
-                    <span className="font-bold text-[var(--brand-primary)]">
+                    <span className="font-bold text-[var(--brand-primary-deep)]">
                       {signal.score}
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-soft)]">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-[#06b6d4] transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-[var(--brand-coral)] via-[var(--brand-primary)] to-[var(--brand-accent)] transition-all duration-500"
                       style={{ width: `${signal.score}%` }}
                     />
                   </div>
@@ -58,7 +58,7 @@ export function CreativeBenchmarkPanel({
             </div>
           </div>
 
-          <div className="border-t border-[#e5e7eb] bg-gradient-to-br from-[#070b1f] to-[#1e1b4b] p-6 text-white lg:border-l lg:border-t-0">
+          <div className="border-t border-[var(--border-subtle)] bg-gradient-to-br from-[#050505] to-[#1a1008] p-6 text-white lg:border-l lg:border-t-0">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />

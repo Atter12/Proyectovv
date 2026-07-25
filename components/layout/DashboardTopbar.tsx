@@ -25,7 +25,7 @@ export function DashboardTopbar({
   const pageTitle = currentPage?.label ?? "Panel";
 
   return (
-    <header className="dashboard-glass sticky top-0 z-20 flex h-16 min-h-[64px] items-center justify-between gap-3 border-b border-[rgb(15_30_52_/_0.08)] px-4 sm:px-5 lg:px-6">
+    <header className="dashboard-glass sticky top-0 z-20 flex h-16 min-h-[64px] items-center justify-between gap-3 border-b border-[rgb(20_18_16_/_0.08)] px-4 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"

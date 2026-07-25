@@ -25,10 +25,10 @@ export function AdAccountsPageHeader({
   return (
     <div className="dashboard-surface-card flex flex-col gap-4 rounded-[1.5rem] p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#178bff]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)]">
           Cuentas publicitarias
         </p>
-        <p className="mt-2 max-w-3xl text-[15px] leading-7 text-[#5b6b82]">
+        <p className="mt-2 max-w-3xl text-[15px] leading-7 text-[#6b645c]">
           {description}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -55,7 +55,7 @@ export function AdAccountsPageHeader({
         </div>
       </div>
       {hideCreate ? null : (
-        <AdAccountsOpenCreateModalButton className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#178bff] px-5 text-[14px] font-semibold text-white shadow-[0_10px_28px_rgb(23_139_255_/_0.28)] transition-colors hover:bg-[#0f7ae5] sm:h-10 sm:w-auto">
+        <AdAccountsOpenCreateModalButton className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] sm:h-10 sm:w-auto">
           Crear cuenta
         </AdAccountsOpenCreateModalButton>
       )}

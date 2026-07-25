@@ -21,7 +21,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft,#9ab7c8)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text,#f8fafc)]"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft,#9a9187)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text,#f8fafc)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -39,7 +39,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg,#07111f)]/80 px-3.5 text-[15px] text-[var(--auth-text,#f8fafc)] placeholder:text-[var(--auth-text-soft,#718096)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent,#178bff)]/80 focus:bg-[var(--auth-bg-elevated,#0c1a2e)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent,#178bff)]/25";
+  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg,#0a0908)]/80 px-3.5 text-[15px] text-[var(--auth-text,#f8fafc)] placeholder:text-[var(--auth-text-soft,#9a9187)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent,#ff781f)]/80 focus:bg-[var(--auth-bg-elevated,#14110e)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent,#ff781f)]/25";
 
 async function assertAdminAccess(): Promise<boolean> {
   const response = await fetch(routes.api.auth.adminAccess, { cache: "no-store" });
@@ -102,7 +102,7 @@ export function AdminLoginForm() {
   return (
     <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-2xl p-7 sm:p-8">
       <div
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent,#178bff)]/55 to-transparent"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent,#ff781f)]/55 to-transparent"
         aria-hidden
       />
 
@@ -113,10 +113,10 @@ export function AdminLoginForm() {
             className="h-11 w-auto max-w-[200px] object-contain brightness-110"
           />
         </div>
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#ff781f)]">
           Admin console
         </p>
-        <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
+        <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#ff781f)]">
           Operaciones
         </p>
         <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text,#f8fafc)] sm:text-[2rem]">

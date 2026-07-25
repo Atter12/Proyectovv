@@ -111,16 +111,16 @@ export function VerifyOtpForm() {
             className="h-11 w-auto max-w-[180px] object-contain"
           />
         </div>
-        <h1 className="text-xl font-bold text-slate-900">Verifica tu correo</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <h1 className="font-display text-xl font-medium text-[#141210]">Verifica tu correo</h1>
+        <p className="mt-2 text-sm text-[#6b645c]">
           Introduce el código de 6 dígitos enviado a{" "}
-          <span className="font-medium text-slate-700">{email || "tu correo"}</span>
+          <span className="font-medium text-[#3f3a34]">{email || "tu correo"}</span>
         </p>
       </div>
 
       <form onSubmit={handleVerify} className="space-y-4">
         <div>
-          <label htmlFor="otp" className="mb-1.5 block text-xs font-medium text-slate-600">
+          <label htmlFor="otp" className="mb-1.5 block text-xs font-medium text-[#6b645c]">
             Código de verificación
           </label>
           <Input
@@ -161,21 +161,21 @@ export function VerifyOtpForm() {
           type="button"
           onClick={handleResend}
           disabled={resending}
-          className="font-medium text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+          className="font-medium text-[var(--brand-primary-deep)] hover:text-[var(--brand-primary)] disabled:opacity-50"
         >
           {resending ? "Reenviando…" : "Reenviar código"}
         </button>
-        <p className="text-slate-500">
+        <p className="text-[#6b645c]">
           <Link
             href={isAdminContext ? routes.adminLogin : routes.login}
-            className="hover:text-slate-700"
+            className="hover:text-[#141210]"
           >
             Volver al inicio de sesión
           </Link>
         </p>
       </div>
 
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className="mt-4 text-center text-xs text-[#9a9187]">
         {siteConfig.name} — verificación por correo
       </p>
     </Card>

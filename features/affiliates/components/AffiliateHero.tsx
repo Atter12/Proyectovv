@@ -62,7 +62,7 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
+              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary-deep)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
             >
               {copied ? "¡Copiado!" : "Copiar enlace"}
             </button>

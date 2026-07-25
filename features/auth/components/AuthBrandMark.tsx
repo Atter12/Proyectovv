@@ -15,10 +15,10 @@ export function AuthBrandMark({
       aria-label={siteConfig.name}
     >
       <HolisticLogo
-        size={compact ? 120 : 168}
+        size={compact ? 120 : 200}
         className={cn(
           "w-auto max-w-full object-contain brightness-110",
-          compact ? "h-9" : "h-12 sm:h-14",
+          compact ? "h-9" : "h-14 sm:h-16",
         )}
       />
     </div>

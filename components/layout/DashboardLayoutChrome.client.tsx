@@ -47,7 +47,7 @@ export function DashboardLayoutChrome({
       {sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[#050505]/55 backdrop-blur-sm lg:hidden"
           aria-label="Cerrar menú"
           onClick={() => setSidebarOpen(false)}
         />
@@ -69,7 +69,7 @@ export function DashboardLayoutChrome({
             type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Cerrar menú"
-            className="absolute right-2 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[#64748b] transition-colors hover:bg-slate-100"
+            className="absolute right-2 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[#9a9187] transition-colors hover:bg-white/10 hover:text-white"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

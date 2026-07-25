@@ -255,7 +255,7 @@ export function SupportChatWidget({
       {isOpen && (
         <div
           className={cn(
-            "absolute bottom-[calc(100%+10px)] right-0 w-[min(340px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-slate-200/50 transition-all duration-200 ease-out sm:bottom-[calc(100%+12px)]",
+            "absolute bottom-[calc(100%+10px)] right-0 w-[min(340px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-[var(--border-subtle)] transition-all duration-200 ease-out sm:bottom-[calc(100%+12px)]",
           )}
         >
           <button
@@ -276,7 +276,7 @@ export function SupportChatWidget({
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? "Cerrar chat de soporte" : "Abrir chat de soporte"}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#10344a] text-white shadow-xl shadow-black/20 transition-transform duration-200 hover:scale-105 sm:h-14 sm:w-14"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
       >
         {isOpen ? (
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

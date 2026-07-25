@@ -26,21 +26,23 @@ export default function LoginPage() {
     <div className="auth-canvas relative min-h-screen overflow-hidden">
       <AuthDotGridBackground />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1180px] flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">
-        <LoginHeroPanel />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <header className="flex shrink-0 justify-center px-4 pt-8 sm:pt-10 lg:pt-12">
+          <AuthBrandMark className="max-w-[240px] sm:max-w-[280px]" />
+        </header>
 
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:flex-none lg:items-stretch lg:px-0 lg:py-10">
-          <div className="mb-6 lg:hidden">
-            <AuthBrandMark />
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">
+          <LoginHeroPanel />
+
+          <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:flex-none lg:items-stretch lg:px-0 lg:py-10">
+            <Suspense fallback={<AuthCardFallback />}>
+              <LoginForm />
+            </Suspense>
+
+            <p className="mt-5 text-center text-[13px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">
+              © {new Date().getFullYear()} {siteConfig.companyName}
+            </p>
           </div>
-
-          <Suspense fallback={<AuthCardFallback />}>
-            <LoginForm />
-          </Suspense>
-
-          <p className="mt-5 text-center text-[13px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">
-            © {new Date().getFullYear()} {siteConfig.companyName}
-          </p>
         </div>
       </div>
     </div>

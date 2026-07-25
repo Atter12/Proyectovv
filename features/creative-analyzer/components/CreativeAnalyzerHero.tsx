@@ -8,7 +8,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
   const barHeights = [40, 65, 55, 80, 70, 90, 75];
 
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#07111f_0%,#0c2748_48%,#0b4f9c_100%)] shadow-[0_18px_40px_rgb(7_17_31_/_0.35)] sm:min-h-[300px] lg:min-h-[340px]">
+    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#050505_0%,#1a1008_45%,#e8451a_82%,#ff781f_100%)] shadow-[0_18px_40px_rgb(255_120_31_/_0.28)] sm:min-h-[300px] lg:min-h-[340px]">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div
           className="absolute inset-0 opacity-[0.14]"
@@ -20,13 +20,13 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
               "radial-gradient(ellipse 65% 75% at 78% 30%, black, transparent)",
           }}
         />
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[var(--brand-primary)]/30 blur-3xl" />
-        <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[#9af7c9]/12 blur-3xl" />
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[var(--brand-accent)]/30 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-7 lg:flex-row lg:items-center lg:justify-between lg:p-8">
         <div className="min-w-0 max-w-xl">
-          <p className="text-[13px] font-semibold tracking-[0.04em] text-[var(--brand-mint)]">
+          <p className="text-[13px] font-semibold tracking-[0.04em] text-[var(--brand-accent)]">
             Análisis creativo
           </p>
           <h2 className="font-display mt-2 text-[1.75rem] font-medium leading-[1.12] tracking-[-0.02em] text-white sm:text-[2rem] lg:text-[2.35rem]">
@@ -39,7 +39,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="#creative-benchmark"
-              className="inline-flex h-11 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_10px_24px_rgb(23_139_255_/_0.3)] transition-colors hover:bg-[var(--brand-primary-deep)]"
+              className="inline-flex h-11 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.35)] transition-colors hover:bg-[var(--brand-primary-deep)]"
             >
               Analiza tu primer video
             </a>
@@ -68,7 +68,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
                   Señal ganadora
                 </span>
-                <span className="rounded-full bg-[var(--brand-primary)]/30 px-2 py-0.5 text-[10px] font-semibold text-[#b7d9ff]">
+                <span className="rounded-full bg-[var(--brand-primary)]/30 px-2 py-0.5 text-[10px] font-semibold text-[#ffe0c2]">
                   Cumple políticas
                 </span>
               </div>

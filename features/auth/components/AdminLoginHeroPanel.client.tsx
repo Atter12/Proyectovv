@@ -122,7 +122,7 @@ export function AdminLoginHeroPanel({ className }: AdminLoginHeroPanelProps) {
                 className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3 py-2 text-[12px] font-medium text-white/90 backdrop-blur-sm"
               >
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-[var(--brand-primary,#178bff)]"
+                  className="h-1.5 w-1.5 rounded-full bg-[var(--brand-primary,#ff781f)]"
                   aria-hidden
                 />
                 {item}
@@ -140,7 +140,7 @@ export function AdminLoginHeroPanel({ className }: AdminLoginHeroPanelProps) {
                 className={cn(
                   "h-1.5 rounded-full transition-all duration-300",
                   index === activeIndex
-                    ? "w-7 bg-[var(--brand-primary,#178bff)]"
+                    ? "w-7 bg-[var(--brand-primary,#ff781f)]"
                     : "w-1.5 bg-white/35 hover:bg-white/60",
                 )}
               />

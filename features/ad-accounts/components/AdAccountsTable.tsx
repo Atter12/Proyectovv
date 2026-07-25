@@ -258,7 +258,7 @@ export function AdAccountsTable({
         <div className="hidden md:block">
           <Table embedded className="rounded-none">
             <TableHeader>
-              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+              <TableRow className="bg-[var(--surface-soft)]/80 hover:bg-[var(--surface-soft)]/80">
                 <TableHead>Cuenta publicitaria</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Identificación</TableHead>

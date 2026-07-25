@@ -72,7 +72,7 @@ export function DashboardUserMenu({ user }: DashboardUserMenuProps) {
           open && "border-[var(--brand-primary)]/30 bg-white shadow-md",
         )}
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--brand-primary)] text-[12px] font-bold text-white shadow-[0_6px_14px_rgb(23_139_255_/_0.28)]">
+        <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[var(--brand-primary)] text-[12px] font-bold text-white shadow-[0_6px_14px_rgb(255_120_31_/_0.32)]">
           {user.avatarInitials}
         </span>
         <span className="hidden min-w-0 text-left sm:block">

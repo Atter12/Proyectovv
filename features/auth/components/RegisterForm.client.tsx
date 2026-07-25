@@ -294,7 +294,7 @@ export function RegisterForm() {
         </div>
 
         {referralCode && (
-          <div className="rounded-xl border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[#b7d9ff]">
+          <div className="rounded-xl border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[#ffe0c2]">
             Código referido aplicado:{" "}
             <span className="font-semibold text-[var(--auth-text)]">{referralCode}</span>
           </div>

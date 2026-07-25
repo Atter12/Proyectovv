@@ -51,7 +51,7 @@ export default async function ClienteVistaPage({
         }
       />
 
-      <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+      <div className="mb-5 rounded-xl border border-[var(--brand-primary)]/25 bg-[var(--admin-accent-soft)] px-4 py-3 text-sm text-[#141210]">
         <p className="font-semibold">Cliente seleccionado · solo lectura</p>
         <p className="mt-1 opacity-90">
           Estás viendo únicamente lo de {contactName}. Ideal para el video: “elige cliente →

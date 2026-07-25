@@ -39,13 +39,13 @@ export function ClienteScopedPayments({
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="dashboard-surface-card p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-medium text-[#0b1628]">
+            <h2 className="font-display text-lg font-medium text-[#141210]">
               Cobros / recargas
             </h2>
             <Badge variant="info">{cobros.length}</Badge>
           </div>
           {cobros.length === 0 ? (
-            <p className="mt-4 text-sm text-[#5b6b82]">Sin cobros para este cliente.</p>
+            <p className="mt-4 text-sm text-[#6b645c]">Sin cobros para este cliente.</p>
           ) : (
             <TableWrap className="mt-4">
               <Table>
@@ -56,15 +56,15 @@ export function ClienteScopedPayments({
                     <Th>Monto</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgb(15_30_52_/_0.08)]">
+                <tbody className="divide-y divide-[rgb(20_18_16_/_0.08)]">
                   {cobros.map((row) => (
                     <tr key={row.id}>
                       <Td>
-                        <p className="font-semibold text-[#0b1628]">{row.fecha ?? "—"}</p>
-                        <p className="text-xs text-[#5b6b82]">{row.codigo ?? ""}</p>
+                        <p className="font-semibold text-[#141210]">{row.fecha ?? "—"}</p>
+                        <p className="text-xs text-[#6b645c]">{row.codigo ?? ""}</p>
                       </Td>
-                      <Td className="text-[#5b6b82]">{row.metodo ?? "—"}</Td>
-                      <Td className="font-semibold tabular-nums text-[#0b1628]">
+                      <Td className="text-[#6b645c]">{row.metodo ?? "—"}</Td>
+                      <Td className="font-semibold tabular-nums text-[#141210]">
                         {moneyUsd(row.monto)}
                       </Td>
                     </tr>
@@ -77,13 +77,13 @@ export function ClienteScopedPayments({
 
         <Card className="dashboard-surface-card p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-medium text-[#0b1628]">
+            <h2 className="font-display text-lg font-medium text-[#141210]">
               Gastos ads
             </h2>
             <Badge variant="neutral">{gastos.length}</Badge>
           </div>
           {gastos.length === 0 ? (
-            <p className="mt-4 text-sm text-[#5b6b82]">Sin gastos para este cliente.</p>
+            <p className="mt-4 text-sm text-[#6b645c]">Sin gastos para este cliente.</p>
           ) : (
             <TableWrap className="mt-4">
               <Table>
@@ -94,21 +94,21 @@ export function ClienteScopedPayments({
                     <Th>Gasto</Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgb(15_30_52_/_0.08)]">
+                <tbody className="divide-y divide-[rgb(20_18_16_/_0.08)]">
                   {gastos.map((row) => (
                     <tr key={row.id}>
                       <Td>
-                        <p className="font-semibold text-[#0b1628]">
+                        <p className="font-semibold text-[#141210]">
                           {row.camp ?? "Gasto"}
                         </p>
-                        <p className="text-xs text-[#5b6b82]">
+                        <p className="text-xs text-[#6b645c]">
                           {row.fecha ?? row.mes ?? row.source ?? ""}
                         </p>
                       </Td>
-                      <Td className="text-[#5b6b82]">
+                      <Td className="text-[#6b645c]">
                         {row.fee != null ? `${row.fee}%` : "—"}
                       </Td>
-                      <Td className="font-semibold tabular-nums text-[#0b1628]">
+                      <Td className="font-semibold tabular-nums text-[#141210]">
                         {moneyUsd(row.gasto)}
                       </Td>
                     </tr>

@@ -5,7 +5,7 @@ export function CreativeAnalyzerCTA() {
         className="pointer-events-none absolute inset-0 opacity-[0.4]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgb(23 139 255 / 0.12) 1px, transparent 0)",
+            "radial-gradient(circle at 1px 1px, rgb(255 120 31 / 0.14) 1px, transparent 0)",
           backgroundSize: "22px 22px",
           maskImage: "radial-gradient(ellipse at center, black, transparent 75%)",
         }}

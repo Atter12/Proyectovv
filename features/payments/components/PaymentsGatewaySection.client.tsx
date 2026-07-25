@@ -52,7 +52,7 @@ export function PaymentsGatewaySection({
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(23_139_255_/_0.28)] transition-colors hover:bg-[var(--brand-primary-deep)] sm:h-11 sm:w-auto"
+            className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] sm:h-11 sm:w-auto"
           >
             {selectedGateway
               ? `Pagar con ${selectedGateway.name}`

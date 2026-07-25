@@ -8,7 +8,7 @@ interface ChatFaqArticleDetailProps {
 export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailProps) {
   return (
     <div className="flex flex-col">
-      <div className="bg-[#10344a] px-4 py-3">
+      <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -24,11 +24,11 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
       </div>
 
       <div className="max-h-[380px] overflow-y-auto bg-white p-4">
-        <p className="text-sm leading-relaxed text-slate-600">{article.content}</p>
+        <p className="text-sm leading-relaxed text-[#6b645c]">{article.content}</p>
         {article.bullets.length > 0 && (
           <ul className="mt-4 space-y-2">
             {article.bullets.map((bullet) => (
-              <li key={bullet} className="flex gap-2 text-sm text-slate-600">
+              <li key={bullet} className="flex gap-2 text-sm text-[#6b645c]">
                 <span className="text-[var(--brand-primary)]">•</span>
                 <span>{bullet}</span>
               </li>
@@ -36,14 +36,14 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
           </ul>
         )}
 
-        <div className="mt-6 border-t border-slate-100 pt-4">
-          <p className="text-center text-sm font-medium text-slate-700">
+        <div className="mt-6 border-t border-[var(--border-subtle)] pt-4">
+          <p className="text-center text-sm font-medium text-[#141210]">
             ¿Te resultó útil este artículo?
           </p>
           <div className="mt-3 flex justify-center gap-3">
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] text-[#6b645c] transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
               aria-label="Artículo útil"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -52,7 +52,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
             </button>
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] text-[#6b645c] transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
               aria-label="Artículo no útil"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

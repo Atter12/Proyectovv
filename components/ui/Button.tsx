@@ -28,7 +28,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost:
     "text-[var(--admin-text-muted)] hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]",
   luxury:
-    "bg-[linear-gradient(135deg,var(--admin-accent),#60A5FA)] text-white shadow-sm hover:shadow-md active:scale-[0.99]",
+    "bg-[linear-gradient(135deg,var(--brand-coral),var(--brand-primary)_55%,var(--brand-accent))] text-white shadow-[0_8px_22px_rgb(255_120_31_/_0.28)] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.36)] active:scale-[0.99]",
   danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 active:scale-[0.99]",
   success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:scale-[0.99]",
 };

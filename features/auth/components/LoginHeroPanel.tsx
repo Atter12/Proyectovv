@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
-import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { BlurText } from "@/components/react-bits/BlurText";
 
 const FEATURES = [
@@ -68,11 +67,9 @@ export function LoginHeroPanel() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative z-10 hidden min-h-0 flex-col justify-center py-10 lg:flex">
+    <div className="relative z-10 hidden min-h-0 flex-col justify-center py-6 lg:flex lg:py-10">
       <div className="auth-copy-well">
-        <AuthBrandMark />
-
-        <div className="relative z-10 mt-9 max-w-[38rem]">
+        <div className="relative z-10 max-w-[38rem]">
           <p className="text-[14px] font-semibold tracking-[0.06em] text-[var(--auth-accent)]">
             Panel para anunciantes
           </p>

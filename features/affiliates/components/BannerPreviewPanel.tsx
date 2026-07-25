@@ -19,7 +19,7 @@ function BannerVisual({ size }: { size: BannerSize }) {
   return (
     <div
       style={{ width: w, height: h }}
-      className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[var(--brand-primary-deep)] via-[var(--brand-primary)] to-[#06b6d4] shadow-lg"
+      className="relative overflow-hidden rounded-lg bg-gradient-to-br from-[var(--brand-coral)] via-[var(--brand-primary)] to-[var(--brand-accent)] shadow-lg"
     >
       <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/15 blur-md" />
       <div className="absolute -bottom-3 -left-3 h-12 w-12 rounded-full bg-amber-300/25 blur-sm" />
@@ -82,7 +82,7 @@ export function BannerPreviewPanel({ size, referralUrl }: BannerPreviewPanelProp
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-white overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e5e7eb] px-5 py-4">
-        <h3 className="text-sm font-semibold text-[#0f172a]">
+        <h3 className="text-sm font-semibold text-[#141210]">
           Vista previa del banner
         </h3>
         <span className="rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary)]">
@@ -105,31 +105,31 @@ export function BannerPreviewPanel({ size, referralUrl }: BannerPreviewPanelProp
           </div>
         </div>
 
-        <div className="border-t border-[#e5e7eb] bg-slate-50/50 p-5 lg:border-l lg:border-t-0">
+        <div className="border-t border-[var(--border-subtle)] bg-[var(--surface-soft)]/80 p-5 lg:border-l lg:border-t-0">
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">
+              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#6b645c]">
                 Tamaño
               </dt>
-              <dd className="mt-0.5 font-semibold text-[#0f172a]">{size.label}</dd>
+              <dd className="mt-0.5 font-semibold text-[#141210]">{size.label}</dd>
             </div>
             <div>
-              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">
+              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#6b645c]">
                 Formato
               </dt>
-              <dd className="mt-0.5 text-[#0f172a]">Banner de ejemplo — {size.formatName}</dd>
+              <dd className="mt-0.5 text-[#141210]">Banner de ejemplo — {size.formatName}</dd>
             </div>
             <div>
-              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">
+              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#6b645c]">
                 Estado
               </dt>
               <dd className="mt-0.5 text-[#16a34a] font-medium">Listo para copiar</dd>
             </div>
             <div>
-              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#64748b]">
+              <dt className="text-[10px] font-medium uppercase tracking-wide text-[#6b645c]">
                 Uso recomendado
               </dt>
-              <dd className="mt-0.5 text-[#64748b]">Sitios web y blogs</dd>
+              <dd className="mt-0.5 text-[#6b645c]">Sitios web y blogs</dd>
             </div>
           </dl>
           <button

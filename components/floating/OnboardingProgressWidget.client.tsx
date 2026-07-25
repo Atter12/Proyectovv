@@ -77,7 +77,7 @@ export function OnboardingProgressWidget({
         type="button"
         onClick={() => setWidgetState("collapsed")}
         className={cn(
-          "flex h-8 items-center gap-1.5 rounded-full bg-[#090b16]/80 px-3 text-xs text-white/70 shadow-md ring-1 ring-white/10 transition-all duration-200 ease-out hover:text-white",
+          "flex h-8 items-center gap-1.5 rounded-full bg-[#050505]/85 px-3 text-xs text-white/70 shadow-md ring-1 ring-white/10 transition-all duration-200 ease-out hover:text-white",
           chatOpen && "mr-2 sm:mr-0",
         )}
         aria-label="Mostrar guía de progreso"
@@ -96,7 +96,7 @@ export function OnboardingProgressWidget({
         type="button"
         onClick={handleExpand}
         className={cn(
-          "flex items-center gap-2 rounded-full bg-[#090b16] px-3 py-2 text-white shadow-xl shadow-black/30 ring-1 ring-white/10 transition-all duration-200 ease-out hover:ring-white/20",
+          "flex items-center gap-2 rounded-full bg-[#050505] px-3 py-2 text-white shadow-xl shadow-black/30 ring-1 ring-white/10 transition-all duration-200 ease-out hover:ring-[var(--brand-primary)]/40",
           chatOpen && "-translate-x-2 sm:-translate-x-4",
         )}
         aria-label="Expandir guía de progreso"

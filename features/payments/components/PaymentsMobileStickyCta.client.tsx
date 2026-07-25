@@ -17,7 +17,7 @@ export function PaymentsMobileStickyCta() {
           <button
             type="button"
             onClick={dispatchPaymentsOpenAddBalanceModal}
-            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(23_139_255_/_0.28)] transition-colors hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
           >
             Agregar saldo
           </button>

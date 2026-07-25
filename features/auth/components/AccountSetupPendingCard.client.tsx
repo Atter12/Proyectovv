@@ -32,16 +32,16 @@ export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps)
             className="h-11 w-auto max-w-[180px] object-contain"
           />
         </div>
-        <h1 className="text-xl font-bold text-slate-900">
+        <h1 className="font-display text-xl font-medium text-[#141210]">
           Configurando tu cuenta
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-[#6b645c]">
           Tu correo ya está verificado. Estamos preparando tu organización y
           cartera en {siteConfig.name}.
         </p>
       </div>
 
-      <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+      <div className="space-y-3 rounded-xl bg-[var(--surface-soft)] p-4 text-sm text-[#6b645c]">
         {error && (
           <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700" role="alert">
             {error}
@@ -66,8 +66,8 @@ export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps)
         {refreshing ? "Comprobando…" : "Reintentar"}
       </Button>
 
-      <p className="mt-4 text-center text-sm text-slate-500">
-        <Link href={routes.login} className="font-medium text-indigo-600 hover:text-indigo-700">
+      <p className="mt-4 text-center text-sm text-[#6b645c]">
+        <Link href={routes.login} className="font-medium text-[var(--brand-primary-deep)] hover:text-[var(--brand-primary)]">
           Volver al inicio de sesión
         </Link>
       </p>

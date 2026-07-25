@@ -90,8 +90,8 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-[#5b6b82]">
-            <p className="font-display text-lg font-medium text-[#0b1628]">
+          <div className="px-6 py-10 text-center text-sm text-[#6b645c]">
+            <p className="font-display text-lg font-medium text-[#141210]">
               {clienteName} no tiene cuentas TikTok mapeadas en Hecom
             </p>
             <p className="mt-2">

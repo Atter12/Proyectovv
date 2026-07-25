@@ -15,7 +15,7 @@ export function ChatFaqCategories({
 }: ChatFaqCategoriesProps) {
   return (
     <div className="flex flex-col">
-      <div className="bg-[#10344a] px-4 py-3">
+      <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -29,7 +29,7 @@ export function ChatFaqCategories({
         </button>
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[10px] font-bold text-white">
-            DM
+            HM
           </div>
           <span className="text-sm font-semibold text-white">{brandName}</span>
         </div>
@@ -40,7 +40,7 @@ export function ChatFaqCategories({
           type="search"
           placeholder="Buscar preguntas frecuentes..."
           aria-label="Buscar en FAQs"
-          className="mb-4 h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+          className="mb-4 h-9 w-full rounded-lg border border-[var(--border-subtle)] px-3 text-sm text-[#141210] placeholder:text-[#9a9187] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
         />
         <ul className="space-y-1">
           {categories.map((category, index) => (
@@ -48,13 +48,13 @@ export function ChatFaqCategories({
               <button
                 type="button"
                 onClick={() => onSelectCategory(category.id)}
-                className="flex w-full items-center justify-between rounded-lg px-2 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                className="flex w-full items-center justify-between rounded-lg px-2 py-3 text-left text-sm text-[#3f3a34] transition-colors hover:bg-[var(--surface-soft)]"
               >
                 <span>
                   {index + 1}. {category.title}
                 </span>
                 <svg
-                  className="h-4 w-4 shrink-0 text-slate-400"
+                  className="h-4 w-4 shrink-0 text-[#9a9187]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

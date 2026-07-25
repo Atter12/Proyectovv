@@ -132,7 +132,7 @@ export function NotificationsDropdown() {
         onClick={() => {
           void handleToggle();
         }}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--admin-text-muted,#64748b)] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--admin-text-muted)] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35"
         aria-label="Notificaciones"
         aria-expanded={open}
       >
@@ -157,11 +157,11 @@ export function NotificationsDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[#e2e8f0] bg-white shadow-2xl shadow-slate-900/12">
-          <div className="flex items-center justify-between border-b border-[#eef2f7] px-4 py-3">
+        <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-white shadow-2xl shadow-[rgb(20_18_16_/_0.14)]">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
             <div>
-              <p className="text-sm font-black text-[#0f172a]">Notificaciones</p>
-              <p className="text-xs text-[#64748b]">
+              <p className="text-sm font-black text-[#141210]">Notificaciones</p>
+              <p className="text-xs text-[#6b645c]">
                 {unreadCount === 0
                   ? "Todo leído"
                   : `${unreadCount} sin leer`}
@@ -173,7 +173,7 @@ export function NotificationsDropdown() {
                 void loadNotifications();
               }}
               disabled={loading}
-              className="rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary)]/10 disabled:opacity-50"
+              className="rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-primary-deep)] transition hover:bg-[var(--brand-primary)]/10 disabled:opacity-50"
             >
               Actualizar
             </button>
@@ -181,7 +181,7 @@ export function NotificationsDropdown() {
 
           <div className="max-h-[420px] overflow-y-auto p-2">
             {loading && notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-[#64748b]">
+              <div className="px-4 py-8 text-center text-sm text-[#6b645c]">
                 Cargando notificaciones…
               </div>
             ) : error ? (
@@ -189,7 +189,7 @@ export function NotificationsDropdown() {
                 {error}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-[#64748b]">
+              <div className="px-4 py-8 text-center text-sm text-[#6b645c]">
                 No tienes notificaciones por ahora.
               </div>
             ) : (
@@ -204,26 +204,26 @@ export function NotificationsDropdown() {
                       onClick={() => {
                         void handleNotificationClick(item);
                       }}
-                      className="w-full rounded-2xl px-3 py-3 text-left transition hover:bg-[#f8fafc]"
+                      className="w-full rounded-2xl px-3 py-3 text-left transition hover:bg-[var(--surface-soft)]"
                     >
                       <div className="flex gap-3">
                         <span
                           className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            isUnread ? "bg-[var(--brand-primary)]" : "bg-[#cbd5e1]"
+                            isUnread ? "bg-[var(--brand-primary)]" : "bg-[#d2c8bc]"
                           }`}
                           aria-hidden
                         />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start justify-between gap-2">
-                            <span className="line-clamp-2 text-sm font-black text-[#0f172a]">
+                            <span className="line-clamp-2 text-sm font-black text-[#141210]">
                               {item.title}
                             </span>
-                            <span className="shrink-0 text-[11px] font-semibold text-[#94a3b8]">
+                            <span className="shrink-0 text-[11px] font-semibold text-[#9a9187]">
                               {formatRelativeDate(item.createdAt)}
                             </span>
                           </span>
                           {item.body && (
-                            <span className="mt-1 line-clamp-2 text-xs leading-5 text-[#64748b]">
+                            <span className="mt-1 line-clamp-2 text-xs leading-5 text-[#6b645c]">
                               {item.body}
                             </span>
                           )}
