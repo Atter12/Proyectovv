@@ -2,7 +2,13 @@
 
 import { dispatchAdAccountsOpenCreateModal } from "@/lib/events/modal-events";
 
-export function AdAccountsMobileStickyCta() {
+export function AdAccountsMobileStickyCta({
+  hideCreate = false,
+}: {
+  hideCreate?: boolean;
+}) {
+  if (hideCreate) return null;
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"

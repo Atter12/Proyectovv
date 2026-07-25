@@ -12,6 +12,7 @@ import { getHecomSupabaseConfig } from "@/lib/hecom/supabase.server";
 import { requireSession } from "@/lib/auth/guards.server";
 import { formatDateTime } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+import { SelectHecomClienteOnMount } from "@/features/clientes/components/SelectHecomClienteOnMount.client";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,7 @@ export default async function ClienteVistaPage({
 
   return (
     <div className={dashboardClasses.page}>
+      <SelectHecomClienteOnMount clienteId={cliente.id} name={cliente.name} />
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -117,24 +119,31 @@ export default async function ClienteVistaPage({
               {cliente.dni ? ` · DNI ${cliente.dni}` : ""}
             </p>
           </div>
-          <Link
-            href={routes.clientes}
-            className="text-sm font-semibold text-[var(--brand-primary)] hover:text-[var(--brand-primary-deep)]"
-          >
-            ← Elegir otro cliente
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <Link
+              href={routes.clientes}
+              className="text-sm font-semibold text-[var(--brand-primary)] hover:text-[var(--brand-primary-deep)]"
+            >
+              ← Elegir otro cliente
+            </Link>
+            <Link
+              href={routes.adAccounts}
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-[var(--brand-primary-deep)]"
+            >
+              Ver sus cuentas publicitarias
+            </Link>
+          </div>
         </div>
       </div>
 
       <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-        <p className="font-semibold">Solo datos de este cliente (Hecom)</p>
+        <p className="font-semibold">Cliente seleccionado</p>
         <p className="mt-1 opacity-90">
           {hecomCfg.configured
             ? "Fuente live: Supabase Hecom Club."
             : "Fuente: backup Holistic local (sin HECOM_SUPABASE_SERVICE_ROLE_KEY aún)."}{" "}
-          Los gastos en producción se jalen con el token de agencia{" "}
-          <code className="rounded bg-white/70 px-1">TIKTOK_ACCESS_TOKEN</code> + los
-          advertiser IDs de abajo.
+          En <strong>Mis cuentas publicitarias</strong> solo vas a ver lo de{" "}
+          {cliente.name}.
         </p>
       </div>
 
@@ -330,12 +339,9 @@ export default async function ClienteVistaPage({
               </li>
               <li>
                 Cada cliente tiene uno o más{" "}
-                <code className="rounded bg-[var(--surface-soft)] px-1">advertiser_id</code>{" "}
-                (tabla multi-cuenta o columna legacy).
+                <code className="rounded bg-[var(--surface-soft)] px-1">advertiser_id</code>.
               </li>
-              <li>
-                Sync escribe snapshots / gastos; acá solo leemos lo ya guardado.
-              </li>
+              <li>Sync escribe snapshots / gastos; acá solo leemos lo ya guardado.</li>
             </ol>
           </Card>
         </div>

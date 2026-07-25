@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { routes } from "@/config/routes";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 
 type TiktokAccount = {
@@ -55,10 +57,14 @@ function initials(name: string): string {
 }
 
 export function ClientesPageClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<ApiPayload | null>(null);
+  const [selectingId, setSelectingId] = useState<string | null>(null);
+  const [selectError, setSelectError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +132,40 @@ export function ClientesPageClient() {
     });
   }, [payload?.clients, q]);
 
+  function elegirCliente(client: ClientRow) {
+    const contactName =
+      client.contactName?.trim() || client.contactEmail || client.name;
+    setSelectError(null);
+    setSelectingId(client.id);
+    startTransition(async () => {
+      try {
+        console.log("[Clientes] seleccionar", client.id, contactName);
+        const res = await fetch("/api/clientes/seleccionar", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clienteId: client.id,
+            name: contactName,
+          }),
+        });
+        const json = (await res.json()) as { ok?: boolean; error?: string };
+        if (!res.ok || !json.ok) {
+          setSelectError(json.error ?? "No se pudo seleccionar el cliente");
+          setSelectingId(null);
+          return;
+        }
+        router.push(routes.adAccounts);
+        router.refresh();
+      } catch (err) {
+        setSelectError(
+          err instanceof Error ? err.message : "No se pudo seleccionar",
+        );
+        setSelectingId(null);
+      }
+    });
+  }
+
   return (
     <div className={dashboardClasses.page}>
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
@@ -136,10 +176,17 @@ export function ClientesPageClient() {
           Elegir cliente
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--admin-text-muted,#64748b)]">
-          Lista real de Hecom Club (<code>public.clientes</code>). Elegí uno y mirá
-          sus cuentas TikTok / gastos. Consola F12 → logs <code>[Clientes]</code>.
+          Elegí un cliente Hecom. Después, en{" "}
+          <strong>Mis cuentas publicitarias</strong> solo vas a ver lo de esa
+          persona.
         </p>
       </div>
+
+      {selectError ? (
+        <Card className="border-rose-200 bg-rose-50 p-4 text-sm text-rose-950">
+          {selectError}
+        </Card>
+      ) : null}
 
       {loading ? (
         <Card className="p-5 text-sm text-[var(--admin-text-muted,#64748b)]">
@@ -197,6 +244,7 @@ export function ClientesPageClient() {
           const contactName =
             client.contactName?.trim() || client.contactEmail || client.name;
           const displayInitials = initials(contactName) || "CL";
+          const busy = pending && selectingId === client.id;
 
           return (
             <Card key={client.id} className="flex flex-col p-5">
@@ -237,15 +285,20 @@ export function ClientesPageClient() {
                 ) : null}
               </div>
 
-              <div className="mt-5">
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={busy || pending}
+                  onClick={() => elegirCliente(client)}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)] disabled:opacity-60"
+                >
+                  {busy ? "Eligiendo…" : "Elegir este cliente"}
+                </button>
                 <Link
                   href={`/clientes/${client.id}`}
-                  onClick={() =>
-                    console.log("[Clientes] elegir cliente Hecom", client.id, contactName)
-                  }
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]"
+                  className="text-center text-xs font-medium text-[var(--brand-primary)] hover:underline"
                 >
-                  Elegir este cliente
+                  Ver ficha
                 </Link>
               </div>
             </Card>

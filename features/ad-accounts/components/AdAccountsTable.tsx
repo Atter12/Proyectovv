@@ -39,9 +39,14 @@ const statusVariants: Record<
 
 interface AdAccountsTableProps {
   accounts: AdAccount[];
+  /** Hecom-scoped accounts: view only (no configure / archive in Ecomdy). */
+  readOnly?: boolean;
 }
 
-export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
+export function AdAccountsTable({
+  accounts,
+  readOnly = false,
+}: AdAccountsTableProps) {
   const router = useRouter();
   const [selectedAccount, setSelectedAccount] = useState<AdAccount | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
@@ -86,6 +91,20 @@ export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
     account: AdAccount;
     compact?: boolean;
   }) {
+    if (readOnly) {
+      return (
+        <p
+          className={
+            compact
+              ? "text-center text-[12px] text-[var(--admin-text-muted,#64748b)]"
+              : "text-[12px] text-[var(--admin-text-muted,#64748b)]"
+          }
+        >
+          Solo lectura · Hecom
+        </p>
+      );
+    }
+
     return (
       <div className={compact ? "flex flex-col gap-2" : "flex flex-wrap gap-1.5"}>
         <Button
@@ -305,8 +324,13 @@ export function AdAccountsTable({ accounts }: AdAccountsTableProps) {
         </div>
       ) : null}
 
-      {isEmpty && <AdAccountsEmptyState />}
-      {selectedAccount ? (
+      {isEmpty && !readOnly ? <AdAccountsEmptyState /> : null}
+      {isEmpty && readOnly ? (
+        <div className="px-6 py-10 text-center text-sm text-[var(--admin-text-muted,#64748b)]">
+          No hay cuentas para este filtro.
+        </div>
+      ) : null}
+      {selectedAccount && !readOnly ? (
         <ConfigureAdAccountModal
           account={selectedAccount}
           onClose={() => setSelectedAccount(null)}
