@@ -10,7 +10,10 @@ export default function UnauthorizedPage() {
     <main className="auth-canvas grid min-h-screen place-items-center px-4 py-10">
       <div className="auth-panel w-full max-w-xl rounded-2xl p-8 text-center sm:p-10">
         <div className="mb-6 flex justify-center">
-          <EcomdyLogo size={44} />
+          <EcomdyLogo
+            size={160}
+            className="h-12 w-auto max-w-[200px] object-contain brightness-110"
+          />
         </div>
         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-danger,#ff5c7a)]">
           Acceso denegado

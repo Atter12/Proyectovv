@@ -106,7 +106,10 @@ export function VerifyOtpForm() {
     <Card className="w-full max-w-md" padding="lg">
       <div className="mb-6 text-center">
         <div className="mx-auto mb-4 flex justify-center">
-          <EcomdyLogo size={48} />
+          <EcomdyLogo
+            size={160}
+            className="h-11 w-auto max-w-[180px] object-contain"
+          />
         </div>
         <h1 className="text-xl font-bold text-slate-900">Verifica tu correo</h1>
         <p className="mt-2 text-sm text-slate-500">

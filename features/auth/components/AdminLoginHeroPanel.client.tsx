@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
-import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/cn";
 
 const SLIDES = [
@@ -86,17 +85,15 @@ export function AdminLoginHeroPanel({ className }: AdminLoginHeroPanelProps) {
 
       <div className="relative z-10 flex h-full flex-col justify-between p-8 lg:p-10 xl:p-12">
         <div>
-          <div className="mb-6 flex items-center gap-3">
-            <EcomdyLogo size={44} className="shadow-lg" />
-            <div>
-              <p className="text-[1.05rem] font-semibold tracking-tight text-white">
-                {siteConfig.name}
-              </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7cc3ff]">
-                Admin console
-              </p>
-            </div>
+          <div className="mb-6 flex justify-center lg:justify-start">
+            <EcomdyLogo
+              size={160}
+              className="h-12 w-auto max-w-[220px] object-contain brightness-110"
+            />
           </div>
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7cc3ff]">
+            Admin console
+          </p>
 
           <h1 className="font-display max-w-xl text-[2rem] font-medium leading-[1.12] tracking-[-0.02em] text-white xl:text-[2.35rem]">
             Centro de control para operaciones críticas

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -108,18 +107,16 @@ export function AdminLoginForm() {
       />
 
       <div className="mb-7">
-        <div className="mb-5 flex items-center gap-3">
-          <EcomdyLogo size={40} />
-          <div>
-            <p className="text-[15px] font-semibold text-[var(--auth-text,#f8fafc)]">
-              {siteConfig.name}
-            </p>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
-              Admin console
-            </p>
-          </div>
+        <div className="mb-5 flex justify-center">
+          <EcomdyLogo
+            size={160}
+            className="h-11 w-auto max-w-[200px] object-contain brightness-110"
+          />
         </div>
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
+          Admin console
+        </p>
+        <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent,#178bff)]">
           Operaciones
         </p>
         <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text,#f8fafc)] sm:text-[2rem]">

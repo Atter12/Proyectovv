@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
+import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { siteConfig } from "@/config/site";
 
 type AdminSidebarBrandProps = {
@@ -12,18 +12,13 @@ export function AdminSidebarBrand({ onNavigate }: AdminSidebarBrandProps) {
       <Link
         href="/admin/overview"
         onClick={onNavigate}
-        className="admin-brand flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30"
+        aria-label={siteConfig.name}
+        className="admin-brand flex w-full items-center justify-center rounded-lg px-2 py-2 transition-colors duration-150 ease-out hover:bg-[var(--admin-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30"
       >
-        <EcomdyLogo size={36} className="shadow-sm" />
-
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-semibold leading-tight tracking-tight text-[var(--admin-text)]">
-            {siteConfig.name}
-          </span>
-          <span className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-[var(--admin-text-soft)]">
-            Admin
-          </span>
-        </span>
+        <HolisticLogo
+          size={140}
+          className="h-9 w-auto max-w-[85%] object-contain"
+        />
       </Link>
 
       <div className="admin-brand-divider mt-3" aria-hidden />

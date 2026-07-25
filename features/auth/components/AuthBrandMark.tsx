@@ -10,16 +10,17 @@ export function AuthBrandMark({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-3", className)}>
-      <HolisticLogo size={compact ? 36 : 48} />
-      <span
+    <div
+      className={cn("flex w-full items-center justify-center", className)}
+      aria-label={siteConfig.name}
+    >
+      <HolisticLogo
+        size={compact ? 120 : 168}
         className={cn(
-          "font-semibold tracking-[-0.03em] text-[var(--auth-text)]",
-          compact ? "text-base" : "text-xl",
+          "w-auto max-w-full object-contain brightness-110",
+          compact ? "h-9" : "h-12 sm:h-14",
         )}
-      >
-        {siteConfig.name}
-      </span>
+      />
     </div>
   );
 }

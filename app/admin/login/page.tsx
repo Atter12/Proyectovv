@@ -32,16 +32,11 @@ export default function AdminLoginPage() {
         <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-10 xl:px-14">
           <div className="absolute inset-y-8 left-0 hidden w-px bg-gradient-to-b from-transparent via-white/12 to-transparent lg:block" />
 
-          <div className="mb-6 flex items-center gap-3 lg:hidden">
-            <EcomdyLogo size={40} className="shadow-lg" />
-            <div>
-              <p className="text-[15px] font-semibold text-[var(--auth-text)]">
-                {siteConfig.name}
-              </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-                Admin console
-              </p>
-            </div>
+          <div className="mb-6 flex w-full justify-center lg:hidden">
+            <EcomdyLogo
+              size={160}
+              className="h-11 w-auto max-w-[200px] object-contain brightness-110"
+            />
           </div>
 
           <Suspense fallback={<AdminLoginFallback />}>
