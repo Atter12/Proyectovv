@@ -222,12 +222,13 @@ export async function listHecomClienteSpend(clientId: string, limit = 30) {
       .limit(limit);
 
     if (error) {
-      // Fallback a gastos
       const gastos = await hecom
         .from("gastos")
-        .select("id,cliente_id,monto,fecha,camp,source,created_at")
-        .eq("cliente_id", clientId)
-        .order("fecha", { ascending: false })
+        .select(
+          "id,client_id,gasto,camp,mes,source,fecha_movimiento,fee,codigo,created_at",
+        )
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
         .limit(limit);
       if (gastos.error) return { kind: "none" as const, rows: [] };
       return {

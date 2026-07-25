@@ -1,59 +1,40 @@
-import { Suspense } from "react";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { Card } from "@/components/ui/Card";
-import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
-import { PaymentsMobileStickyCta } from "@/features/payments/components/PaymentsMobileStickyCta.client";
-import { PaymentsPageHeader } from "@/features/payments/components/PaymentsPageHeader";
-import {
-  PaymentsSectionSkeleton,
-  PaymentsStatsSkeleton,
-} from "@/features/payments/components/PaymentsSectionSkeleton";
-import { PaymentsTabsShell } from "@/features/payments/components/PaymentsTabsShell";
-import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
-import { ManualPaymentsPanel } from "@/features/payments/components/ManualPaymentsPanel";
+import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
+import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { SelectedClienteBanner } from "@/features/clientes/components/SelectedClienteBanner.client";
+import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { parsePaymentTab } from "@/lib/payments/tab-params";
-import { getSearchParam } from "@/lib/search-params";
 
-interface PaymentsPageProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
+export default async function PaymentsPage() {
+  await requirePermission("payments:read");
+  const selected = await getSelectedHecomCliente();
 
-export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
-  const session = await requirePermission("payments:read");
-  const params = await searchParams;
-  const tab = parsePaymentTab(getSearchParam(params, "tab"));
+  if (!selected) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="pagos y movimientos" />
+      </div>
+    );
+  }
+
+  const data = await getHecomClienteDashboard(selected.id);
+  if (!data) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="pagos y movimientos" />
+      </div>
+    );
+  }
 
   return (
-    <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
-      <PaymentsPageHeader />
-
-      <div className="space-y-6 lg:space-y-8">
-        <Suspense fallback={<PaymentsSectionSkeleton />}>
-          <PaymentsWalletSection session={session} />
-        </Suspense>
-
-        <Suspense
-          fallback={
-            <div className="space-y-6 lg:space-y-8">
-              <PaymentsStatsSkeleton />
-              <PaymentsSectionSkeleton />
-            </div>
-          }
-        >
-          <PaymentsGatewayPanel session={session} />
-        </Suspense>
-
-        <Suspense fallback={null}>
-          <ManualPaymentsPanel session={session} />
-        </Suspense>
-
-        <Card padding="none" className="min-w-0 overflow-hidden">
-          <PaymentsTabsShell session={session} tab={tab} />
-        </Card>
-      </div>
-
-      <PaymentsMobileStickyCta />
+    <div className={dashboardClasses.page}>
+      <SelectedClienteBanner
+        clienteId={data.cliente.id}
+        clienteName={data.cliente.name}
+        detail="Solo cobros y gastos de este cliente en Hecom."
+      />
+      <ClienteScopedPayments data={data} />
     </div>
   );
 }

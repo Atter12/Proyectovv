@@ -6,16 +6,21 @@ import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
-import { SidebarWalletCard } from "./SidebarWalletCard.client";
+import {
+  SidebarWalletCard,
+  type SidebarSelectedCliente,
+} from "./SidebarWalletCard.client";
 
 interface DashboardMobileSidebarProps {
   onNavigate: () => void;
   className?: string;
+  selectedCliente?: SidebarSelectedCliente | null;
 }
 
 export function DashboardMobileSidebar({
   onNavigate,
   className,
+  selectedCliente = null,
 }: DashboardMobileSidebarProps) {
   return (
     <aside
@@ -37,7 +42,10 @@ export function DashboardMobileSidebar({
           </span>
         </Link>
 
-        <SidebarWalletCard onNavigate={onNavigate} />
+        <SidebarWalletCard
+          onNavigate={onNavigate}
+          selectedCliente={selectedCliente}
+        />
       </div>
 
       <div className="px-3 pt-4">

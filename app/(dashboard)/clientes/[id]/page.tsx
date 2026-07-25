@@ -96,8 +96,8 @@ export default async function ClienteVistaPage({
         : [];
 
   const spendTotal = spend.rows.reduce((acc, row) => {
-    const key = spend.kind === "gastos" ? "monto" : "spend";
-    const n = Number(row[key]);
+    const key = spend.kind === "gastos" ? "gasto" : "spend";
+    const n = Number(row[key] ?? row.monto);
     return acc + (Number.isFinite(n) ? n : 0);
   }, 0);
 
@@ -267,14 +267,16 @@ export default async function ClienteVistaPage({
                       if (spend.kind === "gastos") {
                         return (
                           <tr key={rowId}>
-                            <Td>{String(row.fecha ?? "—")}</Td>
+                            <Td>{String(row.fecha_movimiento ?? row.mes ?? "—")}</Td>
                             <Td>
                               <p className="font-semibold">{String(row.camp ?? "Gasto")}</p>
                               <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
                                 {String(row.source ?? "")}
                               </p>
                             </Td>
-                            <Td className="font-semibold">{moneyUsd(row.monto)}</Td>
+                            <Td className="font-semibold">
+                              {moneyUsd(row.gasto ?? row.monto)}
+                            </Td>
                           </tr>
                         );
                       }

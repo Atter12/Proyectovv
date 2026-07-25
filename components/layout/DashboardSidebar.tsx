@@ -4,13 +4,20 @@ import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
-import { SidebarWalletCard } from "./SidebarWalletCard.client";
+import {
+  SidebarWalletCard,
+  type SidebarSelectedCliente,
+} from "./SidebarWalletCard.client";
 
 interface DashboardSidebarProps {
   className?: string;
+  selectedCliente?: SidebarSelectedCliente | null;
 }
 
-export function DashboardSidebar({ className }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  className,
+  selectedCliente = null,
+}: DashboardSidebarProps) {
   return (
     <aside
       id="dashboard-sidebar"
@@ -31,7 +38,7 @@ export function DashboardSidebar({ className }: DashboardSidebarProps) {
           </span>
         </Link>
 
-        <SidebarWalletCard />
+        <SidebarWalletCard selectedCliente={selectedCliente} />
       </div>
 
       <div className="px-3 pt-4">

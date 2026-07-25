@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { routes } from "@/config/routes";
 
-export function AdAccountsPickClienteEmpty() {
+export function PickClienteEmpty({
+  section = "esta sección",
+}: {
+  section?: string;
+}) {
   return (
-    <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10 text-center">
+    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-2xl border border-[var(--border-subtle)] bg-white px-6 py-12 text-center shadow-[var(--shadow-card)]">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]/15">
         <span className="text-2xl font-bold">CL</span>
       </div>
@@ -11,8 +15,8 @@ export function AdAccountsPickClienteEmpty() {
         Primero elegí un cliente
       </h3>
       <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
-        En <strong>Clientes</strong> elegí a Adriana (u otro). Después acá solo
-        van a aparecer las cuentas publicitarias de esa persona.
+        Para ver {section}, elegí un cliente en <strong>Clientes</strong>. Después
+        todo el panel queda filtrado solo a esa persona.
       </p>
       <Link
         href={routes.clientes}

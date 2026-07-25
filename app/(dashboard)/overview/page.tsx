@@ -1,34 +1,40 @@
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { Suspense } from "react";
-import { OverviewHero } from "@/features/dashboard/components/OverviewHero";
-import {
-  OverviewAccountsSection,
-  OverviewDashboardSection,
-} from "@/features/dashboard/components/OverviewDashboardSection";
-import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
+import { ClienteScopedOverview } from "@/features/clientes/components/ClienteScopedOverview";
+import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { SelectedClienteBanner } from "@/features/clientes/components/SelectedClienteBanner.client";
+import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requireSession } from "@/lib/auth/guards.server";
 
 export default async function OverviewPage() {
-  const session = await requireSession();
+  await requireSession();
+  const selected = await getSelectedHecomCliente();
+
+  if (!selected) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="la descripción general" />
+      </div>
+    );
+  }
+
+  const data = await getHecomClienteDashboard(selected.id);
+  if (!data) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="la descripción general" />
+      </div>
+    );
+  }
 
   return (
     <div className={dashboardClasses.page}>
-      <OverviewHero />
-
-      <Suspense
-        fallback={
-          <div className="space-y-5 lg:space-y-6">
-            <PaymentsSectionSkeleton rows={2} />
-            <PaymentsSectionSkeleton rows={1} />
-          </div>
-        }
-      >
-        <OverviewDashboardSection session={session} />
-      </Suspense>
-
-      <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-        <OverviewAccountsSection session={session} />
-      </Suspense>
+      <SelectedClienteBanner
+        clienteId={data.cliente.id}
+        clienteName={data.cliente.name}
+        detail="Overview solo de este cliente (cuentas, cobros y gastos Hecom)."
+      />
+      <ClienteScopedOverview data={data} />
     </div>
   );
 }

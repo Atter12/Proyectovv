@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/Button";
 type Props = {
   clienteId: string;
   clienteName: string;
-  accountCount: number;
+  detail?: string;
 };
 
 export function SelectedClienteBanner({
   clienteId,
   clienteName,
-  accountCount,
+  detail,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -46,12 +46,10 @@ export function SelectedClienteBanner({
     <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold">
-            Filtrado por cliente: {clienteName}
-          </p>
+          <p className="font-semibold">Cliente activo: {clienteName}</p>
           <p className="mt-0.5 opacity-90">
-            Solo ves las cuentas TikTok de esta persona ({accountCount}).
-            {" "}
+            {detail ??
+              "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
             <Link
               href={`/clientes/${clienteId}`}
               className="font-semibold underline-offset-2 hover:underline"

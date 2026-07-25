@@ -3,11 +3,11 @@ import { Card } from "@/components/ui/Card";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsInfoAlert } from "@/features/ad-accounts/components/AdAccountsInfoAlert";
 import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
-import { AdAccountsPickClienteEmpty } from "@/features/ad-accounts/components/AdAccountsPickClienteEmpty";
 import { AdAccountsSummaryCards } from "@/features/ad-accounts/components/AdAccountsSummaryCards";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
 import { AdAccountsToolbar } from "@/features/ad-accounts/components/AdAccountsToolbar.client";
-import { SelectedClienteBanner } from "@/features/ad-accounts/components/SelectedClienteBanner.client";
+import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { SelectedClienteBanner } from "@/features/clientes/components/SelectedClienteBanner.client";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { filterAdAccounts } from "@/lib/filter/ad-accounts";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
@@ -39,6 +39,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const search = getSearchParam(params, "q");
   const status = resolveAccountStatusFilter(getSearchParam(params, "status", "all"));
   const includeArchived = getSearchParam(params, "archived") === "1";
+  void includeArchived;
 
   const selected = await getSelectedHecomCliente();
 
@@ -55,9 +56,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           hecomScoped={false}
           hideCreate
         />
-        <Card padding="none" className="overflow-hidden">
-          <AdAccountsPickClienteEmpty />
-        </Card>
+        <PickClienteEmpty section="las cuentas publicitarias" />
       </div>
     );
   }
@@ -77,7 +76,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       <SelectedClienteBanner
         clienteId={selected.id}
         clienteName={clienteName}
-        accountCount={data.accounts.length}
+        detail="Solo cuentas TikTok de este cliente."
       />
       <AdAccountsInfoAlert />
       <AdAccountsSummaryCards summary={data.summary} />
@@ -86,7 +85,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           <AdAccountsToolbar
             initialSearch={search}
             initialStatus={status}
-            initialIncludeArchived={includeArchived}
+            initialIncludeArchived={false}
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (

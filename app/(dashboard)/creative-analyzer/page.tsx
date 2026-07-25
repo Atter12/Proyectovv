@@ -1,35 +1,40 @@
-import { CreativeAnalyzerPageHeader } from "@/features/creative-analyzer/components/CreativeAnalyzerPageHeader";
-import { CreativeAnalyzerHero } from "@/features/creative-analyzer/components/CreativeAnalyzerHero";
-import { CreativeAnalyzerStats } from "@/features/creative-analyzer/components/CreativeAnalyzerStats";
-import { CreativeAnalysisWorkflow } from "@/features/creative-analyzer/components/CreativeAnalysisWorkflow";
-import { CreativeBenchmarkPanel } from "@/features/creative-analyzer/components/CreativeBenchmarkPanel";
-import { CreativeValueGrid } from "@/features/creative-analyzer/components/CreativeValueGrid";
-import { CreativeAnalyzerCTA } from "@/features/creative-analyzer/components/CreativeAnalyzerCTA";
-import { CreativeUploadPanel } from "@/features/creative-analyzer/components/CreativeUploadPanel.client";
-import { CreativeAnalysisActivity } from "@/features/creative-analyzer/components/CreativeAnalysisActivity";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+import { ClienteScopedCreatives } from "@/features/clientes/components/ClienteScopedCreatives";
+import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { SelectedClienteBanner } from "@/features/clientes/components/SelectedClienteBanner.client";
+import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getCreativeAnalyzerOverview } from "@/services/creative-analyzer.service";
 
 export default async function CreativeAnalyzerPage() {
-  const session = await requirePermission("creativeAnalyzer:read");
-  const data = await getCreativeAnalyzerOverview(session);
+  await requirePermission("creativeAnalyzer:read");
+  const selected = await getSelectedHecomCliente();
+
+  if (!selected) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="el analizador creativo" />
+      </div>
+    );
+  }
+
+  const data = await getHecomClienteDashboard(selected.id);
+  if (!data) {
+    return (
+      <div className={dashboardClasses.page}>
+        <PickClienteEmpty section="el analizador creativo" />
+      </div>
+    );
+  }
 
   return (
-    <div className={`${dashboardClasses.page} lg:space-y-10`}>
-      <CreativeAnalyzerPageHeader />
-      <CreativeAnalyzerHero metrics={data.metrics} />
-      <CreativeAnalyzerStats stats={data.stats} />
-      <CreativeUploadPanel />
-      <CreativeAnalysisActivity items={data.recentActivity ?? []} />
-      <CreativeAnalysisWorkflow steps={data.workflowSteps} />
-      <CreativeBenchmarkPanel
-        metrics={data.metrics}
-        signals={data.creativeSignals}
-        recommendation={data.benchmarkRecommendation}
+    <div className={dashboardClasses.page}>
+      <SelectedClienteBanner
+        clienteId={data.cliente.id}
+        clienteName={data.cliente.name}
+        detail="Solo creativos / proyectos de este cliente en Hecom."
       />
-      <CreativeValueGrid features={data.features} />
-      <CreativeAnalyzerCTA />
+      <ClienteScopedCreatives data={data} />
     </div>
   );
 }

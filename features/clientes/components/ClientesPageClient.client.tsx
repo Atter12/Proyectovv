@@ -155,7 +155,7 @@ export function ClientesPageClient() {
           setSelectingId(null);
           return;
         }
-        router.push(routes.adAccounts);
+        router.push(routes.overview);
         router.refresh();
       } catch (err) {
         setSelectError(

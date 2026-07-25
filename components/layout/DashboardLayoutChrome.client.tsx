@@ -6,6 +6,7 @@ import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
 import { cn } from "@/lib/cn";
 import type { User } from "@/types/user";
+import type { SidebarSelectedCliente } from "./SidebarWalletCard.client";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -18,11 +19,13 @@ const FloatingSupportStack = dynamic(
 interface DashboardLayoutChromeProps {
   children: React.ReactNode;
   user: User;
+  selectedCliente?: SidebarSelectedCliente | null;
 }
 
 export function DashboardLayoutChrome({
   children,
   user,
+  selectedCliente = null,
 }: DashboardLayoutChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -75,6 +78,7 @@ export function DashboardLayoutChrome({
           <DashboardMobileSidebar
             onNavigate={() => setSidebarOpen(false)}
             className="h-full w-full"
+            selectedCliente={selectedCliente}
           />
         </div>
       </div>
