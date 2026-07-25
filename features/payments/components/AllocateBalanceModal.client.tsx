@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,12 +26,26 @@ export function AllocateBalanceModal({
   onClose,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  if (!open || !account) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  if (!open || !account || !mounted) return null;
 
   const targetAccount = account;
   const parsedAmount = Number.parseFloat(amount);
@@ -64,7 +79,9 @@ export function AllocateBalanceModal({
         }),
       });
 
-      setSuccess(`Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`);
+      setSuccess(
+        `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
+      );
       router.refresh();
     } catch (err) {
       setError(
@@ -77,32 +94,34 @@ export function AllocateBalanceModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1020]/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
         aria-label="Cerrar modal"
         onClick={resetAndClose}
       />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-xl sm:p-6"
+        className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
-        <h2 className="text-lg font-semibold text-[#0f172a]">
+        <h2 className="text-lg font-semibold text-[var(--foreground)]">
           Asignar saldo
         </h2>
-        <p className="mt-1 text-sm text-[#64748b]">
-          Mueve saldo disponible de la cartera hacia una cuenta publicitaria usando el ledger financiero.
+        <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
+          Mueve saldo disponible de la cartera hacia una cuenta publicitaria.
         </p>
 
-        <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-slate-50 px-4 py-3">
-          <p className="text-xs text-[#64748b]">Cuenta publicitaria</p>
-          <p className="mt-0.5 text-sm font-semibold text-[#0f172a]">
+        <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
+          <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+            Cuenta publicitaria
+          </p>
+          <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {targetAccount.name}
           </p>
-          <p className="mt-1 text-xs text-[#64748b]">
+          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
             Saldo actual: {formatMoney(targetAccount.balance)}
           </p>
         </div>
@@ -110,7 +129,7 @@ export function AllocateBalanceModal({
         <div className="mt-5">
           <label
             htmlFor="allocation-amount"
-            className="mb-1.5 block text-xs font-medium text-[#64748b]"
+            className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
           >
             Monto a asignar (USD)
           </label>
@@ -122,6 +141,7 @@ export function AllocateBalanceModal({
             placeholder="100.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            autoFocus
           />
         </div>
 
@@ -131,7 +151,7 @@ export function AllocateBalanceModal({
           </p>
         )}
         {success && (
-          <p className="mt-3 text-xs text-[#16a34a]" role="status">
+          <p className="mt-3 text-xs text-emerald-600" role="status">
             {success}
           </p>
         )}
@@ -143,12 +163,13 @@ export function AllocateBalanceModal({
           <Button
             onClick={handleSubmit}
             disabled={loading || !isValidAmount}
-            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
           >
             {loading ? "Asignando…" : "Asignar saldo"}
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

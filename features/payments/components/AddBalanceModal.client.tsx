@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -52,6 +53,7 @@ export function AddBalanceModal({
   selectedGateway = "stripe",
 }: AddBalanceModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<"form" | "confirm" | "proof" | "result">("form");
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,23 @@ export function AddBalanceModal({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [open]);
 
   const parsedAmount = Number.parseFloat(amount);
   const isValidAmount =
@@ -171,23 +189,31 @@ export function AddBalanceModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1020]/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
         aria-label="Cerrar modal"
         onClick={handleClose}
       />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-xl sm:p-6"
+        aria-labelledby="add-balance-title"
+        className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         {step === "form" ? (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">Agregar saldo</h2>
-            <p className="mt-1 text-sm text-[#64748b]">
+            <h2
+              id="add-balance-title"
+              className="text-lg font-semibold text-[var(--foreground)]"
+            >
+              Agregar saldo
+            </h2>
+            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               Recarga tu cartera mediante la pasarela seleccionada.
             </p>
 
@@ -195,7 +221,7 @@ export function AddBalanceModal({
               <div>
                 <label
                   htmlFor="topup-amount"
-                  className="mb-1.5 block text-xs font-medium text-[#64748b]"
+                  className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
                 >
                   Monto (USD)
                 </label>
@@ -208,6 +234,7 @@ export function AddBalanceModal({
                   placeholder="100.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
+                  autoFocus
                 />
                 {error && (
                   <p className="mt-1.5 text-xs text-red-600" role="alert">
@@ -215,26 +242,33 @@ export function AddBalanceModal({
                   </p>
                 )}
               </div>
-              <div className="rounded-xl border border-[#e5e7eb] bg-slate-50 px-4 py-3">
-                <p className="text-xs text-[#64748b]">Método seleccionado</p>
-                <p className="mt-0.5 text-sm font-semibold text-[#0f172a]">
+              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
+                <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Método seleccionado
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
                   {gatewayLabels[selectedGateway]}
                 </p>
                 {isManual ? (
-                  <p className="mt-1 text-xs text-[#64748b]">
-                    Después de crear la intención podrás subir el voucher para revisión.
+                  <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
+                    Después de crear la intención podrás subir el voucher para
+                    revisión.
                   </p>
                 ) : null}
               </div>
             </div>
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={handleClose} className="h-11 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                className="h-11 w-full sm:w-auto"
+              >
                 Cancelar
               </Button>
               <Button
                 onClick={handleContinueToConfirm}
-                className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 sm:w-auto"
+                className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto"
               >
                 Continuar
               </Button>
@@ -242,22 +276,29 @@ export function AddBalanceModal({
           </>
         ) : step === "confirm" ? (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">
+            <h2
+              id="add-balance-title"
+              className="text-lg font-semibold text-[var(--foreground)]"
+            >
               Confirmar depósito
             </h2>
-            <p className="mt-1 text-sm text-[#64748b]">
+            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               Se creará una intención de pago real en tu organización.
             </p>
-            <dl className="mt-5 space-y-3 rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm">
+            <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <div>
-                <dt className="text-xs text-[#64748b]">Monto</dt>
-                <dd className="text-lg font-bold text-[#0f172a]">
+                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Monto
+                </dt>
+                <dd className="text-lg font-bold text-[var(--foreground)]">
                   {formatMoney(parsedAmount)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-[#64748b]">Pasarela</dt>
-                <dd className="font-medium text-[#0f172a]">
+                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Pasarela
+                </dt>
+                <dd className="font-medium text-[var(--foreground)]">
                   {gatewayLabels[selectedGateway]}
                 </dd>
               </div>
@@ -268,13 +309,17 @@ export function AddBalanceModal({
               </p>
             )}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={() => setStep("form")} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => setStep("form")}
+                disabled={loading}
+              >
                 Volver
               </Button>
               <Button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
               >
                 {loading ? "Procesando…" : "Confirmar depósito"}
               </Button>
@@ -282,20 +327,27 @@ export function AddBalanceModal({
           </>
         ) : step === "proof" ? (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">
+            <h2
+              id="add-balance-title"
+              className="text-lg font-semibold text-[var(--foreground)]"
+            >
               Subir voucher
             </h2>
-            <p className="mt-1 text-sm text-[#64748b]">
-              Adjunta el comprobante del pago manual para que el equipo lo revise desde el panel admin.
+            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
+              Adjunta el comprobante del pago manual para que el equipo lo revise
+              desde el panel admin.
             </p>
-            <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-slate-50 p-4 text-sm">
-              <p className="font-semibold text-[#0f172a]">{formatMoney(parsedAmount)}</p>
-              <p className="mt-1 text-xs text-[#64748b]">
-                ID de intención: <span className="font-mono">{paymentIntentId}</span>
+            <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
+              <p className="font-semibold text-[var(--foreground)]">
+                {formatMoney(parsedAmount)}
+              </p>
+              <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
+                ID de intención:{" "}
+                <span className="font-mono">{paymentIntentId}</span>
               </p>
             </div>
             <div className="mt-4">
-              <label className="mb-1.5 block text-xs font-medium text-[#64748b]">
+              <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
                 Voucher o comprobante
               </label>
               <Input
@@ -303,7 +355,7 @@ export function AddBalanceModal({
                 accept="image/png,image/jpeg,image/webp,application/pdf"
                 onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
               />
-              <p className="mt-1.5 text-xs text-[#64748b]">
+              <p className="mt-1.5 text-xs text-[var(--admin-text-muted,#64748b)]">
                 Formatos permitidos: JPG, PNG, WEBP o PDF. Máximo 10 MB.
               </p>
             </div>
@@ -313,13 +365,17 @@ export function AddBalanceModal({
               </p>
             )}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={handleClose} disabled={uploadingProof}>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={uploadingProof}
+              >
                 Subir luego
               </Button>
               <Button
                 onClick={handleProofUpload}
                 disabled={uploadingProof}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
               >
                 {uploadingProof ? "Subiendo…" : "Enviar voucher"}
               </Button>
@@ -327,18 +383,27 @@ export function AddBalanceModal({
           </>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-[#0f172a]">
+            <h2
+              id="add-balance-title"
+              className="text-lg font-semibold text-[var(--foreground)]"
+            >
               Intención registrada
             </h2>
-            <p className="mt-3 text-sm text-[#64748b]">{resultMessage}</p>
+            <p className="mt-3 text-sm text-[var(--admin-text-muted,#64748b)]">
+              {resultMessage}
+            </p>
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleClose} className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90">
+              <Button
+                onClick={handleClose}
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
+              >
                 Cerrar
               </Button>
             </div>
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
