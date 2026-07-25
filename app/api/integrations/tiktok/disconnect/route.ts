@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { buildTikTokAuthorizationUrl } from "@/lib/integrations/tiktok/oauth.server";
+import { disconnectTikTokConnection } from "@/lib/integrations/tiktok/client.server";
 import type { Permission } from "@/types/auth";
 
 function canManageTikTok(permissions: Permission[]): boolean {
@@ -11,7 +11,7 @@ function canManageTikTok(permissions: Permission[]): boolean {
   );
 }
 
-export async function GET() {
+export async function POST() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
@@ -26,13 +26,11 @@ export async function GET() {
   }
 
   try {
-    const url = buildTikTokAuthorizationUrl({
-      organizationId: session.organizationId,
-      userId: session.id,
-    });
-    return NextResponse.redirect(url);
+    await disconnectTikTokConnection(session.organizationId);
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo iniciar TikTok OAuth.";
+    const message =
+      error instanceof Error ? error.message : "No se pudo desconectar TikTok.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ import {
 } from "@/lib/ledger/ledger.server";
 import type {
   TikTokAdvertiserAccount,
+  TikTokConnectionStatus,
   TikTokIntegrationConnection,
   TikTokTokenBundle,
 } from "./types";
@@ -437,4 +438,74 @@ export async function importTikTokAdvertiserAccounts(input: {
   }
 
   return { imported };
+}
+
+export function isTikTokOAuthConfigured(): boolean {
+  return Boolean(serverEnv.tiktokClientKey && serverEnv.tiktokClientSecret);
+}
+
+export async function getTikTokConnectionStatus(
+  organizationId: string,
+): Promise<TikTokConnectionStatus> {
+  const admin = createAdminClient();
+  const configured = isTikTokOAuthConfigured();
+
+  const [{ data: connection }, { count }] = await Promise.all([
+    admin
+      .from("integration_connections")
+      .select("id, status, scopes, last_synced_at, updated_at, last_error")
+      .eq("organization_id", organizationId)
+      .eq("provider", "tiktok")
+      .maybeSingle<{
+        id: string;
+        status: TikTokConnectionStatus["status"];
+        scopes: string[] | null;
+        last_synced_at: string | null;
+        updated_at: string | null;
+        last_error: string | null;
+      }>(),
+    admin
+      .from("ad_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("platform", "tiktok")
+      .neq("status", "archived"),
+  ]);
+
+  const connected = connection?.status === "active";
+
+  return {
+    configured,
+    connected,
+    connectionId: connection?.id ?? null,
+    status: connection?.status ?? null,
+    scopes: connection?.scopes ?? [],
+    lastSyncedAt: connection?.last_synced_at ?? null,
+    updatedAt: connection?.updated_at ?? null,
+    importedTikTokAccounts: count ?? 0,
+    lastError: connection?.last_error ?? null,
+  };
+}
+
+export async function disconnectTikTokConnection(
+  organizationId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("integration_connections")
+    .update({
+      status: "revoked",
+      encrypted_credentials: {},
+      last_error: null,
+      metadata: {
+        disconnected_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId)
+    .eq("provider", "tiktok");
+
+  if (error) {
+    throw new Error(error.message ?? "No se pudo desconectar TikTok.");
+  }
 }

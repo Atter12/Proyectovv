@@ -8,7 +8,7 @@ import type { AdminNavSignals } from "@/lib/admin/data";
 import { cn } from "@/lib/cn";
 
 const groups = [
-  { title: "Operación", items: ["/admin/overview", "/admin/organizations", "/admin/users", "/admin/support"] },
+  { title: "Operación", items: ["/admin/overview", "/admin/clientes", "/admin/organizations", "/admin/users", "/admin/support"] },
   { title: "Finanzas", items: ["/admin/payments", "/admin/refunds", "/admin/ledger", "/admin/reconciliation"] },
   { title: "Growth & Ads", items: ["/admin/ad-accounts", "/admin/affiliates", "/admin/creatives"] },
   { title: "Sistema", items: ["/admin/webhooks", "/admin/audit", "/admin/integrations", "/admin/settings"] },

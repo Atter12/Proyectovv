@@ -24,3 +24,15 @@ export interface TikTokIntegrationConnection {
   expiresAt?: string | null;
   scopes: string[];
 }
+
+export interface TikTokConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  connectionId: string | null;
+  status: "active" | "disabled" | "expired" | "error" | "revoked" | null;
+  scopes: string[];
+  lastSyncedAt: string | null;
+  updatedAt: string | null;
+  importedTikTokAccounts: number;
+  lastError: string | null;
+}

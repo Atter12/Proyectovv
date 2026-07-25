@@ -1206,3 +1206,186 @@ export async function listIntegrations() {
     apiKeys: keys.map((row) => ({ row, organization: orgMap.get(row.organization_id), actor: row.created_by ? profileMap.get(row.created_by) : undefined })),
   };
 }
+
+export interface ClientListItem {
+  organization: OrganizationRow;
+  primaryContact: ProfileRow | null;
+  walletBalanceCents: number;
+  walletCurrency: string;
+  adAccountCount: number;
+  activeMemberCount: number;
+  tiktokConnected: boolean;
+}
+
+export async function listClients(filters: { q?: string; status?: string } = {}): Promise<ClientListItem[]> {
+  const organizations = await listOrganizations(filters);
+  const admin = createAdminClient();
+  const orgIds = organizations.map((item) => item.row.id);
+  if (orgIds.length === 0) return [];
+
+  const [membershipsResult, connectionsResult] = await Promise.all([
+    admin
+      .from("organization_memberships")
+      .select("id, organization_id, user_id, role, status, is_default, created_at")
+      .in("organization_id", orgIds)
+      .eq("status", "active"),
+    admin
+      .from("integration_connections")
+      .select("organization_id, provider, status")
+      .in("organization_id", orgIds)
+      .eq("provider", "tiktok"),
+  ]);
+
+  const memberships = rows(
+    membershipsResult.data as Array<{
+      id: string;
+      organization_id: string;
+      user_id: string;
+      role: string;
+      status: string;
+      is_default?: boolean;
+      created_at: string;
+    }> | null,
+  );
+  const connections = rows(
+    connectionsResult.data as Array<{ organization_id: string; provider: string; status: string }> | null,
+  );
+  const profileMap = await getProfileMap(unique(memberships.map((member) => member.user_id)));
+
+  return organizations.map(({ row, wallets, adAccountCount, activeMembers }) => {
+    const orgMemberships = memberships
+      .filter((member) => member.organization_id === row.id)
+      .sort((a, b) => {
+        const roleScore = (role: string) => (role === "owner" ? 0 : role === "admin" ? 1 : 2);
+        if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
+        return roleScore(a.role) - roleScore(b.role);
+      });
+    const primary = orgMemberships[0] ? profileMap.get(orgMemberships[0].user_id) ?? null : null;
+    const wallet = wallets[0];
+    const tiktokConnected = connections.some(
+      (connection) => connection.organization_id === row.id && connection.status === "active",
+    );
+
+    return {
+      organization: row,
+      primaryContact: primary,
+      walletBalanceCents: wallet?.balance_cents ?? 0,
+      walletCurrency: wallet?.currency ?? "USD",
+      adAccountCount,
+      activeMemberCount: activeMembers,
+      tiktokConnected,
+    };
+  });
+}
+
+export async function getClientVista(organizationId: string) {
+  const detail = await getOrganizationDetail(organizationId);
+  if (!detail) return null;
+
+  const admin = createAdminClient();
+  const [summaryResult, connectionResult, campaignsResult, balancesResult] = await Promise.all([
+    admin
+      .from("v_overview_page_summary")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    admin
+      .from("integration_connections")
+      .select("id, provider, status, last_synced_at, updated_at, last_error")
+      .eq("organization_id", organizationId)
+      .eq("provider", "tiktok")
+      .maybeSingle(),
+    admin
+      .from("campaigns")
+      .select("id, organization_id, ad_account_id, name, status, daily_budget_cents, currency, created_at, updated_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(40),
+    admin
+      .from("v_ad_account_ledger_balances")
+      .select("ad_account_id, organization_id, available_balance_cents, currency")
+      .eq("organization_id", organizationId),
+  ]);
+
+  const summary = summaryResult.data as {
+    wallet_balance_cents?: number | null;
+    wallet_currency?: string | null;
+    total_ad_accounts?: number | null;
+    total_campaigns?: number | null;
+    active_ad_accounts?: number | null;
+    spend_30d_cents?: number | null;
+    today_spend_cents?: number | null;
+    impressions_30d?: number | null;
+    clicks_30d?: number | null;
+  } | null;
+
+  const balances = rows(
+    balancesResult.data as Array<{
+      ad_account_id: string;
+      organization_id: string;
+      available_balance_cents?: number | null;
+      currency?: string | null;
+    }> | null,
+  );
+  const balanceByAccount = new Map(
+    balances.map((row) => [row.ad_account_id, Number(row.available_balance_cents ?? 0)]),
+  );
+
+  const owners = detail.memberships
+    .filter((item) => item.row.status === "active")
+    .sort((a, b) => {
+      const roleScore = (role: string) => (role === "owner" ? 0 : role === "admin" ? 1 : 2);
+      if (Boolean(a.row.is_default) !== Boolean(b.row.is_default)) {
+        return a.row.is_default ? -1 : 1;
+      }
+      return roleScore(a.row.role) - roleScore(b.row.role);
+    });
+  const primaryContact = owners[0]?.profile ?? detail.createdByProfile ?? null;
+
+  return {
+    organization: detail.row,
+    primaryContact,
+    members: detail.memberships,
+    wallet: detail.wallets[0] ?? null,
+    summary: {
+      walletBalanceCents: Number(summary?.wallet_balance_cents ?? detail.wallets[0]?.balance_cents ?? 0),
+      currency: summary?.wallet_currency ?? detail.wallets[0]?.currency ?? "USD",
+      totalAdAccounts: Number(summary?.total_ad_accounts ?? detail.adAccounts.length),
+      activeAdAccounts: Number(
+        summary?.active_ad_accounts ??
+          detail.adAccounts.filter((account) => account.status === "active").length,
+      ),
+      totalCampaigns: Number(summary?.total_campaigns ?? 0),
+      spend30dCents: Number(summary?.spend_30d_cents ?? 0),
+      todaySpendCents: Number(summary?.today_spend_cents ?? 0),
+      impressions30d: Number(summary?.impressions_30d ?? 0),
+      clicks30d: Number(summary?.clicks_30d ?? 0),
+    },
+    tiktok: connectionResult.data
+      ? {
+          connected: connectionResult.data.status === "active",
+          status: connectionResult.data.status as string,
+          lastSyncedAt: connectionResult.data.last_synced_at as string | null,
+          lastError: connectionResult.data.last_error as string | null,
+        }
+      : { connected: false, status: null, lastSyncedAt: null, lastError: null },
+    adAccounts: detail.adAccounts.map((account) => ({
+      ...account,
+      availableBalanceCents: balanceByAccount.get(account.id) ?? 0,
+    })),
+    campaigns: rows(
+      campaignsResult.data as Array<{
+        id: string;
+        organization_id: string;
+        ad_account_id: string | null;
+        name: string;
+        status: string;
+        daily_budget_cents: number;
+        currency: string;
+        created_at: string;
+        updated_at?: string | null;
+      }> | null,
+    ),
+    recentPayments: detail.payments.slice(0, 6),
+  };
+}

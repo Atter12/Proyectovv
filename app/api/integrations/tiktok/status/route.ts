@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { buildTikTokAuthorizationUrl } from "@/lib/integrations/tiktok/oauth.server";
-import type { Permission } from "@/types/auth";
-
-function canManageTikTok(permissions: Permission[]): boolean {
-  return (
-    hasPermission(permissions, "settings:update") ||
-    hasPermission(permissions, "adAccounts:create")
-  );
-}
+import { getTikTokConnectionStatus } from "@/lib/integrations/tiktok/client.server";
 
 export async function GET() {
   const session = await getSession();
@@ -17,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  if (!canManageTikTok(session.permissions)) {
+  if (!hasPermission(session.permissions, "adAccounts:read")) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
@@ -26,13 +18,16 @@ export async function GET() {
   }
 
   try {
-    const url = buildTikTokAuthorizationUrl({
+    const status = await getTikTokConnectionStatus(session.organizationId);
+    return NextResponse.json({
+      ok: true,
       organizationId: session.organizationId,
-      userId: session.id,
+      organizationName: session.organizationName,
+      ...status,
     });
-    return NextResponse.redirect(url);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo iniciar TikTok OAuth.";
+    const message =
+      error instanceof Error ? error.message : "No se pudo consultar el estado de TikTok.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

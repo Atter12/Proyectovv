@@ -25,8 +25,16 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         eyebrow="Ficha cliente"
         title={detail.row.name}
         description={`${detail.row.slug} · creada ${formatDateTime(detail.row.created_at)} · ${detail.createdByProfile?.email ?? "sin owner detectado"}`}
-        actions={<Link href="/admin/organizations" className="text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">← Volver</Link>}
+        actions={<Link href="/admin/clientes" className="text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">← Clientes</Link>}
       />
+      <div className="mb-5 flex flex-wrap gap-3">
+        <Link
+          href={`/admin/clientes/${detail.row.id}`}
+          className="inline-flex h-10 items-center rounded-lg bg-[var(--admin-accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--admin-accent-hover)]"
+        >
+          Ver como ve el cliente
+        </Link>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Saldo wallet" value={wallet ? formatMoney(wallet.balance_cents, wallet.currency) : "—"} detail={wallet ? `${formatMoney(wallet.reserved_balance_cents ?? 0, wallet.currency)} reservado` : "sin cartera"} accent="emerald" />
         <KpiCard label="Pagos aprobados" value={formatMoney(totalPayments, wallet?.currency ?? "USD")} detail={`${detail.payments.length} pagos recientes`} accent="indigo" />
