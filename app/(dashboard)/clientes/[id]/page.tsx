@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
 import { ClientAccessInvitePanel } from "@/features/admin/components/ClientAccessInvitePanel.client";
 import { routes } from "@/config/routes";
-import { getCurrentAdmin } from "@/lib/admin/auth";
 import { getClientVista } from "@/lib/admin/data";
 import { requireSession } from "@/lib/auth/guards.server";
 import { formatDateTime, formatMoney } from "@/lib/format";
@@ -19,8 +18,6 @@ export default async function ClienteVistaPage({
   params: Promise<{ id: string }>;
 }) {
   await requireSession();
-  const admin = await getCurrentAdmin();
-  if (!admin) redirect(routes.overview);
 
   const { id } = await params;
   const vista = await getClientVista(id);

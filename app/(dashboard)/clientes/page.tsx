@@ -4,12 +4,9 @@ import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { requireSession } from "@/lib/auth/guards.server";
-import { getCurrentAdmin } from "@/lib/admin/auth";
 import { listClients } from "@/lib/admin/data";
 import { formatMoney } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { redirect } from "next/navigation";
-import { routes } from "@/config/routes";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +25,6 @@ export default async function ClientesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireSession();
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    redirect(routes.overview);
-  }
 
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : "";

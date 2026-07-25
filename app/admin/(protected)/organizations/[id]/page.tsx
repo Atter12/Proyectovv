@@ -48,14 +48,13 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
             <h2 className="text-lg font-semibold text-[var(--admin-text)]">Miembros</h2>
             <TableWrap className="mt-4">
               <Table>
-                <thead><tr><Th>Usuario</Th><Th>Rol</Th><Th>Estado</Th><Th>Default</Th></tr></thead>
+                <thead><tr><Th>Usuario</Th><Th>Rol</Th><Th>Estado</Th></tr></thead>
                 <tbody className="divide-y divide-[#e4eef3]">
                   {detail.memberships.map(({ row, profile }) => (
                     <tr key={row.id}>
                       <Td><p className="font-semibold text-[var(--admin-text)]">{profile?.full_name ?? profile?.email ?? row.user_id}</p><p className="text-xs text-[var(--admin-text-muted)]">{profile?.email}</p></Td>
                       <Td><Badge tone="purple">{row.role}</Badge></Td>
                       <Td><StatusBadge status={row.status} /></Td>
-                      <Td>{row.is_default ? "Sí" : "No"}</Td>
                     </tr>
                   ))}
                 </tbody>
