@@ -100,6 +100,49 @@ async function findActiveMembership(
   return data?.organization_id ?? null;
 }
 
+async function findPendingInviteByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<{ id: string; organizationId: string; role: string } | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+
+  try {
+    const { data } = await admin
+      .from("organization_email_invites")
+      .select("id, organization_id, role, email, status")
+      .eq("status", "pending")
+      .eq("email", normalized)
+      .limit(1)
+      .maybeSingle<{ id: string; organization_id: string; role: string }>();
+
+    if (!data) return null;
+    return {
+      id: data.id,
+      organizationId: data.organization_id,
+      role: data.role || "owner",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function acceptEmailInvite(
+  admin: ReturnType<typeof createAdminClient>,
+  inviteId: string,
+  userId: string,
+): Promise<void> {
+  await admin
+    .from("organization_email_invites")
+    .update({
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      accepted_user_id: userId,
+    })
+    .eq("id", inviteId)
+    .eq("status", "pending");
+}
+
 async function createOrganization(
   admin: ReturnType<typeof createAdminClient>,
   user: User,
@@ -130,21 +173,22 @@ async function createMembership(
   admin: ReturnType<typeof createAdminClient>,
   organizationId: string,
   userId: string,
+  role: string = "owner",
 ): Promise<{ ok: boolean; error?: string }> {
   const { error } = await admin.from("organization_memberships").insert({
     organization_id: organizationId,
     user_id: userId,
-    role: "owner",
+    role,
     status: "active",
   });
 
   if (!error) return { ok: true };
 
-  // Fallback si el enum app_role no incluye owner.
+  // Fallback si el enum app_role no incluye el rol pedido.
   const fallback = await admin.from("organization_memberships").insert({
     organization_id: organizationId,
     user_id: userId,
-    role: "advertiser",
+    role: role === "owner" ? "advertiser" : role,
     status: "active",
   });
 
@@ -299,6 +343,29 @@ export async function ensureAccountProvisionedForUser(
     if (existingOrganizationId) {
       await ensureWallet(admin, existingOrganizationId);
       return { ready: true, organizationId: existingOrganizationId };
+    }
+
+    // Cliente pre-mapeado por correo (datos del otro sistema / org ya creada).
+    const invite = user.email
+      ? await findPendingInviteByEmail(admin, user.email)
+      : null;
+
+    if (invite) {
+      const membership = await createMembership(
+        admin,
+        invite.organizationId,
+        user.id,
+        invite.role,
+      );
+      if (!membership.ok) {
+        return {
+          ready: false,
+          error: `No se pudo unir a la organización invitada: ${membership.error}`,
+        };
+      }
+      await acceptEmailInvite(admin, invite.id, user.id);
+      await ensureWallet(admin, invite.organizationId);
+      return { ready: true, organizationId: invite.organizationId };
     }
 
     const organization = await createOrganization(admin, user);

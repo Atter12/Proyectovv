@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
+import { ClientAccessInvitePanel } from "@/features/admin/components/ClientAccessInvitePanel.client";
 import { getClientVista } from "@/lib/admin/data";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
@@ -181,6 +182,12 @@ export default async function ClienteVistaPage({
         </div>
 
         <div className="space-y-6">
+          <ClientAccessInvitePanel
+            organizationId={vista.organization.id}
+            clientLabel={contactName}
+            initialInvites={vista.emailInvites}
+          />
+
           <Card className="p-5">
             <h2 className="text-lg font-semibold text-[var(--admin-text)]">Conexión TikTok</h2>
             <div className="mt-4 space-y-3 text-sm">

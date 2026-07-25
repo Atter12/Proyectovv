@@ -1278,6 +1278,126 @@ export async function listClients(filters: { q?: string; status?: string } = {})
   });
 }
 
+export async function listOrganizationEmailInvites(organizationId: string) {
+  const admin = createAdminClient();
+  try {
+    const { data, error } = await admin
+      .from("organization_email_invites")
+      .select("id, organization_id, email, role, status, created_at, accepted_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) return [];
+    return rows(
+      data as Array<{
+        id: string;
+        organization_id: string;
+        email: string;
+        role: string;
+        status: string;
+        created_at: string;
+        accepted_at: string | null;
+      }> | null,
+    );
+  } catch {
+    return [];
+  }
+}
+
+export async function inviteClientEmail(input: {
+  organizationId: string;
+  email: string;
+  role?: string;
+  invitedBy?: string | null;
+}) {
+  const admin = createAdminClient();
+  const email = input.email.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { ok: false as const, error: "Correo inválido." };
+  }
+
+  const { data, error } = await admin
+    .from("organization_email_invites")
+    .upsert(
+      {
+        organization_id: input.organizationId,
+        email,
+        role: input.role ?? "owner",
+        status: "pending",
+        invited_by: input.invitedBy ?? null,
+        accepted_at: null,
+        accepted_user_id: null,
+      },
+      { onConflict: "organization_id,email" },
+    )
+    .select("id, organization_id, email, role, status, created_at, accepted_at")
+    .single();
+
+  // Unique index is on (organization_id, lower(email)) — upsert onConflict may need exact constraint name.
+  if (error) {
+    // Fallback: revoke previous + insert, or update pending row.
+    const { data: existing } = await admin
+      .from("organization_email_invites")
+      .select("id")
+      .eq("organization_id", input.organizationId)
+      .ilike("email", email)
+      .maybeSingle<{ id: string }>();
+
+    if (existing?.id) {
+      const { data: updated, error: updateError } = await admin
+        .from("organization_email_invites")
+        .update({
+          status: "pending",
+          role: input.role ?? "owner",
+          invited_by: input.invitedBy ?? null,
+          accepted_at: null,
+          accepted_user_id: null,
+          email,
+        })
+        .eq("id", existing.id)
+        .select("id, organization_id, email, role, status, created_at, accepted_at")
+        .single();
+      if (updateError || !updated) {
+        return { ok: false as const, error: updateError?.message ?? error.message };
+      }
+      return { ok: true as const, invite: updated };
+    }
+
+    const { data: inserted, error: insertError } = await admin
+      .from("organization_email_invites")
+      .insert({
+        organization_id: input.organizationId,
+        email,
+        role: input.role ?? "owner",
+        status: "pending",
+        invited_by: input.invitedBy ?? null,
+      })
+      .select("id, organization_id, email, role, status, created_at, accepted_at")
+      .single();
+
+    if (insertError || !inserted) {
+      return { ok: false as const, error: insertError?.message ?? error.message };
+    }
+    return { ok: true as const, invite: inserted };
+  }
+
+  return { ok: true as const, invite: data };
+}
+
+export async function revokeClientEmailInvite(inviteId: string, organizationId: string) {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("organization_email_invites")
+    .update({ status: "revoked" })
+    .eq("id", inviteId)
+    .eq("organization_id", organizationId)
+    .eq("status", "pending");
+
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const };
+}
+
 export async function getClientVista(organizationId: string) {
   const detail = await getOrganizationDetail(organizationId);
   if (!detail) return null;
@@ -1347,6 +1467,7 @@ export async function getClientVista(organizationId: string) {
     primaryContact,
     members: detail.memberships,
     wallet: detail.wallets[0] ?? null,
+    emailInvites: await listOrganizationEmailInvites(organizationId),
     summary: {
       walletBalanceCents: Number(summary?.wallet_balance_cents ?? detail.wallets[0]?.balance_cents ?? 0),
       currency: summary?.wallet_currency ?? detail.wallets[0]?.currency ?? "USD",
