@@ -175,9 +175,17 @@ SUPABASE_SERVICE_ROLE_KEY=
 ENCRYPTION_KEY=
 INTERNAL_JOB_SECRET=
 CRON_SECRET=
+
+# Bridge CRM Hecom Club (lista /clientes desde public.clientes, no organizations Ecomdy)
+HECOM_SUPABASE_URL=https://fsnolvozwcnbyuradiru.supabase.co
+HECOM_SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-En producción, `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY` y secretos de proveedores nunca deben exponerse al navegador.
+En producción, `SUPABASE_SERVICE_ROLE_KEY`, `HECOM_SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY` y secretos de proveedores nunca deben exponerse al navegador.
+
+### Clientes Hecom Club
+
+`/clientes` y `/api/clientes` leen el CRM de Hecom (`public.clientes` + `cliente_tiktok_cuentas`). Los gastos en Hecom se sincronizan con el token de agencia `TIKTOK_ACCESS_TOKEN` (proyecto hecom.club), no con OAuth por cliente en Ecomdy.
 
 ## Rutas API relevantes
 

@@ -3,16 +3,27 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
-import { ClientAccessInvitePanel } from "@/features/admin/components/ClientAccessInvitePanel.client";
 import { routes } from "@/config/routes";
-import { getClientVista } from "@/lib/admin/data";
+import {
+  getHecomCliente,
+  listHecomClienteSpend,
+} from "@/lib/hecom/clientes.server";
+import { getHecomSupabaseConfig } from "@/lib/hecom/supabase.server";
 import { requireSession } from "@/lib/auth/guards.server";
-import { formatDateTime, formatMoney } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { serverEnv } from "@/lib/env/env.server";
 
 export const dynamic = "force-dynamic";
+
+function moneyUsd(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(n);
+}
 
 export default async function ClienteVistaPage({
   params,
@@ -21,44 +32,41 @@ export default async function ClienteVistaPage({
 }) {
   await requireSession();
   const { id } = await params;
+  const hecomCfg = getHecomSupabaseConfig();
 
-  console.log("[Clientes/detalle] load", {
+  console.log("[Clientes/detalle] load Hecom", {
     id,
-    hasServiceRole: Boolean(serverEnv.supabaseServiceRoleKey),
-    hasUrl: Boolean(serverEnv.supabaseUrl),
+    hecomConfigured: hecomCfg.configured,
+    hecomUrl: hecomCfg.url,
   });
 
-  let vista: Awaited<ReturnType<typeof getClientVista>> = null;
   let loadError: string | null = null;
+  let cliente: Awaited<ReturnType<typeof getHecomCliente>> = null;
+  let spend: Awaited<ReturnType<typeof listHecomClienteSpend>> = {
+    kind: "none",
+    rows: [],
+  };
 
   try {
-    // Smoke-check admin client early for clearer errors
-    if (!serverEnv.supabaseServiceRoleKey) {
-      throw new Error(
-        "Falta SUPABASE_SERVICE_ROLE_KEY en el entorno. Sin eso no se puede ver la ficha completa del cliente.",
-      );
+    cliente = await getHecomCliente(id);
+    if (cliente && hecomCfg.configured) {
+      spend = await listHecomClienteSpend(id, 40);
     }
-    createAdminClient();
-    vista = await getClientVista(id);
   } catch (error) {
-    loadError = error instanceof Error ? error.message : "Error cargando cliente";
+    loadError = error instanceof Error ? error.message : "Error cargando cliente Hecom";
     console.error("[Clientes/detalle] ERROR", loadError, error);
   }
 
-  if (!loadError && !vista) {
+  if (!loadError && !cliente) {
     notFound();
   }
 
-  if (loadError || !vista) {
+  if (loadError || !cliente) {
     return (
       <div className={dashboardClasses.page}>
         <Card className="border-rose-200 bg-rose-50 p-5 text-sm text-rose-950">
-          <p className="font-semibold">No se pudo abrir este cliente</p>
+          <p className="font-semibold">No se pudo abrir este cliente Hecom</p>
           <p className="mt-2">{loadError}</p>
-          <p className="mt-3 text-xs opacity-80">
-            Revisá la terminal del servidor (logs `[Clientes/detalle]`). El SQL 012 no es
-            necesario para esta vista.
-          </p>
           <Link
             href={routes.clientes}
             className="mt-4 inline-flex text-sm font-semibold text-[var(--brand-primary)]"
@@ -70,11 +78,27 @@ export default async function ClienteVistaPage({
     );
   }
 
-  const contactName =
-    vista.primaryContact?.full_name?.trim() ||
-    vista.primaryContact?.email ||
-    vista.organization.name;
-  const currency = vista.summary.currency;
+  const primaryEmail = cliente.emails[0] ?? null;
+  const accounts =
+    cliente.tiktokAccounts.length > 0
+      ? cliente.tiktokAccounts
+      : cliente.tiktokAdvertiserId
+        ? [
+            {
+              advertiserId: cliente.tiktokAdvertiserId,
+              advertiserName: cliente.tiktokAdvertiserName,
+              bmBucket: null as string | null,
+              fee: cliente.tiktokDefaultFee,
+              syncEnabled: cliente.tiktokSyncEnabled !== false,
+            },
+          ]
+        : [];
+
+  const spendTotal = spend.rows.reduce((acc, row) => {
+    const key = spend.kind === "gastos" ? "monto" : "spend";
+    const n = Number(row[key]);
+    return acc + (Number.isFinite(n) ? n : 0);
+  }, 0);
 
   return (
     <div className={dashboardClasses.page}>
@@ -82,13 +106,15 @@ export default async function ClienteVistaPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-              Cliente seleccionado
+              Hecom Club · Cliente
             </p>
             <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-              {contactName}
+              {cliente.name}
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-muted,#64748b)]">
-              Solo datos de “{vista.organization.name}”. Así vería al entrar con su correo.
+              {cliente.biz ? `${cliente.biz} · ` : ""}
+              {primaryEmail ?? "Sin email"}
+              {cliente.dni ? ` · DNI ${cliente.dni}` : ""}
             </p>
           </div>
           <Link
@@ -101,43 +127,48 @@ export default async function ClienteVistaPage({
       </div>
 
       <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-        <p className="font-semibold">Vista filtrada por cliente</p>
+        <p className="font-semibold">Solo datos de este cliente (Hecom)</p>
         <p className="mt-1 opacity-90">
-          Estás viendo únicamente lo de {contactName}.
+          {hecomCfg.configured
+            ? "Fuente live: Supabase Hecom Club."
+            : "Fuente: backup Holistic local (sin HECOM_SUPABASE_SERVICE_ROLE_KEY aún)."}{" "}
+          Los gastos en producción se jalen con el token de agencia{" "}
+          <code className="rounded bg-white/70 px-1">TIKTOK_ACCESS_TOKEN</code> + los
+          advertiser IDs de abajo.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-            Saldo wallet
+            Cuentas TikTok
           </p>
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-            {formatMoney(vista.summary.walletBalanceCents, currency)}
+            {accounts.length}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-            Gasto hoy
+            Emails CRM
           </p>
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-            {formatMoney(vista.summary.todaySpendCents, currency)}
+            {cliente.emails.length}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-            Cuentas ads
+            Filas gasto (vista)
           </p>
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-            {vista.summary.totalAdAccounts}
+            {spend.rows.length}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-            Campañas
+            Suma en lista
           </p>
           <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-            {Math.max(vista.summary.totalCampaigns, vista.campaigns.length)}
+            {moneyUsd(spendTotal)}
           </p>
         </Card>
       </div>
@@ -147,40 +178,44 @@ export default async function ClienteVistaPage({
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold text-[var(--foreground)]">
-                Sus cuentas publicitarias
+                Cuentas TikTok Ads
               </h2>
-              <Badge variant="info">Solo de este cliente</Badge>
+              <Badge variant="info">cliente_tiktok_cuentas</Badge>
             </div>
-            {vista.adAccounts.length === 0 ? (
+            {accounts.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
-                Aún no hay cuentas cargadas para este cliente.
+                Este cliente aún no tiene advertiser_id mapeado en Hecom.
               </p>
             ) : (
               <TableWrap className="mt-4">
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Cuenta</Th>
-                      <Th>Plataforma</Th>
-                      <Th>Saldo</Th>
-                      <Th>Estado</Th>
+                      <Th>Advertiser</Th>
+                      <Th>BM</Th>
+                      <Th>Fee</Th>
+                      <Th>Sync</Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
-                    {vista.adAccounts.map((account) => (
-                      <tr key={account.id}>
+                    {accounts.map((account) => (
+                      <tr key={account.advertiserId}>
                         <Td>
-                          <p className="font-semibold text-[var(--foreground)]">{account.name}</p>
+                          <p className="font-semibold text-[var(--foreground)]">
+                            {account.advertiserName ?? "TikTok Ads"}
+                          </p>
                           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                            {account.external_account_id ?? "manual"}
+                            {account.advertiserId}
                           </p>
                         </Td>
-                        <Td className="font-bold uppercase">{account.platform}</Td>
-                        <Td className="font-semibold">
-                          {formatMoney(account.availableBalanceCents, account.currency)}
+                        <Td>{account.bmBucket ?? "—"}</Td>
+                        <Td>
+                          {account.fee != null ? `${account.fee}%` : "—"}
                         </Td>
                         <Td>
-                          <Badge variant="neutral">{account.status}</Badge>
+                          <Badge variant={account.syncEnabled ? "info" : "neutral"}>
+                            {account.syncEnabled ? "on" : "off"}
+                          </Badge>
                         </Td>
                       </tr>
                     ))}
@@ -191,35 +226,66 @@ export default async function ClienteVistaPage({
           </Card>
 
           <Card className="p-5">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Campañas</h2>
-            {vista.campaigns.length === 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                Gastos / snapshots
+              </h2>
+              <Badge variant="neutral">
+                {spend.kind === "snapshots"
+                  ? "tiktok_spend_snapshots"
+                  : spend.kind === "gastos"
+                    ? "gastos"
+                    : "sin datos"}
+              </Badge>
+            </div>
+            {spend.rows.length === 0 ? (
               <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
-                Todavía no hay campañas listadas para este cliente.
+                No hay filas de gasto para este cliente en Hecom (o la sync aún no corrió).
               </p>
             ) : (
               <TableWrap className="mt-4">
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Campaña</Th>
-                      <Th>Presupuesto / día</Th>
-                      <Th>Estado</Th>
-                      <Th>Creada</Th>
+                      <Th>Fecha</Th>
+                      <Th>Detalle</Th>
+                      <Th>Monto</Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
-                    {vista.campaigns.map((campaign) => (
-                      <tr key={campaign.id}>
-                        <Td className="font-semibold">{campaign.name}</Td>
-                        <Td>
-                          {formatMoney(campaign.daily_budget_cents, campaign.currency)}
-                        </Td>
-                        <Td>
-                          <Badge variant="neutral">{campaign.status}</Badge>
-                        </Td>
-                        <Td>{formatDateTime(campaign.created_at)}</Td>
-                      </tr>
-                    ))}
+                    {spend.rows.map((row) => {
+                      const rowId = String(row.id ?? Math.random());
+                      if (spend.kind === "gastos") {
+                        return (
+                          <tr key={rowId}>
+                            <Td>{String(row.fecha ?? "—")}</Td>
+                            <Td>
+                              <p className="font-semibold">{String(row.camp ?? "Gasto")}</p>
+                              <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                                {String(row.source ?? "")}
+                              </p>
+                            </Td>
+                            <Td className="font-semibold">{moneyUsd(row.monto)}</Td>
+                          </tr>
+                        );
+                      }
+                      return (
+                        <tr key={rowId}>
+                          <Td>{String(row.stat_date ?? "—")}</Td>
+                          <Td>
+                            <p className="font-semibold">
+                              {String(row.campaign_name ?? row.advertiser_id ?? "Spend")}
+                            </p>
+                            <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                              {row.created_at
+                                ? formatDateTime(String(row.created_at))
+                                : ""}
+                            </p>
+                          </Td>
+                          <Td className="font-semibold">{moneyUsd(row.spend)}</Td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
               </TableWrap>
@@ -228,34 +294,49 @@ export default async function ClienteVistaPage({
         </div>
 
         <div className="space-y-6">
-          <ClientAccessInvitePanel
-            organizationId={vista.organization.id}
-            clientLabel={contactName}
-            initialInvites={vista.emailInvites}
-          />
+          <Card className="p-5">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Contacto CRM</h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              {cliente.emails.length === 0 ? (
+                <li className="text-[var(--admin-text-muted,#64748b)]">Sin emails</li>
+              ) : (
+                cliente.emails.map((email) => (
+                  <li key={email} className="font-medium text-[var(--foreground)]">
+                    {email}
+                  </li>
+                ))
+              )}
+            </ul>
+            {cliente.phones.length > 0 ? (
+              <ul className="mt-4 space-y-1 text-sm text-[var(--admin-text-muted,#64748b)]">
+                {cliente.phones.map((phone) => (
+                  <li key={phone}>{phone}</li>
+                ))}
+              </ul>
+            ) : null}
+            {cliente.notes ? (
+              <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
+                {cliente.notes}
+              </p>
+            ) : null}
+          </Card>
 
           <Card className="p-5">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Quién entra aquí</h2>
-            <ul className="mt-4 space-y-3">
-              {vista.members
-                .filter((member) => member.row.status === "active")
-                .map(({ row, profile }) => (
-                  <li
-                    key={row.id}
-                    className="flex items-start justify-between gap-2 border-b border-[var(--border-subtle)] pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-[var(--foreground)]">
-                        {profile?.full_name ?? profile?.email ?? row.user_id}
-                      </p>
-                      <p className="truncate text-xs text-[var(--admin-text-muted,#64748b)]">
-                        {profile?.email}
-                      </p>
-                    </div>
-                    <Badge variant="purple">{row.role}</Badge>
-                  </li>
-                ))}
-            </ul>
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Cómo se jala el gasto</h2>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-[var(--admin-text-muted,#64748b)]">
+              <li>
+                En Hecom hay un solo token de agencia:{" "}
+                <code className="rounded bg-[var(--surface-soft)] px-1">TIKTOK_ACCESS_TOKEN</code>.
+              </li>
+              <li>
+                Cada cliente tiene uno o más{" "}
+                <code className="rounded bg-[var(--surface-soft)] px-1">advertiser_id</code>{" "}
+                (tabla multi-cuenta o columna legacy).
+              </li>
+              <li>
+                Sync escribe snapshots / gastos; acá solo leemos lo ya guardado.
+              </li>
+            </ol>
           </Card>
         </div>
       </div>
