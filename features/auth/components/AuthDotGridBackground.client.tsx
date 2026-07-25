@@ -25,7 +25,7 @@ export function AuthDotGridBackground() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 50% 40% at 12% 8%, rgb(255 120 31 / 0.14), transparent 70%), radial-gradient(ellipse 45% 40% at 90% 90%, rgb(255 77 45 / 0.1), transparent 68%)",
+            "radial-gradient(ellipse 50% 40% at 12% 8%, rgb(255 120 31 / 0.1), transparent 70%), radial-gradient(ellipse 45% 40% at 90% 90%, rgb(255 77 45 / 0.07), transparent 68%)",
         }}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(20_16_12_/_0.2)_0%,transparent_22%,transparent_78%,rgb(20_16_12_/_0.28)_100%)]" />
