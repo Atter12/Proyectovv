@@ -7,10 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { routes } from "@/config/routes";
-import {
-  AD_ACCOUNTS_OPEN_CREATE_MODAL,
-  dispatchAdAccountsOpenCreateModal,
-} from "@/lib/events/modal-events";
+import { AD_ACCOUNTS_OPEN_CREATE_MODAL } from "@/lib/events/modal-events";
 import type { AdAccountStatus } from "@/types/ad-account";
 
 const CreateAdAccountModal = dynamic(
@@ -74,11 +71,11 @@ export function AdAccountsToolbar({
   return (
     <>
       <div className="border-b border-[var(--border-subtle)] p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
             <div className="relative min-w-0 flex-1 sm:max-w-sm">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text-muted,#64748b)]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -130,26 +127,27 @@ export function AdAccountsToolbar({
               Ver archivadas
             </label>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <a href="/api/integrations/tiktok/connect" className="w-full sm:w-auto">
+          <div className="flex gap-2 overflow-x-auto pb-0.5">
+            <a href="/api/integrations/tiktok/connect" className="shrink-0">
               <Button
                 variant="outline"
-                className="h-11 w-full rounded-xl border-[var(--border-subtle)] sm:w-auto"
+                className="h-10 rounded-xl border-[var(--border-subtle)] px-3 text-[13px]"
               >
-                Conectar TikTok
+                TikTok
               </Button>
             </a>
-            <Link href={routes.creativeAnalyzer} className="w-full sm:w-auto">
+            <Link href={routes.creativeAnalyzer} className="shrink-0">
               <Button
                 variant="outline"
-                className="h-11 w-full rounded-xl border-[var(--border-subtle)] sm:w-auto"
+                className="h-10 rounded-xl border-[var(--border-subtle)] px-3 text-[13px]"
               >
-                Analizador creativo
+                Analizador
               </Button>
             </Link>
+            {/* Desktop create — mobile uses header + sticky */}
             <Button
-              onClick={dispatchAdAccountsOpenCreateModal}
-              className="h-11 w-full rounded-xl bg-[var(--brand-primary)] shadow-sm hover:bg-[var(--brand-primary-deep)] sm:w-auto"
+              onClick={() => setModalOpen(true)}
+              className="hidden h-10 rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] shadow-sm hover:bg-[var(--brand-primary-deep)] md:inline-flex"
             >
               Crear nuevo
             </Button>
@@ -157,12 +155,12 @@ export function AdAccountsToolbar({
         </div>
       </div>
 
-      {modalOpen && (
+      {modalOpen ? (
         <CreateAdAccountModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
         />
-      )}
+      ) : null}
     </>
   );
 }

@@ -20,15 +20,19 @@ const OnboardingWidgetLoader = dynamic(
 export function FloatingSupportStack() {
   const [chatOpen, setChatOpen] = useState(false);
   const pathname = usePathname();
-  const onPayments =
-    pathname === routes.payments || pathname.startsWith(`${routes.payments}/`);
+  const needsStickyLift =
+    pathname === routes.payments ||
+    pathname.startsWith(`${routes.payments}/`) ||
+    pathname === routes.adAccounts ||
+    pathname.startsWith(`${routes.adAccounts}/`);
 
   return (
     <div
       className={cn(
         "pointer-events-none fixed right-3 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:right-5 sm:gap-3 md:bottom-6 md:right-6",
-        // Lift above the payments sticky CTA on mobile
-        onPayments ? "bottom-[4.75rem] sm:bottom-[5.25rem] md:bottom-6" : "bottom-3 sm:bottom-5",
+        needsStickyLift
+          ? "bottom-[4.75rem] sm:bottom-[5.25rem] md:bottom-6"
+          : "bottom-3 sm:bottom-5",
       )}
     >
       <div className="pointer-events-auto flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:max-w-none sm:gap-3">

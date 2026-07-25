@@ -18,10 +18,13 @@ export async function OverviewDashboardSection({
   return (
     <>
       <div className="grid min-w-0 gap-5 lg:grid-cols-3 lg:gap-6">
-        <div className="min-w-0 lg:col-span-2">
+        {/* Wallet first on mobile so Agregar saldo is above the tall onboarding list */}
+        <div className="order-1 min-w-0 lg:order-2 lg:col-start-3">
+          <WalletOverviewCard wallet={data.wallet} />
+        </div>
+        <div className="order-2 min-w-0 lg:order-1 lg:col-span-2 lg:col-start-1 lg:row-start-1">
           <OnboardingStepsCard steps={data.onboardingSteps} />
         </div>
-        <WalletOverviewCard wallet={data.wallet} />
       </div>
 
       <MetricsGrid metrics={data.metrics} />

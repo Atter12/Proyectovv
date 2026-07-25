@@ -2,6 +2,7 @@ import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { Card } from "@/components/ui/Card";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsInfoAlert } from "@/features/ad-accounts/components/AdAccountsInfoAlert";
+import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
 import { AdAccountsSummaryCards } from "@/features/ad-accounts/components/AdAccountsSummaryCards";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
 import { AdAccountsToolbar } from "@/features/ad-accounts/components/AdAccountsToolbar.client";
@@ -27,7 +28,6 @@ const ACCOUNT_STATUSES = new Set<AdAccountStatus>([
 
 function resolveAccountStatusFilter(raw: string): string {
   if (raw === "all" || ACCOUNT_STATUSES.has(raw as AdAccountStatus)) return raw;
-  // Redirects OAuth antiguos usaban status=connected|failed.
   return "all";
 }
 
@@ -41,7 +41,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
 
   return (
-    <div className={dashboardClasses.page}>
+    <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
       <AdAccountsPageHeader summary={data.summary} />
       <Suspense fallback={null}>
         <TikTokIntegrationBanner />
@@ -58,6 +58,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         </Suspense>
         <AdAccountsTable accounts={filteredAccounts} />
       </Card>
+      <AdAccountsMobileStickyCta />
     </div>
   );
 }

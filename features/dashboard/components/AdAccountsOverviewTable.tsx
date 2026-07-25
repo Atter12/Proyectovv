@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import { formatMoney } from "@/lib/format-money";
 import { routes } from "@/config/routes";
 import type { AdAccount } from "@/types/ad-account";
 
@@ -42,41 +43,77 @@ export function AdAccountsOverviewTable({ accounts }: AdAccountsOverviewTablePro
         </div>
         <Link
           href={routes.adAccounts}
-          className="inline-flex h-9 shrink-0 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-4 text-[13px] font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-soft)]"
+          className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--brand-primary-deep)] sm:h-9 sm:w-auto"
         >
-          Crear nueva
+          Ver / crear cuentas
         </Link>
       </div>
 
-      <Table embedded className="rounded-none border-0 shadow-none">
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            {overviewColumns.map((col) => (
-              <TableHead key={col}>{col}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isEmpty &&
-            accounts.map((account) => (
-              <tr key={account.id} className="hover:bg-[var(--surface-soft)]/80">
-                <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">
-                  {account.name}
-                </td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
-                <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">
-                  {account.timezone || "—"}
-                </td>
-              </tr>
-            ))}
-        </TableBody>
-      </Table>
+      {!isEmpty ? (
+        <div className="space-y-3 p-4 md:hidden">
+          {accounts.map((account) => (
+            <article
+              key={account.id}
+              className="rounded-xl border border-[var(--border-subtle)] bg-white p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--foreground)]">
+                    {account.name}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[var(--admin-text-muted,#64748b)]">
+                    {account.timezone || "Sin huso horario"}
+                  </p>
+                </div>
+                <p className="shrink-0 text-[14px] font-semibold tabular-nums text-[var(--foreground)]">
+                  {formatMoney(account.balance)}
+                </p>
+              </div>
+              <Link
+                href={routes.adAccounts}
+                className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl border border-[var(--border-subtle)] text-[13px] font-semibold text-[var(--brand-primary)] transition-colors hover:bg-[var(--surface-soft)]"
+              >
+                Abrir cuentas
+              </Link>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {!isEmpty ? (
+        <div className="hidden md:block">
+          <Table embedded className="rounded-none border-0 shadow-none">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {overviewColumns.map((col) => (
+                  <TableHead key={col}>{col}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.map((account) => (
+                <tr key={account.id} className="hover:bg-[var(--surface-soft)]/80">
+                  <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">
+                    {account.name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">
+                    {formatMoney(account.balance)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">—</td>
+                  <td className="px-4 py-3 text-sm text-[var(--admin-text-muted,#64748b)]">
+                    {account.timezone || "—"}
+                  </td>
+                </tr>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : null}
 
       {isEmpty && (
         <EmptyState

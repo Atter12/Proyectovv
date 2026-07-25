@@ -85,7 +85,7 @@ export function DashboardLayoutChrome({
           sidebarOpen={sidebarOpen}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="mx-auto min-w-0 w-full max-w-[1620px] flex-1 px-4 py-4 pb-32 sm:px-5 md:px-6 md:py-6 md:pb-28 lg:pb-8 xl:px-8">
+        <main className="mx-auto min-w-0 w-full max-w-[1620px] flex-1 px-4 py-4 pb-24 sm:px-5 md:px-6 md:py-6 md:pb-16 lg:pb-8 xl:px-8">
           {children}
         </main>
       </div>

@@ -60,6 +60,21 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
         </Badge>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Link
+          href={routes.adAccounts}
+          className="inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]"
+        >
+          Crear cuenta publicitaria
+        </Link>
+        <Link
+          href={routes.affiliates}
+          className="text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
+        >
+          Ver guía rápida
+        </Link>
+      </div>
+
       <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-[var(--surface-soft)]">
         <div
           className="h-full rounded-full bg-[var(--brand-primary)] transition-all duration-300"
@@ -103,21 +118,6 @@ export function OnboardingStepsCard({ steps }: OnboardingStepsCardProps) {
           </li>
         ))}
       </ol>
-
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] pt-5">
-        <Link
-          href={routes.adAccounts}
-          className="inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]"
-        >
-          Crear cuenta publicitaria
-        </Link>
-        <Link
-          href={routes.affiliates}
-          className="text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
-        >
-          Ver guía rápida
-        </Link>
-      </div>
     </Card>
   );
 }
