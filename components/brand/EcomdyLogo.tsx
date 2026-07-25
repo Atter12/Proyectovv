@@ -24,7 +24,6 @@ export function HolisticLogo({
       width={size}
       height={size}
       className={cn("shrink-0 object-contain", className)}
-      style={{ width: size, height: size }}
     />
   );
 }

@@ -30,12 +30,10 @@ export function DashboardSidebar({
         <Link
           href={routes.overview}
           prefetch
-          className="flex min-w-0 items-center gap-3"
+          className="flex min-w-0 items-center"
+          aria-label={siteConfig.name}
         >
-          <HolisticLogo size={42} />
-          <span className="truncate text-[14px] font-semibold leading-tight tracking-[-0.03em] text-[var(--foreground)]">
-            {siteConfig.name}
-          </span>
+          <HolisticLogo size={160} className="h-14 w-auto max-w-full" />
         </Link>
 
         <SidebarWalletCard selectedCliente={selectedCliente} />
