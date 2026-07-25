@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/Button";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 type Props = {
   clienteId: string;
   clienteName: string;
+  avatarUrl?: string | null;
   detail?: string;
 };
 
 export function SelectedClienteBanner({
   clienteId,
   clienteName,
+  avatarUrl,
   detail,
 }: Props) {
   const router = useRouter();
@@ -45,19 +48,26 @@ export function SelectedClienteBanner({
   return (
     <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-semibold">Cliente activo: {clienteName}</p>
-          <p className="mt-0.5 opacity-90">
-            {detail ??
-              "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
-            <Link
-              href={`/clientes/${clienteId}`}
-              className="font-semibold underline-offset-2 hover:underline"
-            >
-              Ver ficha
-            </Link>
-          </p>
-          {error ? <p className="mt-1 text-rose-700">{error}</p> : null}
+        <div className="flex min-w-0 items-start gap-3">
+          <HecomClienteAvatar
+            name={clienteName}
+            avatarUrl={avatarUrl}
+            size="md"
+          />
+          <div className="min-w-0">
+            <p className="font-semibold">Cliente activo: {clienteName}</p>
+            <p className="mt-0.5 opacity-90">
+              {detail ??
+                "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
+              <Link
+                href={`/clientes/${clienteId}`}
+                className="font-semibold underline-offset-2 hover:underline"
+              >
+                Ver ficha
+              </Link>
+            </p>
+            {error ? <p className="mt-1 text-rose-700">{error}</p> : null}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild href={routes.clientes} variant="secondary" size="sm">

@@ -32,6 +32,7 @@ export default async function PaymentsPage() {
       <SelectedClienteBanner
         clienteId={data.cliente.id}
         clienteName={data.cliente.name}
+        avatarUrl={data.cliente.avatarUrl}
         detail="Solo cobros y gastos de este cliente en Hecom."
       />
       <ClienteScopedPayments data={data} />

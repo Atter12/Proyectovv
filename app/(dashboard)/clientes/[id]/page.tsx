@@ -13,6 +13,7 @@ import { requireSession } from "@/lib/auth/guards.server";
 import { formatDateTime } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { SelectHecomClienteOnMount } from "@/features/clientes/components/SelectHecomClienteOnMount.client";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 export const dynamic = "force-dynamic";
 
@@ -106,18 +107,25 @@ export default async function ClienteVistaPage({
       <SelectHecomClienteOnMount clienteId={cliente.id} name={cliente.name} />
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-              Hecom Club · Cliente
-            </p>
-            <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-              {cliente.name}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-muted,#64748b)]">
-              {cliente.biz ? `${cliente.biz} · ` : ""}
-              {primaryEmail ?? "Sin email"}
-              {cliente.dni ? ` · DNI ${cliente.dni}` : ""}
-            </p>
+          <div className="flex min-w-0 items-start gap-4">
+            <HecomClienteAvatar
+              name={cliente.name}
+              avatarUrl={cliente.avatarUrl}
+              size="xl"
+            />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
+                Hecom Club · Cliente
+              </p>
+              <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+                {cliente.name}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-muted,#64748b)]">
+                {cliente.biz ? `${cliente.biz} · ` : ""}
+                {primaryEmail ?? "Sin email"}
+                {cliente.dni ? ` · DNI ${cliente.dni}` : ""}
+              </p>
+            </div>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Link

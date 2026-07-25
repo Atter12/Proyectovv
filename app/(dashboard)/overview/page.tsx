@@ -32,6 +32,7 @@ export default async function OverviewPage() {
       <SelectedClienteBanner
         clienteId={data.cliente.id}
         clienteName={data.cliente.name}
+        avatarUrl={data.cliente.avatarUrl}
         detail="Overview solo de este cliente (cuentas, cobros y gastos Hecom)."
       />
       <ClienteScopedOverview data={data} />

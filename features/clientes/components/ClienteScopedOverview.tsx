@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
 import { routes } from "@/config/routes";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   moneyUsd,
   type HecomClienteDashboard,
@@ -19,16 +20,26 @@ export function ClienteScopedOverview({
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b4f9c_0%,#178bff_52%,#0f7ae5_100%)] p-5 shadow-[0_18px_40px_rgb(23_139_255_/_0.22)] sm:p-7">
-        <p className="text-[13px] font-semibold tracking-[0.04em] text-white/80">
-          Vista del cliente
-        </p>
-        <h2 className="font-display mt-2 text-[1.75rem] font-medium text-white sm:text-[2rem]">
-          {cliente.name}
-        </h2>
-        <p className="mt-2 max-w-xl text-[15px] text-white/85">
-          Solo datos de esta persona en Hecom Club
-          {cliente.biz ? ` · ${cliente.biz}` : ""}.
-        </p>
+        <div className="flex items-start gap-4">
+          <HecomClienteAvatar
+            name={cliente.name}
+            avatarUrl={cliente.avatarUrl}
+            size="xl"
+            className="ring-2 ring-white/40"
+          />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold tracking-[0.04em] text-white/80">
+              Vista del cliente
+            </p>
+            <h2 className="font-display mt-2 text-[1.75rem] font-medium text-white sm:text-[2rem]">
+              {cliente.name}
+            </h2>
+            <p className="mt-2 max-w-xl text-[15px] text-white/85">
+              Solo datos de esta persona en Hecom Club
+              {cliente.biz ? ` · ${cliente.biz}` : ""}.
+            </p>
+          </div>
+        </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
             href={routes.adAccounts}

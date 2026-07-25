@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { routes } from "@/config/routes";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 type TiktokAccount = {
   advertiserId: string;
@@ -28,6 +29,7 @@ type ClientRow = {
   contactEmail: string | null;
   biz?: string | null;
   phones?: string[];
+  avatarUrl?: string | null;
   walletBalanceCents: number;
   walletCurrency: string;
   adAccountCount: number;
@@ -46,15 +48,6 @@ type ApiPayload = {
   hint?: string;
   note?: string;
 };
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function ClientesPageClient() {
   const router = useRouter();
@@ -243,15 +236,16 @@ export function ClientesPageClient() {
         {filtered.map((client) => {
           const contactName =
             client.contactName?.trim() || client.contactEmail || client.name;
-          const displayInitials = initials(contactName) || "CL";
           const busy = pending && selectingId === client.id;
 
           return (
             <Card key={client.id} className="flex flex-col p-5">
               <div className="flex items-start gap-3">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--brand-primary)]/10 text-sm font-bold text-[var(--brand-primary)]">
-                  {displayInitials}
-                </div>
+                <HecomClienteAvatar
+                  name={contactName}
+                  avatarUrl={client.avatarUrl}
+                  size="md"
+                />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-base font-semibold text-[var(--foreground)]">
                     {contactName}

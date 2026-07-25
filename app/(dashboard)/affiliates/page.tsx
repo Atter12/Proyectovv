@@ -32,6 +32,7 @@ export default async function AffiliatesPage() {
       <SelectedClienteBanner
         clienteId={data.cliente.id}
         clienteName={data.cliente.name}
+        avatarUrl={data.cliente.avatarUrl}
         detail="Afiliados no existen por cliente en Hecom; el resto del panel sí queda filtrado."
       />
       <ClienteScopedAffiliates data={data} />

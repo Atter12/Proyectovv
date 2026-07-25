@@ -4,11 +4,13 @@ import Link from "next/link";
 import { routes } from "@/config/routes";
 import { formatMoney } from "@/lib/format-money";
 import { cn } from "@/lib/cn";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 export type SidebarSelectedCliente = {
   id: string;
   name: string;
   saldoEstimado: number | null;
+  avatarUrl?: string | null;
 };
 
 interface SidebarWalletCardProps {
@@ -55,12 +57,21 @@ export function SidebarWalletCard({
         className,
       )}
     >
-      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
-        Cliente activo
-      </p>
-      <p className="mt-1 truncate text-[14px] font-semibold text-[var(--foreground)]">
-        {selectedCliente.name}
-      </p>
+      <div className="flex items-center gap-3">
+        <HecomClienteAvatar
+          name={selectedCliente.name}
+          avatarUrl={selectedCliente.avatarUrl}
+          size="sm"
+        />
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
+            Cliente activo
+          </p>
+          <p className="mt-0.5 truncate text-[14px] font-semibold text-[var(--foreground)]">
+            {selectedCliente.name}
+          </p>
+        </div>
+      </div>
       <p className="mt-2 text-[12px] font-medium text-[var(--admin-text-muted,#64748b)]">
         Saldo estimado (Hecom)
       </p>

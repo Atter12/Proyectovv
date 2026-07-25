@@ -16,6 +16,7 @@ export default async function DashboardLayout({
     id: string;
     name: string;
     saldoEstimado: number | null;
+    avatarUrl: string | null;
   } | null = null;
 
   if (selected) {
@@ -25,12 +26,14 @@ export default async function DashboardLayout({
         id: selected.id,
         name: dash?.cliente.name ?? selected.name,
         saldoEstimado: dash?.summary.saldoEstimado ?? null,
+        avatarUrl: dash?.cliente.avatarUrl ?? null,
       };
     } catch {
       selectedCliente = {
         id: selected.id,
         name: selected.name,
         saldoEstimado: null,
+        avatarUrl: null,
       };
     }
   }

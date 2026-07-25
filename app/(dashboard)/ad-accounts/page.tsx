@@ -76,6 +76,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       <SelectedClienteBanner
         clienteId={selected.id}
         clienteName={clienteName}
+        avatarUrl={data.cliente?.avatarUrl}
         detail="Solo cuentas TikTok de este cliente."
       />
       <AdAccountsInfoAlert />

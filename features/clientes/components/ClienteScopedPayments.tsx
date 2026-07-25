@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   moneyUsd,
   type HecomClienteDashboard,
@@ -16,16 +17,25 @@ export function ClienteScopedPayments({
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-          Pagos · Hecom
-        </p>
-        <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight">
-          Movimientos de {cliente.name}
-        </h1>
-        <p className="mt-2 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Cobros y gastos de este cliente en Hecom Club (no la wallet genérica de
-          la org).
-        </p>
+        <div className="flex items-start gap-4">
+          <HecomClienteAvatar
+            name={cliente.name}
+            avatarUrl={cliente.avatarUrl}
+            size="lg"
+          />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
+              Pagos · Hecom
+            </p>
+            <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight">
+              Movimientos de {cliente.name}
+            </h1>
+            <p className="mt-2 text-sm text-[var(--admin-text-muted,#64748b)]">
+              Cobros y gastos de este cliente en Hecom Club (no la wallet genérica
+              de la org).
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

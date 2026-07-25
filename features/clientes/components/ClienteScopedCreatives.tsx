@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import type { HecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 
 export function ClienteScopedCreatives({
@@ -13,15 +14,24 @@ export function ClienteScopedCreatives({
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-          Creativos · Hecom
-        </p>
-        <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight">
-          Creativos de {cliente.name}
-        </h1>
-        <p className="mt-2 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Proyectos y ficha creativa ligados a este cliente en Hecom Club.
-        </p>
+        <div className="flex items-start gap-4">
+          <HecomClienteAvatar
+            name={cliente.name}
+            avatarUrl={cliente.avatarUrl}
+            size="lg"
+          />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
+              Creativos · Hecom
+            </p>
+            <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight">
+              Creativos de {cliente.name}
+            </h1>
+            <p className="mt-2 text-sm text-[var(--admin-text-muted,#64748b)]">
+              Proyectos y ficha creativa ligados a este cliente en Hecom Club.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

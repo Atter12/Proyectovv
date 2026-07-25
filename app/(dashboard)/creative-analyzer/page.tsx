@@ -32,6 +32,7 @@ export default async function CreativeAnalyzerPage() {
       <SelectedClienteBanner
         clienteId={data.cliente.id}
         clienteName={data.cliente.name}
+        avatarUrl={data.cliente.avatarUrl}
         detail="Solo creativos / proyectos de este cliente en Hecom."
       />
       <ClienteScopedCreatives data={data} />

@@ -65,6 +65,7 @@ export async function GET() {
         contactEmail: primaryEmail,
         biz: c.biz,
         phones: c.phones,
+        avatarUrl: c.avatarUrl,
         walletBalanceCents: 0,
         walletCurrency: "USD",
         adAccountCount: tiktokCount,
