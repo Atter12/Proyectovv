@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 type Props = {
   name: string;
   avatarUrl?: string | null;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "sidebar";
   className?: string;
 };
 
@@ -15,6 +15,8 @@ const sizeClasses = {
   md: "h-12 w-12 text-sm",
   lg: "h-16 w-16 text-lg",
   xl: "h-20 w-20 text-xl",
+  /** Cliente activo en sidebar — un poco más grande que md */
+  sidebar: "h-[4.25rem] w-[4.25rem] text-base",
 } as const;
 
 function initials(name: string): string {
