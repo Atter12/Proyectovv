@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { mainNavigation } from "@/config/navigation";
+import { siteConfig } from "@/config/site";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown.client";
 import { DashboardUserMenu } from "@/components/layout/DashboardUserMenu.client";
 import type { User } from "@/types/user";
@@ -41,7 +42,7 @@ export function DashboardTopbar({
 
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
-            Ecomdy
+            Holistic Marketing
           </p>
           <h1 className="truncate font-display text-[1.15rem] font-medium tracking-[-0.02em] text-[var(--foreground)] sm:text-[1.25rem]">
             {pageTitle}

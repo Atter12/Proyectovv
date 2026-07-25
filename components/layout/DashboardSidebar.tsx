@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
-import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
+import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
 import {
   SidebarWalletCard,
@@ -32,8 +32,8 @@ export function DashboardSidebar({
           prefetch
           className="flex min-w-0 items-center gap-3"
         >
-          <EcomdyLogo size={40} className="shadow-[0_8px_18px_rgb(23_139_255_/_0.22)]" />
-          <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[var(--foreground)]">
+          <HolisticLogo size={42} />
+          <span className="truncate text-[14px] font-semibold leading-tight tracking-[-0.03em] text-[var(--foreground)]">
             {siteConfig.name}
           </span>
         </Link>

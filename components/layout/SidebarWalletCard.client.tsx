@@ -19,28 +19,6 @@ interface SidebarWalletCardProps {
   selectedCliente?: SidebarSelectedCliente | null;
 }
 
-function HolisticBrandMark() {
-  return (
-    <div className="mb-3 flex items-center gap-2.5 border-b border-[var(--brand-primary)]/10 pb-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/holistic-marketing-logo.png"
-        alt="Holistic Marketing"
-        className="h-9 w-9 shrink-0 object-contain"
-        loading="eager"
-      />
-      <div className="min-w-0">
-        <p className="truncate text-[13px] font-semibold leading-tight tracking-[-0.02em] text-[var(--foreground)]">
-          Holistic Marketing
-        </p>
-        <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--admin-text-muted,#64748b)]">
-          Hecom Club
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function SidebarWalletCard({
   onNavigate,
   className,
@@ -54,7 +32,6 @@ export function SidebarWalletCard({
           className,
         )}
       >
-        <HolisticBrandMark />
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">
           Sin cliente
         </p>
@@ -80,8 +57,6 @@ export function SidebarWalletCard({
         className,
       )}
     >
-      <HolisticBrandMark />
-
       <div className="flex items-center gap-3">
         <HecomClienteAvatar
           name={selectedCliente.name}

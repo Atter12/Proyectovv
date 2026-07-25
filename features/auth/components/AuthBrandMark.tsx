@@ -1,6 +1,6 @@
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/cn";
-import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
+import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 
 export function AuthBrandMark({
   className,
@@ -10,11 +10,8 @@ export function AuthBrandMark({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <EcomdyLogo
-        size={compact ? 36 : 44}
-        className="shadow-[0_8px_22px_rgb(23_139_255_/_0.3)]"
-      />
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
+      <HolisticLogo size={compact ? 36 : 48} />
       <span
         className={cn(
           "font-semibold tracking-[-0.03em] text-[var(--auth-text)]",

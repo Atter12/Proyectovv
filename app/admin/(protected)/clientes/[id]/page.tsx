@@ -32,7 +32,7 @@ export default async function ClienteVistaPage({
       <AdminPageHeader
         eyebrow="Vista del cliente"
         title={contactName}
-        description={`Así vería ${contactName} al entrar a Ecomdy. Solo datos de “${vista.organization.name}” — aislado del resto de clientes.`}
+        description={`Así vería ${contactName} al entrar a Holistic Marketing. Solo datos de “${vista.organization.name}” — aislado del resto de clientes.`}
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link

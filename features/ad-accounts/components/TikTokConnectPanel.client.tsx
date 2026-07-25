@@ -214,7 +214,7 @@ export function TikTokConnectPanel({
           )}
 
           <p className="text-[11px] leading-relaxed text-[var(--admin-text-muted,#64748b)]">
-            Al autorizar, importamos tus advertisers a Ecomdy. El gasto se sincroniza por
+            Al autorizar, importamos tus advertisers a Holistic Marketing. El gasto se sincroniza por
             organización. Las campañas a nivel detalle llegan en una siguiente iteración;
             hoy ya ves cuentas y gasto ads.
           </p>
