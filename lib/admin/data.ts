@@ -1413,23 +1413,25 @@ export async function revokeClientEmailInvite(inviteId: string, organizationId: 
   return { ok: true as const };
 }
 
+type ClientVistaSummaryRow = {
+  wallet_balance_cents?: number | null;
+  wallet_currency?: string | null;
+  total_ad_accounts?: number | null;
+  total_campaigns?: number | null;
+  active_ad_accounts?: number | null;
+  spend_30d_cents?: number | null;
+  today_spend_cents?: number | null;
+  impressions_30d?: number | null;
+  clicks_30d?: number | null;
+};
+
 export async function getClientVista(organizationId: string) {
   const detail = await getOrganizationDetail(organizationId);
   if (!detail) return null;
 
   const admin = createAdminClient();
 
-  let summary: {
-    wallet_balance_cents?: number | null;
-    wallet_currency?: string | null;
-    total_ad_accounts?: number | null;
-    total_campaigns?: number | null;
-    active_ad_accounts?: number | null;
-    spend_30d_cents?: number | null;
-    today_spend_cents?: number | null;
-    impressions_30d?: number | null;
-    clicks_30d?: number | null;
-  } | null = null;
+  let summary: ClientVistaSummaryRow | null = null;
 
   let campaigns: Array<{
     id: string;
@@ -1457,7 +1459,9 @@ export async function getClientVista(organizationId: string) {
       .select("*")
       .eq("organization_id", organizationId)
       .maybeSingle();
-    if (!summaryResult.error) summary = summaryResult.data as typeof summary;
+    if (!summaryResult.error && summaryResult.data) {
+      summary = summaryResult.data as ClientVistaSummaryRow;
+    }
   } catch {
     summary = null;
   }

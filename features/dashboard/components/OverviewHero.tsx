@@ -38,12 +38,21 @@ export function OverviewHero() {
             Gestiona cartera, cuentas publicitarias, pagos y afiliados desde un
             entorno unificado para escalar campañas.
           </p>
-          <Link
-            href={routes.adAccounts}
-            className="mt-6 inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            Crear cuenta publicitaria
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {/* Hard <a> so it works even if Next client router is broken */}
+            <a
+              href={routes.clientes}
+              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              Ir a Clientes
+            </a>
+            <Link
+              href={routes.adAccounts}
+              className="inline-flex h-11 items-center rounded-xl border border-white/35 bg-white/10 px-5 text-[14px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            >
+              Crear cuenta publicitaria
+            </Link>
+          </div>
         </div>
 
         <div className="hidden shrink-0 lg:block">

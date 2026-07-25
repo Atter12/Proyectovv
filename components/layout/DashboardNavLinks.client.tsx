@@ -19,7 +19,11 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
     case "clients":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.401-2.135-1.071-2.937m8.196-7.13A9.34 9.34 0 0118.375 7.5c-2.676 0-5.065 1.112-6.75 2.885m0 0A9.34 9.34 0 015.625 7.5c-1.14 0-2.226.23-3.221.653M12.75 10.385A9.34 9.34 0 015.625 7.5m7.125 2.885A9.337 9.337 0 0118.375 16.5a9.37 9.37 0 01-2.625.372M12.75 10.385v.002a9.337 9.337 0 00-4.121 7.493M12.75 10.385A9.34 9.34 0 015.625 16.5c-1.14 0-2.226-.23-3.221-.653" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+          />
         </svg>
       );
     case "ad-accounts":
@@ -46,6 +50,8 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
         </svg>
       );
+    default:
+      return null;
   }
 }
 
@@ -61,24 +67,43 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
       {mainNavigation.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const isClientes = item.href === "/clientes";
+
+        const className = cn(
+          "relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
+          isActive
+            ? "bg-[var(--brand-primary)]/[0.08] text-[var(--brand-primary)] shadow-sm ring-1 ring-[var(--brand-primary)]/15"
+            : "text-[var(--admin-text-muted,#64748b)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+        );
+
+        // Native <a>: works even if Next client JS is broken (SyntaxError).
+        if (isClientes) {
+          return (
+            <a
+              key={item.href}
+              href="/clientes"
+              className={className}
+              onClick={() => {
+                console.log("[Clientes] click menú → /clientes");
+                onNavigate?.();
+              }}
+            >
+              {isActive ? (
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)]" />
+              ) : null}
+              <NavIcon icon={item.icon} />
+              <span className="min-w-0 leading-tight">{item.label}</span>
+            </a>
+          );
+        }
 
         return (
           <Link
             key={item.href}
             href={item.href}
-            prefetch={item.href === "/clientes" ? false : true}
-            onClick={() => {
-              if (item.href === "/clientes") {
-                console.log("[Clientes] click menú → navegando a /clientes");
-              }
-              onNavigate?.();
-            }}
-            className={cn(
-              "relative flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
-              isActive
-                ? "bg-[var(--brand-primary)]/[0.08] text-[var(--brand-primary)] shadow-sm ring-1 ring-[var(--brand-primary)]/15"
-                : "text-[var(--admin-text-muted,#64748b)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
-            )}
+            prefetch
+            onClick={onNavigate}
+            className={className}
           >
             {isActive ? (
               <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)]" />
