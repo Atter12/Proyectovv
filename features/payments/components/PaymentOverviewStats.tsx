@@ -58,25 +58,27 @@ export function PaymentOverviewStats({
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 xl:gap-4">
       {items.map((item) => (
         <Card
           key={item.label}
           padding="sm"
           className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
+          <div className="flex items-start gap-2.5 sm:gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] sm:h-9 sm:w-9">
               {item.icon}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-muted,#64748b)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-muted,#64748b)] sm:text-[11px]">
                 {item.label}
               </p>
-              <p className="mt-0.5 truncate font-display text-lg font-medium text-[var(--foreground)]">
+              <p className="mt-0.5 truncate font-display text-base font-medium text-[var(--foreground)] sm:text-lg">
                 {item.value}
               </p>
-              <p className="mt-0.5 text-xs text-[var(--admin-text-muted,#64748b)]">{item.hint}</p>
+              <p className="mt-0.5 hidden text-xs text-[var(--admin-text-muted,#64748b)] sm:block">
+                {item.hint}
+              </p>
             </div>
           </div>
         </Card>

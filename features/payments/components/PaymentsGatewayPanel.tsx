@@ -15,15 +15,16 @@ export async function PaymentsGatewayPanel({ session }: PaymentsGatewayPanelProp
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      {/* Pay flow first — stats after so users don't scroll past KPIs to reach Stripe */}
+      <PaymentsGatewayBlockClient
+        gateways={core.gateways}
+        initialSelected={core.selectedGateway}
+      />
+
       <PaymentOverviewStats
         wallet={core.wallet}
         summary={core.summary}
         activeGateway={activeGateway}
-      />
-
-      <PaymentsGatewayBlockClient
-        gateways={core.gateways}
-        initialSelected={core.selectedGateway}
       />
     </div>
   );
