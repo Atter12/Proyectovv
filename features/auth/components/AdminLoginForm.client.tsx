@@ -184,7 +184,7 @@ export function AdminLoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent,#178bff)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover,#0f7ae5)] hover:shadow-[0_10px_28px_rgb(23_139_255_/_0.32)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent,#ff781f)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover,#e8451a)] hover:shadow-[0_10px_28px_rgb(255_120_31_/_0.35)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Verificando acceso…" : "Entrar al panel admin"}
         </button>
@@ -194,7 +194,7 @@ export function AdminLoginForm() {
         ¿Eres cliente?{" "}
         <Link
           href={routes.login}
-          className="font-semibold text-[var(--auth-accent,#178bff)] transition-colors hover:text-[#7cc3ff]"
+          className="font-semibold text-[var(--auth-accent,#ff781f)] transition-colors hover:text-[var(--brand-accent,#ffa12c)]"
         >
           Ir al login de clientes
         </Link>

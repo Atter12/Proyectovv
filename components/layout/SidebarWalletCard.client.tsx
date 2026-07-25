@@ -27,17 +27,17 @@ export function SidebarWalletCard({
   if (!selectedCliente) {
     return (
       <div className={cn("dashboard-rail-glass mt-4 rounded-2xl p-3.5", className)}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#178bff]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-accent)]">
           Sin cliente
         </p>
-        <p className="mt-2 text-[13px] leading-5 text-[#9aabc0]">
+        <p className="mt-2 text-[13px] leading-5 text-[#9a9187]">
           Elegí un cliente para filtrar todo el panel.
         </p>
         <Link
           href={routes.clientes}
           prefetch
           onClick={onNavigate}
-          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#178bff] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(23_139_255_/_0.35)] transition-[background-color,transform] hover:bg-[#0f7ae5] active:translate-y-px"
+          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.4)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
         >
           Ir a Clientes
         </Link>
@@ -55,7 +55,7 @@ export function SidebarWalletCard({
           className="shadow-[0_8px_20px_rgb(0_0_0_/_0.35)] ring-2 ring-white/25"
         />
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#178bff]">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-accent)]">
             Cliente activo
           </p>
           <p className="mt-1 truncate text-[15px] font-semibold leading-snug text-white">
@@ -63,7 +63,7 @@ export function SidebarWalletCard({
           </p>
         </div>
       </div>
-      <p className="mt-3 text-[12px] font-medium text-[#9aabc0]">
+      <p className="mt-3 text-[12px] font-medium text-[#9a9187]">
         Saldo estimado (Hecom)
       </p>
       <p className="mt-1 font-display text-[1.45rem] font-medium tracking-[-0.03em] text-white">
@@ -76,7 +76,7 @@ export function SidebarWalletCard({
           href={routes.payments}
           prefetch
           onClick={onNavigate}
-          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#178bff] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(23_139_255_/_0.35)] transition-[background-color,transform] hover:bg-[#0f7ae5] active:translate-y-px"
+          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.4)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
         >
           Ver pagos
         </Link>

@@ -64,7 +64,7 @@ export function SelectedClienteBanner({
                 "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
               <Link
                 href={`/clientes/${clienteId}`}
-                className="font-semibold text-[#178bff] underline-offset-2 hover:underline"
+                className="font-semibold text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
               >
                 Ver ficha
               </Link>

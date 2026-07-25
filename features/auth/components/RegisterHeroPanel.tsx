@@ -74,7 +74,7 @@ export function RegisterHeroPanel() {
             {FEATURES.map((feature) => (
               <li key={feature.title} className="flex gap-3.5">
                 <span
-                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_12px_rgb(23_139_255_/_0.65)]"
+                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_12px_rgb(255_120_31_/_0.65)]"
                   aria-hidden
                 />
                 <div>
@@ -98,7 +98,7 @@ export function RegisterHeroPanel() {
         <ol className="mt-4 space-y-4">
           {STEPS.map((item) => (
             <li key={item.step} className="flex items-start gap-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[12px] font-bold text-white shadow-[0_8px_18px_rgb(23_139_255_/_0.28)]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[12px] font-bold text-white shadow-[0_8px_18px_rgb(255_120_31_/_0.32)]">
                 {item.step}
               </span>
               <div>

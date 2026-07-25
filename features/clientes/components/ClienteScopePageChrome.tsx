@@ -28,18 +28,18 @@ export function ClienteScopePageHeader({
               name={name}
               avatarUrl={avatarUrl}
               size="lg"
-              className="ring-2 ring-[#178bff]/15"
+              className="ring-2 ring-[var(--brand-primary)]/20"
             />
           ) : null}
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#178bff]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)]">
               {eyebrow}
             </p>
-            <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#0b1628] sm:text-[1.85rem]">
+            <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#141210] sm:text-[1.85rem]">
               {title}
             </h1>
             {description ? (
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5b6b82]">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645c]">
                 {description}
               </p>
             ) : null}

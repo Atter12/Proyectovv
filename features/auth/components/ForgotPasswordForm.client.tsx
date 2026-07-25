@@ -42,7 +42,7 @@ const inputClassName =
   "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 const primaryButtonClassName =
-  "flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(23_139_255_/_0.32)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none";
+  "flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(255_120_31_/_0.35)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none";
 
 function StepPill({ active, children }: { active: boolean; children: React.ReactNode }) {
   return (
@@ -332,7 +332,7 @@ export function ForgotPasswordForm() {
             type="button"
             onClick={handleResend}
             disabled={resending}
-            className="w-full text-center text-[14px] font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff] disabled:opacity-50"
+            className="w-full text-center text-[14px] font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)] disabled:opacity-50"
           >
             {resending ? "Reenviando…" : "Reenviar código"}
           </button>
@@ -426,7 +426,7 @@ export function ForgotPasswordForm() {
       <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
         <Link
           href={routes.login}
-          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff]"
+          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
         >
           Volver al inicio de sesión
         </Link>

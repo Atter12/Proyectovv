@@ -91,7 +91,7 @@ export function AdminLoginHeroPanel({ className }: AdminLoginHeroPanelProps) {
               className="h-12 w-auto max-w-[220px] object-contain brightness-110"
             />
           </div>
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7cc3ff]">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-accent)]">
             Admin console
           </p>
 
@@ -106,7 +106,7 @@ export function AdminLoginHeroPanel({ className }: AdminLoginHeroPanelProps) {
 
         <div className="mt-8 hidden max-w-xl lg:block">
           <div key={slide.title} className="admin-login-slide-copy">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7cc3ff]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-accent)]">
               Enfoque operativo
             </p>
             <h2 className="font-display mt-2 text-2xl font-medium tracking-tight text-white">

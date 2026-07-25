@@ -167,7 +167,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(23_139_255_/_0.32)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(255_120_31_/_0.35)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Iniciando sesión…" : "Iniciar sesión"}
         </button>
@@ -177,7 +177,7 @@ export function LoginForm() {
         ¿No tienes cuenta?{" "}
         <Link
           href={routes.register}
-          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[#7cc3ff]"
+          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
         >
           Regístrate
         </Link>

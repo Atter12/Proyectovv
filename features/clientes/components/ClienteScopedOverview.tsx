@@ -20,7 +20,7 @@ export function ClienteScopedOverview({
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#050d18_0%,#0b4f9c_42%,#178bff_100%)] p-5 shadow-[0_22px_48px_rgb(23_139_255_/_0.28)] sm:p-7">
+      <div className="relative overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#050505_0%,#1a1008_38%,#e8451a_72%,#ff781f_100%)] p-5 shadow-[0_22px_48px_rgb(255_120_31_/_0.28)] sm:p-7">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.18]"
           aria-hidden
@@ -32,8 +32,8 @@ export function ClienteScopedOverview({
               "radial-gradient(ellipse 70% 80% at 70% 40%, black, transparent)",
           }}
         />
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[#9af7c9]/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-accent)]/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />
 
         <div className="relative z-10 flex items-start gap-4">
           <HecomClienteAvatar
@@ -56,7 +56,7 @@ export function ClienteScopedOverview({
         <div className="relative z-10 mt-6 flex flex-wrap gap-2">
           <Link
             href={routes.adAccounts}
-            className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-[13px] font-semibold text-[#0f7ae5] shadow-md transition-transform hover:-translate-y-0.5"
+            className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-[13px] font-semibold text-[var(--brand-primary-deep)] shadow-md transition-transform hover:-translate-y-0.5"
           >
             Sus cuentas
           </Link>

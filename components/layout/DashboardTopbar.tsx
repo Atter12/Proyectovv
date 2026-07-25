@@ -33,7 +33,7 @@ export function DashboardTopbar({
           aria-label="Abrir menú de navegación"
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5b6b82] transition-colors hover:bg-white hover:text-[#0b1628] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#178bff]/35 lg:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#6b645c] transition-colors hover:bg-white hover:text-[#141210] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35 lg:hidden"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -41,10 +41,10 @@ export function DashboardTopbar({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#178bff]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary-deep)]">
             {siteConfig.name}
           </p>
-          <h1 className="truncate font-display text-[1.2rem] font-medium tracking-[-0.02em] text-[#0b1628] sm:text-[1.3rem]">
+          <h1 className="truncate font-display text-[1.2rem] font-medium tracking-[-0.02em] text-[#141210] sm:text-[1.3rem]">
             {pageTitle}
           </h1>
         </div>

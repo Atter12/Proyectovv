@@ -52,8 +52,8 @@ function throttle<T extends (...args: never[]) => void>(fn: T, limit: number) {
 export function DotGrid({
   dotSize = 3,
   gap = 28,
-  baseColor = "#1a2a3d",
-  activeColor = "#178bff",
+  baseColor = "#2a221c",
+  activeColor = "#ff781f",
   proximity = 120,
   className = "",
   style,

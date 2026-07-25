@@ -10,10 +10,10 @@ const miniMetrics = [
 
 export function OverviewHero() {
   return (
-    <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b4f9c_0%,#178bff_52%,#0f7ae5_100%)] shadow-[0_18px_40px_rgb(23_139_255_/_0.22)] sm:min-h-[250px] lg:min-h-[280px]">
+    <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#050505_0%,#1a1008_38%,#e8451a_72%,#ff781f_100%)] shadow-[0_18px_40px_rgb(255_120_31_/_0.26)] sm:min-h-[250px] lg:min-h-[280px]">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[#9af7c9]/15 blur-3xl" />
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-accent)]/25 blur-3xl" />
+        <div className="absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />
         <div
           className="absolute inset-0 opacity-[0.12]"
           style={{
@@ -42,7 +42,7 @@ export function OverviewHero() {
             {/* Hard <a> so it works even if Next client router is broken */}
             <a
               href={routes.clientes}
-              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
+              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary-deep)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
             >
               Ir a Clientes
             </a>
