@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
 import { routes } from "@/config/routes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
+import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
 import {
   moneyUsd,
   type HecomClienteDashboard,
@@ -45,9 +46,7 @@ export function ClienteScopedOverview({
             <p className="text-[13px] font-semibold tracking-[0.06em] text-white/75">
               Vista del cliente
             </p>
-            <h2 className="font-display mt-2 text-[1.75rem] font-medium text-white sm:text-[2.05rem]">
-              {cliente.name}
-            </h2>
+            <OverviewClientTitle name={cliente.name} />
             <p className="mt-2 max-w-xl text-[15px] text-white/85">
               Solo datos de esta persona en Hecom Club
               {cliente.biz ? ` · ${cliente.biz}` : ""}.

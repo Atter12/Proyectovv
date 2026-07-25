@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Table, TableWrap, Td, Th } from "@/components/ui/Table";
-import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
+import {
+  ClienteScopeKpi,
+  ClienteScopePageHeader,
+} from "@/features/clientes/components/ClienteScopePageChrome";
 import type { HecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 
 export function ClienteScopedCreatives({
@@ -13,49 +16,34 @@ export function ClienteScopedCreatives({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <div className="flex items-start gap-4">
-          <HecomClienteAvatar
-            name={cliente.name}
-            avatarUrl={cliente.avatarUrl}
-            size="lg"
-          />
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-              Creativos · Hecom
-            </p>
-            <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight">
-              Creativos de {cliente.name}
-            </h1>
-            <p className="mt-2 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Proyectos y ficha creativa ligados a este cliente en Hecom Club.
-            </p>
-          </div>
-        </div>
-      </div>
+      <ClienteScopePageHeader
+        eyebrow="Creativos · Hecom"
+        title={`Creativos de ${cliente.name}`}
+        description="Proyectos y ficha creativa ligados a este cliente en Hecom Club."
+        name={cliente.name}
+        avatarUrl={cliente.avatarUrl}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="p-4">
-          <p className="text-[11px] uppercase text-[var(--admin-text-muted,#64748b)]">
-            Fichas creativas
-          </p>
-          <p className="mt-1 text-xl font-semibold">{summary.creativeCount}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] uppercase text-[var(--admin-text-muted,#64748b)]">
-            Proyectos
-          </p>
-          <p className="mt-1 text-xl font-semibold">{summary.projectCount}</p>
-        </Card>
+        <ClienteScopeKpi
+          label="Fichas creativas"
+          value={String(summary.creativeCount)}
+        />
+        <ClienteScopeKpi
+          label="Proyectos"
+          value={String(summary.projectCount)}
+        />
       </div>
 
-      <Card className="p-5">
+      <Card className="dashboard-surface-card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Ficha creativa</h2>
+          <h2 className="font-display text-lg font-medium text-[#0b1628]">
+            Ficha creativa
+          </h2>
           <Badge variant="info">{creativosClientes.length}</Badge>
         </div>
         {creativosClientes.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
+          <p className="mt-4 text-sm text-[#5b6b82]">
             Este cliente no tiene ficha en Creativos Hecom.
           </p>
         ) : (
@@ -63,10 +51,10 @@ export function ClienteScopedCreatives({
             {creativosClientes.map((item) => (
               <li
                 key={item.id}
-                className="border-b border-[var(--border-subtle)] pb-3 last:border-0"
+                className="border-b border-[rgb(15_30_52_/_0.08)] pb-3 last:border-0"
               >
-                <p className="font-semibold">{item.name}</p>
-                <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                <p className="font-semibold text-[#0b1628]">{item.name}</p>
+                <p className="text-xs text-[#5b6b82]">
                   {[item.company, item.email].filter(Boolean).join(" · ") ||
                     "Sin detalle"}
                 </p>
@@ -76,13 +64,15 @@ export function ClienteScopedCreatives({
         )}
       </Card>
 
-      <Card className="p-5">
+      <Card className="dashboard-surface-card p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Proyectos</h2>
+          <h2 className="font-display text-lg font-medium text-[#0b1628]">
+            Proyectos
+          </h2>
           <Badge variant="neutral">{creativosProyectos.length}</Badge>
         </div>
         {creativosProyectos.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--admin-text-muted,#64748b)]">
+          <p className="mt-4 text-sm text-[#5b6b82]">
             Sin proyectos creativos asociados.
           </p>
         ) : (
@@ -95,12 +85,12 @@ export function ClienteScopedCreatives({
                   <Th>Plataforma</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
+              <tbody className="divide-y divide-[rgb(15_30_52_/_0.08)]">
                 {creativosProyectos.map((row) => (
                   <tr key={row.id}>
-                    <Td className="font-semibold">{row.name}</Td>
-                    <Td>{row.type ?? "—"}</Td>
-                    <Td>
+                    <Td className="font-semibold text-[#0b1628]">{row.name}</Td>
+                    <Td className="text-[#5b6b82]">{row.type ?? "—"}</Td>
+                    <Td className="text-[#5b6b82]">
                       {row.platform ?? "—"}
                       {row.format ? ` · ${row.format}` : ""}
                     </Td>

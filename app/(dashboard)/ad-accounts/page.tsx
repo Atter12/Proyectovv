@@ -81,7 +81,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       />
       <AdAccountsInfoAlert />
       <AdAccountsSummaryCards summary={data.summary} />
-      <Card padding="none" className="overflow-hidden">
+      <Card padding="none" className="dashboard-surface-card overflow-hidden">
         <Suspense fallback={null}>
           <AdAccountsToolbar
             initialSearch={search}
@@ -90,8 +90,8 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-[var(--admin-text-muted,#64748b)]">
-            <p className="font-semibold text-[var(--foreground)]">
+          <div className="px-6 py-10 text-center text-sm text-[#5b6b82]">
+            <p className="font-display text-lg font-medium text-[#0b1628]">
               {clienteName} no tiene cuentas TikTok mapeadas en Hecom
             </p>
             <p className="mt-2">

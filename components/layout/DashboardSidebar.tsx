@@ -30,12 +30,12 @@ export function DashboardSidebar({
         <Link
           href={routes.overview}
           prefetch
-          className="flex min-w-0 items-center"
+          className="mx-auto flex w-full max-w-full items-center justify-center"
           aria-label={siteConfig.name}
         >
           <HolisticLogo
             size={140}
-            className="h-10 w-auto max-w-full brightness-110"
+            className="mx-auto h-10 w-auto max-w-[85%] brightness-110"
           />
         </Link>
 

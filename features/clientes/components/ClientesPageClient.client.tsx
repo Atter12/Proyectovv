@@ -239,18 +239,22 @@ export function ClientesPageClient() {
           const busy = pending && selectingId === client.id;
 
           return (
-            <Card key={client.id} className="flex flex-col p-5">
+            <Card
+              key={client.id}
+              className="dashboard-surface-card flex flex-col p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgb(23_139_255_/_0.12)]"
+            >
               <div className="flex items-start gap-3">
                 <HecomClienteAvatar
                   name={contactName}
                   avatarUrl={client.avatarUrl}
                   size="md"
+                  className="ring-2 ring-[#178bff]/12"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-base font-semibold text-[var(--foreground)]">
+                  <h2 className="truncate font-display text-[1.05rem] font-medium text-[#0b1628]">
                     {contactName}
                   </h2>
-                  <p className="mt-0.5 truncate text-xs text-[var(--admin-text-muted,#64748b)]">
+                  <p className="mt-0.5 truncate text-xs text-[#5b6b82]">
                     {client.biz ? `${client.biz} · ` : ""}
                     {client.contactEmail ?? client.slug}
                   </p>
@@ -258,23 +262,24 @@ export function ClientesPageClient() {
               </div>
 
               <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--admin-text-muted,#64748b)]">
-                    Cuentas TikTok
-                  </dt>
-                  <dd className="font-semibold">{client.adAccountCount}</dd>
+                <div className="rounded-xl border border-[rgb(15_30_52_/_0.08)] bg-[#f4f7fc] px-3 py-2">
+                  <dt className="text-[11px] text-[#5b6b82]">Cuentas TikTok</dt>
+                  <dd className="font-semibold text-[#0b1628]">
+                    {client.adAccountCount}
+                  </dd>
                 </div>
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--admin-text-muted,#64748b)]">
-                    Emails
-                  </dt>
-                  <dd className="font-semibold">{client.activeMemberCount}</dd>
+                <div className="rounded-xl border border-[rgb(15_30_52_/_0.08)] bg-[#f4f7fc] px-3 py-2">
+                  <dt className="text-[11px] text-[#5b6b82]">Emails</dt>
+                  <dd className="font-semibold text-[#0b1628]">
+                    {client.activeMemberCount}
+                  </dd>
                 </div>
               </dl>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge variant="info">Hecom CRM</Badge>
-                {client.tiktokAdvertiserId || (client.tiktokAccounts?.length ?? 0) > 0 ? (
+                {client.tiktokAdvertiserId ||
+                (client.tiktokAccounts?.length ?? 0) > 0 ? (
                   <Badge variant="neutral">TikTok linked</Badge>
                 ) : null}
               </div>
@@ -284,13 +289,13 @@ export function ClientesPageClient() {
                   type="button"
                   disabled={busy || pending}
                   onClick={() => elegirCliente(client)}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)] disabled:opacity-60"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#178bff] px-4 text-[14px] font-semibold text-white shadow-[0_10px_28px_rgb(23_139_255_/_0.28)] transition-[background-color,transform] hover:bg-[#0f7ae5] hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy ? "Eligiendo…" : "Elegir este cliente"}
                 </button>
                 <Link
                   href={`/clientes/${client.id}`}
-                  className="text-center text-xs font-medium text-[var(--brand-primary)] hover:underline"
+                  className="text-center text-xs font-medium text-[#178bff] hover:underline"
                 >
                   Ver ficha
                 </Link>

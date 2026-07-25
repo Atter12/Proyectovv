@@ -105,22 +105,23 @@ export default async function ClienteVistaPage({
   return (
     <div className={dashboardClasses.page}>
       <SelectHecomClienteOnMount clienteId={cliente.id} name={cliente.name} />
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
+      <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-4">
             <HecomClienteAvatar
               name={cliente.name}
               avatarUrl={cliente.avatarUrl}
               size="xl"
+              className="ring-2 ring-[#178bff]/15"
             />
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#178bff]">
                 Hecom Club · Cliente
               </p>
-              <h1 className="font-display mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+              <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#0b1628] sm:text-[1.85rem]">
                 {cliente.name}
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-muted,#64748b)]">
+              <p className="mt-2 max-w-2xl text-sm text-[#5b6b82]">
                 {cliente.biz ? `${cliente.biz} · ` : ""}
                 {primaryEmail ?? "Sin email"}
                 {cliente.dni ? ` · DNI ${cliente.dni}` : ""}
@@ -130,13 +131,13 @@ export default async function ClienteVistaPage({
           <div className="flex flex-col items-end gap-2">
             <Link
               href={routes.clientes}
-              className="text-sm font-semibold text-[var(--brand-primary)] hover:text-[var(--brand-primary-deep)]"
+              className="text-sm font-semibold text-[#178bff] hover:text-[#0f7ae5]"
             >
               ← Elegir otro cliente
             </Link>
             <Link
               href={routes.adAccounts}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-[var(--brand-primary-deep)]"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#178bff] px-4 text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(23_139_255_/_0.28)] hover:bg-[#0f7ae5]"
             >
               Ver sus cuentas publicitarias
             </Link>
@@ -144,50 +145,50 @@ export default async function ClienteVistaPage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+      <div className="dashboard-surface-card rounded-2xl border border-[#178bff]/15 bg-[linear-gradient(135deg,rgb(23_139_255_/_0.08),rgb(255_255_255_/_0.9))] px-4 py-3 text-sm text-[#0b1628]">
         <p className="font-semibold">Cliente seleccionado</p>
-        <p className="mt-1 opacity-90">
+        <p className="mt-1 text-[#5b6b82]">
           {hecomCfg.configured
             ? "Fuente live: Supabase Hecom Club."
             : "Fuente: backup Holistic local (sin HECOM_SUPABASE_SERVICE_ROLE_KEY aún)."}{" "}
-          En <strong>Mis cuentas publicitarias</strong> solo vas a ver lo de{" "}
-          {cliente.name}.
+          En <strong className="text-[#0b1628]">Mis cuentas publicitarias</strong> solo
+          vas a ver lo de {cliente.name}.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
+        <div className="dashboard-kpi rounded-2xl p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
             Cuentas TikTok
           </p>
-          <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+          <p className="mt-1 font-display text-xl font-medium text-[#0b1628]">
             {accounts.length}
           </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
+        </div>
+        <div className="dashboard-kpi rounded-2xl p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
             Emails CRM
           </p>
-          <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+          <p className="mt-1 font-display text-xl font-medium text-[#0b1628]">
             {cliente.emails.length}
           </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
+        </div>
+        <div className="dashboard-kpi rounded-2xl p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
             Filas gasto (vista)
           </p>
-          <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+          <p className="mt-1 font-display text-xl font-medium text-[#0b1628]">
             {spend.rows.length}
           </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
+        </div>
+        <div className="dashboard-kpi rounded-2xl p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b6b82]">
             Suma en lista
           </p>
-          <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+          <p className="mt-1 font-display text-xl font-medium text-[#0b1628]">
             {moneyUsd(spendTotal)}
           </p>
-        </Card>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
