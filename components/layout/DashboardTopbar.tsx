@@ -18,7 +18,9 @@ export function DashboardTopbar({
   onMenuClick,
 }: DashboardTopbarProps) {
   const pathname = usePathname();
-  const currentPage = mainNavigation.find((item) => item.href === pathname);
+  const currentPage = mainNavigation.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
   const pageTitle = currentPage?.label ?? "Panel";
 
   return (

@@ -3,6 +3,7 @@ import { routes } from "@/config/routes";
 /** Rutas que requieren sesión verificada (middleware + guards). */
 export const protectedRoutes = [
   routes.overview,
+  routes.clientes,
   routes.adAccounts,
   routes.payments,
   routes.affiliates,

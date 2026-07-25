@@ -1,5 +1,5 @@
 export interface NavItem {
   label: string;
   href: string;
-  icon: "overview" | "ad-accounts" | "payments" | "affiliates" | "creative-analyzer";
+  icon: "overview" | "clients" | "ad-accounts" | "payments" | "affiliates" | "creative-analyzer";
 }

@@ -6,6 +6,7 @@ export const routes = {
   forgotPassword: "/forgot-password",
   accountSetup: "/account-setup",
   overview: "/overview",
+  clientes: "/clientes",
   adAccounts: "/ad-accounts",
   payments: "/payments",
   affiliates: "/affiliates",
