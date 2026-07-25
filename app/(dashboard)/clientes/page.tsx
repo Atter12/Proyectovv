@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { requireSession } from "@/lib/auth/guards.server";
-import { listClients } from "@/lib/admin/data";
+import { listClients, type ClientListItem } from "@/lib/admin/data";
 import { formatMoney } from "@/lib/format";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 
@@ -29,7 +29,18 @@ export default async function ClientesPage({
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : "";
   const status = typeof params.status === "string" ? params.status : "all";
-  const clients = await listClients({ q, status });
+
+  let clients: ClientListItem[] = [];
+  let loadError: string | null = null;
+
+  try {
+    clients = await listClients({ q, status });
+  } catch (error) {
+    loadError =
+      error instanceof Error
+        ? error.message
+        : "No se pudieron cargar los clientes. Revisa la conexión a Supabase.";
+  }
 
   const filtered = q
     ? clients.filter((client) => {
@@ -61,6 +72,17 @@ export default async function ClientesPage({
         </p>
       </div>
 
+      {loadError ? (
+        <Card className="border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
+          <p className="font-semibold">No se pudo cargar Clientes</p>
+          <p className="mt-1 opacity-90">{loadError}</p>
+          <p className="mt-2 text-xs opacity-80">
+            Tip: no hace falta el SQL de invitaciones para esta pantalla. Si falla, suele ser
+            SUPABASE_SERVICE_ROLE_KEY o columnas de organización.
+          </p>
+        </Card>
+      ) : null}
+
       <Card className="border-[var(--brand-primary)]/20 bg-[linear-gradient(135deg,rgb(23_139_255_/_0.06),transparent)] p-5">
         <p className="text-sm font-semibold text-[var(--foreground)]">Cómo usarlo</p>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
@@ -88,13 +110,15 @@ export default async function ClientesPage({
         </form>
       </Card>
 
-      {filtered.length === 0 ? (
+      {!loadError && filtered.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-sm text-[var(--admin-text-muted,#64748b)]">
             No hay clientes con ese filtro. Cuando existan orgs (Luis, Ely, etc.) aparecen aquí.
           </p>
         </Card>
-      ) : (
+      ) : null}
+
+      {filtered.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((client) => {
             const contactName =
@@ -158,7 +182,7 @@ export default async function ClientesPage({
             );
           })}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

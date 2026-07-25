@@ -376,7 +376,7 @@ export async function getOrganizationMap(ids: string[]): Promise<Map<string, Org
   const admin = createAdminClient();
   const { data } = await admin
     .from("organizations")
-    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, country, billing_email, metadata")
+    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, metadata")
     .in("id", ids);
   return new Map(rows(data as OrganizationRow[] | null).map((org) => [org.id, org]));
 }
@@ -870,16 +870,23 @@ export async function listOrganizations(filters: { q?: string; status?: string }
   const admin = createAdminClient();
   let query = admin
     .from("organizations")
-    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, country, billing_email, metadata")
+    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, metadata")
     .order("created_at", { ascending: false })
     .limit(120);
   if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`No se pudieron listar organizaciones: ${error.message}`);
+  }
   let orgs = rows(data as OrganizationRow[] | null);
   const q = (filters.q ?? "").trim().toLowerCase();
-  if (q) orgs = orgs.filter((org) => containsText([org.name, org.slug, org.legal_name, org.tax_id, org.billing_email], q));
+  if (q) orgs = orgs.filter((org) => containsText([org.name, org.slug, org.legal_name, org.tax_id], q));
 
   const orgIds = orgs.map((org) => org.id);
+  if (orgIds.length === 0) {
+    return [];
+  }
+
   const [walletsResult, adAccountsResult, membershipsResult] = await Promise.all([
     admin.from("wallets").select("id, organization_id, name, currency, balance_cents, reserved_balance_cents, status, created_at, updated_at").in("organization_id", orgIds),
     admin.from("ad_accounts").select("id, organization_id, status").in("organization_id", orgIds),
@@ -901,7 +908,7 @@ export async function getOrganizationDetail(id: string) {
   const admin = createAdminClient();
   const { data: org } = await admin
     .from("organizations")
-    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, country, billing_email, metadata")
+    .select("id, name, slug, legal_name, tax_id, website_url, logo_url, status, created_by, created_at, updated_at, metadata")
     .eq("id", id)
     .maybeSingle<OrganizationRow>();
   if (!org) return null;
