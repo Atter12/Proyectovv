@@ -1,22 +1,23 @@
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
-import { SelectedClienteBanner } from "@/features/clientes/components/SelectedClienteBanner.client";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requirePermission } from "@/lib/auth/guards.server";
+import Link from "next/link";
 
 function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "success") {
     return (
       <div
-        className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+        className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-950"
         role="status"
       >
-        Pago iniciado correctamente. El saldo de la cartera se acredita cuando
-        Stripe confirma el webhook (unos segundos en sandbox).
+        Pago iniciado correctamente. El saldo se acredita cuando Stripe confirma
+        el webhook (unos segundos en sandbox).
       </div>
     );
   }
@@ -24,7 +25,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "cancelled") {
     return (
       <div
-        className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950"
         role="status"
       >
         El checkout de Stripe se canceló. Podés intentar de nuevo cuando quieras.
@@ -62,41 +63,65 @@ export default async function PaymentsPage({
     );
   }
 
+  const cliente = data.cliente;
+
   return (
     <div className={dashboardClasses.page}>
-      <SelectedClienteBanner
-        clienteId={data.cliente.id}
-        clienteName={data.cliente.name}
-        avatarUrl={data.cliente.avatarUrl}
-        detail="Arriba: recarga de cartera Holistic. Abajo: cobros/gastos Hecom de este cliente."
-      />
-
       <StripeReturnBanner status={status} />
 
-      {/* Cartera org — Stripe/manual (no reemplaza historial Hecom) */}
-      <section className="space-y-4" aria-labelledby="wallet-topup-heading">
-        <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)]">
-            Cartera Holistic
-          </p>
-          <h2
-            id="wallet-topup-heading"
-            className="font-display mt-1 text-xl font-medium tracking-tight text-[#141210] sm:text-[1.35rem]"
-          >
-            Recargar saldo
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645c]">
-            Recargá la cartera de tu organización (Stripe o transferencia). Es
-            independiente del historial de cobros/gastos del cliente en Hecom.
-          </p>
-        </div>
+      <section
+        className="overflow-hidden rounded-[1.25rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]"
+        aria-labelledby="wallet-topup-heading"
+      >
+        <div className="relative px-5 py-5 sm:px-6 sm:py-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.06),transparent)]"
+          />
+          <div className="relative">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
+              Cartera Holistic
+            </p>
+            <h2
+              id="wallet-topup-heading"
+              className="mt-1.5 text-[1.35rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.45rem]"
+            >
+              Recargar saldo
+            </h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
+              Recargá la cartera de tu organización (Stripe o transferencia). Es
+              independiente del historial de cobros/gastos del cliente en Hecom.
+            </p>
 
-        <PaymentsWalletSection session={session} />
-        <PaymentsGatewayPanel session={session} />
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <HecomClienteAvatar
+                name={cliente.name}
+                avatarUrl={cliente.avatarUrl}
+                size="sm"
+                className="ring-1 ring-white shadow-sm"
+              />
+              <p className="text-[13px] font-medium text-[#1a1612]">
+                {cliente.name}
+              </p>
+              <span className="text-[12px] text-[#7a736a]">
+                · abajo ves sus movimientos Hecom
+              </span>
+              <Link
+                href={`/clientes/${cliente.id}`}
+                className="text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+              >
+                Ver ficha
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
+      <PaymentsWalletSection session={session} />
+      <PaymentsGatewayPanel session={session} />
+
       <div
-        className="border-t border-[rgb(20_18_16_/_0.1)] pt-2"
+        className="border-t border-[rgb(20_18_16_/_0.08)] pt-2"
         aria-label="Historial Hecom del cliente"
       >
         <ClienteScopedPayments data={data} />

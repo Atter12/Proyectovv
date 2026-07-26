@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 
@@ -13,7 +12,11 @@ interface CreativeUploadResponse {
   job: { id: string; status: string };
 }
 
-export function CreativeUploadPanel() {
+export function CreativeUploadPanel({
+  clienteName,
+}: {
+  clienteName?: string;
+}) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
@@ -24,7 +27,7 @@ export function CreativeUploadPanel() {
 
   async function handleUpload() {
     if (!file) {
-      setError("Selecciona una imagen, video o PDF.");
+      setError("Seleccioná una imagen, video o PDF.");
       return;
     }
 
@@ -34,14 +37,22 @@ export function CreativeUploadPanel() {
     try {
       const formData = new FormData();
       formData.append("asset", file);
-      if (name.trim()) formData.append("name", name.trim());
+      const label =
+        name.trim() ||
+        (clienteName ? `${clienteName} · ${file.name}` : file.name);
+      formData.append("name", label);
 
-      const response = await apiClient<CreativeUploadResponse>("/api/creative-assets", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await apiClient<CreativeUploadResponse>(
+        "/api/creative-assets",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
-      setSuccess(`Creativo ${response.asset.name} subido. Job ${response.job.status}.`);
+      setSuccess(
+        `“${response.asset.name}” subido. Job ${response.job.status} — listo para análisis.`,
+      );
       setName("");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -58,67 +69,85 @@ export function CreativeUploadPanel() {
   }
 
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
-        <div className="p-5 sm:p-6">
-          <span className="inline-flex rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[var(--brand-primary)]">
-            Upload real
-          </span>
-          <h2 className="mt-3 text-xl font-black tracking-[-0.03em] text-[#0f172a]">
-            Sube creativos y deja el job preparado
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748b]">
-            Este flujo guarda el archivo en Storage, crea el registro en
-            creative_assets y deja un creative_analysis_job en cola. La IA real
-            puede conectarse después sin cambiar la experiencia del cliente.
-          </p>
+    <section
+      id="creative-upload"
+      className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]"
+    >
+      <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+          Análisis
+        </p>
+        <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+          Subir creativo para analizar
+        </h2>
+        <p className="mt-1 text-[13px] leading-5 text-[#6b645c]">
+          Guardamos el archivo, creamos el asset y dejamos un job en cola
+          {clienteName ? ` · contexto: ${clienteName}` : ""}.
+        </p>
+      </div>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-bold text-[#64748b]">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]">
+        <div className="px-5 py-4 sm:px-6 sm:py-5">
+          <div className="grid gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                 Nombre visible
               </label>
               <Input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Ej. Hook descuento verano"
+                placeholder={
+                  clienteName
+                    ? `Ej. Hook ${clienteName}`
+                    : "Ej. Hook descuento verano"
+                }
+                className="h-9 border-[rgb(20_18_16_/_0.1)] text-[13px]"
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-bold text-[#64748b]">
-                Archivo creativo
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
+                Archivo
               </label>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*,application/pdf"
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                className="block w-full rounded-2xl border border-[#dbe1ea] bg-white px-3 py-2.5 text-sm text-[#0f172a] file:mr-3 file:rounded-xl file:border-0 file:bg-[#eef2ff] file:px-3 file:py-1.5 file:text-xs file:font-black file:text-[var(--brand-primary)]"
+                onChange={(event) =>
+                  setFile(event.target.files?.[0] ?? null)
+                }
+                className="block w-full rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 py-2 text-[13px] text-[#1a1612] file:mr-3 file:rounded-md file:border-0 file:bg-[#f0e9e0] file:px-2.5 file:py-1 file:text-[11px] file:font-medium file:text-[#5c564e]"
               />
-              <p className="mt-1 text-xs text-[#94a3b8]">
-                Máximo 50 MB. Formatos: imagen, video o PDF.
+              <p className="mt-1 text-[11px] text-[#9a9187]">
+                Máx. 50 MB · imagen, video o PDF
+                {file ? ` · ${file.name}` : ""}
               </p>
             </div>
           </div>
 
-          {error && (
-            <p className="mt-4 rounded-2xl bg-[#fef2f2] px-3 py-2 text-sm text-[#991b1b]" role="alert">
+          {error ? (
+            <p
+              className="mt-3 rounded-lg bg-[#fef2f2] px-3 py-2 text-[13px] text-[#991b1b]"
+              role="alert"
+            >
               {error}
             </p>
-          )}
-          {success && (
-            <p className="mt-4 rounded-2xl bg-[#ecfdf5] px-3 py-2 text-sm text-[#047857]">
+          ) : null}
+          {success ? (
+            <p className="mt-3 rounded-lg bg-[#ecf7f0] px-3 py-2 text-[13px] text-[#1f5c40]">
               {success}
             </p>
-          )}
+          ) : null}
 
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <Button onClick={handleUpload} disabled={loading} size="lg">
-              {loading ? "Subiendo…" : "Subir y crear job"}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              onClick={handleUpload}
+              disabled={loading}
+              className="h-9 rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium hover:bg-[#d14e16]"
+            >
+              {loading ? "Subiendo…" : "Subir y encolar análisis"}
             </Button>
             <Button
               variant="outline"
-              size="lg"
               onClick={() => {
                 setName("");
                 setFile(null);
@@ -127,33 +156,38 @@ export function CreativeUploadPanel() {
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }}
               disabled={loading}
+              className="h-9 rounded-lg border-[rgb(20_18_16_/_0.12)] px-3 text-[13px] font-normal text-[#4a433c] hover:bg-[#f3eee8]"
             >
               Limpiar
             </Button>
           </div>
         </div>
 
-        <div className="border-t border-[#e5e7eb] bg-slate-950 p-5 text-white sm:p-6 lg:border-l lg:border-t-0">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">
-            Estado operativo
+        <aside className="border-t border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-5 py-4 sm:px-6 sm:py-5 lg:border-l lg:border-t-0">
+          <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+            Qué hace este flujo
           </p>
-          <div className="mt-5 space-y-4">
+          <ul className="mt-3 space-y-2.5">
             {[
               "Archivo privado en Storage",
-              "creative_asset registrado",
-              "Job en cola",
-              "Historial visible",
+              "Registro en creative_assets",
+              "Job de análisis en cola",
+              "Listo para conectar scoring IA",
             ].map((item) => (
-              <div key={item} className="flex items-center gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#12d6a3]/15 text-xs font-black text-[#12d6a3]">
-                  ✓
-                </span>
-                <span className="text-sm font-semibold text-white/80">{item}</span>
-              </div>
+              <li
+                key={item}
+                className="flex items-start gap-2 text-[12px] leading-4 text-[#5c564e]"
+              >
+                <span
+                  aria-hidden
+                  className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c45a18]"
+                />
+                {item}
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </aside>
       </div>
-    </Card>
+    </section>
   );
 }

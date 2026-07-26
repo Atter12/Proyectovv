@@ -20,32 +20,38 @@ export function ClienteScopePageHeader({
   actions,
 }: Props) {
   return (
-    <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-4">
-          {name ? (
-            <HecomClienteAvatar
-              name={name}
-              avatarUrl={avatarUrl}
-              size="lg"
-              className="ring-2 ring-[var(--brand-primary)]/20"
-            />
-          ) : null}
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)]">
-              {eyebrow}
-            </p>
-            <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#141210] sm:text-[1.85rem]">
-              {title}
-            </h1>
-            {description ? (
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645c]">
-                {description}
-              </p>
+    <div className="overflow-hidden rounded-[1.25rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
+      <div className="relative px-5 py-5 sm:px-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.05),transparent)]"
+        />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            {name ? (
+              <HecomClienteAvatar
+                name={name}
+                avatarUrl={avatarUrl}
+                size="md"
+                className="ring-1 ring-white shadow-sm"
+              />
             ) : null}
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
+                {eyebrow}
+              </p>
+              <h1 className="mt-1 text-[1.25rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.35rem]">
+                {title}
+              </h1>
+              {description ? (
+                <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
+                  {description}
+                </p>
+              ) : null}
+            </div>
           </div>
+          {actions ? <div className="shrink-0">{actions}</div> : null}
         </div>
-        {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
     </div>
   );
@@ -54,16 +60,26 @@ export function ClienteScopePageHeader({
 export function ClienteScopeKpi({
   label,
   value,
+  accent = "bg-[#8a8178]",
+  tone = "text-[#1a1612]",
 }: {
   label: string;
   value: string;
+  accent?: string;
+  tone?: string;
 }) {
   return (
-    <div className="dashboard-kpi rounded-2xl p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b645c]">
+    <div className="relative overflow-hidden rounded-[1rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-4 py-3.5">
+      <span
+        aria-hidden
+        className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${accent}`}
+      />
+      <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
         {label}
       </p>
-      <p className="mt-1 font-display text-[1.35rem] font-medium tracking-[-0.02em] text-[#141210]">
+      <p
+        className={`mt-1 truncate pl-2 text-[1.2rem] font-medium tracking-[-0.015em] tabular-nums ${tone}`}
+      >
         {value}
       </p>
     </div>

@@ -27,7 +27,7 @@ const GATEWAY_LOGOS: Record<PaymentGatewayId, GatewayLogoConfig> = {
   },
   manual: {
     fallback: "M",
-    brandColor: "#64748B",
+    brandColor: "#6b645c",
   },
 };
 
@@ -41,7 +41,7 @@ export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
   const [imgError, setImgError] = useState(false);
 
   const boxClass =
-    size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm";
+    size === "sm" ? "h-8 w-8 text-[11px]" : "h-9 w-9 text-[12px]";
 
   const showFallback = !config.cdnUrl || imgError;
 
@@ -49,7 +49,7 @@ export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-lg font-bold text-white",
+          "flex items-center justify-center rounded-md text-[11px] font-medium text-white",
           boxClass,
         )}
         style={{ backgroundColor: config.brandColor }}
@@ -63,7 +63,7 @@ export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-[#e5e7eb]",
+        "flex items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-[rgb(20_18_16_/_0.08)]",
         boxClass,
       )}
     >

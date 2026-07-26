@@ -73,9 +73,6 @@ export function SelectedClienteBanner({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild href={routes.clientes} variant="secondary" size="sm">
-            Cambiar cliente
-          </Button>
           <Button
             type="button"
             variant="ghost"

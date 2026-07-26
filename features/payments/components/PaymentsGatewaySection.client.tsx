@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/Card";
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
 import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 
@@ -20,39 +19,41 @@ export function PaymentsGatewaySection({
   const selectedGateway = gateways.find((g) => g.id === selected);
 
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="border-b border-[var(--border-subtle)] px-5 py-4 sm:px-6">
-        <h2 className="text-[15px] font-semibold text-[var(--foreground)]">
+    <section className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
+      <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+          Depósito
+        </p>
+        <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
           Pagar / agregar saldo
         </h2>
-        <p className="mt-1 text-[13px] leading-5 text-[var(--admin-text-muted,#64748b)]">
-          Elige la pasarela (Stripe, Culqi, etc.). Al seleccionarla se abre el
-          depósito al instante.
+        <p className="mt-1 text-[13px] leading-5 text-[#6b645c]">
+          Elegí la pasarela. Al seleccionarla se abre el depósito.
         </p>
       </div>
 
-      <div className="px-5 py-5 sm:px-6">
+      <div className="px-5 py-4 sm:px-6 sm:py-5">
         <PaymentGatewaySelector
           gateways={gateways}
           selected={selected}
           onSelect={onSelect}
         />
 
-        <div className="mt-5 flex flex-col gap-3 rounded-xl border border-[var(--brand-primary)]/20 bg-[var(--brand-primary)]/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#faf7f3] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--brand-primary)]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
               Siguiente paso
             </p>
-            <p className="mt-1 text-[14px] text-[var(--foreground)]">
+            <p className="mt-0.5 text-[13px] text-[#2a241f]">
               {selectedGateway
-                ? `Continúa el depósito con ${selectedGateway.name}.`
-                : "Selecciona un método de pago para continuar."}
+                ? `Continuar con ${selectedGateway.name}`
+                : "Seleccioná un método para continuar"}
             </p>
           </div>
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] sm:h-11 sm:w-auto"
+            className="inline-flex h-9 w-full shrink-0 items-center justify-center rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16] sm:w-auto"
           >
             {selectedGateway
               ? `Pagar con ${selectedGateway.name}`
@@ -60,6 +61,6 @@ export function PaymentsGatewaySection({
           </button>
         </div>
       </div>
-    </Card>
+    </section>
   );
 }

@@ -72,12 +72,12 @@ export function AdAccountsToolbar({
 
   return (
     <>
-      <div className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] p-4 sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <div className="relative min-w-0 flex-1 sm:max-w-sm">
+      <div className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] px-4 py-3.5 sm:px-5">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative min-w-0 flex-1 sm:max-w-xs">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8178]"
+                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a8178]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -90,14 +90,14 @@ export function AdAccountsToolbar({
                 />
               </svg>
               <Input
-                placeholder="Buscar por ID, nombre o estado"
+                placeholder="Buscar cuenta o ID"
                 value={search}
                 onChange={(e) => {
                   const value = e.target.value;
                   setSearch(value);
                   updateParams({ q: value || null });
                 }}
-                className="h-10 w-full border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px]"
+                className="h-9 w-full border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px] font-normal"
               />
             </div>
             <select
@@ -107,7 +107,7 @@ export function AdAccountsToolbar({
                 setStatus(value);
                 updateParams({ status: value === "all" ? null : value });
               }}
-              className="h-10 w-full rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15 sm:w-auto"
+              className="h-9 w-full rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] font-normal text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15 sm:w-auto"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -116,7 +116,7 @@ export function AdAccountsToolbar({
               ))}
             </select>
             {!hideCreate ? (
-              <label className="flex h-10 items-center gap-2 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] font-medium text-[#6b645c]">
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[12px] font-normal text-[#6b645c]">
                 <input
                   type="checkbox"
                   checked={includeArchived}
@@ -125,17 +125,17 @@ export function AdAccountsToolbar({
                     setIncludeArchived(checked);
                     updateParams({ archived: checked ? "1" : null });
                   }}
-                  className="h-4 w-4 rounded border-[rgb(20_18_16_/_0.2)] text-[#c45a18] focus:ring-[#c45a18]"
+                  className="h-3.5 w-3.5 rounded border-[rgb(20_18_16_/_0.2)] text-[#c45a18] focus:ring-[#c45a18]"
                 />
                 Ver archivadas
               </label>
             ) : null}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-0.5">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Link href={routes.creativeAnalyzer} className="shrink-0">
               <Button
                 variant="outline"
-                className="h-10 rounded-lg border-[rgb(20_18_16_/_0.12)] bg-white px-3 text-[13px] text-[#4a433c] hover:bg-[#f3eee8]"
+                className="h-9 rounded-lg border-[rgb(20_18_16_/_0.12)] bg-white px-3 text-[12px] font-normal text-[#4a433c] hover:bg-[#f3eee8]"
               >
                 Analizador creativo
               </Button>
@@ -143,7 +143,7 @@ export function AdAccountsToolbar({
             {!hideCreate ? (
               <Button
                 onClick={() => setModalOpen(true)}
-                className="hidden h-10 rounded-lg bg-[#e85a1c] px-4 text-[13px] hover:bg-[#d14e16] md:inline-flex"
+                className="hidden h-9 rounded-lg bg-[#e85a1c] px-3.5 text-[12px] font-medium hover:bg-[#d14e16] md:inline-flex"
               >
                 Crear nuevo
               </Button>
