@@ -163,6 +163,7 @@ export const getPaymentPageCore = cache(async (
       balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
       autoRecharge: false,
       thresholdInfo: "Sin auto-recarga configurada",
+      externalAccountId: account.external_account_id ?? null,
     }),
   );
 

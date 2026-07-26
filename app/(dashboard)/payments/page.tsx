@@ -71,6 +71,9 @@ export default async function PaymentsPage({
   }
 
   const cliente = data.cliente;
+  const hecomAdvertiserIds = data.accounts
+    .map((account) => account.advertiserId?.trim())
+    .filter((id): id is string => Boolean(id));
 
   return (
     <div className={dashboardClasses.page}>
@@ -96,8 +99,9 @@ export default async function PaymentsPage({
               Recargar y fondear ads
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Arriba: cartera Holistic — recargás con Stripe y asignás a cuentas
-              ads. Abajo: historial Hecom — cobros y gastos ya consumidos.
+              Arriba: cartera Holistic — recargás con Stripe y asignás solo a
+              cuentas de {cliente.name}. Abajo: historial Hecom de este cliente
+              (cobros y gastos ya consumidos).
             </p>
 
             <div className="mt-4">
@@ -124,18 +128,22 @@ export default async function PaymentsPage({
 
             <p className="mt-4 rounded-lg border border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-3.5 py-2.5 text-[13px] leading-5 text-[#4a443c]">
               Recargás arriba para fondear; abajo solo ves el historial de lo ya
-              cobrado y gastado.
+              cobrado y gastado de {cliente.name}.
             </p>
           </div>
         </div>
       </section>
 
       <PaymentsWalletSection session={session} />
-      <PaymentsGatewayPanel session={session} />
+      <PaymentsGatewayPanel
+        session={session}
+        hecomAdvertiserIds={hecomAdvertiserIds}
+        clienteName={cliente.name}
+      />
 
       <div
         className="border-t border-[rgb(20_18_16_/_0.08)] pt-2"
-        aria-label="Historial Hecom del cliente"
+        aria-label={`Historial Hecom de ${cliente.name}`}
       >
         <ClienteScopedPayments data={data} />
       </div>

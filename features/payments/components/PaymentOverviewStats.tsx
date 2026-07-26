@@ -17,7 +17,7 @@ export function PaymentOverviewStats({
     {
       label: "Saldo disponible",
       value: formatMoney(wallet.balance, wallet.currency),
-      hint: "Cartera Default",
+      hint: "Cartera de la organización",
       accent: "bg-[#c45a18]",
       tone: "text-[#1a1612]",
     },

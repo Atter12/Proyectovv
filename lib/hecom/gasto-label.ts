@@ -104,3 +104,8 @@ export function formatHecomFecha(value: string | null): string | null {
   }
   return value;
 }
+
+/** Advertiser id embedded in Hecom `gastos.camp` plantilla (pipe segment 2). */
+export function getAdvertiserIdFromCamp(camp: string | null): string | null {
+  return parseCampPlantilla(camp).advertiserId;
+}

@@ -34,6 +34,8 @@ export interface PaymentAccountAllocation {
   balance: number;
   autoRecharge: boolean;
   thresholdInfo: string;
+  /** TikTok advertiser id when linked; used to scope by Hecom cliente. */
+  externalAccountId?: string | null;
 }
 
 export interface TransactionHistoryItem {

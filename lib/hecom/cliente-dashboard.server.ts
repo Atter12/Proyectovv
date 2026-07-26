@@ -8,6 +8,7 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
+import { getAdvertiserIdFromCamp } from "@/lib/hecom/gasto-label";
 import {
   createHecomAdminClient,
   getHecomSupabaseConfig,
@@ -189,15 +190,17 @@ async function loadLiveFinance(clientId: string): Promise<{
         .limit(40),
     ]);
 
-    const gastos = ((gastosRes.data ?? []) as Record<string, unknown>[]).map(
-      mapGasto,
-    );
-    const cobros = ((cobrosRes.data ?? []) as Record<string, unknown>[]).map(
-      mapCobro,
-    );
+    const gastos = ((gastosRes.data ?? []) as Record<string, unknown>[])
+      .filter((row) => String(row.client_id ?? "") === clientId)
+      .map(mapGasto);
+    const cobros = ((cobrosRes.data ?? []) as Record<string, unknown>[])
+      .filter((row) => String(row.client_id ?? "") === clientId)
+      .map(mapCobro);
     const creativosClientes = (
       (creativosRes.data ?? []) as Record<string, unknown>[]
-    ).map(mapCreativoCliente);
+    )
+      .filter((row) => String(row.credito_client_id ?? "") === clientId)
+      .map(mapCreativoCliente);
 
     let creativosProyectos: HecomCreativoProyecto[] = [];
     if (creativosClientes.length > 0) {
@@ -225,6 +228,27 @@ async function loadLiveFinance(clientId: string): Promise<{
   }
 }
 
+function advertiserIdsFromAccounts(accounts: HecomTiktokAccount[]): string[] {
+  return accounts
+    .map((account) => account.advertiserId?.trim())
+    .filter((id): id is string => Boolean(id));
+}
+
+/** Drop gastos whose camp advertiser id is not one of this cliente's accounts. */
+function scopeGastosToAdvertisers(
+  gastos: HecomGastoRow[],
+  advertiserIds: string[],
+): HecomGastoRow[] {
+  const allowed = new Set(advertiserIds);
+  if (allowed.size === 0) return gastos;
+
+  return gastos.filter((row) => {
+    const fromCamp = getAdvertiserIdFromCamp(row.camp)?.trim();
+    if (!fromCamp) return true;
+    return allowed.has(fromCamp);
+  });
+}
+
 export async function getHecomClienteDashboard(
   clienteId: string,
 ): Promise<HecomClienteDashboard | null> {
@@ -232,23 +256,26 @@ export async function getHecomClienteDashboard(
   if (!cliente) return null;
 
   const accounts = resolveAccounts(cliente);
+  const advertiserIds = advertiserIdsFromAccounts(accounts);
   const cfg = getHecomSupabaseConfig();
 
   if (cfg.configured) {
     const live = await loadLiveFinance(clienteId);
     if (live) {
+      const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+      const cobros = live.cobros;
       return {
         source: "hecom_live",
         cliente,
         accounts,
-        gastos: live.gastos,
-        cobros: live.cobros,
+        gastos,
+        cobros,
         creativosClientes: live.creativosClientes,
         creativosProyectos: live.creativosProyectos,
         summary: buildSummary(
           accounts,
-          live.gastos,
-          live.cobros,
+          gastos,
+          cobros,
           live.creativosClientes,
           live.creativosProyectos,
         ),
@@ -271,7 +298,10 @@ export async function getHecomClienteDashboard(
   }
 
   const filtered = filterBackupByClient(backup.data, clienteId);
-  const gastos = filtered.gastos.map(mapGasto);
+  const gastos = scopeGastosToAdvertisers(
+    filtered.gastos.map(mapGasto),
+    advertiserIds,
+  );
   const cobros = filtered.cobros.map(mapCobro);
   const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
   const creativosProyectos = filtered.creativosProyectos.map(mapCreativoProyecto);
