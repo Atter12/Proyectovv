@@ -22,8 +22,10 @@ Y la idea clave: recargás arriba para fondear; abajo solo ves el historial de l
 
 4. Analizador creativo
 
-Acá está el analizador creativo. Tenés las fichas y los proyectos creativos del cliente que vienen de Hecom, y más abajo podés subir piezas para encolar un análisis en Holistic. O sea: mirás lo que ya tiene y, si querés, mandás creativos nuevos a revisar.
+Acá está el analizador creativo. Hoy ya se ven las fichas y proyectos del cliente desde Hecom, y se pueden subir piezas para encolar un análisis.
+
+Este módulo todavía se va a mejorar bastante. La idea es que después puedas subir un creativo, que la IA te diga qué tan fuerte está, qué mejorar, y te tire recomendaciones antes de gastarlo en ads. O sea: no solo guardar piezas, sino ayudarte a decidir qué conviene publicar.
 
 5. Afiliados
 
-Y por último afiliados, rapidito. Es el programa de afiliados, si aplica. No es el core de ads ni de pagos; lo mostramos y listo, acá cerramos.
+Y afiliados, rapidito. Hoy es más una base; no es el core de ads ni de pagos. El siguiente paso de este módulo es armar bien el programa: tu enlace o código, ver referidos, comisiones por el gasto de ads, y poder seguir quién trajo a quién. Por ahora lo mostramos así y lo vamos a pulir después.
