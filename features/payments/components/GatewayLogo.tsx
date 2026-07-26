@@ -25,6 +25,10 @@ const GATEWAY_LOGOS: Record<PaymentGatewayId, GatewayLogoConfig> = {
     fallback: "MP",
     brandColor: "#00B1EA",
   },
+  crypto: {
+    fallback: "₮",
+    brandColor: "#26A17B",
+  },
   manual: {
     fallback: "M",
     brandColor: "#6b645c",

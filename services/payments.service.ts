@@ -263,6 +263,7 @@ export interface ManualPaymentIntentItem {
   amount: number;
   currency: string;
   status: string;
+  provider: string;
   reviewStatus: "awaiting_proof" | "pending_review" | "approved" | "rejected" | "cancelled";
   proofFileName: string | null;
   failureReason: string | null;
@@ -299,7 +300,7 @@ export async function getRecentManualPaymentIntents(
     .from("payment_intents")
     .select("id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at")
     .eq("organization_id", organizationId)
-    .eq("provider", "manual")
+    .in("provider", ["manual", "crypto"])
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -311,6 +312,7 @@ export async function getRecentManualPaymentIntents(
     amount: centsToAmount(row.amount_cents),
     currency: row.currency,
     status: row.status,
+    provider: row.provider,
     reviewStatus: getManualIntentReviewStatus(row),
     proofFileName: getManualProofFileName(row.metadata),
     failureReason: row.failure_reason ?? null,

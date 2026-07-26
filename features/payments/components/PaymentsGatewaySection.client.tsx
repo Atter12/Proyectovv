@@ -25,10 +25,11 @@ export function PaymentsGatewaySection({
           Depósito
         </p>
         <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
-          Pagar / agregar saldo
+          Pagar / recargar cartera
         </h2>
         <p className="mt-1 text-[13px] leading-5 text-[#6b645c]">
-          Elegí la pasarela. Al seleccionarla se abre el depósito.
+          Paso 1 · Elegí Stripe y recargá. Después asignás ese saldo a una cuenta
+          ads (paso 2 más abajo).
         </p>
       </div>
 

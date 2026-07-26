@@ -1,3 +1,4 @@
+import { isVoucherPaymentProvider } from "@/types/payment";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session.server";
@@ -54,9 +55,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Intención no encontrada." }, { status: 404 });
   }
 
-  if (intent.provider !== "manual") {
+  if (!isVoucherPaymentProvider(intent.provider)) {
     return NextResponse.json(
-      { error: "El voucher solo aplica para pagos manuales." },
+      { error: "El voucher solo aplica para pago manual o cripto." },
       { status: 400 },
     );
   }

@@ -19,7 +19,7 @@ import {
 } from "@/lib/email/templates/payments";
 import { serverEnv } from "@/lib/env/env.server";
 import type { PaymentGatewayId } from "@/types/payment";
-import { isPaymentGatewayId } from "@/types/payment";
+import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 
 export interface CreatePaymentIntentRequest {
   amount: number;
@@ -59,12 +59,12 @@ export async function createPaymentIntentForSession(
   const providerImpl = getPaymentProvider(provider);
   const configured = providerImpl.isConfigured();
 
-  if (!configured && provider !== "manual") {
+  if (!configured && !isVoucherPaymentProvider(provider)) {
     throw new ProviderNotConfiguredError(provider);
   }
 
-  if (provider === "manual" && !configured) {
-    throw new ProviderNotConfiguredError("manual");
+  if (isVoucherPaymentProvider(provider) && !configured) {
+    throw new ProviderNotConfiguredError(provider);
   }
 
   const walletId = await resolveWalletId(session.organizationId);
@@ -92,7 +92,7 @@ export async function createPaymentIntentForSession(
   });
 
   const nextStatus =
-    provider === "manual"
+    isVoucherPaymentProvider(provider)
       ? "requires_payment"
       : checkoutResult.status === "requires_payment"
         ? "requires_payment"
@@ -106,7 +106,7 @@ export async function createPaymentIntentForSession(
     checkoutUrl: checkoutResult.checkoutUrl,
   });
 
-  if (provider === "manual") {
+  if (isVoucherPaymentProvider(provider)) {
     await sendManualPaymentEmailBestEffort({
       to: session.email,
       userId: session.id,

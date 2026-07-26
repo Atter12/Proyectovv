@@ -29,7 +29,7 @@ export default async function WebhooksPage({ searchParams }: { searchParams: Pro
             <option value="all">Estado</option><option value="received">Received</option><option value="processing">Processing</option><option value="processed">Processed</option><option value="failed">Failed</option><option value="ignored">Ignored</option>
           </Select>
           <Select name="provider" defaultValue={provider}>
-            <option value="all">Provider</option><option value="stripe">Stripe</option><option value="mercadopago">Mercado Pago</option><option value="culqi">Culqi</option><option value="manual">Manual</option><option value="tiktok">TikTok</option>
+            <option value="all">Provider</option><option value="stripe">Stripe</option><option value="mercadopago">Mercado Pago</option><option value="culqi">Culqi</option><option value="manual">Manual</option><option value="crypto">Cripto</option><option value="tiktok">TikTok</option>
           </Select>
           <Button type="submit" variant="secondary">Filtrar</Button>
         </form>

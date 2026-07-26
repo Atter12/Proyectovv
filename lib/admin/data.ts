@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRecord } from "@/lib/types/json";
+import { VOUCHER_PAYMENT_PROVIDERS } from "@/types/payment";
 
 export interface ProfileRow {
   id: string;
@@ -483,7 +484,7 @@ export async function getOperationalMonthlyProgress(): Promise<OperationalMonthl
     admin
       .from("payment_intents")
       .select("*", { count: "exact", head: true })
-      .eq("provider", "manual")
+      .in("provider", [...VOUCHER_PAYMENT_PROVIDERS])
       .gte("created_at", monthStart)
       .in("status", [...PENDING_PAYMENT_STATUSES]),
     admin
@@ -505,7 +506,7 @@ export async function getOperationalMonthlyProgress(): Promise<OperationalMonthl
     admin
       .from("payment_intents")
       .select("*", { count: "exact", head: true })
-      .eq("provider", "manual")
+      .in("provider", [...VOUCHER_PAYMENT_PROVIDERS])
       .eq("status", COMPLETED_PAYMENT_STATUS)
       .gte("succeeded_at", monthStart),
     admin
@@ -679,7 +680,7 @@ export async function getAdminNavSignals(): Promise<AdminNavSignals> {
     admin
       .from("payment_intents")
       .select("*", { count: "exact", head: true })
-      .eq("provider", "manual")
+      .in("provider", [...VOUCHER_PAYMENT_PROVIDERS])
       .in("status", [...PENDING_PAYMENT_STATUSES]),
     admin.from("support_tickets").select("*", { count: "exact", head: true }).in("status", ["open", "pending"]),
     admin.from("webhook_events").select("*", { count: "exact", head: true }).eq("status", "failed"),
@@ -705,7 +706,7 @@ export async function getOverviewData() {
   ] = await Promise.all([
     safeCount("profiles"),
     safeCount("organizations"),
-    admin.from("payment_intents").select("*", { count: "exact", head: true }).eq("provider", "manual").in("status", ["created", "requires_payment", "processing"]),
+    admin.from("payment_intents").select("*", { count: "exact", head: true }).in("provider", [...VOUCHER_PAYMENT_PROVIDERS]).in("status", ["created", "requires_payment", "processing"]),
     admin.from("wallet_transactions").select("*", { count: "exact", head: true }).eq("type", "refund").eq("status", "pending"),
     admin.from("support_tickets").select("*", { count: "exact", head: true }).in("status", ["open", "pending"]),
     admin.from("webhook_events").select("*", { count: "exact", head: true }).eq("status", "failed"),
@@ -777,7 +778,7 @@ export async function listManualPayments(filters: { status?: string; q?: string 
   let query = admin
     .from("payment_intents")
     .select("id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, metadata, created_by, created_at, updated_at, failure_reason, checkout_url, succeeded_at, canceled_at")
-    .eq("provider", "manual")
+    .in("provider", [...VOUCHER_PAYMENT_PROVIDERS])
     .order("created_at", { ascending: false })
     .limit(120);
   if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);

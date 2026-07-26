@@ -16,14 +16,14 @@ export function PaymentToolbar({
   onStatusChange,
 }: PaymentToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 border-b border-[var(--border-subtle)] p-4 sm:flex-row sm:items-center sm:p-5">
-      <p className="w-full text-[13px] leading-5 text-[var(--admin-text-muted,#64748b)] sm:hidden">
-        Usa <span className="font-semibold text-[var(--foreground)]">Asignar saldo</span> en
-        cada cuenta para mover fondos desde tu cartera.
+    <div className="flex flex-col gap-3 border-b border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
+      <p className="w-full text-[12px] leading-5 text-[#6b645c] sm:hidden">
+        Tocá <span className="font-medium text-[#1a1612]">Asignar saldo</span> en
+        la cuenta que quieras fondear.
       </p>
-      <div className="relative flex-1 sm:max-w-sm">
+      <div className="relative flex-1 sm:max-w-xs">
         <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a8178]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -36,16 +36,16 @@ export function PaymentToolbar({
           />
         </svg>
         <Input
-          placeholder="Buscar cuenta publicitaria"
+          placeholder="Buscar cuenta"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-10 pl-9"
+          className="h-9 border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px]"
         />
       </div>
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value)}
-        className="h-10 rounded-xl border border-[#dbe1ea] bg-white px-3 text-sm text-[#0f172a] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+        className="h-9 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15"
       >
         <option value="all">Todos los estados</option>
         <option value="active">Activa</option>

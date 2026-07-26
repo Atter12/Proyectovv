@@ -22,8 +22,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
     <>
       <AdminPageHeader
         eyebrow="Finanzas"
-        title="Pagos manuales"
-        description="Revisión avanzada de vouchers: aprueba pagos, acredita ledger/wallet y notifica al cliente; o rechaza con motivo operativo."
+        title="Pagos con comprobante"
+        description="Revisión de transferencias y cripto (USDT): aprueba pagos, acredita ledger/wallet y notifica al cliente; o rechaza con motivo operativo."
       />
       <Card className="p-5">
         <form className="mb-5 grid gap-3 md:grid-cols-[1fr_13rem_auto]">
@@ -40,11 +40,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         </form>
         <TableWrap>
           <Table>
-            <thead><tr><Th>Pago</Th><Th>Cliente</Th><Th>Voucher</Th><Th>Monto</Th><Th>Estado</Th><Th>Acción</Th></tr></thead>
+            <thead><tr><Th>Pago</Th><Th>Método</Th><Th>Cliente</Th><Th>Voucher</Th><Th>Monto</Th><Th>Estado</Th><Th>Acción</Th></tr></thead>
             <tbody className="divide-y divide-[var(--admin-table-divider)]">
               {payments.map(({ row, organization, actor, proof }) => (
                 <tr key={row.id}>
                   <Td><Link href={`/admin/payments/${row.id}`} className="font-semibold text-[var(--admin-text)] hover:text-[var(--admin-accent)]">{row.id.slice(0, 8)}</Link><p className="text-xs text-[var(--admin-text-muted)]">{formatDateTime(row.created_at)}</p></Td>
+                  <Td className="text-sm font-medium text-[var(--admin-text)]">{row.provider === "crypto" ? "Cripto" : "Manual"}</Td>
                   <Td>{organization?.name ?? "—"}<p className="text-xs text-[var(--admin-text-muted)]">{actor?.email ?? "—"}</p></Td>
                   <Td>{proof ? <span className="font-bold text-emerald-700">{proof.fileName ?? "Adjunto"}</span> : <span className="text-[var(--admin-text-muted)]">Sin voucher</span>}<p className="text-xs text-[var(--admin-text-muted)]">{proof?.uploadedAt ? formatDateTime(proof.uploadedAt) : ""}</p></Td>
                   <Td className="font-semibold text-[var(--admin-text)]">{formatMoney(row.amount_cents, row.currency)}</Td>

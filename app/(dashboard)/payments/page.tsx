@@ -3,6 +3,7 @@ import { ClienteScopedPayments } from "@/features/clientes/components/ClienteSco
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
+import { PaymentsMoneyFlowGuide } from "@/features/payments/components/PaymentsMoneyFlowGuide";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
@@ -16,8 +17,14 @@ function StripeReturnBanner({ status }: { status?: string }) {
         className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-950"
         role="status"
       >
-        Pago iniciado correctamente. El saldo se acredita cuando Stripe confirma
-        el webhook (unos segundos en sandbox).
+        Pago ok. En unos segundos se acredita en la cartera. Después andá a{" "}
+        <a
+          href="#asignar-saldo"
+          className="font-semibold underline underline-offset-2"
+        >
+          Asignar saldo
+        </a>{" "}
+        y pasalo a una cuenta TikTok para que las campañas puedan gastar.
       </div>
     );
   }
@@ -86,12 +93,16 @@ export default async function PaymentsPage({
               id="wallet-topup-heading"
               className="mt-1.5 text-[1.35rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.45rem]"
             >
-              Recargar saldo
+              Recargar y fondear ads
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Recargá la cartera de tu organización (Stripe o transferencia). Es
-              independiente del historial de cobros/gastos del cliente en Hecom.
+              Paso 1: metés plata a la cartera. Paso 2: la asignás a una cuenta
+              TikTok. Ahí sí las campañas pueden gastar.
             </p>
+
+            <div className="mt-4">
+              <PaymentsMoneyFlowGuide />
+            </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <HecomClienteAvatar
@@ -104,7 +115,7 @@ export default async function PaymentsPage({
                 {cliente.name}
               </p>
               <span className="text-[12px] text-[#7a736a]">
-                · abajo ves sus movimientos Hecom
+                · más abajo: historial Hecom (ya cobrado / ya gastado)
               </span>
               <Link
                 href={`/clientes/${cliente.id}`}

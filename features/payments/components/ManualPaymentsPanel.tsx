@@ -33,10 +33,10 @@ export async function ManualPaymentsPanel({ session }: ManualPaymentsPanelProps)
     <Card padding="none" className="overflow-hidden">
       <div className="border-b border-[#e5e7eb] px-5 py-4">
         <h2 className="text-sm font-semibold text-[#0f172a]">
-          Pagos manuales recientes
+          Pagos con comprobante recientes
         </h2>
         <p className="mt-1 text-xs text-[#64748b]">
-          Seguimiento del voucher y revisión operativa antes de acreditar saldo.
+          Transferencia o cripto (USDT): seguimiento del voucher antes de acreditar saldo.
         </p>
       </div>
       <div className="overflow-x-auto">
@@ -44,6 +44,7 @@ export async function ManualPaymentsPanel({ session }: ManualPaymentsPanelProps)
           <thead>
             <tr className="border-b border-[#e5e7eb] bg-slate-50/80 text-left text-xs uppercase tracking-wide text-[#64748b]">
               <th className="px-4 py-3 font-medium sm:px-5">Fecha</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Método</th>
               <th className="px-4 py-3 font-medium sm:px-5">Monto</th>
               <th className="px-4 py-3 font-medium sm:px-5">Estado</th>
               <th className="px-4 py-3 font-medium sm:px-5">Voucher</th>
@@ -55,6 +56,9 @@ export async function ManualPaymentsPanel({ session }: ManualPaymentsPanelProps)
               <tr key={intent.id} className="border-b border-[#e5e7eb] last:border-0">
                 <td className="px-4 py-3 text-[#64748b] sm:px-5">
                   {new Date(intent.createdAt).toLocaleString("es-PE")}
+                </td>
+                <td className="px-4 py-3 text-[#0f172a] sm:px-5">
+                  {intent.provider === "crypto" ? "Cripto" : "Manual"}
                 </td>
                 <td className="px-4 py-3 font-semibold text-[#0f172a] sm:px-5">
                   {formatMoney(intent.amount, intent.currency)}

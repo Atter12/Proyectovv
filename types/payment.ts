@@ -3,7 +3,8 @@ export type PaymentGatewayId =
   | "stripe"
   | "culqi"
   | "mercadopago"
-  | "manual";
+  | "manual"
+  | "crypto";
 
 export type PaymentTabKey =
   | "assignment"
@@ -66,8 +67,18 @@ export const PAYMENT_GATEWAY_IDS: PaymentGatewayId[] = [
   "culqi",
   "mercadopago",
   "manual",
+  "crypto",
 ];
 
 export function isPaymentGatewayId(value: string): value is PaymentGatewayId {
   return PAYMENT_GATEWAY_IDS.includes(value as PaymentGatewayId);
 }
+
+/** Providers that create an intent + wait for voucher / human approval. */
+export function isVoucherPaymentProvider(
+  provider: string,
+): provider is "manual" | "crypto" {
+  return provider === "manual" || provider === "crypto";
+}
+
+export const VOUCHER_PAYMENT_PROVIDERS = ["manual", "crypto"] as const;

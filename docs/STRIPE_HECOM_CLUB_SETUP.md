@@ -80,6 +80,18 @@ Si el webhook falla: revisar `STRIPE_WEBHOOK_SECRET` y que la URL sea exactament
 
 ---
 
+## Cripto (USDT)
+
+Sí es posible. Hoy el flujo es **voucher** (como transferencia): el cliente elige Cripto → envía USDT → sube captura/TxID → admin aprueba y acredita saldo.
+
+1. Aplicar migración `013_payment_provider_crypto.sql` en Supabase (agrega enum `crypto`).
+2. Mantener `PAYMENTS_MANUAL_ENABLED=true` (también habilita cripto en producción).
+3. En Pagos → Recargar → método **Cripto (USDT)**.
+
+Automatizar on-chain (NOWPayments / Binance Pay API) es un paso aparte, después.
+
+---
+
 ## Paso 5 — Live (solo después del test OK)
 
 1. Activar cuenta Stripe (negocio / banco) — humano

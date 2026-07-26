@@ -18,9 +18,14 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
     description: "Pagos en Latinoamérica",
   },
   {
+    id: "crypto",
+    name: "Cripto (USDT)",
+    description: "USDT / Binance · subís comprobante",
+  },
+  {
     id: "manual",
     name: "Pago manual",
-    description: "Transferencia o depósito revisado por el equipo",
+    description: "Transferencia bancaria revisada por el equipo",
   },
 ];
 
@@ -30,7 +35,8 @@ export function getDefaultGatewayId(): PaymentGatewayId {
     configured === "stripe" ||
     configured === "culqi" ||
     configured === "mercadopago" ||
-    configured === "manual"
+    configured === "manual" ||
+    configured === "crypto"
   ) {
     return configured;
   }

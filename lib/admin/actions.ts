@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin/auth";
 import { mergeJsonMetadata } from "@/lib/types/json";
+import { isVoucherPaymentProvider } from "@/types/payment";
 
 type ActionScope = {
   organizationId?: string | null;
@@ -69,18 +70,22 @@ export async function approveManualPaymentAction(formData: FormData) {
       created_by: string | null;
     }>();
   if (intentError) throw new Error(intentError.message);
-  if (!intent || intent.provider !== "manual") throw new Error("Pago manual no encontrado.");
+  if (!intent || !isVoucherPaymentProvider(intent.provider)) {
+    throw new Error("Pago con comprobante no encontrado.");
+  }
   if (intent.status === "succeeded") return;
 
-  const providerReference = intent.provider_reference ?? `manual:${intent.id}`;
+  const providerReference =
+    intent.provider_reference ?? `${intent.provider}:${intent.id}`;
   const { data: journalId, error: ledgerError } = await admin.rpc("ledger_confirm_deposit", {
     p_payment_intent_id: intent.id,
     p_provider_reference: providerReference,
-    p_idempotency_key: `admin:manual-payment-approval:${intent.id}`,
+    p_idempotency_key: `admin:voucher-payment-approval:${intent.id}`,
     p_metadata: {
       approved_from: "admin_panel",
       approved_by: actor.id,
       approved_by_email: actor.email,
+      provider: intent.provider,
       notes,
     },
   });
@@ -104,10 +109,11 @@ export async function approveManualPaymentAction(formData: FormData) {
     })
     .eq("id", intent.id);
 
+  const isCrypto = intent.provider === "crypto";
   await notify({
     organizationId: intent.organization_id,
     userId: intent.created_by,
-    title: "Pago manual aprobado",
+    title: isCrypto ? "Pago cripto aprobado" : "Pago manual aprobado",
     body: "Tu comprobante fue aprobado y el saldo ya fue acreditado.",
     type: "payment_approved",
     data: { payment_intent_id: intent.id, ledger_journal_id: String(journalId), url: "/payments" },
@@ -117,7 +123,13 @@ export async function approveManualPaymentAction(formData: FormData) {
     action: "admin.manual_payment.approved",
     entityType: "payment_intent",
     entityId: intent.id,
-    metadata: { amount_cents: intent.amount_cents, currency: intent.currency, ledger_journal_id: String(journalId), notes },
+    metadata: {
+      amount_cents: intent.amount_cents,
+      currency: intent.currency,
+      provider: intent.provider,
+      ledger_journal_id: String(journalId),
+      notes,
+    },
   });
 
   revalidatePath("/admin/payments");
@@ -138,7 +150,9 @@ export async function rejectManualPaymentAction(formData: FormData) {
     .eq("id", id)
     .maybeSingle<{ id: string; organization_id: string; amount_cents: number; currency: string; provider: string; status: string; metadata: Record<string, unknown> | null; created_by: string | null }>();
   if (error) throw new Error(error.message);
-  if (!intent || intent.provider !== "manual") throw new Error("Pago manual no encontrado.");
+  if (!intent || !isVoucherPaymentProvider(intent.provider)) {
+    throw new Error("Pago con comprobante no encontrado.");
+  }
   if (intent.status === "succeeded") throw new Error("No se puede rechazar un pago ya aprobado.");
 
   const { error: updateError } = await admin
@@ -161,7 +175,10 @@ export async function rejectManualPaymentAction(formData: FormData) {
   await notify({
     organizationId: intent.organization_id,
     userId: intent.created_by,
-    title: "Pago manual rechazado",
+    title:
+      intent.provider === "crypto"
+        ? "Pago cripto rechazado"
+        : "Pago manual rechazado",
     body: reason,
     type: "payment_rejected",
     data: { payment_intent_id: intent.id, url: "/payments" },

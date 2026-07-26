@@ -35,7 +35,9 @@ export function WalletSummaryPremium({
               <p className="truncate text-[13px] font-medium text-[#1a1612]">
                 {wallet.name}
               </p>
-              <p className="text-[11px] text-[#7a736a]">Saldo disponible</p>
+              <p className="text-[11px] text-[#7a736a]">
+                Listo para asignar a cuentas TikTok
+              </p>
             </div>
           </div>
 

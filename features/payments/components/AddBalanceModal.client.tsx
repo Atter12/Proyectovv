@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { PaymentGatewayId } from "@/types/payment";
+import { isVoucherPaymentProvider } from "@/types/payment";
 
 interface AddBalanceModalProps {
   open: boolean;
@@ -41,6 +42,7 @@ const gatewayLabels: Record<PaymentGatewayId, string> = {
   stripe: "Stripe",
   culqi: "Culqi",
   mercadopago: "Mercado Pago",
+  crypto: "Cripto (USDT)",
   manual: "Pago manual",
 };
 
@@ -86,7 +88,7 @@ export function AddBalanceModal({
     Number.isFinite(parsedAmount) &&
     parsedAmount >= MIN_AMOUNT &&
     parsedAmount <= MAX_AMOUNT;
-  const isManual = selectedGateway === "manual";
+  const isVoucher = isVoucherPaymentProvider(selectedGateway);
 
   function handleClose() {
     setStep("form");
@@ -136,7 +138,7 @@ export function AddBalanceModal({
         : "La pasarela aún no está configurada. Se registró una intención pendiente.";
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
-      setStep(isManual ? "proof" : "result");
+      setStep(isVoucher ? "proof" : "result");
       router.refresh();
     } catch (err) {
       setError(
@@ -249,10 +251,11 @@ export function AddBalanceModal({
                 <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
                   {gatewayLabels[selectedGateway]}
                 </p>
-                {isManual ? (
+                {isVoucher ? (
                   <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-                    Después de crear la intención podrás subir el voucher para
-                    revisión.
+                    {selectedGateway === "crypto"
+                      ? "Después enviás USDT y subís captura / TxID para revisión."
+                      : "Después de crear la intención podrás subir el voucher para revisión."}
                   </p>
                 ) : null}
               </div>
@@ -331,11 +334,14 @@ export function AddBalanceModal({
               id="add-balance-title"
               className="text-lg font-semibold text-[var(--foreground)]"
             >
-              Subir voucher
+              {selectedGateway === "crypto"
+                ? "Subir comprobante cripto"
+                : "Subir voucher"}
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Adjunta el comprobante del pago manual para que el equipo lo revise
-              desde el panel admin.
+              {selectedGateway === "crypto"
+                ? "Adjuntá captura de Binance / wallet o TxID para que el equipo confirme el USDT desde el panel admin."
+                : "Adjuntá el comprobante de transferencia para que el equipo lo revise desde el panel admin."}
             </p>
             <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <p className="font-semibold text-[var(--foreground)]">
@@ -348,7 +354,9 @@ export function AddBalanceModal({
             </div>
             <div className="mt-4">
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Voucher o comprobante
+                {selectedGateway === "crypto"
+                  ? "Captura / TxID"
+                  : "Voucher o comprobante"}
               </label>
               <Input
                 type="file"
@@ -377,7 +385,11 @@ export function AddBalanceModal({
                 disabled={uploadingProof}
                 className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
               >
-                {uploadingProof ? "Subiendo…" : "Enviar voucher"}
+                {uploadingProof
+                  ? "Subiendo…"
+                  : selectedGateway === "crypto"
+                    ? "Enviar comprobante"
+                    : "Enviar voucher"}
               </Button>
             </div>
           </>

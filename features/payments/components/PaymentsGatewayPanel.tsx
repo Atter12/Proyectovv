@@ -1,5 +1,7 @@
 import { PaymentOverviewStats } from "./PaymentOverviewStats";
+import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
+import { formatMoney } from "@/lib/format-money";
 import { getPaymentPageCore } from "@/services/payments.service";
 import type { SessionUser } from "@/types/auth";
 
@@ -14,8 +16,7 @@ export async function PaymentsGatewayPanel({ session }: PaymentsGatewayPanelProp
     core.gateways[0]!;
 
   return (
-    <div className="space-y-6 lg:space-y-8">
-      {/* Pay flow first — stats after so users don't scroll past KPIs to reach Stripe */}
+    <div className="space-y-5">
       <PaymentsGatewayBlockClient
         gateways={core.gateways}
         initialSelected={core.selectedGateway}
@@ -25,6 +26,11 @@ export async function PaymentsGatewayPanel({ session }: PaymentsGatewayPanelProp
         wallet={core.wallet}
         summary={core.summary}
         activeGateway={activeGateway}
+      />
+
+      <PaymentsAllocateSection
+        accounts={core.adAccountsForAllocation}
+        walletBalanceLabel={formatMoney(core.wallet.balance, core.wallet.currency)}
       />
     </div>
   );

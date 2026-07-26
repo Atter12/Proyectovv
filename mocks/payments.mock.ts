@@ -31,6 +31,11 @@ export const paymentsMock: PaymentOverview = {
       description: "Pagos en Latinoamérica",
     },
     {
+      id: "crypto",
+      name: "Cripto (USDT)",
+      description: "USDT / Binance · subís comprobante",
+    },
+    {
       id: "manual",
       name: "Pago manual",
       description: "Transferencia o depósito revisado por el equipo",
