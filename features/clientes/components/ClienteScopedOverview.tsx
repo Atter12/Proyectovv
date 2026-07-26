@@ -4,6 +4,10 @@ import { routes } from "@/config/routes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
 import {
+  formatHecomFecha,
+  formatHecomGastoDisplay,
+} from "@/lib/hecom/gasto-label";
+import {
   moneyUsd,
   type HecomClienteDashboard,
   type HecomGastoRow,
@@ -25,45 +29,6 @@ function parseAdvertiserLabel(raw: string | null) {
     };
   }
   return { title: raw.trim(), balance: null, tag: null };
-}
-
-function parseCampLabel(camp: string | null) {
-  if (!camp?.trim()) return { title: "Gasto", meta: null as string | null };
-
-  const glued = camp.match(
-    /^(.*?)\s+(\d+(?:\.\d+)?\s*USD)\s*[-–]\s*Agencia\s*(\d+)?\s*(?:BM\s*(\w+))?/i,
-  );
-  if (glued) {
-    const parts = [
-      glued[2].replace(/\s+/g, " ").trim(),
-      glued[3] ? `ID …${glued[3].slice(-6)}` : null,
-      glued[4] ? `BM ${glued[4]}` : null,
-    ].filter(Boolean);
-    return { title: glued[1].trim() || "Gasto", meta: parts.join(" · ") };
-  }
-
-  const soft = camp.match(/^(.*?)\s+(\d+(?:\.\d+)?\s*USD)\b/i);
-  if (soft) {
-    return {
-      title: soft[1].trim() || "Gasto",
-      meta: soft[2].replace(/\s+/g, " ").trim(),
-    };
-  }
-
-  if (camp.length > 52) {
-    return { title: `${camp.slice(0, 48).trim()}…`, meta: null };
-  }
-  return { title: camp.trim(), meta: null };
-}
-
-function formatFecha(value: string | null) {
-  if (!value) return null;
-  const iso = value.slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    const [y, m, d] = iso.split("-");
-    return `${d}/${m}/${y}`;
-  }
-  return value;
 }
 
 function sourceLabel(source: HecomClienteDashboard["source"]) {
@@ -300,8 +265,11 @@ function GastosPanel({
       ) : (
         <ul className="max-h-[22rem] divide-y divide-[rgb(20_18_16_/_0.05)] overflow-y-auto">
           {gastos.map((row) => {
-            const label = parseCampLabel(row.camp);
-            const fecha = formatFecha(row.fecha ?? row.mes);
+            const label = formatHecomGastoDisplay(row.camp, {
+              notas: row.notas,
+              fee: row.fee,
+              fecha: formatHecomFecha(row.fecha ?? row.mes),
+            });
             return (
               <li
                 key={row.id}
@@ -311,9 +279,11 @@ function GastosPanel({
                   <p className="truncate text-[13px] font-normal text-[#1a1612]">
                     {label.title}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] text-[#9a9187]">
-                    {[fecha, label.meta].filter(Boolean).join(" · ")}
-                  </p>
+                  {label.meta ? (
+                    <p className="mt-0.5 truncate text-[11px] text-[#9a9187]">
+                      {label.meta}
+                    </p>
+                  ) : null}
                 </div>
                 <p className="shrink-0 text-[13px] font-medium tabular-nums text-[#1a1612]">
                   {moneyUsd(row.gasto)}

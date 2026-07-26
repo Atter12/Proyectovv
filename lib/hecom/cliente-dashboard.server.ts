@@ -22,6 +22,7 @@ export type HecomGastoRow = {
   source: string | null;
   fecha: string | null;
   codigo: string | null;
+  notas: string | null;
 };
 
 export type HecomCobroRow = {
@@ -99,6 +100,7 @@ function mapGasto(row: Record<string, unknown>): HecomGastoRow {
           ? String(row.mes)
           : null,
     codigo: row.codigo ? String(row.codigo) : null,
+    notas: row.notas ? String(row.notas) : null,
   };
 }
 
@@ -169,7 +171,7 @@ async function loadLiveFinance(clientId: string): Promise<{
       hecom
         .from("gastos")
         .select(
-          "id,client_id,mes,camp,gasto,fee,source,fecha_movimiento,tiktok_stat_date,codigo",
+          "id,client_id,mes,camp,gasto,fee,source,fecha_movimiento,tiktok_stat_date,codigo,notas",
         )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })
