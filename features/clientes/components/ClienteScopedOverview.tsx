@@ -20,7 +20,7 @@ export function ClienteScopedOverview({
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#050505_0%,#1a1008_38%,#e8451a_72%,#ff781f_100%)] p-5 shadow-[0_22px_48px_rgb(255_120_31_/_0.28)] sm:p-7">
+      <div className="relative overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#12100e_0%,#1a1612_52%,#b85a22_100%)] p-5 shadow-[0_18px_40px_rgb(20_18_16_/_0.18)] sm:p-7">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.18]"
           aria-hidden

@@ -87,7 +87,7 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
               }}
             >
               {isActive ? (
-                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)] shadow-[0_0_12px_rgb(255_120_31_/_0.85)]" />
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)] shadow-[0_0_10px_rgb(255_120_31_/_0.45)]" />
               ) : null}
               <NavIcon icon={item.icon} />
               <span className="min-w-0 leading-tight">{item.label}</span>
@@ -104,7 +104,7 @@ export function DashboardNavLinks({ onNavigate }: DashboardNavLinksProps) {
             className={className}
           >
             {isActive ? (
-              <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)] shadow-[0_0_12px_rgb(255_120_31_/_0.85)]" />
+              <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[var(--brand-primary)] shadow-[0_0_10px_rgb(255_120_31_/_0.45)]" />
             ) : null}
             <NavIcon icon={item.icon} />
             <span className="min-w-0 leading-tight">{item.label}</span>

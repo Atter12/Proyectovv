@@ -8,7 +8,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
   const barHeights = [40, 65, 55, 80, 70, 90, 75];
 
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#050505_0%,#1a1008_45%,#e8451a_82%,#ff781f_100%)] shadow-[0_18px_40px_rgb(255_120_31_/_0.28)] sm:min-h-[300px] lg:min-h-[340px]">
+    <div className="relative min-h-[260px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#12100e_0%,#1a1612_55%,#b85a22_100%)] shadow-[0_16px_36px_rgb(20_18_16_/_0.16)] sm:min-h-[300px] lg:min-h-[340px]">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div
           className="absolute inset-0 opacity-[0.14]"

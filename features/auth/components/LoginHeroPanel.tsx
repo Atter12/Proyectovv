@@ -99,7 +99,7 @@ export function LoginHeroPanel() {
             {FEATURES.map((feature) => (
               <li key={feature.title} className="flex gap-3.5">
                 <span
-                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_12px_rgb(255_120_31_/_0.65)]"
+                  className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--auth-accent)] shadow-[0_0_10px_rgb(255_120_31_/_0.4)]"
                   aria-hidden
                 />
                 <div>

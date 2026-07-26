@@ -37,7 +37,7 @@ export function SidebarWalletCard({
           href={routes.clientes}
           prefetch
           onClick={onNavigate}
-          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.4)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
+          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_8px_22px_rgb(255_120_31_/_0.22)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
         >
           Ir a Clientes
         </Link>
@@ -76,7 +76,7 @@ export function SidebarWalletCard({
           href={routes.payments}
           prefetch
           onClick={onNavigate}
-          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.4)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
+          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[13px] font-semibold text-white shadow-[0_8px_22px_rgb(255_120_31_/_0.22)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
         >
           Ver pagos
         </Link>

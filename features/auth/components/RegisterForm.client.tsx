@@ -312,7 +312,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(105deg,var(--brand-coral),var(--brand-primary)_50%,var(--brand-accent))] text-[15px] font-semibold text-white shadow-[0_12px_32px_rgb(255_120_31_/_0.32)] transition-[filter,box-shadow,transform] hover:brightness-110 hover:shadow-[0_14px_36px_rgb(255_120_31_/_0.42)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(105deg,var(--brand-coral),var(--brand-primary)_50%,var(--brand-accent))] text-[15px] font-semibold text-white shadow-[0_10px_26px_rgb(255_120_31_/_0.22)] transition-[filter,box-shadow,transform] hover:brightness-[1.05] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>

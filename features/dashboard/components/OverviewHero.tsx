@@ -10,7 +10,7 @@ const miniMetrics = [
 
 export function OverviewHero() {
   return (
-    <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#050505_0%,#1a1008_38%,#e8451a_72%,#ff781f_100%)] shadow-[0_18px_40px_rgb(255_120_31_/_0.26)] sm:min-h-[250px] lg:min-h-[280px]">
+    <div className="relative min-h-[220px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#12100e_0%,#1a1612_52%,#b85a22_100%)] shadow-[0_16px_36px_rgb(20_18_16_/_0.16)] sm:min-h-[250px] lg:min-h-[280px]">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-accent)]/25 blur-3xl" />
         <div className="absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />

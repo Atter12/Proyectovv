@@ -8,27 +8,27 @@ export function AuthDotGridBackground() {
       <DotGrid
         dotSize={3}
         gap={22}
-        baseColor="#4a3428"
-        activeColor="#ff8a3d"
-        proximity={200}
+        baseColor="#3d2e24"
+        activeColor="#e88945"
+        proximity={180}
       />
 
-      {/* Soft warm wash — keeps dots readable without crushing orange glow */}
+      {/* Soft warm wash — readable dots, glow without intensity */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 65% at 42% 48%, rgb(22 17 13 / 0.55) 0%, rgb(22 17 13 / 0.22) 48%, transparent 74%)",
+            "radial-gradient(ellipse 70% 65% at 42% 48%, rgb(22 17 13 / 0.58) 0%, rgb(22 17 13 / 0.28) 48%, transparent 74%)",
         }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 50% 40% at 12% 8%, rgb(255 120 31 / 0.1), transparent 70%), radial-gradient(ellipse 45% 40% at 90% 90%, rgb(255 77 45 / 0.07), transparent 68%)",
+            "radial-gradient(ellipse 50% 40% at 12% 8%, rgb(255 120 31 / 0.06), transparent 70%), radial-gradient(ellipse 45% 40% at 90% 90%, rgb(255 77 45 / 0.04), transparent 68%)",
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(20_16_12_/_0.2)_0%,transparent_22%,transparent_78%,rgb(20_16_12_/_0.28)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(20_16_12_/_0.22)_0%,transparent_22%,transparent_78%,rgb(20_16_12_/_0.28)_100%)]" />
     </div>
   );
 }
