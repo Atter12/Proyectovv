@@ -17,7 +17,7 @@ export function AdAccountsInfoAlert() {
         </svg>
       </div>
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold text-[#2a241f]">
+        <p className="text-[13px] font-medium text-[#2a241f]">
           Saldo y activación
         </p>
         <p className="mt-0.5 text-[13px] leading-5 text-[#6b645c]">

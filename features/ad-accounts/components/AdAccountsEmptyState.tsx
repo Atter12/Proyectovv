@@ -20,14 +20,14 @@ export function AdAccountsEmptyState() {
           />
         </svg>
       </div>
-      <h3 className="font-display text-[1.15rem] font-medium text-[#1a1612]">
+      <h3 className="text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
         Aún no hay cuentas publicitarias
       </h3>
       <p className="mt-2 max-w-md text-[14px] leading-6 text-[#6b645c]">
         Creá la primera para asignar presupuesto, configurar campañas y empezar
         a publicar.
       </p>
-      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#e85a1c] px-5 text-[13px] font-semibold text-white transition-colors hover:bg-[#d14e16]">
+      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#e85a1c] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16]">
         Crear cuenta publicitaria
       </AdAccountsOpenCreateModalButton>
       <Link

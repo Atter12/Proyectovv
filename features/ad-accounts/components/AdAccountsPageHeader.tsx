@@ -31,10 +31,10 @@ export function AdAccountsPageHeader({
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a5a38]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
             Publicidad
           </p>
-          <h1 className="mt-1.5 font-display text-[1.65rem] font-medium leading-tight tracking-tight text-[#1a1612] sm:text-[1.85rem]">
+          <h1 className="mt-1.5 text-[1.35rem] font-medium leading-snug tracking-[-0.01em] text-[#1a1612] sm:text-[1.5rem]">
             Mis cuentas publicitarias
           </h1>
           <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6b645c]">
@@ -66,7 +66,7 @@ export function AdAccountsPageHeader({
         </div>
 
         {hideCreate ? null : (
-          <AdAccountsOpenCreateModalButton className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#e85a1c] px-5 text-[14px] font-semibold text-white transition-colors hover:bg-[#d14e16] sm:h-10 sm:w-auto">
+          <AdAccountsOpenCreateModalButton className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[#e85a1c] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#d14e16] sm:h-10 sm:w-auto">
             Crear cuenta
           </AdAccountsOpenCreateModalButton>
         )}

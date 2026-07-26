@@ -241,7 +241,7 @@ export function AdAccountsTable({
                 <div className="flex min-w-0 items-start gap-3">
                   <PlatformMark platform={account.platform} />
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-[#1a1612]">
+                    <p className="truncate text-[14px] font-medium text-[#1a1612]">
                       {account.name}
                     </p>
                     {account.externalAccountName ? (
@@ -254,7 +254,7 @@ export function AdAccountsTable({
                     </div>
                   </div>
                 </div>
-                <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[#1a1612]">
+                <p className="shrink-0 text-[14px] font-medium tabular-nums text-[#1a1612]">
                   {formatMoney(account.balance)}
                 </p>
               </div>
@@ -304,31 +304,31 @@ export function AdAccountsTable({
           <Table embedded className="rounded-none">
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#f6f0e8] hover:bg-[#f6f0e8]">
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Cuenta
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Tipo
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   ID
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Estado
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Presupuestos
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Saldo
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Recarga
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Huso
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
                   Acción
                 </TableHead>
               </TableRow>
@@ -339,7 +339,7 @@ export function AdAccountsTable({
                   key={account.id}
                   className="border-b border-[rgb(20_18_16_/_0.05)] hover:bg-[#faf7f3]"
                 >
-                  <TableCell className="font-medium text-[#1a1612]">
+                  <TableCell className="text-[14px] font-medium text-[#1a1612]">
                     <div className="flex items-start gap-2.5">
                       <PlatformMark platform={account.platform} />
                       <div className="min-w-0">
@@ -367,7 +367,7 @@ export function AdAccountsTable({
                       Mensual: {formatMoney(account.monthlyLimit)}
                     </div>
                   </TableCell>
-                  <TableCell className="font-semibold tabular-nums text-[#1a1612]">
+                  <TableCell className="font-medium tabular-nums text-[#1a1612]">
                     {formatMoney(account.balance)}
                   </TableCell>
                   <TableCell>

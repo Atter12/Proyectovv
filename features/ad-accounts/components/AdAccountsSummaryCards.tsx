@@ -60,11 +60,11 @@ export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps)
               aria-hidden
               className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${item.accent}`}
             />
-            <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7a736a]">
+            <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
               {item.label}
             </p>
             <p
-              className={`mt-1.5 truncate pl-2 font-display text-[1.4rem] font-medium tracking-tight tabular-nums sm:text-[1.55rem] ${item.valueClass}`}
+              className={`mt-1.5 truncate pl-2 text-[1.25rem] font-medium tracking-[-0.01em] tabular-nums sm:text-[1.35rem] ${item.valueClass}`}
             >
               {item.value}
             </p>

@@ -98,7 +98,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#16161a] text-[#fe2c55]">
               <span className="text-[11px] font-bold tracking-wide">TT</span>
             </div>
-            <p className="mt-4 font-display text-lg font-medium text-[#1a1612]">
+            <p className="mt-4 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
               {clienteName} no tiene cuentas TikTok mapeadas
             </p>
             <p className="mx-auto mt-2 max-w-md text-[14px] leading-6 text-[#6b645c]">
