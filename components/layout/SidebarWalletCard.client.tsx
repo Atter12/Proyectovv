@@ -84,7 +84,7 @@ export function SidebarWalletCard({
           href={routes.clientes}
           prefetch
           onClick={onNavigate}
-          className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 text-[12px] font-semibold text-[#d0dae8] transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 text-[12px] font-semibold text-[#e8dfd4] transition-colors hover:bg-white/15 hover:text-white"
         >
           Cambiar cliente
         </Link>

@@ -20,55 +20,50 @@ export function ClienteScopedOverview({
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#12100e_0%,#1a1612_52%,#b85a22_100%)] p-5 shadow-[0_18px_40px_rgb(20_18_16_/_0.18)] sm:p-7">
+      <div className="dashboard-surface-card relative overflow-hidden rounded-[1.5rem] p-5 sm:p-7">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.18]"
+          className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-[linear-gradient(180deg,var(--brand-coral),var(--brand-primary),var(--brand-accent))]"
           aria-hidden
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.55) 1px, transparent 0)",
-            backgroundSize: "22px 22px",
-            maskImage:
-              "radial-gradient(ellipse 70% 80% at 70% 40%, black, transparent)",
-          }}
         />
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-accent)]/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />
+        <div
+          className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[var(--brand-primary)]/[0.08] blur-3xl"
+          aria-hidden
+        />
 
-        <div className="relative z-10 flex items-start gap-4">
+        <div className="relative z-10 flex items-start gap-4 pl-2">
           <HecomClienteAvatar
             name={cliente.name}
             avatarUrl={cliente.avatarUrl}
             size="xl"
-            className="ring-2 ring-white/40 shadow-[0_12px_28px_rgb(0_0_0_/_0.35)]"
+            className="ring-2 ring-[var(--brand-primary)]/20 shadow-[0_10px_24px_rgb(20_18_16_/_0.12)]"
           />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold tracking-[0.06em] text-white/75">
+            <p className="text-[13px] font-semibold tracking-[0.06em] text-[var(--brand-primary-deep)]">
               Vista del cliente
             </p>
             <OverviewClientTitle name={cliente.name} />
-            <p className="mt-2 max-w-xl text-[15px] text-white/85">
+            <p className="mt-2 max-w-xl text-[15px] text-[#6b645c]">
               Solo datos de esta persona en Hecom Club
               {cliente.biz ? ` · ${cliente.biz}` : ""}.
             </p>
           </div>
         </div>
-        <div className="relative z-10 mt-6 flex flex-wrap gap-2">
+        <div className="relative z-10 mt-6 flex flex-wrap gap-2 pl-2">
           <Link
             href={routes.adAccounts}
-            className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-[13px] font-semibold text-[var(--brand-primary-deep)] shadow-md transition-transform hover:-translate-y-0.5"
+            className="inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.22)] transition-transform hover:-translate-y-0.5 hover:bg-[var(--brand-primary-deep)]"
           >
             Sus cuentas
           </Link>
           <Link
             href={routes.payments}
-            className="inline-flex h-10 items-center rounded-xl border border-white/35 bg-white/10 px-4 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="inline-flex h-10 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-4 text-[13px] font-semibold text-[#141210] transition-colors hover:border-[var(--brand-primary)]/30 hover:bg-[var(--surface-soft)]"
           >
             Sus pagos
           </Link>
           <Link
             href={routes.clientes}
-            className="inline-flex h-10 items-center rounded-xl border border-white/35 bg-white/10 px-4 text-[13px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="inline-flex h-10 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-4 text-[13px] font-semibold text-[#6b645c] transition-colors hover:border-[var(--brand-primary)]/30 hover:text-[#141210]"
           >
             Cambiar cliente
           </Link>

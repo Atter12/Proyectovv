@@ -30,31 +30,25 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
   }
 
   return (
-    <div className="relative min-h-[240px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#12100e_0%,#1a1612_52%,#b85a22_100%)] shadow-[0_16px_36px_rgb(20_18_16_/_0.16)] sm:min-h-[280px] lg:min-h-[300px]">
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-accent)]/25 blur-3xl" />
-        <div className="absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-[var(--brand-coral)]/20 blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.55) 1px, transparent 0)",
-            backgroundSize: "22px 22px",
-            maskImage:
-              "radial-gradient(ellipse 70% 80% at 75% 35%, black, transparent)",
-          }}
-        />
-      </div>
+    <div className="dashboard-surface-card relative min-h-[240px] overflow-hidden rounded-2xl sm:min-h-[280px] lg:min-h-[300px]">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-[linear-gradient(180deg,var(--brand-coral),var(--brand-primary),var(--brand-accent))]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-primary)]/[0.08] blur-3xl"
+        aria-hidden
+      />
 
-      <div className="relative z-10 flex flex-col gap-6 p-5 sm:gap-8 sm:p-7 lg:flex-row lg:items-center lg:justify-between lg:p-8">
+      <div className="relative z-10 flex flex-col gap-6 p-5 pl-6 sm:gap-8 sm:p-7 sm:pl-8 lg:flex-row lg:items-center lg:justify-between lg:p-8 lg:pl-9">
         <div className="min-w-0 max-w-xl">
-          <p className="text-[13px] font-semibold tracking-[0.04em] text-white/80">
+          <p className="text-[13px] font-semibold tracking-[0.04em] text-[var(--brand-primary-deep)]">
             Referidos
           </p>
-          <h2 className="font-display mt-2 text-[1.75rem] font-medium leading-[1.12] tracking-[-0.02em] text-white sm:text-[2rem] lg:text-[2.15rem]">
+          <h2 className="font-display mt-2 text-[1.75rem] font-medium leading-[1.12] tracking-[-0.02em] text-[#141210] sm:text-[2rem] lg:text-[2.15rem]">
             Programa de afiliados de {siteConfig.companyName}
           </h2>
-          <p className="mt-3 max-w-lg text-[15px] leading-7 text-white/85">
+          <p className="mt-3 max-w-lg text-[15px] leading-7 text-[#6b645c]">
             Invita anunciantes, comparte tu enlace y gana comisiones por cada
             referido activo.
           </p>
@@ -62,14 +56,14 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-[14px] font-semibold text-[var(--brand-primary-deep)] shadow-md transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lg"
+              className="inline-flex h-11 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.22)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:bg-[var(--brand-primary-deep)]"
             >
               {copied ? "¡Copiado!" : "Copiar enlace"}
             </button>
             <button
               type="button"
               onClick={scrollToMilestones}
-              className="inline-flex h-11 items-center rounded-xl border border-white/30 bg-white/10 px-5 text-[14px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+              className="inline-flex h-11 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-5 text-[14px] font-semibold text-[#141210] transition-colors hover:border-[var(--brand-primary)]/30 hover:bg-[var(--surface-soft)]"
             >
               Ver hitos
             </button>
@@ -90,30 +84,17 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
           ].map((item, i) => (
             <div
               key={item.label}
-              className="rounded-xl border border-white/20 bg-white/12 px-5 py-3 backdrop-blur-md"
+              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-5 py-3 shadow-sm"
               style={{ marginLeft: `${i * 10}px` }}
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/65">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9a9187]">
                 {item.label}
               </p>
-              <p className="mt-0.5 text-lg font-semibold text-white">{item.value}</p>
+              <p className="mt-0.5 text-lg font-semibold text-[#141210]">
+                {item.value}
+              </p>
             </div>
           ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2 lg:hidden">
-          <div className="rounded-xl border border-white/20 bg-white/12 px-3 py-2 backdrop-blur-sm">
-            <span className="text-[11px] text-white/70">Activos</span>
-            <span className="ml-2 text-sm font-semibold text-white">
-              {data.stats.activeReferrals}
-            </span>
-          </div>
-          <div className="rounded-xl border border-white/20 bg-white/12 px-3 py-2 backdrop-blur-sm">
-            <span className="text-[11px] text-white/70">Comisión</span>
-            <span className="ml-2 text-sm font-semibold text-white">
-              {formatMoney(data.stats.estimatedCommission)}
-            </span>
-          </div>
         </div>
       </div>
     </div>
