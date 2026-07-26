@@ -29,12 +29,14 @@ interface AdAccountsToolbarProps {
   initialSearch?: string;
   initialStatus?: string;
   initialIncludeArchived?: boolean;
+  hideCreate?: boolean;
 }
 
 export function AdAccountsToolbar({
   initialSearch = "",
   initialStatus = "all",
   initialIncludeArchived = false,
+  hideCreate = false,
 }: AdAccountsToolbarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,12 +72,12 @@ export function AdAccountsToolbar({
 
   return (
     <>
-      <div className="border-b border-[var(--border-subtle)] p-4 sm:p-5">
+      <div className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] p-4 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
             <div className="relative min-w-0 flex-1 sm:max-w-sm">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text-muted,#64748b)]"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8178]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -88,14 +90,14 @@ export function AdAccountsToolbar({
                 />
               </svg>
               <Input
-                placeholder="Buscar por ID, nombre, plataforma o estado"
+                placeholder="Buscar por ID, nombre o estado"
                 value={search}
                 onChange={(e) => {
                   const value = e.target.value;
                   setSearch(value);
                   updateParams({ q: value || null });
                 }}
-                className="h-11 w-full pl-9"
+                className="h-10 w-full border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px]"
               />
             </div>
             <select
@@ -105,7 +107,7 @@ export function AdAccountsToolbar({
                 setStatus(value);
                 updateParams({ status: value === "all" ? null : value });
               }}
-              className="h-11 w-full rounded-xl border border-[var(--border-subtle)] bg-white px-3 text-sm text-[var(--foreground)] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 sm:w-auto"
+              className="h-10 w-full rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15 sm:w-auto"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -113,41 +115,44 @@ export function AdAccountsToolbar({
                 </option>
               ))}
             </select>
-            <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-white px-3 text-sm font-medium text-[var(--admin-text-muted,#64748b)]">
-              <input
-                type="checkbox"
-                checked={includeArchived}
-                onChange={(event) => {
-                  const checked = event.target.checked;
-                  setIncludeArchived(checked);
-                  updateParams({ archived: checked ? "1" : null });
-                }}
-                className="h-4 w-4 rounded border-[var(--border-subtle)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
-              />
-              Ver archivadas
-            </label>
+            {!hideCreate ? (
+              <label className="flex h-10 items-center gap-2 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] font-medium text-[#6b645c]">
+                <input
+                  type="checkbox"
+                  checked={includeArchived}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIncludeArchived(checked);
+                    updateParams({ archived: checked ? "1" : null });
+                  }}
+                  className="h-4 w-4 rounded border-[rgb(20_18_16_/_0.2)] text-[#c45a18] focus:ring-[#c45a18]"
+                />
+                Ver archivadas
+              </label>
+            ) : null}
           </div>
           <div className="flex gap-2 overflow-x-auto pb-0.5">
             <Link href={routes.creativeAnalyzer} className="shrink-0">
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-[var(--border-subtle)] px-3 text-[13px]"
+                className="h-10 rounded-lg border-[rgb(20_18_16_/_0.12)] bg-white px-3 text-[13px] text-[#4a433c] hover:bg-[#f3eee8]"
               >
-                Analizador
+                Analizador creativo
               </Button>
             </Link>
-            {/* Desktop create — mobile uses header + sticky */}
-            <Button
-              onClick={() => setModalOpen(true)}
-              className="hidden h-10 rounded-xl bg-[var(--brand-primary)] px-4 text-[13px] shadow-sm hover:bg-[var(--brand-primary-deep)] md:inline-flex"
-            >
-              Crear nuevo
-            </Button>
+            {!hideCreate ? (
+              <Button
+                onClick={() => setModalOpen(true)}
+                className="hidden h-10 rounded-lg bg-[#e85a1c] px-4 text-[13px] hover:bg-[#d14e16] md:inline-flex"
+              >
+                Crear nuevo
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
 
-      {modalOpen ? (
+      {modalOpen && !hideCreate ? (
         <CreateAdAccountModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

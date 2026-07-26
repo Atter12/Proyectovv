@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   Table,
@@ -26,16 +25,65 @@ const statusLabels: Record<AdAccountStatus, string> = {
   archived: "Archivada",
 };
 
-const statusVariants: Record<
-  AdAccountStatus,
-  "success" | "warning" | "default" | "info"
-> = {
-  active: "success",
-  pending: "warning",
-  disabled: "default",
-  review: "info",
-  archived: "default",
+const statusStyles: Record<AdAccountStatus, string> = {
+  active: "bg-[#ecf7f0] text-[#1f5c40] ring-[#c5e4d2]",
+  pending: "bg-[#fff7eb] text-[#92400e] ring-[#f0d9b0]",
+  disabled: "bg-[#f3eee8] text-[#5c564e] ring-[#e4ddd4]",
+  review: "bg-[#f0f4f8] text-[#334e68] ring-[#d3dde8]",
+  archived: "bg-[#f3eee8] text-[#7a736a] ring-[#e4ddd4]",
 };
+
+const statusDot: Record<AdAccountStatus, string> = {
+  active: "bg-[#2f7a57]",
+  pending: "bg-[#d97706]",
+  disabled: "bg-[#8a8178]",
+  review: "bg-[#486581]",
+  archived: "bg-[#a39a90]",
+};
+
+function StatusPill({ status }: { status: AdAccountStatus }) {
+  return (
+    <span
+      className={`inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium ring-1 ring-inset ${statusStyles[status]}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${statusDot[status]}`} />
+      {statusLabels[status]}
+    </span>
+  );
+}
+
+function PlatformMark({ platform }: { platform: AdAccount["platform"] }) {
+  if (platform === "tiktok") {
+    return (
+      <span
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#16161a] text-[9px] font-bold tracking-wide text-white"
+        title="TikTok"
+      >
+        <span className="text-[#25f4ee]">T</span>
+        <span className="text-[#fe2c55]">T</span>
+      </span>
+    );
+  }
+  if (platform === "meta") {
+    return (
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1877f2] text-[10px] font-bold text-white">
+        M
+      </span>
+    );
+  }
+  if (platform === "google") {
+    return (
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#f3eee8] text-[10px] font-bold text-[#5c564e] ring-1 ring-[#e4ddd4]">
+        G
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#f3eee8] text-[10px] font-bold text-[#5c564e] ring-1 ring-[#e4ddd4]">
+      Ad
+    </span>
+  );
+}
 
 interface AdAccountsTableProps {
   accounts: AdAccount[];
@@ -96,11 +144,11 @@ export function AdAccountsTable({
         <p
           className={
             compact
-              ? "text-center text-[12px] text-[var(--admin-text-muted,#64748b)]"
-              : "text-[12px] text-[var(--admin-text-muted,#64748b)]"
+              ? "text-center text-[11px] font-medium uppercase tracking-[0.08em] text-[#9a9187]"
+              : "text-[11px] font-medium uppercase tracking-[0.08em] text-[#9a9187]"
           }
         >
-          Solo lectura · Hecom
+          Solo lectura
         </p>
       );
     }
@@ -187,61 +235,58 @@ export function AdAccountsTable({
           {accounts.map((account) => (
             <article
               key={account.id}
-              className="rounded-xl border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-card)]"
+              className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-white p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[var(--foreground)]">
-                    {account.name}
-                  </p>
-                  {account.externalAccountName ? (
-                    <p className="mt-0.5 truncate text-[12px] text-[var(--admin-text-muted,#64748b)]">
-                      {account.externalAccountName}
+                <div className="flex min-w-0 items-start gap-3">
+                  <PlatformMark platform={account.platform} />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#1a1612]">
+                      {account.name}
                     </p>
-                  ) : null}
-                  <div className="mt-2">
-                    <Badge variant={statusVariants[account.status]}>
-                      {statusLabels[account.status]}
-                    </Badge>
+                    {account.externalAccountName ? (
+                      <p className="mt-0.5 truncate text-[12px] text-[#7a736a]">
+                        {account.externalAccountName}
+                      </p>
+                    ) : null}
+                    <div className="mt-2">
+                      <StatusPill status={account.status} />
+                    </div>
                   </div>
                 </div>
-                <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--foreground)]">
+                <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[#1a1612]">
                   {formatMoney(account.balance)}
                 </p>
               </div>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+              <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[rgb(20_18_16_/_0.06)] pt-3 text-[12px]">
                 <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">Tipo</dt>
-                  <dd className="font-medium text-[var(--admin-text-muted,#64748b)]">
+                  <dt className="text-[#9a9187]">Tipo</dt>
+                  <dd className="font-medium text-[#5c564e]">
                     {account.connectionLabel}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">
-                    Recarga auto
-                  </dt>
+                  <dt className="text-[#9a9187]">Recarga auto</dt>
                   <dd
                     className={
                       account.autoRecharge
-                        ? "font-medium text-emerald-600"
-                        : "font-medium text-[var(--admin-text-muted,#64748b)]"
+                        ? "font-medium text-[#1f5c40]"
+                        : "font-medium text-[#5c564e]"
                     }
                   >
                     {account.autoRecharge ? "Activada" : "Desactivada"}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">
-                    Diario / mensual
-                  </dt>
-                  <dd className="font-medium text-[var(--admin-text-muted,#64748b)]">
+                  <dt className="text-[#9a9187]">Diario / mensual</dt>
+                  <dd className="font-medium tabular-nums text-[#5c564e]">
                     {formatMoney(account.dailyBudget)} /{" "}
                     {formatMoney(account.monthlyLimit)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">Huso</dt>
-                  <dd className="font-medium text-[var(--admin-text-muted,#64748b)]">
+                  <dt className="text-[#9a9187]">Huso</dt>
+                  <dd className="font-medium text-[#5c564e]">
                     {account.timezone || "—"}
                   </dd>
                 </div>
@@ -258,61 +303,89 @@ export function AdAccountsTable({
         <div className="hidden md:block">
           <Table embedded className="rounded-none">
             <TableHeader>
-              <TableRow className="bg-[var(--surface-soft)]/80 hover:bg-[var(--surface-soft)]/80">
-                <TableHead>Cuenta publicitaria</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Identificación</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Presupuestos</TableHead>
-                <TableHead>Saldo</TableHead>
-                <TableHead>Recarga automática</TableHead>
-                <TableHead>Huso horario</TableHead>
-                <TableHead>Acción</TableHead>
+              <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#f6f0e8] hover:bg-[#f6f0e8]">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Cuenta
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Tipo
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  ID
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Estado
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Presupuestos
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Saldo
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Recarga
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Huso
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a736a]">
+                  Acción
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {accounts.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-medium text-[var(--foreground)]">
-                    <div>{account.name}</div>
-                    {account.externalAccountName ? (
-                      <div className="text-xs font-normal text-[var(--admin-text-muted,#64748b)]">
-                        {account.externalAccountName}
+                <TableRow
+                  key={account.id}
+                  className="border-b border-[rgb(20_18_16_/_0.05)] hover:bg-[#faf7f3]"
+                >
+                  <TableCell className="font-medium text-[#1a1612]">
+                    <div className="flex items-start gap-2.5">
+                      <PlatformMark platform={account.platform} />
+                      <div className="min-w-0">
+                        <div className="truncate">{account.name}</div>
+                        {account.externalAccountName ? (
+                          <div className="truncate text-xs font-normal text-[#7a736a]">
+                            {account.externalAccountName}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  <TableCell className="text-[13px] text-[#5c564e]">
                     {account.connectionLabel}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--admin-text-muted,#64748b)]">
+                  <TableCell className="font-mono text-[12px] text-[#7a736a]">
                     {account.bcId}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariants[account.status]}>
-                      {statusLabels[account.status]}
-                    </Badge>
+                    <StatusPill status={account.status} />
                   </TableCell>
-                  <TableCell className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  <TableCell className="text-[12px] tabular-nums text-[#5c564e]">
                     <div>Diario: {formatMoney(account.dailyBudget)}</div>
-                    <div>Mensual: {formatMoney(account.monthlyLimit)}</div>
+                    <div className="text-[#9a9187]">
+                      Mensual: {formatMoney(account.monthlyLimit)}
+                    </div>
                   </TableCell>
-                  <TableCell>{formatMoney(account.balance)}</TableCell>
+                  <TableCell className="font-semibold tabular-nums text-[#1a1612]">
+                    {formatMoney(account.balance)}
+                  </TableCell>
                   <TableCell>
                     <span
                       className={
                         account.autoRecharge
-                          ? "text-emerald-600"
-                          : "text-[var(--admin-text-muted,#64748b)]"
+                          ? "text-[13px] font-medium text-[#1f5c40]"
+                          : "text-[13px] text-[#7a736a]"
                       }
                     >
                       {account.autoRecharge ? "Activada" : "Desactivada"}
                     </span>
-                    <div className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                    <div className="text-[11px] text-[#9a9187]">
                       {account.thresholdInfo}
                     </div>
                   </TableCell>
-                  <TableCell className="text-[var(--admin-text-muted,#64748b)]">
-                    {account.timezone}
+                  <TableCell className="text-[13px] text-[#5c564e]">
+                    {account.timezone || "—"}
                   </TableCell>
                   <TableCell>
                     <AccountActions account={account} />
@@ -326,8 +399,13 @@ export function AdAccountsTable({
 
       {isEmpty && !readOnly ? <AdAccountsEmptyState /> : null}
       {isEmpty && readOnly ? (
-        <div className="px-6 py-10 text-center text-sm text-[var(--admin-text-muted,#64748b)]">
-          No hay cuentas para este filtro.
+        <div className="px-6 py-12 text-center">
+          <p className="text-[14px] font-medium text-[#1a1612]">
+            Ninguna cuenta coincide con el filtro
+          </p>
+          <p className="mt-1 text-[13px] text-[#7a736a]">
+            Probá otro estado o limpiá la búsqueda.
+          </p>
         </div>
       ) : null}
       {selectedAccount && !readOnly ? (

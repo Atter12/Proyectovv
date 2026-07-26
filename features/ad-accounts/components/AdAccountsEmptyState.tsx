@@ -4,10 +4,10 @@ import { AdAccountsOpenCreateModalButton } from "./AdAccountsOpenCreateModalButt
 
 export function AdAccountsEmptyState() {
   return (
-    <div className="flex min-h-[220px] flex-col items-center justify-center px-6 py-10 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] ring-1 ring-[var(--brand-primary)]/15">
+    <div className="flex min-h-[240px] flex-col items-center justify-center px-6 py-12 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#f3eee8] text-[#6b5344] ring-1 ring-[rgb(20_18_16_/_0.08)]">
         <svg
-          className="h-8 w-8"
+          className="h-7 w-7"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -20,21 +20,21 @@ export function AdAccountsEmptyState() {
           />
         </svg>
       </div>
-      <h3 className="font-display text-[1.1rem] font-medium text-[var(--foreground)]">
-        Aún no tienes cuentas publicitarias
+      <h3 className="font-display text-[1.15rem] font-medium text-[#1a1612]">
+        Aún no hay cuentas publicitarias
       </h3>
-      <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
-        Crea tu primera cuenta para asignar presupuesto, configurar campañas y
-        empezar a publicar.
+      <p className="mt-2 max-w-md text-[14px] leading-6 text-[#6b645c]">
+        Creá la primera para asignar presupuesto, configurar campañas y empezar
+        a publicar.
       </p>
-      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)]">
+      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#e85a1c] px-5 text-[13px] font-semibold text-white transition-colors hover:bg-[#d14e16]">
         Crear cuenta publicitaria
       </AdAccountsOpenCreateModalButton>
       <Link
-        href={routes.overview}
-        className="mt-3 text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
+        href={routes.payments}
+        className="mt-3 text-[13px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
       >
-        Ver pasos de configuración
+        Cargar saldo en cartera
       </Link>
     </div>
   );

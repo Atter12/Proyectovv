@@ -3,9 +3,12 @@ import { routes } from "@/config/routes";
 
 export function AdAccountsInfoAlert() {
   return (
-    <div className="flex gap-4 rounded-2xl border border-[var(--brand-primary)]/15 bg-[var(--brand-primary)]/[0.04] p-4 sm:p-5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <aside className="flex gap-3 rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#f6f0e8] px-4 py-3.5 sm:gap-4 sm:px-5">
+      <div
+        aria-hidden
+        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#ebe3d8] text-[#6b5344]"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -14,20 +17,20 @@ export function AdAccountsInfoAlert() {
         </svg>
       </div>
       <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-[var(--foreground)]">
-          Información importante
+        <p className="text-[13px] font-semibold text-[#2a241f]">
+          Saldo y activación
         </p>
-        <p className="mt-1 text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
-          Las cuentas publicitarias requieren saldo asignado desde la cartera
-          para activar campañas.
+        <p className="mt-0.5 text-[13px] leading-5 text-[#6b645c]">
+          Para que las campañas corran, la cuenta necesita saldo cargado desde
+          la cartera. Sin fondos, la cuenta aparece mapeada pero no publica.
         </p>
         <Link
-          href={routes.overview}
-          className="mt-2 inline-flex text-[14px] font-medium text-[var(--brand-primary)] transition-colors hover:text-[var(--brand-primary-deep)]"
+          href={routes.payments}
+          className="mt-2 inline-flex text-[13px] font-medium text-[#c45a18] underline-offset-2 transition-colors hover:text-[#9a4512] hover:underline"
         >
-          Ver guía de configuración
+          Ir a pagos y cartera
         </Link>
       </div>
-    </div>
+    </aside>
   );
 }

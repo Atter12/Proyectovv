@@ -9,40 +9,71 @@ interface AdAccountsSummaryCardsProps {
 export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps) {
   const items = [
     {
-      label: "Cuentas totales",
+      label: "Totales",
       value: formatNumber(summary.totalAccounts),
-      hint: "Sin cuentas registradas",
+      hint: "Mapeadas en Hecom",
+      accent: "bg-[#8a8178]",
+      valueClass: "text-[#1a1612]",
     },
     {
-      label: "Cuentas activas",
+      label: "Activas",
       value: formatNumber(summary.activeAccounts),
-      hint: "Listas para publicar",
+      hint: "Listas para gastar",
+      accent: "bg-[#2f7a57]",
+      valueClass: "text-[#1f5c40]",
     },
     {
       label: "Saldo asignado",
       value: formatMoney(summary.assignedBalance),
-      hint: "Presupuesto distribuido",
+      hint: "Disponible en cuentas",
+      accent: "bg-[#c45a18]",
+      valueClass: "text-[#1a1612]",
     },
     {
       label: "Pendientes",
       value: formatNumber(summary.pendingSetup),
-      hint: "Requieren configuración",
+      hint: "Falta configuración",
+      accent: "bg-[#b45309]",
+      valueClass:
+        summary.pendingSetup > 0 ? "text-[#92400e]" : "text-[#1a1612]",
     },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
-        <div key={item.label} className="dashboard-kpi rounded-2xl p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b645c]">
-            {item.label}
-          </p>
-          <p className="mt-1 truncate font-display text-[1.35rem] font-medium tracking-tight text-[#141210] sm:text-[1.5rem]">
-            {item.value}
-          </p>
-          <p className="mt-1 text-[13px] text-[#6b645c]">{item.hint}</p>
-        </div>
-      ))}
-    </div>
+    <section
+      aria-label="Resumen de cuentas"
+      className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]"
+    >
+      <div className="grid divide-y divide-[rgb(20_18_16_/_0.06)] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
+        {items.map((item, index) => (
+          <div
+            key={item.label}
+            className={`relative px-4 py-4 sm:px-5 ${
+              index % 2 === 0 ? "sm:border-r sm:border-[rgb(20_18_16_/_0.06)]" : ""
+            } ${
+              index < 2 ? "sm:border-b sm:border-[rgb(20_18_16_/_0.06)] xl:border-b-0" : ""
+            } ${
+              index < items.length - 1 ? "xl:border-r xl:border-[rgb(20_18_16_/_0.06)]" : ""
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${item.accent}`}
+            />
+            <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7a736a]">
+              {item.label}
+            </p>
+            <p
+              className={`mt-1.5 truncate pl-2 font-display text-[1.4rem] font-medium tracking-tight tabular-nums sm:text-[1.55rem] ${item.valueClass}`}
+            >
+              {item.value}
+            </p>
+            <p className="mt-1 pl-2 text-[12px] leading-5 text-[#8a8178]">
+              {item.hint}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -81,21 +81,29 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       />
       <AdAccountsInfoAlert />
       <AdAccountsSummaryCards summary={data.summary} />
-      <Card padding="none" className="dashboard-surface-card overflow-hidden">
+      <Card
+        padding="none"
+        className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.05)]"
+      >
         <Suspense fallback={null}>
           <AdAccountsToolbar
             initialSearch={search}
             initialStatus={status}
             initialIncludeArchived={false}
+            hideCreate
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-[#6b645c]">
-            <p className="font-display text-lg font-medium text-[#141210]">
-              {clienteName} no tiene cuentas TikTok mapeadas en Hecom
+          <div className="px-6 py-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#16161a] text-[#fe2c55]">
+              <span className="text-[11px] font-bold tracking-wide">TT</span>
+            </div>
+            <p className="mt-4 font-display text-lg font-medium text-[#1a1612]">
+              {clienteName} no tiene cuentas TikTok mapeadas
             </p>
-            <p className="mt-2">
-              En Hecom Club falta <code>advertiser_id</code> para este cliente.
+            <p className="mx-auto mt-2 max-w-md text-[14px] leading-6 text-[#6b645c]">
+              En Hecom Club falta el <code className="rounded bg-[#f0e9e0] px-1.5 py-0.5 text-[12px]">advertiser_id</code>{" "}
+              para este cliente. Cuando esté mapeado, aparece acá en solo lectura.
             </p>
           </div>
         ) : (
