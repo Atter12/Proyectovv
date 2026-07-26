@@ -46,25 +46,25 @@ export function SelectedClienteBanner({
   }
 
   return (
-    <div className="dashboard-surface-card rounded-2xl px-4 py-3.5 text-sm text-[#141210]">
+    <div className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-4 py-3 text-sm text-[#1a1612]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <HecomClienteAvatar
             name={clienteName}
             avatarUrl={avatarUrl}
             size="md"
           />
           <div className="min-w-0">
-            <p className="font-semibold tracking-tight">
+            <p className="text-[13px] font-medium tracking-[-0.01em]">
               Cliente activo:{" "}
-              <span className="font-display text-[1.05rem]">{clienteName}</span>
+              <span className="text-[#1a1612]">{clienteName}</span>
             </p>
-            <p className="mt-0.5 text-[#6b645c]">
+            <p className="mt-0.5 text-[12px] text-[#6b645c]">
               {detail ??
                 "Todo el panel (cuentas, pagos, creativos, etc.) está filtrado a esta persona."}{" "}
               <Link
                 href={`/clientes/${clienteId}`}
-                className="font-semibold text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
+                className="font-medium text-[#c45a18] underline-offset-2 hover:underline"
               >
                 Ver ficha
               </Link>

@@ -11,7 +11,7 @@ export function OverviewClientTitle({ name }: { name: string }) {
       direction="top"
       delay={60}
       stepDuration={0.22}
-      className="font-display mt-2 text-[1.75rem] font-medium text-[#141210] sm:text-[2.05rem]"
+      className="mt-1.5 text-[1.4rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.55rem]"
     />
   );
 }
