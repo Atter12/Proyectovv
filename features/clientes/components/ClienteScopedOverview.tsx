@@ -96,7 +96,8 @@ export function ClienteScopedOverview({
             </p>
             <OverviewClientTitle name={cliente.name} />
             <p className="mt-2 max-w-md text-[13px] leading-5 text-[#6b645c]">
-              Solo datos de esta persona en Hecom Club
+              Resumen del cliente activo: cuentas, cobros, gastos y saldo
+              estimado. Vista rápida de cómo viene
               {cliente.biz ? ` · ${cliente.biz}` : ""}.
             </p>
 

@@ -9,7 +9,7 @@ interface AffiliatesPageHeaderProps {
 export function AffiliatesPageHeader({ data }: AffiliatesPageHeaderProps) {
   return (
     <DashboardPageIntro
-      description="Comparte tu enlace, invita anunciantes y gana comisiones por el gasto publicitario de tus referidos."
+      description="Programa de afiliados (si aplica). No es el core de ads ni de pagos."
       badges={
         <>
           <Badge variant="info" className="px-3 py-1">

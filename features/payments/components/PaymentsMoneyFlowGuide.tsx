@@ -5,7 +5,7 @@ const STEPS = [
   {
     n: "1",
     title: "Recargar",
-    text: "Metés plata a la cartera con Stripe.",
+    text: "Metés plata a la cartera Holistic (Stripe).",
   },
   {
     n: "2",

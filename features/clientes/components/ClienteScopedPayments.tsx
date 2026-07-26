@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { routes } from "@/config/routes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   formatHecomFecha,
@@ -61,21 +59,15 @@ export function ClienteScopedPayments({
             />
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
-                Pagos · Hecom
+                Historial Hecom
               </p>
               <h2 className="mt-1 text-[1.25rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.35rem]">
-                Movimientos de {cliente.name}
+                Ya cobrado y gastado · {cliente.name}
               </h2>
               <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-                Historial CRM (cobros y gasto ads). No es la wallet Holistic: el
-                dinero nuevo se recarga arriba con Stripe y se asigna a{" "}
-                <Link
-                  href={routes.adAccounts}
-                  className="font-medium text-[#c45a18] underline-offset-2 hover:underline"
-                >
-                  cuentas publicitarias
-                </Link>
-                , no por campaña.
+                Solo lectura del CRM: cobros que ya entraron y gastos que ya se
+                consumieron. Para fondear, usá la cartera Holistic de arriba —
+                no se paga por campaña.
               </p>
             </div>
           </div>

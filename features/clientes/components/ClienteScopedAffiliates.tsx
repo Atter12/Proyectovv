@@ -12,9 +12,9 @@ export function ClienteScopedAffiliates({
   return (
     <div className="space-y-6">
       <ClienteScopePageHeader
-        eyebrow="Afiliados · cliente"
+        eyebrow="Afiliados · opcional"
         title="Programa de afiliados"
-        description={`Panel filtrado por ${data.cliente.name}.`}
+        description={`Si aplica para ${data.cliente.name}. No es el core de ads ni de pagos.`}
         name={data.cliente.name}
         avatarUrl={data.cliente.avatarUrl}
       />

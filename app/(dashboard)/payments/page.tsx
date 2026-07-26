@@ -96,8 +96,8 @@ export default async function PaymentsPage({
               Recargar y fondear ads
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Paso 1: metés plata a la cartera. Paso 2: la asignás a una cuenta
-              TikTok. Ahí sí las campañas pueden gastar.
+              Arriba: cartera Holistic — recargás con Stripe y asignás a cuentas
+              ads. Abajo: historial Hecom — cobros y gastos ya consumidos.
             </p>
 
             <div className="mt-4">
@@ -114,9 +114,6 @@ export default async function PaymentsPage({
               <p className="text-[13px] font-medium text-[#1a1612]">
                 {cliente.name}
               </p>
-              <span className="text-[12px] text-[#7a736a]">
-                · más abajo: historial Hecom (ya cobrado / ya gastado)
-              </span>
               <Link
                 href={`/clientes/${cliente.id}`}
                 className="text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
@@ -124,6 +121,11 @@ export default async function PaymentsPage({
                 Ver ficha
               </Link>
             </div>
+
+            <p className="mt-4 rounded-lg border border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-3.5 py-2.5 text-[13px] leading-5 text-[#4a443c]">
+              Recargás arriba para fondear; abajo solo ves el historial de lo ya
+              cobrado y gastado.
+            </p>
           </div>
         </div>
       </section>

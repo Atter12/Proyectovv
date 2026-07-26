@@ -4,7 +4,7 @@ import { DashboardPageIntro } from "@/components/layout/DashboardPageIntro";
 export function CreativeAnalyzerPageHeader() {
   return (
     <DashboardPageIntro
-      description="Evalúa creatividades, detecta patrones ganadores y genera recomendaciones antes de escalar campañas."
+      description="Fichas y proyectos del cliente + subí piezas para encolar análisis antes de escalar campañas."
       badges={
         <>
           <Badge variant="info" className="px-3 py-1">

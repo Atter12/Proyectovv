@@ -74,8 +74,8 @@ export function ClienteScopedCreatives({
                   Creativos de {cliente.name}
                 </h1>
                 <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[#6b645c]">
-                  Ficha y proyectos en Hecom Club. Abajo podés subir piezas para
-                  encolar análisis en Holistic.
+                  Fichas y proyectos creativos del cliente en Hecom. Abajo podés
+                  subir piezas para encolar análisis en Holistic.
                 </p>
               </div>
             </div>

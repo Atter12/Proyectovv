@@ -24,7 +24,7 @@ export function AdAccountsPageHeader({
   hideCreate = false,
 }: AdAccountsPageHeaderProps) {
   const description = hecomScoped
-    ? `Cuentas TikTok Ads vinculadas a ${clienteName ?? "este cliente"} desde Hecom Club.`
+    ? `Cuentas TikTok de ${clienteName ?? "este cliente"} desde Hecom. Estado, fee y datos · solo lectura.`
     : "Elegí un cliente en Clientes para ver únicamente sus cuentas publicitarias.";
 
   const kpis = [
@@ -131,13 +131,14 @@ export function AdAccountsPageHeader({
         </div>
 
         <p className="relative mt-4 border-t border-[rgb(20_18_16_/_0.06)] pt-3 text-[12px] leading-5 text-[#7a736a]">
-          Para publicar, la cuenta necesita saldo en cartera.{" "}
+          Solo lectura desde esta vista. Para fondear ads, recargá en{" "}
           <Link
             href={routes.payments}
             className="font-medium text-[#c45a18] underline-offset-2 hover:underline"
           >
-            Ir a pagos
-          </Link>
+            Pagos
+          </Link>{" "}
+          y asigná saldo a la cuenta.
         </p>
       </div>
 
