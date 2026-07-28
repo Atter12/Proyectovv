@@ -42,7 +42,7 @@ export function LandingStartPanel() {
       <div className="space-y-3">
         <Link
           href={routes.register}
-          className="flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(180deg,#ff8a3d_0%,#ff781f_45%,#e8451a_100%)] text-[15px] font-semibold text-white shadow-[0_12px_28px_rgb(255_120_31_/_0.35)] transition-[filter,transform] hover:brightness-105 active:scale-[0.99]"
+          className="flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(105deg,var(--brand-coral),var(--brand-primary)_50%,var(--brand-accent))] text-[15px] font-semibold text-white shadow-[0_10px_26px_rgb(255_120_31_/_0.22)] transition-[filter,box-shadow,transform] hover:brightness-[1.05] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] active:translate-y-px"
         >
           Crear cuenta
         </Link>
