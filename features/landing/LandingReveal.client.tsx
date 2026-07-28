@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -22,19 +22,17 @@ export function LandingReveal({
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (media.matches) return;
 
-    const id = window.setTimeout(() => setAnimate(true), delayMs);
+    const id = window.setTimeout(() => setAnimate(true), Math.min(delayMs, 120));
     return () => window.clearTimeout(id);
   }, [delayMs]);
 
+  const style: CSSProperties | undefined =
+    animate && delayMs > 0
+      ? { animationDelay: `${Math.min(delayMs, 280)}ms` }
+      : undefined;
+
   return (
-    <div
-      className={cn(className, animate && "landing-reveal-in")}
-      style={
-        animate && delayMs > 0
-          ? ({ animationDelay: `${Math.min(delayMs, 400)}ms` } as React.CSSProperties)
-          : undefined
-      }
-    >
+    <div className={cn(className, animate && "landing-reveal-in")} style={style}>
       {children}
     </div>
   );
