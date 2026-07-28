@@ -75,7 +75,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
 
       <Card
         padding="none"
-        className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.05)]"
+        className="overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]"
       >
         <Suspense fallback={null}>
           <AdAccountsToolbar

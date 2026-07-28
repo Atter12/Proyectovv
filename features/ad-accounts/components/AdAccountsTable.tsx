@@ -44,11 +44,29 @@ const statusDot: Record<AdAccountStatus, string> = {
 function StatusPill({ status }: { status: AdAccountStatus }) {
   return (
     <span
-      className={`inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-normal ring-1 ring-inset ${statusStyles[status]}`}
+      className={`inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold ring-1 ring-inset ${statusStyles[status]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${statusDot[status]}`} />
       {statusLabels[status]}
     </span>
+  );
+}
+
+function MetaChip({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "fee" | "mono";
+}) {
+  const cls =
+    tone === "fee"
+      ? "bg-[#fff1e8] font-semibold text-[#c45a18]"
+      : tone === "mono"
+        ? "bg-[#f3eee8] font-mono text-[#6b645c]"
+        : "bg-[#f3eee8] font-medium text-[#6b645c]";
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-[10px] ${cls}`}>{children}</span>
   );
 }
 
@@ -104,22 +122,28 @@ function parseAccountDisplay(account: AdAccount) {
     secondaryRaw.toLowerCase() !== raw.toLowerCase() &&
     secondaryRaw.toLowerCase() !== title.toLowerCase();
 
-  const metaParts = [
-    tag,
-    balanceHint && account.balance === 0 ? balanceHint : null,
-  ].filter(Boolean);
+  const feeMatch = account.thresholdInfo?.match(/(\d+(?:\.\d+)?)\s*%/);
+  const fee = feeMatch ? feeMatch[1] : null;
+  const bm =
+    account.externalBusinessId ||
+    (account.bcId && account.bcId !== account.externalAccountId
+      ? account.bcId
+      : null);
 
   return {
     title,
-    meta: metaParts.join(" · ") || null,
+    tag,
+    balanceHint: balanceHint && account.balance === 0 ? balanceHint : null,
     secondary: secondaryDistinct ? secondaryRaw : null,
     accountId: account.externalAccountId || account.bcId,
+    fee,
+    bm: bm ? (String(bm).startsWith("BM") ? String(bm) : `BM ${bm}`) : null,
   };
 }
 
 function Head({ children }: { children: ReactNode }) {
   return (
-    <TableHead className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7a736a]">
+    <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
       {children}
     </TableHead>
   );
@@ -271,14 +295,20 @@ export function AdAccountsTable({
       <div className="flex min-w-0 items-start gap-2.5">
         <PlatformMark platform={account.platform} />
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-normal text-[#1a1612]">
+          <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
             {display.title}
           </p>
-          {display.meta || display.secondary ? (
-            <p className="mt-0.5 truncate text-[11px] text-[#9a9187]">
-              {display.meta ?? display.secondary}
-            </p>
-          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {display.tag ? <MetaChip>{display.tag}</MetaChip> : null}
+            {display.balanceHint ? (
+              <MetaChip tone="fee">{display.balanceHint}</MetaChip>
+            ) : null}
+            {display.secondary ? (
+              <span className="truncate text-[11px] text-[#9a9187]">
+                {display.secondary}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
     );
@@ -306,23 +336,22 @@ export function AdAccountsTable({
             return (
               <article
                 key={account.id}
-                className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-white p-4"
+                className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <AccountCell account={account} />
                   <StatusPill status={account.status} />
                 </div>
-                <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[rgb(20_18_16_/_0.06)] pt-3 text-[12px]">
-                  <div>
-                    <dt className="text-[#9a9187]">ID</dt>
-                    <dd className="font-mono text-[11px] text-[#5c564e]">
-                      {shortId(display.accountId)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[#9a9187]">Fee / info</dt>
-                    <dd className="text-[#5c564e]">{account.thresholdInfo}</dd>
-                  </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[rgb(20_18_16_/_0.06)] pt-3">
+                  <MetaChip tone="mono">{shortId(display.accountId)}</MetaChip>
+                  {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
+                  {display.fee ? (
+                    <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                  ) : (
+                    <MetaChip>{account.thresholdInfo}</MetaChip>
+                  )}
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
                   {!readOnly ? (
                     <>
                       <div>
@@ -360,7 +389,7 @@ export function AdAccountsTable({
         <div className="hidden md:block overflow-x-auto">
           <Table embedded className="rounded-none">
             <TableHeader>
-              <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#f6f0e8] hover:bg-[#f6f0e8]">
+              <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
                 <Head>Cuenta</Head>
                 <Head>ID</Head>
                 <Head>Estado</Head>
@@ -382,23 +411,31 @@ export function AdAccountsTable({
                 return (
                   <TableRow
                     key={account.id}
-                    className="border-b border-[rgb(20_18_16_/_0.05)] hover:bg-[#faf7f3]"
+                    className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
                   >
-                    <TableCell className="max-w-[240px]">
+                    <TableCell className="max-w-[280px]">
                       <AccountCell account={account} />
                     </TableCell>
-                    <TableCell
-                      className="font-mono text-[11px] text-[#7a736a]"
-                      title={display.accountId ?? undefined}
-                    >
-                      {shortId(display.accountId)}
+                    <TableCell title={display.accountId ?? undefined}>
+                      <div className="flex flex-wrap gap-1.5">
+                        <MetaChip tone="mono">
+                          {shortId(display.accountId)}
+                        </MetaChip>
+                        {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <StatusPill status={account.status} />
                     </TableCell>
                     {readOnly ? (
-                      <TableCell className="text-[12px] text-[#5c564e]">
-                        {account.thresholdInfo}
+                      <TableCell>
+                        {display.fee ? (
+                          <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                        ) : (
+                          <span className="text-[12px] text-[#5c564e]">
+                            {account.thresholdInfo}
+                          </span>
+                        )}
                       </TableCell>
                     ) : (
                       <>
@@ -408,21 +445,27 @@ export function AdAccountsTable({
                             Mensual: {formatMoney(account.monthlyLimit)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-[13px] font-normal tabular-nums text-[#1a1612]">
+                        <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
                           {formatMoney(account.balance)}
                         </TableCell>
                         <TableCell>
                           <span
                             className={
                               account.autoRecharge
-                                ? "text-[12px] text-[#1f5c40]"
+                                ? "text-[12px] font-semibold text-[#1f5c40]"
                                 : "text-[12px] text-[#7a736a]"
                             }
                           >
                             {account.autoRecharge ? "Activada" : "Desactivada"}
                           </span>
-                          <div className="text-[11px] text-[#9a9187]">
-                            {account.thresholdInfo}
+                          <div className="mt-1">
+                            {display.fee ? (
+                              <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                            ) : (
+                              <span className="text-[11px] text-[#9a9187]">
+                                {account.thresholdInfo}
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                       </>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   Table,
@@ -82,7 +81,7 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
     <div>
       {(message || error) && (
         <div
-          className={`mx-4 mb-3 rounded-xl border px-4 py-3 text-sm ${
+          className={`mx-4 mb-3 rounded-xl border px-4 py-3 text-[13px] ${
             error
               ? "border-red-200 bg-red-50 text-red-700"
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -94,51 +93,43 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
       )}
 
       {!isEmpty ? (
-        <div className="space-y-3 p-4 md:hidden">
+        <div className="space-y-2.5 p-4 md:hidden">
           {accounts.map((account) => (
             <article
               key={account.id}
-              className="rounded-xl border border-[var(--border-subtle)] bg-white p-4 shadow-[var(--shadow-card)]"
+              className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-[var(--foreground)]">
+                  <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     {account.name}
                   </p>
-                  <div className="mt-1.5">
-                    <Badge variant="warning">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]">
                       {mapAdAccountStatusLabel(account.status)}
-                    </Badge>
+                    </span>
+                    <span
+                      className={
+                        account.autoRecharge
+                          ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
+                          : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
+                      }
+                    >
+                      {account.autoRecharge ? "Auto on" : "Auto off"}
+                    </span>
                   </div>
                 </div>
-                <p className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--foreground)]">
+                <p className="shrink-0 text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
                   {formatMoney(account.balance)}
                 </p>
               </div>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
-                <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">
-                    Recarga auto
-                  </dt>
-                  <dd
-                    className={
-                      account.autoRecharge
-                        ? "font-medium text-emerald-600"
-                        : "font-medium text-[var(--admin-text-muted,#64748b)]"
-                    }
-                  >
-                    {account.autoRecharge ? "Activada" : "Desactivada"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--admin-text-soft,#94a3b8)]">Umbral</dt>
-                  <dd className="font-medium text-[var(--admin-text-muted,#64748b)]">
-                    {account.thresholdInfo}
-                  </dd>
-                </div>
-              </dl>
+              {account.thresholdInfo ? (
+                <p className="mt-2 truncate text-[11px] text-[#9a9187]">
+                  {account.thresholdInfo}
+                </p>
+              ) : null}
               <Button
-                className="mt-4 h-11 w-full rounded-xl bg-[var(--brand-primary)] text-[14px] font-semibold hover:bg-[var(--brand-primary-deep)]"
+                className="mt-4 h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
                 disabled={loadingAccountId === account.id}
                 onClick={() => runAllocate(account)}
               >
@@ -150,49 +141,68 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
       ) : null}
 
       {!isEmpty ? (
-        <div className="hidden md:block">
+        <div className="hidden md:block overflow-x-auto">
           <Table embedded className="rounded-none">
             <TableHeader>
-              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                <TableHead>Cuenta publicitaria</TableHead>
-                <TableHead>Estado de la cuenta publicitaria</TableHead>
-                <TableHead>Saldo</TableHead>
-                <TableHead>Recarga automática</TableHead>
-                <TableHead>Información de umbral</TableHead>
-                <TableHead>Acción</TableHead>
+              <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Cuenta
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Estado
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Saldo
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Recarga
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Umbral
+                </TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                  Acción
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {accounts.map((account) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-medium text-[var(--foreground)]">
+                <TableRow
+                  key={account.id}
+                  className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
+                >
+                  <TableCell className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     {account.name}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="warning">
+                    <span className="rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]">
                       {mapAdAccountStatusLabel(account.status)}
-                    </Badge>
+                    </span>
                   </TableCell>
-                  <TableCell>{formatMoney(account.balance)}</TableCell>
+                  <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
+                    {formatMoney(account.balance)}
+                  </TableCell>
                   <TableCell>
                     <span
                       className={
                         account.autoRecharge
-                          ? "text-emerald-600"
-                          : "text-[var(--admin-text-muted,#64748b)]"
+                          ? "text-[12px] font-semibold text-[#1f5c40]"
+                          : "text-[12px] text-[#7a736a]"
                       }
                     >
                       {account.autoRecharge ? "Activada" : "Desactivada"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-[var(--admin-text-muted,#64748b)]">
-                    {account.thresholdInfo}
+                  <TableCell>
+                    <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
+                      {account.thresholdInfo}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-[var(--brand-primary)]"
+                      className="font-semibold text-[#c45a18]"
                       disabled={loadingAccountId === account.id}
                       onClick={() => runAllocate(account)}
                     >

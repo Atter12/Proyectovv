@@ -59,19 +59,23 @@ export function AdAccountsPageHeader({
   ];
 
   return (
-    <header className="overflow-hidden rounded-[1.25rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
+    <header className="overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]">
       <div className="relative px-5 py-5 sm:px-6 sm:py-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,#e85a1c,#ffa12c)]"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.06),transparent)]"
         />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
+          <div className="min-w-0 pl-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#c45a18]">
               Publicidad
             </p>
-            <h1 className="mt-1.5 text-[1.35rem] font-medium leading-snug tracking-[-0.015em] text-[#1a1612] sm:text-[1.45rem]">
+            <h1 className="mt-1.5 text-[1.35rem] font-semibold leading-snug tracking-[-0.03em] text-[#1a1612] sm:text-[1.45rem]">
               Mis cuentas publicitarias
             </h1>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
@@ -79,7 +83,7 @@ export function AdAccountsPageHeader({
             </p>
 
             {hecomScoped && clienteName ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-2.5">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <HecomClienteAvatar
                     name={clienteName}
@@ -88,28 +92,35 @@ export function AdAccountsPageHeader({
                     className="ring-1 ring-white shadow-sm"
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-[#1a1612]">
+                    <p className="truncate text-[13px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                       {clienteName}
                     </p>
-                    <p className="text-[11px] tabular-nums text-[#7a736a]">
-                      {summary.totalAccounts} cuenta
-                      {summary.totalAccounts === 1 ? "" : "s"}
-                      {summary.activeAccounts > 0
-                        ? ` · ${summary.activeAccounts} activa${summary.activeAccounts === 1 ? "" : "s"}`
-                        : summary.totalAccounts > 0
-                          ? " · sin activas"
-                          : ""}
-                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[#6b645c]">
+                        {summary.totalAccounts} cuenta
+                        {summary.totalAccounts === 1 ? "" : "s"}
+                      </span>
+                      {summary.activeAccounts > 0 ? (
+                        <span className="rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]">
+                          {summary.activeAccounts} activa
+                          {summary.activeAccounts === 1 ? "" : "s"}
+                        </span>
+                      ) : summary.totalAccounts > 0 ? (
+                        <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
+                          Sin activas
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-[#16161a] px-2 py-0.5 text-[11px] font-medium text-[#f5f5f5]">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[#16161a] px-2 py-0.5 text-[11px] font-semibold text-[#f5f5f5]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#fe2c55]" />
                   TikTok Ads
                 </span>
                 {clienteId ? (
                   <Link
                     href={`/clientes/${clienteId}`}
-                    className="text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+                    className="text-[12px] font-semibold text-[#c45a18] underline-offset-2 hover:underline"
                   >
                     Ver ficha
                   </Link>
@@ -168,11 +179,11 @@ export function AdAccountsPageHeader({
                 aria-hidden
                 className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${item.accent}`}
               />
-              <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+              <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8178]">
                 {item.label}
               </p>
               <p
-                className={`mt-1 truncate pl-2 text-[1.15rem] font-medium tracking-[-0.015em] tabular-nums sm:text-[1.25rem] ${item.tone}`}
+                className={`mt-1 truncate pl-2 text-[1.15rem] font-semibold tracking-[-0.03em] tabular-nums sm:text-[1.25rem] ${item.tone}`}
               >
                 {item.value}
               </p>
