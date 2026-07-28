@@ -42,7 +42,12 @@ const QUOTES = [
 
 const HERO_TITLE = "Opera campañas, pagos y saldos en un solo lugar.";
 
-export function LoginHeroPanel() {
+export function LoginHeroPanel({
+  alwaysVisible = false,
+}: {
+  /** Landing: mostrar también en mobile. Login: solo desktop. */
+  alwaysVisible?: boolean;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const quote = QUOTES[activeIndex];
@@ -67,7 +72,12 @@ export function LoginHeroPanel() {
   }, [reduceMotion]);
 
   return (
-    <div className="relative z-10 hidden min-h-0 flex-col justify-center py-6 lg:flex lg:py-10">
+    <div
+      className={cn(
+        "relative z-10 min-h-0 flex-col justify-center px-4 py-6 sm:px-6 lg:px-0 lg:py-10",
+        alwaysVisible ? "flex" : "hidden lg:flex",
+      )}
+    >
       <div className="auth-copy-well">
         <div className="relative z-10 max-w-[38rem]">
           <p className="text-[14px] font-semibold tracking-[0.06em] text-[var(--auth-accent)]">
