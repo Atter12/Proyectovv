@@ -267,6 +267,11 @@ body {
   to { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
 }
 
+@keyframes landing-reveal-in {
+  from { opacity: 0.92; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes shimmer-line {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(120%); }
@@ -276,6 +281,15 @@ body {
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .dashboard-page-enter { animation: dashboard-page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .testimonial-enter { animation: testimonial-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.landing-reveal-in {
+  animation: landing-reveal-in 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal-in {
+    animation: none;
+  }
+}
 
 /* -------------------------------------------------------------------------
    Auth — Holistic (black + sunset orange, matches logo)

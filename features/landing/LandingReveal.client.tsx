@@ -3,6 +3,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * Entrada suave sin dejar la página en blanco.
+ * SSR / sin JS → siempre visible. Con JS → anima una vez.
+ */
 export function LandingReveal({
   children,
   className,
@@ -12,27 +16,24 @@ export function LandingReveal({
   className?: string;
   delayMs?: number;
 }) {
-  const [show, setShow] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduceMotion(media.matches);
-    if (media.matches) {
-      setShow(true);
-      return;
-    }
-    const id = window.setTimeout(() => setShow(true), delayMs);
+    if (media.matches) return;
+
+    const id = window.setTimeout(() => setAnimate(true), delayMs);
     return () => window.clearTimeout(id);
   }, [delayMs]);
 
   return (
     <div
-      className={cn(
-        className,
-        !reduceMotion && "transition-[opacity,transform] duration-700 ease-out",
-        show ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
-      )}
+      className={cn(className, animate && "landing-reveal-in")}
+      style={
+        animate && delayMs > 0
+          ? ({ animationDelay: `${Math.min(delayMs, 400)}ms` } as React.CSSProperties)
+          : undefined
+      }
     >
       {children}
     </div>
