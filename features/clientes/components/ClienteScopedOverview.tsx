@@ -91,11 +91,11 @@ export function ClienteScopedOverview({
               size="xl"
               className="ring-2 ring-white shadow-[0_8px_20px_rgb(20_18_16_/_0.1)]"
             />
-            <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
+            <p className="mt-4 text-[10px] font-normal uppercase tracking-[0.2em] text-[#8a5a38]">
               Cliente activo
             </p>
             <OverviewClientTitle name={cliente.name} />
-            <p className="mt-2 max-w-md text-[13px] leading-5 text-[#6b645c]">
+            <p className="mt-3 max-w-md text-[13px] font-normal leading-6 tracking-[-0.01em] text-[#6b645c]">
               Resumen del cliente activo: cuentas, cobros, gastos y saldo
               estimado. Vista rápida de cómo viene
               {cliente.biz ? ` · ${cliente.biz}` : ""}.
@@ -104,13 +104,13 @@ export function ClienteScopedOverview({
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <Link
                 href={routes.adAccounts}
-                className="inline-flex h-9 items-center rounded-lg bg-[#e85a1c] px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16]"
+                className="inline-flex h-9 items-center rounded-lg bg-[#e85a1c] px-3.5 text-[12px] font-normal tracking-[-0.01em] text-white transition-colors hover:bg-[#d14e16]"
               >
                 Sus cuentas
               </Link>
               <Link
                 href={routes.payments}
-                className="inline-flex h-9 items-center rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3.5 text-[13px] font-medium text-[#2a241f] transition-colors hover:bg-[#f6f0e8]"
+                className="inline-flex h-9 items-center rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3.5 text-[12px] font-normal tracking-[-0.01em] text-[#2a241f] transition-colors hover:bg-[#f6f0e8]"
               >
                 Sus pagos
               </Link>
@@ -144,11 +144,11 @@ export function ClienteScopedOverview({
                   aria-hidden
                   className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${kpi.accent}`}
                 />
-                <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+                <p className="pl-2 text-[10px] font-normal uppercase tracking-[0.16em] text-[#7a736a]">
                   {kpi.label}
                 </p>
                 <p
-                  className={`mt-1 truncate pl-2 text-[1.2rem] font-medium tracking-[-0.015em] tabular-nums sm:text-[1.3rem] ${kpi.tone}`}
+                  className={`mt-1.5 truncate pl-2 text-[1.25rem] font-light tracking-[-0.035em] tabular-nums sm:text-[1.4rem] ${kpi.tone}`}
                 >
                   {kpi.value}
                 </p>
@@ -175,7 +175,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
             <span className="text-[#25f4ee]">T</span>
             <span className="text-[#fe2c55]">T</span>
           </span>
-          <h3 className="text-[13px] font-medium text-[#1a1612]">
+          <h3 className="text-[13px] font-normal tracking-[-0.02em] text-[#1a1612]">
             Cuentas TikTok
           </h3>
           <span className="rounded-md bg-[#f0e9e0] px-1.5 py-0.5 text-[11px] tabular-nums text-[#6b645c]">
@@ -204,10 +204,10 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
                 className="flex items-start justify-between gap-3 px-5 py-3 transition-colors hover:bg-[#faf7f3]"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-normal text-[#1a1612]">
+                  <p className="truncate text-[13px] font-normal tracking-[-0.015em] text-[#1a1612]">
                     {label.title}
                   </p>
-                  <p className="mt-0.5 truncate font-mono text-[11px] text-[#9a9187]">
+                  <p className="mt-0.5 truncate font-mono text-[10px] tracking-wide text-[#9a9187]">
                     {shortId(account.advertiserId)}
                     {account.bmBucket ? ` · BM ${account.bmBucket}` : ""}
                   </p>
@@ -243,7 +243,7 @@ function GastosPanel({
   return (
     <Card className="rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-0 shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
       <div className="flex items-center justify-between gap-2 border-b border-[rgb(20_18_16_/_0.06)] px-5 py-3.5">
-        <h3 className="text-[13px] font-medium text-[#1a1612]">
+        <h3 className="text-[13px] font-normal tracking-[-0.02em] text-[#1a1612]">
           Últimos gastos
         </h3>
         <div className="flex items-center gap-2">
@@ -277,16 +277,16 @@ function GastosPanel({
                 className="flex items-start justify-between gap-3 px-5 py-3 transition-colors hover:bg-[#faf7f3]"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-normal text-[#1a1612]">
+                  <p className="truncate text-[13px] font-normal tracking-[-0.015em] text-[#1a1612]">
                     {label.title}
                   </p>
                   {label.meta ? (
-                    <p className="mt-0.5 truncate text-[11px] text-[#9a9187]">
+                    <p className="mt-0.5 truncate text-[10px] leading-4 tracking-[-0.01em] text-[#9a9187]">
                       {label.meta}
                     </p>
                   ) : null}
                 </div>
-                <p className="shrink-0 text-[13px] font-medium tabular-nums text-[#1a1612]">
+                <p className="shrink-0 text-[13px] font-light tabular-nums tracking-[-0.02em] text-[#1a1612]">
                   {moneyUsd(row.gasto)}
                 </p>
               </li>
