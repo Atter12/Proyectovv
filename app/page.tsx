@@ -6,9 +6,9 @@ import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} — Cartera, cuentas y campañas`,
+  title: `${siteConfig.name} — Opera campañas, pagos y saldos`,
   description:
-    "Recargá saldo, asigná a cuentas TikTok y operá campañas en un solo panel Holistic.",
+    "Panel del anunciante: recargá la cartera Holistic, asigná a cuentas TikTok y operá campañas en un solo lugar.",
 };
 
 export default async function HomePage() {
