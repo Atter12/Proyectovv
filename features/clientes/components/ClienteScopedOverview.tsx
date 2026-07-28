@@ -150,8 +150,8 @@ export function ClienteScopedOverview({
         </div>
       </section>
 
-      {/* Detail — open panels, not heavy twin cards */}
-      <div className="grid gap-10 xl:grid-cols-2 xl:gap-12">
+      {/* Detail panels */}
+      <div className="grid gap-5 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
         <GastosPanel gastos={recentGastos} source={data.source} />
       </div>
@@ -193,58 +193,79 @@ function Metric({
 
 function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
   return (
-    <section>
-      <div className="mb-4 flex items-end justify-between gap-3 border-b border-[rgb(20_18_16_/_0.1)] pb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-[#16161a] text-[7px] font-bold">
+    <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]">
+      <div className="flex items-start justify-between gap-3 border-b border-[rgb(20_18_16_/_0.07)] px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#16161a] text-[8px] font-bold shadow-sm">
               <span className="text-[#25f4ee]">T</span>
               <span className="text-[#fe2c55]">T</span>
             </span>
             <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-[#1a1612]">
               Cuentas TikTok
             </h2>
-            <span className="text-[12px] tabular-nums text-[#8a8178]">
+            <span className="rounded-md bg-[#f0e9e0] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#5c564e]">
               {accounts.length}
             </span>
           </div>
-          <p className="mt-1 text-[12px] text-[#7a736a]">
-            Mapeadas desde Hecom · solo lectura
+          <p className="mt-1.5 text-[12px] leading-5 text-[#7a736a]">
+            Hecom · solo lectura
           </p>
         </div>
         <Link
           href={routes.adAccounts}
-          className="shrink-0 text-[12px] font-semibold text-[#c45a18] underline-offset-2 hover:underline"
+          className="shrink-0 pt-0.5 text-[12px] font-semibold text-[#c45a18] underline-offset-2 hover:underline"
         >
           Ver todas
         </Link>
       </div>
 
       {accounts.length === 0 ? (
-        <p className="py-6 text-[13px] text-[#7a736a]">
+        <p className="px-5 py-10 text-[13px] text-[#7a736a]">
           Sin advertiser mapeado en Hecom.
         </p>
       ) : (
-        <ul className="max-h-[22rem] space-y-0 overflow-y-auto">
+        <ul className="max-h-[24rem] flex-1 overflow-y-auto">
           {accounts.map((account) => {
             const label = parseAdvertiserLabel(account.advertiserName);
             return (
               <li
                 key={account.advertiserId}
-                className="flex items-start justify-between gap-3 border-b border-[rgb(20_18_16_/_0.06)] py-3.5 last:border-0"
+                className="flex items-center gap-3 border-b border-[rgb(20_18_16_/_0.05)] px-5 py-3.5 transition-colors last:border-0 hover:bg-[#faf7f3]"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-medium tracking-[-0.015em] text-[#1a1612]">
+                <span
+                  aria-hidden
+                  className={`mt-0.5 h-8 w-[3px] shrink-0 rounded-full ${
+                    account.syncEnabled !== false ? "bg-[#2f7a57]" : "bg-[#c4bbb0]"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     {label.title}
                   </p>
-                  <p className="mt-1 font-mono text-[11px] text-[#9a9187]">
-                    {shortId(account.advertiserId)}
-                    {account.bmBucket ? ` · BM ${account.bmBucket}` : ""}
-                    {label.tag ? ` · ${label.tag}` : ""}
-                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 font-mono text-[10px] text-[#6b645c]">
+                      {shortId(account.advertiserId)}
+                    </span>
+                    {account.bmBucket ? (
+                      <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
+                        BM {account.bmBucket}
+                      </span>
+                    ) : null}
+                    {label.tag ? (
+                      <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
+                        {label.tag}
+                      </span>
+                    ) : null}
+                    {account.fee != null ? (
+                      <span className="rounded bg-[#fff1e8] px-1.5 py-0.5 text-[10px] font-semibold text-[#c45a18]">
+                        Fee {account.fee}%
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 {label.balance ? (
-                  <p className="shrink-0 text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
+                  <p className="shrink-0 text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[#c45a18]">
                     {label.balance}
                   </p>
                 ) : null}
@@ -265,57 +286,76 @@ function GastosPanel({
   source: HecomClienteDashboard["source"];
 }) {
   return (
-    <section>
-      <div className="mb-4 flex items-end justify-between gap-3 border-b border-[rgb(20_18_16_/_0.1)] pb-3">
-        <div>
-          <div className="flex items-center gap-2">
+    <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]">
+      <div className="flex items-start justify-between gap-3 border-b border-[rgb(20_18_16_/_0.07)] px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-[#1a1612]">
               Últimos gastos
             </h2>
-            <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5c564e] ring-1 ring-[rgb(20_18_16_/_0.1)]">
+            <span
+              className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
+                source === "hecom_live"
+                  ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
+                  : "bg-[#f3eee8] text-[#5c564e] ring-1 ring-[rgb(20_18_16_/_0.08)]"
+              }`}
+            >
               {sourceLabel(source)}
             </span>
           </div>
-          <p className="mt-1 text-[12px] text-[#7a736a]">
+          <p className="mt-1.5 text-[12px] leading-5 text-[#7a736a]">
             Consumo reciente de campañas
           </p>
         </div>
         <Link
           href={routes.payments}
-          className="shrink-0 text-[12px] font-semibold text-[#c45a18] underline-offset-2 hover:underline"
+          className="shrink-0 pt-0.5 text-[12px] font-semibold text-[#c45a18] underline-offset-2 hover:underline"
         >
           Ver pagos
         </Link>
       </div>
 
       {gastos.length === 0 ? (
-        <p className="py-6 text-[13px] text-[#7a736a]">
+        <p className="px-5 py-10 text-[13px] text-[#7a736a]">
           Sin gastos registrados para este cliente.
         </p>
       ) : (
-        <ul className="max-h-[22rem] overflow-y-auto">
+        <ul className="max-h-[24rem] flex-1 overflow-y-auto">
           {gastos.map((row) => {
+            const fecha = formatHecomFecha(row.fecha ?? row.mes);
             const label = formatHecomGastoDisplay(row.camp, {
               notas: row.notas,
               fee: row.fee,
-              fecha: formatHecomFecha(row.fecha ?? row.mes),
+              fecha: null,
             });
             return (
               <li
                 key={row.id}
-                className="flex items-start justify-between gap-3 border-b border-[rgb(20_18_16_/_0.06)] py-3.5 last:border-0"
+                className="flex items-start justify-between gap-3 border-b border-[rgb(20_18_16_/_0.05)] px-5 py-3.5 transition-colors last:border-0 hover:bg-[#faf7f3]"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-medium tracking-[-0.015em] text-[#1a1612]">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     {label.title}
                   </p>
-                  {label.meta ? (
-                    <p className="mt-1 truncate text-[11px] leading-4 text-[#9a9187]">
-                      {label.meta}
-                    </p>
-                  ) : null}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {fecha ? (
+                      <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[#6b645c]">
+                        {fecha}
+                      </span>
+                    ) : null}
+                    {row.fee != null ? (
+                      <span className="rounded bg-[#fff1e8] px-1.5 py-0.5 text-[10px] font-semibold text-[#c45a18]">
+                        Fee {row.fee}%
+                      </span>
+                    ) : null}
+                    {label.meta ? (
+                      <span className="truncate text-[11px] text-[#9a9187]">
+                        {label.meta}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <p className="shrink-0 text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
+                <p className="shrink-0 pt-0.5 text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
                   {moneyUsd(row.gasto)}
                 </p>
               </li>
