@@ -2,18 +2,18 @@ import { Suspense } from "react";
 import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm.client";
 import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
-import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
+import { LandingDotGridBackground } from "@/features/landing/LandingDotGridBackground.client";
 import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
   return (
     <div className="auth-panel w-full max-w-[420px] animate-pulse rounded-2xl p-8">
       <div className="mb-7 space-y-2">
-        <div className="h-7 w-48 rounded bg-white/10" />
-        <div className="h-4 w-56 rounded bg-white/10" />
+        <div className="h-7 w-48 rounded bg-[var(--auth-skeleton)]" />
+        <div className="h-4 w-56 rounded bg-[var(--auth-skeleton)]" />
       </div>
       <div className="space-y-4">
-        <div className="h-12 rounded-xl bg-white/10" />
+        <div className="h-12 rounded-xl bg-[var(--auth-skeleton)]" />
         <div className="h-12 rounded-xl bg-[var(--auth-accent)]/30" />
       </div>
     </div>
@@ -22,12 +22,12 @@ function AuthCardFallback() {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="auth-canvas relative min-h-screen overflow-hidden">
-      <AuthDotGridBackground />
+    <div className="landing-canvas relative min-h-screen overflow-hidden">
+      <LandingDotGridBackground />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex shrink-0 justify-center px-4 pt-8 sm:pt-10 lg:pt-12">
-          <AuthBrandMark className="max-w-[240px] sm:max-w-[280px]" />
+          <AuthBrandMark tone="light" className="max-w-[240px] sm:max-w-[280px]" />
         </header>
 
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">

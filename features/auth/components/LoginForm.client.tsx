@@ -37,7 +37,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 export function LoginForm() {
   const router = useRouter();
@@ -173,7 +173,7 @@ export function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
+      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
         ¿No tienes cuenta?{" "}
         <Link
           href={routes.register}

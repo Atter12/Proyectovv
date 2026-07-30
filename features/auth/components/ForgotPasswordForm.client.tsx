@@ -39,7 +39,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 const primaryButtonClassName =
   "flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(255_120_31_/_0.35)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none";
@@ -280,7 +280,7 @@ export function ForgotPasswordForm() {
 
       {step === "verify" && (
         <form onSubmit={handleVerify} className="space-y-4">
-          <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 py-3 text-[14px] text-[var(--auth-text-muted)]">
+          <div className="rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-control-bg)] px-3.5 py-3 text-[14px] text-[var(--auth-text-muted)]">
             Enviamos el código a{" "}
             <span className="font-semibold text-[var(--auth-text)]">{normalizedEmail}</span>.
           </div>
@@ -423,7 +423,7 @@ export function ForgotPasswordForm() {
         </div>
       )}
 
-      <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
+      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
         <Link
           href={routes.login}
           className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
