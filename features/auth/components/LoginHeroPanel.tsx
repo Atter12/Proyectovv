@@ -151,7 +151,7 @@ export function LoginHeroPanel({
                     "h-2 rounded-full transition-all duration-300",
                     index === activeIndex
                       ? "w-5 bg-[var(--auth-accent)]"
-                      : "w-2 bg-white/25 hover:bg-white/45",
+                      : "w-2 bg-[var(--auth-dot-mute)] hover:bg-[var(--auth-dot-mute-hover)]",
                   )}
                 />
               ))}

@@ -29,7 +29,7 @@ export function LandingStartPanel() {
           { n: "03", t: "Gastar en campañas" },
         ].map((step) => (
           <li key={step.n} className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[11px] font-bold text-white shadow-[0_8px_18px_rgb(255_120_31_/_0.32)]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[11px] font-bold text-white shadow-[0_8px_18px_rgb(255_120_31_/_0.28)]">
               {step.n}
             </span>
             <span className="text-[14px] font-semibold text-[var(--auth-text)]">
@@ -48,7 +48,7 @@ export function LandingStartPanel() {
         </Link>
         <Link
           href={routes.login}
-          className="flex h-12 w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.03] text-[15px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-white/[0.06]"
+          className="flex h-12 w-full items-center justify-center rounded-xl border border-[var(--auth-control-border)] bg-[var(--auth-control-bg)] text-[15px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-control-hover)]"
         >
           Iniciar sesión
         </Link>
