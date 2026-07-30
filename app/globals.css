@@ -395,40 +395,39 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Landing / auth light — glow naranja ámbar (#ff781f / #ffa12c), sin rosa
+   Landing / auth light — fondo naranja Holistic (#ff781f) bien visible
    ------------------------------------------------------------------------- */
 
 .landing-canvas {
-  --auth-bg: #fff6eb;
-  --auth-bg-elevated: #fffbf6;
+  --auth-bg: #fff4e6;
+  --auth-bg-elevated: #fffbf5;
   --auth-surface: #ffffff;
-  --auth-border: rgb(255 120 31 / 0.16);
+  --auth-border: rgb(255 120 31 / 0.18);
   --auth-text: #1a1612;
   --auth-text-muted: #5c564e;
   --auth-text-soft: #8a8178;
   --auth-accent: #ff781f;
   --auth-accent-hover: #e8451a;
-  --auth-accent-soft: rgb(255 120 31 / 0.12);
-  --auth-accent-ring: rgb(255 120 31 / 0.22);
+  --auth-accent-soft: rgb(255 120 31 / 0.14);
+  --auth-accent-ring: rgb(255 120 31 / 0.24);
   --auth-control-bg: #ffffff;
-  --auth-control-border: rgb(255 120 31 / 0.18);
-  --auth-control-hover: #fff3e6;
-  --auth-dot-mute: rgb(255 120 31 / 0.22);
-  --auth-dot-mute-hover: rgb(255 120 31 / 0.4);
-  --auth-copy-wash: rgb(255 251 245 / 0.92);
-  --auth-divider: rgb(255 120 31 / 0.12);
-  --auth-input-border: rgb(255 120 31 / 0.16);
-  --auth-input-border-hover: rgb(255 120 31 / 0.28);
-  --auth-skeleton: rgb(255 120 31 / 0.1);
+  --auth-control-border: rgb(255 120 31 / 0.2);
+  --auth-control-hover: #fff0e0;
+  --auth-dot-mute: rgb(255 120 31 / 0.28);
+  --auth-dot-mute-hover: rgb(255 120 31 / 0.45);
+  --auth-copy-wash: rgb(255 250 242 / 0.94);
+  --auth-divider: rgb(255 120 31 / 0.14);
+  --auth-input-border: rgb(255 120 31 / 0.2);
+  --auth-input-border-hover: rgb(255 120 31 / 0.32);
+  --auth-skeleton: rgb(255 120 31 / 0.12);
   position: relative;
-  /* Ámbar / naranja puro — sin coral (ese se veía rosado) */
-  background-color: #ffe8c8;
+  background-color: #ffc878;
   background-image:
-    radial-gradient(1100px 580px at 18% 8%, rgb(255 161 44 / 0.42), transparent 56%),
-    radial-gradient(900px 520px at 88% 12%, rgb(255 120 31 / 0.28), transparent 54%),
-    radial-gradient(800px 480px at 50% 95%, rgb(255 176 64 / 0.22), transparent 55%),
-    radial-gradient(700px 440px at 48% 42%, rgb(255 161 44 / 0.18), transparent 58%),
-    linear-gradient(165deg, #fff8ef 0%, #ffecc8 42%, #ffe0a8 100%);
+    radial-gradient(1200px 620px at 20% 5%, rgb(255 120 31 / 0.55), transparent 55%),
+    radial-gradient(1000px 560px at 90% 10%, rgb(255 161 44 / 0.45), transparent 52%),
+    radial-gradient(900px 520px at 50% 100%, rgb(255 176 64 / 0.4), transparent 52%),
+    radial-gradient(760px 480px at 45% 40%, rgb(255 140 40 / 0.32), transparent 58%),
+    linear-gradient(160deg, #ffe7bc 0%, #ffd28a 40%, #ffc05a 100%);
 }
 
 .landing-canvas::before {
@@ -438,28 +437,28 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 58% 48% at 24% 28%, rgb(255 176 64 / 0.26), transparent 68%),
-    radial-gradient(ellipse 48% 42% at 80% 70%, rgb(255 161 44 / 0.18), transparent 66%);
+    radial-gradient(ellipse 60% 50% at 22% 25%, rgb(255 161 44 / 0.4), transparent 65%),
+    radial-gradient(ellipse 50% 45% at 82% 72%, rgb(255 120 31 / 0.32), transparent 64%);
 }
 
 .landing-canvas .auth-panel {
-  border: 1px solid rgb(255 140 40 / 0.14);
+  border: 1px solid rgb(255 140 40 / 0.16);
   background: #ffffff;
   box-shadow:
     0 1px 0 rgb(255 255 255 / 1) inset,
-    0 1px 2px rgb(180 100 20 / 0.04),
-    0 16px 36px rgb(255 140 40 / 0.1);
+    0 1px 2px rgb(180 90 20 / 0.05),
+    0 18px 40px rgb(255 120 31 / 0.16);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .landing-canvas .auth-copy-well::before {
   background:
-    radial-gradient(ellipse at 18% 8%, rgb(255 161 44 / 0.08), transparent 52%),
-    rgb(255 252 247 / 0.94);
-  box-shadow: 0 0 44px 26px rgb(255 240 210 / 0.5);
+    radial-gradient(ellipse at 18% 8%, rgb(255 161 44 / 0.1), transparent 52%),
+    rgb(255 252 246 / 0.95);
+  box-shadow: 0 0 48px 28px rgb(255 220 160 / 0.45);
   backdrop-filter: blur(8px);
-  border: 1px solid rgb(255 160 50 / 0.1);
+  border: 1px solid rgb(255 160 50 / 0.12);
 }
 
 /* Legacy auth classes — kept for register/forgot until those screens migrate */
