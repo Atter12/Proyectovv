@@ -395,12 +395,12 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Landing / auth light — el glow naranja del cursor (#ff781f) fijo en el fondo
+   Landing / auth light — glow naranja ámbar (#ff781f / #ffa12c), sin rosa
    ------------------------------------------------------------------------- */
 
 .landing-canvas {
-  --auth-bg: #fff1e6;
-  --auth-bg-elevated: #fffaf5;
+  --auth-bg: #fff6eb;
+  --auth-bg-elevated: #fffbf6;
   --auth-surface: #ffffff;
   --auth-border: rgb(255 120 31 / 0.16);
   --auth-text: #1a1612;
@@ -412,23 +412,23 @@ body {
   --auth-accent-ring: rgb(255 120 31 / 0.22);
   --auth-control-bg: #ffffff;
   --auth-control-border: rgb(255 120 31 / 0.18);
-  --auth-control-hover: #fff1e8;
+  --auth-control-hover: #fff3e6;
   --auth-dot-mute: rgb(255 120 31 / 0.22);
   --auth-dot-mute-hover: rgb(255 120 31 / 0.4);
-  --auth-copy-wash: rgb(255 250 244 / 0.9);
+  --auth-copy-wash: rgb(255 251 245 / 0.92);
   --auth-divider: rgb(255 120 31 / 0.12);
-  --auth-input-border: rgb(255 120 31 / 0.18);
-  --auth-input-border-hover: rgb(255 120 31 / 0.3);
+  --auth-input-border: rgb(255 120 31 / 0.16);
+  --auth-input-border-hover: rgb(255 120 31 / 0.28);
   --auth-skeleton: rgb(255 120 31 / 0.1);
   position: relative;
-  /* Mismo tono que el glow del cursor, siempre presente */
-  background-color: #ffe4cc;
+  /* Ámbar / naranja puro — sin coral (ese se veía rosado) */
+  background-color: #ffe8c8;
   background-image:
-    radial-gradient(1100px 580px at 18% 8%, rgb(255 120 31 / 0.38), transparent 56%),
-    radial-gradient(900px 520px at 88% 12%, rgb(255 161 44 / 0.28), transparent 54%),
-    radial-gradient(800px 480px at 50% 95%, rgb(255 77 45 / 0.2), transparent 55%),
-    radial-gradient(700px 440px at 48% 42%, rgb(255 120 31 / 0.16), transparent 58%),
-    linear-gradient(165deg, #fff6ee 0%, #ffe8d4 45%, #ffd9bc 100%);
+    radial-gradient(1100px 580px at 18% 8%, rgb(255 161 44 / 0.42), transparent 56%),
+    radial-gradient(900px 520px at 88% 12%, rgb(255 120 31 / 0.28), transparent 54%),
+    radial-gradient(800px 480px at 50% 95%, rgb(255 176 64 / 0.22), transparent 55%),
+    radial-gradient(700px 440px at 48% 42%, rgb(255 161 44 / 0.18), transparent 58%),
+    linear-gradient(165deg, #fff8ef 0%, #ffecc8 42%, #ffe0a8 100%);
 }
 
 .landing-canvas::before {
@@ -438,28 +438,28 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 58% 48% at 24% 28%, rgb(255 140 50 / 0.22), transparent 68%),
-    radial-gradient(ellipse 48% 42% at 80% 70%, rgb(255 120 31 / 0.16), transparent 66%);
+    radial-gradient(ellipse 58% 48% at 24% 28%, rgb(255 176 64 / 0.26), transparent 68%),
+    radial-gradient(ellipse 48% 42% at 80% 70%, rgb(255 161 44 / 0.18), transparent 66%);
 }
 
 .landing-canvas .auth-panel {
-  border: 1px solid rgb(255 120 31 / 0.14);
+  border: 1px solid rgb(255 140 40 / 0.14);
   background: #ffffff;
   box-shadow:
     0 1px 0 rgb(255 255 255 / 1) inset,
-    0 1px 2px rgb(232 90 28 / 0.04),
-    0 16px 36px rgb(255 120 31 / 0.1);
+    0 1px 2px rgb(180 100 20 / 0.04),
+    0 16px 36px rgb(255 140 40 / 0.1);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .landing-canvas .auth-copy-well::before {
   background:
-    radial-gradient(ellipse at 18% 8%, rgb(255 120 31 / 0.08), transparent 52%),
-    rgb(255 252 248 / 0.92);
-  box-shadow: 0 0 44px 26px rgb(255 236 220 / 0.5);
+    radial-gradient(ellipse at 18% 8%, rgb(255 161 44 / 0.08), transparent 52%),
+    rgb(255 252 247 / 0.94);
+  box-shadow: 0 0 44px 26px rgb(255 240 210 / 0.5);
   backdrop-filter: blur(8px);
-  border: 1px solid rgb(255 120 31 / 0.1);
+  border: 1px solid rgb(255 160 50 / 0.1);
 }
 
 /* Legacy auth classes — kept for register/forgot until those screens migrate */
