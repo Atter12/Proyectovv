@@ -395,14 +395,14 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Landing / auth light — fondo naranja Holistic (#ff781f) bien visible
+   Landing / auth — mismo gradiente del CTA (coral → primary → accent)
    ------------------------------------------------------------------------- */
 
 .landing-canvas {
-  --auth-bg: #fff4e6;
-  --auth-bg-elevated: #fffbf5;
+  --auth-bg: #fff5ec;
+  --auth-bg-elevated: #fffbf7;
   --auth-surface: #ffffff;
-  --auth-border: rgb(255 120 31 / 0.18);
+  --auth-border: rgb(255 120 31 / 0.2);
   --auth-text: #1a1612;
   --auth-text-muted: #5c564e;
   --auth-text-soft: #8a8178;
@@ -411,23 +411,23 @@ body {
   --auth-accent-soft: rgb(255 120 31 / 0.14);
   --auth-accent-ring: rgb(255 120 31 / 0.24);
   --auth-control-bg: #ffffff;
-  --auth-control-border: rgb(255 120 31 / 0.2);
-  --auth-control-hover: #fff0e0;
-  --auth-dot-mute: rgb(255 120 31 / 0.28);
-  --auth-dot-mute-hover: rgb(255 120 31 / 0.45);
-  --auth-copy-wash: rgb(255 250 242 / 0.94);
-  --auth-divider: rgb(255 120 31 / 0.14);
+  --auth-control-border: rgb(255 120 31 / 0.22);
+  --auth-control-hover: #fff1e8;
+  --auth-dot-mute: rgb(255 255 255 / 0.45);
+  --auth-dot-mute-hover: rgb(255 255 255 / 0.7);
+  --auth-copy-wash: rgb(255 252 248 / 0.94);
+  --auth-divider: rgb(255 120 31 / 0.16);
   --auth-input-border: rgb(255 120 31 / 0.2);
-  --auth-input-border-hover: rgb(255 120 31 / 0.32);
-  --auth-skeleton: rgb(255 120 31 / 0.12);
+  --auth-input-border-hover: rgb(255 120 31 / 0.34);
+  --auth-skeleton: rgb(255 120 31 / 0.14);
   position: relative;
-  background-color: #ffc878;
+  /* Exacto: brand-coral → brand-primary → brand-accent (botón Crear cuenta) */
+  background-color: var(--brand-primary);
   background-image:
-    radial-gradient(1200px 620px at 20% 5%, rgb(255 120 31 / 0.55), transparent 55%),
-    radial-gradient(1000px 560px at 90% 10%, rgb(255 161 44 / 0.45), transparent 52%),
-    radial-gradient(900px 520px at 50% 100%, rgb(255 176 64 / 0.4), transparent 52%),
-    radial-gradient(760px 480px at 45% 40%, rgb(255 140 40 / 0.32), transparent 58%),
-    linear-gradient(160deg, #ffe7bc 0%, #ffd28a 40%, #ffc05a 100%);
+    radial-gradient(1000px 560px at 12% 0%, rgb(255 77 45 / 0.55), transparent 58%),
+    radial-gradient(900px 520px at 92% 8%, rgb(255 161 44 / 0.5), transparent 55%),
+    radial-gradient(800px 500px at 50% 100%, rgb(255 120 31 / 0.45), transparent 55%),
+    var(--brand-gradient);
 }
 
 .landing-canvas::before {
@@ -437,28 +437,28 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 60% 50% at 22% 25%, rgb(255 161 44 / 0.4), transparent 65%),
-    radial-gradient(ellipse 50% 45% at 82% 72%, rgb(255 120 31 / 0.32), transparent 64%);
+    radial-gradient(ellipse 55% 45% at 20% 30%, rgb(255 255 255 / 0.12), transparent 65%),
+    radial-gradient(ellipse 45% 40% at 80% 70%, rgb(255 255 255 / 0.08), transparent 65%);
 }
 
 .landing-canvas .auth-panel {
-  border: 1px solid rgb(255 140 40 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.35);
   background: #ffffff;
   box-shadow:
     0 1px 0 rgb(255 255 255 / 1) inset,
-    0 1px 2px rgb(180 90 20 / 0.05),
-    0 18px 40px rgb(255 120 31 / 0.16);
+    0 1px 2px rgb(120 40 10 / 0.08),
+    0 20px 44px rgb(120 40 10 / 0.22);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .landing-canvas .auth-copy-well::before {
   background:
-    radial-gradient(ellipse at 18% 8%, rgb(255 161 44 / 0.1), transparent 52%),
-    rgb(255 252 246 / 0.95);
-  box-shadow: 0 0 48px 28px rgb(255 220 160 / 0.45);
+    radial-gradient(ellipse at 18% 8%, rgb(255 120 31 / 0.06), transparent 52%),
+    rgb(255 255 255 / 0.96);
+  box-shadow: 0 0 48px 28px rgb(255 120 31 / 0.12);
   backdrop-filter: blur(8px);
-  border: 1px solid rgb(255 160 50 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.5);
 }
 
 /* Legacy auth classes — kept for register/forgot until those screens migrate */
