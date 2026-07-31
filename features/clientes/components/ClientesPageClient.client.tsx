@@ -209,21 +209,10 @@ export function ClientesPageClient() {
 
       {!loading && payload && !payload.ok ? (
         <Card className="border-rose-200 bg-rose-50 p-5 text-sm text-rose-950">
-          <p className="font-semibold">Error al cargar Clientes Hecom</p>
-          <p className="mt-1">{payload.error}</p>
-          {payload.hint ? <p className="mt-2 text-xs opacity-80">{payload.hint}</p> : null}
-          {payload.steps ? (
-            <pre className="mt-3 overflow-x-auto rounded-lg bg-white/70 p-3 text-[11px] text-rose-900">
-              {JSON.stringify(payload.steps, null, 2)}
-            </pre>
-          ) : null}
-        </Card>
-      ) : null}
-
-      {!loading && payload?.ok ? (
-        <Card className="border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900">
-          OK · fuente: {payload.source} · {payload.count} cliente(s) Hecom Club.
-          {payload.note ? ` ${payload.note}` : ""}
+          <p className="font-semibold">No se pudieron cargar los clientes</p>
+          <p className="mt-1">
+            {payload.error ?? "Error desconocido. Reintentá en unos segundos."}
+          </p>
         </Card>
       ) : null}
 

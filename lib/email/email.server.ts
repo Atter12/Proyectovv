@@ -100,10 +100,25 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<{ s
   const data = (await response.json().catch(() => ({}))) as ResendSendResponse;
   if (!response.ok || data.error) {
     const message = data.error?.message ?? `Resend respondió ${response.status}`;
+    console.error(
+      `[email] resend_fail ${JSON.stringify({
+        template: input.templateKey,
+        status: response.status,
+        error: message,
+        toCount: recipients.length,
+      })}`,
+    );
     await insertEmailEvent(input, "failed", { error_message: message });
     throw new Error(message);
   }
 
+  console.info(
+    `[email] resend_ok ${JSON.stringify({
+      template: input.templateKey,
+      id: data.id ?? null,
+      toCount: recipients.length,
+    })}`,
+  );
   await insertEmailEvent(input, "sent", { provider_message_id: data.id ?? null });
   return { sent: true, providerMessageId: data.id };
 }

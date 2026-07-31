@@ -7,6 +7,7 @@ import {
   findHecomClientesByEmail,
   type HecomCliente,
 } from "@/lib/hecom/clientes.server";
+import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 
 const OTP_COOLDOWN_SECONDS = 60;
 const GENERIC_OK =
@@ -141,16 +142,33 @@ export async function requestHecomClientOtp(input: {
   retryAfterSec?: number;
 } | { ok: false; error: string; status: number }> {
   if (!isHecomOtpLoginEnabled()) {
+    logHecomOtp("warn", "request_disabled", {});
     return { ok: false, error: "OTP Hecom deshabilitado.", status: 403 };
   }
 
   const email = normalizeEmail(input.email);
   if (!email.includes("@")) {
+    logHecomOtp("warn", "request_invalid_email", { rawLen: input.email?.length ?? 0 });
     return { ok: false, error: "Correo inválido.", status: 400 };
   }
 
+  const emailMasked = maskEmail(email);
+  logHecomOtp("info", "request_start", {
+    email: emailMasked,
+    isStaff: isHecomOtpStaffEmail(email),
+    isTest: serverEnv.authHecomOtpTestEmails.includes(email),
+    provider: serverEnv.emailProvider,
+    hasResendKey: Boolean(serverEnv.resendApiKey),
+    from: serverEnv.emailFrom ? "set" : "missing",
+    appUrl: serverEnv.appUrl,
+  });
+
   const rate = await assertOtpCooldown(email);
   if (!rate.ok) {
+    logHecomOtp("warn", "request_rate_limited", {
+      email: emailMasked,
+      retryAfterSec: rate.retryAfterSec ?? 60,
+    });
     return {
       ok: false,
       error: `Esperá ${rate.retryAfterSec ?? 60}s antes de pedir otro código.`,
@@ -164,6 +182,10 @@ export async function requestHecomClientOtp(input: {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo validar Hecom.";
+    logHecomOtp("error", "request_hecom_lookup_failed", {
+      email: emailMasked,
+      error: message,
+    });
     return { ok: false, error: message, status: 503 };
   }
 
@@ -171,7 +193,10 @@ export async function requestHecomClientOtp(input: {
   const isTest = serverEnv.authHecomOtpTestEmails.includes(email);
 
   if (clientes.length === 0 && !isStaff && !isTest) {
-    // Misma respuesta: no filtrar existencia de email.
+    logHecomOtp("info", "request_not_allowed", {
+      email: emailMasked,
+      reason: "not_in_hecom_nor_allowlist",
+    });
     return {
       ok: true,
       message: GENERIC_OK,
@@ -181,14 +206,18 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
-  console.info("[hecom-otp] request", {
-    email,
+  logHecomOtp("info", "request_allowed", {
+    email: emailMasked,
     isStaff,
     isTest,
     clienteCount: clientes.length,
   });
 
   if (serverEnv.emailProvider !== "resend" || !serverEnv.resendApiKey) {
+    logHecomOtp("error", "request_email_not_configured", {
+      email: emailMasked,
+      provider: serverEnv.emailProvider,
+    });
     return {
       ok: false,
       error:
@@ -215,6 +244,10 @@ export async function requestHecomClientOtp(input: {
   });
 
   if (linkError || !linkData) {
+    logHecomOtp("error", "request_generate_link_failed", {
+      email: emailMasked,
+      error: linkError?.message ?? "no_data",
+    });
     return {
       ok: false,
       error: linkError?.message ?? "No se pudo generar el acceso.",
@@ -225,6 +258,11 @@ export async function requestHecomClientOtp(input: {
   const code = linkData.properties?.email_otp;
   let magicLink = linkData.properties?.action_link;
   if (!code || !magicLink) {
+    logHecomOtp("error", "request_missing_code_or_link", {
+      email: emailMasked,
+      hasCode: Boolean(code),
+      hasLink: Boolean(magicLink),
+    });
     return {
       ok: false,
       error: "Supabase no devolvió código/enlace. Revisá Auth settings.",
@@ -244,21 +282,35 @@ export async function requestHecomClientOtp(input: {
   try {
     const sent = await sendHecomOtpEmail({ to: email, code, magicLink });
     if (!sent.sent) {
+      logHecomOtp("error", "request_resend_not_sent", { email: emailMasked });
       return {
         ok: false,
         error: "Resend no envió el correo. Revisá RESEND_API_KEY y RESEND_FROM.",
         status: 502,
       };
     }
+    logHecomOtp("info", "request_sent_ok", {
+      email: emailMasked,
+      isStaff,
+      resendId: sent.providerMessageId ?? null,
+      redirectTo: redirectTo.toString(),
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Error enviando con Resend.";
+    logHecomOtp("error", "request_resend_error", {
+      email: emailMasked,
+      error: message,
+    });
     return { ok: false, error: message, status: 502 };
   }
 
-  await markOtpSent(email).catch(() => undefined);
-
-  console.info("[hecom-otp] sent", { email, isStaff, via: "resend" });
+  await markOtpSent(email).catch((error) => {
+    logHecomOtp("warn", "request_rate_mark_failed", {
+      email: emailMasked,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  });
 
   return {
     ok: true,
