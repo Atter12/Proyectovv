@@ -93,7 +93,9 @@ export function userMayAccessHecomCliente(input: {
   return input.linkedClienteIds.includes(input.clienteId);
 }
 
-async function assertOtpCooldown(email: string): Promise<{ ok: boolean; retryAfterSec?: number }> {
+async function assertOtpCooldown(
+  email: string,
+): Promise<{ ok: boolean; retryAfterSec?: number }> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("hecom_otp_rate_limits")
@@ -133,14 +135,17 @@ async function markOtpSent(email: string): Promise<void> {
 
 export async function requestHecomClientOtp(input: {
   email: string;
-}): Promise<{
-  ok: true;
-  message: string;
-  allowed: boolean;
-  sent?: boolean;
-  clienteIds: string[];
-  retryAfterSec?: number;
-} | { ok: false; error: string; status: number }> {
+}): Promise<
+  | {
+      ok: true;
+      message: string;
+      allowed: boolean;
+      sent?: boolean;
+      clienteIds: string[];
+      retryAfterSec?: number;
+    }
+  | { ok: false; error: string; status: number }
+> {
   if (!isHecomOtpLoginEnabled()) {
     logHecomOtp("warn", "request_disabled", {});
     return { ok: false, error: "OTP Hecom deshabilitado.", status: 403 };
@@ -148,7 +153,9 @@ export async function requestHecomClientOtp(input: {
 
   const email = normalizeEmail(input.email);
   if (!email.includes("@")) {
-    logHecomOtp("warn", "request_invalid_email", { rawLen: input.email?.length ?? 0 });
+    logHecomOtp("warn", "request_invalid_email", {
+      rawLen: input.email?.length ?? 0,
+    });
     return { ok: false, error: "Correo inválido.", status: 400 };
   }
 
@@ -230,18 +237,19 @@ export async function requestHecomClientOtp(input: {
   redirectTo.searchParams.set("flow", "hecom");
 
   const admin = createAdminClient();
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-    options: {
-      redirectTo: redirectTo.toString(),
-      data: {
-        hecom_otp: true,
-        hecom_staff: isStaff,
-        hecom_cliente_ids: clientes.map((item) => item.id),
+  const { data: linkData, error: linkError } =
+    await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        redirectTo: redirectTo.toString(),
+        data: {
+          hecom_otp: true,
+          hecom_staff: isStaff,
+          hecom_cliente_ids: clientes.map((item) => item.id),
+        },
       },
-    },
-  });
+    });
 
   if (linkError || !linkData) {
     logHecomOtp("error", "request_generate_link_failed", {
@@ -270,13 +278,12 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
-  // Forzar redirect a nuestra app (evita Site URL viejo tipo web-base-nu).
   try {
     const linkUrl = new URL(magicLink);
     linkUrl.searchParams.set("redirect_to", redirectTo.toString());
     magicLink = linkUrl.toString();
   } catch {
-    // dejar action_link original
+    // leave original
   }
 
   try {
@@ -325,7 +332,10 @@ export async function requestHecomClientOtp(input: {
 export async function linkHecomClientesForUser(input: {
   userId: string;
   email: string;
-}): Promise<{ clientes: Array<{ id: string; name: string }>; clienteIds: string[] }> {
+}): Promise<{
+  clientes: Array<{ id: string; name: string }>;
+  clienteIds: string[];
+}> {
   const email = normalizeEmail(input.email);
   const clientes = await resolveHecomClientesForEmail(email);
 
@@ -352,9 +362,9 @@ export async function linkHecomClientesForUser(input: {
 
 /**
  * Tras OTP (código o magic link):
- * - staff/gerente → /clientes (lista completa, como ops)
- * - 1 cliente → cookie de scope automática (solo ve sus datos)
- * - N clientes → /clientes (lista filtrada)
+ * - staff/gerente → /clientes (lista completa)
+ * - 1 cliente → cookie de scope + overview
+ * - N clientes → /clientes filtrado
  */
 export async function provisionHecomClienteAccess(input: {
   userId: string;
@@ -371,6 +381,10 @@ export async function provisionHecomClienteAccess(input: {
   const isStaff = isHecomOtpStaffEmail(email);
 
   if (isStaff) {
+    logHecomOtp("info", "provision_staff", {
+      email: maskEmail(email),
+      nextPath: "/clientes",
+    });
     return {
       clientes: [],
       clienteIds: [],
