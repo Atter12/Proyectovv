@@ -6,10 +6,24 @@
 
 ---
 
+## Acordado (post-reunión)
+
+| Moneda | Comisión Cobrana |
+|---|---|
+| **PEN (soles)** | **0.75%** |
+| **USD (dólares)** | **4%** |
+
+Notas:
+- En soles Cobrana queda competitiva vs Stripe estándar (~2.9%+$0.30).
+- En dólares el **4%** de Cobrana es caro: conviene empujar **Stripe** (ideal si tienen deal ~0.75%) o manual.
+- Stripe sigue en paralelo; Cobrana = opción natural en **PEN** (Yape/Plin/tarjeta local).
+
+---
+
 ## 1. Qué queremos lograr hoy
 
-- [ ] Confirmar que Cobrana sirve para **recargas de cartera** (montos altos, frecuentes).
-- [ ] Negociar comisión: **0.5%** (por volumen fuerte).
+- [x] Confirmar que Cobrana sirve para **recargas de cartera** (montos altos, frecuentes).
+- [x] Negociar comisión: quedamos **0.75% PEN** / **4% USD**.
 - [ ] Entender métodos: Yape / Plin / tarjeta / otros.
 - [ ] Pedir **API + webhooks** (o el mecanismo que usen) para acreditar saldo automático.
 - [ ] Acordar sandbox / prueba y tiempos de liquidación.
@@ -29,16 +43,16 @@
 
 | Tema | Nuestra posición | Preguntarles |
 |---|---|---|
-| Comisión | **0.5%** | ¿Fijo? ¿mínimo por operación? ¿escala por volumen? |
-| Moneda | Solo **PEN** en Cobrana | ¿Soportan USD? (si no, ok) |
+| Comisión | **Acordado: 0.75% PEN / 4% USD** | ¿Fijo? ¿mínimo por operación? ¿escala por volumen? |
+| Moneda | **PEN** principal; USD disponible pero caro | Confirmar métodos por moneda |
 | Métodos | Yape, Plin, tarjeta | ¿Cuáles exactos y fees distintos? |
 | Liquidación | Lo más rápido posible | ¿T+0 / T+1 / semanal? |
 | Montos | Recargas fuertes y repetidas | ¿Límites min/max diarios? |
 | Integración | Webhook + API | ¿Docs, sandbox, firma de webhook? |
 | Soporte | Canal directo | ¿WhatsApp / correo / SLA? |
 
-**Frase para el 0.5%:**
-> Movemos cantidades fuertes y recurrentes. Con 0.5% nos conviene priorizar Cobrana en soles y empujar volumen por ustedes. Si el fee es más alto, el cliente se va a Stripe/manual.
+**Frase para el fee en soles:**
+> En PEN con 0.75% priorizamos Cobrana. En USD el 4% no compite vs Stripe; ahí mandamos tráfico a Stripe.
 
 ---
 

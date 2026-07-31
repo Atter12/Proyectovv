@@ -63,7 +63,7 @@ export async function GET(request: Request) {
     flow === "hecom" ||
     user?.user_metadata?.hecom_otp === true;
 
-  let next = routes.overview;
+  let next: string = routes.overview;
   if (
     nextRaw &&
     nextRaw.startsWith("/") &&
