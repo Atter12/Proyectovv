@@ -16,7 +16,7 @@ export function AuthDotGridBackground({
       <DotGrid
         dotSize={isLight ? 2.5 : 3}
         gap={22}
-        baseColor={isLight ? "#d2c8bc" : "#4a382c"}
+        baseColor={isLight ? "#c5cdd8" : "#4a382c"}
         activeColor={isLight ? "#ff781f" : "#ff981f"}
         proximity={180}
       />
@@ -27,10 +27,10 @@ export function AuthDotGridBackground({
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 72% 68% at 44% 46%, rgb(250 248 245 / 0.55) 0%, transparent 76%)",
+                "radial-gradient(ellipse 72% 68% at 44% 46%, rgb(244 246 248 / 0.65) 0%, transparent 76%)",
             }}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(253_251_249_/_0.4)_0%,transparent_18%,transparent_82%,rgb(244_241_237_/_0.45)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(248_250_252_/_0.45)_0%,transparent_18%,transparent_82%,rgb(238_241_244_/_0.5)_100%)]" />
         </>
       ) : (
         <>

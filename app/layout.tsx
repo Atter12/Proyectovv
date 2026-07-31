@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Newsreader } from "next/font/google";
+import { Manrope, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
@@ -20,6 +20,14 @@ const newsreader = Newsreader({
   style: ["normal", "italic"],
 });
 
+/** SaaS geometric — estética tipo Rockads (auth/landing light) */
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
@@ -35,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${manrope.variable} ${newsreader.variable} light h-full antialiased`}
+      className={`${manrope.variable} ${newsreader.variable} ${plusJakarta.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

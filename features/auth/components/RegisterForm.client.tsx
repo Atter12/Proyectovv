@@ -165,20 +165,15 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="auth-panel auth-enter relative w-full max-w-[440px] overflow-hidden rounded-2xl p-7 sm:p-8 lg:max-w-none">
-      <div
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent)]/55 to-transparent"
-        aria-hidden
-      />
-
-      <div className="mb-7">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+    <div className="auth-panel auth-enter relative w-full max-w-[440px] overflow-hidden rounded-[1.25rem] p-8 sm:p-9 lg:max-w-none">
+      <div className="mb-8">
+        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
           Registro
         </p>
-        <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="mt-2 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
           Crear cuenta
         </h1>
-        <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
           Regístrate como anunciante en {siteConfig.name}
         </p>
       </div>
@@ -312,7 +307,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(105deg,var(--brand-coral),var(--brand-primary)_50%,var(--brand-accent))] text-[15px] font-semibold text-white shadow-[0_10px_26px_rgb(255_120_31_/_0.22)] transition-[filter,box-shadow,transform] hover:brightness-[1.05] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>
