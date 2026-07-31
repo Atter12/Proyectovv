@@ -19,6 +19,8 @@ export const routes = {
       logout: "/api/auth/logout",
       session: "/api/auth/session",
       adminAccess: "/api/auth/admin-access",
+      otpRequest: "/api/auth/otp/request",
+      otpProvision: "/api/auth/otp/provision",
     },
     onboarding: {
       status: "/api/onboarding/status",

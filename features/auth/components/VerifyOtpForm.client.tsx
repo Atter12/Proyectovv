@@ -23,6 +23,7 @@ export function VerifyOtpForm() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") ?? "";
   const isAdminContext = searchParams.get("context") === "admin";
+  const isHecomFlow = searchParams.get("flow") === "hecom";
   const adminDestination = resolveSafeNextPath(
     searchParams.get("next"),
     routes.adminOverview,
@@ -66,6 +67,15 @@ export function VerifyOtpForm() {
       return;
     }
 
+    const flow = searchParams.get("flow");
+    if (flow === "hecom") {
+      try {
+        await fetch(routes.api.auth.otpProvision, { method: "POST" });
+      } catch {
+        // El link Hecom se puede reintentar; no bloquear login.
+      }
+    }
+
     if (isAdminContext) {
       const allowed = await assertAdminAccess();
       router.push(allowed ? adminDestination : routes.adminUnauthorized);
@@ -87,6 +97,27 @@ export function VerifyOtpForm() {
     setError(null);
     setSuccess(null);
 
+    const flow = searchParams.get("flow");
+    if (flow === "hecom") {
+      try {
+        const response = await fetch(routes.api.auth.otpRequest, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        const payload = (await response.json()) as { error?: string; message?: string };
+        if (!response.ok) {
+          setError(mapAuthErrorMessage(payload.error ?? "No se pudo reenviar."));
+        } else {
+          setSuccess(payload.message ?? "Te enviamos un nuevo código a tu correo.");
+        }
+      } catch {
+        setError("No se pudo reenviar el código.");
+      }
+      setResending(false);
+      return;
+    }
+
     const supabase = createClient();
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
@@ -98,7 +129,6 @@ export function VerifyOtpForm() {
     } else {
       setSuccess("Te enviamos un nuevo código a tu correo.");
     }
-
     setResending(false);
   }
 
@@ -111,9 +141,13 @@ export function VerifyOtpForm() {
             className="h-11 w-auto max-w-[180px] object-contain"
           />
         </div>
-        <h1 className="font-display text-xl font-medium text-[#141210]">Verifica tu correo</h1>
+        <h1 className="font-display text-xl font-medium text-[#141210]">
+          {isHecomFlow ? "Código de acceso" : "Verifica tu correo"}
+        </h1>
         <p className="mt-2 text-sm text-[#6b645c]">
-          Introduce el código de 6 dígitos enviado a{" "}
+          {isHecomFlow
+            ? "Introduce el código de 6 dígitos enviado a "
+            : "Introduce el código de 6 dígitos enviado a "}
           <span className="font-medium text-[#3f3a34]">{email || "tu correo"}</span>
         </p>
       </div>

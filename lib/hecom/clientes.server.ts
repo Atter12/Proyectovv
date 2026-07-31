@@ -175,6 +175,51 @@ async function loadTiktokAccountsByClient(
   return map;
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** Clientes Hecom cuyo array `emails` contiene este correo (allowlist OTP). */
+export async function findHecomClientesByEmail(
+  email: string,
+): Promise<HecomCliente[]> {
+  const needle = normalizeEmail(email);
+  if (!needle || !needle.includes("@")) return [];
+
+  const cfg = getHecomSupabaseConfig();
+  if (!cfg.configured) {
+    const backup = await listHecomClientesFromBackup();
+    if (!backup) return [];
+    return backup.clientes.filter((cliente) =>
+      cliente.emails.some((item) => normalizeEmail(item) === needle),
+    );
+  }
+
+  const hecom = createHecomAdminClient();
+  // Prefer Postgres contains on text[]; fall back to filtered list.
+  const containsQuery = await hecom
+    .from("clientes")
+    .select(
+      "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+    )
+    .contains("emails", [needle])
+    .limit(50);
+
+  if (!containsQuery.error && containsQuery.data) {
+    const ids = containsQuery.data.map((row) => String((row as { id: string }).id));
+    const accountsByClient = await loadTiktokAccountsByClient(ids);
+    return (containsQuery.data as Record<string, unknown>[]).map((row) =>
+      mapClienteRow(row, accountsByClient.get(String(row.id)) ?? []),
+    );
+  }
+
+  // Case / format mismatch: scan limited list.
+  const listed = await listHecomClientes();
+  return listed.clientes.filter((cliente) =>
+    cliente.emails.some((item) => normalizeEmail(item) === needle),
+  );
+}
+
 export async function getHecomCliente(id: string): Promise<HecomCliente | null> {
   const cfg = getHecomSupabaseConfig();
   if (!cfg.configured) {

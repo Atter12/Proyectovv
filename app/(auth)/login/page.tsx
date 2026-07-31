@@ -4,6 +4,7 @@ import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { siteConfig } from "@/config/site";
+import { serverEnv } from "@/lib/env/env.server";
 
 function AuthCardFallback() {
   return (
@@ -36,7 +37,7 @@ export default function LoginPage() {
 
           <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:flex-none lg:items-stretch lg:px-0 lg:py-10">
             <Suspense fallback={<AuthCardFallback />}>
-              <LoginForm />
+              <LoginForm hecomOtpEnabled={serverEnv.authHecomOtpLogin} />
             </Suspense>
 
             <p className="mt-5 text-center text-[13px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">

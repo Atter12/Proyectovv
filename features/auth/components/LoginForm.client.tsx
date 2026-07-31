@@ -39,16 +39,56 @@ function PasswordToggle({
 const inputClassName =
   "h-12 w-full rounded-xl border border-white/[0.1] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-white/[0.16] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
-export function LoginForm() {
+interface LoginFormProps {
+  hecomOtpEnabled?: boolean;
+}
+
+export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const forcePassword = searchParams.get("password") === "1";
+  const otpMode = hecomOtpEnabled && !forcePassword;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleOtpSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(routes.api.auth.otpRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const payload = (await response.json()) as { error?: string; message?: string };
+
+      if (!response.ok) {
+        setError(mapAuthErrorMessage(payload.error ?? "No se pudo enviar el código."));
+        setLoading(false);
+        return;
+      }
+
+      const verifyUrl = new URL(routes.verifyOtp, window.location.origin);
+      verifyUrl.searchParams.set("email", email.trim());
+      verifyUrl.searchParams.set("flow", "hecom");
+      const nextPath = searchParams.get("next");
+      if (nextPath) verifyUrl.searchParams.set("next", nextPath);
+
+      router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
+      router.refresh();
+    } catch {
+      setError("No se pudo enviar el código. Reintentá.");
+      setLoading(false);
+    }
+  }
+
+  async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
@@ -98,11 +138,13 @@ export function LoginForm() {
           Iniciar sesión
         </h1>
         <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
-          Entrá a tu panel de anunciante
+          {otpMode
+            ? "Ingresá con el correo registrado en Hecom. Te mandamos un código."
+            : "Entrá a tu panel de anunciante"}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={otpMode ? handleOtpSubmit : handlePasswordSubmit} className="space-y-4">
         <div>
           <label
             htmlFor="email"
@@ -122,38 +164,40 @@ export function LoginForm() {
           />
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <label
-              htmlFor="password"
-              className="block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Contraseña
-            </label>
-            <Link
-              href={routes.forgotPassword}
-              className="text-[13px] font-medium text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
+        {!otpMode && (
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label
+                htmlFor="password"
+                className="block text-[14px] font-medium text-[var(--auth-text-muted)]"
+              >
+                Contraseña
+              </label>
+              <Link
+                href={routes.forgotPassword}
+                className="text-[13px] font-medium text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Tu contraseña"
+                className={cn(inputClassName, "pr-11")}
+              />
+              <PasswordToggle
+                visible={showPassword}
+                onToggle={() => setShowPassword((prev) => !prev)}
+              />
+            </div>
           </div>
-          <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Tu contraseña"
-              className={cn(inputClassName, "pr-11")}
-            />
-            <PasswordToggle
-              visible={showPassword}
-              onToggle={() => setShowPassword((prev) => !prev)}
-            />
-          </div>
-        </div>
+        )}
 
         {error && (
           <p
@@ -169,18 +213,49 @@ export function LoginForm() {
           disabled={loading}
           className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[linear-gradient(105deg,var(--brand-coral),var(--brand-primary)_50%,var(--brand-accent))] text-[15px] font-semibold text-white shadow-[0_10px_26px_rgb(255_120_31_/_0.22)] transition-[filter,box-shadow,transform] hover:brightness-[1.05] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
-          {loading ? "Iniciando sesión…" : "Iniciar sesión"}
+          {loading
+            ? otpMode
+              ? "Enviando código…"
+              : "Iniciando sesión…"
+            : otpMode
+              ? "Enviar código"
+              : "Iniciar sesión"}
         </button>
       </form>
 
       <div className="mt-6 border-t border-white/[0.07] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
-        ¿No tienes cuenta?{" "}
-        <Link
-          href={routes.register}
-          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
-        >
-          Regístrate
-        </Link>
+        {otpMode ? (
+          <>
+            Acceso para clientes Hecom.{" "}
+            <Link
+              href={`${routes.login}?password=1`}
+              className="font-semibold text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
+            >
+              Usar contraseña
+            </Link>
+          </>
+        ) : (
+          <>
+            ¿No tienes cuenta?{" "}
+            <Link
+              href={routes.register}
+              className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
+            >
+              Regístrate
+            </Link>
+            {hecomOtpEnabled && (
+              <>
+                {" · "}
+                <Link
+                  href={routes.login}
+                  className="font-semibold text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
+                >
+                  Entrar con código
+                </Link>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

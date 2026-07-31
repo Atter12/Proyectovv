@@ -1,9 +1,12 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { RegisterForm } from "@/features/auth/components/RegisterForm.client";
 import { RegisterHeroPanel } from "@/features/auth/components/RegisterHeroPanel";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { siteConfig } from "@/config/site";
+import { routes } from "@/config/routes";
+import { serverEnv } from "@/lib/env/env.server";
 
 function AuthCardFallback() {
   return (
@@ -29,6 +32,10 @@ function AuthCardFallback() {
 }
 
 export default function RegisterPage() {
+  if (serverEnv.authHecomOtpLogin) {
+    redirect(routes.login);
+  }
+
   return (
     <div className="auth-canvas relative min-h-screen overflow-hidden">
       <AuthDotGridBackground />
