@@ -1,25 +1,49 @@
 import { Suspense } from "react";
 import { VerifyOtpForm } from "@/features/auth/components/VerifyOtpForm.client";
+import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
+import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
+import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
 import { siteConfig } from "@/config/site";
 
 function AuthCardFallback() {
   return (
-    <div className="w-full max-w-md rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-      <div className="mx-auto h-12 w-12 animate-pulse rounded-xl bg-slate-200" />
-      <div className="mx-auto mt-4 h-5 w-40 animate-pulse rounded bg-slate-200" />
+    <div className="auth-panel w-full max-w-[420px] animate-pulse rounded-2xl p-8">
+      <div className="mb-7 space-y-2">
+        <div className="h-7 w-40 rounded bg-white/10" />
+        <div className="h-4 w-56 rounded bg-white/10" />
+      </div>
+      <div className="space-y-4">
+        <div className="h-12 rounded-xl bg-white/10" />
+        <div className="h-12 rounded-xl bg-[var(--auth-accent)]/30" />
+      </div>
     </div>
   );
 }
 
 export default function VerifyOtpPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-slate-50 px-4 py-8 sm:px-6">
-      <Suspense fallback={<AuthCardFallback />}>
-        <VerifyOtpForm />
-      </Suspense>
-      <p className="mt-8 text-xs text-slate-400">
-        © {new Date().getFullYear()} {siteConfig.companyName}
-      </p>
+    <div className="auth-canvas relative min-h-screen overflow-hidden">
+      <AuthDotGridBackground tone="light" />
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <header className="flex shrink-0 justify-center px-4 pt-8 sm:pt-10 lg:pt-12">
+          <AuthBrandMark tone="light" className="max-w-[240px] sm:max-w-[280px]" />
+        </header>
+
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">
+          <LoginHeroPanel />
+
+          <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:flex-none lg:items-stretch lg:px-0 lg:py-10">
+            <Suspense fallback={<AuthCardFallback />}>
+              <VerifyOtpForm />
+            </Suspense>
+
+            <p className="mt-5 text-center text-[13px] tracking-wide text-[var(--auth-text-muted)] lg:text-left">
+              © {new Date().getFullYear()} {siteConfig.companyName}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

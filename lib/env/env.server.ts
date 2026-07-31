@@ -127,10 +127,14 @@ export const serverEnv = {
     300,
   ),
 
-  emailProvider: process.env.EMAIL_PROVIDER ?? "none",
+  // Si hay RESEND_API_KEY y no fijaron provider, usamos Resend.
+  emailProvider:
+    process.env.EMAIL_PROVIDER ??
+    (process.env.RESEND_API_KEY ? "resend" : "none"),
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom:
     process.env.EMAIL_FROM ??
+    process.env.RESEND_FROM ??
     `${process.env.NEXT_PUBLIC_SITE_NAME ?? "Holistic Marketing"} <no-reply@example.com>`,
   emailReplyTo: process.env.EMAIL_REPLY_TO ?? process.env.SUPPORT_EMAIL ?? "",
 

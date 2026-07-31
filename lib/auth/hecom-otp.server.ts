@@ -1,7 +1,7 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
 import {
   findHecomClientesByEmail,
   type HecomCliente,
@@ -17,12 +17,6 @@ export function isHecomOtpLoginEnabled(): boolean {
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
-}
-
-function createAnonAuthClient() {
-  return createClient(serverEnv.supabaseUrl, serverEnv.supabaseAnonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 }
 
 async function assertOtpCooldown(email: string): Promise<{ ok: boolean; retryAfterSec?: number }> {
@@ -137,16 +131,24 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
-  const auth = createAnonAuthClient();
+  if (serverEnv.emailProvider !== "resend" || !serverEnv.resendApiKey) {
+    return {
+      ok: false,
+      error:
+        "Email no configurado. En Vercel: RESEND_API_KEY + RESEND_FROM (o EMAIL_FROM).",
+      status: 503,
+    };
+  }
+
   const redirectTo = new URL("/auth/callback", serverEnv.appUrl);
   redirectTo.searchParams.set("flow", "hecom");
 
-  const { error } = await auth.auth.signInWithOtp({
+  const admin = createAdminClient();
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: "magiclink",
     email,
     options: {
-      shouldCreateUser: true,
-      // El mismo email puede traer código ({{ .Token }}) + enlace (magic link).
-      emailRedirectTo: redirectTo.toString(),
+      redirectTo: redirectTo.toString(),
       data: {
         hecom_otp: true,
         hecom_cliente_ids: clientes.map((item) => item.id),
@@ -154,8 +156,46 @@ export async function requestHecomClientOtp(input: {
     },
   });
 
-  if (error) {
-    return { ok: false, error: error.message, status: 502 };
+  if (linkError || !linkData) {
+    return {
+      ok: false,
+      error: linkError?.message ?? "No se pudo generar el acceso.",
+      status: 502,
+    };
+  }
+
+  const code = linkData.properties?.email_otp;
+  let magicLink = linkData.properties?.action_link;
+  if (!code || !magicLink) {
+    return {
+      ok: false,
+      error: "Supabase no devolvió código/enlace. Revisá Auth settings.",
+      status: 502,
+    };
+  }
+
+  // Forzar redirect a nuestra app (evita Site URL viejo tipo web-base-nu).
+  try {
+    const linkUrl = new URL(magicLink);
+    linkUrl.searchParams.set("redirect_to", redirectTo.toString());
+    magicLink = linkUrl.toString();
+  } catch {
+    // dejar action_link original
+  }
+
+  try {
+    const sent = await sendHecomOtpEmail({ to: email, code, magicLink });
+    if (!sent.sent) {
+      return {
+        ok: false,
+        error: "Resend no envió el correo. Revisá RESEND_API_KEY y RESEND_FROM.",
+        status: 502,
+      };
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error enviando con Resend.";
+    return { ok: false, error: message, status: 502 };
   }
 
   await markOtpSent(email).catch(() => undefined);

@@ -49,9 +49,13 @@ Stripe / Cobrana / wallet **no cambian** con este plan: solo cambia cómo el cli
   (selector multi-cliente: fase 2)
 ```
 
-**Supabase Auth → URL Configuration:** agregar  
-`https://<APP_URL>/auth/callback`  
-en Redirect URLs. Template Magic Link / OTP: incluir `{{ .Token }}` y el botón/enlace con `{{ .ConfirmationURL }}`.
+**Supabase Auth → URL Configuration (OBLIGATORIO):**  
+- **Site URL:** `https://ads.victorminas28.com` (NO `web-base-nu.vercel.app`)  
+- **Redirect URLs:** `https://ads.victorminas28.com/auth/callback` (+ preview/localhost si aplica)
+
+**Email:** el OTP Hecom se envía por **Resend** (no el mail default de Supabase).  
+En Vercel: `RESEND_API_KEY`, `RESEND_FROM` (o `EMAIL_FROM`), opcional `EMAIL_PROVIDER=resend`.  
+El mail trae logo Holistic + código 6 dígitos + botón enlace mágico.
 
 Textos:
 - Login: “Solo correo. Te mandamos un código y un enlace mágico.”
