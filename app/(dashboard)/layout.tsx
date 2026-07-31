@@ -48,17 +48,20 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
-      {/* Misma textura de puntos que landing / login */}
       <AuthDotGridBackground tone="light" />
 
-      <div className="relative z-10 hidden lg:block">
+      {/*
+        Sidebar fixed con z-30 directo en el canvas.
+        Antes el main (hermano z-10 posterior) tapaba el menú y no se podía clickear.
+      */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
         <DashboardSidebar
-          className="fixed inset-y-0 left-0 z-30 h-full w-64"
+          className="h-full w-full"
           selectedCliente={selectedCliente}
         />
-      </div>
+      </aside>
 
-      <div className="relative z-10 flex min-h-screen min-w-0 flex-1">
+      <div className="relative z-10 flex min-h-screen min-w-0 flex-1 flex-col">
         <DashboardLayoutChrome user={user} selectedCliente={selectedCliente}>
           {children}
         </DashboardLayoutChrome>

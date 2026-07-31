@@ -26,7 +26,7 @@ export function DashboardSidebar({
         className,
       )}
     >
-      <div className="border-b border-white/10 px-4 py-4">
+      <div className="border-b border-[var(--auth-divider)] px-4 py-4">
         <Link
           href={routes.overview}
           prefetch
@@ -35,7 +35,7 @@ export function DashboardSidebar({
         >
           <HolisticLogo
             size={140}
-            className="mx-auto h-10 w-auto max-w-[85%] brightness-110"
+            className="mx-auto h-10 w-auto max-w-[85%]"
           />
         </Link>
 
@@ -43,7 +43,7 @@ export function DashboardSidebar({
       </div>
 
       <div className="px-3 pt-4">
-        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9aabc0]">
+        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
           Menú
         </p>
       </div>
