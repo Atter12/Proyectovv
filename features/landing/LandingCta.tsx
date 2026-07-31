@@ -15,7 +15,7 @@ export function LandingCta() {
               Creá tu cuenta y publicá con control real.
             </h2>
             <p className="mt-3 text-[15px] font-medium leading-7 text-white/70">
-              Cartera, cuentas ads y pagos en un solo panel formal para tu equipo.
+              Unite a +180 equipos que ya centralizan cartera, cuentas ads y pagos.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

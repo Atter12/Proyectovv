@@ -1,6 +1,7 @@
 import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { LandingNav } from "./LandingNav";
 import { LandingHero } from "./LandingHero";
+import { LandingClients } from "./LandingClients";
 import { LandingCore } from "./LandingCore";
 import { LandingHow } from "./LandingHow";
 import { LandingTools } from "./LandingTools";
@@ -29,6 +30,7 @@ export function LandingPage() {
         <LandingNav />
         <main id="contenido">
           <LandingHero />
+          <LandingClients />
           <LandingCore />
           <LandingHow />
           <LandingTools />

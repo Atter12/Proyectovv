@@ -34,9 +34,21 @@ export function LandingHero() {
             </Link>
           </div>
 
-          <p className="mt-5 text-[13px] font-medium text-[var(--auth-text-soft)]">
-            Pensado para agencias y equipos de performance en Latam.
-          </p>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <div className="flex -space-x-2">
+              {["MG", "RS", "VT", "DP", "CR"].map((initials) => (
+                <span
+                  key={initials}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[var(--auth-accent-soft)] text-[10px] font-bold text-[var(--auth-accent)]"
+                >
+                  {initials}
+                </span>
+              ))}
+            </div>
+            <p className="text-[13px] font-semibold text-[var(--auth-text-muted)]">
+              +180 equipos en Latam ya operan con Holistic
+            </p>
+          </div>
         </LandingReveal>
 
         <LandingReveal delayMs={120}>

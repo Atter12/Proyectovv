@@ -1,10 +1,10 @@
 import { LandingReveal } from "./LandingReveal.client";
 
 const STATS = [
-  { value: "1", label: "Panel para operar" },
-  { value: "3", label: "Pasos del flujo" },
-  { value: "24/7", label: "Acceso al dashboard" },
-  { value: "Latam", label: "Enfoque regional" },
+  { value: "180+", label: "Equipos activos" },
+  { value: "42", label: "Agencias partner" },
+  { value: "9", label: "Países Latam" },
+  { value: "$4.2M", label: "Gestionados / mes" },
 ] as const;
 
 export function LandingStats() {
@@ -16,7 +16,7 @@ export function LandingStats() {
             Holistic en números
           </p>
           <h2 className="mt-2 max-w-[28ch] text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-white sm:text-[2.15rem]">
-            Potencia campañas con impacto y escala operativa.
+            Escala real para campañas con impacto en toda la región.
           </h2>
         </LandingReveal>
 
