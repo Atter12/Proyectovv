@@ -6,9 +6,9 @@ import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} — Opera campañas, pagos y saldos`,
+  title: `${siteConfig.name} — Crece con control real en ads`,
   description:
-    "Panel del anunciante: recargá la cartera Holistic, asigná a cuentas TikTok y operá campañas en un solo lugar.",
+    "Landing Holistic Marketing: cartera, cuentas TikTok, pagos y operación para agencias y equipos de performance en Latam.",
 };
 
 export default async function HomePage() {
