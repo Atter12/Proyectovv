@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
+import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
+import {
+  isHecomOtpLoginEnabled,
+  isHecomOtpStaffEmail,
+  resolveHecomClientesForEmail,
+} from "@/lib/auth/hecom-otp.server";
 import { getHecomSupabaseConfig } from "@/lib/hecom/supabase.server";
 import { listHecomClientes } from "@/lib/hecom/clientes.server";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Lista clientes del CRM Hecom Club (`public.clientes`), no organizations de Ecomdy.
+ * Lista clientes del CRM Hecom Club.
+ * Con OTP activo: usuario no-admin solo ve clientes de SU email.
  */
 export async function GET() {
   const steps: Array<{ step: string; ok: boolean; detail?: string }> = [];
@@ -33,14 +40,36 @@ export async function GET() {
       detail: `url=${hecomCfg.url} serviceRole=${Boolean(hecomCfg.serviceRoleKey)}`,
     });
 
-    const { source, clientes, backupPath } = await listHecomClientes();
-    steps.push({
-      step: hecomCfg.configured ? "hecom_clientes_live" : "hecom_clientes_backup",
-      ok: true,
-      detail: hecomCfg.configured
-        ? `${clientes.length} filas en public.clientes`
-        : `${clientes.length} filas desde backup${backupPath ? ` (${backupPath})` : ""}`,
+    const isAdmin = userIsAllowedAdmin({
+      id: session.id,
+      email: session.email,
     });
+    const isStaff = isHecomOtpStaffEmail(session.email);
+
+    let clientes;
+    let source: string;
+
+    if (isHecomOtpLoginEnabled() && !isAdmin && !isStaff) {
+      clientes = await resolveHecomClientesForEmail(session.email);
+      source = "hecom_email_scope";
+      steps.push({
+        step: "hecom_scope_email",
+        ok: true,
+        detail: `${clientes.length} cliente(s) para ${session.email}`,
+      });
+    } else {
+      const listed = await listHecomClientes();
+      clientes = listed.clientes;
+      source = listed.source;
+      steps.push({
+        step: hecomCfg.configured ? "hecom_clientes_live" : "hecom_clientes_backup",
+        ok: true,
+        detail: hecomCfg.configured
+          ? `${clientes.length} filas en public.clientes`
+          : `${clientes.length} filas desde backup${listed.backupPath ? ` (${listed.backupPath})` : ""}`,
+      });
+    }
+
     if (!hecomCfg.configured) {
       steps.push({
         step: "hecom_env_hint",
@@ -53,8 +82,7 @@ export async function GET() {
     const clients = clientes.map((c) => {
       const primaryEmail = c.emails[0] ?? null;
       const tiktokCount =
-        c.tiktokAccounts.length ||
-        (c.tiktokAdvertiserId ? 1 : 0);
+        c.tiktokAccounts.length || (c.tiktokAdvertiserId ? 1 : 0);
 
       return {
         id: c.id,
@@ -81,8 +109,11 @@ export async function GET() {
       count: clients.length,
       clients,
       steps,
+      scopedToEmail: isHecomOtpLoginEnabled() && !isAdmin && !isStaff,
       note:
-        "Fuente: Hecom Club CRM. Gastos TikTok usan TIKTOK_ACCESS_TOKEN de agencia + advertiser_id por cliente.",
+        isHecomOtpLoginEnabled() && !isAdmin && !isStaff
+          ? "Solo clientes vinculados a tu correo en Hecom."
+          : "Fuente: Hecom Club CRM. Gastos TikTok usan TIKTOK_ACCESS_TOKEN de agencia + advertiser_id por cliente.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido";

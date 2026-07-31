@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
+import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
+import {
+  isHecomOtpLoginEnabled,
+  isHecomOtpStaffEmail,
+  resolveHecomClientesForEmail,
+  userMayAccessHecomCliente,
+} from "@/lib/auth/hecom-otp.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import {
   clearSelectedHecomCliente,
@@ -41,16 +48,43 @@ export async function POST(request: Request) {
     );
   }
 
+  const isAdmin = userIsAllowedAdmin({
+    id: session.id,
+    email: session.email,
+  });
+  const isStaff = isHecomOtpStaffEmail(session.email);
+
+  if (isHecomOtpLoginEnabled() && !isAdmin && !isStaff) {
+    const allowed = await resolveHecomClientesForEmail(session.email);
+    const linkedIds = allowed.map((item) => item.id);
+    if (
+      !userMayAccessHecomCliente({
+        isAdmin,
+        isStaff,
+        linkedClienteIds: linkedIds,
+        clienteId,
+      })
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "No tenés acceso a ese cliente." },
+        { status: 403 },
+      );
+    }
+  }
+
   let name = String(body.name ?? "").trim();
   try {
     const cliente = await getHecomCliente(clienteId);
-    if (!cliente) {
+    if (cliente) {
+      name = name || cliente.name;
+    } else if (clienteId.startsWith("otp-test:")) {
+      name = name || "Cliente prueba OTP";
+    } else if (!name) {
       return NextResponse.json(
         { ok: false, error: "Cliente Hecom no encontrado" },
         { status: 404 },
       );
     }
-    name = name || cliente.name;
   } catch {
     if (!name) name = "Cliente Hecom";
   }

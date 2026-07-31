@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import {
   isHecomOtpLoginEnabled,
-  linkHecomClientesForUser,
+  provisionHecomClienteAccess,
 } from "@/lib/auth/hecom-otp.server";
 
 export async function POST() {
@@ -16,13 +16,17 @@ export async function POST() {
   }
 
   try {
-    const linked = await linkHecomClientesForUser({
+    const provisioned = await provisionHecomClienteAccess({
       userId: session.id,
       email: session.email,
     });
     return NextResponse.json({
       ok: true,
-      clienteIds: linked.clienteIds,
+      clienteIds: provisioned.clienteIds,
+      clientes: provisioned.clientes,
+      autoSelected: provisioned.autoSelected,
+      needsPicker: provisioned.needsPicker,
+      nextPath: provisioned.nextPath,
     });
   } catch (error) {
     const message =

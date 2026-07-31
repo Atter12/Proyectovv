@@ -41,17 +41,35 @@ Stripe / Cobrana / wallet **no cambian** con este plan: solo cambia cómo el cli
 ```
 /login (cliente)
   → solo Email
-  → “Enviar código y enlace”
-  → /verify-otp?email=...&flow=hecom
-      A) código 6 dígitos → sesión
-      B) magic link → /auth/callback?flow=hecom → sesión + provision
-  → dashboard scoped a ese cliente
-  (selector multi-cliente: fase 2)
+  → “Enviar código y enlace”  (Resend: código + magic link)
+  → A) código 6 dígitos en /verify-otp
+     B) enlace mágico → /auth/callback?flow=hecom
+  → provision:
+      1 cliente (ej. Adriana) → cookie scope + overview (solo SUS datos)
+      N clientes mismo email → /clientes (lista filtrada a esos)
 ```
 
-**Supabase Auth → URL Configuration (OBLIGATORIO):**  
-- **Site URL:** `https://ads.victorminas28.com` (NO `web-base-nu.vercel.app`)  
-- **Redirect URLs:** `https://ads.victorminas28.com/auth/callback` (+ preview/localhost si aplica)
+### Staff / gerentes (OTP + elegir cualquier cliente)
+
+Correos ubicados en Hecom Club (`_wazappOpsDb` / asistencia):
+
+| Persona | Email |
+|---|---|
+| Annie | `anniealejandrova6@gmail.com` |
+| Gian | `gian.rojas.arcos@gmail.com` |
+| Víctor | `victor.minas@unmsm.edu.pe` |
+| Atter | `attermayerbasiliorengifo@gmail.com` |
+
+**Vercel (recomendado):**
+```
+AUTH_HECOM_OTP_STAFF_EMAILS=anniealejandrova6@gmail.com,gian.rojas.arcos@gmail.com,victor.minas@unmsm.edu.pe,attermayerbasiliorengifo@gmail.com
+```
+
+(También hay defaults en código si falta el env.)
+
+- Cliente real (Adriana, etc.): solo SUS datos.
+- Staff/gerente: OTP igual → `/clientes` con **toda** la lista (como ops).
+- Piloto cliente fake: `AUTH_HECOM_OTP_TEST_EMAILS=...`
 
 **Email:** el OTP Hecom se envía por **Resend** (no el mail default de Supabase).  
 En Vercel: `RESEND_API_KEY`, `RESEND_FROM` (o `EMAIL_FROM`), opcional `EMAIL_PROVIDER=resend`.  

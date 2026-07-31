@@ -4,12 +4,12 @@ import { routes } from "@/config/routes";
 import { serverEnv } from "@/lib/env/env.server";
 import {
   isHecomOtpLoginEnabled,
-  linkHecomClientesForUser,
+  provisionHecomClienteAccess,
 } from "@/lib/auth/hecom-otp.server";
 
 /**
  * Magic link / PKCE callback.
- * Supabase redirige acá tras el enlace del correo.
+ * Misma provisión que el código OTP: 1 cliente → overview; N → /clientes.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -18,10 +18,6 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type");
   const flow = url.searchParams.get("flow");
   const nextRaw = url.searchParams.get("next");
-  const next =
-    nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//")
-      ? nextRaw
-      : routes.overview;
 
   const supabase = await createClient();
 
@@ -48,15 +44,31 @@ export async function GET(request: Request) {
     return NextResponse.redirect(fail);
   }
 
-  if (flow === "hecom" && isHecomOtpLoginEnabled()) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user?.email) {
-      await linkHecomClientesForUser({
-        userId: user.id,
-        email: user.email,
-      }).catch(() => undefined);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isHecomFlow =
+    flow === "hecom" ||
+    user?.user_metadata?.hecom_otp === true;
+
+  let next = routes.overview;
+  if (
+    nextRaw &&
+    nextRaw.startsWith("/") &&
+    !nextRaw.startsWith("//")
+  ) {
+    next = nextRaw;
+  }
+
+  if (isHecomFlow && isHecomOtpLoginEnabled() && user?.email) {
+    const provisioned = await provisionHecomClienteAccess({
+      userId: user.id,
+      email: user.email,
+    }).catch(() => null);
+
+    if (provisioned) {
+      next = provisioned.nextPath;
     }
   }
 

@@ -2,6 +2,7 @@ import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
+import { setSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   findHecomClientesByEmail,
   type HecomCliente,
@@ -11,12 +12,77 @@ const OTP_COOLDOWN_SECONDS = 60;
 const GENERIC_OK =
   "Si tu correo está habilitado, te enviamos un código y un enlace mágico.";
 
+/** Gerentes Holistic (Hecom Club) — fallback si falta el env en Vercel. */
+const DEFAULT_STAFF_EMAILS = [
+  "anniealejandrova6@gmail.com",
+  "gian.rojas.arcos@gmail.com",
+  "victor.minas@unmsm.edu.pe",
+  "attermayerbasiliorengifo@gmail.com",
+  "branlyn.lopez.r@gmail.com",
+  "freddyjgt258@gmail.com",
+  "sebasnodeal@gmail.com",
+];
+
 export function isHecomOtpLoginEnabled(): boolean {
   return serverEnv.authHecomOtpLogin;
 }
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+export function isHecomOtpStaffEmail(emailRaw: string): boolean {
+  const email = normalizeEmail(emailRaw);
+  if (!email) return false;
+  if (serverEnv.authHecomOtpStaffEmails.includes(email)) return true;
+  if (serverEnv.adminAllowedEmails.includes(email)) return true;
+  return DEFAULT_STAFF_EMAILS.includes(email);
+}
+
+function buildTestCliente(email: string): HecomCliente {
+  return {
+    id: `otp-test:${email}`,
+    name: "Cliente prueba OTP",
+    dni: null,
+    emails: [email],
+    phones: [],
+    biz: "OTP test",
+    notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+    ig: null,
+    avatarUrl: null,
+    createdAt: null,
+    tiktokAdvertiserId: null,
+    tiktokAdvertiserName: null,
+    tiktokSyncEnabled: null,
+    tiktokDefaultFee: null,
+    tiktokAccounts: [],
+  };
+}
+
+/** Clientes Hecom permitidos para este correo (CRM + allowlist de prueba). */
+export async function resolveHecomClientesForEmail(
+  emailRaw: string,
+): Promise<HecomCliente[]> {
+  const email = normalizeEmail(emailRaw);
+  let clientes = await findHecomClientesByEmail(email);
+  if (
+    clientes.length === 0 &&
+    serverEnv.authHecomOtpTestEmails.includes(email)
+  ) {
+    clientes = [buildTestCliente(email)];
+  }
+  return clientes;
+}
+
+export function userMayAccessHecomCliente(input: {
+  isAdmin: boolean;
+  isStaff?: boolean;
+  linkedClienteIds: string[];
+  clienteId: string;
+}): boolean {
+  if (input.isAdmin || input.isStaff) return true;
+  if (!isHecomOtpLoginEnabled()) return true;
+  return input.linkedClienteIds.includes(input.clienteId);
 }
 
 async function assertOtpCooldown(email: string): Promise<{ ok: boolean; retryAfterSec?: number }> {
@@ -88,40 +154,16 @@ export async function requestHecomClientOtp(input: {
 
   let clientes: HecomCliente[] = [];
   try {
-    clientes = await findHecomClientesByEmail(email);
+    clientes = await resolveHecomClientesForEmail(email);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo validar Hecom.";
     return { ok: false, error: message, status: 503 };
   }
 
-  // Correos de prueba (dev/piloto) sin tocar Hecom CRM.
-  if (
-    clientes.length === 0 &&
-    serverEnv.authHecomOtpTestEmails.includes(email)
-  ) {
-    clientes = [
-      {
-        id: `otp-test:${email}`,
-        name: "Cliente prueba OTP",
-        dni: null,
-        emails: [email],
-        phones: [],
-        biz: "OTP test",
-        notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
-        ig: null,
-        avatarUrl: null,
-        createdAt: null,
-        tiktokAdvertiserId: null,
-        tiktokAdvertiserName: null,
-        tiktokSyncEnabled: null,
-        tiktokDefaultFee: null,
-        tiktokAccounts: [],
-      },
-    ];
-  }
+  const isStaff = isHecomOtpStaffEmail(email);
 
-  if (clientes.length === 0) {
+  if (clientes.length === 0 && !isStaff) {
     // Misma respuesta: no filtrar existencia de email.
     return {
       ok: true,
@@ -151,6 +193,7 @@ export async function requestHecomClientOtp(input: {
       redirectTo: redirectTo.toString(),
       data: {
         hecom_otp: true,
+        hecom_staff: isStaff,
         hecom_cliente_ids: clientes.map((item) => item.id),
       },
     },
@@ -211,41 +254,17 @@ export async function requestHecomClientOtp(input: {
 export async function linkHecomClientesForUser(input: {
   userId: string;
   email: string;
-}): Promise<{ clienteIds: string[] }> {
+}): Promise<{ clientes: Array<{ id: string; name: string }>; clienteIds: string[] }> {
   const email = normalizeEmail(input.email);
-  let clientes = await findHecomClientesByEmail(email);
+  const clientes = await resolveHecomClientesForEmail(email);
 
-  if (
-    clientes.length === 0 &&
-    serverEnv.authHecomOtpTestEmails.includes(email)
-  ) {
-    clientes = [
-      {
-        id: `otp-test:${email}`,
-        name: "Cliente prueba OTP",
-        dni: null,
-        emails: [email],
-        phones: [],
-        biz: "OTP test",
-        notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
-        ig: null,
-        avatarUrl: null,
-        createdAt: null,
-        tiktokAdvertiserId: null,
-        tiktokAdvertiserName: null,
-        tiktokSyncEnabled: null,
-        tiktokDefaultFee: null,
-        tiktokAccounts: [],
-      },
-    ];
-  }
-
-  if (clientes.length === 0) return { clienteIds: [] };
+  if (clientes.length === 0) return { clientes: [], clienteIds: [] };
 
   const admin = createAdminClient();
   const now = new Date().toISOString();
+  const mapped = clientes.map((item) => ({ id: item.id, name: item.name }));
 
-  for (const cliente of clientes) {
+  for (const cliente of mapped) {
     await admin.from("hecom_cliente_user_links").upsert(
       {
         user_id: input.userId,
@@ -257,5 +276,69 @@ export async function linkHecomClientesForUser(input: {
     );
   }
 
-  return { clienteIds: clientes.map((item) => item.id) };
+  return { clientes: mapped, clienteIds: mapped.map((item) => item.id) };
+}
+
+/**
+ * Tras OTP (código o magic link):
+ * - staff/gerente → /clientes (lista completa, como ops)
+ * - 1 cliente → cookie de scope automática (solo ve sus datos)
+ * - N clientes → /clientes (lista filtrada)
+ */
+export async function provisionHecomClienteAccess(input: {
+  userId: string;
+  email: string;
+}): Promise<{
+  clientes: Array<{ id: string; name: string }>;
+  clienteIds: string[];
+  autoSelected: { id: string; name: string } | null;
+  needsPicker: boolean;
+  isStaff: boolean;
+  nextPath: "/overview" | "/clientes";
+}> {
+  const email = normalizeEmail(input.email);
+  const isStaff = isHecomOtpStaffEmail(email);
+
+  if (isStaff) {
+    return {
+      clientes: [],
+      clienteIds: [],
+      autoSelected: null,
+      needsPicker: true,
+      isStaff: true,
+      nextPath: "/clientes",
+    };
+  }
+
+  const linked = await linkHecomClientesForUser(input);
+
+  if (linked.clientes.length === 1) {
+    const only = linked.clientes[0];
+    await setSelectedHecomCliente({ id: only.id, name: only.name });
+    return {
+      ...linked,
+      autoSelected: only,
+      needsPicker: false,
+      isStaff: false,
+      nextPath: "/overview",
+    };
+  }
+
+  if (linked.clientes.length > 1) {
+    return {
+      ...linked,
+      autoSelected: null,
+      needsPicker: true,
+      isStaff: false,
+      nextPath: "/clientes",
+    };
+  }
+
+  return {
+    ...linked,
+    autoSelected: null,
+    needsPicker: false,
+    isStaff: false,
+    nextPath: "/overview",
+  };
 }

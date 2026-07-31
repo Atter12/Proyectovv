@@ -94,6 +94,10 @@ export const serverEnv = {
   authHecomOtpTestEmails: splitCsv(process.env.AUTH_HECOM_OTP_TEST_EMAILS).map((email) =>
     email.toLowerCase(),
   ),
+  // Gerentes / staff: OTP + lista completa de clientes (no scope a 1 cliente).
+  authHecomOtpStaffEmails: splitCsv(process.env.AUTH_HECOM_OTP_STAFF_EMAILS).map((email) =>
+    email.toLowerCase(),
+  ),
 
   paymentsDefaultProvider: process.env.PAYMENTS_DEFAULT_PROVIDER ?? "manual",
   paymentsAllowManualProvider: parseBoolean(process.env.PAYMENTS_ALLOW_MANUAL_PROVIDER),

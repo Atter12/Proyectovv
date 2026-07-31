@@ -83,7 +83,31 @@ export function VerifyOtpForm() {
     const flow = searchParams.get("flow");
     if (flow === "hecom") {
       try {
-        await fetch(routes.api.auth.otpProvision, { method: "POST" });
+        const provisionRes = await fetch(routes.api.auth.otpProvision, {
+          method: "POST",
+        });
+        const provisioned = (await provisionRes.json()) as {
+          nextPath?: string;
+          needsPicker?: boolean;
+        };
+        if (isAdminContext) {
+          const allowed = await assertAdminAccess();
+          router.push(allowed ? adminDestination : routes.adminUnauthorized);
+          router.refresh();
+          return;
+        }
+        if (provisioned.nextPath === routes.clientes || provisioned.needsPicker) {
+          router.push(routes.clientes);
+          router.refresh();
+          return;
+        }
+        const destination = resolveSafeNextPath(
+          searchParams.get("next"),
+          routes.overview,
+        );
+        router.push(destination);
+        router.refresh();
+        return;
       } catch {
         // El link Hecom se puede reintentar; no bloquear login.
       }

@@ -47,6 +47,7 @@ type ApiPayload = {
   steps?: Array<{ step: string; ok: boolean; detail?: string }>;
   hint?: string;
   note?: string;
+  scopedToEmail?: boolean;
 };
 
 export function ClientesPageClient() {
@@ -99,6 +100,14 @@ export function ClientesPageClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!payload?.ok || !payload.scopedToEmail || selectingId) return;
+    const only = payload.clients;
+    if (!only || only.length !== 1) return;
+    elegirCliente(only[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-scope 1 cliente
+  }, [payload?.ok, payload?.scopedToEmail, payload?.clients?.length, selectingId]);
 
   const filtered = useMemo(() => {
     const clients = payload?.clients ?? [];
@@ -169,9 +178,20 @@ export function ClientesPageClient() {
           Elegir cliente
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645c]">
-          Elegí un cliente Hecom. Después, en{" "}
-          <strong className="font-semibold text-[#141210]">Mis cuentas publicitarias</strong>{" "}
-          solo vas a ver lo de esa persona.
+          {payload?.scopedToEmail ? (
+            <>
+              Solo aparecen los clientes vinculados a tu correo. Si hay uno solo,
+              al entrar con código o enlace ya quedás scoped ahí.
+            </>
+          ) : (
+            <>
+              Elegí un cliente Hecom. Después, en{" "}
+              <strong className="font-semibold text-[#141210]">
+                Mis cuentas publicitarias
+              </strong>{" "}
+              solo vas a ver lo de esa persona.
+            </>
+          )}
         </p>
       </div>
 
