@@ -91,6 +91,9 @@ export const serverEnv = {
   adminAllowedUserIds: splitCsv(process.env.ADMIN_ALLOWED_USER_IDS),
   customerAppUrl: process.env.CUSTOMER_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   authHecomOtpLogin: parseBoolean(process.env.AUTH_HECOM_OTP_LOGIN, false),
+  authHecomOtpTestEmails: splitCsv(process.env.AUTH_HECOM_OTP_TEST_EMAILS).map((email) =>
+    email.toLowerCase(),
+  ),
 
   paymentsDefaultProvider: process.env.PAYMENTS_DEFAULT_PROVIDER ?? "manual",
   paymentsAllowManualProvider: parseBoolean(process.env.PAYMENTS_ALLOW_MANUAL_PROVIDER),

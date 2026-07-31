@@ -101,6 +101,32 @@ export async function requestHecomClientOtp(input: {
     return { ok: false, error: message, status: 503 };
   }
 
+  // Correos de prueba (dev/piloto) sin tocar Hecom CRM.
+  if (
+    clientes.length === 0 &&
+    serverEnv.authHecomOtpTestEmails.includes(email)
+  ) {
+    clientes = [
+      {
+        id: `otp-test:${email}`,
+        name: "Cliente prueba OTP",
+        dni: null,
+        emails: [email],
+        phones: [],
+        biz: "OTP test",
+        notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+        ig: null,
+        avatarUrl: null,
+        createdAt: null,
+        tiktokAdvertiserId: null,
+        tiktokAdvertiserName: null,
+        tiktokSyncEnabled: null,
+        tiktokDefaultFee: null,
+        tiktokAccounts: [],
+      },
+    ];
+  }
+
   if (clientes.length === 0) {
     // Misma respuesta: no filtrar existencia de email.
     return {
@@ -142,7 +168,33 @@ export async function linkHecomClientesForUser(input: {
   email: string;
 }): Promise<{ clienteIds: string[] }> {
   const email = normalizeEmail(input.email);
-  const clientes = await findHecomClientesByEmail(email);
+  let clientes = await findHecomClientesByEmail(email);
+
+  if (
+    clientes.length === 0 &&
+    serverEnv.authHecomOtpTestEmails.includes(email)
+  ) {
+    clientes = [
+      {
+        id: `otp-test:${email}`,
+        name: "Cliente prueba OTP",
+        dni: null,
+        emails: [email],
+        phones: [],
+        biz: "OTP test",
+        notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+        ig: null,
+        avatarUrl: null,
+        createdAt: null,
+        tiktokAdvertiserId: null,
+        tiktokAdvertiserName: null,
+        tiktokSyncEnabled: null,
+        tiktokDefaultFee: null,
+        tiktokAccounts: [],
+      },
+    ];
+  }
+
   if (clientes.length === 0) return { clienteIds: [] };
 
   const admin = createAdminClient();
