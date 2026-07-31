@@ -80,12 +80,12 @@ export function LoginHeroPanel({
     >
       <div className="auth-copy-well">
         <div className="relative z-10 max-w-[38rem]">
-          <p className="font-sans text-[13px] font-semibold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
+          <p className="font-sans text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
             Panel para anunciantes
           </p>
 
           {reduceMotion ? (
-            <h1 className="font-display mt-4 text-[2.9rem] font-medium italic leading-[1.12] tracking-[-0.03em] text-[var(--auth-text)] xl:text-[3.35rem]">
+            <h1 className="font-display mt-4 text-[2.75rem] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.1rem]">
               {HERO_TITLE}
             </h1>
           ) : (
@@ -96,7 +96,7 @@ export function LoginHeroPanel({
               direction="top"
               delay={80}
               stepDuration={0.26}
-              className="font-display mt-4 text-[2.9rem] font-medium italic leading-[1.12] tracking-[-0.03em] text-[var(--auth-text)] xl:text-[3.35rem]"
+              className="font-display mt-4 text-[2.75rem] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--auth-text)] xl:text-[3.1rem]"
             />
           )}
 
