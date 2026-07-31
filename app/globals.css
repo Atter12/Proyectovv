@@ -16,8 +16,8 @@
     var(--brand-primary) 48%,
     var(--brand-accent) 100%
   );
-  --background: #f4f2ef;
-  --foreground: #141210;
+  --background: #f4f6f8;
+  --foreground: #0f172a;
   --brand-mint: #9af7c9;
   --brand-gold: #ffa12c;
   --surface: #ffffff;
@@ -569,43 +569,52 @@ body {
 }
 
 .dashboard-canvas {
-  --panel-ink: #141210;
-  --panel-ink-soft: #6b645c;
-  --panel-line: rgb(20 18 16 / 0.08);
+  /* Tipografía = landing / login (Plus Jakarta) */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01" on, "cv11" on;
+
+  /* Tokens de ink alineados a .auth-canvas */
+  --panel-ink: #0f172a;
+  --panel-ink-soft: #475569;
+  --panel-ink-mute: #94a3b8;
+  --panel-line: rgb(15 23 42 / 0.08);
   --panel-glow: rgb(255 120 31 / 0.1);
-  --panel-card: rgb(255 255 255 / 0.94);
+  --panel-card: #ffffff;
   --panel-sidebar: #2a241f;
   --panel-sidebar-elevated: #332c26;
   --panel-sidebar-border: rgb(255 255 255 / 0.08);
   --panel-sidebar-text: #f8fafc;
   --panel-sidebar-muted: #9a9187;
-  background-color: #f4f1ed;
+
+  background-color: #f4f6f8;
   background-image:
-    radial-gradient(900px 420px at 8% -8%, rgb(255 120 31 / 0.05), transparent 58%),
-    radial-gradient(720px 360px at 96% 0%, rgb(255 161 44 / 0.03), transparent 55%),
-    radial-gradient(rgb(20 18 16 / 0.028) 0.8px, transparent 0.8px),
-    linear-gradient(180deg, #f9f6f2 0%, #f0ebe5 100%);
-  background-size: auto, auto, 22px 22px, auto;
+    radial-gradient(900px 480px at 8% -10%, rgb(255 120 31 / 0.07), transparent 58%),
+    radial-gradient(720px 400px at 100% 0%, rgb(255 161 44 / 0.05), transparent 55%),
+    linear-gradient(180deg, #f8fafc 0%, #f4f6f8 50%, #eef1f4 100%);
+}
+
+.dashboard-canvas .font-display {
+  font-family: var(--font-display);
+  font-feature-settings: "ss01" on, "cv11" on;
 }
 
 .dashboard-glass {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.94), rgb(255 252 248 / 0.84));
-  border-color: rgb(20 18 16 / 0.08);
+  background: #ffffff;
+  border-color: rgb(15 23 42 / 0.08);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.75) inset,
-    0 10px 28px rgb(20 18 16 / 0.06);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 12px 32px rgb(15 23 42 / 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .dashboard-shell-accent {
-  background:
-    radial-gradient(820px 260px at 36% -12%, rgb(255 120 31 / 0.07), transparent 65%),
-    radial-gradient(580px 220px at 96% -8%, rgb(255 161 44 / 0.04), transparent 62%);
+  background: transparent;
 }
 
-/* Sidebar / rail — marrón cálido (no negro) */
+/* Sidebar / rail — marrón cálido (contraste vs canvas light) */
 .dashboard-rail {
   background:
     radial-gradient(420px 280px at 0% 0%, rgb(255 120 31 / 0.14), transparent 58%),
@@ -613,7 +622,7 @@ body {
     linear-gradient(180deg, #2a241f 0%, #332c26 100%);
   border-right: 1px solid rgb(255 255 255 / 0.1);
   color: var(--panel-sidebar-text, #f8fafc);
-  box-shadow: 8px 0 28px rgb(20 18 16 / 0.08);
+  box-shadow: 8px 0 28px rgb(15 23 42 / 0.08);
 }
 
 .dashboard-rail-glass {
@@ -629,12 +638,12 @@ body {
 }
 
 .dashboard-surface-card {
-  border: 1px solid rgb(20 18 16 / 0.08);
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(255 252 248 / 0.94));
+  border: 1px solid rgb(15 23 42 / 0.06);
+  background: #ffffff;
+  border-radius: 1.25rem;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.9) inset,
-    0 14px 36px rgb(20 18 16 / 0.06);
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 12px 32px rgb(15 23 42 / 0.05);
   transition:
     border-color 220ms ease,
     box-shadow 220ms ease,
@@ -642,10 +651,10 @@ body {
 }
 
 .dashboard-surface-card:hover {
-  border-color: rgb(255 120 31 / 0.12);
+  border-color: rgb(255 120 31 / 0.18);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.95) inset,
-    0 16px 36px rgb(20 18 16 / 0.08);
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 16px 36px rgb(15 23 42 / 0.07);
 }
 
 /* Focus ring Holistic — inputs / interactive */
@@ -659,9 +668,11 @@ body {
 .dashboard-kpi {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgb(20 18 16 / 0.08);
-  background: rgb(255 255 255 / 0.94);
-  box-shadow: 0 12px 28px rgb(20 18 16 / 0.05);
+  border: 1px solid rgb(15 23 42 / 0.06);
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 12px 28px rgb(15 23 42 / 0.05);
   transition:
     transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 280ms ease;
@@ -684,7 +695,9 @@ body {
 
 .dashboard-kpi:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgb(20 18 16 / 0.08);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 16px 36px rgb(15 23 42 / 0.08);
 }
 
 .dashboard-nav-item {

@@ -22,7 +22,7 @@ export function DashboardPageIntro({
       )}
     >
       <div className="min-w-0">
-        <p className="max-w-3xl text-[15px] leading-7 text-[var(--admin-text-muted,#64748b)]">
+        <p className="max-w-3xl text-[15px] font-medium leading-6 text-[var(--panel-ink-soft,#475569)]">
           {description}
         </p>
         {badges ? (

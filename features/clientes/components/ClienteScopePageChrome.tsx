@@ -10,7 +10,7 @@ type Props = {
   actions?: ReactNode;
 };
 
-/** Header uniforme Holistic para secciones filtradas por cliente. */
+/** Header uniforme Holistic — tipografía/colores = landing. */
 export function ClienteScopePageHeader({
   eyebrow,
   title,
@@ -20,15 +20,15 @@ export function ClienteScopePageHeader({
   actions,
 }: Props) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]">
+    <div className="dashboard-surface-card overflow-hidden rounded-[1.25rem]">
       <div className="relative px-5 py-5 sm:px-6">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,#e85a1c,#ffa12c)]"
+          className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,#ff781f,#ffa12c)]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.05),transparent)]"
+          className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.06),transparent)]"
         />
         <div className="relative flex flex-wrap items-start justify-between gap-4 pl-2">
           <div className="flex min-w-0 items-start gap-3">
@@ -41,14 +41,14 @@ export function ClienteScopePageHeader({
               />
             ) : null}
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#c45a18]">
+              <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--brand-primary)]">
                 {eyebrow}
               </p>
-              <h1 className="mt-1 text-[1.25rem] font-semibold tracking-[-0.03em] text-[#1a1612] sm:text-[1.35rem]">
+              <h1 className="mt-1 text-[1.45rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--panel-ink,#0f172a)] sm:text-[1.65rem]">
                 {title}
               </h1>
               {description ? (
-                <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
+                <p className="mt-1.5 max-w-2xl text-[15px] font-medium leading-6 text-[var(--panel-ink-soft,#475569)]">
                   {description}
                 </p>
               ) : null}
@@ -64,8 +64,8 @@ export function ClienteScopePageHeader({
 export function ClienteScopeKpi({
   label,
   value,
-  accent = "bg-[#8a8178]",
-  tone = "text-[#1a1612]",
+  accent = "bg-[var(--brand-primary)]",
+  tone = "text-[var(--panel-ink,#0f172a)]",
 }: {
   label: string;
   value: string;
@@ -73,16 +73,16 @@ export function ClienteScopeKpi({
   tone?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[1rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-4 py-3.5">
+    <div className="dashboard-kpi relative overflow-hidden rounded-[1.25rem] px-4 py-3.5">
       <span
         aria-hidden
         className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${accent}`}
       />
-      <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+      <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--panel-ink-mute,#94a3b8)]">
         {label}
       </p>
       <p
-        className={`mt-1 truncate pl-2 text-[1.2rem] font-medium tracking-[-0.015em] tabular-nums ${tone}`}
+        className={`mt-1 truncate pl-2 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums ${tone}`}
       >
         {value}
       </p>

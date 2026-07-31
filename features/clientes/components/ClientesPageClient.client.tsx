@@ -171,13 +171,13 @@ export function ClientesPageClient() {
   return (
     <div className={dashboardClasses.page}>
       <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary-deep)]">
+        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--brand-primary)]">
           Hecom Club · CRM
         </p>
-        <h1 className="font-display mt-1 text-2xl font-medium tracking-tight text-[#141210] sm:text-[1.85rem]">
+        <h1 className="mt-1 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--panel-ink,#0f172a)] sm:text-[2rem]">
           Elegir cliente
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645c]">
+        <p className="mt-2 max-w-2xl text-[15px] font-medium leading-6 text-[var(--panel-ink-soft,#475569)]">
           {payload?.scopedToEmail ? (
             <>
               Solo aparecen los clientes vinculados a tu correo. Si hay uno solo,
@@ -186,7 +186,7 @@ export function ClientesPageClient() {
           ) : (
             <>
               Elegí un cliente Hecom. Después, en{" "}
-              <strong className="font-semibold text-[#141210]">
+              <strong className="font-semibold text-[var(--panel-ink,#0f172a)]">
                 Mis cuentas publicitarias
               </strong>{" "}
               solo vas a ver lo de esa persona.
@@ -260,10 +260,10 @@ export function ClientesPageClient() {
                   className="ring-2 ring-[var(--brand-primary)]/15"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate font-display text-[1.05rem] font-medium text-[#141210]">
+                  <h2 className="truncate text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--panel-ink,#0f172a)]">
                     {contactName}
                   </h2>
-                  <p className="mt-0.5 truncate text-xs text-[#6b645c]">
+                  <p className="mt-0.5 truncate text-xs text-[var(--panel-ink-soft,#475569)]">
                     {client.biz ? `${client.biz} · ` : ""}
                     {client.contactEmail ?? client.slug}
                   </p>
@@ -271,15 +271,15 @@ export function ClientesPageClient() {
               </div>
 
               <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#f4f7fc] px-3 py-2">
-                  <dt className="text-[11px] text-[#6b645c]">Cuentas TikTok</dt>
-                  <dd className="font-semibold text-[#141210]">
+                <div className="rounded-xl border border-[var(--panel-line,rgb(15_23_42_/_0.08))] bg-[#f8fafc] px-3 py-2">
+                  <dt className="text-[11px] text-[var(--panel-ink-mute,#94a3b8)]">Cuentas TikTok</dt>
+                  <dd className="font-semibold text-[var(--panel-ink,#0f172a)]">
                     {client.adAccountCount}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#f4f7fc] px-3 py-2">
-                  <dt className="text-[11px] text-[#6b645c]">Emails</dt>
-                  <dd className="font-semibold text-[#141210]">
+                <div className="rounded-xl border border-[var(--panel-line,rgb(15_23_42_/_0.08))] bg-[#f8fafc] px-3 py-2">
+                  <dt className="text-[11px] text-[var(--panel-ink-mute,#94a3b8)]">Emails</dt>
+                  <dd className="font-semibold text-[var(--panel-ink,#0f172a)]">
                     {client.activeMemberCount}
                   </dd>
                 </div>
