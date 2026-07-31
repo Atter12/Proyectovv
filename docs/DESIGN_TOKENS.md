@@ -1,65 +1,39 @@
-# Design tokens — Landing / Login → Sistema
+# Design tokens — Landing → Sistema (fuente de verdad)
 
-Fuente de verdad: landing (`features/landing/*`) + auth (`.auth-canvas` en `globals.css`).
+Landing y login usan `.auth-canvas` + `AuthDotGridBackground` + **Plus Jakarta Sans**.
 
 ## Tipografía
 
-| Rol | Familia | CSS |
-|---|---|---|
-| UI / body | **Plus Jakarta Sans** | `--font-jakarta` → `--font-sans` |
-| Títulos | **Plus Jakarta Sans** (bold) | `--font-display` (= Jakarta en landing) |
-| Legacy (admin viejo) | Manrope + Newsreader | `--font-manrope`, `--font-newsreader` |
+| Token | Valor |
+|---|---|
+| Familia | **Plus Jakarta Sans** (`--font-jakarta`) |
+| CSS global | `--font-sans` y `--font-display` = Jakarta |
+| Pesos | 400 / 500 / 600 / 700 / 800 |
+| Títulos | `font-bold` + `tracking-[-0.03em]` + `leading-[1.15]` |
+| Eyebrow | `text-[var(--auth-accent)]` + `font-bold` + `tracking-[-0.02em]` |
+| Body | `text-[15px]` + `font-medium` + `text-[var(--auth-text-muted)]` |
 
-Pesos usados: **400 / 500 / 600 / 700 / 800**.
+## Color
 
-Patrón de título landing:
-```
-text-[1.65rem]–[2.35rem] font-bold leading-[1.2] tracking-[-0.03em]
-```
+| Token | Hex / valor |
+|---|---|
+| `--auth-accent` | `#ff781f` |
+| `--auth-accent-hover` | `#e8451a` |
+| `--auth-accent-soft` | `#fff1e8` |
+| `--auth-text` | `#0f172a` |
+| `--auth-text-muted` | `#475569` |
+| `--auth-text-soft` | `#94a3b8` |
+| `--auth-bg` / canvas | `#f4f6f8` |
+| `--auth-surface` | `#ffffff` |
+| Gradiente fondo | `#f8fafc` → `#f4f6f8` → `#eef1f4` + glow naranja suave |
+| Dot grid | `#c5cdd8` base, `#ff781f` activo |
 
-Eyebrow / accent label:
-```
-text-[1.05rem]–[1.45rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]
-```
+## Superficie
 
-Body:
-```
-text-[15px]–[16px] font-medium leading-6|7 text-[var(--auth-text-muted)]
-```
+- Cards: blanco, `border rgb(15 23 42 / 0.06)`, `rounded-[1.25rem]`
+- Shadow CTA: `0 8px–10px 20px–24px rgb(255 120 31 / 0.28)`
+- Topbar: `bg-[rgb(248_250_252_/_0.92)] backdrop-blur-xl` (igual landing nav)
 
-## Color (activo — light SaaS)
+## Panel
 
-| Token | Valor | Uso |
-|---|---|---|
-| `--auth-accent` / `--brand-primary` | `#ff781f` | CTA, links, acentos |
-| `--auth-accent-hover` / `--brand-primary-deep` | `#e8451a` | hover |
-| `--brand-accent` | `#ffa12c` | highlight secundario |
-| `--auth-text` | `#0f172a` | texto principal |
-| `--auth-text-muted` | `#475569` | subtítulos |
-| `--auth-text-soft` | `#94a3b8` | meta / hints |
-| `--auth-bg` | `#f4f6f8` | canvas |
-| `--auth-surface` | `#ffffff` | cards / paneles |
-| `--auth-accent-soft` | `#fff1e8` | chips / soft fills |
-| Divider | `rgb(15 23 42 / 0.08)` | bordes suaves |
-
-## Radios & sombra
-
-- Controles / botones: `rounded-xl` (12px)
-- Paneles: `rounded-[1.25rem]`–`1.5rem`
-- CTA shadow: `0 8px 20px rgb(255 120 31 / 0.28)`
-- Card: `0 1px 2px + 0 12px 32px` slate suave
-
-## Fondo canvas
-
-```css
-background-color: #f4f6f8;
-background-image:
-  radial-gradient(... naranja 7% ...),
-  radial-gradient(... amber 5% ...),
-  linear-gradient(180deg, #f8fafc, #f4f6f8, #eef1f4);
-```
-
-## Aplicación en el panel
-
-`.dashboard-canvas` hereda tipografía Jakarta + fondo/colores alineados a `.auth-canvas`.
-Sidebar oscuro (`.dashboard-rail`) se mantiene como contraste de producto.
+`.dashboard-canvas` copia tokens `--auth-*`, tipografía Jakarta, fondo landing + **mismo DotGrid** que la home.

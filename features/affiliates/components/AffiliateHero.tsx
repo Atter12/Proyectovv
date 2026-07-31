@@ -32,38 +32,38 @@ export function AffiliateHero({ data }: AffiliateHeroProps) {
   return (
     <div className="dashboard-surface-card relative min-h-[240px] overflow-hidden rounded-2xl sm:min-h-[280px] lg:min-h-[300px]">
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-[linear-gradient(180deg,var(--brand-coral),var(--brand-primary),var(--brand-accent))]"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,#ff781f,#ffa12c)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--brand-primary)]/[0.08] blur-3xl"
+        className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--auth-accent)]/[0.08] blur-3xl"
         aria-hidden
       />
 
       <div className="relative z-10 flex flex-col gap-6 p-5 pl-6 sm:gap-8 sm:p-7 sm:pl-8 lg:flex-row lg:items-center lg:justify-between lg:p-8 lg:pl-9">
         <div className="min-w-0 max-w-xl">
-          <p className="text-[13px] font-semibold tracking-[0.04em] text-[var(--brand-primary-deep)]">
+          <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
             Referidos
           </p>
-          <h2 className="font-display mt-2 text-[1.75rem] font-medium leading-[1.12] tracking-[-0.02em] text-[#141210] sm:text-[2rem] lg:text-[2.15rem]">
+          <h2 className="mt-2 text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem] lg:text-[2.15rem]">
             Programa de afiliados de {siteConfig.companyName}
           </h2>
-          <p className="mt-3 max-w-lg text-[15px] leading-7 text-[#6b645c]">
+          <p className="mt-3 max-w-lg text-[15px] font-medium leading-7 text-[var(--auth-text-muted)]">
             Invita anunciantes, comparte tu enlace y gana comisiones por cada
             referido activo.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-2.5">
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-11 items-center rounded-xl bg-[var(--brand-primary)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.22)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:bg-[var(--brand-primary-deep)]"
+              className="inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px"
             >
               {copied ? "¡Copiado!" : "Copiar enlace"}
             </button>
             <button
               type="button"
               onClick={scrollToMilestones}
-              className="inline-flex h-11 items-center rounded-xl border border-[var(--border-subtle)] bg-white px-5 text-[14px] font-semibold text-[#141210] transition-colors hover:border-[var(--brand-primary)]/30 hover:bg-[var(--surface-soft)]"
+              className="inline-flex h-11 items-center rounded-xl border border-[var(--auth-control-border)] bg-white px-5 text-[14px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-control-hover)]"
             >
               Ver hitos
             </button>

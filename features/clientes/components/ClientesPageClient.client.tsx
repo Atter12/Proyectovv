@@ -171,13 +171,13 @@ export function ClientesPageClient() {
   return (
     <div className={dashboardClasses.page}>
       <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
-        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--brand-primary)]">
+        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
           Hecom Club · CRM
         </p>
-        <h1 className="mt-1 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--panel-ink,#0f172a)] sm:text-[2rem]">
+        <h1 className="mt-1 text-[1.85rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
           Elegir cliente
         </h1>
-        <p className="mt-2 max-w-2xl text-[15px] font-medium leading-6 text-[var(--panel-ink-soft,#475569)]">
+        <p className="mt-2 max-w-2xl text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {payload?.scopedToEmail ? (
             <>
               Solo aparecen los clientes vinculados a tu correo. Si hay uno solo,
@@ -186,7 +186,7 @@ export function ClientesPageClient() {
           ) : (
             <>
               Elegí un cliente Hecom. Después, en{" "}
-              <strong className="font-semibold text-[var(--panel-ink,#0f172a)]">
+              <strong className="font-semibold text-[var(--auth-text)]">
                 Mis cuentas publicitarias
               </strong>{" "}
               solo vas a ver lo de esa persona.
@@ -257,13 +257,13 @@ export function ClientesPageClient() {
                   name={contactName}
                   avatarUrl={client.avatarUrl}
                   size="md"
-                  className="ring-2 ring-[var(--brand-primary)]/15"
+                  className="ring-2 ring-[var(--auth-accent)]/15"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--panel-ink,#0f172a)]">
+                  <h2 className="truncate text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                     {contactName}
                   </h2>
-                  <p className="mt-0.5 truncate text-xs text-[var(--panel-ink-soft,#475569)]">
+                  <p className="mt-0.5 truncate text-xs text-[var(--auth-text-muted)]">
                     {client.biz ? `${client.biz} · ` : ""}
                     {client.contactEmail ?? client.slug}
                   </p>
@@ -271,15 +271,15 @@ export function ClientesPageClient() {
               </div>
 
               <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-xl border border-[var(--panel-line,rgb(15_23_42_/_0.08))] bg-[#f8fafc] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--panel-ink-mute,#94a3b8)]">Cuentas TikTok</dt>
-                  <dd className="font-semibold text-[var(--panel-ink,#0f172a)]">
+                <div className="rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
+                  <dt className="text-[11px] text-[var(--auth-text-soft)]">Cuentas TikTok</dt>
+                  <dd className="font-bold text-[var(--auth-text)]">
                     {client.adAccountCount}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-[var(--panel-line,rgb(15_23_42_/_0.08))] bg-[#f8fafc] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--panel-ink-mute,#94a3b8)]">Emails</dt>
-                  <dd className="font-semibold text-[var(--panel-ink,#0f172a)]">
+                <div className="rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
+                  <dt className="text-[11px] text-[var(--auth-text-soft)]">Emails</dt>
+                  <dd className="font-bold text-[var(--auth-text)]">
                     {client.activeMemberCount}
                   </dd>
                 </div>
@@ -298,13 +298,13 @@ export function ClientesPageClient() {
                   type="button"
                   disabled={busy || pending}
                   onClick={() => elegirCliente(client)}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 text-[14px] font-semibold text-white shadow-[0_10px_28px_rgb(255_120_31_/_0.32)] transition-[background-color,transform] hover:bg-[var(--brand-primary-deep)] hover:-translate-y-0.5 disabled:opacity-60"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:opacity-60"
                 >
                   {busy ? "Eligiendo…" : "Elegir este cliente"}
                 </button>
                 <Link
                   href={`/clientes/${client.id}`}
-                  className="text-center text-xs font-medium text-[var(--brand-primary-deep)] hover:underline"
+                  className="text-center text-xs font-bold text-[var(--auth-accent-hover)] hover:underline"
                 >
                   Ver ficha
                 </Link>

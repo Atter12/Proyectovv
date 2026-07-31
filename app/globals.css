@@ -20,10 +20,11 @@
   --foreground: #0f172a;
   --brand-mint: #9af7c9;
   --brand-gold: #ffa12c;
+  /* Cool slate — misma paleta que landing / .auth-canvas (no cream) */
   --surface: #ffffff;
-  --surface-soft: #faf8f5;
-  --border-subtle: #e6e0d8;
-  --border-strong: #d2c8bc;
+  --surface-soft: #f8fafc;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
   --shadow-card:
     0 1px 2px rgb(15 23 42 / 0.03),
     0 6px 20px rgb(15 23 42 / 0.04);
@@ -42,14 +43,14 @@
   --admin-radius-input: 8px;
   --admin-radius-card: 12px;
   --admin-radius-panel: 16px;
-  --admin-bg: #f4f2ef;
+  --admin-bg: #f4f6f8;
   --admin-sidebar: #ffffff;
   --admin-surface: #ffffff;
-  --admin-surface-soft: #faf8f5;
-  --admin-surface-hover: #f3eee8;
-  --admin-border: #e6e0d8;
-  --admin-border-strong: #d2c8bc;
-  --admin-divider: #e6e0d8;
+  --admin-surface-soft: #f8fafc;
+  --admin-surface-hover: #f1f5f9;
+  --admin-border: #e2e8f0;
+  --admin-border-strong: #cbd5e1;
+  --admin-divider: #e2e8f0;
   --admin-accent: #ff781f;
   --admin-accent-hover: #e8451a;
   --admin-accent-soft: #fff1e8;
@@ -57,29 +58,29 @@
   --admin-warning: #d97706;
   --admin-danger: #dc2626;
   --admin-info: #ff781f;
-  --admin-text: #141210;
-  --admin-text-muted: #6b645c;
-  --admin-text-soft: #9a9187;
+  --admin-text: #0f172a;
+  --admin-text-muted: #475569;
+  --admin-text-soft: #94a3b8;
   --admin-nav-active-bg: #fff1e8;
   --admin-nav-active-text: #e8451a;
   --admin-nav-active-icon-bg: #ffffff;
   --admin-nav-active-icon-text: #e8451a;
   --admin-nav-active-ring: #ffd8bf;
-  --admin-nav-text: #5c564e;
-  --admin-nav-hover-bg: #faf8f5;
-  --admin-nav-hover-text: #141210;
-  --admin-nav-icon: #9a9187;
-  --admin-nav-icon-hover: #5c564e;
-  --admin-topbar-bg: rgb(255 255 255 / 0.9);
-  --admin-scrollbar: #d2c8bc;
-  --admin-overlay: rgb(20 18 16 / 0.2);
+  --admin-nav-text: #475569;
+  --admin-nav-hover-bg: #f8fafc;
+  --admin-nav-hover-text: #0f172a;
+  --admin-nav-icon: #94a3b8;
+  --admin-nav-icon-hover: #475569;
+  --admin-topbar-bg: rgb(248 250 252 / 0.92);
+  --admin-scrollbar: #cbd5e1;
+  --admin-overlay: rgb(15 23 42 / 0.2);
   --admin-theme-toggle-bg: #ffffff;
-  --admin-theme-toggle-border: #e6e0d8;
-  --admin-theme-toggle-text: #3f3a34;
+  --admin-theme-toggle-border: #e2e8f0;
+  --admin-theme-toggle-text: #334155;
   --admin-theme-toggle-hover-bg: #fff1e8;
   --admin-theme-toggle-hover-text: #e8451a;
-  --admin-badge-neutral-bg: #f3eee8;
-  --admin-badge-neutral-text: #5c564e;
+  --admin-badge-neutral-bg: #f1f5f9;
+  --admin-badge-neutral-text: #475569;
   --admin-badge-info-bg: #fff1e8;
   --admin-badge-info-text: #e8451a;
   --admin-badge-success-bg: #ecfdf5;
@@ -91,14 +92,14 @@
   --admin-badge-purple-bg: #fff1e8;
   --admin-badge-purple-text: #c2410c;
   --admin-control-bg: #ffffff;
-  --admin-control-border: #e6e0d8;
-  --admin-control-text: #141210;
-  --admin-control-muted: #6b645c;
-  --admin-control-hover-bg: #faf8f5;
-  --admin-table-head-bg: rgb(250 248 245 / 0.85);
-  --admin-table-row-hover: rgb(250 248 245 / 0.9);
-  --admin-table-divider: #efebe6;
-  --admin-session-bg: #faf8f5;
+  --admin-control-border: #e2e8f0;
+  --admin-control-text: #0f172a;
+  --admin-control-muted: #475569;
+  --admin-control-hover-bg: #f8fafc;
+  --admin-table-head-bg: rgb(248 250 252 / 0.85);
+  --admin-table-row-hover: rgb(248 250 252 / 0.9);
+  --admin-table-divider: #e2e8f0;
+  --admin-session-bg: #f8fafc;
   --admin-session-hover-bg: #ffffff;
   --admin-metric-accent-indigo: #fff1e8;
   --admin-metric-accent-indigo-text: #e8451a;
@@ -195,8 +196,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  /* Fuente = landing / login (Plus Jakarta Sans) */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -209,7 +211,8 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01" on, "cv11" on;
   overflow-x: hidden;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
@@ -569,24 +572,40 @@ body {
 }
 
 .dashboard-canvas {
-  /* Tipografía = landing / login (Plus Jakarta) */
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  font-family: var(--font-sans);
-  font-feature-settings: "ss01" on, "cv11" on;
+  /* Misma base visual que .auth-canvas (landing / login) */
+  --auth-bg: #f4f6f8;
+  --auth-bg-elevated: #ffffff;
+  --auth-surface: #ffffff;
+  --auth-border: rgb(15 23 42 / 0.08);
+  --auth-text: #0f172a;
+  --auth-text-muted: #475569;
+  --auth-text-soft: #94a3b8;
+  --auth-accent: #ff781f;
+  --auth-accent-hover: #e8451a;
+  --auth-accent-soft: #fff1e8;
+  --auth-accent-ring: rgb(255 120 31 / 0.22);
+  --auth-control-bg: #ffffff;
+  --auth-control-border: rgb(15 23 42 / 0.1);
+  --auth-control-hover: #fff7f0;
+  --auth-divider: rgb(15 23 42 / 0.08);
+  --auth-input-border: rgb(15 23 42 / 0.12);
+  --auth-input-border-hover: rgb(15 23 42 / 0.2);
 
-  /* Tokens de ink alineados a .auth-canvas */
-  --panel-ink: #0f172a;
-  --panel-ink-soft: #475569;
-  --panel-ink-mute: #94a3b8;
-  --panel-line: rgb(15 23 42 / 0.08);
+  --panel-ink: var(--auth-text);
+  --panel-ink-soft: var(--auth-text-muted);
+  --panel-ink-mute: var(--auth-text-soft);
+  --panel-line: var(--auth-divider);
   --panel-glow: rgb(255 120 31 / 0.1);
-  --panel-card: #ffffff;
+  --panel-card: var(--auth-surface);
   --panel-sidebar: #2a241f;
   --panel-sidebar-elevated: #332c26;
   --panel-sidebar-border: rgb(255 255 255 / 0.08);
   --panel-sidebar-text: #f8fafc;
   --panel-sidebar-muted: #9a9187;
+
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01" on, "cv11" on;
+  color: var(--auth-text);
 
   background-color: #f4f6f8;
   background-image:
@@ -595,8 +614,11 @@ body {
     linear-gradient(180deg, #f8fafc 0%, #f4f6f8 50%, #eef1f4 100%);
 }
 
-.dashboard-canvas .font-display {
-  font-family: var(--font-display);
+.dashboard-canvas .font-display,
+.dashboard-canvas h1,
+.dashboard-canvas h2,
+.dashboard-canvas h3 {
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01" on, "cv11" on;
 }
 

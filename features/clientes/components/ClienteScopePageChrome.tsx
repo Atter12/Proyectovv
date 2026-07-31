@@ -41,14 +41,14 @@ export function ClienteScopePageHeader({
               />
             ) : null}
             <div className="min-w-0">
-              <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--brand-primary)]">
+              <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
                 {eyebrow}
               </p>
-              <h1 className="mt-1 text-[1.45rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--panel-ink,#0f172a)] sm:text-[1.65rem]">
+              <h1 className="mt-1 text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
                 {title}
               </h1>
               {description ? (
-                <p className="mt-1.5 max-w-2xl text-[15px] font-medium leading-6 text-[var(--panel-ink-soft,#475569)]">
+                <p className="mt-1.5 max-w-2xl text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
                   {description}
                 </p>
               ) : null}
@@ -64,8 +64,8 @@ export function ClienteScopePageHeader({
 export function ClienteScopeKpi({
   label,
   value,
-  accent = "bg-[var(--brand-primary)]",
-  tone = "text-[var(--panel-ink,#0f172a)]",
+  accent = "bg-[var(--auth-accent)]",
+  tone = "text-[var(--auth-text)]",
 }: {
   label: string;
   value: string;
@@ -78,7 +78,7 @@ export function ClienteScopeKpi({
         aria-hidden
         className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${accent}`}
       />
-      <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--panel-ink-mute,#94a3b8)]">
+      <p className="pl-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
         {label}
       </p>
       <p

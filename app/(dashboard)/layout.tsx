@@ -1,5 +1,6 @@
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
@@ -46,17 +47,22 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="dashboard-canvas flex min-h-screen overflow-x-hidden">
-      <div className="hidden lg:block">
+    <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
+      {/* Misma textura de puntos que landing / login */}
+      <AuthDotGridBackground tone="light" />
+
+      <div className="relative z-10 hidden lg:block">
         <DashboardSidebar
           className="fixed inset-y-0 left-0 z-30 h-full w-64"
           selectedCliente={selectedCliente}
         />
       </div>
 
-      <DashboardLayoutChrome user={user} selectedCliente={selectedCliente}>
-        {children}
-      </DashboardLayoutChrome>
+      <div className="relative z-10 flex min-h-screen min-w-0 flex-1">
+        <DashboardLayoutChrome user={user} selectedCliente={selectedCliente}>
+          {children}
+        </DashboardLayoutChrome>
+      </div>
     </div>
   );
 }
