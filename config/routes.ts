@@ -5,6 +5,7 @@ export const routes = {
   verifyOtp: "/verify-otp",
   forgotPassword: "/forgot-password",
   accountSetup: "/account-setup",
+  authCallback: "/auth/callback",
   overview: "/overview",
   clientes: "/clientes",
   adAccounts: "/ad-accounts",

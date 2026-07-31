@@ -9,7 +9,7 @@ import {
 
 const OTP_COOLDOWN_SECONDS = 60;
 const GENERIC_OK =
-  "Si tu correo está habilitado, te enviamos un código.";
+  "Si tu correo está habilitado, te enviamos un código y un enlace mágico.";
 
 export function isHecomOtpLoginEnabled(): boolean {
   return serverEnv.authHecomOtpLogin;
@@ -138,10 +138,15 @@ export async function requestHecomClientOtp(input: {
   }
 
   const auth = createAnonAuthClient();
+  const redirectTo = new URL("/auth/callback", serverEnv.appUrl);
+  redirectTo.searchParams.set("flow", "hecom");
+
   const { error } = await auth.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
+      // El mismo email puede traer código ({{ .Token }}) + enlace (magic link).
+      emailRedirectTo: redirectTo.toString(),
       data: {
         hecom_otp: true,
         hecom_cliente_ids: clientes.map((item) => item.id),

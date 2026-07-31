@@ -83,7 +83,11 @@ export function VerifyOtpForm() {
       return;
     }
 
-    router.push(routes.overview);
+    const destination = resolveSafeNextPath(
+      searchParams.get("next"),
+      routes.overview,
+    );
+    router.push(destination);
     router.refresh();
   }
 
@@ -109,7 +113,10 @@ export function VerifyOtpForm() {
         if (!response.ok) {
           setError(mapAuthErrorMessage(payload.error ?? "No se pudo reenviar."));
         } else {
-          setSuccess(payload.message ?? "Te enviamos un nuevo código a tu correo.");
+          setSuccess(
+            payload.message ??
+              "Te enviamos un nuevo código y enlace mágico a tu correo.",
+          );
         }
       } catch {
         setError("No se pudo reenviar el código.");
@@ -142,13 +149,21 @@ export function VerifyOtpForm() {
           />
         </div>
         <h1 className="font-display text-xl font-medium text-[#141210]">
-          {isHecomFlow ? "Código de acceso" : "Verifica tu correo"}
+          {isHecomFlow ? "Código o enlace" : "Verifica tu correo"}
         </h1>
         <p className="mt-2 text-sm text-[#6b645c]">
-          {isHecomFlow
-            ? "Introduce el código de 6 dígitos enviado a "
-            : "Introduce el código de 6 dígitos enviado a "}
-          <span className="font-medium text-[#3f3a34]">{email || "tu correo"}</span>
+          {isHecomFlow ? (
+            <>
+              Escribí el código de 6 dígitos enviado a{" "}
+              <span className="font-medium text-[#3f3a34]">{email || "tu correo"}</span>
+              , o abrí el enlace mágico del mismo email.
+            </>
+          ) : (
+            <>
+              Introduce el código de 6 dígitos enviado a{" "}
+              <span className="font-medium text-[#3f3a34]">{email || "tu correo"}</span>
+            </>
+          )}
         </p>
       </div>
 

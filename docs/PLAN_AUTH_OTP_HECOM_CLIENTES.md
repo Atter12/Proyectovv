@@ -1,6 +1,6 @@
 # Plan: acceso cliente por OTP (estilo Hecom Club)
 
-**Idea:** los clientes que ya están en Hecom Club **no se registran** con formulario clásico (nombre + org + password). Entran **de frente con OTP**: correo → código → panel.
+**Idea:** los clientes que ya están en Hecom Club **no se registran** con formulario clásico (nombre + org + password). Entran **solo con OTP**: correo → **código de 6 dígitos** y/o **enlace mágico** → panel. Sin contraseña.
 
 En Hecom Club el OTP ya se usa (p. ej. gerentes). Acá la misma lógica se aplica a **clientes jalados** (`hecom.clientes.emails[]`).
 
@@ -13,8 +13,8 @@ Stripe / Cobrana / wallet **no cambian** con este plan: solo cambia cómo el cli
 | Hoy (Proyectovv / Ecomdy) | Objetivo (clientes Hecom) |
 |---|---|
 | `/register` con password + org | **Sin registro abierto** para clientes Hecom |
-| `/login` con password | Login: **solo email → OTP** |
-| OTP solo confirma email post-signup / recovery | OTP = **única llave de acceso** |
+| `/login` con password | Login: **solo email → código + magic link** |
+| OTP solo confirma email post-signup / recovery | OTP / magic link = **única llave** (sin password) |
 | Invite opcional (`organization_email_invites`) | Allowlist = **emails del cliente en Hecom** |
 
 **Admin / staff:** se mantiene aparte (`/admin/login` + allowlist). No mezclar con OTP de cliente.
@@ -30,9 +30,9 @@ Stripe / Cobrana / wallet **no cambian** con este plan: solo cambia cómo el cli
    - crear/actualizar `auth.users` + `profiles`
    - vincular membership / org interna (o scope Hecom por cookie/cliente)
    - **no** exigir “Crear organización” en el registro
-4. **Password opcional después** (fase 2): “definir contraseña” desde settings. MVP OTP-only está bien.
+4. **Sin password** para clientes con flag on. Admin sigue en `/admin/login`.
 5. **Rate limit** fuerte en envío de OTP (abuso / coste email).
-6. No romper login password de cuentas internas ya existentes hasta migrar.
+6. Dos vías en el mismo email de Supabase: `{{ .Token }}` (código) + enlace → `/auth/callback?flow=hecom`.
 
 ---
 
@@ -40,18 +40,22 @@ Stripe / Cobrana / wallet **no cambian** con este plan: solo cambia cómo el cli
 
 ```
 /login (cliente)
-  → solo campo Email
-  → “Enviar código”
+  → solo Email
+  → “Enviar código y enlace”
   → /verify-otp?email=...&flow=hecom
-  → código 6 dígitos
-  → sesión OK
-  → selector de cliente Hecom (si el mail está en varios)
+      A) código 6 dígitos → sesión
+      B) magic link → /auth/callback?flow=hecom → sesión + provision
   → dashboard scoped a ese cliente
+  (selector multi-cliente: fase 2)
 ```
 
-Textos sugeridos:
-- Login: “Ingresá con el correo registrado en Hecom.”
-- Sin “Crear cuenta” público para clientes (o ocultar `/register` en prod).
+**Supabase Auth → URL Configuration:** agregar  
+`https://<APP_URL>/auth/callback`  
+en Redirect URLs. Template Magic Link / OTP: incluir `{{ .Token }}` y el botón/enlace con `{{ .ConfirmationURL }}`.
+
+Textos:
+- Login: “Solo correo. Te mandamos un código y un enlace mágico.”
+- Sin “Crear cuenta” / sin campo contraseña cuando `AUTH_HECOM_OTP_LOGIN=true`.
 
 ---
 
@@ -150,7 +154,7 @@ Textos sugeridos:
 
 ## 9. Criterio “listo”
 
-- Cliente Hecom con email en lista pide OTP y entra sin password.  
+- Cliente Hecom con email en lista pide OTP y entra **sin password** (código o magic link).  
 - Email desconocido no crea usuario útil.  
 - Tras login ve su scope (cuentas / pagos Hecom).  
 - Admin intacto.  
@@ -174,8 +178,10 @@ Textos sugeridos:
 - [x] `POST /api/auth/otp/provision` + verify OTP `flow=hecom`
 - [x] Aplicar migración en Supabase *(vos)*
 - [ ] `AUTH_HECOM_OTP_LOGIN=true` en Vercel
-- [x] UI login email-only (Fase 2)
+- [x] UI login **solo OTP** (sin password / sin `?password=1`)
 - [x] `/register` redirige a login si OTP activo
-- [x] Escape: `/login?password=1`
+- [x] Magic link → `/auth/callback?flow=hecom` + código 6 dígitos
+- [ ] Redirect URL en Supabase: `https://<APP_URL>/auth/callback`
+- [ ] Template email con `{{ .Token }}` + `{{ .ConfirmationURL }}`
 
 Cuando digas “go”, arrancamos por Fase 1 (API allowlist + OTP) sin tocar Cobrana/Stripe.

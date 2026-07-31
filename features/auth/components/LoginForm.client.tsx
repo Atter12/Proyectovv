@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
@@ -46,8 +45,8 @@ interface LoginFormProps {
 export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const forcePassword = searchParams.get("password") === "1";
-  const otpMode = hecomOtpEnabled && !forcePassword;
+  // Clientes: solo OTP. Admin sigue en /admin/login.
+  const otpMode = hecomOtpEnabled;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,7 +68,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       const payload = (await response.json()) as { error?: string; message?: string };
 
       if (!response.ok) {
-        setError(mapAuthErrorMessage(payload.error ?? "No se pudo enviar el código."));
+        setError(mapAuthErrorMessage(payload.error ?? "No se pudo enviar el acceso."));
         setLoading(false);
         return;
       }
@@ -83,7 +82,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo enviar el código. Reintentá.");
+      setError("No se pudo enviar el acceso. Reintentá.");
       setLoading(false);
     }
   }
@@ -123,6 +122,8 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
     router.refresh();
   }
 
+  const magicError = searchParams.get("error") === "magic_link";
+
   return (
     <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-[1.25rem] p-8 sm:p-9 lg:max-w-none">
       <div className="mb-8">
@@ -134,7 +135,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         </h1>
         <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {otpMode
-            ? "Ingresá con el correo registrado en Hecom. Te mandamos un código."
+            ? "Solo correo. Te mandamos un código y un enlace mágico."
             : "Entrá a tu panel de anunciante"}
         </p>
       </div>
@@ -168,12 +169,12 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               >
                 Contraseña
               </label>
-              <Link
+              <a
                 href={routes.forgotPassword}
                 className="text-[13px] font-medium text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
               >
                 ¿Olvidaste tu contraseña?
-              </Link>
+              </a>
             </div>
             <div className="relative">
               <input
@@ -194,12 +195,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
           </div>
         )}
 
-        {error && (
+        {(error || magicError) && (
           <p
             className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
             role="alert"
           >
-            {error}
+            {error ??
+              "El enlace mágico expiró o es inválido. Pedí uno nuevo."}
           </p>
         )}
 
@@ -210,45 +212,29 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         >
           {loading
             ? otpMode
-              ? "Enviando código…"
+              ? "Enviando…"
               : "Iniciando sesión…"
             : otpMode
-              ? "Enviar código"
+              ? "Enviar código y enlace"
               : "Iniciar sesión"}
         </button>
       </form>
 
       <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
         {otpMode ? (
-          <>
-            Acceso para clientes Hecom.{" "}
-            <Link
-              href={`${routes.login}?password=1`}
-              className="font-semibold text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
-            >
-              Usar contraseña
-            </Link>
-          </>
+          <p className="text-[14px] leading-5">
+            Revisá tu correo: podés entrar con el <strong>código de 6 dígitos</strong> o
+            tocando el <strong>enlace mágico</strong>.
+          </p>
         ) : (
           <>
             ¿No tienes cuenta?{" "}
-            <Link
+            <a
               href={routes.register}
               className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
             >
               Regístrate
-            </Link>
-            {hecomOtpEnabled && (
-              <>
-                {" · "}
-                <Link
-                  href={routes.login}
-                  className="font-semibold text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
-                >
-                  Entrar con código
-                </Link>
-              </>
-            )}
+            </a>
           </>
         )}
       </div>
