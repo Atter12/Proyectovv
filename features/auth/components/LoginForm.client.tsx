@@ -91,13 +91,13 @@ export function LoginForm() {
       />
 
       <div className="mb-7">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+        <p className="font-sans text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
           Acceso
         </p>
-        <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="font-display mt-2.5 text-[2rem] font-medium italic leading-[1.1] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.15rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
+        <p className="font-sans mt-2.5 text-[15px] font-medium leading-6 tracking-[-0.01em] text-[var(--auth-text-muted)]">
           Entrá a tu panel de anunciante
         </p>
       </div>

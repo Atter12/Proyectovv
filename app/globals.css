@@ -418,7 +418,6 @@ body {
   --auth-input-border: rgb(40 32 24 / 0.12);
   --auth-input-border-hover: rgb(40 32 24 / 0.2);
   --auth-skeleton: rgb(40 32 24 / 0.08);
-  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   background-color: #faf8f5;
   background-image:
     radial-gradient(900px 420px at 8% -8%, rgb(255 120 31 / 0.06), transparent 58%),
