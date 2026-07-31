@@ -25,7 +25,7 @@ function AdminLoginFallback() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="auth-canvas relative min-h-screen overflow-hidden">
+    <div className="auth-canvas-dark relative min-h-screen overflow-hidden">
       <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <AdminLoginHeroPanel className="hidden lg:relative lg:block lg:min-h-screen" />
 

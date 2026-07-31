@@ -7,7 +7,8 @@ import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
 import { LandingStartPanel } from "./LandingStartPanel";
 
 /**
- * Landing = mismo canvas oscuro que login (modelo Holistic auth).
+ * Landing — cream dashboard (probar).
+ * REVERT dark: className "auth-canvas-dark" + AuthDotGridBackground tone="dark" + AuthBrandMark sin tone light.
  */
 export function LandingPage() {
   return (
@@ -19,12 +20,12 @@ export function LandingPage() {
         Saltar al contenido
       </a>
 
-      <AuthDotGridBackground />
+      <AuthDotGridBackground tone="light" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex shrink-0 justify-center px-4 pt-8 sm:pt-10 lg:pt-12">
           <Link href={routes.home} aria-label={siteConfig.name}>
-            <AuthBrandMark className="max-w-[240px] sm:max-w-[280px]" />
+            <AuthBrandMark tone="light" className="max-w-[240px] sm:max-w-[280px]" />
           </Link>
         </header>
 

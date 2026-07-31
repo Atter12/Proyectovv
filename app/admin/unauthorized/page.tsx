@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default function UnauthorizedPage() {
   return (
-    <main className="auth-canvas grid min-h-screen place-items-center px-4 py-10">
+    <main className="auth-canvas-dark grid min-h-screen place-items-center px-4 py-10">
       <div className="auth-panel w-full max-w-xl rounded-2xl p-8 text-center sm:p-10">
         <div className="mb-6 flex justify-center">
           <EcomdyLogo

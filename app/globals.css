@@ -322,7 +322,36 @@ body {
   --auth-skeleton: rgb(255 255 255 / 0.1);
 }
 
-.auth-canvas {
+/*
+ * AUTH THEMES
+ * - .auth-canvas       → cream dashboard (activo ahora)
+ * - .auth-canvas-dark  → negro + glow naranja (BACKUP)
+ *   REVERT: en landing/login/register/forgot cambiar className a "auth-canvas-dark"
+ *   y AuthDotGridBackground tone="dark"
+ */
+
+/* BACKUP — fondo negro (versión anterior guardada) */
+.auth-canvas-dark {
+  --auth-bg: #1c1814;
+  --auth-bg-elevated: #241e18;
+  --auth-surface: #221c17;
+  --auth-border: rgb(255 200 150 / 0.14);
+  --auth-text: #faf7f2;
+  --auth-text-muted: #e0d5c8;
+  --auth-text-soft: #a89c8f;
+  --auth-accent: #ff781f;
+  --auth-accent-hover: #e8451a;
+  --auth-accent-soft: rgb(255 120 31 / 0.18);
+  --auth-accent-ring: rgb(255 120 31 / 0.32);
+  --auth-control-bg: rgb(255 255 255 / 0.04);
+  --auth-control-border: rgb(255 255 255 / 0.12);
+  --auth-control-hover: rgb(255 255 255 / 0.07);
+  --auth-dot-mute: rgb(255 255 255 / 0.25);
+  --auth-dot-mute-hover: rgb(255 255 255 / 0.45);
+  --auth-divider: rgb(255 255 255 / 0.07);
+  --auth-input-border: rgb(255 255 255 / 0.1);
+  --auth-input-border-hover: rgb(255 255 255 / 0.16);
+  --auth-skeleton: rgb(255 255 255 / 0.1);
   background-color: #1c1814;
   background-image:
     radial-gradient(1100px 580px at 10% 0%, rgb(255 161 44 / 0.28), transparent 58%),
@@ -332,15 +361,98 @@ body {
     linear-gradient(165deg, #221c17 0%, #1c1814 42%, #241e18 100%);
 }
 
+.auth-canvas-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 28%, rgb(255 176 64 / 0.12), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 85% 75%, rgb(255 161 44 / 0.08), transparent 65%);
+}
+
+.auth-canvas-dark .auth-panel {
+  border: 1px solid rgb(255 180 120 / 0.12);
+  background:
+    linear-gradient(165deg, rgb(255 140 60 / 0.06), transparent 42%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.05), transparent 45%),
+    rgb(22 17 13 / 0.9);
+  box-shadow:
+    0 1px 0 rgb(255 200 150 / 0.07) inset,
+    0 0 0 1px rgb(255 120 31 / 0.04),
+    0 22px 48px rgb(0 0 0 / 0.36),
+    0 0 48px rgb(255 120 31 / 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.auth-canvas-dark .auth-copy-well::before {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgb(255 120 31 / 0.1), transparent 55%),
+    rgb(18 14 11 / 0.5);
+  box-shadow: 0 0 64px 40px rgb(18 14 11 / 0.32);
+  backdrop-filter: blur(8px);
+  border: none;
+}
+
+/* ACTIVO — cream del dashboard / sidebar (#faf8f5) + Manrope */
+.auth-canvas {
+  --auth-bg: #faf8f5;
+  --auth-bg-elevated: #ffffff;
+  --auth-surface: #ffffff;
+  --auth-border: rgb(40 32 24 / 0.1);
+  --auth-text: #141210;
+  --auth-text-muted: #6b645c;
+  --auth-text-soft: #9a9187;
+  --auth-accent: #ff781f;
+  --auth-accent-hover: #e8451a;
+  --auth-accent-soft: #fff1e8;
+  --auth-accent-ring: rgb(255 120 31 / 0.22);
+  --auth-control-bg: #ffffff;
+  --auth-control-border: rgb(40 32 24 / 0.12);
+  --auth-control-hover: #fff1e8;
+  --auth-dot-mute: rgb(40 32 24 / 0.16);
+  --auth-dot-mute-hover: rgb(40 32 24 / 0.3);
+  --auth-divider: rgb(40 32 24 / 0.1);
+  --auth-input-border: rgb(40 32 24 / 0.12);
+  --auth-input-border-hover: rgb(40 32 24 / 0.2);
+  --auth-skeleton: rgb(40 32 24 / 0.08);
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  background-color: #faf8f5;
+  background-image:
+    radial-gradient(900px 420px at 8% -8%, rgb(255 120 31 / 0.06), transparent 58%),
+    radial-gradient(720px 360px at 96% 0%, rgb(255 161 44 / 0.04), transparent 55%),
+    radial-gradient(rgb(20 18 16 / 0.035) 0.8px, transparent 0.8px),
+    linear-gradient(180deg, #fdfbf9 0%, #faf8f5 48%, #f4f1ed 100%);
+  background-size: auto, auto, 22px 22px, auto;
+}
+
 .auth-canvas::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 55% 45% at 18% 28%, rgb(255 176 64 / 0.12), transparent 70%),
-    radial-gradient(ellipse 40% 35% at 85% 75%, rgb(255 161 44 / 0.08), transparent 65%);
   z-index: 0;
+  background: transparent;
+}
+
+.auth-canvas .auth-panel {
+  border: 1px solid rgb(40 32 24 / 0.08);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 1) inset,
+    0 1px 2px rgb(40 32 24 / 0.03),
+    0 12px 28px rgb(40 32 24 / 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.auth-canvas .auth-copy-well::before {
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 0 40px 24px rgb(250 248 245 / 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgb(40 32 24 / 0.06);
 }
 
 .auth-panel {

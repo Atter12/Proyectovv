@@ -24,11 +24,11 @@ function AuthCardFallback() {
 export default function LoginPage() {
   return (
     <div className="auth-canvas relative min-h-screen overflow-hidden">
-      <AuthDotGridBackground />
+      <AuthDotGridBackground tone="light" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex shrink-0 justify-center px-4 pt-8 sm:pt-10 lg:pt-12">
-          <AuthBrandMark className="max-w-[240px] sm:max-w-[280px]" />
+          <AuthBrandMark tone="light" className="max-w-[240px] sm:max-w-[280px]" />
         </header>
 
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col lg:grid lg:grid-cols-[1fr_400px] lg:items-center lg:gap-8 lg:px-8 xl:gap-10 xl:px-10">
