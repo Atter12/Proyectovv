@@ -23,12 +23,19 @@ const DEFAULT_STAFF_EMAILS = [
   "sebasnodeal@gmail.com",
 ];
 
+/** Alias / typos frecuentes al tipear el mail de Annie. */
+const STAFF_EMAIL_ALIASES: Record<string, string> = {
+  "anniealejandrova@gmail.com": "anniealejandrova6@gmail.com",
+  "annie.alejandrova6@gmail.com": "anniealejandrova6@gmail.com",
+};
+
 export function isHecomOtpLoginEnabled(): boolean {
   return serverEnv.authHecomOtpLogin;
 }
 
 function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+  const raw = email.trim().toLowerCase();
+  return STAFF_EMAIL_ALIASES[raw] ?? raw;
 }
 
 export function isHecomOtpStaffEmail(emailRaw: string): boolean {
@@ -129,6 +136,7 @@ export async function requestHecomClientOtp(input: {
   ok: true;
   message: string;
   allowed: boolean;
+  sent?: boolean;
   clienteIds: string[];
   retryAfterSec?: number;
 } | { ok: false; error: string; status: number }> {
@@ -144,11 +152,9 @@ export async function requestHecomClientOtp(input: {
   const rate = await assertOtpCooldown(email);
   if (!rate.ok) {
     return {
-      ok: true,
-      message: GENERIC_OK,
-      allowed: false,
-      clienteIds: [],
-      retryAfterSec: rate.retryAfterSec,
+      ok: false,
+      error: `Esperá ${rate.retryAfterSec ?? 60}s antes de pedir otro código.`,
+      status: 429,
     };
   }
 
@@ -162,16 +168,25 @@ export async function requestHecomClientOtp(input: {
   }
 
   const isStaff = isHecomOtpStaffEmail(email);
+  const isTest = serverEnv.authHecomOtpTestEmails.includes(email);
 
-  if (clientes.length === 0 && !isStaff) {
+  if (clientes.length === 0 && !isStaff && !isTest) {
     // Misma respuesta: no filtrar existencia de email.
     return {
       ok: true,
       message: GENERIC_OK,
       allowed: false,
+      sent: false,
       clienteIds: [],
     };
   }
+
+  console.info("[hecom-otp] request", {
+    email,
+    isStaff,
+    isTest,
+    clienteCount: clientes.length,
+  });
 
   if (serverEnv.emailProvider !== "resend" || !serverEnv.resendApiKey) {
     return {
@@ -243,10 +258,14 @@ export async function requestHecomClientOtp(input: {
 
   await markOtpSent(email).catch(() => undefined);
 
+  console.info("[hecom-otp] sent", { email, isStaff, via: "resend" });
+
   return {
     ok: true,
-    message: GENERIC_OK,
+    message:
+      "Te enviamos un código y un enlace mágico. Revisá bandeja de entrada y spam.",
     allowed: true,
+    sent: true,
     clienteIds: clientes.map((item) => item.id),
   };
 }

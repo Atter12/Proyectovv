@@ -26,31 +26,36 @@ function normalizeRecipients(to: string | string[]): string[] {
 }
 
 async function insertEmailEvent(input: SendEmailInput, status: string, patch: Record<string, unknown> = {}) {
-  const recipients = normalizeRecipients(input.to);
-  const admin = createAdminClient();
+  try {
+    const recipients = normalizeRecipients(input.to);
+    const admin = createAdminClient();
 
-  await Promise.all(
-    recipients.map((email) =>
-      admin.from("email_events").insert({
-        organization_id: input.organizationId ?? null,
-        user_id: input.userId ?? null,
-        provider: serverEnv.emailProvider,
-        email,
-        template_key: input.templateKey,
-        status,
-        subject: input.subject,
-        ...(patch.provider_message_id ? { provider_message_id: String(patch.provider_message_id) } : {}),
-        metadata: {
-          ...(input.metadata ?? {}),
-          idempotency_key: input.idempotencyKey ?? null,
-          ...patch,
-        },
-        ...(status === "queued" ? { queued_at: new Date().toISOString() } : {}),
-        ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}),
-        ...(status === "failed" ? { error_message: String(patch.error_message ?? "Error enviando email") } : {}),
-      }),
-    ),
-  );
+    await Promise.all(
+      recipients.map((email) =>
+        admin.from("email_events").insert({
+          organization_id: input.organizationId ?? null,
+          user_id: input.userId ?? null,
+          provider: serverEnv.emailProvider,
+          email,
+          template_key: input.templateKey,
+          status,
+          subject: input.subject,
+          ...(patch.provider_message_id ? { provider_message_id: String(patch.provider_message_id) } : {}),
+          metadata: {
+            ...(input.metadata ?? {}),
+            idempotency_key: input.idempotencyKey ?? null,
+            ...patch,
+          },
+          ...(status === "queued" ? { queued_at: new Date().toISOString() } : {}),
+          ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}),
+          ...(status === "failed" ? { error_message: String(patch.error_message ?? "Error enviando email") } : {}),
+        }),
+      ),
+    );
+  } catch (error) {
+    // No bloquear el envío real si falla el audit log.
+    console.warn("[email] email_events insert failed", error);
+  }
 }
 
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<{ sent: boolean; providerMessageId?: string }> {

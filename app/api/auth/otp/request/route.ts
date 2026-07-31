@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     message: result.message,
+    sent: result.sent ?? result.allowed,
     // No exponer allowed/clienteIds al cliente en prod UX; útil en preview.
     ...(process.env.NODE_ENV !== "production"
       ? { allowed: result.allowed, clienteIds: result.clienteIds }

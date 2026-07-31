@@ -34,7 +34,9 @@ export function VerifyOtpForm() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(
+    searchParams.get("hint"),
+  );
 
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

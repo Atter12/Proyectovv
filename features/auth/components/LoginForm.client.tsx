@@ -65,7 +65,12 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
-      const payload = (await response.json()) as { error?: string; message?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+        sent?: boolean;
+        retryAfterSec?: number;
+      };
 
       if (!response.ok) {
         setError(mapAuthErrorMessage(payload.error ?? "No se pudo enviar el acceso."));
@@ -74,8 +79,11 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       }
 
       const verifyUrl = new URL(routes.verifyOtp, window.location.origin);
-      verifyUrl.searchParams.set("email", email.trim());
+      verifyUrl.searchParams.set("email", email.trim().toLowerCase());
       verifyUrl.searchParams.set("flow", "hecom");
+      if (payload.message) {
+        verifyUrl.searchParams.set("hint", payload.message);
+      }
       const nextPath = searchParams.get("next");
       if (nextPath) verifyUrl.searchParams.set("next", nextPath);
 
