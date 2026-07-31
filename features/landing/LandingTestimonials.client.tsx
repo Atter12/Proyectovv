@@ -56,33 +56,36 @@ function initials(name: string) {
 
 export function LandingTestimonials() {
   return (
-    <section id="opiniones" className="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+    <section
+      id="opiniones"
+      className="scroll-mt-20 px-4 py-12 sm:scroll-mt-24 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+    >
       <div className="mx-auto w-full max-w-[1180px]">
         <LandingReveal>
-          <p className="text-[1.35rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)] sm:text-[1.5rem]">
+          <p className="text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)] sm:text-[1.45rem]">
             Opiniones
           </p>
-          <h2 className="mt-2 max-w-[28ch] text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.35rem]">
+          <h2 className="mt-2 max-w-[28ch] text-[1.65rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.2rem] lg:text-[2.35rem]">
             Lo que dicen agencias y equipos que ya escalan con Holistic.
           </h2>
         </LandingReveal>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+        <div className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
           {QUOTES.map((item, index) => (
-            <LandingReveal key={item.name} delayMs={50 + index * 40}>
-              <article className="auth-panel flex h-full flex-col rounded-[1.25rem] p-6 sm:p-7">
-                <p className="flex-1 text-[15px] font-medium leading-7 text-[var(--auth-text)]">
+            <LandingReveal key={item.name} delayMs={40 + index * 30}>
+              <article className="auth-panel flex h-full flex-col rounded-[1.1rem] p-5 sm:rounded-[1.25rem] sm:p-7">
+                <p className="flex-1 text-[14px] font-medium leading-6 text-[var(--auth-text)] sm:text-[15px] sm:leading-7">
                   “{item.quote}”
                 </p>
-                <div className="mt-6 flex items-center gap-3 border-t border-[var(--auth-divider)] pt-5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent-soft)] text-[12px] font-bold text-[var(--auth-accent)]">
+                <div className="mt-5 flex items-center gap-3 border-t border-[var(--auth-divider)] pt-4 sm:mt-6 sm:pt-5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent-soft)] text-[11px] font-bold text-[var(--auth-accent)] sm:h-10 sm:w-10 sm:text-[12px]">
                     {initials(item.name)}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[14px] font-bold tracking-[-0.01em] text-[var(--auth-text)]">
+                    <p className="truncate text-[13px] font-bold tracking-[-0.01em] text-[var(--auth-text)] sm:text-[14px]">
                       {item.name}
                     </p>
-                    <p className="truncate text-[12px] font-medium text-[var(--auth-text-soft)]">
+                    <p className="truncate text-[11px] font-medium text-[var(--auth-text-soft)] sm:text-[12px]">
                       {item.role} · {item.company}
                     </p>
                   </div>
