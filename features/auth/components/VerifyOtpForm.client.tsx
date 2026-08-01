@@ -233,7 +233,7 @@ export function VerifyOtpForm() {
 
         {error && (
           <p
-            className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error}
@@ -242,7 +242,7 @@ export function VerifyOtpForm() {
 
         {success && (
           <p
-            className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-emerald-100"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
             role="status"
           >
             {success}

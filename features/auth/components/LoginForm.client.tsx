@@ -205,7 +205,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <p
-            className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error ??
