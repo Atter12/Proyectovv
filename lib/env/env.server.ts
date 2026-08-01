@@ -159,4 +159,16 @@ export const serverEnv = {
     process.env.TIKTOK_API_BASE_URL ?? "https://business-api.tiktok.com/open_api/v1.3",
   tiktokScopes: splitCsv(process.env.TIKTOK_SCOPES),
   tiktokWebhookSecret: process.env.TIKTOK_WEBHOOK_SECRET ?? "",
+  /**
+   * Token de agencia (long-lived) para BC finance / transfer.
+   * Si no hay OAuth por org, se usa este.
+   */
+  tiktokAccessToken: process.env.TIKTOK_ACCESS_TOKEN ?? "",
+  /** BC por defecto cuando la cuenta no tiene external_business_id */
+  tiktokDefaultBcId: process.env.TIKTOK_DEFAULT_BC_ID ?? "",
+  /**
+   * Si true, "Asignar saldo" intenta POST /bc/transfer/ (RECHARGE)
+   * antes de acreditar el ledger Holistic.
+   */
+  tiktokBcFundingEnabled: parseBoolean(process.env.TIKTOK_BC_FUNDING_ENABLED, false),
 } as const;

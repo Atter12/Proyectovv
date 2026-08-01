@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { allocateToAdAccount } from "@/lib/ledger/ledger.server";
+import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -44,25 +44,32 @@ export async function POST(request: Request) {
   const amountCents = Math.round(amount * 100);
 
   try {
-    const journalId = await allocateToAdAccount({
+    const result = await allocateWithOptionalTikTokFunding({
       organizationId: session.organizationId,
       adAccountId: body.adAccountId,
       amountCents,
+      requestedBy: session.id,
+      currency: body.currency ?? "USD",
       idempotencyKey:
         body.idempotencyKey ??
         `allocation:${session.organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,
       description: body.description ?? "Asignación desde dashboard",
-      metadata: {
-        source: "dashboard",
-        requested_by: session.id,
-        currency: body.currency ?? "USD",
-      },
     });
 
-    return NextResponse.json({ ok: true, journalId });
+    return NextResponse.json({
+      ok: true,
+      journalId: result.journalId,
+      tiktokTransfer: result.tiktokTransfer,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo asignar saldo.";
-    const status = message.toLowerCase().includes("insufficient") ? 409 : 500;
+    const lower = message.toLowerCase();
+    const status =
+      lower.includes("insufficient") || lower.includes("falta")
+        ? 409
+        : lower.includes("tiktok bc transfer")
+          ? 502
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
