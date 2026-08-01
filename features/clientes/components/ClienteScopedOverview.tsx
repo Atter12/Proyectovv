@@ -197,7 +197,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
               <span className="text-[#25f4ee]">T</span>
               <span className="text-[#fe2c55]">T</span>
             </span>
-            <h2 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+            <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
               Cuentas TikTok
             </h2>
             <span className="rounded-md bg-[var(--auth-bg)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--auth-text-muted)]">
@@ -238,7 +238,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
                   }`}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                  <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--auth-text)]">
                     {label.title}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -263,7 +263,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
                   </div>
                 </div>
                 {label.balance ? (
-                  <p className="shrink-0 text-[13px] font-bold tabular-nums tracking-[-0.02em] text-[var(--auth-accent)]">
+                  <p className="shrink-0 text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--auth-accent)]">
                     {label.balance}
                   </p>
                 ) : null}
@@ -288,7 +288,7 @@ function GastosPanel({
       <div className="flex items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-5 py-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+            <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
               Últimos gastos
             </h2>
             <span
@@ -332,7 +332,7 @@ function GastosPanel({
                 className="flex items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-5 py-3.5 transition-colors last:border-0 hover:bg-[var(--auth-bg)]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                  <p className="truncate text-[13px] font-semibold tracking-[-0.015em] text-[var(--auth-text)]">
                     {label.title}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -353,7 +353,7 @@ function GastosPanel({
                     ) : null}
                   </div>
                 </div>
-                <p className="shrink-0 pt-0.5 text-[14px] font-bold tabular-nums tracking-[-0.02em] text-[var(--auth-text)]">
+                <p className="shrink-0 pt-0.5 text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--auth-text)]">
                   {moneyUsd(row.gasto)}
                 </p>
               </li>
