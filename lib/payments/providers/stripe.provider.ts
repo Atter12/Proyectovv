@@ -76,9 +76,20 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
     params.set("success_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=success`);
     params.set("cancel_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=cancelled`);
     params.set("client_reference_id", input.paymentIntentId);
+    // Metadata en la Checkout Session…
     params.set("metadata[payment_intent_id]", input.paymentIntentId);
     params.set("metadata[organization_id]", input.organizationId);
     params.set("metadata[wallet_id]", input.walletId);
+    // …y también en el PaymentIntent (si no, payment_intent.succeeded llega sin id interno → 500).
+    params.set(
+      "payment_intent_data[metadata][payment_intent_id]",
+      input.paymentIntentId,
+    );
+    params.set(
+      "payment_intent_data[metadata][organization_id]",
+      input.organizationId,
+    );
+    params.set("payment_intent_data[metadata][wallet_id]", input.walletId);
     params.set("line_items[0][price_data][currency]", input.currency.toLowerCase());
     params.set("line_items[0][price_data][unit_amount]", String(input.amountCents));
     params.set("line_items[0][price_data][product_data][name]", "Recarga de cartera");

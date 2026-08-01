@@ -244,7 +244,15 @@ export async function processSuccessfulPaymentIntent(input: {
       : null);
 
   if (!intent) {
-    throw new Error("Payment intent no encontrado.");
+    // Eventos Stripe huérfanos (ej. payment_intent.succeeded con pi_… cuando
+    // guardamos cs_… y aún no venía metadata). No reventar el webhook.
+    console.warn("[payments] webhook sin payment intent local", {
+      provider: input.provider,
+      providerReference: input.providerReference ?? null,
+      paymentIntentId: input.paymentIntentId ?? null,
+      webhookEventId: input.webhookEventId ?? null,
+    });
+    return;
   }
 
   if (intent.provider !== input.provider) {
