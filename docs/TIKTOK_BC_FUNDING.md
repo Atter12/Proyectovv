@@ -1,5 +1,26 @@
 # Fondeo real TikTok BM (BC Transfer)
 
+## Qué es `TIKTOK_DEFAULT_BC_ID`
+
+Es el **ID del Business Center (BM) de la agencia** (Holistic / Hecom), **no** el App ID.
+
+| Valor | Qué es | Ejemplo de tus capturas |
+|---|---|---|
+| App ID | App de desarrollador | `7648873933642399745` (Hecom Club Spend Sync) |
+| **BC ID** | Business Center que tiene el cash y las cuentas ads | El número largo del BM en ads.tiktok.com (a veces watermark `7602368346924286994`) |
+| Advertiser ID | Cada cuenta publicitaria del cliente | Va en `external_account_id` por cuenta |
+
+**De quién es:** del BM de **ustedes (agencia)**, desde donde hoy recargan a mano las cuentas de clientes.  
+Un cliente **no** pone su BC ahí (salvo que operen con BMs separados por cliente; ahí usamos `external_business_id` por cuenta).
+
+### Cómo sacarlo en 30s
+1. Entrá a [ads.tiktok.com](https://ads.tiktok.com) → Business Center  
+2. Settings / Info del BM → **Business Center ID**  
+3. O en la URL: a veces aparece `...bc_id=XXXXXXXX...`  
+4. Pegalo en Vercel: `TIKTOK_DEFAULT_BC_ID=ese_número`
+
+---
+
 ## Modelo de plata (importante)
 
 ```
