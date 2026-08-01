@@ -41,10 +41,10 @@ export function DashboardTopbar({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
             {siteConfig.name}
           </p>
-          <h1 className="truncate text-[1.35rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.45rem]">
+          <h1 className="truncate text-[1.15rem] font-semibold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
             {pageTitle}
           </h1>
         </div>

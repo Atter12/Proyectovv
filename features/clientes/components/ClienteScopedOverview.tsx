@@ -73,32 +73,32 @@ export function ClienteScopedOverview({
               className="mt-0.5 ring-2 ring-white shadow-[0_10px_28px_rgb(15_23_42_/_0.1)]"
             />
             <div className="min-w-0 pt-0.5">
-              <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
                 Cliente activo
               </p>
               <OverviewClientTitle name={cliente.name} />
-              <p className="mt-2 max-w-md text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
+              <p className="mt-1.5 max-w-md text-[13px] leading-5 text-[var(--auth-text-muted)]">
                 Pulso del mes
                 {cliente.biz ? (
                   <>
                     {" · "}
-                    <span className="font-semibold text-[var(--auth-text)]">
+                    <span className="font-medium text-[var(--auth-text)]">
                       {cliente.biz}
                     </span>
                   </>
                 ) : null}
                 : cuentas, cobros, gastos y saldo.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2.5">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={routes.adAccounts}
-                  className="inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px"
+                  className="inline-flex h-9 items-center rounded-lg bg-[var(--auth-accent)] px-3.5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
                 >
                   Sus cuentas
                 </Link>
                 <Link
                   href={routes.payments}
-                  className="inline-flex h-11 items-center rounded-xl border border-[var(--auth-control-border)] bg-white px-5 text-[14px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-control-hover)]"
+                  className="inline-flex h-9 items-center rounded-lg border border-[var(--auth-control-border)] bg-white px-3.5 text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-control-hover)]"
                 >
                   Sus pagos
                 </Link>
@@ -110,10 +110,10 @@ export function ClienteScopedOverview({
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
               Saldo estimado
             </p>
-            <p className="mt-2 text-[2.35rem] font-bold leading-none tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[2.65rem]">
+            <p className="mt-1.5 text-[1.75rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.95rem]">
               {moneyUsd(summary.saldoEstimado)}
             </p>
-            <p className="mt-3 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+            <p className="mt-2 text-[12px] leading-5 text-[var(--auth-text-muted)]">
               Cobros {moneyUsd(summary.cobroTotal)} − gastos{" "}
               {moneyUsd(summary.gastoTotal)}
             </p>
@@ -176,7 +176,7 @@ function Metric({
         {label}
       </p>
       <p
-        className={`mt-1.5 truncate text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums sm:text-[1.3rem] ${tone}`}
+        className={`mt-1 truncate text-[1.05rem] font-semibold tracking-[-0.025em] tabular-nums sm:text-[1.15rem] ${tone}`}
       >
         {value}
       </p>
