@@ -1,8 +1,11 @@
-# Stripe + ads.victorminas28.com
+# Stripe + holisticads.com
 
 Orden seguro. **Primero TEST**, Live solo cuando el sandbox esté OK.
 
-Dominio actual del panel: `https://ads.victorminas28.com`
+Dominio del panel: `https://holisticads.com`  
+Alias legacy (temporal): `https://ads.victorminas28.com`
+
+DNS / dominio: ver `docs/DOMAIN_HOLISTICADS.md`.
 
 ---
 
@@ -21,10 +24,10 @@ Sin keys, Stripe responde “no configurado”. Manual sigue andando.
 Vercel → `proyectovv` → **Settings → Environment Variables** (Production):
 
 ```
-NEXT_PUBLIC_APP_URL=https://ads.victorminas28.com
+NEXT_PUBLIC_APP_URL=https://holisticads.com
 ```
 
-Redeploy después de guardar.
+Redeploy después de guardar. Solo cuando el dominio esté **Valid** en Vercel Domains.
 
 ---
 
@@ -35,7 +38,7 @@ Redeploy después de guardar.
    - `pk_test_…` → `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
    - `sk_test_…` → `STRIPE_SECRET_KEY`
 3. **Developers → Webhooks → Add endpoint**
-   - URL: `https://ads.victorminas28.com/api/webhooks/payments/stripe`
+   - URL: `https://holisticads.com/api/webhooks/payments/stripe`
    - Eventos:
      - `checkout.session.completed`
      - `payment_intent.succeeded`
@@ -51,7 +54,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_…
 STRIPE_WEBHOOK_SECRET=whsec_…
 PAYMENTS_DEFAULT_PROVIDER=stripe
 PAYMENTS_MANUAL_ENABLED=true
-NEXT_PUBLIC_APP_URL=https://ads.victorminas28.com
+NEXT_PUBLIC_APP_URL=https://holisticads.com
 ```
 
 6. **Redeploy** (Deployments → ⋯ → Redeploy, o push a `main`)
@@ -62,7 +65,7 @@ NEXT_PUBLIC_APP_URL=https://ads.victorminas28.com
 
 ## Paso 4 — Probar sandbox
 
-1. Entrar a `https://ads.victorminas28.com/payments`
+1. Entrar a `https://holisticads.com/payments`
 2. Elegir cliente Hecom
 3. Recargar → **Stripe** → monto chico
 4. Tarjeta test: `4242 4242 4242 4242` · fecha futura · CVC cualquiera
