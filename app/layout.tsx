@@ -3,6 +3,7 @@ import { Manrope, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
+import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
@@ -47,7 +48,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Fallback si el CSS de Vercel no llega (China / GFW): layout usable */}
+        <style
+          id="holistic-critical-css"
+          dangerouslySetInnerHTML={{ __html: criticalCss }}
+        />
         <script dangerouslySetInnerHTML={{ __html: adminThemeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: cssLoadGuardScript }} />
       </head>
       <body className={`${plusJakarta.className} min-h-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)] antialiased`}>
         <DocumentThemeScope />

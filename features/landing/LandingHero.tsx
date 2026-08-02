@@ -35,11 +35,15 @@ export function LandingHero() {
           </div>
 
           <div className="mt-6 flex items-center gap-3 sm:mt-7">
-            <div className="flex shrink-0 -space-x-2">
+            <div
+              className="flex shrink-0 -space-x-2"
+              aria-hidden
+              title="Equipos en Latam"
+            >
               {["MG", "RS", "VT", "DP", "CR"].map((initials) => (
                 <span
                   key={initials}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[var(--auth-accent-soft)] text-[9px] font-bold text-[var(--auth-accent)] sm:h-8 sm:w-8 sm:text-[10px]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[var(--auth-accent-soft)] text-[9px] font-bold text-[var(--auth-accent)] sm:h-8 sm:w-8 sm:text-[10px]"
                 >
                   {initials}
                 </span>
