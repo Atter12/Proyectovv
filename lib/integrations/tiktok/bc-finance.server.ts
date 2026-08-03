@@ -33,27 +33,27 @@ function apiUrl(path: string): string {
 }
 
 /**
- * Token para finance BC:
- * 1) OAuth de la org (si existe)
- * 2) TIKTOK_ACCESS_TOKEN de agencia (env)
+ * Token para finance BC (/bc/transfer/):
+ * 1) TIKTOK_ACCESS_TOKEN de agencia (env) — rol Finance del BM
+ * 2) OAuth de la org (fallback; a menudo NO tiene permiso finance)
  */
 export async function resolveTikTokFinanceAccessToken(
   organizationId?: string,
 ): Promise<string> {
+  const agency = serverEnv.tiktokAccessToken.trim();
+  if (agency) return agency;
+
   if (organizationId) {
     try {
       const connection = await getTikTokConnection(organizationId);
       if (connection?.accessToken) return connection.accessToken;
     } catch {
-      // fallback a token de agencia
+      // sin conexión org
     }
   }
 
-  const agency = serverEnv.tiktokAccessToken.trim();
-  if (agency) return agency;
-
   throw new Error(
-    "Sin token TikTok para fondear BM. Conectá TikTok en la org o configurá TIKTOK_ACCESS_TOKEN.",
+    "Sin token TikTok para fondear BM. Configurá TIKTOK_ACCESS_TOKEN (usuario Finance del BM) o conectá TikTok en la org.",
   );
 }
 
