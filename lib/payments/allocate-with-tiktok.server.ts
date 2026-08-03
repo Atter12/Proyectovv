@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { allocateToAdAccount } from "@/lib/ledger/ledger.server";
+import {
+  allocateToAdAccount,
+  getWalletLedgerBalance,
+} from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
 import {
   isTikTokBcFundingEnabled,
@@ -31,7 +34,7 @@ export interface AllocateWithTikTokResult {
 /**
  * Asigna saldo a una cuenta ads.
  * Si TIKTOK_BC_FUNDING_ENABLED=true y la cuenta tiene advertiser (+ bc),
- * primero hace RECHARGE real en TikTok BC y luego el ledger Holistic.
+ * primero valida cartera Holistic, luego RECHARGE en TikTok BC, luego ledger.
  */
 export async function allocateWithOptionalTikTokFunding(
   input: AllocateWithTikTokInput,
@@ -81,6 +84,15 @@ export async function allocateWithOptionalTikTokFunding(
   if (fundingOn && isTikTok && advertiserId && !bcId) {
     throw new Error(
       "Falta bc_id. Poné external_business_id en la cuenta o TIKTOK_DEFAULT_BC_ID en Vercel.",
+    );
+  }
+
+  // Evita mover cash en TikTok si Holistic no tiene saldo (antes: transfer OK + ledger 409).
+  const wallet = await getWalletLedgerBalance(input.organizationId);
+  const available = wallet?.availableBalanceCents ?? 0;
+  if (available < input.amountCents) {
+    throw new Error(
+      `Insufficient wallet balance. available=${available}, requested=${input.amountCents}. Recargá la cartera Holistic del cliente antes de asignar.`,
     );
   }
 
