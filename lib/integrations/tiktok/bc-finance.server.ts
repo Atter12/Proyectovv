@@ -32,6 +32,14 @@ function apiUrl(path: string): string {
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+function tokenFingerprint(token: string): string {
+  const t = token.trim();
+  if (t.length < 12) return `len=${t.length}`;
+  return `${t.slice(0, 6)}…${t.slice(-4)} (len=${t.length})`;
+}
+
+type TokenSource = "agency_env" | "org_oauth";
+
 /**
  * Token para finance BC (/bc/transfer/):
  * 1) TIKTOK_ACCESS_TOKEN de agencia (env) — rol Finance del BM
@@ -39,26 +47,53 @@ function apiUrl(path: string): string {
  */
 export async function resolveTikTokFinanceAccessToken(
   organizationId?: string,
-): Promise<string> {
+): Promise<{ token: string; source: TokenSource }> {
   const agency = serverEnv.tiktokAccessToken.trim();
-  if (agency) return agency;
+  if (agency) return { token: agency, source: "agency_env" };
 
   if (organizationId) {
     try {
       const connection = await getTikTokConnection(organizationId);
-      if (connection?.accessToken) return connection.accessToken;
+      if (connection?.accessToken) {
+        return { token: connection.accessToken, source: "org_oauth" };
+      }
     } catch {
       // sin conexión org
     }
   }
 
   throw new Error(
-    "Sin token TikTok para fondear BM. Configurá TIKTOK_ACCESS_TOKEN (usuario Finance del BM) o conectá TikTok en la org.",
+    "Sin token TikTok para fondear BM. Configurá TIKTOK_ACCESS_TOKEN (usuario con finance_role en el BM) o conectá TikTok en la org.",
   );
 }
 
 export function isTikTokBcFundingEnabled(): boolean {
   return serverEnv.tiktokBcFundingEnabled;
+}
+
+function formatTransferError(input: {
+  code: number | null;
+  message: string;
+  tiktokRequestId: string | null;
+  bcId: string;
+  advertiserId: string;
+  tokenSource: TokenSource;
+  tokenFp: string;
+}): string {
+  const base = `TikTok BC transfer falló [${input.code ?? "http"}]: ${input.message}`;
+  const meta = `bc=${input.bcId} adv=${input.advertiserId} token=${input.tokenSource}:${input.tokenFp} req=${input.tiktokRequestId ?? "n/a"}`;
+
+  if (input.code === 40002 || /finance permission/i.test(input.message)) {
+    return [
+      base,
+      meta,
+      "Causa: el usuario del token es Admin del BM pero NO tiene finance_role (Finance Manager/Analyst).",
+      "En TikTok BM → Usuarios → Editar miembro → rol Finance / ext_user_role.finance_role.",
+      "Luego regenerá auth_code → access_token y actualizá TIKTOK_ACCESS_TOKEN + Redeploy.",
+    ].join(" | ");
+  }
+
+  return `${base} | ${meta}`;
 }
 
 /**
@@ -82,7 +117,9 @@ export async function transferBcFundsToAdvertiser(
     throw new Error("request_id es obligatorio (idempotencia).");
   }
 
-  const accessToken = await resolveTikTokFinanceAccessToken(input.organizationId);
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
+  const tokenFp = tokenFingerprint(accessToken);
 
   const body = {
     bc_id: bcId,
@@ -91,6 +128,18 @@ export async function transferBcFundsToAdvertiser(
     cash_amount: Math.round(cashAmount * 100) / 100,
     request_id: input.requestId.trim(),
   };
+
+  console.info("[tiktok-bc] transfer_attempt", {
+    bcId,
+    advertiserId,
+    cashAmount: body.cash_amount,
+    transferType,
+    requestId: input.requestId,
+    tokenSource,
+    tokenFp,
+    fundingEnabled: isTikTokBcFundingEnabled(),
+    defaultBcIdSet: Boolean(serverEnv.tiktokDefaultBcId.trim()),
+  });
 
   const response = await fetch(apiUrl("/bc/transfer/"), {
     method: "POST",
@@ -102,30 +151,49 @@ export async function transferBcFundsToAdvertiser(
     cache: "no-store",
   });
 
-  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>>;
+  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>> & {
+    log_id?: string;
+  };
 
   if (!response.ok || (json.code !== undefined && json.code !== 0)) {
     const detail = json.message ?? `HTTP ${response.status}`;
+    const tiktokRequestId = json.request_id ?? json.log_id ?? null;
     console.error("[tiktok-bc] transfer_failed", {
+      httpStatus: response.status,
       code: json.code ?? null,
       message: detail,
       bcId,
       advertiserId,
-      cashAmount,
+      cashAmount: body.cash_amount,
       transferType,
       requestId: input.requestId,
-      tiktokRequestId: json.request_id ?? null,
+      tiktokRequestId,
+      tokenSource,
+      tokenFp,
+      rawKeys: json && typeof json === "object" ? Object.keys(json) : [],
     });
-    throw new Error(`TikTok BC transfer falló: ${detail}`);
+    throw new Error(
+      formatTransferError({
+        code: json.code ?? null,
+        message: detail,
+        tiktokRequestId,
+        bcId,
+        advertiserId,
+        tokenSource,
+        tokenFp,
+      }),
+    );
   }
 
   console.info("[tiktok-bc] transfer_ok", {
     bcId,
     advertiserId,
-    cashAmount,
+    cashAmount: body.cash_amount,
     transferType,
     requestId: input.requestId,
     tiktokRequestId: json.request_id ?? null,
+    tokenSource,
+    tokenFp,
   });
 
   return {
@@ -140,7 +208,8 @@ export async function getBcCashBalance(input: {
   bcId: string;
   organizationId?: string;
 }): Promise<number | null> {
-  const accessToken = await resolveTikTokFinanceAccessToken(input.organizationId);
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
   const url = new URL(apiUrl("/bc/balance/get/"));
   url.searchParams.set("bc_id", input.bcId.trim());
 
@@ -160,6 +229,9 @@ export async function getBcCashBalance(input: {
       code: json.code ?? null,
       message: json.message ?? null,
       bcId: input.bcId,
+      tokenSource,
+      tokenFp: tokenFingerprint(accessToken),
+      tiktokRequestId: json.request_id ?? null,
     });
     return null;
   }

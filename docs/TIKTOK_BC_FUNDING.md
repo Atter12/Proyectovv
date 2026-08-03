@@ -130,7 +130,11 @@ Ese proyecto ya lo tiene (mismo sync de gastos).
 5. El `access_token` del response → Vercel `TIKTOK_ACCESS_TOKEN`  
 6. Guardá también el `refresh_token` por si expira (ops)
 
-**Importante:** el token tiene que ser de un usuario con rol Finance/Admin del mismo BC que `TIKTOK_DEFAULT_BC_ID`. El permiso de app ya está OK (`/bc/transfer/`).
+**Importante:** el permiso de **app** (`/bc/transfer/`) ya está OK.  
+Pero el **usuario del token** también necesita `finance_role` en el BM (Finance Manager / Analyst).  
+Ser solo **Administrador** en Usuarios **no alcanza** para `/bc/transfer/` → error `40002` *finance permission*.
+
+En BM → Usuarios → Editar miembro → asignar rol Finance (`ext_user_role.finance_role`), regenerar token, actualizar `TIKTOK_ACCESS_TOKEN`, redeploy.
 
 ---
 
