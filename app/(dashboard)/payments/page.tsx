@@ -90,7 +90,7 @@ export default async function PaymentsPage({
           />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
-              Cartera Holistic
+              Cartera Holistic · vs · TikTok Ads
             </p>
             <h2
               id="wallet-topup-heading"
@@ -99,9 +99,11 @@ export default async function PaymentsPage({
               Recargar y fondear ads
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Arriba: cartera Holistic — recargás con Stripe y asignás solo a
-              cuentas de {cliente.name}. Abajo: historial Hecom de este cliente
-              (cobros y gastos ya consumidos).
+              Hay dos bolsas: la cartera Holistic (Stripe/manual) y el saldo ya
+              en TikTok Ads. Si Ads ya tiene plata, puede seguir pautando. Para
+              meter más presupuesto controlado: recargá acá y asigná solo a
+              cuentas de {cliente.name}. Abajo: historial Hecom (cobros y gastos
+              consumidos).
             </p>
 
             <div className="mt-4">

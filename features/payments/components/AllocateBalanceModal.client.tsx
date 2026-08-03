@@ -111,7 +111,9 @@ export function AllocateBalanceModal({
           Asignar saldo
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Mueve saldo disponible de la cartera hacia una cuenta publicitaria.
+          Descuenta la cartera Holistic y mueve cash del BM a esta cuenta ads.
+          Si la cuenta ya tiene saldo en TikTok, puede seguir pautando; esto
+          suma más presupuesto controlado por Holistic.
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">

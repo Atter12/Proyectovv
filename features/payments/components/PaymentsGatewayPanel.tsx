@@ -59,7 +59,7 @@ export async function PaymentsGatewayPanel({
           className="rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-5 py-5 sm:px-6"
         >
           <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
-            Paso 2 · {clienteName ?? "Este cliente"}
+            2 · Fondear cuenta ads · {clienteName ?? "Este cliente"}
           </p>
           <h2 className="mt-1 text-[15px] font-medium text-[#1a1612]">
             Sin cuentas Holistic para asignar
@@ -83,6 +83,7 @@ export async function PaymentsGatewayPanel({
             core.wallet.balance,
             core.wallet.currency,
           )}
+          walletBalance={core.wallet.balance}
           clienteName={clienteName}
         />
       )}
