@@ -1,6 +1,6 @@
 /**
- * CSS crítico inline — si el chunk de Tailwind no llega (China / GFW),
- * la página no queda “HTML pelado”.
+ * CSS crítico inline — fallback si el chunk de Tailwind no llega (China / GFW).
+ * Reglas agresivas SOLO bajo `.auth-canvas` para no romper el dashboard.
  */
 export const criticalCss = `
 :root{
@@ -24,12 +24,8 @@ body{
   color:var(--foreground);
   font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   line-height:1.5;
-  text-rendering:geometricPrecision;
   -webkit-font-smoothing:antialiased;
 }
-img{max-width:100%;height:auto;display:block}
-a{color:inherit;text-decoration:none}
-button{font:inherit}
 .sr-only{
   position:absolute!important;
   width:1px!important;
@@ -41,6 +37,8 @@ button{font:inherit}
   white-space:nowrap!important;
   border:0!important;
 }
+
+/* ===== Solo landing / auth (no dashboard) ===== */
 .auth-canvas{
   min-height:100vh;
   background:
@@ -49,13 +47,16 @@ button{font:inherit}
     linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);
   color:var(--auth-text);
 }
-.auth-panel{
+.auth-canvas img{max-width:100%;height:auto;display:block}
+.auth-canvas a{color:inherit;text-decoration:none}
+.auth-canvas button{font:inherit}
+.auth-canvas .auth-panel{
   border:1px solid var(--auth-divider);
   background:#fff;
   border-radius:16px;
   box-shadow:0 18px 40px rgb(15 23 42 / 0.08);
 }
-header.sticky{
+.auth-canvas header.sticky{
   position:sticky;
   top:0;
   z-index:40;
@@ -63,9 +64,9 @@ header.sticky{
   background:rgb(248 250 252 / 0.94);
   backdrop-filter:blur(12px);
 }
-header .mx-auto,
-main .mx-auto,
-footer .mx-auto{
+.auth-canvas header .mx-auto,
+.auth-canvas main .mx-auto,
+.auth-canvas footer .mx-auto{
   width:100%;
   max-width:1180px;
   margin-left:auto;
@@ -73,14 +74,22 @@ footer .mx-auto{
   padding-left:1rem;
   padding-right:1rem;
 }
-header .flex{display:flex;align-items:center;justify-content:space-between;gap:.75rem;min-height:3.5rem}
-nav[aria-label="Principal"]{display:none;gap:1.5rem}
-@media(min-width:1024px){
-  nav[aria-label="Principal"]{display:flex;align-items:center}
-  nav[aria-label="Principal"] a{font-size:14px;font-weight:600;color:var(--auth-text-muted)}
+.auth-canvas header .flex{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  min-height:3.5rem;
 }
-a[href*="login"],
-a[href*="register"]{
+.auth-canvas nav[aria-label="Principal"]{display:none;gap:1.5rem}
+@media(min-width:1024px){
+  .auth-canvas nav[aria-label="Principal"]{display:flex;align-items:center}
+  .auth-canvas nav[aria-label="Principal"] a{
+    font-size:14px;font-weight:600;color:var(--auth-text-muted)
+  }
+}
+.auth-canvas a[href*="login"],
+.auth-canvas a[href*="register"]{
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -90,13 +99,13 @@ a[href*="register"]{
   min-height:2.5rem;
   padding:0 1rem;
 }
-a[href*="register"]{
+.auth-canvas a[href*="register"]{
   background:var(--auth-accent);
   color:#fff;
   font-weight:700;
   box-shadow:0 8px 18px rgb(255 120 31 / 0.25);
 }
-h1{
+.auth-canvas h1{
   font-size:clamp(1.85rem,4vw,3rem);
   line-height:1.15;
   letter-spacing:-0.03em;
@@ -104,22 +113,13 @@ h1{
   font-weight:700;
   max-width:18ch;
 }
-section p{color:var(--auth-text-muted)}
-.dashboard-canvas,
-.dashboard-surface-card{
-  background:#fff;
-}
-.dashboard-surface-card{
-  border:1px solid var(--auth-divider);
-  border-radius:1.25rem;
-}
-/* Avatares social proof: sin Tailwind no se apilan en "MGRSVTDPCR" */
-div[title="Equipos en Latam"]{
+.auth-canvas section p{color:var(--auth-text-muted)}
+.auth-canvas div[title="Equipos en Latam"]{
   display:flex;
   flex-shrink:0;
   align-items:center;
 }
-div[title="Equipos en Latam"]>span{
+.auth-canvas div[title="Equipos en Latam"]>span{
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -133,7 +133,7 @@ div[title="Equipos en Latam"]>span{
   font-size:9px;
   font-weight:700;
 }
-div[title="Equipos en Latam"]>span:first-child{margin-left:0}
+.auth-canvas div[title="Equipos en Latam"]>span:first-child{margin-left:0}
 `.trim();
 
 /** Reintenta hojas de estilo si el CSS principal no aplicó (redes inestables / China). */
