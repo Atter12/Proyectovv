@@ -20,6 +20,7 @@ import type { PaymentAccountAllocation } from "@/types/payment";
 interface PaymentsTableProps {
   accounts: PaymentAccountAllocation[];
   onAllocate?: (account: PaymentAccountAllocation) => void;
+  onEditTikTokIds?: (account: PaymentAccountAllocation) => void;
 }
 
 interface AllocationResponse {
@@ -27,7 +28,11 @@ interface AllocationResponse {
   ledgerJournalId: string;
 }
 
-export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
+export function PaymentsTable({
+  accounts,
+  onAllocate,
+  onEditTikTokIds,
+}: PaymentsTableProps) {
   const router = useRouter();
   const [loadingAccountId, setLoadingAccountId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -139,6 +144,15 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
               >
                 {loadingAccountId === account.id ? "Asignando…" : "Asignar saldo"}
               </Button>
+              {onEditTikTokIds ? (
+                <button
+                  type="button"
+                  className="mt-2 w-full text-center text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+                  onClick={() => onEditTikTokIds(account)}
+                >
+                  Cambiar ID TikTok
+                </button>
+              ) : null}
             </article>
           ))}
         </div>
@@ -210,15 +224,26 @@ export function PaymentsTable({ accounts, onAllocate }: PaymentsTableProps) {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="font-semibold text-[#c45a18]"
-                      disabled={loadingAccountId === account.id}
-                      onClick={() => runAllocate(account)}
-                    >
-                      {loadingAccountId === account.id ? "Asignando…" : "Asignar"}
-                    </Button>
+                    <div className="flex flex-col items-start gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="font-semibold text-[#c45a18]"
+                        disabled={loadingAccountId === account.id}
+                        onClick={() => runAllocate(account)}
+                      >
+                        {loadingAccountId === account.id ? "Asignando…" : "Asignar"}
+                      </Button>
+                      {onEditTikTokIds ? (
+                        <button
+                          type="button"
+                          className="px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[#c45a18] hover:underline"
+                          onClick={() => onEditTikTokIds(account)}
+                        >
+                          Cambiar ID TikTok
+                        </button>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
