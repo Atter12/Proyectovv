@@ -132,6 +132,19 @@ export function AllocateBalanceModal({
           <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
             Saldo actual: {formatMoney(targetAccount.balance)}
           </p>
+          <p className="mt-1 break-all font-mono text-[11px] text-[var(--admin-text-muted,#64748b)]">
+            TikTok advertiser:{" "}
+            {targetAccount.externalAccountId?.trim() || (
+              <span className="text-red-600">no configurado</span>
+            )}
+          </p>
+          {targetAccount.externalAccountId?.trim() ===
+          "7655333824544374791" ? (
+            <p className="mt-2 text-[11px] leading-4 text-amber-800" role="alert">
+              Este ID es Branlyn 204 (suele estar suspendida). Cambiá a la 206
+              aprobada: 7655330910371594258 en Cuentas ads → Configurar.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-5">

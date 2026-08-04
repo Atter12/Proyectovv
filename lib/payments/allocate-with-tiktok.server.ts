@@ -115,7 +115,8 @@ async function ensureAgencyBmBridgeCredit(input: {
 /**
  * Asigna saldo a una cuenta ads.
  * Cliente: exige cartera Holistic → TikTok BC → ledger.
- * Gerente (agencyBmFunding): puente contable si hace falta → TikTok BC → ledger.
+ * Gerente (agencyBmFunding): TikTok BC primero → puente contable → ledger.
+ * Importante: no acreditar cartera si TikTok falla (evita saldo fantasma).
  */
 export async function allocateWithOptionalTikTokFunding(
   input: AllocateWithTikTokInput,
@@ -171,15 +172,16 @@ export async function allocateWithOptionalTikTokFunding(
     );
   }
 
-  if (agencyBmFunding) {
-    bridgeJournalId = await ensureAgencyBmBridgeCredit({
-      organizationId: input.organizationId,
-      amountCents: input.amountCents,
-      requestedBy: input.requestedBy,
-      currency,
-      idempotencyKey,
-    });
-  } else {
+  console.info("[payments/allocate] resolved_targets", {
+    adAccountId: account.id,
+    advertiserId: advertiserId || null,
+    bcId: bcId || null,
+    agencyBmFunding,
+    fundingOn,
+  });
+
+  // Cliente: validar cartera antes de llamar a TikTok (no muta).
+  if (!agencyBmFunding) {
     const wallet = await getWalletLedgerBalance(input.organizationId);
     const available = wallet?.availableBalanceCents ?? 0;
     if (available < input.amountCents) {
@@ -189,6 +191,7 @@ export async function allocateWithOptionalTikTokFunding(
     }
   }
 
+  // TikTok PRIMERO. Si falla, no tocamos ledger ni puente.
   if (canFund) {
     transferRequestId = `bc:${idempotencyKey}`;
     const cashAmount = input.amountCents / 100;
@@ -205,6 +208,17 @@ export async function allocateWithOptionalTikTokFunding(
     throw new Error(
       "Modo gerente requiere TikTok BC funding activo (advertiser + bc_id + TIKTOK_BC_FUNDING_ENABLED).",
     );
+  }
+
+  // Solo después de TikTok OK (o funding off en camino cliente): puente + allocate.
+  if (agencyBmFunding) {
+    bridgeJournalId = await ensureAgencyBmBridgeCredit({
+      organizationId: input.organizationId,
+      amountCents: input.amountCents,
+      requestedBy: input.requestedBy,
+      currency,
+      idempotencyKey,
+    });
   }
 
   const journalId = await allocateToAdAccount({
