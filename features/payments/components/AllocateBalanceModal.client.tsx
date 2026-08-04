@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
-import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface AllocateBalanceModalProps {
   account: PaymentAccountAllocation | null;
   open: boolean;
   onClose: () => void;
+  /** Passed explicitly from parent (context can break across RSC boundaries). */
+  agencyBmFunding?: boolean;
 }
 
 interface AllocateResponse {
@@ -25,9 +26,9 @@ export function AllocateBalanceModal({
   account,
   open,
   onClose,
+  agencyBmFunding = false,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
-  const { agencyBmFunding } = usePaymentsFundingMode();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);

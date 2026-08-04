@@ -1,6 +1,9 @@
+"use client";
+
 import { PaymentsAssignmentPanel } from "./PaymentsAssignmentPanel.client";
 import type { PaymentAccountAllocation } from "@/types/payment";
 import { PaymentsAllocateSectionCopy } from "./PaymentsAllocateSectionCopy.client";
+import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 
 interface PaymentsAllocateSectionProps {
   accounts: PaymentAccountAllocation[];
@@ -16,6 +19,8 @@ export function PaymentsAllocateSection({
   walletBalance,
   clienteName,
 }: PaymentsAllocateSectionProps) {
+  const { agencyBmFunding } = usePaymentsFundingMode();
+
   return (
     <section
       id="asignar-saldo"
@@ -29,7 +34,10 @@ export function PaymentsAllocateSection({
         />
       </div>
 
-      <PaymentsAssignmentPanel accounts={accounts} />
+      <PaymentsAssignmentPanel
+        accounts={accounts}
+        agencyBmFunding={agencyBmFunding}
+      />
     </section>
   );
 }

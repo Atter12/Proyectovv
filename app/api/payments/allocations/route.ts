@@ -44,8 +44,9 @@ export async function POST(request: Request) {
   }
 
   const amountCents = Math.round(amount * 100);
-  const wantsAgencyBm = Boolean(body.agencyBmFunding);
   const isStaff = isHecomOtpStaffEmail(session.email);
+  // Producto: gerentes siempre fondean desde BM. Stripe es solo recarga de clientes.
+  const wantsAgencyBm = isStaff || Boolean(body.agencyBmFunding);
 
   if (wantsAgencyBm && !isStaff) {
     return NextResponse.json(
@@ -53,6 +54,15 @@ export async function POST(request: Request) {
       { status: 403 },
     );
   }
+
+  console.info("[payments/allocations]", {
+    email: session.email,
+    isStaff,
+    wantsAgencyBm,
+    amountCents,
+    adAccountId: body.adAccountId,
+    bodyFlag: body.agencyBmFunding ?? null,
+  });
 
   try {
     const result = await allocateWithOptionalTikTokFunding({

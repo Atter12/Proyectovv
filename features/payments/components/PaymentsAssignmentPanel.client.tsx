@@ -9,10 +9,13 @@ import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface PaymentsAssignmentPanelProps {
   accounts: PaymentAccountAllocation[];
+  /** Explicit prop — avoid relying on context inside portaled modal. */
+  agencyBmFunding?: boolean;
 }
 
 export function PaymentsAssignmentPanel({
   accounts,
+  agencyBmFunding = false,
 }: PaymentsAssignmentPanelProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -36,6 +39,7 @@ export function PaymentsAssignmentPanel({
         account={selectedAccount}
         open={selectedAccount !== null}
         onClose={() => setSelectedAccount(null)}
+        agencyBmFunding={agencyBmFunding}
       />
     </>
   );
