@@ -1,5 +1,5 @@
 /**
- * CSS crítico inline — fallback si el chunk de Tailwind no llega (China / GFW).
+ * CSS crítico inline — fallback si el chunk de Tailwind no llega (China / red lenta).
  * Reglas agresivas SOLO bajo `.auth-canvas` para no romper el dashboard.
  */
 export const criticalCss = `
@@ -40,7 +40,9 @@ body{
 
 /* ===== Solo landing / auth (no dashboard) ===== */
 .auth-canvas{
+  position:relative;
   min-height:100vh;
+  overflow-x:hidden;
   background:
     radial-gradient(900px 480px at 8% 0%,rgb(255 120 31 / 0.12),transparent 55%),
     radial-gradient(720px 420px at 92% 8%,rgb(255 161 44 / 0.08),transparent 50%),
@@ -66,7 +68,8 @@ body{
 }
 .auth-canvas header .mx-auto,
 .auth-canvas main .mx-auto,
-.auth-canvas footer .mx-auto{
+.auth-canvas footer .mx-auto,
+.auth-canvas section .mx-auto{
   width:100%;
   max-width:1180px;
   margin-left:auto;
@@ -113,6 +116,32 @@ body{
   font-weight:700;
   max-width:18ch;
 }
+.auth-canvas #contenido>section:first-of-type{
+  padding:2rem 1rem 3rem;
+}
+.auth-canvas #contenido>section:first-of-type .grid{
+  display:grid;
+  gap:2rem;
+  align-items:center;
+}
+@media(min-width:1024px){
+  .auth-canvas #contenido>section:first-of-type .grid{
+    grid-template-columns:1.05fr .95fr;
+    gap:3rem;
+  }
+}
+.auth-canvas #contenido>section:first-of-type a[href*="register"],
+.auth-canvas #contenido>section:first-of-type a[href*="login"]{
+  min-height:3rem;
+  border-radius:12px;
+  padding:0 1.25rem;
+  font-size:15px;
+}
+.auth-canvas #contenido>section:first-of-type a[href*="login"]{
+  border:1px solid var(--auth-control-border);
+  background:#fff;
+  color:var(--auth-text);
+}
 .auth-canvas section p{color:var(--auth-text-muted)}
 .auth-canvas div[title="Equipos en Latam"]{
   display:flex;
@@ -136,5 +165,8 @@ body{
 .auth-canvas div[title="Equipos en Latam"]>span:first-child{margin-left:0}
 `.trim();
 
-/** Reintenta hojas de estilo si el CSS principal no aplicó (redes inestables / China). */
-export const cssLoadGuardScript = `(function(){try{function ok(){var e=document.createElement("div");e.className="sr-only";e.setAttribute("aria-hidden","true");document.documentElement.appendChild(e);var s=getComputedStyle(e);var w=parseFloat(s.width||"0");var good=s.position==="absolute"&&w<=1;e.remove();return good}function reload(){document.querySelectorAll('link[rel="stylesheet"][href*="_next/static"]').forEach(function(l){var h=l.getAttribute("href");if(!h||h.indexOf("_retry=")!==-1)return;var n=l.cloneNode(true);n.setAttribute("href",h+(h.indexOf("?")>=0?"&":"?")+"_retry="+Date.now());l.parentNode.insertBefore(n,l.nextSibling)})}function run(){if(ok())return;reload();setTimeout(function(){if(!ok())reload()},1800)}if(document.readyState==="complete")run();else window.addEventListener("load",run)})();catch(e){}})();`;
+/**
+ * Reintenta CSS de Next si no aplicó (China / red lenta).
+ * Marca html[data-css="ok"|"retry"|"fallback"] para diagnóstico.
+ */
+export const cssLoadGuardScript = `(function(){try{var d=document.documentElement;function ok(){var e=document.createElement("div");e.className="sr-only";e.setAttribute("aria-hidden","true");d.appendChild(e);var s=getComputedStyle(e);var w=parseFloat(s.width||"0");var good=s.position==="absolute"&&w<=1;e.remove();return good}function reload(){document.querySelectorAll('link[rel="stylesheet"][href*="_next/static"]').forEach(function(l){var h=l.getAttribute("href");if(!h||h.indexOf("_retry=")!==-1)return;var n=l.cloneNode(true);n.setAttribute("href",h+(h.indexOf("?")>=0?"&":"?")+"_retry="+Date.now());l.parentNode.insertBefore(n,l.nextSibling)})}function run(){if(ok()){d.setAttribute("data-css","ok");return}d.setAttribute("data-css","retry");reload();setTimeout(function(){if(ok())d.setAttribute("data-css","ok");else{reload();d.setAttribute("data-css","fallback")}},2200)}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();window.addEventListener("load",function(){if(!ok())run()})}catch(e){}})();`;

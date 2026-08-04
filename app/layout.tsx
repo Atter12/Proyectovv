@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
@@ -7,26 +7,23 @@ import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-manrope",
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-newsreader",
-  style: ["normal", "italic"],
-});
-
-/** SaaS geometric — estética tipo Rockads (auth/landing light) */
+/** Una sola familia, pocos pesos → first paint más liviano (China / red lenta). */
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-jakarta",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  fallback: [
+    "ui-sans-serif",
+    "system-ui",
+    "-apple-system",
+    "Segoe UI",
+    "Roboto",
+    "Helvetica Neue",
+    "Arial",
+    "sans-serif",
+  ],
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -44,11 +41,11 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${manrope.variable} ${newsreader.variable} ${plusJakarta.variable} light h-full antialiased`}
+      className={`${plusJakarta.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* Fallback si el CSS de Vercel no llega (China / GFW): layout usable */}
+        {/* Fallback usable si el CSS de Vercel no llega (China / red lenta) */}
         <style
           id="holistic-critical-css"
           dangerouslySetInnerHTML={{ __html: criticalCss }}
@@ -56,7 +53,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: adminThemeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: cssLoadGuardScript }} />
       </head>
-      <body className={`${plusJakarta.className} min-h-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)] antialiased`}>
+      <body
+        className={`${plusJakarta.className} min-h-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)] antialiased`}
+      >
         <DocumentThemeScope />
         {children}
       </body>
