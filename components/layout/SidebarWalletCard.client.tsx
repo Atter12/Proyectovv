@@ -64,7 +64,9 @@ export function SidebarWalletCard({
         </div>
       </div>
       <p className="mt-3 text-[12px] font-medium text-[var(--auth-text-muted)]">
-        Saldo estimado (Hecom)
+        {selectedCliente.saldoEstimado != null && selectedCliente.saldoEstimado < 0
+          ? "Deuda neta (Hecom)"
+          : "Saldo estimado (Hecom)"}
       </p>
       <p className="mt-1 text-[1.45rem] font-bold tracking-[-0.03em] text-[var(--auth-text)]">
         {selectedCliente.saldoEstimado == null

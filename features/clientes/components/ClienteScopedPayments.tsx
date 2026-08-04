@@ -33,7 +33,13 @@ export function ClienteScopedPayments({
       tone: "text-[#1a1612]",
     },
     {
-      label: "Saldo estimado",
+      label: "Fees",
+      value: moneyUsd(summary.feeTotal),
+      accent: "bg-[#2563eb]",
+      tone: "text-[#1e3a8a]",
+    },
+    {
+      label: summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado",
       value: moneyUsd(summary.saldoEstimado),
       accent: "bg-[#b45309]",
       tone: "text-[#1a1612]",
@@ -79,7 +85,7 @@ export function ClienteScopedPayments({
           aria-label="Resumen Hecom"
           className="border-t border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3]"
         >
-          <div className="grid sm:grid-cols-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4">
             {kpis.map((kpi, index) => (
               <div
                 key={kpi.label}

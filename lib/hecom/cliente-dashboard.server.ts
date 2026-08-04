@@ -62,7 +62,10 @@ export type HecomClienteDashboard = {
   summary: {
     accountCount: number;
     gastoTotal: number;
+    feeTotal: number;
+    cargoTotal: number;
     cobroTotal: number;
+    /** cobros − (gastos + fees). Negativo = deuda neta (como Hecom Club). */
     saldoEstimado: number;
     creativeCount: number;
     projectCount: number;
@@ -141,6 +144,17 @@ function mapCreativoProyecto(row: Record<string, unknown>): HecomCreativoProyect
   };
 }
 
+function feeAmountForGasto(row: HecomGastoRow, fallbackFeePct: number | null): number {
+  const pct =
+    row.fee != null && Number.isFinite(row.fee)
+      ? row.fee
+      : fallbackFeePct != null && Number.isFinite(fallbackFeePct)
+        ? fallbackFeePct
+        : 0;
+  if (pct <= 0 || row.gasto <= 0) return 0;
+  return Math.round(row.gasto * (pct / 100) * 100) / 100;
+}
+
 function buildSummary(
   accounts: HecomTiktokAccount[],
   gastos: HecomGastoRow[],
@@ -148,13 +162,24 @@ function buildSummary(
   creativosClientes: HecomCreativoCliente[],
   creativosProyectos: HecomCreativoProyecto[],
 ) {
+  const fallbackFeePct =
+    accounts.find((a) => a.fee != null)?.fee ??
+    null;
   const gastoTotal = gastos.reduce((sum, row) => sum + row.gasto, 0);
+  const feeTotal = gastos.reduce(
+    (sum, row) => sum + feeAmountForGasto(row, fallbackFeePct),
+    0,
+  );
+  const cargoTotal = Math.round((gastoTotal + feeTotal) * 100) / 100;
   const cobroTotal = cobros.reduce((sum, row) => sum + row.monto, 0);
   return {
     accountCount: accounts.length,
     gastoTotal,
+    feeTotal: Math.round(feeTotal * 100) / 100,
+    cargoTotal,
     cobroTotal,
-    saldoEstimado: cobroTotal - gastoTotal,
+    // Alineado a Hecom Club: deuda neta = cobrado − (gasto ads + fees)
+    saldoEstimado: Math.round((cobroTotal - cargoTotal) * 100) / 100,
     creativeCount: creativosClientes.length,
     projectCount: creativosProyectos.length,
   };

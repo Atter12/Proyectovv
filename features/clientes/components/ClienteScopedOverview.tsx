@@ -108,21 +108,22 @@ export function ClienteScopedOverview({
 
           <div className="border-t border-[var(--auth-divider)] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
-              Saldo estimado
+              {summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado"}
             </p>
             <p className="mt-1.5 text-[1.75rem] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.95rem]">
               {moneyUsd(summary.saldoEstimado)}
             </p>
             <p className="mt-2 text-[12px] leading-5 text-[var(--auth-text-muted)]">
               Cobros {moneyUsd(summary.cobroTotal)} − gastos{" "}
-              {moneyUsd(summary.gastoTotal)}
+              {moneyUsd(summary.gastoTotal)} − fees{" "}
+              {moneyUsd(summary.feeTotal)}
             </p>
           </div>
         </div>
 
         <div
           aria-label="Indicadores"
-          className="grid grid-cols-3 border-t border-[var(--auth-divider)] bg-[var(--auth-bg)]"
+          className="grid grid-cols-2 border-t border-[var(--auth-divider)] bg-[var(--auth-bg)] sm:grid-cols-4"
         >
           <Metric
             label="Cuentas"
@@ -140,6 +141,12 @@ export function ClienteScopedOverview({
             label="Gastos ads"
             value={moneyUsd(summary.gastoTotal)}
             hint="Consumo"
+            border
+          />
+          <Metric
+            label="Fees"
+            value={moneyUsd(summary.feeTotal)}
+            hint="Servicio"
             border
           />
         </div>
