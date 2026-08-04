@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { PAYMENTS_OPEN_ADD_BALANCE_MODAL } from "@/lib/events/modal-events";
 import { PaymentsGatewaySection } from "./PaymentsGatewaySection.client";
+import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 
 const AddBalanceModal = dynamic(
@@ -20,6 +21,7 @@ export function PaymentsGatewayBlockClient({
   gateways,
   initialSelected,
 }: PaymentsGatewayBlockClientProps) {
+  const { fundingMode, setFundingMode, isStaff } = usePaymentsFundingMode();
   const [selectedGateway, setSelectedGateway] =
     useState<PaymentGatewayId>(initialSelected);
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,7 +40,6 @@ export function PaymentsGatewayBlockClient({
 
   function handleSelectGateway(id: PaymentGatewayId) {
     setSelectedGateway(id);
-    // Selecting Stripe/Culqi/etc. opens pay flow immediately — no scroll hunt
     setModalOpen(true);
   }
 
@@ -49,9 +50,12 @@ export function PaymentsGatewayBlockClient({
         selected={selectedGateway}
         onSelect={handleSelectGateway}
         onContinue={() => setModalOpen(true)}
+        isStaff={isStaff}
+        fundingMode={fundingMode}
+        onFundingModeChange={setFundingMode}
       />
 
-      {modalOpen ? (
+      {modalOpen && fundingMode === "client" ? (
         <AddBalanceModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

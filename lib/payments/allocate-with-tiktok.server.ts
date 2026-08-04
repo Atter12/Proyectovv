@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   allocateToAdAccount,
+  confirmDepositInLedger,
   getWalletLedgerBalance,
 } from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
@@ -9,6 +10,10 @@ import {
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
+import {
+  createPaymentIntentRecord,
+  updatePaymentIntentRecord,
+} from "@/lib/payments/payment-intents.server";
 
 export interface AllocateWithTikTokInput {
   organizationId: string;
@@ -18,10 +23,16 @@ export interface AllocateWithTikTokInput {
   currency?: string;
   idempotencyKey?: string;
   description?: string;
+  /**
+   * Modo gerente: fondea con cash del BM sin exigir que el cliente
+   * haya recargado cartera. Acredita un puente contable en Holistic.
+   */
+  agencyBmFunding?: boolean;
 }
 
 export interface AllocateWithTikTokResult {
   journalId: string;
+  agencyBmFunding: boolean;
   tiktokTransfer: {
     attempted: boolean;
     requestId: string | null;
@@ -31,10 +42,80 @@ export interface AllocateWithTikTokResult {
   };
 }
 
+async function resolveWalletId(organizationId: string): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("wallets")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (error) throw new Error(error.message);
+  if (!data?.id) throw new Error("No hay cartera Holistic para esta organización.");
+  return data.id;
+}
+
+/** Si falta saldo Holistic en modo gerente, acredita el faltante como puente agencia→BM. */
+async function ensureAgencyBmBridgeCredit(input: {
+  organizationId: string;
+  amountCents: number;
+  requestedBy: string;
+  currency: string;
+  idempotencyKey: string;
+}): Promise<string | null> {
+  const wallet = await getWalletLedgerBalance(input.organizationId);
+  const available = wallet?.availableBalanceCents ?? 0;
+  if (available >= input.amountCents) return null;
+
+  const needCents = input.amountCents - available;
+  const walletId = await resolveWalletId(input.organizationId);
+  const bridgeKey = `agency-bm-bridge:${input.idempotencyKey}`;
+
+  const intent = await createPaymentIntentRecord({
+    organizationId: input.organizationId,
+    walletId,
+    amountCents: needCents,
+    currency: input.currency,
+    provider: "manual",
+    createdBy: input.requestedBy,
+    idempotencyKey: bridgeKey,
+    metadata: {
+      source: "agency_bm_bridge",
+      purpose: "staff_fund_from_bm",
+      bridge_for_allocation: input.idempotencyKey,
+    },
+  });
+
+  const providerReference = `agency-bm-bridge:${intent.id}`;
+  const journalId = await confirmDepositInLedger({
+    paymentIntentId: intent.id,
+    providerReference,
+    idempotencyKey: `ledger:deposit:${bridgeKey}`,
+    metadata: {
+      source: "agency_bm_bridge",
+      funded_by: input.requestedBy,
+    },
+  });
+
+  await updatePaymentIntentRecord(intent.id, {
+    status: "succeeded",
+    providerReference,
+    succeededAt: new Date().toISOString(),
+    metadata: {
+      source: "agency_bm_bridge",
+      ledger_journal_id: journalId,
+      funded_by: input.requestedBy,
+    },
+  });
+
+  return journalId;
+}
+
 /**
  * Asigna saldo a una cuenta ads.
- * Si TIKTOK_BC_FUNDING_ENABLED=true y la cuenta tiene advertiser (+ bc),
- * primero valida cartera Holistic, luego RECHARGE en TikTok BC, luego ledger.
+ * Cliente: exige cartera Holistic → TikTok BC → ledger.
+ * Gerente (agencyBmFunding): puente contable si hace falta → TikTok BC → ledger.
  */
 export async function allocateWithOptionalTikTokFunding(
   input: AllocateWithTikTokInput,
@@ -62,6 +143,7 @@ export async function allocateWithOptionalTikTokFunding(
     input.idempotencyKey ??
     `allocation:${input.organizationId}:${input.adAccountId}:${input.amountCents}:${randomUUID()}`;
 
+  const currency = (input.currency ?? account.currency ?? "USD").toUpperCase();
   const advertiserId = account.external_account_id?.trim() || "";
   const bcId =
     account.external_business_id?.trim() ||
@@ -71,9 +153,11 @@ export async function allocateWithOptionalTikTokFunding(
   const fundingOn = isTikTokBcFundingEnabled();
   const isTikTok = (account.platform ?? "tiktok").toLowerCase() === "tiktok";
   const canFund = fundingOn && isTikTok && Boolean(advertiserId) && Boolean(bcId);
+  const agencyBmFunding = Boolean(input.agencyBmFunding);
 
   let tiktokRequestId: string | null = null;
   let transferRequestId: string | null = null;
+  let bridgeJournalId: string | null = null;
 
   if (fundingOn && isTikTok && !advertiserId) {
     throw new Error(
@@ -87,13 +171,22 @@ export async function allocateWithOptionalTikTokFunding(
     );
   }
 
-  // Evita mover cash en TikTok si Holistic no tiene saldo (antes: transfer OK + ledger 409).
-  const wallet = await getWalletLedgerBalance(input.organizationId);
-  const available = wallet?.availableBalanceCents ?? 0;
-  if (available < input.amountCents) {
-    throw new Error(
-      `Insufficient wallet balance. available=${available}, requested=${input.amountCents}. Recargá la cartera Holistic del cliente antes de asignar.`,
-    );
+  if (agencyBmFunding) {
+    bridgeJournalId = await ensureAgencyBmBridgeCredit({
+      organizationId: input.organizationId,
+      amountCents: input.amountCents,
+      requestedBy: input.requestedBy,
+      currency,
+      idempotencyKey,
+    });
+  } else {
+    const wallet = await getWalletLedgerBalance(input.organizationId);
+    const available = wallet?.availableBalanceCents ?? 0;
+    if (available < input.amountCents) {
+      throw new Error(
+        `Insufficient wallet balance. available=${available}, requested=${input.amountCents}. Recargá la cartera Holistic del cliente antes de asignar.`,
+      );
+    }
   }
 
   if (canFund) {
@@ -108,6 +201,10 @@ export async function allocateWithOptionalTikTokFunding(
       transferType: "RECHARGE",
     });
     tiktokRequestId = transfer.tiktokRequestId;
+  } else if (agencyBmFunding) {
+    throw new Error(
+      "Modo gerente requiere TikTok BC funding activo (advertiser + bc_id + TIKTOK_BC_FUNDING_ENABLED).",
+    );
   }
 
   const journalId = await allocateToAdAccount({
@@ -115,11 +212,15 @@ export async function allocateWithOptionalTikTokFunding(
     adAccountId: input.adAccountId,
     amountCents: input.amountCents,
     idempotencyKey,
-    description: input.description ?? "Asignación desde dashboard",
+    description: agencyBmFunding
+      ? input.description ?? "Fondeo gerente desde BM TikTok"
+      : input.description ?? "Asignación desde dashboard",
     metadata: {
-      source: "dashboard",
+      source: agencyBmFunding ? "agency_bm" : "dashboard",
       requested_by: input.requestedBy,
-      currency: input.currency ?? account.currency ?? "USD",
+      currency,
+      agency_bm_funding: agencyBmFunding,
+      agency_bm_bridge_journal_id: bridgeJournalId,
       tiktok_bc_funding_enabled: fundingOn,
       tiktok_bc_transfer_attempted: canFund,
       tiktok_bc_id: bcId || null,
@@ -131,6 +232,7 @@ export async function allocateWithOptionalTikTokFunding(
 
   return {
     journalId,
+    agencyBmFunding,
     tiktokTransfer: {
       attempted: canFund,
       requestId: transferRequestId,

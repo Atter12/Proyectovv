@@ -99,11 +99,11 @@ export default async function PaymentsPage({
               Recargar y fondear ads
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Hay dos bolsas: la cartera Holistic (Stripe/manual) y el saldo ya
-              en TikTok Ads. Si Ads ya tiene plata, puede seguir pautando. Para
-              meter más presupuesto controlado: recargá acá y asigná solo a
-              cuentas de {cliente.name}. Abajo: historial Hecom (cobros y gastos
-              consumidos).
+              Dos caminos: <strong className="font-medium text-[#1a1612]">Cliente</strong>{" "}
+              recarga con Stripe/manual y asigna;{" "}
+              <strong className="font-medium text-[#1a1612]">Gerente</strong>{" "}
+              fondea desde cash del BM sin Stripe. Elegí arriba y operá solo
+              cuentas de {cliente.name}. Abajo: historial Hecom.
             </p>
 
             <div className="mt-4">

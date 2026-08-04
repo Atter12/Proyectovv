@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
 
 export async function POST(request: Request) {
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     currency?: string;
     idempotencyKey?: string;
     description?: string;
+    agencyBmFunding?: boolean;
   };
 
   try {
@@ -42,6 +44,15 @@ export async function POST(request: Request) {
   }
 
   const amountCents = Math.round(amount * 100);
+  const wantsAgencyBm = Boolean(body.agencyBmFunding);
+  const isStaff = isHecomOtpStaffEmail(session.email);
+
+  if (wantsAgencyBm && !isStaff) {
+    return NextResponse.json(
+      { error: "Solo gerentes/staff pueden fondear desde el BM sin recarga del cliente." },
+      { status: 403 },
+    );
+  }
 
   try {
     const result = await allocateWithOptionalTikTokFunding({
@@ -50,15 +61,19 @@ export async function POST(request: Request) {
       amountCents,
       requestedBy: session.id,
       currency: body.currency ?? "USD",
+      agencyBmFunding: wantsAgencyBm,
       idempotencyKey:
         body.idempotencyKey ??
         `allocation:${session.organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,
-      description: body.description ?? "Asignación desde dashboard",
+      description: wantsAgencyBm
+        ? body.description ?? "Fondeo gerente desde BM TikTok"
+        : body.description ?? "Asignación desde dashboard",
     });
 
     return NextResponse.json({
       ok: true,
       journalId: result.journalId,
+      agencyBmFunding: result.agencyBmFunding,
       tiktokTransfer: result.tiktokTransfer,
     });
   } catch (error) {
