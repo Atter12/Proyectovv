@@ -5,11 +5,14 @@ import type { PaymentGateway, WalletOverview } from "@/types/payment";
 interface WalletSummaryPremiumProps {
   wallet: WalletOverview;
   preferredGateway: PaymentGateway;
+  /** Gerentes fondean por BM; la cartera Holistic es solo camino cliente. */
+  staffMode?: boolean;
 }
 
 export function WalletSummaryPremium({
   wallet,
   preferredGateway,
+  staffMode = false,
 }: WalletSummaryPremiumProps) {
   return (
     <div className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
@@ -36,7 +39,9 @@ export function WalletSummaryPremium({
                 {wallet.name}
               </p>
               <p className="text-[11px] text-[#7a736a]">
-                Listo para asignar a cuentas TikTok
+                {staffMode
+                  ? "Solo camino Cliente (Stripe). En Gerente no se usa."
+                  : "Listo para asignar a cuentas TikTok"}
               </p>
             </div>
           </div>

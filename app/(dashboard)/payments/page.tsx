@@ -7,6 +7,8 @@ import { PaymentsMoneyFlowGuide } from "@/features/payments/components/PaymentsM
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
+import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 import Link from "next/link";
 
@@ -75,6 +77,24 @@ export default async function PaymentsPage({
     .map((account) => account.advertiserId?.trim())
     .filter((id): id is string => Boolean(id));
 
+  const isStaff =
+    isHecomOtpStaffEmail(session.email) ||
+    session.role === "owner" ||
+    session.role === "admin";
+
+  // Limpia saldo fantasma de puentes BM cuando TikTok falló (bug viejo).
+  if (isStaff && session.organizationId) {
+    try {
+      await reverseOrphanedAgencyBmBridges({
+        organizationId: session.organizationId,
+      });
+    } catch (error) {
+      console.error("[payments] orphan_bridge_cleanup_skipped", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
+
   return (
     <div className={dashboardClasses.page}>
       <StripeReturnBanner status={status} />
@@ -136,11 +156,12 @@ export default async function PaymentsPage({
         </div>
       </section>
 
-      <PaymentsWalletSection session={session} />
+      <PaymentsWalletSection session={session} staffMode={isStaff} />
       <PaymentsGatewayPanel
         session={session}
         hecomAdvertiserIds={hecomAdvertiserIds}
         clienteName={cliente.name}
+        skipOrphanCleanup
       />
 
       <div

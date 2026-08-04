@@ -1,30 +1,42 @@
+"use client";
+
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
+import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
 
 interface PaymentOverviewStatsProps {
   wallet: PaymentPageCore["wallet"];
   summary: PaymentPageCore["summary"];
   activeGateway: PaymentGateway;
+  isStaff?: boolean;
 }
 
 export function PaymentOverviewStats({
   wallet,
   summary,
   activeGateway,
+  isStaff = false,
 }: PaymentOverviewStatsProps) {
+  const { agencyBmFunding } = usePaymentsFundingMode();
+  const hideWalletAsFunding = isStaff && agencyBmFunding;
+
   const items = [
     {
-      label: "Saldo disponible",
+      label: hideWalletAsFunding
+        ? "Cartera Holistic"
+        : "Saldo disponible",
       value: formatMoney(wallet.balance, wallet.currency),
-      hint: "Cartera de la organización",
+      hint: hideWalletAsFunding
+        ? "No se usa en modo BM"
+        : "Cartera de la organización",
       accent: "bg-[#c45a18]",
-      tone: "text-[#1a1612]",
+      tone: hideWalletAsFunding ? "text-[#8a8178]" : "text-[#1a1612]",
     },
     {
       label: "Pasarela activa",
       value: activeGateway.name,
-      hint: "Método seleccionado",
+      hint: hideWalletAsFunding ? "Solo camino cliente" : "Método seleccionado",
       accent: "bg-[#8a8178]",
       tone: "text-[#1a1612]",
     },

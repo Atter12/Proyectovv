@@ -4,6 +4,7 @@ import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
 import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
+import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { getPaymentPageCore } from "@/services/payments.service";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import type { SessionUser } from "@/types/auth";
@@ -14,18 +15,34 @@ interface PaymentsGatewayPanelProps {
   session: SessionUser;
   hecomAdvertiserIds?: string[];
   clienteName?: string;
+  /** Si el cleanup ya corrió en la página. */
+  skipOrphanCleanup?: boolean;
 }
 
 export async function PaymentsGatewayPanel({
   session,
   hecomAdvertiserIds,
   clienteName,
+  skipOrphanCleanup = false,
 }: PaymentsGatewayPanelProps) {
-  const core = await getPaymentPageCore(session);
   const isStaff =
     isHecomOtpStaffEmail(session.email) ||
     session.role === "owner" ||
     session.role === "admin";
+
+  if (!skipOrphanCleanup && isStaff && session.organizationId) {
+    try {
+      await reverseOrphanedAgencyBmBridges({
+        organizationId: session.organizationId,
+      });
+    } catch (error) {
+      console.error("[payments] orphan_bridge_cleanup_skipped", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
+
+  const core = await getPaymentPageCore(session);
   const activeGateway =
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
     core.gateways[0]!;
@@ -57,6 +74,7 @@ export async function PaymentsGatewayPanel({
           wallet={core.wallet}
           summary={scopedSummary}
           activeGateway={activeGateway}
+          isStaff={isStaff}
         />
 
         {hecomAdvertiserIds != null && scopedAccounts.length === 0 ? (

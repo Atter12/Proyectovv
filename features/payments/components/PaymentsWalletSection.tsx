@@ -4,9 +4,13 @@ import { WalletSummaryPremium } from "./WalletSummaryPremium";
 
 interface PaymentsWalletSectionProps {
   session: SessionUser;
+  staffMode?: boolean;
 }
 
-export async function PaymentsWalletSection({ session }: PaymentsWalletSectionProps) {
+export async function PaymentsWalletSection({
+  session,
+  staffMode = false,
+}: PaymentsWalletSectionProps) {
   const core = await getPaymentPageCore(session);
   const preferredGateway =
     core.gateways.find((g) => g.id === core.wallet.preferredGateway) ??
@@ -16,6 +20,7 @@ export async function PaymentsWalletSection({ session }: PaymentsWalletSectionPr
     <WalletSummaryPremium
       wallet={core.wallet}
       preferredGateway={preferredGateway}
+      staffMode={staffMode}
     />
   );
 }
