@@ -80,36 +80,27 @@ function formatTransferError(input: {
   tokenSource: TokenSource;
   tokenFp: string;
 }): string {
-  const base = `TikTok BC transfer falló [${input.code ?? "http"}]: ${input.message}`;
   const meta = `bc=${input.bcId} adv=${input.advertiserId} token=${input.tokenSource}:${input.tokenFp} req=${input.tiktokRequestId ?? "n/a"}`;
 
   if (/amountToTransfer is less than transferableAmount|min_transferable|minimum.*transfer/i.test(input.message)) {
-    return [
-      "TikTok rechazó el monto: es menor al mínimo transferible de esa cuenta ads.",
-      meta,
-      "Probá con un monto mayor (suele ser ≥ $10 o el mínimo del paquete/BM). $1–$2 a menudo no alcanzan.",
-    ].join(" | ");
+    console.warn("[tiktok-bc] transfer_min_amount", { ...input, meta });
+    return "Ese monto es menor al mínimo que TikTok permite en esta cuenta. Probá con $10 o más.";
   }
+
+  const base = `TikTok BC transfer falló [${input.code ?? "http"}]: ${input.message}`;
 
   if (
     /finance permission|insufficient permission|no permission/i.test(input.message) ||
     (input.code === 40002 && /permission/i.test(input.message))
   ) {
     return [
-      base,
-      meta,
-      "Causa: el usuario del token no tiene permiso finance en el BM.",
-      "En TikTok BM → Usuarios → Editar miembro → rol Finance / ext_user_role.finance_role.",
-      "Luego regenerá auth_code → access_token y actualizá TIKTOK_ACCESS_TOKEN + Redeploy.",
-    ].join(" | ");
+      "Falta permiso Finance en el Business Center para fondear.",
+      "En TikTok BM → Usuarios → rol Finance, regenerá el token y actualizá TIKTOK_ACCESS_TOKEN.",
+    ].join(" ");
   }
 
   if (/abnormal state|cannot be used for top-up/i.test(input.message)) {
-    return [
-      "TikTok rechazó el top-up: la cuenta ads (advertiser) está en estado anormal (suele ser Suspendida / Rejected / no aprobada).",
-      meta,
-      "Solución: en ads.tiktok.com → BM → Accounts, usá un advertiser en estado Approved/Aprobado, o reactivá esta cuenta. Actualizá external_account_id en Holistic si cambiás de advertiser.",
-    ].join(" | ");
+    return "Esta cuenta ads no puede recibir saldo ahora (suele estar suspendida). Usá una cuenta Aprobada.";
   }
 
   return `${base} | ${meta}`;

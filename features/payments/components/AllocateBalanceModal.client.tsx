@@ -64,7 +64,12 @@ export function AllocateBalanceModal({
 
   async function handleSubmit() {
     if (!isValidAmount) {
-      setError("Ingresa un monto válido mayor a cero.");
+      setError("Ingresá un monto válido mayor a cero.");
+      return;
+    }
+
+    if (agencyBmFunding && parsedAmount < 10) {
+      setError("TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.");
       return;
     }
 
@@ -85,16 +90,21 @@ export function AllocateBalanceModal({
 
       setSuccess(
         agencyBmFunding
-          ? `Fondeo BM de ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
+          ? `Listo: se fondearon ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
           : `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
       );
       router.refresh();
     } catch (err) {
-      setError(
+      const raw =
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo asignar el saldo.",
-      );
+          : "No se pudo asignar el saldo.";
+      // Si llega un dump viejo/técnico, mostrar versión corta.
+      if (/amountToTransfer|mínimo|minimo|menor al mínimo/i.test(raw)) {
+        setError("TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.");
+      } else {
+        setError(raw);
+      }
     } finally {
       setLoading(false);
     }
@@ -164,15 +174,18 @@ export function AllocateBalanceModal({
             autoFocus
           />
           {agencyBmFunding ? (
-            <p className="mt-1.5 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
-              TikTok suele exigir un mínimo por cuenta (a menudo ≥ $10). $1–$2
-              suelen fallar.
+            <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
+              Mínimo recomendado: <span className="font-medium text-[#1a1612]">$10</span>
+              . Montos chicos ($1–$2) TikTok los rechaza.
             </p>
           ) : null}
         </div>
 
         {error && (
-          <p className="mt-3 text-xs text-red-600" role="alert">
+          <p
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-5 text-amber-950"
+            role="alert"
+          >
             {error}
           </p>
         )}
