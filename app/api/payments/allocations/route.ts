@@ -44,7 +44,10 @@ export async function POST(request: Request) {
   }
 
   const amountCents = Math.round(amount * 100);
-  const isStaff = isHecomOtpStaffEmail(session.email);
+  const isStaff =
+    isHecomOtpStaffEmail(session.email) ||
+    session.role === "owner" ||
+    session.role === "admin";
   // Producto: gerentes siempre fondean desde BM. Stripe es solo recarga de clientes.
   const wantsAgencyBm = isStaff || Boolean(body.agencyBmFunding);
 

@@ -22,7 +22,10 @@ export async function PaymentsGatewayPanel({
   clienteName,
 }: PaymentsGatewayPanelProps) {
   const core = await getPaymentPageCore(session);
-  const isStaff = isHecomOtpStaffEmail(session.email);
+  const isStaff =
+    isHecomOtpStaffEmail(session.email) ||
+    session.role === "owner" ||
+    session.role === "admin";
   const activeGateway =
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
     core.gateways[0]!;
