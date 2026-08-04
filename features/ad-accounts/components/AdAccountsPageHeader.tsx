@@ -24,7 +24,7 @@ export function AdAccountsPageHeader({
   hideCreate = false,
 }: AdAccountsPageHeaderProps) {
   const description = hecomScoped
-    ? `Cuentas TikTok de ${clienteName ?? "este cliente"} desde Hecom. Estado, fee y datos · solo lectura.`
+    ? `Solo cuentas TikTok Aprobadas de ${clienteName ?? "este cliente"} (estado live del BM). Suspendidas no se listan.`
     : "Elegí un cliente en Clientes para ver únicamente sus cuentas publicitarias.";
 
   const kpis = [

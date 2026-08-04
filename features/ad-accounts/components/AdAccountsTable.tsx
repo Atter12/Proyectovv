@@ -206,7 +206,7 @@ export function AdAccountsTable({
     if (readOnly) {
       return (
         <p className="text-[11px] font-normal uppercase tracking-[0.08em] text-[#9a9187]">
-          Solo lectura
+          Solo lectura · solo Aprobadas
         </p>
       );
     }

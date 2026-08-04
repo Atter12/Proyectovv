@@ -5,6 +5,7 @@ import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client
 import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
+import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { getPaymentPageCore } from "@/services/payments.service";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import type { SessionUser } from "@/types/auth";
@@ -14,6 +15,7 @@ import { routes } from "@/config/routes";
 interface PaymentsGatewayPanelProps {
   session: SessionUser;
   hecomAdvertiserIds?: string[];
+  hecomClienteId?: string;
   clienteName?: string;
   /** Si el cleanup ya corrió en la página. */
   skipOrphanCleanup?: boolean;
@@ -22,6 +24,7 @@ interface PaymentsGatewayPanelProps {
 export async function PaymentsGatewayPanel({
   session,
   hecomAdvertiserIds,
+  hecomClienteId,
   clienteName,
   skipOrphanCleanup = false,
 }: PaymentsGatewayPanelProps) {
@@ -42,6 +45,35 @@ export async function PaymentsGatewayPanel({
     }
   }
 
+  let approvedIds = hecomAdvertiserIds ?? [];
+  let syncNote: string | null = null;
+
+  if (session.organizationId && hecomClienteId) {
+    try {
+      const sync = await syncApprovedAdAccountsForCliente({
+        organizationId: session.organizationId,
+        clienteId: hecomClienteId,
+        userId: session.id,
+      });
+      if (!sync.skippedUnavailableStatus) {
+        approvedIds = sync.approvedAdvertiserIds;
+        if (approvedIds.length === 0) {
+          syncNote =
+            "No hay cuentas TikTok Aprobadas para este cliente. Revisá el BM o el mapeo en Hecom.";
+        }
+      } else {
+        syncNote =
+          "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
+      }
+    } catch (error) {
+      console.error("[payments] approved_sync_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      syncNote =
+        "No se pudo sincronizar cuentas aprobadas. Probá de nuevo en unos minutos.";
+    }
+  }
+
   const core = await getPaymentPageCore(session);
   const activeGateway =
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
@@ -51,9 +83,11 @@ export async function PaymentsGatewayPanel({
     hecomAdvertiserIds != null
       ? scopeAllocationAccountsToHecomAdvertisers(
           core.adAccountsForAllocation,
-          hecomAdvertiserIds,
-        )
-      : core.adAccountsForAllocation;
+          approvedIds,
+        ).filter((account) => account.status !== "disabled")
+      : core.adAccountsForAllocation.filter(
+          (account) => account.status !== "disabled",
+        );
 
   const scopedSummary = {
     ...core.summary,
@@ -77,6 +111,15 @@ export async function PaymentsGatewayPanel({
           isStaff={isStaff}
         />
 
+        {syncNote ? (
+          <p
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950"
+            role="status"
+          >
+            {syncNote}
+          </p>
+        ) : null}
+
         {hecomAdvertiserIds != null && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
@@ -86,17 +129,19 @@ export async function PaymentsGatewayPanel({
               2 · Fondear cuenta ads · {clienteName ?? "Este cliente"}
             </p>
             <h2 className="mt-1 text-[15px] font-medium text-[#1a1612]">
-              Sin cuentas Holistic para asignar
+              Sin cuentas Aprobadas para asignar
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              {clienteName ?? "Este cliente"} tiene cuentas en Hecom, pero todavía
-              no hay cuentas ads de Holistic vinculadas a esos advertiser IDs.
+              Solo listamos advertisers en estado <strong>Aprobado</strong> en
+              TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
+              suspendidas, no aparecen acá. Activá/aprobá en el BM o mapeá la
+              cuenta correcta en Hecom.
             </p>
             <Link
               href={routes.adAccounts}
               className="mt-3 inline-flex text-[13px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
             >
-              Ver cuentas Hecom del cliente
+              Ver cuentas del cliente
             </Link>
           </section>
         ) : (

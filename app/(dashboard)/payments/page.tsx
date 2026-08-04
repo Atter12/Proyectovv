@@ -160,6 +160,7 @@ export default async function PaymentsPage({
       <PaymentsGatewayPanel
         session={session}
         hecomAdvertiserIds={hecomAdvertiserIds}
+        hecomClienteId={cliente.id}
         clienteName={cliente.name}
         skipOrphanCleanup
       />

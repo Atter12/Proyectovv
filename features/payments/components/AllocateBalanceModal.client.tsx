@@ -138,11 +138,10 @@ export function AllocateBalanceModal({
               <span className="text-red-600">no configurado</span>
             )}
           </p>
-          {targetAccount.externalAccountId?.trim() ===
-          "7655333824544374791" ? (
+          {targetAccount.status === "disabled" ? (
             <p className="mt-2 text-[11px] leading-4 text-amber-800" role="alert">
-              Este ID es Branlyn 204 (suele estar suspendida). Cambiá a la 206
-              aprobada: 7655330910371594258 en Cuentas ads → Configurar.
+              Esta cuenta está desactivada/suspendida. Elegí una cuenta Aprobada
+              de la lista (o sincronizá de nuevo en Pagos).
             </p>
           ) : null}
         </div>
