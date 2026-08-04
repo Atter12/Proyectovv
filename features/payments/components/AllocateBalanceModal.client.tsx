@@ -156,13 +156,19 @@ export function AllocateBalanceModal({
           <Input
             id="allocation-amount"
             type="number"
-            min={1}
+            min={agencyBmFunding ? 10 : 1}
             step="0.01"
-            placeholder="100.00"
+            placeholder={agencyBmFunding ? "10.00" : "100.00"}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             autoFocus
           />
+          {agencyBmFunding ? (
+            <p className="mt-1.5 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
+              TikTok suele exigir un mínimo por cuenta (a menudo ≥ $10). $1–$2
+              suelen fallar.
+            </p>
+          ) : null}
         </div>
 
         {error && (

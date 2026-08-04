@@ -83,11 +83,22 @@ function formatTransferError(input: {
   const base = `TikTok BC transfer falló [${input.code ?? "http"}]: ${input.message}`;
   const meta = `bc=${input.bcId} adv=${input.advertiserId} token=${input.tokenSource}:${input.tokenFp} req=${input.tiktokRequestId ?? "n/a"}`;
 
-  if (input.code === 40002 || /finance permission/i.test(input.message)) {
+  if (/amountToTransfer is less than transferableAmount|min_transferable|minimum.*transfer/i.test(input.message)) {
+    return [
+      "TikTok rechazó el monto: es menor al mínimo transferible de esa cuenta ads.",
+      meta,
+      "Probá con un monto mayor (suele ser ≥ $10 o el mínimo del paquete/BM). $1–$2 a menudo no alcanzan.",
+    ].join(" | ");
+  }
+
+  if (
+    /finance permission|insufficient permission|no permission/i.test(input.message) ||
+    (input.code === 40002 && /permission/i.test(input.message))
+  ) {
     return [
       base,
       meta,
-      "Causa: el usuario del token es Admin del BM pero NO tiene finance_role (Finance Manager/Analyst).",
+      "Causa: el usuario del token no tiene permiso finance en el BM.",
       "En TikTok BM → Usuarios → Editar miembro → rol Finance / ext_user_role.finance_role.",
       "Luego regenerá auth_code → access_token y actualizá TIKTOK_ACCESS_TOKEN + Redeploy.",
     ].join(" | ");
