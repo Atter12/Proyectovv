@@ -93,6 +93,14 @@ function formatTransferError(input: {
     ].join(" | ");
   }
 
+  if (/abnormal state|cannot be used for top-up/i.test(input.message)) {
+    return [
+      "TikTok rechazó el top-up: la cuenta ads (advertiser) está en estado anormal (suele ser Suspendida / Rejected / no aprobada).",
+      meta,
+      "Solución: en ads.tiktok.com → BM → Accounts, usá un advertiser en estado Approved/Aprobado, o reactivá esta cuenta. Actualizá external_account_id en Holistic si cambiás de advertiser.",
+    ].join(" | ");
+  }
+
   return `${base} | ${meta}`;
 }
 
