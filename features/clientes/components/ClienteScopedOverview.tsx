@@ -118,6 +118,10 @@ export function ClienteScopedOverview({
               {moneyUsd(summary.gastoTotal)} − fees{" "}
               {moneyUsd(summary.feeTotal)}
             </p>
+            <p className="mt-1.5 text-[11px] leading-4 text-[var(--auth-text-soft)]">
+              No baja al fondear el BM: eso es presupuesto ads. La deuda baja
+              solo con un cobro registrado en Hecom.
+            </p>
           </div>
         </div>
 

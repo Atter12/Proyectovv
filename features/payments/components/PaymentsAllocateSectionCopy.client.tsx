@@ -26,9 +26,12 @@ export function PaymentsAllocateSectionCopy({
           Mover cash del BM a cuentas TikTok
         </h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-          No hace falta que el cliente tenga saldo en cartera Holistic. Asigná
-          y se mueve cash del Business Center a la cuenta ads de
-          {who}.
+          Movés cash del Business Center a la cuenta ads de
+          {who}. Eso es presupuesto para pautar:{" "}
+          <span className="font-medium text-[#1a1612]">
+            no baja la deuda neta Hecom
+          </span>{" "}
+          (la deuda baja solo con un cobro del cliente).
         </p>
       </>
     );

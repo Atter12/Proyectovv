@@ -65,13 +65,16 @@ export function SidebarWalletCard({
       </div>
       <p className="mt-3 text-[12px] font-medium text-[var(--auth-text-muted)]">
         {selectedCliente.saldoEstimado != null && selectedCliente.saldoEstimado < 0
-          ? "Deuda neta (Hecom)"
-          : "Saldo estimado (Hecom)"}
+          ? "Deuda neta Hecom"
+          : "Saldo estimado Hecom"}
       </p>
       <p className="mt-1 text-[1.45rem] font-bold tracking-[-0.03em] text-[var(--auth-text)]">
         {selectedCliente.saldoEstimado == null
           ? "—"
           : formatMoney(selectedCliente.saldoEstimado, "USD")}
+      </p>
+      <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+        Cobros − (gastos + fees). Fondear BM no la mueve.
       </p>
       <div className="mt-3 grid gap-2">
         <Link
