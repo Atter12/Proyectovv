@@ -55,7 +55,9 @@ export function PaymentsGatewayBlockClient({
         onFundingModeChange={setFundingMode}
       />
 
-      {modalOpen && fundingMode === "client" ? (
+      {/* Cartera / Stripe siempre puede abrirse (también desde «Agregar saldo»
+          del resumen), aunque el camino activo sea Gerente → BM. */}
+      {modalOpen ? (
         <AddBalanceModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
+import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface AllocateBalanceModalProps {
@@ -26,6 +27,7 @@ export function AllocateBalanceModal({
   onClose,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
+  const { agencyBmFunding } = usePaymentsFundingMode();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -76,11 +78,14 @@ export function AllocateBalanceModal({
           adAccountId: targetAccount.id,
           amount: parsedAmount,
           currency: "USD",
+          agencyBmFunding,
         }),
       });
 
       setSuccess(
-        `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
+        agencyBmFunding
+          ? `Fondeo BM de ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
+          : `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
       );
       router.refresh();
     } catch (err) {
@@ -108,12 +113,12 @@ export function AllocateBalanceModal({
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
-          Asignar saldo
+          {agencyBmFunding ? "Fondear desde BM" : "Asignar saldo"}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Descuenta la cartera Holistic y mueve cash del BM a esta cuenta ads.
-          Si la cuenta ya tiene saldo en TikTok, puede seguir pautando; esto
-          suma más presupuesto controlado por Holistic.
+          {agencyBmFunding
+            ? "Mueve cash del Business Center a esta cuenta ads. No exige saldo en la cartera Holistic (puente contable automático)."
+            : "Descuenta la cartera Holistic y mueve cash del BM a esta cuenta ads. Si la cuenta ya tiene saldo en TikTok, puede seguir pautando; esto suma más presupuesto controlado por Holistic."}
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
@@ -167,7 +172,13 @@ export function AllocateBalanceModal({
             disabled={loading || !isValidAmount}
             className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
           >
-            {loading ? "Asignando…" : "Asignar saldo"}
+            {loading
+              ? agencyBmFunding
+                ? "Fondeando…"
+                : "Asignando…"
+              : agencyBmFunding
+                ? "Fondear desde BM"
+                : "Asignar saldo"}
           </Button>
         </div>
       </div>
