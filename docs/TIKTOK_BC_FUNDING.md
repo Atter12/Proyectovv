@@ -105,7 +105,7 @@ Orden de resolución del token en código:
 
 ### Camino 1 (rápido): copiar de `hecom.club`
 Ese proyecto ya lo tiene (mismo sync de gastos).
-
+|
 1. Vercel → proyecto **`hecom.club`** → Settings → Environment Variables  
 2. Abrí `TIKTOK_ACCESS_TOKEN` → Reveal → copiar  
 3. Pegalo en **`proyectovv`** → Production (+ Preview)  
