@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { after } from "next/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
@@ -11,7 +11,7 @@ import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWa
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
-import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 import Link from "next/link";
 
@@ -58,6 +58,10 @@ export default async function PaymentsPage({
   const status = typeof params.status === "string" ? params.status : undefined;
   const isStripeReturn = status === "success" || status === "cancelled";
   const selected = await getSelectedHecomCliente();
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
 
   if (!selected) {
     return (
@@ -81,13 +85,7 @@ export default async function PaymentsPage({
     .map((account) => account.advertiserId?.trim())
     .filter((id): id is string => Boolean(id));
 
-  const isStaff =
-    isHecomOtpStaffEmail(session.email) ||
-    session.role === "owner" ||
-    session.role === "admin";
-
-  // Cleanup fuera del path crítico (no bloquea el HTML al volver de Stripe).
-  if (isStaff && session.organizationId) {
+  if (capabilities.isStaff && session.organizationId) {
     const organizationId = session.organizationId;
     after(async () => {
       try {
@@ -99,6 +97,12 @@ export default async function PaymentsPage({
       }
     });
   }
+
+  const introCopy = capabilities.canSwitchFundingModes
+    ? `Super admin: podés operar como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
+    : capabilities.canAgencyBmFund
+      ? `Modo gerente: fondeá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Abajo: historial Hecom.`
+      : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}. Abajo: historial Hecom.`;
 
   return (
     <div className={dashboardClasses.page}>
@@ -115,25 +119,29 @@ export default async function PaymentsPage({
           />
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
-              Cartera Holistic · vs · TikTok Ads
+              {capabilities.canSwitchFundingModes
+                ? "Cartera Holistic · vs · TikTok Ads"
+                : capabilities.canAgencyBmFund
+                  ? "Gerente · Cash BM TikTok"
+                  : "Cliente · Cartera Holistic"}
             </p>
             <h2
               id="wallet-topup-heading"
               className="mt-1.5 text-[1.35rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.45rem]"
             >
-              Recargar y fondear ads
+              {capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
+                ? "Fondear ads desde BM"
+                : "Recargar y fondear ads"}
             </h2>
             <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Dos caminos: <strong className="font-medium text-[#1a1612]">Cliente</strong>{" "}
-              recarga con Stripe/manual y asigna;{" "}
-              <strong className="font-medium text-[#1a1612]">Gerente</strong>{" "}
-              fondea desde cash del BM sin Stripe. Elegí arriba y operá solo
-              cuentas de {cliente.name}. Abajo: historial Hecom.
+              {introCopy}
             </p>
 
-            <div className="mt-4">
-              <PaymentsMoneyFlowGuide />
-            </div>
+            {capabilities.canClientStripeFund ? (
+              <div className="mt-4">
+                <PaymentsMoneyFlowGuide />
+              </div>
+            ) : null}
 
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <HecomClienteAvatar
@@ -154,15 +162,19 @@ export default async function PaymentsPage({
             </div>
 
             <p className="mt-4 rounded-lg border border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-3.5 py-2.5 text-[13px] leading-5 text-[#4a443c]">
-              Recargás arriba para fondear; abajo solo ves el historial de lo ya
-              cobrado y gastado de {cliente.name}.
+              {capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
+                ? `Fondeá arriba la cuenta ads de ${cliente.name}; abajo ves cobros y gastos Hecom.`
+                : `Recargás arriba para fondear; abajo solo ves el historial de lo ya cobrado y gastado de ${cliente.name}.`}
             </p>
           </div>
         </div>
       </section>
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-        <PaymentsWalletSection session={session} staffMode={isStaff} />
+        <PaymentsWalletSection
+          session={session}
+          staffMode={capabilities.isStaff}
+        />
       </Suspense>
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={2} />}>

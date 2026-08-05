@@ -7,15 +7,24 @@ export type PaymentsFundingMode = "client" | "agency_bm";
 interface PaymentsFundingModeSwitchProps {
   mode: PaymentsFundingMode;
   onChange: (mode: PaymentsFundingMode) => void;
-  isStaff: boolean;
+  canClientStripeFund: boolean;
+  canAgencyBmFund: boolean;
+  canSwitchFundingModes: boolean;
 }
 
 /** Selector visible: Cliente (Stripe) vs Gerente (cash BM). */
 export function PaymentsFundingModeSwitch({
   mode,
   onChange,
-  isStaff,
+  canClientStripeFund,
+  canAgencyBmFund,
+  canSwitchFundingModes,
 }: PaymentsFundingModeSwitchProps) {
+  if (!canSwitchFundingModes) {
+    // Un solo camino: no hace falta el switch.
+    return null;
+  }
+
   return (
     <section className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
       <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
@@ -26,20 +35,23 @@ export function PaymentsFundingModeSwitch({
           Elegí el camino
         </h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-          No son dos tarjetas: son dos roles. Cliente paga a Holistic; gerente
-          mueve cash del BM TikTok.
+          Super admin: podés operar como cliente (Stripe) o como gerente (cash
+          BM).
         </p>
       </div>
 
       <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
         <button
           type="button"
-          onClick={() => onChange("client")}
+          disabled={!canClientStripeFund}
+          onClick={() => canClientStripeFund && onChange("client")}
           className={cn(
             "rounded-xl border px-4 py-3.5 text-left transition-colors",
             mode === "client"
               ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)]"
               : "border-[rgb(20_18_16_/_0.08)] bg-white hover:bg-[#faf7f3]",
+            !canClientStripeFund &&
+              "cursor-not-allowed opacity-55 hover:bg-white",
           )}
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a5a38]">
@@ -49,21 +61,21 @@ export function PaymentsFundingModeSwitch({
             Recargar con Stripe / manual
           </p>
           <p className="mt-1 text-[12px] leading-4 text-[#6b645c]">
-            El cliente (o vos por él) mete plata a la cartera Holistic y después
-            asigna a la cuenta ads.
+            El cliente mete plata a la cartera Holistic y después asigna a la
+            cuenta ads.
           </p>
         </button>
 
         <button
           type="button"
-          disabled={!isStaff}
-          onClick={() => isStaff && onChange("agency_bm")}
+          disabled={!canAgencyBmFund}
+          onClick={() => canAgencyBmFund && onChange("agency_bm")}
           className={cn(
             "rounded-xl border px-4 py-3.5 text-left transition-colors",
             mode === "agency_bm"
               ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)]"
               : "border-[rgb(20_18_16_/_0.08)] bg-white hover:bg-[#faf7f3]",
-            !isStaff && "cursor-not-allowed opacity-55 hover:bg-white",
+            !canAgencyBmFund && "cursor-not-allowed opacity-55 hover:bg-white",
           )}
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a5a38]">
@@ -73,9 +85,8 @@ export function PaymentsFundingModeSwitch({
             Fondear desde BM (cash agencia)
           </p>
           <p className="mt-1 text-[12px] leading-4 text-[#6b645c]">
-            {isStaff
-              ? "Sin Stripe: movés cash del Business Center a la cuenta ads del cliente."
-              : "Solo disponible para gerentes Holistic (staff)."}
+            Sin Stripe: movés cash del Business Center a la cuenta ads del
+            cliente.
           </p>
         </button>
       </div>

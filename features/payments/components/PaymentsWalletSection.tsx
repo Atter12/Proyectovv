@@ -1,4 +1,5 @@
 import { getPaymentPageCore } from "@/services/payments.service";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import type { SessionUser } from "@/types/auth";
 import { WalletSummaryPremium } from "./WalletSummaryPremium";
 
@@ -15,12 +16,17 @@ export async function PaymentsWalletSection({
   const preferredGateway =
     core.gateways.find((g) => g.id === core.wallet.preferredGateway) ??
     core.gateways[0]!;
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
 
   return (
     <WalletSummaryPremium
       wallet={core.wallet}
       preferredGateway={preferredGateway}
-      staffMode={staffMode}
+      staffMode={staffMode || capabilities.isStaff}
+      canClientStripeFund={capabilities.canClientStripeFund}
     />
   );
 }

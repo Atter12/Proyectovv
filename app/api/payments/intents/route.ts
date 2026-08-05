@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import {
   createPaymentIntentForSession,
 } from "@/lib/payments/create-intent.server";
 import { ProviderNotConfiguredError } from "@/lib/payments/providers";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { isPaymentGatewayId } from "@/types/payment";
 import type { PaymentGatewayId } from "@/types/payment";
 import { getDefaultGatewayId } from "@/lib/payments/gateway-config";
@@ -20,6 +21,20 @@ export async function POST(request: Request) {
     !hasPermission(session.permissions, "payments:create")
   ) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
+  }
+
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  if (!capabilities.canClientStripeFund) {
+    return NextResponse.json(
+      {
+        error:
+          "Los gerentes fondean desde el BM. Solo el super admin o el cliente pueden usar Stripe.",
+      },
+      { status: 403 },
+    );
   }
 
   let body: {

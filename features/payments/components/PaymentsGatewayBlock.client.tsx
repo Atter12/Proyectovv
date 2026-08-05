@@ -21,13 +21,20 @@ export function PaymentsGatewayBlockClient({
   gateways,
   initialSelected,
 }: PaymentsGatewayBlockClientProps) {
-  const { fundingMode, setFundingMode, isStaff } = usePaymentsFundingMode();
+  const {
+    fundingMode,
+    setFundingMode,
+    canClientStripeFund,
+    canAgencyBmFund,
+    canSwitchFundingModes,
+  } = usePaymentsFundingMode();
   const [selectedGateway, setSelectedGateway] =
     useState<PaymentGatewayId>(initialSelected);
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     function handleOpenModal() {
+      if (!canClientStripeFund) return;
       setModalOpen(true);
     }
     window.addEventListener(PAYMENTS_OPEN_ADD_BALANCE_MODAL, handleOpenModal);
@@ -36,9 +43,10 @@ export function PaymentsGatewayBlockClient({
         PAYMENTS_OPEN_ADD_BALANCE_MODAL,
         handleOpenModal,
       );
-  }, []);
+  }, [canClientStripeFund]);
 
   function handleSelectGateway(id: PaymentGatewayId) {
+    if (!canClientStripeFund) return;
     setSelectedGateway(id);
     setModalOpen(true);
   }
@@ -49,15 +57,18 @@ export function PaymentsGatewayBlockClient({
         gateways={gateways}
         selected={selectedGateway}
         onSelect={handleSelectGateway}
-        onContinue={() => setModalOpen(true)}
-        isStaff={isStaff}
+        onContinue={() => {
+          if (!canClientStripeFund) return;
+          setModalOpen(true);
+        }}
         fundingMode={fundingMode}
         onFundingModeChange={setFundingMode}
+        canClientStripeFund={canClientStripeFund}
+        canAgencyBmFund={canAgencyBmFund}
+        canSwitchFundingModes={canSwitchFundingModes}
       />
 
-      {/* Cartera / Stripe siempre puede abrirse (también desde «Agregar saldo»
-          del resumen), aunque el camino activo sea Gerente → BM. */}
-      {modalOpen ? (
+      {canClientStripeFund && modalOpen ? (
         <AddBalanceModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

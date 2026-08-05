@@ -6,8 +6,8 @@ import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { getPaymentPageCore } from "@/services/payments.service";
-import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import type { SessionUser } from "@/types/auth";
 import Link from "next/link";
 import { routes } from "@/config/routes";
@@ -34,12 +34,16 @@ export async function PaymentsGatewayPanel({
   skipOrphanCleanup = false,
   skipApprovedSync = false,
 }: PaymentsGatewayPanelProps) {
-  const isStaff =
-    isHecomOtpStaffEmail(session.email) ||
-    session.role === "owner" ||
-    session.role === "admin";
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
 
-  if (!skipOrphanCleanup && isStaff && session.organizationId) {
+  if (
+    !skipOrphanCleanup &&
+    capabilities.isStaff &&
+    session.organizationId
+  ) {
     try {
       await reverseOrphanedAgencyBmBridges({
         organizationId: session.organizationId,
@@ -107,7 +111,7 @@ export async function PaymentsGatewayPanel({
   };
 
   return (
-    <PaymentsFundingModeProvider isStaff={isStaff}>
+    <PaymentsFundingModeProvider capabilities={capabilities}>
       <div className="space-y-5">
         <PaymentsGatewayBlockClient
           gateways={core.gateways}
@@ -118,7 +122,7 @@ export async function PaymentsGatewayPanel({
           wallet={core.wallet}
           summary={scopedSummary}
           activeGateway={activeGateway}
-          isStaff={isStaff}
+          isStaff={capabilities.isStaff}
         />
 
         {syncNote ? (

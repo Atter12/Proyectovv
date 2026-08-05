@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -44,14 +44,20 @@ export async function POST(request: Request) {
   }
 
   const amountCents = Math.round(amount * 100);
-  const isStaff =
-    isHecomOtpStaffEmail(session.email) ||
-    session.role === "owner" ||
-    session.role === "admin";
-  // Producto: gerentes siempre fondean desde BM. Stripe es solo recarga de clientes.
-  const wantsAgencyBm = isStaff || Boolean(body.agencyBmFunding);
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
 
-  if (wantsAgencyBm && !isStaff) {
+  // Gerente → siempre BM. Super admin → según flag. Cliente → cartera Holistic.
+  let wantsAgencyBm = false;
+  if (capabilities.canAgencyBmFund) {
+    wantsAgencyBm = capabilities.canSwitchFundingModes
+      ? Boolean(body.agencyBmFunding)
+      : true;
+  }
+
+  if (wantsAgencyBm && !capabilities.canAgencyBmFund) {
     return NextResponse.json(
       { error: "Solo gerentes/staff pueden fondear desde el BM sin recarga del cliente." },
       { status: 403 },
@@ -60,7 +66,8 @@ export async function POST(request: Request) {
 
   console.info("[payments/allocations]", {
     email: session.email,
-    isStaff,
+    isStaff: capabilities.isStaff,
+    isSuperAdmin: capabilities.isSuperAdmin,
     wantsAgencyBm,
     amountCents,
     adAccountId: body.adAccountId,

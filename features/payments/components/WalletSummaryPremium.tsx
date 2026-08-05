@@ -7,12 +7,15 @@ interface WalletSummaryPremiumProps {
   preferredGateway: PaymentGateway;
   /** Gerentes fondean por BM; la cartera Holistic es solo camino cliente. */
   staffMode?: boolean;
+  /** Super admin / cliente: pueden abrir Stripe. Gerentes normales no. */
+  canClientStripeFund?: boolean;
 }
 
 export function WalletSummaryPremium({
   wallet,
   preferredGateway,
   staffMode = false,
+  canClientStripeFund = true,
 }: WalletSummaryPremiumProps) {
   return (
     <div className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
@@ -39,9 +42,11 @@ export function WalletSummaryPremium({
                 {wallet.name}
               </p>
               <p className="text-[11px] text-[#7a736a]">
-                {staffMode
-                  ? "Solo camino Cliente (Stripe). En Gerente no se usa."
-                  : "Listo para asignar a cuentas TikTok"}
+                {staffMode && !canClientStripeFund
+                  ? "Modo gerente: fondeá desde BM (sin Stripe)"
+                  : staffMode
+                    ? "Super admin: Stripe o BM según el camino elegido"
+                    : "Listo para asignar a cuentas TikTok"}
               </p>
             </div>
           </div>
@@ -64,10 +69,19 @@ export function WalletSummaryPremium({
           </div>
         </div>
 
-        <WalletSummaryActions
-          availableBalance={wallet.balance}
-          currency={wallet.currency}
-        />
+        {canClientStripeFund ? (
+          <WalletSummaryActions
+            availableBalance={wallet.balance}
+            currency={wallet.currency}
+          />
+        ) : (
+          <a
+            href="#asignar-saldo"
+            className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16] sm:w-auto"
+          >
+            Ir a fondear BM
+          </a>
+        )}
       </div>
     </div>
   );

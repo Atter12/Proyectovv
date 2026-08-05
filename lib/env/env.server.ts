@@ -98,6 +98,10 @@ export const serverEnv = {
   authHecomOtpStaffEmails: splitCsv(process.env.AUTH_HECOM_OTP_STAFF_EMAILS).map((email) =>
     email.toLowerCase(),
   ),
+  // Super admin Pagos: Cliente (Stripe) + Gerente (BM). Default: Atter.
+  paymentsSuperAdminEmails: splitCsv(process.env.PAYMENTS_SUPER_ADMIN_EMAILS).map((email) =>
+    email.toLowerCase(),
+  ),
 
   paymentsDefaultProvider: process.env.PAYMENTS_DEFAULT_PROVIDER ?? "manual",
   paymentsAllowManualProvider: parseBoolean(process.env.PAYMENTS_ALLOW_MANUAL_PROVIDER),

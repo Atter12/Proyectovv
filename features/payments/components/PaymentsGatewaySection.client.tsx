@@ -12,9 +12,11 @@ interface PaymentsGatewaySectionProps {
   selected: PaymentGatewayId;
   onSelect: (id: PaymentGatewayId) => void;
   onContinue: () => void;
-  isStaff?: boolean;
   fundingMode: PaymentsFundingMode;
   onFundingModeChange: (mode: PaymentsFundingMode) => void;
+  canClientStripeFund: boolean;
+  canAgencyBmFund: boolean;
+  canSwitchFundingModes: boolean;
 }
 
 export function PaymentsGatewaySection({
@@ -22,19 +24,24 @@ export function PaymentsGatewaySection({
   selected,
   onSelect,
   onContinue,
-  isStaff = false,
   fundingMode,
   onFundingModeChange,
+  canClientStripeFund,
+  canAgencyBmFund,
+  canSwitchFundingModes,
 }: PaymentsGatewaySectionProps) {
   const selectedGateway = gateways.find((g) => g.id === selected);
-  const showClientDeposit = fundingMode === "client";
+  const showClientDeposit =
+    canClientStripeFund && fundingMode === "client";
 
   return (
     <div className="space-y-5">
       <PaymentsFundingModeSwitch
         mode={fundingMode}
         onChange={onFundingModeChange}
-        isStaff={isStaff}
+        canClientStripeFund={canClientStripeFund}
+        canAgencyBmFund={canAgencyBmFund}
+        canSwitchFundingModes={canSwitchFundingModes}
       />
 
       {showClientDeposit ? (
