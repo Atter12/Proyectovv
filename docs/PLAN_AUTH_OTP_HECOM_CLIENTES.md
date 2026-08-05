@@ -202,7 +202,7 @@ Textos:
 - [ ] `AUTH_HECOM_OTP_LOGIN=true` en Vercel
 - [x] UI login **solo OTP** (sin password / sin `?password=1`)
 - [x] `/register` redirige a login si OTP activo
-- [x] Magic link → `/auth/callback?flow=hecom` + código 6 dígitos
+- [x] Magic link → `/auth/callback?token_hash=…&type=magiclink&flow=hecom` (hashed_token; no action_link PKCE)
 - [ ] Redirect URL en Supabase: `https://<APP_URL>/auth/callback`
 - [ ] Template email con `{{ .Token }}` + `{{ .ConfirmationURL }}`
 

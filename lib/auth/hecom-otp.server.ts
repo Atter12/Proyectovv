@@ -233,16 +233,15 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
-  const redirectTo = new URL("/auth/callback", serverEnv.appUrl);
-  redirectTo.searchParams.set("flow", "hecom");
-
+  // Link propio con hashed_token → /auth/callback (PKCE-safe).
+  // NO usar action_link de Supabase: con PKCE el verify externo suele fallar
+  // o redirigir sin code/token_hash que el server pueda leer.
   const admin = createAdminClient();
   const { data: linkData, error: linkError } =
     await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
       options: {
-        redirectTo: redirectTo.toString(),
         data: {
           hecom_otp: true,
           hecom_staff: isStaff,
@@ -264,12 +263,13 @@ export async function requestHecomClientOtp(input: {
   }
 
   const code = linkData.properties?.email_otp;
-  let magicLink = linkData.properties?.action_link;
-  if (!code || !magicLink) {
+  const hashedToken = linkData.properties?.hashed_token;
+  if (!code || !hashedToken) {
     logHecomOtp("error", "request_missing_code_or_link", {
       email: emailMasked,
       hasCode: Boolean(code),
-      hasLink: Boolean(magicLink),
+      hasHashedToken: Boolean(hashedToken),
+      hasActionLink: Boolean(linkData.properties?.action_link),
     });
     return {
       ok: false,
@@ -278,13 +278,11 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
-  try {
-    const linkUrl = new URL(magicLink);
-    linkUrl.searchParams.set("redirect_to", redirectTo.toString());
-    magicLink = linkUrl.toString();
-  } catch {
-    // leave original
-  }
+  const magicLinkUrl = new URL("/auth/callback", serverEnv.appUrl);
+  magicLinkUrl.searchParams.set("token_hash", hashedToken);
+  magicLinkUrl.searchParams.set("type", "magiclink");
+  magicLinkUrl.searchParams.set("flow", "hecom");
+  const magicLink = magicLinkUrl.toString();
 
   try {
     const sent = await sendHecomOtpEmail({ to: email, code, magicLink });
@@ -300,7 +298,8 @@ export async function requestHecomClientOtp(input: {
       email: emailMasked,
       isStaff,
       resendId: sent.providerMessageId ?? null,
-      redirectTo: redirectTo.toString(),
+      magicLinkHost: magicLinkUrl.host,
+      magicLinkPath: magicLinkUrl.pathname,
     });
   } catch (error) {
     const message =
