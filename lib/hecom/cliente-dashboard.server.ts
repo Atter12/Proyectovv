@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import {
   filterBackupByClient,
   loadHecomBackupJson,
@@ -185,15 +186,19 @@ function buildSummary(
   };
 }
 
-async function loadLiveFinance(clientId: string): Promise<{
+async function loadLiveFinance(
+  clientId: string,
+  options: { includeCreativos?: boolean } = {},
+): Promise<{
   gastos: HecomGastoRow[];
   cobros: HecomCobroRow[];
   creativosClientes: HecomCreativoCliente[];
   creativosProyectos: HecomCreativoProyecto[];
 } | null> {
+  const includeCreativos = options.includeCreativos !== false;
   try {
     const hecom = createHecomAdminClient();
-    const [gastosRes, cobrosRes, creativosRes] = await Promise.all([
+    const financeQueries = [
       hecom
         .from("gastos")
         .select(
@@ -208,11 +213,17 @@ async function loadLiveFinance(clientId: string): Promise<{
         .eq("client_id", clientId)
         .order("fecha", { ascending: false })
         .limit(80),
-      hecom
-        .from("creativos_clientes")
-        .select("id,name,company,email,credito_client_id")
-        .eq("credito_client_id", clientId)
-        .limit(40),
+    ] as const;
+
+    const [gastosRes, cobrosRes, creativosRes] = await Promise.all([
+      ...financeQueries,
+      includeCreativos
+        ? hecom
+            .from("creativos_clientes")
+            .select("id,name,company,email,credito_client_id")
+            .eq("credito_client_id", clientId)
+            .limit(40)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     const gastos = ((gastosRes.data ?? []) as Record<string, unknown>[])
@@ -221,14 +232,14 @@ async function loadLiveFinance(clientId: string): Promise<{
     const cobros = ((cobrosRes.data ?? []) as Record<string, unknown>[])
       .filter((row) => String(row.client_id ?? "") === clientId)
       .map(mapCobro);
-    const creativosClientes = (
-      (creativosRes.data ?? []) as Record<string, unknown>[]
-    )
-      .filter((row) => String(row.credito_client_id ?? "") === clientId)
-      .map(mapCreativoCliente);
+    const creativosClientes = includeCreativos
+      ? ((creativosRes.data ?? []) as Record<string, unknown>[])
+          .filter((row) => String(row.credito_client_id ?? "") === clientId)
+          .map(mapCreativoCliente)
+      : [];
 
     let creativosProyectos: HecomCreativoProyecto[] = [];
-    if (creativosClientes.length > 0) {
+    if (includeCreativos && creativosClientes.length > 0) {
       const ids = creativosClientes.map((c) => c.id);
       const proyectosRes = await hecom
         .from("creativos_proyectos")
@@ -243,7 +254,11 @@ async function loadLiveFinance(clientId: string): Promise<{
     }
 
     // If all queries failed hard, treat as not live
-    if (gastosRes.error && cobrosRes.error && creativosRes.error) {
+    if (
+      gastosRes.error &&
+      cobrosRes.error &&
+      (includeCreativos ? creativosRes.error : true)
+    ) {
       return null;
     }
 
@@ -274,80 +289,121 @@ function scopeGastosToAdvertisers(
   });
 }
 
-export async function getHecomClienteDashboard(
-  clienteId: string,
-): Promise<HecomClienteDashboard | null> {
-  const cliente = await getHecomCliente(clienteId);
-  if (!cliente) return null;
+export const getHecomClienteDashboard = cache(
+  async (clienteId: string): Promise<HecomClienteDashboard | null> => {
+    const cliente = await getHecomCliente(clienteId);
+    if (!cliente) return null;
 
-  const accounts = resolveAccounts(cliente);
-  const advertiserIds = advertiserIdsFromAccounts(accounts);
-  const cfg = getHecomSupabaseConfig();
+    const accounts = resolveAccounts(cliente);
+    const advertiserIds = advertiserIdsFromAccounts(accounts);
+    const cfg = getHecomSupabaseConfig();
 
-  if (cfg.configured) {
-    const live = await loadLiveFinance(clienteId);
-    if (live) {
-      const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
-      const cobros = live.cobros;
-      return {
-        source: "hecom_live",
-        cliente,
-        accounts,
-        gastos,
-        cobros,
-        creativosClientes: live.creativosClientes,
-        creativosProyectos: live.creativosProyectos,
-        summary: buildSummary(
+    if (cfg.configured) {
+      const live = await loadLiveFinance(clienteId);
+      if (live) {
+        const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+        const cobros = live.cobros;
+        return {
+          source: "hecom_live",
+          cliente,
           accounts,
           gastos,
           cobros,
-          live.creativosClientes,
-          live.creativosProyectos,
-        ),
+          creativosClientes: live.creativosClientes,
+          creativosProyectos: live.creativosProyectos,
+          summary: buildSummary(
+            accounts,
+            gastos,
+            cobros,
+            live.creativosClientes,
+            live.creativosProyectos,
+          ),
+        };
+      }
+    }
+
+    const backup = await loadHecomBackupJson();
+    if (!backup) {
+      return {
+        source: "hecom_backup",
+        cliente,
+        accounts,
+        gastos: [],
+        cobros: [],
+        creativosClientes: [],
+        creativosProyectos: [],
+        summary: buildSummary(accounts, [], [], [], []),
       };
     }
-  }
 
-  const backup = await loadHecomBackupJson();
-  if (!backup) {
+    const filtered = filterBackupByClient(backup.data, clienteId);
+    const gastos = scopeGastosToAdvertisers(
+      filtered.gastos.map(mapGasto),
+      advertiserIds,
+    );
+    const cobros = filtered.cobros.map(mapCobro);
+    const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
+    const creativosProyectos =
+      filtered.creativosProyectos.map(mapCreativoProyecto);
+
     return {
       source: "hecom_backup",
       cliente,
-      accounts,
-      gastos: [],
-      cobros: [],
-      creativosClientes: [],
-      creativosProyectos: [],
-      summary: buildSummary(accounts, [], [], [], []),
-    };
-  }
-
-  const filtered = filterBackupByClient(backup.data, clienteId);
-  const gastos = scopeGastosToAdvertisers(
-    filtered.gastos.map(mapGasto),
-    advertiserIds,
-  );
-  const cobros = filtered.cobros.map(mapCobro);
-  const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
-  const creativosProyectos = filtered.creativosProyectos.map(mapCreativoProyecto);
-
-  return {
-    source: "hecom_backup",
-    cliente,
-    accounts,
-    gastos,
-    cobros,
-    creativosClientes,
-    creativosProyectos,
-    summary: buildSummary(
       accounts,
       gastos,
       cobros,
       creativosClientes,
       creativosProyectos,
-    ),
-  };
-}
+      summary: buildSummary(
+        accounts,
+        gastos,
+        cobros,
+        creativosClientes,
+        creativosProyectos,
+      ),
+    };
+  },
+);
+
+/** Sidebar / chrome: cliente + saldo, sin creativos (más rápido). */
+export const getHecomClienteShell = cache(
+  async (
+    clienteId: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    saldoEstimado: number | null;
+  } | null> => {
+    const cliente = await getHecomCliente(clienteId);
+    if (!cliente) return null;
+
+    const accounts = resolveAccounts(cliente);
+    const advertiserIds = advertiserIdsFromAccounts(accounts);
+    const cfg = getHecomSupabaseConfig();
+
+    if (cfg.configured) {
+      const live = await loadLiveFinance(clienteId, { includeCreativos: false });
+      if (live) {
+        const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+        const summary = buildSummary(accounts, gastos, live.cobros, [], []);
+        return {
+          id: cliente.id,
+          name: cliente.name,
+          avatarUrl: cliente.avatarUrl,
+          saldoEstimado: summary.saldoEstimado,
+        };
+      }
+    }
+
+    return {
+      id: cliente.id,
+      name: cliente.name,
+      avatarUrl: cliente.avatarUrl,
+      saldoEstimado: null,
+    };
+  },
+);
 
 export function moneyUsd(value: number): string {
   return new Intl.NumberFormat("en-US", {

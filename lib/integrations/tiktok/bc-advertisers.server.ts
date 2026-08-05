@@ -218,20 +218,26 @@ export async function listHolisticBcAdvertisers(input?: {
   const bcIds = resolveBcIds();
   const byId = new Map<string, TikTokBcAdvertiser>();
 
-  for (const bcId of bcIds) {
-    try {
-      const rows = await listBcAdvertisers(token, bcId);
-      for (const row of rows) {
-        const prev = byId.get(row.advertiserId);
-        if (!prev || row.statusKind === "approved") {
-          byId.set(row.advertiserId, row);
-        }
+  const batches = await Promise.all(
+    bcIds.map(async (bcId) => {
+      try {
+        return await listBcAdvertisers(token, bcId);
+      } catch (error) {
+        console.warn("[tiktok-bc] list_advertisers_failed", {
+          bcId,
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        return [] as TikTokBcAdvertiser[];
       }
-    } catch (error) {
-      console.warn("[tiktok-bc] list_advertisers_failed", {
-        bcId,
-        error: error instanceof Error ? error.message : "unknown",
-      });
+    }),
+  );
+
+  for (const rows of batches) {
+    for (const row of rows) {
+      const prev = byId.get(row.advertiserId);
+      if (!prev || row.statusKind === "approved") {
+        byId.set(row.advertiserId, row);
+      }
     }
   }
 

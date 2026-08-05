@@ -2,7 +2,7 @@ import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { requireSession } from "@/lib/auth/guards.server";
-import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 
 export default async function DashboardLayout({
@@ -22,13 +22,20 @@ export default async function DashboardLayout({
 
   if (selected) {
     try {
-      const dash = await getHecomClienteDashboard(selected.id);
-      selectedCliente = {
-        id: selected.id,
-        name: dash?.cliente.name ?? selected.name,
-        saldoEstimado: dash?.summary.saldoEstimado ?? null,
-        avatarUrl: dash?.cliente.avatarUrl ?? null,
-      };
+      const shell = await getHecomClienteShell(selected.id);
+      selectedCliente = shell
+        ? {
+            id: shell.id,
+            name: shell.name,
+            saldoEstimado: shell.saldoEstimado,
+            avatarUrl: shell.avatarUrl,
+          }
+        : {
+            id: selected.id,
+            name: selected.name,
+            saldoEstimado: null,
+            avatarUrl: null,
+          };
     } catch {
       selectedCliente = {
         id: selected.id,

@@ -17,8 +17,13 @@ interface PaymentsGatewayPanelProps {
   hecomAdvertiserIds?: string[];
   hecomClienteId?: string;
   clienteName?: string;
-  /** Si el cleanup ya corrió en la página. */
+  /** Si el cleanup ya corrió (o se diferió) en la página. */
   skipOrphanCleanup?: boolean;
+  /**
+   * Tras Stripe u otra vuelta rápida: no bloquear en sync TikTok BC.
+   * Usa IDs Hecom y deja el sync cacheado para la próxima visita.
+   */
+  skipApprovedSync?: boolean;
 }
 
 export async function PaymentsGatewayPanel({
@@ -27,6 +32,7 @@ export async function PaymentsGatewayPanel({
   hecomClienteId,
   clienteName,
   skipOrphanCleanup = false,
+  skipApprovedSync = false,
 }: PaymentsGatewayPanelProps) {
   const isStaff =
     isHecomOtpStaffEmail(session.email) ||
@@ -48,7 +54,11 @@ export async function PaymentsGatewayPanel({
   let approvedIds = hecomAdvertiserIds ?? [];
   let syncNote: string | null = null;
 
-  if (session.organizationId && hecomClienteId) {
+  if (
+    !skipApprovedSync &&
+    session.organizationId &&
+    hecomClienteId
+  ) {
     try {
       const sync = await syncApprovedAdAccountsForCliente({
         organizationId: session.organizationId,

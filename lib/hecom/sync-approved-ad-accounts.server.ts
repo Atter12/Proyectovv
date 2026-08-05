@@ -58,24 +58,40 @@ export type SyncApprovedAdAccountsResult = {
   skippedUnavailableStatus: boolean;
 };
 
+const SYNC_TTL_MS = 5 * 60 * 1000;
+const syncResultCache = new Map<
+  string,
+  { at: number; result: SyncApprovedAdAccountsResult }
+>();
+
 /**
  * Asegura que Holistic tenga filas fondeables = advertisers Aprobados
  * del cliente (mapeo Hecom + match por nombre en BM).
  * Oculta/desactiva suspendidas.
+ * Cache 5 min por cliente para no bloquear cada visita a Pagos / retorno Stripe.
  */
 export async function syncApprovedAdAccountsForCliente(input: {
   organizationId: string;
   clienteId: string;
   userId?: string | null;
+  forceRefresh?: boolean;
 }): Promise<SyncApprovedAdAccountsResult> {
+  const cacheKey = `${input.organizationId}:${input.clienteId}`;
+  const hit = syncResultCache.get(cacheKey);
+  if (!input.forceRefresh && hit && Date.now() - hit.at < SYNC_TTL_MS) {
+    return hit.result;
+  }
+
   const cliente = await getHecomCliente(input.clienteId);
   if (!cliente) {
-    return {
+    const empty: SyncApprovedAdAccountsResult = {
       approvedAdvertiserIds: [],
       upserted: 0,
       disabled: 0,
       skippedUnavailableStatus: true,
     };
+    syncResultCache.set(cacheKey, { at: Date.now(), result: empty });
+    return empty;
   }
 
   let bcAdvertisers: TikTokBcAdvertiser[] = [];
@@ -253,10 +269,12 @@ export async function syncApprovedAdAccountsForCliente(input: {
     disabled,
   });
 
-  return {
+  const result: SyncApprovedAdAccountsResult = {
     approvedAdvertiserIds,
     upserted,
     disabled,
     skippedUnavailableStatus: false,
   };
+  syncResultCache.set(cacheKey, { at: Date.now(), result });
+  return result;
 }

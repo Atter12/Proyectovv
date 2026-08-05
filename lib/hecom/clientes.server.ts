@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import {
   getHecomClienteFromBackup,
   listHecomClientesFromBackup,
@@ -220,39 +221,41 @@ export async function findHecomClientesByEmail(
   );
 }
 
-export async function getHecomCliente(id: string): Promise<HecomCliente | null> {
-  const cfg = getHecomSupabaseConfig();
-  if (!cfg.configured) {
-    return getHecomClienteFromBackup(id);
-  }
+export const getHecomCliente = cache(
+  async (id: string): Promise<HecomCliente | null> => {
+    const cfg = getHecomSupabaseConfig();
+    if (!cfg.configured) {
+      return getHecomClienteFromBackup(id);
+    }
 
-  const hecom = createHecomAdminClient();
-  const full = await hecom
-    .from("clientes")
-    .select(
-      "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  let row: Record<string, unknown> | null = null;
-  if (full.error) {
-    const basic = await hecom
+    const hecom = createHecomAdminClient();
+    const full = await hecom
       .from("clientes")
-      .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
+      .select(
+        "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+      )
       .eq("id", id)
       .maybeSingle();
-    if (basic.error) throw new Error(`Hecom cliente: ${basic.error.message}`);
-    row = (basic.data as Record<string, unknown> | null) ?? null;
-  } else {
-    row = (full.data as Record<string, unknown> | null) ?? null;
-  }
 
-  if (!row) return null;
+    let row: Record<string, unknown> | null = null;
+    if (full.error) {
+      const basic = await hecom
+        .from("clientes")
+        .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
+        .eq("id", id)
+        .maybeSingle();
+      if (basic.error) throw new Error(`Hecom cliente: ${basic.error.message}`);
+      row = (basic.data as Record<string, unknown> | null) ?? null;
+    } else {
+      row = (full.data as Record<string, unknown> | null) ?? null;
+    }
 
-  const accountsByClient = await loadTiktokAccountsByClient([id]);
-  return mapClienteRow(row, accountsByClient.get(id) ?? []);
-}
+    if (!row) return null;
+
+    const accountsByClient = await loadTiktokAccountsByClient([id]);
+    return mapClienteRow(row, accountsByClient.get(id) ?? []);
+  },
+);
 
 export async function listHecomClienteSpend(clientId: string, limit = 30) {
   try {

@@ -1,9 +1,12 @@
+import { Suspense } from "react";
+import { after } from "next/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
 import { PaymentsMoneyFlowGuide } from "@/features/payments/components/PaymentsMoneyFlowGuide";
+import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
@@ -53,6 +56,7 @@ export default async function PaymentsPage({
   const session = await requirePermission("payments:read");
   const params = await searchParams;
   const status = typeof params.status === "string" ? params.status : undefined;
+  const isStripeReturn = status === "success" || status === "cancelled";
   const selected = await getSelectedHecomCliente();
 
   if (!selected) {
@@ -82,17 +86,18 @@ export default async function PaymentsPage({
     session.role === "owner" ||
     session.role === "admin";
 
-  // Limpia saldo fantasma de puentes BM cuando TikTok falló (bug viejo).
+  // Cleanup fuera del path crítico (no bloquea el HTML al volver de Stripe).
   if (isStaff && session.organizationId) {
-    try {
-      await reverseOrphanedAgencyBmBridges({
-        organizationId: session.organizationId,
-      });
-    } catch (error) {
-      console.error("[payments] orphan_bridge_cleanup_skipped", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
-    }
+    const organizationId = session.organizationId;
+    after(async () => {
+      try {
+        await reverseOrphanedAgencyBmBridges({ organizationId });
+      } catch (error) {
+        console.error("[payments] orphan_bridge_cleanup_skipped", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+      }
+    });
   }
 
   return (
@@ -156,14 +161,20 @@ export default async function PaymentsPage({
         </div>
       </section>
 
-      <PaymentsWalletSection session={session} staffMode={isStaff} />
-      <PaymentsGatewayPanel
-        session={session}
-        hecomAdvertiserIds={hecomAdvertiserIds}
-        hecomClienteId={cliente.id}
-        clienteName={cliente.name}
-        skipOrphanCleanup
-      />
+      <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
+        <PaymentsWalletSection session={session} staffMode={isStaff} />
+      </Suspense>
+
+      <Suspense fallback={<PaymentsSectionSkeleton rows={2} />}>
+        <PaymentsGatewayPanel
+          session={session}
+          hecomAdvertiserIds={hecomAdvertiserIds}
+          hecomClienteId={cliente.id}
+          clienteName={cliente.name}
+          skipOrphanCleanup
+          skipApprovedSync={isStripeReturn}
+        />
+      </Suspense>
 
       <div
         className="border-t border-[rgb(20_18_16_/_0.08)] pt-2"
