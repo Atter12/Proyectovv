@@ -283,6 +283,52 @@ body {
 .animate-float-scale { animation: float-scale 2s ease-in-out infinite; }
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .dashboard-page-enter { animation: dashboard-page-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Overview (descripción general) — atmósfera estilo Rockads + naranja Holistic */
+.overview-hero {
+  animation: overview-hero-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.overview-hero-grid {
+  background-image:
+    linear-gradient(rgb(255 120 31 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 120 31 / 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, #000 20%, transparent 75%);
+}
+
+.overview-hero-balance {
+  animation: overview-balance-enter 640ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes overview-hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overview-balance-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-hero,
+  .overview-hero-balance {
+    animation: none;
+  }
+}
 .testimonial-enter { animation: testimonial-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .landing-reveal-in {
   animation: landing-reveal-in 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
