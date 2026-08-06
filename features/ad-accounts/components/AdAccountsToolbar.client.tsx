@@ -72,12 +72,12 @@ export function AdAccountsToolbar({
 
   return (
     <>
-      <div className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] px-4 py-3.5 sm:px-5">
+      <div className="border-b border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.65)] px-4 py-3.5 sm:px-5">
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative min-w-0 flex-1 sm:max-w-xs">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a8178]"
+                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--auth-text-soft)]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

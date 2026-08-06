@@ -1,5 +1,4 @@
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { Card } from "@/components/ui/Card";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
@@ -73,10 +72,18 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         hideCreate
       />
 
-      <Card
-        padding="none"
-        className="overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]"
-      >
+      <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
+        <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
+            Listado
+          </p>
+          <h2 className="font-display mt-1 text-[1.15rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
+            Advertisers de {clienteName}
+          </h2>
+          <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
+            Filtrá por nombre o estado. Solo lectura desde esta vista.
+          </p>
+        </div>
         <Suspense fallback={null}>
           <AdAccountsToolbar
             initialSearch={search}
@@ -91,12 +98,12 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               <span className="text-[#25f4ee]">T</span>
               <span className="text-[#fe2c55]">T</span>
             </div>
-            <p className="mt-4 text-[14px] font-medium tracking-[-0.01em] text-[#1a1612]">
+            <p className="mt-4 text-[14px] font-medium tracking-[-0.01em] text-[var(--auth-text)]">
               {clienteName} no tiene cuentas TikTok mapeadas
             </p>
-            <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[#6b645c]">
+            <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[var(--auth-text-muted)]">
               En Hecom Club falta el{" "}
-              <code className="rounded bg-[#f0e9e0] px-1.5 py-0.5 text-[12px]">
+              <code className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[12px] text-[var(--auth-accent)]">
                 advertiser_id
               </code>{" "}
               para este cliente. Cuando esté mapeado, aparece acá en solo lectura.
@@ -105,7 +112,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         ) : (
           <AdAccountsTable accounts={filteredAccounts} readOnly />
         )}
-      </Card>
+      </section>
       <AdAccountsMobileStickyCta hideCreate />
     </div>
   );
