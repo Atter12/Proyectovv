@@ -138,16 +138,16 @@ export function CreativeUploadPanel({
   return (
     <section
       id="creative-upload"
-      className="overflow-hidden rounded-2xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8]"
+      className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]"
     >
-      <div className="border-b border-[rgb(20_18_16_/_0.07)] px-5 py-4 sm:px-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#c45a18]">
+      <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           Análisis
         </p>
-        <h2 className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[#1a1612]">
+        <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
           Subir creativo para analizar
         </h2>
-        <p className="mt-1.5 text-[13px] leading-5 text-[#6b645c]">
+        <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
           Guardamos el archivo, creamos el asset y dejamos un job en cola
           {clienteName ? ` · contexto: ${clienteName}` : ""}.
         </p>
@@ -157,7 +157,7 @@ export function CreativeUploadPanel({
         <div className="px-5 py-4 sm:px-6 sm:py-5">
           <div className="grid gap-4">
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
                 Nombre visible
               </label>
               <Input
@@ -173,7 +173,7 @@ export function CreativeUploadPanel({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
                 Archivo
               </label>
 
@@ -203,23 +203,23 @@ export function CreativeUploadPanel({
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 className={cn(
-                  "group relative cursor-pointer rounded-xl border border-dashed px-4 py-5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#c45a18]/35",
+                  "group relative cursor-pointer rounded-[1.1rem] border border-dashed px-4 py-5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35",
                   dragging
-                    ? "border-[#c45a18] bg-[#fff8f3]"
+                    ? "border-[var(--auth-accent)] bg-[rgb(255_248_243_/_0.9)]"
                     : file
                       ? "border-[rgb(20_18_16_/_0.12)] bg-white"
-                      : "border-[rgb(20_18_16_/_0.14)] bg-[#faf7f3] hover:border-[rgb(20_18_16_/_0.22)] hover:bg-[#f6f0e8]",
+                      : "border-[rgb(20_18_16_/_0.14)] bg-[rgb(255_248_243_/_0.55)] hover:border-[rgb(255_120_31_/_0.35)] hover:bg-[rgb(255_248_243_/_0.85)]",
                 )}
               >
                 {file ? (
                   <div className="flex items-start gap-3">
                     <FileKindIcon kind={kind ?? "other"} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
+                      <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
                         {file.name}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-[#6b645c]">
+                        <span className="rounded bg-[rgb(20_18_16_/_0.05)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
                           {kind === "image"
                             ? "Imagen"
                             : kind === "video"
@@ -228,17 +228,17 @@ export function CreativeUploadPanel({
                                 ? "PDF"
                                 : "Archivo"}
                         </span>
-                        <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[#6b645c]">
+                        <span className="rounded bg-[rgb(20_18_16_/_0.05)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--auth-text-muted)]">
                           {formatBytes(file.size)}
                         </span>
                       </div>
-                      <p className="mt-2 text-[12px] text-[#7a736a]">
+                      <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">
                         Clic para cambiar · o soltá otro archivo
                       </p>
                     </div>
                     <button
                       type="button"
-                      className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-[#9a9187] transition-colors hover:bg-[#f3eee8] hover:text-[#5c564e]"
+                      className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-[var(--auth-text-soft)] transition-colors hover:bg-[rgb(20_18_16_/_0.05)] hover:text-[var(--auth-text)]"
                       onClick={(event) => {
                         event.stopPropagation();
                         pickFile(null);
@@ -255,15 +255,15 @@ export function CreativeUploadPanel({
                       <UploadGlyph />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
+                      <p className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
                         {dragging
                           ? "Soltá el archivo acá"
                           : "Arrastrá el creativo o elegilo"}
                       </p>
-                      <p className="mt-1 text-[12px] leading-5 text-[#7a736a]">
+                      <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                         Imagen, video o PDF · máx. {MAX_MB} MB
                       </p>
-                      <span className="mt-3 inline-flex h-8 items-center rounded-lg bg-[#1a1612] px-3 text-[12px] font-semibold text-white transition-colors group-hover:bg-[#2a241f]">
+                      <span className="mt-3 inline-flex h-8 items-center rounded-lg bg-[#0f0e0c] px-3 text-[12px] font-bold text-white transition-colors group-hover:bg-[#1a1816]">
                         Elegir archivo
                       </span>
                     </div>
@@ -291,7 +291,7 @@ export function CreativeUploadPanel({
             <Button
               onClick={handleUpload}
               disabled={loading}
-              className="h-9 rounded-lg bg-[#e85a1c] px-4 text-[13px] font-semibold hover:bg-[#d14e16]"
+              className="h-11 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] hover:brightness-[1.05]"
             >
               {loading ? "Subiendo…" : "Subir y encolar análisis"}
             </Button>
@@ -299,15 +299,15 @@ export function CreativeUploadPanel({
               variant="outline"
               onClick={clearForm}
               disabled={loading}
-              className="h-9 rounded-lg border-[rgb(20_18_16_/_0.12)] px-3 text-[13px] font-semibold text-[#4a433c] hover:bg-[#f3eee8]"
+              className="h-11 rounded-xl border-[rgb(20_18_16_/_0.12)] px-4 text-[14px] font-semibold text-[var(--auth-text)] hover:bg-[rgb(255_248_243_/_0.7)]"
             >
               Limpiar
             </Button>
           </div>
         </div>
 
-        <aside className="border-t border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-5 py-4 sm:px-6 sm:py-5 lg:border-l lg:border-t-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8178]">
+        <aside className="border-t border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.65)] px-5 py-4 sm:px-6 sm:py-5 lg:border-l lg:border-t-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-text-soft)]">
             Qué hace este flujo
           </p>
           <ul className="mt-3 space-y-2.5">
@@ -319,11 +319,11 @@ export function CreativeUploadPanel({
             ].map((item) => (
               <li
                 key={item}
-                className="flex items-start gap-2 text-[12px] leading-4 text-[#5c564e]"
+                className="flex items-start gap-2 text-[12px] font-medium leading-4 text-[var(--auth-text-muted)]"
               >
                 <span
                   aria-hidden
-                  className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c45a18]"
+                  className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)]"
                 />
                 {item}
               </li>
@@ -339,7 +339,7 @@ function UploadGlyph() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5 text-[#c45a18]"
+      className="h-5 w-5 text-[var(--auth-accent)]"
       fill="none"
       aria-hidden
     >
@@ -370,10 +370,10 @@ function FileKindIcon({
     kind === "image"
       ? "bg-[#ecf7f0] text-[#1f5c40]"
       : kind === "video"
-        ? "bg-[#fff1e8] text-[#c45a18]"
+        ? "bg-[rgb(255_120_31_/_0.12)] text-[var(--auth-accent)]"
         : kind === "pdf"
           ? "bg-[#f0f4f8] text-[#334e68]"
-          : "bg-[#f3eee8] text-[#5c564e]";
+          : "bg-[rgb(20_18_16_/_0.05)] text-[var(--auth-text-muted)]";
 
   return (
     <span
