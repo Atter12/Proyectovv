@@ -21,22 +21,20 @@ export function PaymentsFundingModeSwitch({
   canSwitchFundingModes,
 }: PaymentsFundingModeSwitchProps) {
   if (!canSwitchFundingModes) {
-    // Un solo camino: no hace falta el switch.
     return null;
   }
 
   return (
-    <section className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
+    <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
       <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           Cómo vas a fondear
         </p>
-        <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+        <h2 className="font-display mt-1.5 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--auth-text)]">
           Elegí el camino
         </h2>
-        <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-          Super admin: podés operar como cliente (Stripe) o como gerente (cash
-          BM).
+        <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+          Super admin: cliente (Stripe) o gerente (cash BM).
         </p>
       </div>
 
@@ -46,23 +44,22 @@ export function PaymentsFundingModeSwitch({
           disabled={!canClientStripeFund}
           onClick={() => canClientStripeFund && onChange("client")}
           className={cn(
-            "rounded-xl border px-4 py-3.5 text-left transition-colors",
+            "rounded-[1.1rem] border px-4 py-3.5 text-left transition-[transform,box-shadow,border-color]",
             mode === "client"
-              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)]"
-              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:bg-[#faf7f3]",
+              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)] shadow-[0_10px_24px_rgb(255_120_31_/_0.12)]"
+              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:-translate-y-0.5 hover:border-[rgb(255_120_31_/_0.3)]",
             !canClientStripeFund &&
-              "cursor-not-allowed opacity-55 hover:bg-white",
+              "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-[rgb(20_18_16_/_0.08)]",
           )}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a5a38]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             Cliente
           </p>
-          <p className="mt-1 text-[14px] font-semibold text-[#1a1612]">
+          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
             Recargar con Stripe / manual
           </p>
-          <p className="mt-1 text-[12px] leading-4 text-[#6b645c]">
-            El cliente mete plata a la cartera Holistic y después asigna a la
-            cuenta ads.
+          <p className="mt-1 text-[12px] leading-4 text-[var(--auth-text-muted)]">
+            Plata a la cartera Holistic y después asignás a la cuenta ads.
           </p>
         </button>
 
@@ -71,22 +68,22 @@ export function PaymentsFundingModeSwitch({
           disabled={!canAgencyBmFund}
           onClick={() => canAgencyBmFund && onChange("agency_bm")}
           className={cn(
-            "rounded-xl border px-4 py-3.5 text-left transition-colors",
+            "rounded-[1.1rem] border px-4 py-3.5 text-left transition-[transform,box-shadow,border-color]",
             mode === "agency_bm"
-              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)]"
-              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:bg-[#faf7f3]",
-            !canAgencyBmFund && "cursor-not-allowed opacity-55 hover:bg-white",
+              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)] shadow-[0_10px_24px_rgb(255_120_31_/_0.12)]"
+              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:-translate-y-0.5 hover:border-[rgb(255_120_31_/_0.3)]",
+            !canAgencyBmFund &&
+              "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-[rgb(20_18_16_/_0.08)]",
           )}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a5a38]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             Gerente / staff
           </p>
-          <p className="mt-1 text-[14px] font-semibold text-[#1a1612]">
+          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
             Fondear desde BM (cash agencia)
           </p>
-          <p className="mt-1 text-[12px] leading-4 text-[#6b645c]">
-            Sin Stripe: movés cash del Business Center a la cuenta ads del
-            cliente.
+          <p className="mt-1 text-[12px] leading-4 text-[var(--auth-text-muted)]">
+            Sin Stripe: cash del Business Center → cuenta ads del cliente.
           </p>
         </button>
       </div>

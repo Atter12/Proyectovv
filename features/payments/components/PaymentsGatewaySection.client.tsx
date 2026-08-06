@@ -45,17 +45,17 @@ export function PaymentsGatewaySection({
       />
 
       {showClientDeposit ? (
-        <section className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
+        <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
           <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
               1 · Cliente · Cartera Holistic
             </p>
-            <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+            <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
               Recargar cartera Holistic
             </h2>
-            <p className="mt-1 text-[13px] leading-5 text-[#6b645c]">
-              Esto no paga TikTok directo. Recargás la cartera Holistic y después
-              asignás a una cuenta ads.
+            <p className="mt-1 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+              Esto no paga TikTok directo. Recargás la cartera y después asignás
+              a una cuenta ads.
             </p>
           </div>
 
@@ -66,12 +66,12 @@ export function PaymentsGatewaySection({
               onSelect={onSelect}
             />
 
-            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#faf7f3] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 flex flex-col gap-3 rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-[rgb(255_248_243_/_0.7)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
                   Siguiente paso
                 </p>
-                <p className="mt-0.5 text-[13px] text-[#2a241f]">
+                <p className="mt-0.5 text-[13px] font-medium text-[var(--auth-text)]">
                   {selectedGateway
                     ? `Continuar con ${selectedGateway.name}`
                     : "Seleccioná un método para continuar"}
@@ -80,7 +80,7 @@ export function PaymentsGatewaySection({
               <button
                 type="button"
                 onClick={onContinue}
-                className="inline-flex h-9 w-full shrink-0 items-center justify-center rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16] sm:w-auto"
+                className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter] hover:brightness-[1.05] sm:w-auto"
               >
                 {selectedGateway
                   ? `Pagar con ${selectedGateway.name}`
@@ -90,21 +90,20 @@ export function PaymentsGatewaySection({
           </div>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-5 py-4 shadow-[0_10px_28px_rgb(20_18_16_/_0.04)] sm:px-6 sm:py-5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+        <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-5 py-5 shadow-[0_12px_32px_rgb(20_18_16_/_0.045)] sm:px-6 sm:py-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
             1 · Gerente · Cash BM
           </p>
-          <h2 className="mt-1 text-[15px] font-medium text-[#1a1612]">
+          <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
             Sin Stripe en este paso
           </h2>
-          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-            Bajá a <span className="font-medium text-[#1a1612]">Asignar</span> y
-            fondeá la cuenta ads con cash del Business Center. Holistic registra
-            un puente contable automático.
+          <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+            Bajá a <span className="font-semibold text-[var(--auth-text)]">Asignar</span>{" "}
+            y fondeá la cuenta ads con cash del Business Center.
           </p>
           <a
             href="#asignar-saldo"
-            className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16]"
+            className="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter] hover:brightness-[1.05]"
           >
             Ir a fondear cuenta ads
           </a>
@@ -114,5 +113,4 @@ export function PaymentsGatewaySection({
   );
 }
 
-/** Host client que mantiene el modo de fondeo — ver PaymentsFundingModeContext. */
 export type { PaymentsFundingMode } from "./PaymentsFundingModeSwitch.client";

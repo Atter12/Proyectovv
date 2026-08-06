@@ -3,9 +3,8 @@ import { after } from "next/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
-import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
-import { PaymentsMoneyFlowGuide } from "@/features/payments/components/PaymentsMoneyFlowGuide";
+import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
@@ -13,19 +12,18 @@ import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import Link from "next/link";
 
 function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "success") {
     return (
       <div
-        className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-950"
+        className="rounded-[1.2rem] border border-emerald-200/80 bg-emerald-50 px-4 py-3.5 text-[13px] font-medium text-emerald-950 shadow-[0_8px_20px_rgb(16_185_129_/_0.08)]"
         role="status"
       >
         Pago ok. En unos segundos se acredita en la cartera. Después andá a{" "}
         <a
           href="#asignar-saldo"
-          className="font-semibold underline underline-offset-2"
+          className="font-bold text-emerald-900 underline underline-offset-2"
         >
           Asignar saldo
         </a>{" "}
@@ -37,7 +35,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "cancelled") {
     return (
       <div
-        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950"
+        className="rounded-[1.2rem] border border-amber-200/80 bg-amber-50 px-4 py-3.5 text-[13px] font-medium text-amber-950 shadow-[0_8px_20px_rgb(245_158_11_/_0.08)]"
         role="status"
       >
         El checkout de Stripe se canceló. Podés intentar de nuevo cuando quieras.
@@ -99,7 +97,7 @@ export default async function PaymentsPage({
   }
 
   const introCopy = capabilities.canSwitchFundingModes
-    ? `Super admin: podés operar como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
+    ? `Super admin: operá como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
     : capabilities.canAgencyBmFund
       ? `Modo gerente: fondeá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Abajo: historial Hecom.`
       : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}. Abajo: historial Hecom.`;
@@ -108,67 +106,11 @@ export default async function PaymentsPage({
     <div className={dashboardClasses.page}>
       <StripeReturnBanner status={status} />
 
-      <section
-        className="overflow-hidden rounded-[1.25rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]"
-        aria-labelledby="wallet-topup-heading"
-      >
-        <div className="relative px-5 py-5 sm:px-6 sm:py-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgb(255_120_31_/_0.06),transparent)]"
-          />
-          <div className="relative">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a5a38]">
-              {capabilities.canSwitchFundingModes
-                ? "Cartera Holistic · vs · TikTok Ads"
-                : capabilities.canAgencyBmFund
-                  ? "Gerente · Cash BM TikTok"
-                  : "Cliente · Cartera Holistic"}
-            </p>
-            <h2
-              id="wallet-topup-heading"
-              className="mt-1.5 text-[1.35rem] font-medium tracking-[-0.015em] text-[#1a1612] sm:text-[1.45rem]"
-            >
-              {capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
-                ? "Fondear ads desde BM"
-                : "Recargar y fondear ads"}
-            </h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              {introCopy}
-            </p>
-
-            {capabilities.canClientStripeFund ? (
-              <div className="mt-4">
-                <PaymentsMoneyFlowGuide />
-              </div>
-            ) : null}
-
-            <div className="mt-4 flex flex-wrap items-center gap-2.5">
-              <HecomClienteAvatar
-                name={cliente.name}
-                avatarUrl={cliente.avatarUrl}
-                size="sm"
-                className="ring-1 ring-white shadow-sm"
-              />
-              <p className="text-[13px] font-medium text-[#1a1612]">
-                {cliente.name}
-              </p>
-              <Link
-                href={`/clientes/${cliente.id}`}
-                className="text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
-              >
-                Ver ficha
-              </Link>
-            </div>
-
-            <p className="mt-4 rounded-lg border border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-3.5 py-2.5 text-[13px] leading-5 text-[#4a443c]">
-              {capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
-                ? `Fondeá arriba la cuenta ads de ${cliente.name}; abajo ves cobros y gastos Hecom.`
-                : `Recargás arriba para fondear; abajo solo ves el historial de lo ya cobrado y gastado de ${cliente.name}.`}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PaymentsPageHero
+        cliente={cliente}
+        capabilities={capabilities}
+        introCopy={introCopy}
+      />
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
         <PaymentsWalletSection

@@ -18,53 +18,38 @@ export function WalletSummaryPremium({
   canClientStripeFund = true,
 }: WalletSummaryPremiumProps) {
   return (
-    <div className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]">
-      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0e9e0] text-[#6b5344]">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
-                />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[13px] font-medium text-[#1a1612]">
-                {wallet.name}
-              </p>
-              <p className="text-[11px] text-[#7a736a]">
-                {staffMode && !canClientStripeFund
-                  ? "Modo gerente: fondeá desde BM (sin Stripe)"
-                  : staffMode
-                    ? "Super admin: Stripe o BM según el camino elegido"
-                    : "Listo para asignar a cuentas TikTok"}
-              </p>
-            </div>
-          </div>
+    <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.07)] bg-[#0f0e0c] text-white shadow-[0_18px_40px_rgb(15_14_12_/_0.18)]">
+      <div className="border-b border-white/10 px-5 py-4 sm:px-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#ff9a4a]">
+          Cartera Holistic
+        </p>
+        <p className="mt-1 text-[14px] font-medium text-white/70">
+          {staffMode && !canClientStripeFund
+            ? "Modo gerente: fondeá desde BM (sin Stripe)"
+            : staffMode
+              ? "Super admin: Stripe o BM según el camino elegido"
+              : "Listo para asignar a cuentas TikTok"}
+        </p>
+      </div>
 
-          <p className="mt-3 text-[2rem] font-medium tracking-[-0.02em] tabular-nums text-[#1a1612] sm:text-[2.25rem]">
+      <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:py-6">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-white/55">
+            {wallet.name}
+          </p>
+          <p className="mt-2 font-display text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-white sm:text-[2.5rem]">
             {formatMoney(wallet.balance, wallet.currency)}
           </p>
-
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-[#7a736a]">
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-white/45">
             <span>
               Última recarga:{" "}
-              <span className="text-[#5c564e]">
+              <span className="text-white/75">
                 {wallet.lastTopUp ?? "Sin registros"}
               </span>
             </span>
             <span>
               Método:{" "}
-              <span className="text-[#5c564e]">{preferredGateway.name}</span>
+              <span className="text-white/75">{preferredGateway.name}</span>
             </span>
           </div>
         </div>
@@ -73,16 +58,17 @@ export function WalletSummaryPremium({
           <WalletSummaryActions
             availableBalance={wallet.balance}
             currency={wallet.currency}
+            tone="dark"
           />
         ) : (
           <a
             href="#asignar-saldo"
-            className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#e85a1c] px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16] sm:w-auto"
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.35)] transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
             Ir a fondear BM
           </a>
         )}
       </div>
-    </div>
+    </section>
   );
 }

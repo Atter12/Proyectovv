@@ -18,17 +18,17 @@ export function PaymentsAllocateSectionCopy({
   if (agencyBmFunding) {
     return (
       <>
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           2 · Gerente · Fondear desde BM
           {clienteName ? ` · ${clienteName}` : ""}
         </p>
-        <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+        <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
           Mover cash del BM a cuentas TikTok
         </h2>
-        <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
+        <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
           Movés cash del Business Center a la cuenta ads de
           {who}. Eso es presupuesto para pautar:{" "}
-          <span className="font-medium text-[#1a1612]">
+          <span className="font-semibold text-[var(--auth-text)]">
             no baja la deuda neta Hecom
           </span>{" "}
           (la deuda baja solo con un cobro del cliente).
@@ -39,14 +39,14 @@ export function PaymentsAllocateSectionCopy({
 
   return (
     <>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
         2 · Cliente · Asignar desde cartera
         {clienteName ? ` · ${clienteName}` : ""}
       </p>
-      <h2 className="mt-1 text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+      <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
         Asignar saldo a cuentas TikTok
       </h2>
-      <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
+      <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
             Tenés {walletBalanceLabel} en cartera Holistic. Listo para asignar a

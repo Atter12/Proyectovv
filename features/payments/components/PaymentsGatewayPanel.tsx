@@ -137,23 +137,26 @@ export async function PaymentsGatewayPanel({
         {hecomAdvertiserIds != null && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
-            className="rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] px-5 py-5 sm:px-6"
+            className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-5 py-5 shadow-[0_12px_32px_rgb(20_18_16_/_0.045)] sm:px-6 sm:py-6"
           >
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8a5a38]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
               2 · Fondear cuenta ads · {clienteName ?? "Este cliente"}
             </p>
-            <h2 className="mt-1 text-[15px] font-medium text-[#1a1612]">
+            <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
               Sin cuentas Aprobadas para asignar
             </h2>
-            <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-              Solo listamos advertisers en estado <strong>Aprobado</strong> en
-              TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
+            <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+              Solo listamos advertisers en estado{" "}
+              <span className="font-semibold text-[var(--auth-text)]">
+                Aprobado
+              </span>{" "}
+              en TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
               suspendidas, no aparecen acá. Activá/aprobá en el BM o mapeá la
               cuenta correcta en Hecom.
             </p>
             <Link
               href={routes.adAccounts}
-              className="mt-3 inline-flex text-[13px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+              className="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter] hover:brightness-[1.05]"
             >
               Ver cuentas del cliente
             </Link>

@@ -23,73 +23,63 @@ export function PaymentOverviewStats({
 
   const items = [
     {
-      label: hideWalletAsFunding
-        ? "Cartera Holistic"
-        : "Saldo disponible",
+      label: hideWalletAsFunding ? "Cartera Holistic" : "Saldo disponible",
       value: formatMoney(wallet.balance, wallet.currency),
       hint: hideWalletAsFunding
         ? "No se usa en modo BM"
         : "Cartera de la organización",
-      accent: "bg-[#c45a18]",
-      tone: hideWalletAsFunding ? "text-[#8a8178]" : "text-[#1a1612]",
+      accent: hideWalletAsFunding,
     },
     {
       label: "Pasarela activa",
       value: activeGateway.name,
       hint: hideWalletAsFunding ? "Solo camino cliente" : "Método seleccionado",
-      accent: "bg-[#8a8178]",
-      tone: "text-[#1a1612]",
     },
     {
       label: "Cuentas listas",
       value: formatNumber(summary.accountsReadyForAllocation),
       hint: "Para asignación",
-      accent: "bg-[#2f7a57]",
-      tone: "text-[#1f5c40]",
+      accent: true,
     },
     {
       label: "Reembolsos",
       value: formatNumber(summary.pendingRefunds),
       hint: "Pendientes",
-      accent: "bg-[#b45309]",
-      tone: "text-[#1a1612]",
     },
   ];
 
   return (
     <section
       aria-label="Resumen de pagos"
-      className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]"
+      className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.07)] bg-[#0f0e0c] text-white shadow-[0_18px_40px_rgb(15_14_12_/_0.18)]"
     >
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4">
-        {items.map((item, index) => (
+      <div className="border-b border-white/10 px-5 py-4 sm:px-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#ff9a4a]">
+          Holistic en números
+        </p>
+        <p className="mt-1 text-[14px] font-medium text-white/70">
+          Pulso de cartera y asignación
+        </p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4">
+        {items.map((item) => (
           <div
             key={item.label}
-            className={`relative px-4 py-3.5 sm:px-5 ${
-              index % 2 === 0 ? "sm:border-r sm:border-[rgb(20_18_16_/_0.06)]" : ""
-            } ${
-              index < 2
-                ? "border-b border-[rgb(20_18_16_/_0.06)] xl:border-b-0"
-                : ""
-            } ${
-              index < items.length - 1
-                ? "xl:border-r xl:border-[rgb(20_18_16_/_0.06)]"
-                : ""
-            }`}
+            className="border-t border-white/10 px-5 py-5 sm:border-t-0 sm:border-l sm:border-white/10 sm:px-6 sm:first:border-l-0"
           >
-            <span
-              aria-hidden
-              className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${item.accent}`}
-            />
-            <p className="pl-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#7a736a]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
               {item.label}
             </p>
             <p
-              className={`mt-1 truncate pl-2 text-[1.15rem] font-medium tracking-[-0.015em] tabular-nums sm:text-[1.25rem] ${item.tone}`}
+              className={`mt-2 truncate font-display text-[1.15rem] font-semibold tracking-[-0.03em] tabular-nums sm:text-[1.3rem] ${
+                item.accent ? "text-[#ff9a4a]" : "text-white"
+              }`}
             >
               {item.value}
             </p>
-            <p className="mt-0.5 pl-2 text-[11px] text-[#8a8178]">{item.hint}</p>
+            <p className="mt-1 text-[11px] font-medium text-white/40">
+              {item.hint}
+            </p>
           </div>
         ))}
       </div>
