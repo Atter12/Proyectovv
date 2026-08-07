@@ -4,33 +4,32 @@ import { LandingReveal } from "./LandingReveal.client";
 
 export function LandingCta() {
   return (
-    <section className="px-4 pb-12 sm:px-6 sm:pb-16 lg:px-8 lg:pb-20">
+    <section className="px-4 pb-16 sm:px-6 sm:pb-20 lg:px-8 lg:pb-24">
       <LandingReveal>
-        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 overflow-hidden rounded-[1.25rem] bg-[var(--auth-text)] px-5 py-8 sm:gap-8 sm:rounded-[1.5rem] sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-6 overflow-hidden rounded-[0.75rem] border border-[var(--landing-hairline)] bg-[#0f0e0c] px-5 py-9 sm:gap-8 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl">
-            <p className="text-[1rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)] sm:text-[1.1rem]">
-              Empezá hoy
-            </p>
-            <h2 className="mt-2 text-[1.55rem] font-bold leading-[1.2] tracking-[-0.03em] text-white sm:text-[2rem] lg:text-[2.15rem]">
-              Creá tu cuenta y publicá con control real.
+            <p className="landing-label !text-[#ff9a4a]">Empezá hoy</p>
+            <h2 className="font-register mt-3 text-[clamp(1.55rem,2.4vw,2.15rem)] font-bold tracking-[-0.03em] text-white">
+              Entrá al panel y publicá con control real.
             </h2>
-            <p className="mt-3 text-[14px] font-medium leading-6 text-white/70 sm:text-[15px] sm:leading-7">
-              Unite a +180 equipos que ya centralizan cartera, cuentas ads y pagos.
+            <p className="mt-3 text-[1.02rem] leading-[1.7] text-white/65">
+              Unite a +180 equipos que ya centralizan cartera, cuentas ads y
+              pagos.
             </p>
           </div>
           <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
             <Link
-              href={routes.register}
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-6 text-[15px] font-bold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
-            >
-              Crear cuenta
-            </Link>
-            <Link
               href={routes.login}
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
+              className="landing-cta-primary w-full sm:w-auto"
             >
-              Iniciar sesión
+              Entrar con email
             </Link>
+            <a
+              href="#como-funciona"
+              className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-transparent px-5 font-register text-[0.9375rem] font-bold text-white transition-colors hover:bg-white/8 sm:w-auto"
+            >
+              Ver el flujo
+            </a>
           </div>
         </div>
       </LandingReveal>

@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/cn";
 
 /**
- * Entrada suave sin dejar la página en blanco.
- * SSR / sin JS → siempre visible. Con JS → anima una vez.
+ * Reveal on scroll — Exquisitus ease-out-quint, gated on reduced-motion.
+ * SSR / sin JS → visible; con JS → anima al entrar en viewport.
  */
 export function LandingReveal({
   children,
@@ -16,24 +22,49 @@ export function LandingReveal({
   className?: string;
   delayMs?: number;
 }) {
-  const [animate, setAnimate] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const reduce = useReducedMotion();
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (media.matches) return;
+    if (reduce) {
+      setVisible(true);
+      return;
+    }
+    const node = ref.current;
+    if (!node) return;
 
-    const id = window.setTimeout(() => setAnimate(true), Math.min(delayMs, 120));
-    return () => window.clearTimeout(id);
-  }, [delayMs]);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+    );
 
-  const style: CSSProperties | undefined =
-    animate && delayMs > 0
-      ? { animationDelay: `${Math.min(delayMs, 280)}ms` }
-      : undefined;
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [reduce]);
+
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
-    <div className={cn(className, animate && "landing-reveal-in")} style={style}>
+    <motion.div
+      ref={ref}
+      className={cn(className)}
+      initial={{ opacity: 0.88, y: 14 }}
+      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0.88, y: 14 }}
+      transition={{
+        duration: 0.55,
+        delay: Math.min(delayMs, 320) / 1000,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }

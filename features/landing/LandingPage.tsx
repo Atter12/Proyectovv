@@ -3,7 +3,7 @@ import { LandingNav } from "./LandingNav";
 import { LandingHero } from "./LandingHero";
 import { LandingFooter } from "./LandingFooter";
 
-/** Secciones bajo el fold: no bloquean first paint (China / red lenta). */
+/** Secciones bajo el fold: no bloquean first paint. */
 const LandingClients = dynamic(() =>
   import("./LandingClients").then((m) => ({ default: m.LandingClients })),
 );
@@ -29,24 +29,17 @@ const LandingCta = dynamic(() =>
 );
 
 /**
- * Landing: hero + nav primero (CSS crítico).
- * DotGrid / secciones largas diferidas para redes lentas (China).
+ * Landing principal — Exquisitus (letra + craft) × Holistic (#ff781f) + flow.
  */
 export function LandingPage() {
   return (
-    <div className="auth-canvas relative min-h-screen overflow-x-hidden">
+    <div className="landing-shell relative min-h-screen overflow-x-hidden">
       <a
         href="#contenido"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:text-[#0f172a]"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:font-register focus:text-sm focus:text-[var(--landing-ink)]"
       >
         Saltar al contenido
       </a>
-
-      {/* Sin DotGrid canvas: gradientes del auth-canvas bastan y pesan menos */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_70%_60%_at_40%_40%,rgb(248_250_252_/_0.7),transparent_75%)]"
-      />
 
       <div className="relative z-10">
         <LandingNav />
