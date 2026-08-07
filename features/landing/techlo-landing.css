@@ -6,13 +6,13 @@
   --tl-primary-soft: #fff1e8;
   --tl-accent: #ffb84a;
   --tl-body: #ffffff;
-  --tl-theme-dark: #040d43;
-  --tl-theme-light: #f5f6f7;
+  --tl-theme-dark: #16120f;
+  --tl-theme-light: #f7f5f2;
   --tl-dark: #141210;
-  --tl-light: #ced0df;
-  --tl-text: #585b6f;
-  --tl-border: #e5e5e5;
-  --tl-border-dark: #272f5d;
+  --tl-light: #d9d2ca;
+  --tl-text: #5c564e;
+  --tl-border: #e8e4de;
+  --tl-border-dark: #2e2721;
   --tl-font: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
   --scroll-reveal-duration-default: 900ms;
   --scroll-reveal-distance-default: 2rem;
@@ -55,6 +55,12 @@
   letter-spacing: -0.03em;
   line-height: 1.12;
   color: var(--tl-dark);
+}
+
+/* Sobre fondos oscuros el display siempre es blanco (gana especificidad). */
+.techlo-landing .tl-display-light,
+.techlo-landing .tl-display.tl-display-light {
+  color: #ffffff;
 }
 
 .techlo-landing .tl-display-lg {
@@ -157,7 +163,9 @@
   --banner-three-ease: var(--scroll-reveal-easing);
   position: relative;
   overflow: hidden;
-  background: var(--tl-theme-dark);
+  background:
+    radial-gradient(60% 55% at 50% 0%, rgb(255 120 31 / 0.14), transparent 65%),
+    var(--tl-theme-dark);
 }
 
 .techlo-landing .banner-three-map {
@@ -352,8 +360,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    transparent 35%,
-    rgb(4 13 67 / 0.88) 100%
+    rgb(22 18 15 / 0.05) 30%,
+    rgb(22 18 15 / 0.92) 100%
   );
 }
 
@@ -363,7 +371,26 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
+  transition: transform 500ms var(--scroll-reveal-easing);
+}
+
+.techlo-landing .tl-service-card:hover img {
+  transform: scale(1.05);
+}
+
+.techlo-landing .tl-service-card .tl-service-tag {
+  position: absolute;
+  z-index: 2;
+  top: 1.1rem;
+  left: 1.1rem;
+  border-radius: 999px;
+  background: var(--tl-primary);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
 }
 
 .techlo-landing .tl-service-card .label {
@@ -382,7 +409,9 @@
 .techlo-landing .tl-cta {
   position: relative;
   overflow: hidden;
-  background: var(--tl-theme-dark);
+  background:
+    radial-gradient(45% 70% at 50% 100%, rgb(255 120 31 / 0.16), transparent 70%),
+    var(--tl-theme-dark);
   text-align: center;
 }
 
@@ -409,8 +438,33 @@
 
 /* Quote dark band */
 .techlo-landing .tl-quote {
-  background: var(--tl-theme-dark);
+  background:
+    radial-gradient(50% 80% at 15% 20%, rgb(255 120 31 / 0.1), transparent 60%),
+    var(--tl-theme-dark);
   color: #fff;
+}
+
+/* Footer pro */
+.techlo-landing .tl-footer {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(48% 60% at 85% 0%, rgb(255 120 31 / 0.12), transparent 65%),
+    var(--tl-theme-dark);
+  color: #fff;
+}
+
+.techlo-landing .tl-footer-divider {
+  border-color: rgb(255 255 255 / 0.09);
+}
+
+.techlo-landing .tl-footer-link {
+  color: rgb(255 255 255 / 0.62);
+  transition: color 200ms ease;
+}
+
+.techlo-landing .tl-footer-link:hover {
+  color: var(--tl-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {

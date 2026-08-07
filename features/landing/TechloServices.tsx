@@ -2,32 +2,38 @@ const SERVICES = [
   {
     title: "Cartera Holistic",
     hint: "Recargas y saldo listo para asignar",
-    tone: "from-[#ff781f]/50 to-[#040d43]",
+    tag: "Pagos",
+    image: "/landing/techlo/services/digital-marketing.jpg",
   },
   {
     title: "Cuentas TikTok",
     hint: "Advertisers aprobados por cliente",
-    tone: "from-[#ff9a4a]/40 to-[#040d43]",
+    tag: "Ads",
+    image: "/landing/techlo/services/web-mobile-app-development.jpg",
   },
   {
     title: "Pagos & ledger",
     hint: "Stripe, BM y historial Hecom",
-    tone: "from-[#ff781f]/35 to-[#040d43]",
+    tag: "Finanzas",
+    image: "/landing/techlo/services/data-tracking-security.jpg",
   },
   {
     title: "Analizador creativo",
     hint: "Subí piezas y encolá análisis",
-    tone: "from-[#fbde90]/30 to-[#040d43]",
+    tag: "Creativos",
+    image: "/landing/techlo/services/ux-branding.jpg",
   },
   {
     title: "Operación Latam",
     hint: "Soporte en español, flujo claro",
-    tone: "from-[#e176ca]/25 to-[#040d43]",
+    tag: "Soporte",
+    image: "/landing/techlo/services/it-management.jpg",
   },
   {
     title: "Asignación BM",
     hint: "Cash del Business Center → ads",
-    tone: "from-[#ff781f]/45 to-[#040d43]",
+    tag: "Gerentes",
+    image: "/landing/techlo/services/cyber-security.jpg",
   },
 ] as const;
 
@@ -52,17 +58,13 @@ export function TechloServices() {
       >
         <div className="tl-marquee-track">
           {loop.map((item, index) => (
-            <article
-              key={`${item.title}-${index}`}
-              className="tl-service-card"
-            >
-              <div
-                aria-hidden
-                className={`absolute inset-0 bg-gradient-to-br ${item.tone}`}
-              />
+            <article key={`${item.title}-${index}`} className="tl-service-card">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.image} alt={item.title} loading="lazy" />
+              <span className="tl-service-tag">{item.tag}</span>
               <div className="label">
                 <p>{item.title}</p>
-                <p className="mt-1 text-[0.85rem] font-medium text-white/70">
+                <p className="mt-1 text-[0.85rem] font-medium text-white/75">
                   {item.hint}
                 </p>
               </div>

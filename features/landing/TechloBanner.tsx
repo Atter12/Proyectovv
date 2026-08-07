@@ -22,7 +22,7 @@ export function TechloBanner() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
-          <h1 className="banner-three-title tl-display tl-display-lg text-white">
+          <h1 className="banner-three-title tl-display tl-display-lg tl-display-light">
             {siteConfig.name}: crece con control real en ads
           </h1>
           <p className="banner-three-description mx-auto mt-5 max-w-3xl text-[1.05rem] text-[var(--tl-light)] md:text-lg">

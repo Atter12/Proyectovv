@@ -38,7 +38,7 @@ export function TechloNav() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-[background,box-shadow] duration-300",
         scrolled || open
-          ? "bg-[var(--tl-theme-dark)] shadow-[0_8px_24px_rgb(4_13_67_/_0.35)]"
+          ? "bg-[var(--tl-theme-dark)] shadow-[0_8px_24px_rgb(0_0_0_/_0.35)]"
           : "bg-transparent",
       )}
     >
@@ -47,10 +47,9 @@ export function TechloNav() {
           href={routes.home}
           aria-label={siteConfig.name}
           onClick={() => setOpen(false)}
-          className="brightness-0 invert"
         >
           <AuthBrandMark
-            tone="light"
+            tone="dark"
             compact
             className="max-w-[130px] sm:max-w-[150px]"
           />

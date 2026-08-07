@@ -44,7 +44,7 @@ export function TechloQuotes() {
         data-scroll-reveal="blur-up"
       >
         <p className="text-[var(--tl-accent)]">★★★★★</p>
-        <blockquote className="tl-display mt-6 text-[clamp(1.45rem,1rem+1.8vw,2.35rem)] leading-snug text-white">
+        <blockquote className="tl-display tl-display-light mt-6 text-[clamp(1.45rem,1rem+1.8vw,2.35rem)] leading-snug">
           “{item.quote}”
         </blockquote>
         <p className="mt-8 text-[1.05rem] font-semibold text-white">

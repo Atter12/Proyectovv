@@ -2,87 +2,116 @@ import Link from "next/link";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
+import { TechloButton } from "./TechloButton";
+
+const COLUMNS = [
+  {
+    title: "Producto",
+    links: [
+      { label: "Soluciones", href: "#soluciones" },
+      { label: "Proceso", href: "#proceso" },
+      { label: "Herramientas", href: "#herramientas" },
+      { label: "Opiniones", href: "#opiniones" },
+    ],
+  },
+  {
+    title: "Cuenta",
+    links: [
+      { label: "Entrar al panel", href: routes.login },
+      { label: "Recuperar acceso", href: routes.forgotPassword },
+    ],
+  },
+  {
+    title: "Operación",
+    links: [
+      { label: "Pagos y cartera", href: routes.payments },
+      { label: "Cuentas ads", href: routes.adAccounts },
+    ],
+  },
+] as const;
+
+const TAGS = ["TikTok Ads", "Cartera Holistic", "Hecom Club", "Latam"];
 
 export function TechloFooter() {
   return (
-    <footer className="bg-[var(--tl-theme-dark)] px-4 py-14 text-white sm:px-6">
-      <div className="tl-container grid gap-10 md:grid-cols-[1.2fr_2fr]">
+    <footer className="tl-footer px-4 sm:px-6">
+      {/* CTA band */}
+      <div className="tl-container flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-20">
         <div>
-          <div className="brightness-0 invert">
-            <AuthBrandMark
-              tone="light"
-              compact
-              className="!justify-start max-w-[140px]"
-            />
-          </div>
-          <p className="mt-4 max-w-xs text-[0.95rem] leading-7 text-[var(--tl-light)]">
-            Panel Holistic Marketing — cartera, TikTok Ads y operación Hecom
-            Club en Latam.
+          <p className="text-[0.78rem] font-bold uppercase tracking-[0.18em] text-[var(--tl-primary)]">
+            {siteConfig.name}
           </p>
+          <h2 className="tl-display tl-display-light mt-3 max-w-xl text-[clamp(1.6rem,1.1rem+2vw,2.6rem)]">
+            ¿Listo para operar tus ads con control real?
+          </h2>
+        </div>
+        <TechloButton href={routes.login} label="Entrar al panel" />
+      </div>
+
+      <div className="tl-container tl-footer-divider border-t" />
+
+      {/* Brand + columns */}
+      <div className="tl-container grid gap-12 py-14 md:grid-cols-[1.3fr_2fr]">
+        <div>
+          <AuthBrandMark
+            tone="dark"
+            compact
+            className="!justify-start max-w-[150px]"
+          />
+          <p className="mt-5 max-w-xs text-[0.95rem] leading-7 text-white/60">
+            Panel Holistic Marketing — cartera, cuentas TikTok y pagos en un
+            solo lugar para agencias y equipos de performance.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {TAGS.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-white/12 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-white/55"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-          <div>
-            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-white/45">
-              Producto
-            </p>
-            <ul className="mt-4 space-y-2.5 text-[0.95rem] text-[var(--tl-light)]">
-              <li>
-                <a href="#soluciones" className="hover:text-white">
-                  Soluciones
-                </a>
-              </li>
-              <li>
-                <a href="#proceso" className="hover:text-white">
-                  Proceso
-                </a>
-              </li>
-              <li>
-                <a href="#herramientas" className="hover:text-white">
-                  Herramientas
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-white/45">
-              Cuenta
-            </p>
-            <ul className="mt-4 space-y-2.5 text-[0.95rem] text-[var(--tl-light)]">
-              <li>
-                <Link href={routes.login} className="hover:text-white">
-                  Entrar
-                </Link>
-              </li>
-              <li>
-                <Link href={routes.forgotPassword} className="hover:text-white">
-                  Recuperar acceso
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-white/45">
-              Operación
-            </p>
-            <ul className="mt-4 space-y-2.5 text-[0.95rem] text-[var(--tl-light)]">
-              <li>
-                <Link href={routes.payments} className="hover:text-white">
-                  Pagos
-                </Link>
-              </li>
-              <li>
-                <Link href={routes.adAccounts} className="hover:text-white">
-                  Cuentas ads
-                </Link>
-              </li>
-            </ul>
-          </div>
+        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+          {COLUMNS.map((column) => (
+            <div key={column.title}>
+              <p className="text-[0.75rem] font-bold uppercase tracking-[0.14em] text-white/40">
+                {column.title}
+              </p>
+              <ul className="mt-5 space-y-3 text-[0.95rem] font-medium">
+                {column.links.map((link) =>
+                  link.href.startsWith("#") ? (
+                    <li key={link.label}>
+                      <a href={link.href} className="tl-footer-link">
+                        {link.label}
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={link.label}>
+                      <Link href={link.href} className="tl-footer-link">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="tl-container mt-12 border-t border-white/10 pt-6 text-[0.85rem] text-white/45">
-        © {new Date().getFullYear()} {siteConfig.companyName}
+      {/* Bottom bar */}
+      <div className="tl-container tl-footer-divider flex flex-col gap-3 border-t py-7 text-[0.85rem] text-white/45 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          © {new Date().getFullYear()} {siteConfig.companyName}. Todos los
+          derechos reservados.
+        </p>
+        <p>
+          Hecho para equipos de performance en{" "}
+          <span className="font-semibold text-[var(--tl-primary)]">Latam</span>
+        </p>
       </div>
     </footer>
   );

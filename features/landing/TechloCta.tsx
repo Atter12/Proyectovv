@@ -8,7 +8,7 @@ export function TechloCta() {
         className="tl-container relative z-10 mx-auto max-w-4xl"
         data-scroll-reveal="blur-up"
       >
-        <h2 className="tl-display tl-display-md text-white">
+        <h2 className="tl-display tl-display-md tl-display-light">
           Empezá hoy con Holistic
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-[1.05rem] leading-[1.8] text-[var(--tl-light)]">
