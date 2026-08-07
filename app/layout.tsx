@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Alegreya_Sans, Literata, Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
@@ -7,7 +7,7 @@ import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
-/** Dashboard / auth UI — liviana. */
+/** Una sola familia, pocos pesos → first paint más liviano (China / red lenta). */
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
@@ -23,27 +23,6 @@ const plusJakarta = Plus_Jakarta_Sans({
     "Arial",
     "sans-serif",
   ],
-  adjustFontFallback: true,
-});
-
-/** Landing (Exquisitus → Holistic): register sans. */
-const alegreyaSans = Alegreya_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-alegreya",
-  weight: ["400", "500", "700"],
-  fallback: ["system-ui", "Arial", "sans-serif"],
-  adjustFontFallback: true,
-});
-
-/** Landing: reading serif. */
-const literata = Literata({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-literata",
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  fallback: ["Georgia", "Times New Roman", "serif"],
   adjustFontFallback: true,
 });
 
@@ -70,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${plusJakarta.variable} ${alegreyaSans.variable} ${literata.variable} light h-full antialiased`}
+      className={`${plusJakarta.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

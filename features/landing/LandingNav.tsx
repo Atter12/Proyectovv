@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
@@ -17,8 +16,6 @@ const NAV = [
 
 export function LandingNav() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -27,50 +24,24 @@ export function LandingNav() {
     };
   }, [open]);
 
-  useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 8);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
-    <motion.header
-      className={cn(
-        "sticky top-0 z-40 border-b bg-[var(--landing-paper)]",
-        scrolled
-          ? "border-[var(--landing-hairline)] shadow-[0_8px_22px_-11px_rgba(20,16,8,0.28)]"
-          : "border-transparent",
-      )}
-      initial={reduce ? false : { y: -12, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="mx-auto flex h-14 w-full max-w-[72rem] items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-[var(--auth-divider)] bg-[rgb(248_250_252_/_0.92)] backdrop-blur-xl">
+      <div className="mx-auto flex h-14 w-full max-w-[1180px] items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
         <Link
           href={routes.home}
           aria-label={siteConfig.name}
           className="min-w-0 shrink"
           onClick={() => setOpen(false)}
         >
-          <AuthBrandMark
-            tone="light"
-            compact
-            className="max-w-[132px] sm:max-w-[160px]"
-          />
+          <AuthBrandMark tone="light" compact className="max-w-[132px] sm:max-w-[160px]" />
         </Link>
 
-        <nav
-          className="hidden items-center gap-7 lg:flex"
-          aria-label="Principal"
-        >
+        <nav className="hidden items-center gap-6 lg:flex lg:gap-7" aria-label="Principal">
           {NAV.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="font-register text-[0.9375rem] font-medium tracking-[-0.01em] text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink)]"
+              className="text-[14px] font-semibold tracking-[-0.01em] text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
             >
               {item.label}
             </a>
@@ -80,16 +51,19 @@ export function LandingNav() {
         <div className="flex items-center gap-2">
           <Link
             href={routes.login}
-            className="font-register hidden h-10 items-center rounded-md px-3 text-[0.9375rem] font-medium text-[var(--landing-ink)] transition-colors hover:text-[var(--landing-accent-text)] sm:inline-flex"
+            className="hidden h-10 items-center rounded-xl px-3 text-[14px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-white sm:inline-flex"
           >
-            Entrar
+            Iniciar sesión
           </Link>
-          <Link href={routes.login} className="landing-cta-primary h-9 px-3.5 text-[0.8125rem] sm:h-10 sm:px-4 sm:text-[0.875rem]">
+          <Link
+            href={routes.register}
+            className="inline-flex h-9 items-center rounded-xl bg-[var(--auth-accent)] px-3.5 text-[13px] font-bold text-white shadow-[0_8px_18px_rgb(255_120_31_/_0.25)] transition-[filter] hover:brightness-[1.05] sm:h-10 sm:px-4 sm:text-[14px]"
+          >
             Empezar
           </Link>
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--landing-hairline)] bg-white text-[var(--landing-ink)] lg:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--auth-divider)] bg-white text-[var(--auth-text)] lg:hidden"
             aria-expanded={open}
             aria-controls="landing-mobile-nav"
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
@@ -123,20 +97,17 @@ export function LandingNav() {
       <div
         id="landing-mobile-nav"
         className={cn(
-          "border-t border-[var(--landing-hairline)] bg-white lg:hidden",
+          "border-t border-[var(--auth-divider)] bg-white lg:hidden",
           open ? "block" : "hidden",
         )}
       >
-        <nav
-          className="mx-auto flex max-w-[72rem] flex-col gap-1 px-4 py-3"
-          aria-label="Móvil"
-        >
+        <nav className="mx-auto flex max-w-[1180px] flex-col gap-1 px-4 py-3" aria-label="Móvil">
           {NAV.map((item) => (
             <a
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="font-register rounded-md px-3 py-3 text-[1rem] font-medium text-[var(--landing-ink)] transition-colors hover:bg-[rgb(255_120_31_/_0.06)]"
+              className="rounded-xl px-3 py-3 text-[15px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[#f8fafc]"
             >
               {item.label}
             </a>
@@ -144,12 +115,12 @@ export function LandingNav() {
           <Link
             href={routes.login}
             onClick={() => setOpen(false)}
-            className="font-register mt-1 rounded-md px-3 py-3 text-[1rem] font-medium text-[var(--landing-muted)] hover:bg-[rgb(255_120_31_/_0.06)] sm:hidden"
+            className="mt-1 rounded-xl px-3 py-3 text-[15px] font-semibold text-[var(--auth-text-muted)] hover:bg-[#f8fafc] sm:hidden"
           >
-            Entrar
+            Iniciar sesión
           </Link>
         </nav>
       </div>
-    </motion.header>
+    </header>
   );
 }

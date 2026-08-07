@@ -58,32 +58,34 @@ export function LandingTestimonials() {
   return (
     <section
       id="opiniones"
-      className="scroll-mt-20 px-4 py-14 sm:scroll-mt-24 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
+      className="scroll-mt-20 px-4 py-12 sm:scroll-mt-24 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
     >
-      <div className="mx-auto w-full max-w-[72rem]">
+      <div className="mx-auto w-full max-w-[1180px]">
         <LandingReveal>
-          <p className="landing-label">Opiniones</p>
-          <h2 className="font-register mt-3 max-w-[28ch] text-[clamp(1.75rem,2.8vw,2.5rem)] font-bold tracking-[-0.025em] text-[var(--landing-ink)]">
-            Lo que dicen equipos que ya escalan con Holistic.
+          <p className="text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)] sm:text-[1.45rem]">
+            Opiniones
+          </p>
+          <h2 className="mt-2 max-w-[28ch] text-[1.65rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.2rem] lg:text-[2.35rem]">
+            Lo que dicen agencias y equipos que ya escalan con Holistic.
           </h2>
         </LandingReveal>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
           {QUOTES.map((item, index) => (
-            <LandingReveal key={item.name} delayMs={40 + index * 35}>
-              <article className="landing-card flex h-full flex-col p-5 sm:p-7">
-                <p className="flex-1 text-[1.02rem] italic leading-[1.7] text-[var(--landing-body)]">
+            <LandingReveal key={item.name} delayMs={40 + index * 30}>
+              <article className="auth-panel flex h-full flex-col rounded-[1.1rem] p-5 sm:rounded-[1.25rem] sm:p-7">
+                <p className="flex-1 text-[14px] font-medium leading-6 text-[var(--auth-text)] sm:text-[15px] sm:leading-7">
                   “{item.quote}”
                 </p>
-                <div className="mt-5 flex items-center gap-3 border-t border-[var(--landing-hairline)] pt-4">
-                  <span className="font-register inline-flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(255_120_31_/_0.12)] text-[0.75rem] font-bold text-[var(--landing-accent-text)]">
+                <div className="mt-5 flex items-center gap-3 border-t border-[var(--auth-divider)] pt-4 sm:mt-6 sm:pt-5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent-soft)] text-[11px] font-bold text-[var(--auth-accent)] sm:h-10 sm:w-10 sm:text-[12px]">
                     {initials(item.name)}
                   </span>
                   <div className="min-w-0">
-                    <p className="font-register truncate text-[0.9rem] font-bold text-[var(--landing-ink)]">
+                    <p className="truncate text-[13px] font-bold tracking-[-0.01em] text-[var(--auth-text)] sm:text-[14px]">
                       {item.name}
                     </p>
-                    <p className="truncate text-[0.78rem] text-[var(--landing-muted)]">
+                    <p className="truncate text-[11px] font-medium text-[var(--auth-text-soft)] sm:text-[12px]">
                       {item.role} · {item.company}
                     </p>
                   </div>
