@@ -26,17 +26,21 @@ export default function VerifyOtpPage() {
     <div className="auth-canvas relative min-h-screen overflow-x-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="border-b border-[var(--auth-divider)] bg-white">
-          <div className="relative mx-auto flex h-[4.25rem] w-full max-w-[1100px] items-center justify-center px-4 sm:px-6">
-            <Link href={routes.home} aria-label={siteConfig.name}>
+          <div className="relative h-[4.25rem] w-full">
+            <Link
+              href={routes.home}
+              aria-label={siteConfig.name}
+              className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+            >
               <AuthBrandMark
                 tone="light"
                 compact
-                className="max-w-[148px] sm:max-w-[160px]"
+                className="!w-auto max-w-[150px] sm:max-w-[168px]"
               />
             </Link>
             <Link
               href={routes.login}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.875rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:right-6"
+              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[0.875rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:right-8"
             >
               Volver al login
             </Link>

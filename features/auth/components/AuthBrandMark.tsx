@@ -14,7 +14,7 @@ export function AuthBrandMark({
 }) {
   return (
     <div
-      className={cn("flex w-full items-center justify-center", className)}
+      className={cn("flex items-center justify-center", className)}
       aria-label={siteConfig.name}
     >
       <HolisticLogo
