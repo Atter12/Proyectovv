@@ -27,6 +27,10 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.techlo-landing section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
 .techlo-landing .tl-container {
   width: 100%;
   max-width: 1320px;
@@ -149,7 +153,12 @@
 
 .techlo-landing .tl-btn-white .text-flip-inner::before,
 .techlo-landing .tl-btn-white .text-flip-inner::after {
-  color: inherit;
+  color: var(--tl-dark);
+}
+
+.techlo-landing .tl-btn-white:hover .text-flip-inner::before,
+.techlo-landing .tl-btn-white:hover .text-flip-inner::after {
+  color: var(--tl-primary);
 }
 
 .techlo-landing .text-flip-hover-anim .text-flip-inner::before {
@@ -239,46 +248,51 @@
   background: #fff;
   border: 1px solid var(--tl-border);
   transition: transform 250ms var(--scroll-reveal-easing),
-    box-shadow 250ms var(--scroll-reveal-easing);
+    box-shadow 250ms var(--scroll-reveal-easing),
+    border-color 250ms var(--scroll-reveal-easing);
 }
 
 .techlo-landing .tl-service-card:hover {
   transform: translateY(-4px);
+  border-color: rgb(255 120 31 / 0.4);
   box-shadow: 0 20px 40px -24px rgb(28 25 23 / 0.25);
 }
 
-.techlo-landing .tl-service-card .tl-service-media {
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 16 / 10;
+.techlo-landing .tl-service-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex-shrink: 0;
+  border-radius: 0.85rem;
+  background: var(--tl-primary-soft);
+  color: var(--tl-primary);
+  transition: background-color 250ms var(--scroll-reveal-easing),
+    color 250ms var(--scroll-reveal-easing);
 }
 
-.techlo-landing .tl-service-card .tl-service-media img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 400ms var(--scroll-reveal-easing);
+.techlo-landing .tl-service-icon svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
-.techlo-landing .tl-service-card:hover .tl-service-media img {
-  transform: scale(1.04);
+.techlo-landing .tl-service-card:hover .tl-service-icon {
+  background: var(--tl-primary);
+  color: #fff;
 }
 
 .techlo-landing .tl-service-tag {
-  position: absolute;
-  z-index: 2;
-  top: 0.9rem;
-  left: 0.9rem;
   border-radius: 999px;
-  background: var(--tl-primary);
-  padding: 0.3rem 0.8rem;
-  font-size: 0.72rem;
+  border: 1px solid rgb(255 120 31 / 0.35);
+  background: #fff;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--tl-primary);
+  align-self: flex-start;
 }
 
 /* Cards de testimonios (grid, sin rotación) */

@@ -2,6 +2,8 @@ import "./techlo-landing.css";
 import { TechloMotionRoot } from "./TechloMotionRoot.client";
 import { TechloNav } from "./TechloNav";
 import { TechloBanner } from "./TechloBanner";
+import { TechloClients } from "./TechloClients";
+import { TechloStats } from "./TechloStats";
 import { TechloServices } from "./TechloServices";
 import { TechloSkills } from "./TechloSkills";
 import { TechloProcess } from "./TechloProcess";
@@ -27,9 +29,11 @@ export function LandingPage() {
         <TechloNav />
         <main id="contenido">
           <TechloBanner />
+          <TechloClients />
           <TechloServices />
           <TechloSkills />
           <TechloProcess />
+          <TechloStats />
           <TechloQuotes />
           <TechloCta />
         </main>

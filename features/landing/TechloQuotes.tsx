@@ -44,13 +44,24 @@ export function TechloQuotes() {
               <blockquote className="text-[1.02rem] leading-[1.7] text-[var(--tl-dark)]">
                 “{item.quote}”
               </blockquote>
-              <figcaption className="mt-auto">
-                <p className="font-semibold text-[var(--tl-dark)]">
-                  {item.name}
-                </p>
-                <p className="mt-0.5 text-[0.9rem] text-[var(--tl-muted)]">
-                  {item.role}
-                </p>
+              <figcaption className="mt-auto flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--tl-primary-soft)] text-[0.8rem] font-bold text-[var(--tl-primary)]"
+                >
+                  {item.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")}
+                </span>
+                <span>
+                  <p className="font-semibold text-[var(--tl-dark)]">
+                    {item.name}
+                  </p>
+                  <p className="mt-0.5 text-[0.9rem] text-[var(--tl-muted)]">
+                    {item.role}
+                  </p>
+                </span>
               </figcaption>
             </figure>
           ))}
