@@ -179,7 +179,7 @@ export function VerifyOtpForm() {
   }
 
   return (
-    <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-[1.25rem] p-8 sm:p-9 lg:max-w-none">
+    <div className="auth-panel relative w-full max-w-[420px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
       <div className="mb-8">
         <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
           {siteConfig.name}

@@ -5,23 +5,23 @@ import { TechloProductPanel } from "./TechloProductPanel";
 export function TechloBanner() {
   return (
     <section className="tl-hero">
-      <div className="tl-container relative z-10 pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-40 lg:pb-28">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-          <div>
+      <div className="tl-container relative z-10 pt-28 pb-14 sm:pt-32 sm:pb-16 lg:pt-36 lg:pb-20">
+        <div className="grid items-center gap-10 lg:grid-cols-[1fr_1fr] lg:gap-12">
+          <div className="max-w-xl">
             <p className="tl-hero-title tl-eyebrow">
               Plataforma para agencias y equipos de performance
             </p>
-            <h1 className="tl-hero-title tl-display tl-display-lg mt-4 max-w-[16ch]">
+            <h1 className="tl-hero-title tl-display mt-3 text-[clamp(1.75rem,1.2rem+1.8vw,2.45rem)] leading-[1.2] tracking-[-0.03em]">
               Opera campañas, pagos y saldos en{" "}
               <span className="text-[var(--tl-primary)]">un solo lugar</span>
             </h1>
-            <p className="tl-hero-description mt-5 max-w-xl text-[1.05rem] md:text-lg">
+            <p className="tl-hero-description mt-4 max-w-lg text-[1rem] leading-7 text-[var(--tl-text)] md:text-[1.05rem]">
               Recargá la cartera, asigná presupuesto a cuentas TikTok y
               controlá la operación publicitaria sin planillas ni dashboards
               genéricos.
             </p>
-            <div className="tl-hero-actions mt-9 flex flex-wrap items-center gap-4">
-              <TechloButton href={routes.login} label="Entrar al panel" />
+            <div className="tl-hero-actions mt-8 flex flex-wrap items-center gap-3">
+              <TechloButton href={routes.login} label="Entrar" />
               <TechloButton
                 href="#proceso"
                 label="Ver el proceso"
@@ -29,7 +29,7 @@ export function TechloBanner() {
               />
             </div>
 
-            <div className="tl-hero-actions mt-8 flex items-center gap-3">
+            <div className="tl-hero-actions mt-7 flex items-center gap-3">
               <div
                 className="flex shrink-0 -space-x-2"
                 aria-hidden

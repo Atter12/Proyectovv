@@ -18,7 +18,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text)]"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -36,7 +36,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
@@ -133,12 +133,12 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const magicError = searchParams.get("error") === "magic_link";
 
   return (
-    <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-[1.25rem] p-8 sm:p-9 lg:max-w-none">
-      <div className="mb-8">
-        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
+    <div className="auth-panel relative w-full max-w-[420px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
+      <div className="mb-7">
+        <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           Acceso
         </p>
-        <h1 className="mt-2 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="mt-2 text-[1.7rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.9rem]">
           Iniciar sesión
         </h1>
         <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
@@ -228,22 +228,29 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         </button>
       </form>
 
-      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
+      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[14px] leading-6 text-[var(--auth-text-muted)]">
         {otpMode ? (
-          <p className="text-[14px] leading-5">
-            Revisá tu correo: podés entrar con el <strong>código de 6 dígitos</strong> o
-            tocando el <strong>enlace mágico</strong>.
+          <p>
+            Revisá tu correo: podés entrar con el{" "}
+            <strong className="font-semibold text-[var(--auth-text)]">
+              código de 6 dígitos
+            </strong>{" "}
+            o tocando el{" "}
+            <strong className="font-semibold text-[var(--auth-text)]">
+              enlace mágico
+            </strong>
+            .
           </p>
         ) : (
-          <>
-            ¿No tienes cuenta?{" "}
+          <p>
+            ¿Problemas para entrar?{" "}
             <a
-              href={routes.register}
-              className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
+              href={routes.forgotPassword}
+              className="font-semibold text-[var(--auth-accent)] transition-colors hover:brightness-110"
             >
-              Regístrate
+              Recuperar acceso
             </a>
-          </>
+          </p>
         )}
       </div>
     </div>

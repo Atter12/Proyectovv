@@ -64,7 +64,7 @@ export function TechloSkills() {
           </ul>
 
           <div className="mt-8">
-            <TechloButton href={routes.login} label="Entrar al panel" />
+            <TechloButton href={routes.login} label="Entrar" />
           </div>
         </div>
       </div>

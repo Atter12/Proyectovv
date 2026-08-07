@@ -17,7 +17,7 @@ const COLUMNS = [
   {
     title: "Cuenta",
     links: [
-      { label: "Entrar al panel", href: routes.login },
+      { label: "Entrar", href: routes.login },
       { label: "Recuperar acceso", href: routes.forgotPassword },
     ],
   },
@@ -43,7 +43,7 @@ export function TechloFooter() {
             ¿Listo para operar tus ads con control real?
           </h2>
         </div>
-        <TechloButton href={routes.login} label="Entrar al panel" />
+        <TechloButton href={routes.login} label="Entrar" />
       </div>
 
       <div className="tl-container tl-footer-divider border-t" />

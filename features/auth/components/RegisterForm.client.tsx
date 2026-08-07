@@ -28,7 +28,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text)]"
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -46,7 +46,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
 
 function readStoredReferralCode(): string | null {
   if (typeof window === "undefined") return null;
@@ -165,16 +165,16 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="auth-panel auth-enter relative w-full max-w-[440px] overflow-hidden rounded-[1.25rem] p-8 sm:p-9 lg:max-w-none">
-      <div className="mb-8">
-        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
+    <div className="auth-panel relative w-full max-w-[440px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
+      <div className="mb-7">
+        <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           Registro
         </p>
-        <h1 className="mt-2 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="mt-2 text-[1.7rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.9rem]">
           Crear cuenta
         </h1>
         <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Regístrate como anunciante en {siteConfig.name}
+          Registrá tu organización en {siteConfig.name}
         </p>
       </div>
 
@@ -289,7 +289,7 @@ export function RegisterForm() {
         </div>
 
         {referralCode && (
-          <div className="rounded-xl border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[#ffe0c2]">
+          <div className="rounded-xl border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--auth-text-muted)]">
             Código referido aplicado:{" "}
             <span className="font-semibold text-[var(--auth-text)]">{referralCode}</span>
           </div>
@@ -297,7 +297,7 @@ export function RegisterForm() {
 
         {error && (
           <p
-            className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
+            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error}

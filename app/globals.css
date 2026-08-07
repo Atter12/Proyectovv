@@ -445,36 +445,38 @@ body {
   border: none;
 }
 
-/* ACTIVO — estética SaaS limpia (inspiración Rockads) + naranja Holistic */
+/* ACTIVO — corporativo claro (alineado a landing Holistic) */
 .auth-canvas {
-  --auth-bg: #f4f6f8;
+  --auth-bg: #faf8f5;
   --auth-bg-elevated: #ffffff;
   --auth-surface: #ffffff;
-  --auth-border: rgb(15 23 42 / 0.08);
-  --auth-text: #0f172a;
-  --auth-text-muted: #475569;
-  --auth-text-soft: #94a3b8;
+  --auth-border: #ece7e0;
+  --auth-text: #1c1917;
+  --auth-text-muted: #5c564e;
+  --auth-text-soft: #8a8177;
   --auth-accent: #ff781f;
   --auth-accent-hover: #e8451a;
   --auth-accent-soft: #fff1e8;
   --auth-accent-ring: rgb(255 120 31 / 0.22);
   --auth-control-bg: #ffffff;
-  --auth-control-border: rgb(15 23 42 / 0.1);
+  --auth-control-border: #e5dfd7;
   --auth-control-hover: #fff7f0;
-  --auth-dot-mute: rgb(15 23 42 / 0.14);
-  --auth-dot-mute-hover: rgb(15 23 42 / 0.28);
-  --auth-divider: rgb(15 23 42 / 0.08);
-  --auth-input-border: rgb(15 23 42 / 0.12);
-  --auth-input-border-hover: rgb(15 23 42 / 0.2);
-  --auth-skeleton: rgb(15 23 42 / 0.08);
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --auth-dot-mute: rgb(28 25 23 / 0.14);
+  --auth-dot-mute-hover: rgb(28 25 23 / 0.28);
+  --auth-divider: #ece7e0;
+  --auth-input-border: #e0d9d0;
+  --auth-input-border-hover: #cfc6bb;
+  --auth-skeleton: rgb(28 25 23 / 0.07);
+  --font-sans: var(--font-sora), var(--font-jakarta), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-display: var(--font-sora), var(--font-jakarta), ui-sans-serif, system-ui,
+    sans-serif;
   font-family: var(--font-sans);
-  background-color: #f4f6f8;
+  color: var(--auth-text);
+  background-color: #ffffff;
   background-image:
-    radial-gradient(900px 480px at 8% -10%, rgb(255 120 31 / 0.07), transparent 58%),
-    radial-gradient(720px 400px at 100% 0%, rgb(255 161 44 / 0.05), transparent 55%),
-    linear-gradient(180deg, #f8fafc 0%, #f4f6f8 50%, #eef1f4 100%);
+    radial-gradient(55% 45% at 50% 0%, rgb(255 120 31 / 0.08), transparent 70%),
+    linear-gradient(180deg, #ffffff 0%, #faf8f5 55%, #f5f2ed 100%);
 }
 
 .auth-canvas::before {
@@ -487,24 +489,16 @@ body {
 }
 
 .auth-canvas .auth-panel {
-  border: 1px solid rgb(15 23 42 / 0.06);
+  border: 1px solid var(--auth-border);
   background: #ffffff;
-  border-radius: 1.25rem;
-  box-shadow:
-    0 1px 2px rgb(15 23 42 / 0.04),
-    0 12px 32px rgb(15 23 42 / 0.05);
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px -28px rgb(28 25 23 / 0.22);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .auth-canvas .auth-copy-well::before {
-  background: #ffffff;
-  box-shadow:
-    0 1px 2px rgb(15 23 42 / 0.04),
-    0 16px 40px rgb(15 23 42 / 0.06);
-  backdrop-filter: none;
-  border: 1px solid rgb(15 23 42 / 0.06);
-  border-radius: 1.5rem;
+  display: none;
 }
 
 .auth-canvas .font-display {
