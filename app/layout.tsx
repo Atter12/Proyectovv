@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
@@ -7,7 +7,7 @@ import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import "./globals.css";
 
-/** Una sola familia, pocos pesos → first paint más liviano (China / red lenta). */
+/** Dashboard / auth UI. */
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
@@ -23,6 +23,16 @@ const plusJakarta = Plus_Jakarta_Sans({
     "Arial",
     "sans-serif",
   ],
+  adjustFontFallback: true,
+});
+
+/** Landing Techlo Lite → Holistic. */
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sora",
+  weight: ["400", "500", "700"],
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
   adjustFontFallback: true,
 });
 
@@ -49,11 +59,10 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${plusJakarta.variable} light h-full antialiased`}
+      className={`${plusJakarta.variable} ${sora.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* Fallback usable si el CSS de Vercel no llega (China / red lenta) */}
         <style
           id="holistic-critical-css"
           dangerouslySetInnerHTML={{ __html: criticalCss }}

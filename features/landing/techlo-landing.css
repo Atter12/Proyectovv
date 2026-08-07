@@ -1,0 +1,434 @@
+/* Techlo Lite → Holistic landing
+   Layout/motion stolen from techlo-lite-astro; brand colors remapped to Holistic. */
+
+.techlo-landing {
+  --tl-primary: #ff781f;
+  --tl-primary-soft: #fff1e8;
+  --tl-accent: #ffb84a;
+  --tl-body: #ffffff;
+  --tl-theme-dark: #040d43;
+  --tl-theme-light: #f5f6f7;
+  --tl-dark: #141210;
+  --tl-light: #ced0df;
+  --tl-text: #585b6f;
+  --tl-border: #e5e5e5;
+  --tl-border-dark: #272f5d;
+  --tl-font: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --scroll-reveal-duration-default: 900ms;
+  --scroll-reveal-distance-default: 2rem;
+  --scroll-reveal-blur-default: 10px;
+  --scroll-reveal-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --leading-body: 1.8;
+
+  font-family: var(--tl-font);
+  color: var(--tl-text);
+  background: var(--tl-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.techlo-landing .tl-container {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .techlo-landing .tl-container {
+    padding-inline: 1.75rem;
+  }
+}
+
+.techlo-landing .tl-section {
+  padding-block: 4.5rem;
+}
+
+@media (min-width: 1024px) {
+  .techlo-landing .tl-section {
+    padding-block: 6rem;
+  }
+}
+
+.techlo-landing .tl-display {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--tl-dark);
+}
+
+.techlo-landing .tl-display-lg {
+  font-size: clamp(2.25rem, 1rem + 4vw, 4.5rem);
+}
+
+.techlo-landing .tl-display-md {
+  font-size: clamp(1.85rem, 1rem + 2.6vw, 3rem);
+}
+
+.techlo-landing .tl-h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--tl-dark);
+  line-height: 1.3;
+}
+
+/* Buttons (Techlo btn + magnetic text flip) */
+.techlo-landing .tl-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  padding: 1.05rem 1.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #fff;
+  text-transform: capitalize;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.techlo-landing .tl-btn-primary {
+  background: var(--tl-primary);
+}
+
+.techlo-landing .tl-btn-white {
+  background: #fff;
+  color: var(--tl-dark);
+}
+
+.techlo-landing .tl-btn:hover {
+  filter: brightness(1.03);
+}
+
+.techlo-landing .text-flip-hover-anim .text-flip-inner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  color: transparent;
+}
+
+.techlo-landing .text-flip-hover-anim .text-flip-inner::before,
+.techlo-landing .text-flip-hover-anim .text-flip-inner::after {
+  content: attr(data-content);
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  transition: all 0.3s ease-in-out;
+  color: inherit;
+}
+
+.techlo-landing .tl-btn-primary .text-flip-inner::before,
+.techlo-landing .tl-btn-primary .text-flip-inner::after {
+  color: #fff;
+}
+
+.techlo-landing .tl-btn-white .text-flip-inner::before,
+.techlo-landing .tl-btn-white .text-flip-inner::after {
+  color: var(--tl-dark);
+}
+
+.techlo-landing .text-flip-hover-anim .text-flip-inner::before {
+  top: 0;
+  opacity: 1;
+}
+
+.techlo-landing .text-flip-hover-anim .text-flip-inner::after {
+  top: 100%;
+  opacity: 0;
+}
+
+.techlo-landing .text-flip-hover-anim:hover .text-flip-inner::before {
+  top: -100%;
+  opacity: 0;
+}
+
+.techlo-landing .text-flip-hover-anim:hover .text-flip-inner::after {
+  top: 0;
+  opacity: 1;
+}
+
+/* Banner Three */
+.techlo-landing .banner-three-section {
+  --banner-three-duration: var(--scroll-reveal-duration-default);
+  --banner-three-ease: var(--scroll-reveal-easing);
+  position: relative;
+  overflow: hidden;
+  background: var(--tl-theme-dark);
+}
+
+.techlo-landing .banner-three-map {
+  position: absolute;
+  z-index: 10;
+  width: min(64rem, 160%);
+  opacity: 0;
+  filter: blur(var(--scroll-reveal-blur-default));
+  scale: 1.04;
+  animation:
+    banner-three-map-in var(--banner-three-duration) var(--banner-three-ease) 120ms forwards,
+    banner-three-map-drift 18s ease-in-out 1400ms infinite alternate;
+  pointer-events: none;
+  bottom: 0;
+  left: 0;
+}
+
+@media (min-width: 1024px) {
+  .techlo-landing .banner-three-map {
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.techlo-landing .banner-three-gradient {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(100rem, 220%);
+  height: min(61rem, 140%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  filter: blur(18px);
+  rotate: -1deg;
+  scale: 0.96;
+  animation:
+    banner-three-gradient-in var(--banner-three-duration) var(--banner-three-ease) forwards,
+    banner-three-gradient-drift 16s ease-in-out 1400ms infinite alternate;
+  pointer-events: none;
+}
+
+.techlo-landing .banner-three-gradient img {
+  width: 100%;
+  flex: 1;
+  object-fit: cover;
+}
+
+.techlo-landing .banner-three-title,
+.techlo-landing .banner-three-description,
+.techlo-landing .banner-three-actions {
+  opacity: 0;
+  filter: blur(var(--scroll-reveal-blur-default));
+  transform: translate3d(0, var(--scroll-reveal-distance-default), 0);
+  animation: banner-three-content-in var(--banner-three-duration)
+    var(--banner-three-ease) forwards;
+}
+
+.techlo-landing .banner-three-description {
+  animation-delay: 140ms;
+}
+
+.techlo-landing .banner-three-actions {
+  animation-delay: 280ms;
+}
+
+@keyframes banner-three-map-in {
+  to {
+    opacity: 0.07;
+    filter: blur(0);
+    scale: 1;
+  }
+}
+
+@keyframes banner-three-map-drift {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: 1.02;
+  }
+}
+
+@keyframes banner-three-gradient-in {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+@keyframes banner-three-gradient-drift {
+  from {
+    rotate: 0deg;
+    scale: 1;
+  }
+  to {
+    rotate: 1deg;
+    scale: 1.03;
+  }
+}
+
+@keyframes banner-three-content-in {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Scroll reveal */
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal] {
+  --scroll-reveal-delay: 0ms;
+  --scroll-reveal-duration: var(--scroll-reveal-duration-default);
+  --scroll-reveal-distance: var(--scroll-reveal-distance-default);
+  opacity: 0;
+  transform: translate3d(0, var(--scroll-reveal-distance), 0);
+  filter: blur(var(--scroll-reveal-blur-default));
+  transition-property: opacity, transform, filter, clip-path;
+  transition-duration: var(--scroll-reveal-duration);
+  transition-delay: var(--scroll-reveal-delay);
+  transition-timing-function: var(--scroll-reveal-easing);
+}
+
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+  clip-path: inset(0 0 0 0);
+}
+
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="fade-up"] {
+  filter: blur(0);
+}
+
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="blur-up"] {
+  --scroll-reveal-distance: 1.5rem;
+}
+
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="zoom-in"] {
+  transform: translate3d(0, 1rem, 0) scale(0.94);
+}
+
+.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="image-clip"] {
+  clip-path: inset(8% 8% 8% 8% round 1rem);
+  transform: translate3d(0, 2rem, 0) scale(1.04);
+}
+
+/* Marquee */
+.techlo-landing .tl-marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.techlo-landing .tl-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1.25rem;
+  animation: tl-marquee 28s linear infinite;
+}
+
+.techlo-landing .tl-marquee:hover .tl-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes tl-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.techlo-landing .tl-service-card {
+  position: relative;
+  width: 20rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 1rem;
+  aspect-ratio: 1;
+  background: var(--tl-theme-dark);
+}
+
+.techlo-landing .tl-service-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 35%,
+    rgb(4 13 67 / 0.88) 100%
+  );
+}
+
+.techlo-landing .tl-service-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+}
+
+.techlo-landing .tl-service-card .label {
+  position: absolute;
+  z-index: 2;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+/* CTA dark */
+.techlo-landing .tl-cta {
+  position: relative;
+  overflow: hidden;
+  background: var(--tl-theme-dark);
+  text-align: center;
+}
+
+.techlo-landing .tl-cta::before,
+.techlo-landing .tl-cta::after {
+  content: "";
+  position: absolute;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(255 120 31 / 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.techlo-landing .tl-cta::before {
+  top: -6rem;
+  left: -4rem;
+}
+
+.techlo-landing .tl-cta::after {
+  right: -4rem;
+  bottom: -6rem;
+}
+
+/* Quote dark band */
+.techlo-landing .tl-quote {
+  background: var(--tl-theme-dark);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .techlo-landing .banner-three-title,
+  .techlo-landing .banner-three-description,
+  .techlo-landing .banner-three-actions,
+  .techlo-landing [data-scroll-reveal],
+  .techlo-landing .banner-three-map,
+  .techlo-landing .banner-three-gradient,
+  .techlo-landing .tl-marquee-track {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .techlo-landing .banner-three-map {
+    opacity: 0.07 !important;
+  }
+}
