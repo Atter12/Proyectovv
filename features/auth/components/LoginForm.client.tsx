@@ -133,15 +133,15 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const magicError = searchParams.get("error") === "magic_link";
 
   return (
-    <div className="auth-panel relative w-full max-w-[420px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
-      <div className="mb-7">
+    <div className="auth-panel relative w-full max-w-[400px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
+      <div className="mb-6">
         <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
           Acceso
         </p>
-        <h1 className="mt-2 text-[1.7rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.9rem]">
+        <h1 className="mt-2 text-[1.5rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-1.5 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {otpMode
             ? "Solo correo. Te mandamos un código y un enlace mágico."
             : "Entrá a tu panel de anunciante"}
@@ -222,9 +222,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             ? otpMode
               ? "Enviando…"
               : "Iniciando sesión…"
-            : otpMode
-              ? "Enviar código y enlace"
-              : "Iniciar sesión"}
+            : "Entrar"}
         </button>
       </form>
 
