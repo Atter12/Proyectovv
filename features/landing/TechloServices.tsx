@@ -38,35 +38,32 @@ const SERVICES = [
 ] as const;
 
 export function TechloServices() {
-  const loop = [...SERVICES, ...SERVICES];
-
   return (
-    <section id="soluciones" className="tl-section overflow-hidden">
+    <section id="soluciones" className="tl-section">
       <div className="tl-container space-y-12">
-        <h2
-          className="tl-display tl-display-md mx-auto max-w-3xl text-center"
-          data-scroll-reveal="blur-up"
-        >
-          Servicios para operar y crecer con control
-        </h2>
-      </div>
+        <div className="mx-auto max-w-3xl text-center" data-scroll-reveal="blur-up">
+          <p className="tl-eyebrow">Soluciones</p>
+          <h2 className="tl-display tl-display-md mt-3">
+            Servicios para operar y crecer con control
+          </h2>
+        </div>
 
-      <div
-        className="tl-marquee mt-12"
-        data-scroll-reveal="fade-up"
-        data-scroll-reveal-delay="120"
-      >
-        <div className="tl-marquee-track">
-          {loop.map((item, index) => (
-            <article key={`${item.title}-${index}`} className="tl-service-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.image} alt={item.title} loading="lazy" />
-              <span className="tl-service-tag">{item.tag}</span>
-              <div className="label">
-                <p>{item.title}</p>
-                <p className="mt-1 text-[0.85rem] font-medium text-white/75">
-                  {item.hint}
-                </p>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {SERVICES.map((item, index) => (
+            <article
+              key={item.title}
+              className="tl-service-card"
+              data-scroll-reveal="zoom-in"
+              data-scroll-reveal-delay={String((index % 3) * 100)}
+            >
+              <div className="tl-service-media">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.image} alt={item.title} loading="lazy" />
+                <span className="tl-service-tag">{item.tag}</span>
+              </div>
+              <div className="p-5">
+                <p className="tl-h3 text-[1.1rem]">{item.title}</p>
+                <p className="mt-1.5 text-[0.92rem] leading-7">{item.hint}</p>
               </div>
             </article>
           ))}

@@ -38,10 +38,8 @@ export function TechloFooter() {
       {/* CTA band */}
       <div className="tl-container flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-20">
         <div>
-          <p className="text-[0.78rem] font-bold uppercase tracking-[0.18em] text-[var(--tl-primary)]">
-            {siteConfig.name}
-          </p>
-          <h2 className="tl-display tl-display-light mt-3 max-w-xl text-[clamp(1.6rem,1.1rem+2vw,2.6rem)]">
+          <p className="tl-eyebrow">{siteConfig.name}</p>
+          <h2 className="tl-display mt-3 max-w-xl text-[clamp(1.6rem,1.1rem+2vw,2.6rem)]">
             ¿Listo para operar tus ads con control real?
           </h2>
         </div>
@@ -54,11 +52,11 @@ export function TechloFooter() {
       <div className="tl-container grid gap-12 py-14 md:grid-cols-[1.3fr_2fr]">
         <div>
           <AuthBrandMark
-            tone="dark"
+            tone="light"
             compact
             className="!justify-start max-w-[150px]"
           />
-          <p className="mt-5 max-w-xs text-[0.95rem] leading-7 text-white/60">
+          <p className="mt-5 max-w-xs text-[0.95rem] leading-7 text-[var(--tl-muted)]">
             Panel Holistic Marketing — cartera, cuentas TikTok y pagos en un
             solo lugar para agencias y equipos de performance.
           </p>
@@ -66,7 +64,7 @@ export function TechloFooter() {
             {TAGS.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-white/12 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-white/55"
+                className="rounded-full border border-[var(--tl-border)] bg-white px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[var(--tl-muted)]"
               >
                 {tag}
               </span>
@@ -77,7 +75,7 @@ export function TechloFooter() {
         <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <p className="text-[0.75rem] font-bold uppercase tracking-[0.14em] text-white/40">
+              <p className="text-[0.75rem] font-bold uppercase tracking-[0.14em] text-[var(--tl-muted)]">
                 {column.title}
               </p>
               <ul className="mt-5 space-y-3 text-[0.95rem] font-medium">
@@ -103,7 +101,7 @@ export function TechloFooter() {
       </div>
 
       {/* Bottom bar */}
-      <div className="tl-container tl-footer-divider flex flex-col gap-3 border-t py-7 text-[0.85rem] text-white/45 sm:flex-row sm:items-center sm:justify-between">
+      <div className="tl-container tl-footer-divider flex flex-col gap-3 border-t py-7 text-[0.85rem] text-[var(--tl-muted)] sm:flex-row sm:items-center sm:justify-between">
         <p>
           © {new Date().getFullYear()} {siteConfig.companyName}. Todos los
           derechos reservados.

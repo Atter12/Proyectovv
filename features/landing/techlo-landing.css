@@ -1,22 +1,22 @@
-/* Techlo Lite → Holistic landing
-   Layout/motion stolen from techlo-lite-astro; brand colors remapped to Holistic. */
+/* Holistic landing — tema claro.
+   Nav oscuro anclando el logo naranja; el resto de la página es clara,
+   con acentos naranja (#ff781f). Animaciones ligeras: solo opacity/transform. */
 
 .techlo-landing {
   --tl-primary: #ff781f;
+  --tl-primary-hover: #f06a12;
   --tl-primary-soft: #fff1e8;
   --tl-accent: #ffb84a;
   --tl-body: #ffffff;
-  --tl-theme-dark: #16120f;
-  --tl-theme-light: #f7f5f2;
-  --tl-dark: #141210;
-  --tl-light: #d9d2ca;
+  --tl-nav-dark: #121110;
+  --tl-theme-light: #faf8f5;
+  --tl-dark: #1c1917;
   --tl-text: #5c564e;
-  --tl-border: #e8e4de;
-  --tl-border-dark: #2e2721;
+  --tl-muted: #8a8177;
+  --tl-border: #ece7e0;
   --tl-font: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
-  --scroll-reveal-duration-default: 900ms;
-  --scroll-reveal-distance-default: 2rem;
-  --scroll-reveal-blur-default: 10px;
+  --scroll-reveal-duration-default: 600ms;
+  --scroll-reveal-distance-default: 1.5rem;
   --scroll-reveal-easing: cubic-bezier(0.22, 1, 0.36, 1);
   --leading-body: 1.8;
 
@@ -57,14 +57,8 @@
   color: var(--tl-dark);
 }
 
-/* Sobre fondos oscuros el display siempre es blanco (gana especificidad). */
-.techlo-landing .tl-display-light,
-.techlo-landing .tl-display.tl-display-light {
-  color: #ffffff;
-}
-
 .techlo-landing .tl-display-lg {
-  font-size: clamp(2.25rem, 1rem + 4vw, 4.5rem);
+  font-size: clamp(2.25rem, 1rem + 4vw, 4.25rem);
 }
 
 .techlo-landing .tl-display-md {
@@ -79,7 +73,16 @@
   line-height: 1.3;
 }
 
-/* Buttons (Techlo btn + magnetic text flip) */
+.techlo-landing .tl-eyebrow {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tl-primary);
+}
+
+/* Buttons */
 .techlo-landing .tl-btn {
   position: relative;
   display: inline-flex;
@@ -93,20 +96,32 @@
   white-space: nowrap;
   color: #fff;
   text-transform: capitalize;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease, color 0.2s ease;
 }
 
 .techlo-landing .tl-btn-primary {
   background: var(--tl-primary);
+  box-shadow: 0 10px 24px -12px rgb(255 120 31 / 0.55);
+}
+
+.techlo-landing .tl-btn-primary:hover {
+  background: var(--tl-primary-hover);
 }
 
 .techlo-landing .tl-btn-white {
   background: #fff;
   color: var(--tl-dark);
+  border: 1px solid var(--tl-border);
 }
 
-.techlo-landing .tl-btn:hover {
-  filter: brightness(1.03);
+.techlo-landing .tl-btn-white:hover {
+  border-color: var(--tl-primary);
+  color: var(--tl-primary);
+}
+
+.techlo-landing .tl-btn:active {
+  transform: translateY(1px);
 }
 
 .techlo-landing .text-flip-hover-anim .text-flip-inner {
@@ -134,7 +149,7 @@
 
 .techlo-landing .tl-btn-white .text-flip-inner::before,
 .techlo-landing .tl-btn-white .text-flip-inner::after {
-  color: var(--tl-dark);
+  color: inherit;
 }
 
 .techlo-landing .text-flip-hover-anim .text-flip-inner::before {
@@ -157,138 +172,47 @@
   opacity: 1;
 }
 
-/* Banner Three */
-.techlo-landing .banner-three-section {
-  --banner-three-duration: var(--scroll-reveal-duration-default);
-  --banner-three-ease: var(--scroll-reveal-easing);
+/* Hero claro */
+.techlo-landing .tl-hero {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(60% 55% at 50% 0%, rgb(255 120 31 / 0.14), transparent 65%),
-    var(--tl-theme-dark);
+    radial-gradient(55% 45% at 50% 0%, rgb(255 120 31 / 0.09), transparent 70%),
+    var(--tl-body);
 }
 
-.techlo-landing .banner-three-map {
-  position: absolute;
-  z-index: 10;
-  width: min(64rem, 160%);
+.techlo-landing .tl-hero-title,
+.techlo-landing .tl-hero-description,
+.techlo-landing .tl-hero-actions {
   opacity: 0;
-  filter: blur(var(--scroll-reveal-blur-default));
-  scale: 1.04;
-  animation:
-    banner-three-map-in var(--banner-three-duration) var(--banner-three-ease) 120ms forwards,
-    banner-three-map-drift 18s ease-in-out 1400ms infinite alternate;
-  pointer-events: none;
-  bottom: 0;
-  left: 0;
+  transform: translate3d(0, 1.25rem, 0);
+  animation: tl-hero-in var(--scroll-reveal-duration-default)
+    var(--scroll-reveal-easing) forwards;
 }
 
-@media (min-width: 1024px) {
-  .techlo-landing .banner-three-map {
-    top: 50%;
-    left: 50%;
-    bottom: auto;
-    transform: translate(-50%, -50%);
-  }
+.techlo-landing .tl-hero-description {
+  animation-delay: 120ms;
 }
 
-.techlo-landing .banner-three-gradient {
-  position: absolute;
-  z-index: 10;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  width: min(100rem, 220%);
-  height: min(61rem, 140%);
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  filter: blur(18px);
-  rotate: -1deg;
-  scale: 0.96;
-  animation:
-    banner-three-gradient-in var(--banner-three-duration) var(--banner-three-ease) forwards,
-    banner-three-gradient-drift 16s ease-in-out 1400ms infinite alternate;
-  pointer-events: none;
+.techlo-landing .tl-hero-actions {
+  animation-delay: 240ms;
 }
 
-.techlo-landing .banner-three-gradient img {
-  width: 100%;
-  flex: 1;
-  object-fit: cover;
-}
-
-.techlo-landing .banner-three-title,
-.techlo-landing .banner-three-description,
-.techlo-landing .banner-three-actions {
-  opacity: 0;
-  filter: blur(var(--scroll-reveal-blur-default));
-  transform: translate3d(0, var(--scroll-reveal-distance-default), 0);
-  animation: banner-three-content-in var(--banner-three-duration)
-    var(--banner-three-ease) forwards;
-}
-
-.techlo-landing .banner-three-description {
-  animation-delay: 140ms;
-}
-
-.techlo-landing .banner-three-actions {
-  animation-delay: 280ms;
-}
-
-@keyframes banner-three-map-in {
-  to {
-    opacity: 0.07;
-    filter: blur(0);
-    scale: 1;
-  }
-}
-
-@keyframes banner-three-map-drift {
-  from {
-    scale: 1;
-  }
-  to {
-    scale: 1.02;
-  }
-}
-
-@keyframes banner-three-gradient-in {
+@keyframes tl-hero-in {
   to {
     opacity: 1;
-    filter: blur(0);
-    rotate: 0deg;
-    scale: 1;
-  }
-}
-
-@keyframes banner-three-gradient-drift {
-  from {
-    rotate: 0deg;
-    scale: 1;
-  }
-  to {
-    rotate: 1deg;
-    scale: 1.03;
-  }
-}
-
-@keyframes banner-three-content-in {
-  to {
-    opacity: 1;
-    filter: blur(0);
     transform: translate3d(0, 0, 0);
   }
 }
 
-/* Scroll reveal */
+/* Scroll reveal (solo opacity + transform, sin blur: más fluido) */
 .techlo-landing.scroll-reveal-enabled [data-scroll-reveal] {
   --scroll-reveal-delay: 0ms;
   --scroll-reveal-duration: var(--scroll-reveal-duration-default);
   --scroll-reveal-distance: var(--scroll-reveal-distance-default);
   opacity: 0;
   transform: translate3d(0, var(--scroll-reveal-distance), 0);
-  filter: blur(var(--scroll-reveal-blur-default));
-  transition-property: opacity, transform, filter, clip-path;
+  transition-property: opacity, transform;
   transition-duration: var(--scroll-reveal-duration);
   transition-delay: var(--scroll-reveal-delay);
   transition-timing-function: var(--scroll-reveal-easing);
@@ -297,92 +221,56 @@
 .techlo-landing.scroll-reveal-enabled [data-scroll-reveal].is-visible {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
-  filter: blur(0);
-  clip-path: inset(0 0 0 0);
-}
-
-.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="fade-up"] {
-  filter: blur(0);
-}
-
-.techlo-landing.scroll-reveal-enabled [data-scroll-reveal="blur-up"] {
-  --scroll-reveal-distance: 1.5rem;
 }
 
 .techlo-landing.scroll-reveal-enabled [data-scroll-reveal="zoom-in"] {
-  transform: translate3d(0, 1rem, 0) scale(0.94);
+  transform: translate3d(0, 1rem, 0) scale(0.96);
 }
 
 .techlo-landing.scroll-reveal-enabled [data-scroll-reveal="image-clip"] {
-  clip-path: inset(8% 8% 8% 8% round 1rem);
-  transform: translate3d(0, 2rem, 0) scale(1.04);
+  transform: translate3d(0, 1.5rem, 0);
 }
 
-/* Marquee */
-.techlo-landing .tl-marquee {
-  overflow: hidden;
-  width: 100%;
-}
-
-.techlo-landing .tl-marquee-track {
-  display: flex;
-  width: max-content;
-  gap: 1.25rem;
-  animation: tl-marquee 28s linear infinite;
-}
-
-.techlo-landing .tl-marquee:hover .tl-marquee-track {
-  animation-play-state: paused;
-}
-
-@keyframes tl-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
+/* Cards de servicios (grid, sin carrusel) */
 .techlo-landing .tl-service-card {
   position: relative;
-  width: 20rem;
-  flex-shrink: 0;
   overflow: hidden;
   border-radius: 1rem;
-  aspect-ratio: 1;
-  background: var(--tl-theme-dark);
+  background: #fff;
+  border: 1px solid var(--tl-border);
+  transition: transform 250ms var(--scroll-reveal-easing),
+    box-shadow 250ms var(--scroll-reveal-easing);
 }
 
-.techlo-landing .tl-service-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(22 18 15 / 0.05) 30%,
-    rgb(22 18 15 / 0.92) 100%
-  );
+.techlo-landing .tl-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -24px rgb(28 25 23 / 0.25);
 }
 
-.techlo-landing .tl-service-card img {
+.techlo-landing .tl-service-card .tl-service-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+}
+
+.techlo-landing .tl-service-card .tl-service-media img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 500ms var(--scroll-reveal-easing);
+  transition: transform 400ms var(--scroll-reveal-easing);
 }
 
-.techlo-landing .tl-service-card:hover img {
-  transform: scale(1.05);
+.techlo-landing .tl-service-card:hover .tl-service-media img {
+  transform: scale(1.04);
 }
 
-.techlo-landing .tl-service-card .tl-service-tag {
+.techlo-landing .tl-service-tag {
   position: absolute;
   z-index: 2;
-  top: 1.1rem;
-  left: 1.1rem;
+  top: 0.9rem;
+  left: 0.9rem;
   border-radius: 999px;
   background: var(--tl-primary);
   padding: 0.3rem 0.8rem;
@@ -393,73 +281,40 @@
   color: #fff;
 }
 
-.techlo-landing .tl-service-card .label {
-  position: absolute;
-  z-index: 2;
-  left: 1.25rem;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
+/* Cards de testimonios (grid, sin rotación) */
+.techlo-landing .tl-quote-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid var(--tl-border);
+  padding: 1.75rem;
 }
 
-/* CTA dark */
+/* CTA clara con acento naranja suave */
 .techlo-landing .tl-cta {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(45% 70% at 50% 100%, rgb(255 120 31 / 0.16), transparent 70%),
-    var(--tl-theme-dark);
+    radial-gradient(50% 70% at 50% 100%, rgb(255 120 31 / 0.12), transparent 70%),
+    var(--tl-primary-soft);
   text-align: center;
 }
 
-.techlo-landing .tl-cta::before,
-.techlo-landing .tl-cta::after {
-  content: "";
-  position: absolute;
-  width: 18rem;
-  height: 18rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgb(255 120 31 / 0.35), transparent 70%);
-  pointer-events: none;
-}
-
-.techlo-landing .tl-cta::before {
-  top: -6rem;
-  left: -4rem;
-}
-
-.techlo-landing .tl-cta::after {
-  right: -4rem;
-  bottom: -6rem;
-}
-
-/* Quote dark band */
-.techlo-landing .tl-quote {
-  background:
-    radial-gradient(50% 80% at 15% 20%, rgb(255 120 31 / 0.1), transparent 60%),
-    var(--tl-theme-dark);
-  color: #fff;
-}
-
-/* Footer pro */
+/* Footer claro */
 .techlo-landing .tl-footer {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(48% 60% at 85% 0%, rgb(255 120 31 / 0.12), transparent 65%),
-    var(--tl-theme-dark);
-  color: #fff;
+  background: var(--tl-theme-light);
+  border-top: 1px solid var(--tl-border);
+  color: var(--tl-text);
 }
 
 .techlo-landing .tl-footer-divider {
-  border-color: rgb(255 255 255 / 0.09);
+  border-color: var(--tl-border);
 }
 
 .techlo-landing .tl-footer-link {
-  color: rgb(255 255 255 / 0.62);
+  color: var(--tl-muted);
   transition: color 200ms ease;
 }
 
@@ -468,21 +323,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .techlo-landing .banner-three-title,
-  .techlo-landing .banner-three-description,
-  .techlo-landing .banner-three-actions,
-  .techlo-landing [data-scroll-reveal],
-  .techlo-landing .banner-three-map,
-  .techlo-landing .banner-three-gradient,
-  .techlo-landing .tl-marquee-track {
+  .techlo-landing .tl-hero-title,
+  .techlo-landing .tl-hero-description,
+  .techlo-landing .tl-hero-actions,
+  .techlo-landing [data-scroll-reveal] {
     opacity: 1 !important;
     transform: none !important;
-    filter: none !important;
     animation: none !important;
     transition: none !important;
-  }
-
-  .techlo-landing .banner-three-map {
-    opacity: 0.07 !important;
   }
 }

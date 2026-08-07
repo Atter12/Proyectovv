@@ -36,10 +36,8 @@ export function TechloNav() {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-[background,box-shadow] duration-300",
-        scrolled || open
-          ? "bg-[var(--tl-theme-dark)] shadow-[0_8px_24px_rgb(0_0_0_/_0.35)]"
-          : "bg-transparent",
+        "fixed inset-x-0 top-0 z-50 bg-[var(--tl-nav-dark)] transition-shadow duration-300",
+        (scrolled || open) && "shadow-[0_8px_24px_rgb(0_0_0_/_0.18)]",
       )}
     >
       <div className="tl-container flex h-16 items-center justify-between gap-3 sm:h-[4.5rem]">
@@ -112,7 +110,7 @@ export function TechloNav() {
 
       {open ? (
         <nav
-          className="border-t border-white/10 bg-[var(--tl-theme-dark)] px-5 py-4 lg:hidden"
+          className="border-t border-white/10 bg-[var(--tl-nav-dark)] px-5 py-4 lg:hidden"
           aria-label="Móvil"
         >
           {NAV.map((item) => (

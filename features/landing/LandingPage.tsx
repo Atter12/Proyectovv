@@ -5,7 +5,7 @@ import { TechloBanner } from "./TechloBanner";
 import { TechloServices } from "./TechloServices";
 import { TechloSkills } from "./TechloSkills";
 import { TechloProcess } from "./TechloProcess";
-import { TechloQuotes } from "./TechloQuotes.client";
+import { TechloQuotes } from "./TechloQuotes";
 import { TechloCta } from "./TechloCta";
 import { TechloFooter } from "./TechloFooter";
 
