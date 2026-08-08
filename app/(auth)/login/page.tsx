@@ -19,7 +19,7 @@ function AuthCardFallback() {
 }
 
 /**
- * Login — mortgage-services layout, imagen lifestyle + móvil cómodo.
+ * Login mortgage — form + foto (bg CSS + Image, sin hueco vacío).
  */
 export default function LoginPage() {
   return (
@@ -50,24 +50,15 @@ export default function LoginPage() {
 
         <main className="flex flex-1 items-start justify-center px-3.5 pb-8 pt-5 sm:items-center sm:px-6 sm:py-12 lg:py-14">
           <div className="w-full max-w-[930px]">
-            <div className="mortgage-login-card overflow-hidden rounded-[1.35rem] bg-white sm:rounded-[1.75rem] lg:flex lg:items-stretch lg:py-2.5 lg:pr-2.5">
-              {/* Banner móvil — foto corta, sin overlay pesado */}
-              <figure className="relative h-36 w-full overflow-hidden sm:h-44 lg:hidden">
-                <Image
-                  src="/auth/login-side.jpg"
-                  alt=""
-                  fill
-                  priority
-                  sizes="100vw"
-                  className="object-cover object-[center_35%]"
-                />
-                <div
-                  className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent"
-                  aria-hidden
-                />
-              </figure>
+            <div className="mortgage-login-card grid overflow-hidden rounded-[1.35rem] bg-white sm:rounded-[1.75rem] lg:grid-cols-[minmax(320px,400px)_minmax(0,1fr)] lg:p-2.5 lg:pl-0">
+              {/* Banner móvil */}
+              <div
+                className="mortgage-login-photo h-40 w-full sm:h-48 lg:hidden"
+                role="img"
+                aria-label=""
+              />
 
-              <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center px-5 pb-7 pt-5 sm:px-8 sm:pb-10 sm:pt-8 lg:shrink-0 lg:py-14">
+              <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center px-5 pb-7 pt-5 sm:px-8 sm:pb-10 sm:pt-8 lg:row-start-1 lg:px-8 lg:py-12">
                 <Suspense fallback={<AuthCardFallback />}>
                   <LoginForm hecomOtpEnabled={serverEnv.authHecomOtpLogin} />
                 </Suspense>
@@ -76,17 +67,22 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              {/* Lateral desktop — foto mortgage, sin texto encima */}
-              <figure className="relative hidden min-h-[540px] flex-1 overflow-hidden rounded-[1.25rem] lg:block">
+              {/* Lateral desktop — CSS background (siempre visible) + Image */}
+              <div className="relative hidden min-h-[520px] overflow-hidden rounded-[1.25rem] lg:block">
+                <div
+                  className="mortgage-login-photo absolute inset-0"
+                  aria-hidden
+                />
                 <Image
                   src="/auth/login-side.jpg"
-                  alt={`${siteConfig.name}`}
-                  fill
+                  alt=""
+                  width={912}
+                  height={1040}
                   priority
-                  sizes="(min-width: 1024px) 456px, 0px"
-                  className="object-cover object-center"
+                  className="absolute inset-0 size-full object-cover"
+                  sizes="(min-width: 1024px) 500px, 0px"
                 />
-              </figure>
+              </div>
             </div>
           </div>
         </main>

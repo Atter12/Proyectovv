@@ -536,6 +536,21 @@ body {
     0 24px 60px -32px rgb(28 25 23 / 0.28);
 }
 
+/* Foto login — CSS background (no depende de next/image fill) */
+.mortgage-login-photo {
+  background-color: #e8e4de;
+  background-image: url("/auth/login-side.jpg");
+  background-position: center 35%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 1024px) {
+  .mortgage-login-photo {
+    background-position: center center;
+  }
+}
+
 @media (max-width: 639px) {
   .mortgage-login-card {
     border-radius: 1.25rem;
