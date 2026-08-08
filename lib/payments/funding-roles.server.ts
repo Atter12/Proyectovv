@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  isDemoClienteEmail,
+  isDemoGerenteEmail,
+} from "@/lib/auth/demo-personas.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 
@@ -16,6 +20,8 @@ function normalizeEmail(email: string): string {
 export function isPaymentsSuperAdminEmail(emailRaw: string): boolean {
   const email = normalizeEmail(emailRaw);
   if (!email) return false;
+  // Demostración: cliente/gerente fijos no son dual super-admin.
+  if (isDemoClienteEmail(email) || isDemoGerenteEmail(email)) return false;
   if (serverEnv.paymentsSuperAdminEmails.includes(email)) return true;
   return DEFAULT_PAYMENTS_SUPER_ADMIN_EMAILS.includes(email);
 }
@@ -39,16 +45,44 @@ export type PaymentsFundingCapabilities = {
  * - Cliente → solo Stripe / cartera
  * - Gerente → solo BM
  * - Super admin (Atter) → ambos
+ *
+ * Cuentas demo:
+ * - ferbasiliorengifo@gmail.com → cliente
+ * - atlvbasiliorengifo@gmail.com → gerente
  */
 export function resolvePaymentsFundingCapabilities(input: {
   email: string;
   role?: string | null;
 }): PaymentsFundingCapabilities {
+  const email = normalizeEmail(input.email);
+
+  if (isDemoClienteEmail(email)) {
+    return {
+      isStaff: false,
+      isSuperAdmin: false,
+      canAgencyBmFund: false,
+      canClientStripeFund: true,
+      canSwitchFundingModes: false,
+      defaultFundingMode: "client",
+    };
+  }
+
+  if (isDemoGerenteEmail(email)) {
+    return {
+      isStaff: true,
+      isSuperAdmin: false,
+      canAgencyBmFund: true,
+      canClientStripeFund: false,
+      canSwitchFundingModes: false,
+      defaultFundingMode: "agency_bm",
+    };
+  }
+
   const isOrgElevated =
     input.role === "owner" || input.role === "admin";
   const isStaff =
-    isHecomOtpStaffEmail(input.email) || isOrgElevated;
-  const isSuperAdmin = isPaymentsSuperAdminEmail(input.email);
+    isHecomOtpStaffEmail(email) || isOrgElevated;
+  const isSuperAdmin = isPaymentsSuperAdminEmail(email);
 
   const canAgencyBmFund = isStaff;
   const canClientStripeFund = !isStaff || isSuperAdmin;

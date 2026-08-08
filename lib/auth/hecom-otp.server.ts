@@ -66,12 +66,16 @@ function isOtpTestClienteEmail(email: string): boolean {
 function buildTestCliente(email: string): HecomCliente {
   return {
     id: `otp-test:${email}`,
-    name: "Cliente prueba OTP",
+    name: isDemoOtpClienteEmail(email)
+      ? "Cliente demo Holistic"
+      : "Cliente prueba OTP",
     dni: null,
     emails: [email],
     phones: [],
     biz: "OTP test",
-    notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+    notes: isDemoOtpClienteEmail(email)
+      ? "Demo cliente ferbasiliorengifo@gmail.com"
+      : "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
     ig: null,
     avatarUrl: null,
     createdAt: null,
@@ -176,7 +180,7 @@ export async function requestHecomClientOtp(input: {
   logHecomOtp("info", "request_start", {
     email: emailMasked,
     isStaff: isHecomOtpStaffEmail(email),
-    isTest: serverEnv.authHecomOtpTestEmails.includes(email),
+    isTest: isOtpTestClienteEmail(email),
     provider: serverEnv.emailProvider,
     hasResendKey: Boolean(serverEnv.resendApiKey),
     from: serverEnv.emailFrom ? "set" : "missing",
@@ -210,7 +214,7 @@ export async function requestHecomClientOtp(input: {
   }
 
   const isStaff = isHecomOtpStaffEmail(email);
-  const isTest = serverEnv.authHecomOtpTestEmails.includes(email);
+  const isTest = isOtpTestClienteEmail(email);
 
   if (clientes.length === 0 && !isStaff && !isTest) {
     logHecomOtp("info", "request_not_allowed", {
