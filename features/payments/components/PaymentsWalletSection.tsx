@@ -1,16 +1,21 @@
 import { getPaymentPageCore } from "@/services/payments.service";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import type { SessionUser } from "@/types/auth";
+import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import { WalletSummaryPremium } from "./WalletSummaryPremium";
 
 interface PaymentsWalletSectionProps {
   session: SessionUser;
   staffMode?: boolean;
+  hecomFinance?: HecomFinanceSnapshot | null;
+  clienteName?: string;
 }
 
 export async function PaymentsWalletSection({
   session,
   staffMode = false,
+  hecomFinance = null,
+  clienteName,
 }: PaymentsWalletSectionProps) {
   const core = await getPaymentPageCore(session);
   const preferredGateway =
@@ -27,6 +32,8 @@ export async function PaymentsWalletSection({
       preferredGateway={preferredGateway}
       staffMode={staffMode || capabilities.isStaff}
       canClientStripeFund={capabilities.canClientStripeFund}
+      hecomFinance={hecomFinance}
+      clienteName={clienteName}
     />
   );
 }

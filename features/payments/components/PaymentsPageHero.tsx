@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { routes } from "@/config/routes";
+import { formatMoney } from "@/lib/format-money";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { PaymentsMoneyFlowGuide } from "./PaymentsMoneyFlowGuide";
+import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 interface PaymentsPageHeroProps {
@@ -12,15 +14,17 @@ interface PaymentsPageHeroProps {
   };
   capabilities: PaymentsFundingCapabilities;
   introCopy: string;
+  hecomFinance?: HecomFinanceSnapshot | null;
 }
 
 /**
- * Cabecera de Pagos — clara, compacta, con badge de persona.
+ * Cabecera de Pagos — clara, compacta, con badge de persona + saldo Hecom.
  */
 export function PaymentsPageHero({
   cliente,
   capabilities,
   introCopy,
+  hecomFinance = null,
 }: PaymentsPageHeroProps) {
   const persona =
     capabilities.canSwitchFundingModes
@@ -50,6 +54,8 @@ export function PaymentsPageHero({
         ? "Stripe o BM → ads"
         : "Stripe → cartera → ads";
 
+  const debt = hecomFinance != null && hecomFinance.saldoEstimado < 0;
+
   return (
     <div className="space-y-4 sm:space-y-5">
       <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
@@ -69,10 +75,7 @@ export function PaymentsPageHero({
                   {cliente.name}
                 </p>
               </div>
-              <span
-                className="dashboard-role-badge"
-                data-role={persona}
-              >
+              <span className="dashboard-role-badge" data-role={persona}>
                 {persona === "super_admin"
                   ? "Super admin"
                   : persona === "gerente"
@@ -104,21 +107,43 @@ export function PaymentsPageHero({
             </div>
           </div>
 
-          <div className="w-full max-w-sm rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-4 lg:min-w-[240px]">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-              Modo activo
-            </p>
-            <p className="mt-1.5 text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              {modeLabel}
-            </p>
-            <p className="mt-2 text-[12px] font-semibold text-[var(--auth-accent)]">
-              {flowLabel}
-            </p>
-            <p className="mt-2 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-              {persona === "gerente"
-                ? "Cash del Business Center directo a la cuenta ads."
-                : "Recargá arriba; el historial Hecom está abajo."}
-            </p>
+          <div className="w-full max-w-sm space-y-3 lg:min-w-[240px]">
+            {hecomFinance != null ? (
+              <div className="rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-4">
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
+                  {debt ? "Deuda neta Hecom" : "Saldo estimado Hecom"}
+                </p>
+                <p
+                  className={`mt-1.5 text-[1.75rem] font-bold leading-none tracking-[-0.04em] tabular-nums ${
+                    debt ? "text-[#b45309]" : "text-[var(--auth-text)]"
+                  }`}
+                >
+                  {formatMoney(hecomFinance.saldoEstimado, "USD")}
+                </p>
+                <p className="mt-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+                  Cobros {formatMoney(hecomFinance.cobroTotal, "USD")} · Gastos{" "}
+                  {formatMoney(hecomFinance.gastoTotal, "USD")} · Fees{" "}
+                  {formatMoney(hecomFinance.feeTotal, "USD")}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="rounded-[1rem] border border-[var(--auth-border)] bg-white p-4">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
+                Modo activo
+              </p>
+              <p className="mt-1.5 text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                {modeLabel}
+              </p>
+              <p className="mt-2 text-[12px] font-semibold text-[var(--auth-accent)]">
+                {flowLabel}
+              </p>
+              <p className="mt-2 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+                {persona === "gerente"
+                  ? "Cash del Business Center directo a la cuenta ads. El historial de abajo no baja con fondeo BM."
+                  : "Recargá arriba; el historial Hecom está abajo."}
+              </p>
+            </div>
           </div>
         </div>
       </section>

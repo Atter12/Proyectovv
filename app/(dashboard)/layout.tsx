@@ -53,9 +53,10 @@ export default async function DashboardLayout({
 
   if (selected) {
     try {
-      // Fast shell: solo CRM name/avatar (sin gastos/cobros Hecom por route change).
+      // Gerente/cliente: mostrar saldo estimado real Hecom (no "—").
+      // Misma fuente que Resumen / Pagos para no mentir en el rail.
       const shell = await getHecomClienteShell(selected.id, {
-        includeSaldo: false,
+        includeSaldo: true,
       });
       selectedCliente = shell
         ? {

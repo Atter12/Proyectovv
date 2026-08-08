@@ -109,22 +109,25 @@ export async function syncApprovedAdAccountsForCliente(input: {
   let bcAdvertisers: TikTokBcAdvertiser[] = [];
   let statusAvailable = true;
   try {
-    // Cache si hay; si no hay o el cliente no tiene mapeo Hecom, forzar BM live
-    // (match por nombre) — necesario para que el gerente pueda fondear.
+    // Siempre live para sync de fondeo (no cache-first cold []).
+    // forceRefresh / vacíos: lista BM completa + match por nombre.
     const hecomPre = resolveHecomAccounts(cliente).filter(
       (account) => account.syncEnabled !== false,
     );
-    bcAdvertisers = await listHolisticBcAdvertisersCachedFirst({
-      organizationId: input.organizationId,
-      forceRefresh: input.forceRefresh,
-    });
-    if (
-      (bcAdvertisers.length === 0 || hecomPre.length === 0) &&
-      !input.forceRefresh
-    ) {
+    if (input.forceRefresh || hecomPre.length === 0) {
       bcAdvertisers = await listHolisticBcAdvertisers({
         organizationId: input.organizationId,
+        forceRefresh: Boolean(input.forceRefresh),
       });
+    } else {
+      bcAdvertisers = await listHolisticBcAdvertisersCachedFirst({
+        organizationId: input.organizationId,
+      });
+      if (bcAdvertisers.length === 0) {
+        bcAdvertisers = await listHolisticBcAdvertisers({
+          organizationId: input.organizationId,
+        });
+      }
     }
     if (bcAdvertisers.length === 0) {
       statusAvailable = false;

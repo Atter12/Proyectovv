@@ -94,6 +94,15 @@ export default async function PaymentsPage({
     .map((account) => account.externalAccountId?.trim())
     .filter((id): id is string => Boolean(id));
 
+  const hecomFinance = {
+    saldoEstimado: data.summary.saldoEstimado,
+    cobroTotal: data.summary.cobroTotal,
+    gastoTotal: data.summary.gastoTotal,
+    feeTotal: data.summary.feeTotal,
+  };
+
+  // Si overview aún viene vacío (cold TikTok), el panel fuerza live + mirror de org.
+
   if (capabilities.isStaff && session.organizationId) {
     const organizationId = session.organizationId;
     after(async () => {
@@ -110,7 +119,7 @@ export default async function PaymentsPage({
   const introCopy = capabilities.canSwitchFundingModes
     ? `Super admin: operá como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
     : capabilities.canAgencyBmFund
-      ? `Modo gerente: fondeá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Abajo: historial Hecom.`
+      ? `Modo gerente: fondeá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Saldo estimado Hecom arriba y en el historial.`
       : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}. Abajo: historial Hecom.`;
 
   return (
@@ -121,12 +130,15 @@ export default async function PaymentsPage({
         cliente={cliente}
         capabilities={capabilities}
         introCopy={introCopy}
+        hecomFinance={hecomFinance}
       />
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
         <PaymentsWalletSection
           session={session}
           staffMode={capabilities.isStaff}
+          hecomFinance={hecomFinance}
+          clienteName={cliente.name}
         />
       </Suspense>
 
@@ -136,6 +148,7 @@ export default async function PaymentsPage({
           hecomAdvertiserIds={hecomAdvertiserIds}
           hecomClienteId={cliente.id}
           clienteName={cliente.name}
+          hecomFinance={hecomFinance}
           skipOrphanCleanup
           skipApprovedSync={isStripeReturn}
         />
@@ -145,7 +158,10 @@ export default async function PaymentsPage({
         className="border-t border-[var(--auth-divider)] pt-2"
         aria-label={`Historial Hecom de ${cliente.name}`}
       >
-        <ClienteScopedPayments data={data} />
+        <ClienteScopedPayments
+          data={data}
+          staffMode={capabilities.isStaff || capabilities.canAgencyBmFund}
+        />
       </div>
     </div>
   );

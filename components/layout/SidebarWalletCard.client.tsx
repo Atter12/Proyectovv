@@ -98,7 +98,7 @@ export function SidebarWalletCard({
         </p>
         <p className="mt-0.5 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
           {selectedCliente.saldoEstimado == null
-            ? "—"
+            ? "…"
             : formatMoney(selectedCliente.saldoEstimado, "USD")}
         </p>
       </div>

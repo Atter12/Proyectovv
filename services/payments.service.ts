@@ -119,6 +119,154 @@ export async function listOrganizationAdAccountsForAllocation(
   }
 }
 
+/**
+ * Garantiza filas ad_accounts en la org del usuario (gerente vs super admin
+ * tienen organizations distintas: sin esto el SA ve Asignar y el gerente no).
+ * Copia metadata de otras orgs si el advertiser ya existía ahí.
+ */
+export async function ensureAdvertisersInOrganizationForAllocation(input: {
+  organizationId: string;
+  clienteId: string;
+  clienteName?: string;
+  userId?: string | null;
+  advertisers: Array<{ advertiserId: string; name?: string | null }>;
+}): Promise<number> {
+  const orgId = input.organizationId?.trim();
+  if (!orgId || input.advertisers.length === 0) return 0;
+
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { ensureAdAccountLedgerAccounts } = await import(
+      "@/lib/ledger/ledger.server"
+    );
+    const admin = createAdminClient();
+    const ids = [
+      ...new Set(
+        input.advertisers
+          .map((row) => row.advertiserId.trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (ids.length === 0) return 0;
+
+    const nameById = new Map(
+      input.advertisers.map((row) => [
+        row.advertiserId.trim(),
+        row.name?.trim() || null,
+      ]),
+    );
+
+    const { data: globalRows } = await admin
+      .from("ad_accounts")
+      .select(
+        "organization_id, name, external_account_id, external_business_id, external_account_name, currency, timezone, status",
+      )
+      .eq("platform", "tiktok")
+      .in("external_account_id", ids);
+
+    const templateById = new Map<
+      string,
+      {
+        name: string;
+        external_business_id: string | null;
+        external_account_name: string | null;
+        currency: string;
+        timezone: string;
+      }
+    >();
+    for (const row of globalRows ?? []) {
+      const ext = String(
+        (row as { external_account_id?: string }).external_account_id ?? "",
+      ).trim();
+      if (!ext || templateById.has(ext)) continue;
+      templateById.set(ext, {
+        name: String((row as { name?: string }).name ?? "").trim() || ext,
+        external_business_id:
+          (row as { external_business_id?: string | null }).external_business_id ??
+          null,
+        external_account_name:
+          (row as { external_account_name?: string | null })
+            .external_account_name ?? null,
+        currency:
+          String((row as { currency?: string }).currency ?? "USD") || "USD",
+        timezone:
+          String((row as { timezone?: string }).timezone ?? "America/Lima") ||
+          "America/Lima",
+      });
+    }
+
+    let upserted = 0;
+    for (const advertiserId of ids) {
+      const template = templateById.get(advertiserId);
+      const displayName =
+        nameById.get(advertiserId) ||
+        template?.name ||
+        (input.clienteName
+          ? `${input.clienteName} · TikTok`
+          : `TikTok ${advertiserId}`);
+
+      const { error } = await admin.from("ad_accounts").upsert(
+        {
+          organization_id: orgId,
+          name: displayName,
+          platform: "tiktok",
+          external_account_id: advertiserId,
+          external_business_id: template?.external_business_id ?? null,
+          external_account_name:
+            template?.external_account_name ?? displayName,
+          status: "active",
+          currency: template?.currency ?? "USD",
+          timezone: template?.timezone ?? "America/Lima",
+          created_by: input.userId ?? null,
+          last_synced_at: new Date().toISOString(),
+          metadata: {
+            source: "ensure_allocation_org",
+            hecom_cliente_id: input.clienteId,
+            hecom_cliente_name: input.clienteName ?? null,
+            mirrored_from_other_org: Boolean(template),
+          },
+        },
+        { onConflict: "organization_id,platform,external_account_id" },
+      );
+
+      if (error) {
+        console.warn("[payments] ensure_advertiser_upsert", {
+          advertiserId,
+          error: error.message,
+        });
+        continue;
+      }
+
+      const { data: stored } = await admin
+        .from("ad_accounts")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("platform", "tiktok")
+        .eq("external_account_id", advertiserId)
+        .maybeSingle<{ id: string }>();
+
+      if (stored?.id) {
+        await ensureAdAccountLedgerAccounts(stored.id).catch(() => undefined);
+      }
+      upserted += 1;
+    }
+
+    console.info("[payments] ensure_advertisers_in_org", {
+      orgId,
+      clienteId: input.clienteId,
+      requested: ids.length,
+      upserted,
+      mirroredTemplates: templateById.size,
+    });
+    return upserted;
+  } catch (error) {
+    console.error("[payments] ensure_advertisers_fatal", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return 0;
+  }
+}
+
 async function getAdAccountBalanceMapAdmin(
   organizationId: string,
 ): Promise<Map<string, number>> {

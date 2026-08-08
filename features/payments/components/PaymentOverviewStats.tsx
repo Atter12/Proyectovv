@@ -3,6 +3,7 @@
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
+import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
 
 interface PaymentOverviewStatsProps {
@@ -10,48 +11,88 @@ interface PaymentOverviewStatsProps {
   summary: PaymentPageCore["summary"];
   activeGateway: PaymentGateway;
   isStaff?: boolean;
+  /** CRM del cliente en alcance (saldo estimado, cobros, etc.) */
+  hecomFinance?: HecomFinanceSnapshot | null;
 }
 
 /**
- * Resumen de pagos — grilla clara (sin banda negra “Holistic en números”).
+ * Resumen de pagos — grilla clara.
+ * Gerente/modo BM: KPIs Hecom del cliente (igual pulso que super admin).
+ * Cliente: cartera Holistic + pasarela.
  */
 export function PaymentOverviewStats({
   wallet,
   summary,
   activeGateway,
   isStaff = false,
+  hecomFinance = null,
 }: PaymentOverviewStatsProps) {
   const { agencyBmFunding } = usePaymentsFundingMode();
-  const hideWalletAsFunding = isStaff && agencyBmFunding;
+  const hecomMode = isStaff && agencyBmFunding && hecomFinance != null;
+  const debt =
+    hecomFinance != null && hecomFinance.saldoEstimado < 0;
 
-  const items = [
-    {
-      label: hideWalletAsFunding ? "Cartera Holistic" : "Saldo disponible",
-      value: formatMoney(wallet.balance, wallet.currency),
-      hint: hideWalletAsFunding
-        ? "No se usa en modo BM"
-        : "Cartera de la organización",
-      accent: true as boolean,
-    },
-    {
-      label: "Pasarela activa",
-      value: activeGateway.name,
-      hint: hideWalletAsFunding ? "Solo camino cliente" : "Método seleccionado",
-      accent: false,
-    },
-    {
-      label: "Cuentas listas",
-      value: formatNumber(summary.accountsReadyForAllocation),
-      hint: "Para asignación",
-      accent: true,
-    },
-    {
-      label: "Reembolsos",
-      value: formatNumber(summary.pendingRefunds),
-      hint: "Pendientes",
-      accent: false,
-    },
-  ];
+  const items = hecomMode
+    ? [
+        {
+          label: debt ? "Deuda neta Hecom" : "Saldo estimado",
+          value: formatMoney(hecomFinance.saldoEstimado, "USD"),
+          hint: "Cobros − gastos − fees (CRM)",
+          accent: true as boolean,
+          warn: debt,
+        },
+        {
+          label: "Total cobros",
+          value: formatMoney(hecomFinance.cobroTotal, "USD"),
+          hint: "Ingresos Hecom",
+          accent: true,
+          warn: false,
+        },
+        {
+          label: "Cuentas listas",
+          value: formatNumber(summary.accountsReadyForAllocation),
+          hint: "Para fondear / asignar",
+          accent: true,
+          warn: false,
+        },
+        {
+          label: "Total gastos",
+          value: formatMoney(hecomFinance.gastoTotal, "USD"),
+          hint: `Fees ${formatMoney(hecomFinance.feeTotal, "USD")}`,
+          accent: false,
+          warn: false,
+        },
+      ]
+    : [
+        {
+          label: "Saldo disponible",
+          value: formatMoney(wallet.balance, wallet.currency),
+          hint: "Cartera de la organización",
+          accent: true as boolean,
+          warn: false,
+        },
+        {
+          label: "Pasarela activa",
+          value: activeGateway.name,
+          hint: "Método seleccionado",
+          accent: false,
+          warn: false,
+        },
+        {
+          label: "Cuentas listas",
+          value: formatNumber(summary.accountsReadyForAllocation),
+          hint: "Para asignación",
+          accent: true,
+          warn: false,
+        },
+        {
+          label: "Reembolsos",
+          value: formatNumber(summary.pendingRefunds),
+          hint: "Pendientes",
+          accent: false,
+          warn: false,
+        },
+      ];
 
   return (
     <section aria-label="Resumen de pagos" className="space-y-3">
@@ -60,7 +101,9 @@ export function PaymentOverviewStats({
           Resumen
         </p>
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
-          Pulso de cartera y asignación
+          {hecomMode
+            ? "Pulso Hecom y asignación BM"
+            : "Pulso de cartera y asignación"}
         </p>
       </div>
 
@@ -79,7 +122,11 @@ export function PaymentOverviewStats({
             </p>
             <p
               className={`mt-1.5 truncate text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums ${
-                item.accent ? "text-[#ff781f]" : "text-[#1c1917]"
+                item.warn
+                  ? "text-[#b45309]"
+                  : item.accent
+                    ? "text-[#ff781f]"
+                    : "text-[#1c1917]"
               }`}
             >
               {item.value}

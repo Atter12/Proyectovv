@@ -13,8 +13,11 @@ import {
 
 export function ClienteScopedPayments({
   data,
+  staffMode = false,
 }: {
   data: HecomClienteDashboard;
+  /** Gerente / path BM: copy de fondeo correcto. */
+  staffMode?: boolean;
 }) {
   const { cliente, summary, cobros, gastos } = data;
 
@@ -57,7 +60,9 @@ export function ClienteScopedPayments({
                 Cobrado y gastado · {cliente.name}
               </h2>
               <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-                Solo lectura del CRM. El fondeo se hace con la cartera de arriba.
+                {staffMode
+                  ? "Solo lectura del CRM. El fondeo BM suma presupuesto a ads y no reduce la deuda neta — baja con cobro del cliente."
+                  : "Solo lectura del CRM. El fondeo se hace con la cartera de arriba."}
               </p>
             </div>
           </div>

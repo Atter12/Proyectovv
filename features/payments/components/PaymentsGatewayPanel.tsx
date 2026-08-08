@@ -8,9 +8,11 @@ import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import {
+  ensureAdvertisersInOrganizationForAllocation,
   getPaymentPageCore,
   listOrganizationAdAccountsForAllocation,
 } from "@/services/payments.service";
+import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { SessionUser } from "@/types/auth";
 import type { PaymentAccountAllocation } from "@/types/payment";
 import Link from "next/link";
@@ -21,6 +23,7 @@ interface PaymentsGatewayPanelProps {
   hecomAdvertiserIds?: string[];
   hecomClienteId?: string;
   clienteName?: string;
+  hecomFinance?: HecomFinanceSnapshot | null;
   /** Si el cleanup ya corrió (o se diferió) en la página. */
   skipOrphanCleanup?: boolean;
   /**
@@ -41,6 +44,7 @@ export async function PaymentsGatewayPanel({
   hecomAdvertiserIds,
   hecomClienteId,
   clienteName,
+  hecomFinance = null,
   skipOrphanCleanup = false,
   skipApprovedSync = false,
 }: PaymentsGatewayPanelProps) {
@@ -67,6 +71,7 @@ export async function PaymentsGatewayPanel({
 
   let approvedIds = [...(hecomAdvertiserIds ?? [])];
   let syncNote: string | null = null;
+  let ensured = 0;
 
   if (
     !skipApprovedSync &&
@@ -74,9 +79,8 @@ export async function PaymentsGatewayPanel({
     hecomClienteId
   ) {
     try {
-      // Gerentes sin mapeo Hecom: force BM match + upsert en SU org.
-      const forceRefresh =
-        capabilities.canAgencyBmFund && (hecomAdvertiserIds?.length ?? 0) === 0;
+      // Gerente BM: siempre live BM + upsert en SU org (no la del super admin).
+      const forceRefresh = capabilities.canAgencyBmFund;
 
       const sync = await syncApprovedAdAccountsForCliente({
         organizationId: session.organizationId,
@@ -87,9 +91,11 @@ export async function PaymentsGatewayPanel({
 
       if (!sync.skippedUnavailableStatus) {
         if (sync.approvedAdvertiserIds.length > 0) {
-          approvedIds = sync.approvedAdvertiserIds;
+          approvedIds = [
+            ...new Set([...approvedIds, ...sync.approvedAdvertiserIds]),
+          ];
         }
-        if (sync.approvedAdvertiserIds.length === 0) {
+        if (sync.approvedAdvertiserIds.length === 0 && approvedIds.length === 0) {
           syncNote =
             "No hay cuentas TikTok Aprobadas para este cliente (BM + Hecom). Revisá el advertiser o el nombre en el Business Center.";
         }
@@ -101,6 +107,20 @@ export async function PaymentsGatewayPanel({
           "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
       }
 
+      // Si el SA ya fondeó en otra org, copiá filas a la org del gerente.
+      if (capabilities.canAgencyBmFund && approvedIds.length > 0) {
+        ensured = await ensureAdvertisersInOrganizationForAllocation({
+          organizationId: session.organizationId,
+          clienteId: hecomClienteId,
+          clienteName,
+          userId: session.id,
+          advertisers: approvedIds.map((advertiserId) => ({
+            advertiserId,
+            name: clienteName ? `${clienteName} · TikTok` : null,
+          })),
+        });
+      }
+
       console.info("[payments] allocate_scope", {
         email: session.email,
         isStaff: capabilities.isStaff,
@@ -110,6 +130,7 @@ export async function PaymentsGatewayPanel({
         hecomIds: hecomAdvertiserIds?.length ?? 0,
         approvedIds: approvedIds.length,
         upserted: sync.upserted,
+        ensured,
         skipped: sync.skippedUnavailableStatus,
       });
     } catch (error) {
@@ -129,11 +150,85 @@ export async function PaymentsGatewayPanel({
   // Staff/gerente: leer con service role para no quedar en 0 por org RLS/viewer.
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
   if (capabilities.canAgencyBmFund && session.organizationId) {
+    // Re-ensure if overview tenía IDs pero sync falló (org del gerente vacía).
+    if (
+      pool.length === 0 &&
+      approvedIds.length > 0 &&
+      hecomClienteId
+    ) {
+      ensured = await ensureAdvertisersInOrganizationForAllocation({
+        organizationId: session.organizationId,
+        clienteId: hecomClienteId,
+        clienteName,
+        userId: session.id,
+        advertisers: approvedIds.map((advertiserId) => ({
+          advertiserId,
+          name: clienteName ? `${clienteName} · TikTok` : null,
+        })),
+      });
+    }
+
     const adminPool = await listOrganizationAdAccountsForAllocation(
       session.organizationId,
     );
     if (adminPool.length > 0) {
       pool = adminPool;
+    }
+  }
+
+  // Fallback: si en la org del super admin (u otra) hay filas con el mismo
+  // hecom_cliente_id en metadata, tomar sus external ids y crearlas acá.
+  if (
+    capabilities.canAgencyBmFund &&
+    session.organizationId &&
+    hecomClienteId &&
+    approvedIds.length === 0
+  ) {
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+      const { data: metaRows } = await admin
+        .from("ad_accounts")
+        .select("external_account_id, name, metadata")
+        .eq("platform", "tiktok")
+        .filter("metadata->>hecom_cliente_id", "eq", hecomClienteId)
+        .not("external_account_id", "is", null)
+        .limit(50);
+
+      const fromMeta = (metaRows ?? [])
+        .map((row) => ({
+          advertiserId: String(
+            (row as { external_account_id?: string }).external_account_id ?? "",
+          ).trim(),
+          name: String((row as { name?: string }).name ?? "").trim() || null,
+        }))
+        .filter((row) => row.advertiserId);
+
+      if (fromMeta.length > 0) {
+        approvedIds = [...new Set(fromMeta.map((r) => r.advertiserId))];
+        ensured = await ensureAdvertisersInOrganizationForAllocation({
+          organizationId: session.organizationId,
+          clienteId: hecomClienteId,
+          clienteName,
+          userId: session.id,
+          advertisers: fromMeta,
+        });
+        const adminPool = await listOrganizationAdAccountsForAllocation(
+          session.organizationId,
+        );
+        if (adminPool.length > 0) pool = adminPool;
+        syncNote = null;
+        console.info("[payments] allocate_from_meta_mirror", {
+          email: session.email,
+          clienteId: hecomClienteId,
+          approvedIds: approvedIds.length,
+          ensured,
+        });
+      }
+    } catch (error) {
+      console.warn("[payments] meta_mirror_skip", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
     }
   }
 
@@ -165,6 +260,7 @@ export async function PaymentsGatewayPanel({
           summary={scopedSummary}
           activeGateway={activeGateway}
           isStaff={capabilities.isStaff}
+          hecomFinance={hecomFinance}
         />
 
         {syncNote ? (

@@ -301,7 +301,13 @@ export async function listHolisticBcAdvertisers(input?: {
   }
 
   const advertisers = [...byId.values()];
-  cache.set(cacheKey, { at: Date.now(), advertisers });
+  // Nunca cachear vacío: un fail intermitente dejaba a gerentes sin Asignar 5 min
+  // mientras super admin seguía viendo filas ya upsertadas en su org.
+  if (advertisers.length > 0) {
+    cache.set(cacheKey, { at: Date.now(), advertisers });
+  } else {
+    cache.delete(cacheKey);
+  }
   console.info("[tiktok-bc] list_advertisers_ok", {
     count: advertisers.length,
     approved: advertisers.filter((a) => a.statusKind === "approved").length,
