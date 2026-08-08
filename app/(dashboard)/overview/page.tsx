@@ -17,7 +17,16 @@ export default async function OverviewPage() {
     );
   }
 
-  const data = await getHecomClienteDashboard(selected.id);
+  let data: Awaited<ReturnType<typeof getHecomClienteDashboard>> = null;
+  try {
+    data = await getHecomClienteDashboard(selected.id);
+  } catch (error) {
+    console.error("[overview] dashboard failed", {
+      clienteId: selected.id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+
   if (!data) {
     return (
       <div className={dashboardClasses.page}>

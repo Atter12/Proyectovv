@@ -10,6 +10,7 @@ import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
 import { setSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   findHecomClientesByEmail,
+  buildOtpTestHecomCliente,
   type HecomCliente,
 } from "@/lib/hecom/clientes.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
@@ -63,30 +64,6 @@ function isOtpTestClienteEmail(email: string): boolean {
   );
 }
 
-function buildTestCliente(email: string): HecomCliente {
-  return {
-    id: `otp-test:${email}`,
-    name: isDemoOtpClienteEmail(email)
-      ? "Cliente demo Holistic"
-      : "Cliente prueba OTP",
-    dni: null,
-    emails: [email],
-    phones: [],
-    biz: "OTP test",
-    notes: isDemoOtpClienteEmail(email)
-      ? "Demo cliente ferbasiliorengifo@gmail.com"
-      : "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
-    ig: null,
-    avatarUrl: null,
-    createdAt: null,
-    tiktokAdvertiserId: null,
-    tiktokAdvertiserName: null,
-    tiktokSyncEnabled: null,
-    tiktokDefaultFee: null,
-    tiktokAccounts: [],
-  };
-}
-
 /** Clientes Hecom permitidos para este correo (CRM + allowlist de prueba). */
 export async function resolveHecomClientesForEmail(
   emailRaw: string,
@@ -94,7 +71,7 @@ export async function resolveHecomClientesForEmail(
   const email = normalizeEmail(emailRaw);
   let clientes = await findHecomClientesByEmail(email);
   if (clientes.length === 0 && isOtpTestClienteEmail(email)) {
-    clientes = [buildTestCliente(email)];
+    clientes = [buildOtpTestHecomCliente(`otp-test:${email}`)];
   }
   return clientes;
 }

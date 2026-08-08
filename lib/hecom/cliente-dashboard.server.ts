@@ -6,6 +6,7 @@ import {
 } from "@/lib/hecom/backup-data.server";
 import {
   getHecomCliente,
+  isOtpTestClienteId,
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
@@ -291,77 +292,100 @@ function scopeGastosToAdvertisers(
 
 export const getHecomClienteDashboard = cache(
   async (clienteId: string): Promise<HecomClienteDashboard | null> => {
-    const cliente = await getHecomCliente(clienteId);
-    if (!cliente) return null;
+    try {
+      const cliente = await getHecomCliente(clienteId);
+      if (!cliente) return null;
 
-    const accounts = resolveAccounts(cliente);
-    const advertiserIds = advertiserIdsFromAccounts(accounts);
-    const cfg = getHecomSupabaseConfig();
+      const accounts = resolveAccounts(cliente);
+      const advertiserIds = advertiserIdsFromAccounts(accounts);
 
-    if (cfg.configured) {
-      const live = await loadLiveFinance(clienteId);
-      if (live) {
-        const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
-        const cobros = live.cobros;
+      // Demo OTP: UI vacía realista sin pegarle a Hecom finance.
+      if (isOtpTestClienteId(clienteId)) {
         return {
-          source: "hecom_live",
+          source: "hecom_backup",
           cliente,
           accounts,
-          gastos,
-          cobros,
-          creativosClientes: live.creativosClientes,
-          creativosProyectos: live.creativosProyectos,
-          summary: buildSummary(
+          gastos: [],
+          cobros: [],
+          creativosClientes: [],
+          creativosProyectos: [],
+          summary: buildSummary(accounts, [], [], [], []),
+        };
+      }
+
+      const cfg = getHecomSupabaseConfig();
+
+      if (cfg.configured) {
+        const live = await loadLiveFinance(clienteId);
+        if (live) {
+          const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+          const cobros = live.cobros;
+          return {
+            source: "hecom_live",
+            cliente,
             accounts,
             gastos,
             cobros,
-            live.creativosClientes,
-            live.creativosProyectos,
-          ),
+            creativosClientes: live.creativosClientes,
+            creativosProyectos: live.creativosProyectos,
+            summary: buildSummary(
+              accounts,
+              gastos,
+              cobros,
+              live.creativosClientes,
+              live.creativosProyectos,
+            ),
+          };
+        }
+      }
+
+      const backup = await loadHecomBackupJson();
+      if (!backup) {
+        return {
+          source: "hecom_backup",
+          cliente,
+          accounts,
+          gastos: [],
+          cobros: [],
+          creativosClientes: [],
+          creativosProyectos: [],
+          summary: buildSummary(accounts, [], [], [], []),
         };
       }
-    }
 
-    const backup = await loadHecomBackupJson();
-    if (!backup) {
+      const filtered = filterBackupByClient(backup.data, clienteId);
+      const gastos = scopeGastosToAdvertisers(
+        filtered.gastos.map(mapGasto),
+        advertiserIds,
+      );
+      const cobros = filtered.cobros.map(mapCobro);
+      const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
+      const creativosProyectos =
+        filtered.creativosProyectos.map(mapCreativoProyecto);
+
       return {
         source: "hecom_backup",
         cliente,
-        accounts,
-        gastos: [],
-        cobros: [],
-        creativosClientes: [],
-        creativosProyectos: [],
-        summary: buildSummary(accounts, [], [], [], []),
-      };
-    }
-
-    const filtered = filterBackupByClient(backup.data, clienteId);
-    const gastos = scopeGastosToAdvertisers(
-      filtered.gastos.map(mapGasto),
-      advertiserIds,
-    );
-    const cobros = filtered.cobros.map(mapCobro);
-    const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
-    const creativosProyectos =
-      filtered.creativosProyectos.map(mapCreativoProyecto);
-
-    return {
-      source: "hecom_backup",
-      cliente,
-      accounts,
-      gastos,
-      cobros,
-      creativosClientes,
-      creativosProyectos,
-      summary: buildSummary(
         accounts,
         gastos,
         cobros,
         creativosClientes,
         creativosProyectos,
-      ),
-    };
+        summary: buildSummary(
+          accounts,
+          gastos,
+          cobros,
+          creativosClientes,
+          creativosProyectos,
+        ),
+      };
+    } catch (error) {
+      console.error("[hecom] getHecomClienteDashboard", {
+        clienteId,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      return null;
+    }
   },
 );
 
@@ -375,33 +399,50 @@ export const getHecomClienteShell = cache(
     avatarUrl: string | null;
     saldoEstimado: number | null;
   } | null> => {
-    const cliente = await getHecomCliente(clienteId);
-    if (!cliente) return null;
+    try {
+      const cliente = await getHecomCliente(clienteId);
+      if (!cliente) return null;
 
-    const accounts = resolveAccounts(cliente);
-    const advertiserIds = advertiserIdsFromAccounts(accounts);
-    const cfg = getHecomSupabaseConfig();
-
-    if (cfg.configured) {
-      const live = await loadLiveFinance(clienteId, { includeCreativos: false });
-      if (live) {
-        const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
-        const summary = buildSummary(accounts, gastos, live.cobros, [], []);
+      if (isOtpTestClienteId(clienteId)) {
         return {
           id: cliente.id,
           name: cliente.name,
           avatarUrl: cliente.avatarUrl,
-          saldoEstimado: summary.saldoEstimado,
+          saldoEstimado: 0,
         };
       }
-    }
 
-    return {
-      id: cliente.id,
-      name: cliente.name,
-      avatarUrl: cliente.avatarUrl,
-      saldoEstimado: null,
-    };
+      const accounts = resolveAccounts(cliente);
+      const advertiserIds = advertiserIdsFromAccounts(accounts);
+      const cfg = getHecomSupabaseConfig();
+
+      if (cfg.configured) {
+        const live = await loadLiveFinance(clienteId, { includeCreativos: false });
+        if (live) {
+          const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+          const summary = buildSummary(accounts, gastos, live.cobros, [], []);
+          return {
+            id: cliente.id,
+            name: cliente.name,
+            avatarUrl: cliente.avatarUrl,
+            saldoEstimado: summary.saldoEstimado,
+          };
+        }
+      }
+
+      return {
+        id: cliente.id,
+        name: cliente.name,
+        avatarUrl: cliente.avatarUrl,
+        saldoEstimado: null,
+      };
+    } catch (error) {
+      console.error("[hecom] getHecomClienteShell", {
+        clienteId,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      return null;
+    }
   },
 );
 

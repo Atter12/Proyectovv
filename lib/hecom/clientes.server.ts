@@ -35,6 +35,39 @@ export type HecomTiktokAccount = {
   syncEnabled: boolean;
 };
 
+/** Clientes solo de demo OTP (no existen en Hecom CRM). */
+export function isOtpTestClienteId(id: string): boolean {
+  return id.startsWith("otp-test:");
+}
+
+/**
+ * Cliente sintético para allowlist de prueba / demo.
+ * Nunca se busca en Supabase Hecom (evita crash por UUID inválido).
+ */
+export function buildOtpTestHecomCliente(id: string): HecomCliente {
+  const email = id.slice("otp-test:".length).trim().toLowerCase() || "demo@local";
+  const isFerDemo = email === "ferbasiliorengifo@gmail.com";
+  return {
+    id,
+    name: isFerDemo ? "Cliente demo Holistic" : "Cliente prueba OTP",
+    dni: null,
+    emails: [email],
+    phones: [],
+    biz: isFerDemo ? "Demo cliente Holistic" : "OTP test",
+    notes: isFerDemo
+      ? "Cuenta demo UI — no es registro CRM Hecom"
+      : "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+    ig: null,
+    avatarUrl: null,
+    createdAt: null,
+    tiktokAdvertiserId: null,
+    tiktokAdvertiserName: null,
+    tiktokSyncEnabled: null,
+    tiktokDefaultFee: null,
+    tiktokAccounts: [],
+  };
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -223,37 +256,62 @@ export async function findHecomClientesByEmail(
 
 export const getHecomCliente = cache(
   async (id: string): Promise<HecomCliente | null> => {
+    const clienteId = String(id ?? "").trim();
+    if (!clienteId) return null;
+
+    // Demo / OTP test: no cruzar Hecom (ids no-UUID rompían el RSC en overview).
+    if (isOtpTestClienteId(clienteId)) {
+      return buildOtpTestHecomCliente(clienteId);
+    }
+
     const cfg = getHecomSupabaseConfig();
     if (!cfg.configured) {
-      return getHecomClienteFromBackup(id);
+      return getHecomClienteFromBackup(clienteId);
     }
 
-    const hecom = createHecomAdminClient();
-    const full = await hecom
-      .from("clientes")
-      .select(
-        "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
-      )
-      .eq("id", id)
-      .maybeSingle();
-
-    let row: Record<string, unknown> | null = null;
-    if (full.error) {
-      const basic = await hecom
+    try {
+      const hecom = createHecomAdminClient();
+      const full = await hecom
         .from("clientes")
-        .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
-        .eq("id", id)
+        .select(
+          "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+        )
+        .eq("id", clienteId)
         .maybeSingle();
-      if (basic.error) throw new Error(`Hecom cliente: ${basic.error.message}`);
-      row = (basic.data as Record<string, unknown> | null) ?? null;
-    } else {
-      row = (full.data as Record<string, unknown> | null) ?? null;
+
+      let row: Record<string, unknown> | null = null;
+      if (full.error) {
+        // UUID inválido u otras fallas de PostgREST: no tumbar el Server Component.
+        const basic = await hecom
+          .from("clientes")
+          .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
+          .eq("id", clienteId)
+          .maybeSingle();
+        if (basic.error) {
+          console.error("[hecom] getHecomCliente", {
+            clienteId,
+            error: basic.error.message,
+          });
+          return getHecomClienteFromBackup(clienteId);
+        }
+        row = (basic.data as Record<string, unknown> | null) ?? null;
+      } else {
+        row = (full.data as Record<string, unknown> | null) ?? null;
+      }
+
+      if (!row) {
+        return getHecomClienteFromBackup(clienteId);
+      }
+
+      const accountsByClient = await loadTiktokAccountsByClient([clienteId]);
+      return mapClienteRow(row, accountsByClient.get(clienteId) ?? []);
+    } catch (error) {
+      console.error("[hecom] getHecomCliente unexpected", {
+        clienteId,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      return getHecomClienteFromBackup(clienteId);
     }
-
-    if (!row) return null;
-
-    const accountsByClient = await loadTiktokAccountsByClient([id]);
-    return mapClienteRow(row, accountsByClient.get(id) ?? []);
   },
 );
 
