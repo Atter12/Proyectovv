@@ -9,7 +9,9 @@ import { filterAdAccounts } from "@/lib/filter/ad-accounts";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { getSearchParam } from "@/lib/search-params";
+import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
+import Link from "next/link";
 import { Suspense } from "react";
 
 interface AdAccountsPageProps {
@@ -99,15 +101,23 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               <span className="text-[#fe2c55]">T</span>
             </div>
             <p className="mt-4 text-[14px] font-medium tracking-[-0.01em] text-[var(--auth-text)]">
-              {clienteName} no tiene cuentas TikTok mapeadas
+              {clienteName} no tiene cuentas TikTok para operar
             </p>
-            <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              En Hecom Club falta el{" "}
+            <p className="mx-auto mt-2 max-w-lg text-[13px] leading-5 text-[var(--auth-text-muted)]">
+              Buscamos en Hecom ({" "}
               <code className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[12px] text-[var(--auth-accent)]">
                 advertiser_id
-              </code>{" "}
-              para este cliente. Cuando esté mapeado, aparece acá en solo lectura.
+              </code>
+              ) y en el BM por nombre del cliente. Si no aparece nada, el
+              advertiser no está Aprobado en el BC de Holistic, o el nombre en
+              TikTok no coincide con “{clienteName}”.
             </p>
+            <Link
+              href={routes.payments}
+              className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+            >
+              Ir a pagos para fondear
+            </Link>
           </div>
         ) : (
           <AdAccountsTable accounts={filteredAccounts} readOnly />

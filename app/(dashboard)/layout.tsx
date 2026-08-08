@@ -5,6 +5,7 @@ import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 
 export default async function DashboardLayout({
@@ -12,6 +13,7 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const started = Date.now();
   const session = await requireSession();
   const funding = resolvePaymentsFundingCapabilities({
     email: session.email,
@@ -24,10 +26,8 @@ export default async function DashboardLayout({
       ? "gerente"
       : "cliente";
 
-  // Scope por userId: no mezclar selección entre cliente y gerente en el mismo browser.
   let selected = await getSelectedHecomCliente(session.id);
 
-  // Gerente no debe quedar pegado a un cliente demo OTP.
   if (
     selected &&
     funding.isStaff &&
@@ -35,6 +35,13 @@ export default async function DashboardLayout({
     !funding.isSuperAdmin
   ) {
     selected = null;
+  }
+
+  // Precalienta cache TikTok BC en background (no bloquea HTML).
+  if (funding.isStaff || funding.isSuperAdmin || funding.canAgencyBmFund) {
+    warmHolisticBcAdvertisers({
+      organizationId: session.organizationId ?? undefined,
+    });
   }
 
   let selectedCliente: {
@@ -46,7 +53,10 @@ export default async function DashboardLayout({
 
   if (selected) {
     try {
-      const shell = await getHecomClienteShell(selected.id);
+      // Fast shell: solo CRM name/avatar (sin gastos/cobros Hecom por route change).
+      const shell = await getHecomClienteShell(selected.id, {
+        includeSaldo: false,
+      });
       selectedCliente = shell
         ? {
             id: shell.id,
@@ -76,6 +86,14 @@ export default async function DashboardLayout({
     email: session.email,
     avatarInitials: session.avatarInitials,
   };
+
+  if (process.env.NODE_ENV !== "production" || Date.now() - started > 400) {
+    console.info("[dashboard-layout]", {
+      ms: Date.now() - started,
+      persona,
+      hasCliente: Boolean(selectedCliente),
+    });
+  }
 
   return (
     <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">

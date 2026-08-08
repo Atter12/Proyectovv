@@ -37,6 +37,65 @@ const cache = new Map<
   { at: number; advertisers: TikTokBcAdvertiser[] }
 >();
 const CACHE_MS = 5 * 60 * 1000;
+let warming = false;
+
+/**
+ * Devuelve lista en cache (fresca o stale ≤15 min) sin llamar a TikTok.
+ * null = nunca se cacheó.
+ */
+export function peekHolisticBcAdvertisersCache(options?: {
+  allowStaleMs?: number;
+}): TikTokBcAdvertiser[] | null {
+  const hit = cache.get("holistic-bcs");
+  if (!hit) return null;
+  const maxAge = options?.allowStaleMs ?? CACHE_MS * 3;
+  if (Date.now() - hit.at > maxAge) return null;
+  return hit.advertisers;
+}
+
+/** Dispara refresh en background sin bloquear la request. */
+export function warmHolisticBcAdvertisers(input?: {
+  organizationId?: string;
+}): void {
+  if (warming) return;
+  const hit = cache.get("holistic-bcs");
+  if (hit && Date.now() - hit.at < CACHE_MS) return;
+  warming = true;
+  void listHolisticBcAdvertisers(input)
+    .catch((error) => {
+      console.warn("[tiktok-bc] warm_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    })
+    .finally(() => {
+      warming = false;
+    });
+}
+
+/**
+ * Cache-first: no espera TikTok en cold start.
+ * Usar en páginas de listado (Cuentas ads) para navegación rápida.
+ */
+export async function listHolisticBcAdvertisersCachedFirst(input?: {
+  organizationId?: string;
+  forceRefresh?: boolean;
+}): Promise<TikTokBcAdvertiser[]> {
+  if (input?.forceRefresh) {
+    return listHolisticBcAdvertisers(input);
+  }
+  const cached = peekHolisticBcAdvertisersCache();
+  if (cached) {
+    // Refresh en background si la cache está vieja (>1 min)
+    const hit = cache.get("holistic-bcs");
+    if (hit && Date.now() - hit.at > 60_000) {
+      warmHolisticBcAdvertisers(input);
+    }
+    return cached;
+  }
+  // Cold: no bloquear page load; calentar para la siguiente visita
+  warmHolisticBcAdvertisers(input);
+  return [];
+}
 
 function apiUrl(path: string): string {
   const base = serverEnv.tiktokApiBaseUrl.replace(/\/$/, "");

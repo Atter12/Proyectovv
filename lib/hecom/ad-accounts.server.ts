@@ -1,11 +1,14 @@
 import "server-only";
 import {
   getHecomCliente,
+  isOtpTestClienteId,
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
 import {
   listHolisticBcAdvertisers,
+  listHolisticBcAdvertisersCachedFirst,
+  type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
@@ -95,13 +98,34 @@ export function mapHecomTiktokToAdAccount(
   };
 }
 
+/**
+ * Cuentas ads del cliente.
+ * - Con mapeo Hecom: muestra rápido (cache TikTok si hay).
+ * - Sin mapeo Hecom: consulta BM TikTok y matchea por nombre (como Hecom Club / path histórico).
+ *   Sin esto, el gerente ve “sin cuentas” y no puede fondear.
+ */
 export async function getHecomClienteAdAccountsOverview(
   clienteId: string,
 ): Promise<AdAccountsOverview & { cliente: HecomCliente | null }> {
+  const started = Date.now();
+
   const cliente = await getHecomCliente(clienteId);
   if (!cliente) {
     return {
       cliente: null,
+      accounts: [],
+      summary: {
+        totalAccounts: 0,
+        activeAccounts: 0,
+        assignedBalance: 0,
+        pendingSetup: 0,
+      },
+    };
+  }
+
+  if (isOtpTestClienteId(clienteId)) {
+    return {
+      cliente,
       accounts: [],
       summary: {
         totalAccounts: 0,
@@ -121,23 +145,46 @@ export async function getHecomClienteAdAccountsOverview(
     advertiserId: string;
     advertiserName: string;
   }> = [];
+  let liveSource: "cache" | "live" | "none" = "none";
 
   try {
-    const live = await listHolisticBcAdvertisers();
-    statusById = new Map(live.map((row) => [row.advertiserId, row.statusKind]));
-    liveApprovedExtras = live
-      .filter(
-        (row) =>
-          row.statusKind === "approved" &&
-          advertiserMatchesCliente(row.advertiserName, cliente.name) &&
-          !hecomAccounts.some((h) => h.advertiserId === row.advertiserId),
-      )
-      .map((row) => ({
-        advertiserId: row.advertiserId,
-        advertiserName: row.advertiserName,
-      }));
-  } catch {
-    // sin estado TikTok: mostramos Hecom mapeadas
+    let live: TikTokBcAdvertiser[] =
+      await listHolisticBcAdvertisersCachedFirst();
+    liveSource = live.length > 0 ? "cache" : "none";
+
+    // Sin mapeo en Hecom (caso típico), hay que ir al BM por nombre.
+    // También si cache vacío: un force para no dejar 0 cuentas al gerente.
+    if (hecomAccounts.length === 0 || live.length === 0) {
+      try {
+        live = await listHolisticBcAdvertisers();
+        liveSource = live.length > 0 ? "live" : "none";
+      } catch (error) {
+        console.warn("[ad-accounts] bc_live_failed", {
+          clienteId,
+          error: error instanceof Error ? error.message : "unknown",
+        });
+      }
+    }
+
+    if (live.length > 0) {
+      statusById = new Map(live.map((row) => [row.advertiserId, row.statusKind]));
+      liveApprovedExtras = live
+        .filter(
+          (row) =>
+            row.statusKind === "approved" &&
+            advertiserMatchesCliente(row.advertiserName, cliente.name) &&
+            !hecomAccounts.some((h) => h.advertiserId === row.advertiserId),
+        )
+        .map((row) => ({
+          advertiserId: row.advertiserId,
+          advertiserName: row.advertiserName,
+        }));
+    }
+  } catch (error) {
+    console.warn("[ad-accounts] bc_status_skip", {
+      clienteId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
   }
 
   const mapped = hecomAccounts.map((account) =>
@@ -162,11 +209,22 @@ export async function getHecomClienteAdAccountsOverview(
     ),
   );
 
-  // Solo aprobadas cuando conocemos estado; si no hay status API, dejamos mapeadas.
   const hasLiveStatus = statusById.size > 0;
+  // Con snapshot TikTok: solo aprobadas (fondeables).
+  // Sin snapshot: mostrar mapeo Hecom para no vaciar la UI.
   const accounts = [...mapped, ...extras].filter((account) => {
     if (!hasLiveStatus) return account.status !== "disabled";
     return account.status === "active";
+  });
+
+  console.info("[ad-accounts] overview", {
+    clienteId,
+    clienteName: cliente.name,
+    ms: Date.now() - started,
+    hecomMapped: hecomAccounts.length,
+    bmMatches: liveApprovedExtras.length,
+    liveSource,
+    shown: accounts.length,
   });
 
   return {

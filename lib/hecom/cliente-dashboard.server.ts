@@ -393,6 +393,7 @@ export const getHecomClienteDashboard = cache(
 export const getHecomClienteShell = cache(
   async (
     clienteId: string,
+    options?: { includeSaldo?: boolean },
   ): Promise<{
     id: string;
     name: string;
@@ -400,6 +401,7 @@ export const getHecomClienteShell = cache(
     saldoEstimado: number | null;
   } | null> => {
     try {
+      const includeSaldo = options?.includeSaldo === true;
       const cliente = await getHecomCliente(clienteId);
       if (!cliente) return null;
 
@@ -409,6 +411,16 @@ export const getHecomClienteShell = cache(
           name: cliente.name,
           avatarUrl: cliente.avatarUrl,
           saldoEstimado: 0,
+        };
+      }
+
+      // Navegación: default SOLO CRM (name/avatar). El saldo Hecom pesa en cada section.
+      if (!includeSaldo) {
+        return {
+          id: cliente.id,
+          name: cliente.name,
+          avatarUrl: cliente.avatarUrl,
+          saldoEstimado: null,
         };
       }
 

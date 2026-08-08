@@ -8,6 +8,7 @@ import {
 } from "@/lib/hecom/clientes.server";
 import {
   listHolisticBcAdvertisers,
+  listHolisticBcAdvertisersCachedFirst,
   resolveBcIdForHecomBucket,
   type TikTokBcAdvertiser,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
@@ -97,9 +98,26 @@ export async function syncApprovedAdAccountsForCliente(input: {
   let bcAdvertisers: TikTokBcAdvertiser[] = [];
   let statusAvailable = true;
   try {
-    bcAdvertisers = await listHolisticBcAdvertisers({
+    // Cache si hay; si no hay o el cliente no tiene mapeo Hecom, forzar BM live
+    // (match por nombre) — necesario para que el gerente pueda fondear.
+    const hecomPre = resolveHecomAccounts(cliente).filter(
+      (account) => account.syncEnabled !== false,
+    );
+    bcAdvertisers = await listHolisticBcAdvertisersCachedFirst({
       organizationId: input.organizationId,
+      forceRefresh: input.forceRefresh,
     });
+    if (
+      (bcAdvertisers.length === 0 || hecomPre.length === 0) &&
+      !input.forceRefresh
+    ) {
+      bcAdvertisers = await listHolisticBcAdvertisers({
+        organizationId: input.organizationId,
+      });
+    }
+    if (bcAdvertisers.length === 0) {
+      statusAvailable = false;
+    }
   } catch (error) {
     statusAvailable = false;
     console.warn("[hecom-sync] bc_list_unavailable", {

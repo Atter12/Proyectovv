@@ -97,6 +97,7 @@ export function DashboardNavLinks({
             key={item.href}
             href={item.href}
             prefetch
+            scroll={false}
             onClick={onNavigate}
             className={cn(
               "dashboard-nav-item relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors",
