@@ -26,9 +26,8 @@ export default function LoginPage() {
   return (
     <div className="auth-canvas relative min-h-screen overflow-x-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="border-b border-[var(--auth-divider)] bg-white">
-          <div className="relative h-[4.25rem] w-full">
-            {/* Logo 100% al centro de la pantalla */}
+        <header className="border-b border-[var(--auth-divider)]/80 bg-white/95 backdrop-blur-[6px]">
+          <div className="relative mx-auto h-[4.25rem] w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
             <Link
               href={routes.home}
               aria-label={siteConfig.name}
@@ -42,14 +41,14 @@ export default function LoginPage() {
             </Link>
             <Link
               href={routes.home}
-              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[0.875rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:right-8"
+              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[0.875rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:right-6 lg:right-8"
             >
               Volver al inicio
             </Link>
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-4 py-10 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center lg:gap-14 lg:px-8 lg:py-16 xl:gap-16">
+        <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-4 py-10 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,400px)] lg:items-center lg:gap-16 lg:px-8 lg:py-16 xl:gap-[4.5rem]">
           <LoginHeroPanel />
 
           <div className="flex w-full flex-col items-center lg:items-stretch">

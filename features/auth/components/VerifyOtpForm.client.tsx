@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -16,7 +15,7 @@ async function assertAdminAccess(): Promise<boolean> {
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-center text-[18px] tracking-[0.35em] text-[var(--auth-text)] placeholder:tracking-[0.35em] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-[0.7rem] border border-[var(--auth-input-border)] bg-white px-3.5 text-center text-[18px] tracking-[0.35em] text-[var(--auth-text)] placeholder:tracking-[0.35em] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 export function VerifyOtpForm() {
   const router = useRouter();
@@ -179,15 +178,15 @@ export function VerifyOtpForm() {
   }
 
   return (
-    <div className="auth-panel relative w-full max-w-[420px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
-      <div className="mb-8">
-        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
-          {siteConfig.name}
+    <div className="auth-panel relative w-full max-w-[400px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
+      <div className="mb-7">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
+          Acceso
         </p>
-        <h1 className="mt-2 text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="font-display mt-2.5 text-[1.55rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
           {isHecomFlow ? "Código o enlace" : "Verificá tu correo"}
         </h1>
-        <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {isHecomFlow ? (
             <>
               Escribí el código de 6 dígitos enviado a{" "}
@@ -233,7 +232,7 @@ export function VerifyOtpForm() {
 
         {error && (
           <p
-            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-[0.7rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error}
@@ -242,7 +241,7 @@ export function VerifyOtpForm() {
 
         {success && (
           <p
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
+            className="rounded-[0.7rem] border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
             role="status"
           >
             {success}
@@ -252,19 +251,19 @@ export function VerifyOtpForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1 flex h-12 w-full items-center justify-center rounded-[0.7rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-[filter,transform,box-shadow] hover:brightness-[1.04] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.38)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Verificando…" : "Verificar y continuar"}
         </button>
       </form>
 
-      <div className="mt-6 space-y-3 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px]">
+      <div className="mt-6 space-y-3 border-t border-[var(--auth-divider)] pt-5 text-center text-[14px]">
         <button
           type="button"
           onClick={handleResend}
           disabled={resending}
           className={cn(
-            "font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)] disabled:opacity-50",
+            "font-semibold text-[var(--auth-accent)] transition-colors hover:brightness-110 disabled:opacity-50",
           )}
         >
           {resending ? "Reenviando…" : "Reenviar código y enlace"}

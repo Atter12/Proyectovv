@@ -36,7 +36,7 @@ function PasswordToggle({
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-[0.7rem] border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
@@ -134,21 +134,24 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="auth-panel relative w-full max-w-[400px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
-      <div className="mb-6">
-        <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
+      <div className="mb-7">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
           Acceso
         </p>
-        <h1 className="mt-2 text-[1.5rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
+        <h1 className="font-display mt-2.5 text-[1.55rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-1.5 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {otpMode
             ? "Solo correo. Te mandamos un código y un enlace mágico."
             : "Entrá a tu panel de anunciante"}
         </p>
       </div>
 
-      <form onSubmit={otpMode ? handleOtpSubmit : handlePasswordSubmit} className="space-y-4">
+      <form
+        onSubmit={otpMode ? handleOtpSubmit : handlePasswordSubmit}
+        className="space-y-4"
+      >
         <div>
           <label
             htmlFor="email"
@@ -205,7 +208,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <p
-            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-[0.7rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error ??
@@ -216,7 +219,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1 flex h-12 w-full items-center justify-center rounded-[0.7rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-[filter,transform,box-shadow] hover:brightness-[1.04] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.38)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading
             ? otpMode
@@ -226,7 +229,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         </button>
       </form>
 
-      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[14px] leading-6 text-[var(--auth-text-muted)]">
+      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
         {otpMode ? (
           <p>
             Revisá tu correo: podés entrar con el{" "}
