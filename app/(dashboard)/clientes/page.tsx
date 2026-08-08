@@ -1,11 +1,23 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards.server";
+import { routes } from "@/config/routes";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { ClientesPageClient } from "@/features/clientes/components/ClientesPageClient.client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
-  await requireSession();
+  const session = await requireSession();
+  const funding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+
+  // Cliente final no tiene listado CRM de “todos los clientes”.
+  if (!funding.isStaff && !funding.isSuperAdmin) {
+    redirect(routes.overview);
+  }
 
   return (
     <Suspense
@@ -15,7 +27,7 @@ export default async function ClientesPage() {
         </div>
       }
     >
-      <ClientesPageClient />
+      <ClientesPageClient mode="staff" />
     </Suspense>
   );
 }

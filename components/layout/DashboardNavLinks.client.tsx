@@ -57,15 +57,21 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
 }
 
 function labelFor(item: NavItem, persona: DashboardPersona): string {
-  if (item.href === "/clientes") {
-    return persona === "cliente" ? "Mis clientes" : "Clientes";
-  }
+  if (item.href === "/clientes") return "Clientes";
   if (item.href === "/ad-accounts") return "Cuentas ads";
   if (item.href === "/payments") return "Pagos";
   if (item.href === "/overview") return "Resumen";
   if (item.href === "/affiliates") return "Afiliados";
   if (item.href === "/creative-analyzer") return "Creativos";
   return item.label;
+}
+
+/** Cliente final no elige entre clientes del CRM. */
+function navItemsForPersona(persona: DashboardPersona): NavItem[] {
+  if (persona === "cliente") {
+    return mainNavigation.filter((item) => item.href !== "/clientes");
+  }
+  return mainNavigation;
 }
 
 interface DashboardNavLinksProps {
@@ -78,10 +84,11 @@ export function DashboardNavLinks({
   persona = "cliente",
 }: DashboardNavLinksProps) {
   const pathname = usePathname();
+  const items = navItemsForPersona(persona);
 
   return (
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 pt-2">
-      {mainNavigation.map((item) => {
+      {items.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -97,7 +104,7 @@ export function DashboardNavLinks({
             )}
           >
             {isActive ? (
-              <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--auth-accent)]" />
+              <span className="absolute inset-y-0 left-0 my-auto h-5 w-[3px] rounded-r-full bg-[var(--auth-accent)]" />
             ) : null}
             <NavIcon icon={item.icon} />
             <span className="min-w-0 leading-tight">

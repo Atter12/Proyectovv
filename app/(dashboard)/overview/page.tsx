@@ -3,16 +3,36 @@ import { ClienteScopedOverview } from "@/features/clientes/components/ClienteSco
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { requireSession } from "@/lib/auth/guards.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export default async function OverviewPage() {
-  await requireSession();
-  const selected = await getSelectedHecomCliente();
+  const session = await requireSession();
+  const funding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const canChangeCliente =
+    funding.isStaff || funding.isSuperAdmin || funding.canAgencyBmFund;
+
+  let selected = await getSelectedHecomCliente(session.id);
+  if (
+    selected &&
+    funding.isStaff &&
+    isOtpTestClienteId(selected.id) &&
+    !funding.isSuperAdmin
+  ) {
+    selected = null;
+  }
 
   if (!selected) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="la descripción general" />
+        <PickClienteEmpty
+          section="la descripción general"
+          mode={canChangeCliente ? "staff" : "cliente"}
+        />
       </div>
     );
   }
@@ -30,14 +50,20 @@ export default async function OverviewPage() {
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="la descripción general" />
+        <PickClienteEmpty
+          section="la descripción general"
+          mode={canChangeCliente ? "staff" : "cliente"}
+        />
       </div>
     );
   }
 
   return (
     <div className={dashboardClasses.page}>
-      <ClienteScopedOverview data={data} />
+      <ClienteScopedOverview
+        data={data}
+        canChangeCliente={canChangeCliente}
+      />
     </div>
   );
 }

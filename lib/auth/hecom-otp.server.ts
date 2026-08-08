@@ -7,7 +7,7 @@ import {
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
-import { setSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { setSelectedHecomCliente, clearSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   findHecomClientesByEmail,
   buildOtpTestHecomCliente,
@@ -374,6 +374,12 @@ export async function provisionHecomClienteAccess(input: {
   const isStaff = isHecomOtpStaffEmail(email);
 
   if (isStaff) {
+    // Gerente: no reutilizar cliente del login anterior; va al picker con todos.
+    try {
+      await clearSelectedHecomCliente();
+    } catch {
+      // ignore
+    }
     logHecomOtp("info", "provision_staff", {
       email: maskEmail(email),
       nextPath: "/clientes",
@@ -392,7 +398,11 @@ export async function provisionHecomClienteAccess(input: {
 
   if (linked.clientes.length === 1) {
     const only = linked.clientes[0];
-    await setSelectedHecomCliente({ id: only.id, name: only.name });
+    await setSelectedHecomCliente({
+      id: only.id,
+      name: only.name,
+      userId: input.userId,
+    });
     return {
       ...linked,
       autoSelected: only,

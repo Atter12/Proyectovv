@@ -48,8 +48,11 @@ function shortId(id: string) {
  */
 export function ClienteScopedOverview({
   data,
+  canChangeCliente = false,
 }: {
   data: HecomClienteDashboard;
+  /** Gerente / super admin: pueden cambiar de cliente del CRM. */
+  canChangeCliente?: boolean;
 }) {
   const { cliente, summary, accounts, gastos } = data;
   const recentGastos = gastos.slice(0, 8);
@@ -83,7 +86,9 @@ export function ClienteScopedOverview({
             <OverviewClientTitle name={cliente.name} />
 
             <p className="mt-2 max-w-xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-              Cuentas TikTok, cobros Hecom y gasto ads del cliente activo.
+              {canChangeCliente
+                ? "Cuentas TikTok, cobros Hecom y gasto ads del cliente operativo."
+                : "Tus cuentas TikTok, cobros y gasto ads. Recargá con Stripe en Pagos."}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2.5">
@@ -97,14 +102,16 @@ export function ClienteScopedOverview({
                 href={routes.payments}
                 className="inline-flex h-10 items-center rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
               >
-                Ir a pagos
+                {canChangeCliente ? "Fondear ads" : "Recargar con Stripe"}
               </Link>
-              <Link
-                href={routes.clientes}
-                className="inline-flex h-10 items-center rounded-lg px-3 text-[13px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
-              >
-                Cambiar cliente
-              </Link>
+              {canChangeCliente ? (
+                <Link
+                  href={routes.clientes}
+                  className="inline-flex h-10 items-center rounded-lg px-3 text-[13px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
+                >
+                  Cambiar cliente
+                </Link>
+              ) : null}
             </div>
           </div>
 

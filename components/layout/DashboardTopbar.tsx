@@ -40,14 +40,14 @@ export function DashboardTopbar({
         : currentPage?.href === "/payments"
           ? "Pagos"
           : currentPage?.href === "/clientes"
-            ? persona === "cliente"
-              ? "Mis clientes"
-              : "Clientes"
+            ? "Clientes"
             : currentPage?.href === "/affiliates"
               ? "Afiliados"
               : currentPage?.href === "/creative-analyzer"
                 ? "Creativos"
                 : (currentPage?.label ?? "Panel");
+
+  const canPickClients = persona !== "cliente";
 
   return (
     <header className="sticky top-0 z-20 flex h-16 min-h-[64px] items-center justify-between gap-3 border-b border-[var(--auth-divider)] bg-[rgb(255_255_255_/_0.92)] px-4 backdrop-blur-md sm:px-5 lg:px-6">
@@ -79,20 +79,35 @@ export function DashboardTopbar({
           </div>
           {selectedCliente ? (
             <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-muted)]">
-              Cliente:{" "}
+              {canPickClients ? "Cliente: " : ""}
               <span className="font-semibold text-[var(--auth-text)]">
                 {selectedCliente.name}
               </span>
+              {canPickClients ? (
+                <>
+                  {" · "}
+                  <Link
+                    href={routes.clientes}
+                    className="font-semibold text-[var(--auth-accent)] hover:underline"
+                  >
+                    cambiar
+                  </Link>
+                </>
+              ) : null}
             </p>
-          ) : (
+          ) : canPickClients ? (
             <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-soft)]">
-              Sin cliente seleccionado ·{" "}
+              Sin cliente ·{" "}
               <Link
                 href={routes.clientes}
                 className="font-semibold text-[var(--auth-accent)] hover:underline"
               >
-                elegir
+                elegir para fondear
               </Link>
+            </p>
+          ) : (
+            <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-soft)]">
+              Recargá con Stripe y asigná a tus ads
             </p>
           )}
         </div>

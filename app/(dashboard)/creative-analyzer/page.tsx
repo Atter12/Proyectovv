@@ -4,15 +4,22 @@ import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpt
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requirePermission } from "@/lib/auth/guards.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export default async function CreativeAnalyzerPage() {
-  await requirePermission("creativeAnalyzer:read");
-  const selected = await getSelectedHecomCliente();
+  const session = await requirePermission("creativeAnalyzer:read");
+  const funding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const mode =
+    funding.isStaff || funding.isSuperAdmin ? "staff" : "cliente";
+  const selected = await getSelectedHecomCliente(session.id);
 
   if (!selected) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="el analizador creativo" />
+        <PickClienteEmpty section="el analizador creativo" mode={mode} />
       </div>
     );
   }
@@ -21,7 +28,7 @@ export default async function CreativeAnalyzerPage() {
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="el analizador creativo" />
+        <PickClienteEmpty section="el analizador creativo" mode={mode} />
       </div>
     );
   }

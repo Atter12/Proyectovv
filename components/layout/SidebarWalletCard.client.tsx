@@ -27,19 +27,37 @@ export function SidebarWalletCard({
   selectedCliente = null,
   persona = "cliente",
 }: SidebarWalletCardProps) {
-  const emptyCopy =
-    persona === "cliente"
-      ? "Elegí un cliente para ver tu cartera y cuentas."
-      : "Elegí un cliente para operarlo en todo el panel.";
+  const canPickClients = persona !== "cliente";
 
   if (!selectedCliente) {
+    if (!canPickClients) {
+      return (
+        <div className={cn("dashboard-rail-glass mt-4 rounded-xl p-3.5", className)}>
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
+            Tu cuenta
+          </p>
+          <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+            Recargá saldo con Stripe y asignalo a tus cuentas ads.
+          </p>
+          <Link
+            href={routes.payments}
+            prefetch
+            onClick={onNavigate}
+            className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+          >
+            Ir a pagos
+          </Link>
+        </div>
+      );
+    }
+
     return (
       <div className={cn("dashboard-rail-glass mt-4 rounded-xl p-3.5", className)}>
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
           Sin cliente
         </p>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          {emptyCopy}
+          Elegí un cliente del CRM para fondear desde el BM.
         </p>
         <Link
           href={routes.clientes}
@@ -47,7 +65,7 @@ export function SidebarWalletCard({
           onClick={onNavigate}
           className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(255_120_31_/_0.65)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px"
         >
-          Ir a Clientes
+          Ver clientes
         </Link>
       </div>
     );
@@ -64,7 +82,7 @@ export function SidebarWalletCard({
         />
         <div className="min-w-0">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
-            Operando
+            {canPickClients ? "Operando" : "Tu cuenta"}
           </p>
           <p className="mt-0.5 truncate text-[14px] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)]">
             {selectedCliente.name}
@@ -85,23 +103,30 @@ export function SidebarWalletCard({
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div
+        className={cn(
+          "mt-3 grid gap-2",
+          canPickClients ? "grid-cols-2" : "grid-cols-1",
+        )}
+      >
         <Link
           href={routes.payments}
           prefetch
           onClick={onNavigate}
           className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
-          Pagos
+          {canPickClients ? "Fondear" : "Pagos"}
         </Link>
-        <Link
-          href={routes.clientes}
-          prefetch
-          onClick={onNavigate}
-          className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
-        >
-          Cambiar
-        </Link>
+        {canPickClients ? (
+          <Link
+            href={routes.clientes}
+            prefetch
+            onClick={onNavigate}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
+          >
+            Cambiar
+          </Link>
+        ) : null}
       </div>
     </div>
   );

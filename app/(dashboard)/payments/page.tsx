@@ -55,16 +55,21 @@ export default async function PaymentsPage({
   const params = await searchParams;
   const status = typeof params.status === "string" ? params.status : undefined;
   const isStripeReturn = status === "success" || status === "cancelled";
-  const selected = await getSelectedHecomCliente();
+  const selected = await getSelectedHecomCliente(session.id);
   const capabilities = resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
+  const canChangeCliente =
+    capabilities.isStaff || capabilities.isSuperAdmin;
 
   if (!selected) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="pagos y movimientos" />
+        <PickClienteEmpty
+          section="pagos y fondeo"
+          mode={canChangeCliente ? "staff" : "cliente"}
+        />
       </div>
     );
   }
@@ -73,7 +78,10 @@ export default async function PaymentsPage({
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="pagos y movimientos" />
+        <PickClienteEmpty
+          section="pagos y fondeo"
+          mode={canChangeCliente ? "staff" : "cliente"}
+        />
       </div>
     );
   }

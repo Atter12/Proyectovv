@@ -30,14 +30,14 @@ function resolveAccountStatusFilter(raw: string): string {
 }
 
 export default async function AdAccountsPage({ searchParams }: AdAccountsPageProps) {
-  await requirePermission("adAccounts:read");
+  const session = await requirePermission("adAccounts:read");
   const params = await searchParams;
   const search = getSearchParam(params, "q");
   const status = resolveAccountStatusFilter(getSearchParam(params, "status", "all"));
   const includeArchived = getSearchParam(params, "archived") === "1";
   void includeArchived;
 
-  const selected = await getSelectedHecomCliente();
+  const selected = await getSelectedHecomCliente(session.id);
 
   if (!selected) {
     return (
@@ -52,7 +52,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           hecomScoped={false}
           hideCreate
         />
-        <PickClienteEmpty section="las cuentas publicitarias" />
+        <PickClienteEmpty section="las cuentas publicitarias" mode="staff" />
       </div>
     );
   }

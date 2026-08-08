@@ -3,6 +3,7 @@ import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 
@@ -12,7 +13,6 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const session = await requireSession();
-  const selected = await getSelectedHecomCliente();
   const funding = resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
@@ -23,6 +23,19 @@ export default async function DashboardLayout({
     : funding.isStaff
       ? "gerente"
       : "cliente";
+
+  // Scope por userId: no mezclar selección entre cliente y gerente en el mismo browser.
+  let selected = await getSelectedHecomCliente(session.id);
+
+  // Gerente no debe quedar pegado a un cliente demo OTP.
+  if (
+    selected &&
+    funding.isStaff &&
+    isOtpTestClienteId(selected.id) &&
+    !funding.isSuperAdmin
+  ) {
+    selected = null;
+  }
 
   let selectedCliente: {
     id: string;
@@ -66,10 +79,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
-      {/*
-        Sidebar fixed con z-30 directo en el canvas.
-        Antes el main (hermano z-10 posterior) tapaba el menú y no se podía clickear.
-      */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[272px] lg:block">
         <DashboardSidebar
           className="h-full w-full"

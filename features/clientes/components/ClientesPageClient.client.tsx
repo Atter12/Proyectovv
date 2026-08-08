@@ -45,7 +45,12 @@ type ApiPayload = {
   scopedToEmail?: boolean;
 };
 
-export function ClientesPageClient() {
+export function ClientesPageClient({
+  mode = "staff",
+}: {
+  /** staff = lista CRM completa para fondear. */
+  mode?: "staff" | "scoped";
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
@@ -87,12 +92,14 @@ export function ClientesPageClient() {
   }, []);
 
   useEffect(() => {
+    // Solo auto-elegir si el usuario es cliente scoped (1 cuenta propia).
+    if (mode === "staff") return;
     if (!payload?.ok || !payload.scopedToEmail || selectingId) return;
     const only = payload.clients;
     if (!only || only.length !== 1) return;
     elegirCliente(only[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-scope 1 cliente
-  }, [payload?.ok, payload?.scopedToEmail, payload?.clients?.length, selectingId]);
+  }, [payload?.ok, payload?.scopedToEmail, payload?.clients?.length, selectingId, mode]);
 
   const filtered = useMemo(() => {
     const clients = payload?.clients ?? [];
@@ -141,7 +148,8 @@ export function ClientesPageClient() {
           setSelectingId(null);
           return;
         }
-        router.push(routes.overview);
+        // Gerente va directo a Pagos (fondear BM); scoped sigue a overview.
+        router.push(mode === "staff" ? routes.payments : routes.overview);
         router.refresh();
       } catch (err) {
         setSelectError(
@@ -154,26 +162,28 @@ export function ClientesPageClient() {
 
   const total = payload?.clients?.length ?? 0;
   const shown = filtered.length;
+  const isStaffPicker = mode === "staff" || !payload?.scopedToEmail;
 
   return (
     <div className={dashboardClasses.page}>
       <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          {payload?.scopedToEmail ? "Tus clientes" : "CRM Hecom"}
+          {isStaffPicker ? "Gerente · CRM Hecom" : "Tu cuenta"}
         </p>
         <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
-          Elegir cliente
+          {isStaffPicker ? "Elegí a quién fondear" : "Elegir cliente"}
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          {payload?.scopedToEmail ? (
+          {isStaffPicker ? (
             <>
-              Solo ves los clientes de tu cuenta. Si hay uno solo, se selecciona
-              solo al entrar.
+              Lista completa del CRM. Elegí un cliente y fondeá sus cuentas ads
+              con <span className="font-semibold text-[var(--auth-text)]">cash del BM</span>
+              {" "}(sin Stripe). Al seleccionar vas a Pagos listo para asignar.
             </>
           ) : (
             <>
-              Elegí un cliente para operar. Todo el panel (pagos, cuentas,
-              creativos) queda filtrado a esa persona.
+              Solo ves los clientes de tu cuenta. Si hay uno solo, se selecciona
+              al entrar.
             </>
           )}
         </p>
@@ -303,7 +313,7 @@ export function ClientesPageClient() {
                   onClick={() => elegirCliente(client)}
                   className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
                 >
-                  {busy ? "Eligiendo…" : "Operar este cliente"}
+                  {busy ? "Eligiendo…" : isStaffPicker ? "Fondear este cliente" : "Operar este cliente"}
                 </button>
                 <Link
                   href={`/clientes/${client.id}`}

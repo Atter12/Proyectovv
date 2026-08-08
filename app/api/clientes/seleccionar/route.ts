@@ -22,7 +22,7 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ ok: false, error: "No autenticado" }, { status: 401 });
   }
-  const selected = await getSelectedHecomCliente();
+  const selected = await getSelectedHecomCliente(session.id);
   return NextResponse.json({ ok: true, selected });
 }
 
@@ -89,7 +89,11 @@ export async function POST(request: Request) {
     if (!name) name = "Cliente Hecom";
   }
 
-  await setSelectedHecomCliente({ id: clienteId, name });
+  await setSelectedHecomCliente({
+    id: clienteId,
+    name,
+    userId: session.id,
+  });
   return NextResponse.json({
     ok: true,
     selected: { id: clienteId, name },
