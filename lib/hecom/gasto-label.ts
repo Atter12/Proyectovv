@@ -97,10 +97,18 @@ function parseCampPlantilla(camp: string | null): {
 
 export function formatHecomFecha(value: string | null): string | null {
   if (!value) return null;
-  const iso = value.slice(0, 10);
+  const raw = value.trim();
+  const iso = raw.slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
     const [y, m, d] = iso.split("-");
     return `${d}/${m}/${y}`;
+  }
+  // Ya viene como DD/MM/YYYY
+  if (/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}/.test(raw)) {
+    const m = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+    if (m) {
+      return `${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`;
+    }
   }
   return value;
 }

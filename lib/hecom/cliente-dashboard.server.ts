@@ -86,6 +86,8 @@ export type HecomClienteDashboard = {
     /** Serie diaria rellena (incluye 0), del más viejo al más nuevo. */
     dailySeries: HecomDailySpendPoint[];
     dailySource: HecomDailySpendSource;
+    /** Fecha ancla YYYY-MM-DD (hoy Lima o último día con gasto). */
+    dailyAnchorDate: string;
   };
 };
 
@@ -109,6 +111,18 @@ function resolveAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
 }
 
 function mapGasto(row: Record<string, unknown>): HecomGastoRow {
+  const fecha =
+    dateKeyFromUnknown(row.tiktok_stat_date) ??
+    dateKeyFromUnknown(row.fecha_movimiento) ??
+    dateKeyFromUnknown(row.mes) ??
+    (row.tiktok_stat_date
+      ? String(row.tiktok_stat_date)
+      : row.fecha_movimiento
+        ? String(row.fecha_movimiento)
+        : row.mes
+          ? String(row.mes)
+          : null);
+
   return {
     id: String(row.id ?? ""),
     camp: row.camp ? String(row.camp) : null,
@@ -116,14 +130,7 @@ function mapGasto(row: Record<string, unknown>): HecomGastoRow {
     fee: row.fee != null && Number.isFinite(Number(row.fee)) ? Number(row.fee) : null,
     mes: row.mes ? String(row.mes) : null,
     source: row.source ? String(row.source) : null,
-    // Día de gasto ads = tiktok_stat_date (prioridad) para hoy / 7d / 30d.
-    fecha: row.tiktok_stat_date
-      ? String(row.tiktok_stat_date)
-      : row.fecha_movimiento
-        ? String(row.fecha_movimiento)
-        : row.mes
-          ? String(row.mes)
-          : null,
+    fecha,
     codigo: row.codigo ? String(row.codigo) : null,
     notas: row.notas ? String(row.notas) : null,
   };
@@ -194,21 +201,53 @@ function shiftCalendarDate(dateYmd: string, deltaDays: number): string {
   return base.toISOString().slice(0, 10);
 }
 
+/**
+ * Normaliza fechas Hecom → YYYY-MM-DD.
+ * Soporta ISO, timestamps y DD/MM/YYYY (formato frecuente en CRM / UI).
+ */
 function dateKeyFromUnknown(value: unknown): string | null {
   if (value == null) return null;
   const raw = String(value).trim();
   if (!raw) return null;
+
+  // 2026-07-29 or 2026-07-29T15:00:00...
   const iso = raw.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+
+  // 29/07/2026 or 29-07-2026
+  const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (dmy) {
+    const dd = dmy[1].padStart(2, "0");
+    const mm = dmy[2].padStart(2, "0");
+    const yyyy = dmy[3];
+    const candidate = `${yyyy}-${mm}-${dd}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return candidate;
+  }
+
+  // 07/29/2026 (US) — solo si el primer grupo > 12 (ambiguo se trata como DMY arriba)
+  const mdy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (mdy && Number(mdy[1]) > 12) {
+    // already handled as DMY
+  }
+
+  const parsed = Date.parse(raw);
+  if (Number.isFinite(parsed)) {
+    return calendarDateInTz(new Date(parsed));
+  }
+
+  return null;
 }
 
 function sumSpendOnAndAfter(
   byDate: Map<string, number>,
   startDate: string,
+  endDate?: string,
 ): number {
   let total = 0;
   for (const [date, spend] of byDate) {
-    if (date >= startDate) total += spend;
+    if (date < startDate) continue;
+    if (endDate && date > endDate) continue;
+    total += spend;
   }
   return Math.round(total * 100) / 100;
 }
@@ -318,15 +357,57 @@ function buildDailySpendSummary(
   source: HecomDailySpendSource,
 ) {
   const today = calendarDateInTz();
-  const gastoHoy = Math.round((byDate.get(today) ?? 0) * 100) / 100;
-  const gasto7d = sumSpendOnAndAfter(byDate, shiftCalendarDate(today, -6));
-  const gasto30d = sumSpendOnAndAfter(byDate, shiftCalendarDate(today, -29));
+  const positiveDates = [...byDate.entries()]
+    .filter(([, spend]) => spend > 0)
+    .map(([date]) => date)
+    .sort();
+  const lastSpendDate = positiveDates.at(-1) ?? null;
+
+  // Hoy calendario (America/Lima)
+  let gastoHoy = Math.round((byDate.get(today) ?? 0) * 100) / 100;
+  let gasto7d = sumSpendOnAndAfter(byDate, shiftCalendarDate(today, -6), today);
+  let gasto30d = sumSpendOnAndAfter(
+    byDate,
+    shiftCalendarDate(today, -29),
+    today,
+  );
+  let seriesEnd = today;
+
+  /**
+   * Si el calendario de hoy/7d está vacío pero el CRM tiene gasto reciente
+   * (p.ej. listado con 27–29/07 y hoy 08/08), anclar a la última fecha con gasto
+   * para que los KPIs coincidan con lo que el usuario ve en el historial.
+   * Gracia: hasta 21 días atrás.
+   */
+  if (
+    lastSpendDate &&
+    gasto7d <= 0 &&
+    lastSpendDate >= shiftCalendarDate(today, -21)
+  ) {
+    seriesEnd = lastSpendDate;
+    gasto7d = sumSpendOnAndAfter(
+      byDate,
+      shiftCalendarDate(lastSpendDate, -6),
+      lastSpendDate,
+    );
+    gasto30d = sumSpendOnAndAfter(
+      byDate,
+      shiftCalendarDate(lastSpendDate, -29),
+      lastSpendDate,
+    );
+    if (gastoHoy <= 0) {
+      gastoHoy = Math.round((byDate.get(lastSpendDate) ?? 0) * 100) / 100;
+    }
+  }
+
   return {
     gastoHoy,
     gasto7d,
     gasto30d,
-    dailySeries: fillDailySeries(byDate, today, DAILY_SERIES_DAYS),
+    dailySeries: fillDailySeries(byDate, seriesEnd, DAILY_SERIES_DAYS),
     dailySource: source,
+    /** Fecha ancla usada para hoy/7d (hoy Lima o último día con gasto). */
+    dailyAnchorDate: seriesEnd,
   };
 }
 

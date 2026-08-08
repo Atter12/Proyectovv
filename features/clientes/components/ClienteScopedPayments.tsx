@@ -21,6 +21,17 @@ export function ClienteScopedPayments({
 }) {
   const { cliente, summary, cobros, gastos } = data;
 
+  const todayLima = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const anchoredOffToday =
+    Boolean(summary.dailyAnchorDate) &&
+    summary.dailyAnchorDate !== todayLima &&
+    summary.gastoHoy > 0;
+
   const kpis = [
     {
       label: "Gasto de hoy",
@@ -30,12 +41,18 @@ export function ClienteScopedPayments({
         summary.dailySource === "none"
           ? "Sin sync"
           : summary.gastoHoy > 0
-            ? "America/Lima"
+            ? anchoredOffToday
+              ? `Último día · ${formatHecomFecha(summary.dailyAnchorDate)}`
+              : "America/Lima"
             : "Sin actividad",
     },
     {
       label: "Últimos 7 días",
       value: moneyUsd(summary.gasto7d),
+      hint:
+        summary.gasto7d > 0 && anchoredOffToday
+          ? `Hasta ${formatHecomFecha(summary.dailyAnchorDate)}`
+          : undefined,
     },
     {
       label: "Total cobros",
