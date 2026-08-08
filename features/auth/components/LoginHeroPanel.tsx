@@ -13,20 +13,10 @@ const FEATURES = [
   },
 ] as const;
 
-export function LoginHeroPanel({
-  alwaysVisible = false,
-}: {
-  /** Landing: mostrar también en mobile. Login: solo desktop. */
-  alwaysVisible?: boolean;
-}) {
+/** Hero desktop (columna izquierda). */
+export function LoginHeroPanel() {
   return (
-    <div
-      className={
-        alwaysVisible
-          ? "relative z-10 flex min-h-0 flex-col justify-center"
-          : "relative z-10 hidden min-h-0 flex-col justify-center lg:flex"
-      }
-    >
+    <div className="relative z-10 hidden min-h-0 flex-col justify-center lg:flex">
       <div className="max-w-[32rem]">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
           Panel para anunciantes
@@ -54,6 +44,51 @@ export function LoginHeroPanel({
                   {feature.description}
                 </p>
               </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/** Intro compacta solo móvil/tablet — da diseño cuando el hero desktop está oculto. */
+export function LoginMobileIntro() {
+  return (
+    <div className="relative mb-6 lg:hidden">
+      <div className="overflow-hidden rounded-[1.25rem] border border-[var(--auth-border)] bg-white/80 p-5 shadow-[0_18px_40px_-28px_rgb(28_25_23_/_0.22)] backdrop-blur-sm">
+        <div
+          className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgb(255_120_31_/_0.22),transparent_68%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-12 -left-6 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgb(255_176_120_/_0.28),transparent_70%)]"
+          aria-hidden
+        />
+
+        <p className="relative text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
+          Panel para anunciantes
+        </p>
+        <h1 className="font-display relative mt-2 text-[1.45rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)]">
+          Opera campañas, pagos y saldos en un solo lugar
+        </h1>
+        <p className="relative mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)]">
+          Cartera, TikTok Ads y Hecom Club — sin planillas.
+        </p>
+
+        <ul className="relative mt-4 grid gap-2">
+          {FEATURES.map((feature) => (
+            <li
+              key={feature.title}
+              className="flex items-center gap-2.5 rounded-xl bg-[var(--auth-accent-soft)]/70 px-3 py-2.5"
+            >
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--auth-accent)]"
+                aria-hidden
+              />
+              <span className="text-[13px] font-semibold text-[var(--auth-text)]">
+                {feature.title}
+              </span>
             </li>
           ))}
         </ul>

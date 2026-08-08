@@ -133,14 +133,18 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const magicError = searchParams.get("error") === "magic_link";
 
   return (
-    <div className="auth-panel relative w-full max-w-[400px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
-      <div className="mb-7">
+    <div className="auth-panel relative w-full overflow-hidden rounded-[1.15rem] p-6 sm:p-8 lg:max-w-none">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#ffb84a] via-[var(--auth-accent)] to-[#ff4d2d]"
+        aria-hidden
+      />
+      <div className="mb-6 sm:mb-7">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
           Acceso
         </p>
-        <h1 className="font-display mt-2.5 text-[1.55rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
+        <h2 className="font-display mt-2.5 text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
           Iniciar sesión
-        </h1>
+        </h2>
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {otpMode
             ? "Solo correo. Te mandamos un código y un enlace mágico."

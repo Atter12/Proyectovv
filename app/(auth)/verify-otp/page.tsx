@@ -2,7 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { VerifyOtpForm } from "@/features/auth/components/VerifyOtpForm.client";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
-import { LoginHeroPanel } from "@/features/auth/components/LoginHeroPanel";
+import {
+  LoginHeroPanel,
+  LoginMobileIntro,
+} from "@/features/auth/components/LoginHeroPanel";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 
@@ -23,37 +26,43 @@ function AuthCardFallback() {
 
 export default function VerifyOtpPage() {
   return (
-    <div className="auth-canvas relative min-h-screen overflow-x-hidden">
+    <div className="auth-canvas auth-login-shell relative min-h-screen overflow-x-hidden">
+      <div className="auth-login-orb auth-login-orb--a" aria-hidden />
+      <div className="auth-login-orb auth-login-orb--b" aria-hidden />
+      <div className="auth-login-orb auth-login-orb--c" aria-hidden />
+
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="border-b border-[var(--auth-divider)]/80 bg-white/95 backdrop-blur-[6px]">
-          <div className="relative mx-auto h-[4.25rem] w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
+        <header className="border-b border-[var(--auth-divider)]/70 bg-white/80 backdrop-blur-md">
+          <div className="mx-auto flex h-[3.75rem] w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
             <Link
               href={routes.home}
               aria-label={siteConfig.name}
-              className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+              className="inline-flex shrink-0 items-center"
             >
               <AuthBrandMark
                 tone="light"
                 compact
-                className="!w-auto max-w-[150px] sm:max-w-[168px]"
+                className="!w-auto max-w-[132px] sm:max-w-[168px]"
               />
             </Link>
             <Link
               href={routes.login}
-              className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-[0.875rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:right-6 lg:right-8"
+              className="shrink-0 text-[0.8125rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:text-[0.875rem]"
             >
-              Volver al login
+              <span className="sm:hidden">Login</span>
+              <span className="hidden sm:inline">Volver al login</span>
             </Link>
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-4 py-10 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,400px)] lg:items-center lg:gap-16 lg:px-8 lg:py-16 xl:gap-[4.5rem]">
+        <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-4 py-7 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,400px)] lg:items-center lg:gap-16 lg:px-8 lg:py-16 xl:gap-[4.5rem]">
           <LoginHeroPanel />
-          <div className="flex w-full flex-col items-center lg:items-stretch">
+          <div className="mx-auto flex w-full max-w-[420px] flex-col lg:mx-0 lg:max-w-none">
+            <LoginMobileIntro />
             <Suspense fallback={<AuthCardFallback />}>
               <VerifyOtpForm />
             </Suspense>
-            <p className="mt-5 text-center text-[12px] tracking-wide text-[var(--auth-text-soft)] lg:text-left">
+            <p className="mt-5 text-center text-[12px] tracking-wide text-[var(--auth-text-soft)]">
               © {new Date().getFullYear()} {siteConfig.companyName}
             </p>
           </div>

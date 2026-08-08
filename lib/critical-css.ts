@@ -163,6 +163,12 @@ body{
   font-weight:700;
 }
 .auth-canvas div[title="Equipos en Latam"]>span:first-child{margin-left:0}
+.auth-login-shell{
+  background:
+    radial-gradient(55% 42% at 12% -4%,rgb(255 148 88 / 0.42),transparent 70%),
+    radial-gradient(48% 38% at 96% 4%,rgb(255 176 120 / 0.32),transparent 68%),
+    linear-gradient(180deg,#fff8f2 0%,#faf6f1 42%,#f3efe9 100%);
+}
 
 /* ===== Landing Nsx (anti-FOUC primer paint) ===== */
 .nsx-landing{
