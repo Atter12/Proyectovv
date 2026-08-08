@@ -8,47 +8,55 @@ import {
   SidebarWalletCard,
   type SidebarSelectedCliente,
 } from "./SidebarWalletCard.client";
+import {
+  dashboardPersonaLabel,
+  type DashboardPersona,
+} from "@/types/dashboard-persona";
 
 interface DashboardSidebarProps {
   className?: string;
   selectedCliente?: SidebarSelectedCliente | null;
+  persona?: DashboardPersona;
 }
 
 export function DashboardSidebar({
   className,
   selectedCliente = null,
+  persona = "cliente",
 }: DashboardSidebarProps) {
   return (
     <aside
       id="dashboard-sidebar"
-      className={cn(
-        "dashboard-rail flex h-full shrink-0 flex-col",
-        className,
-      )}
+      className={cn("dashboard-rail flex h-full shrink-0 flex-col", className)}
     >
       <div className="border-b border-[var(--auth-divider)] px-4 py-4">
-        <Link
-          href={routes.overview}
-          prefetch
-          className="mx-auto flex w-full max-w-full items-center justify-center"
-          aria-label={siteConfig.name}
-        >
-          <HolisticLogo
-            size={140}
-            className="mx-auto h-10 w-auto max-w-[85%]"
-          />
-        </Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href={routes.overview}
+            prefetch
+            className="inline-flex shrink-0 items-center"
+            aria-label={siteConfig.name}
+          >
+            <HolisticLogo size={132} className="h-9 w-auto max-w-[140px]" />
+          </Link>
+          <span className="dashboard-role-badge" data-role={persona}>
+            {dashboardPersonaLabel(persona)}
+          </span>
+        </div>
 
-        <SidebarWalletCard selectedCliente={selectedCliente} />
+        <SidebarWalletCard
+          selectedCliente={selectedCliente}
+          persona={persona}
+        />
       </div>
 
-      <div className="px-3 pt-4">
-        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
+      <div className="px-4 pt-4">
+        <p className="px-1 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
           Menú
         </p>
       </div>
 
-      <DashboardNavLinks />
+      <DashboardNavLinks persona={persona} />
     </aside>
   );
 }

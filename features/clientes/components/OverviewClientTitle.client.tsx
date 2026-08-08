@@ -1,17 +1,10 @@
 "use client";
 
-import { BlurText } from "@/components/react-bits/BlurText";
-
+/** Título del cliente en overview — sin BlurText (más pro y más rápido). */
 export function OverviewClientTitle({ name }: { name: string }) {
   return (
-    <BlurText
-      as="h1"
-      text={name}
-      animateBy="words"
-      direction="top"
-      delay={40}
-      stepDuration={0.18}
-      className="font-display mt-2 text-[2rem] font-semibold leading-[1.1] tracking-[-0.04em] text-[var(--auth-text)] sm:text-[2.45rem] lg:text-[2.75rem]"
-    />
+    <h1 className="mt-2 text-[1.55rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
+      {name}
+    </h1>
   );
 }

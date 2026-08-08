@@ -1,9 +1,10 @@
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { AuthDotGridBackground } from "@/features/auth/components/AuthDotGridBackground.client";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 
 export default async function DashboardLayout({
   children,
@@ -12,6 +13,16 @@ export default async function DashboardLayout({
 }>) {
   const session = await requireSession();
   const selected = await getSelectedHecomCliente();
+  const funding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+
+  const persona: DashboardPersona = funding.isSuperAdmin
+    ? "super_admin"
+    : funding.isStaff
+      ? "gerente"
+      : "cliente";
 
   let selectedCliente: {
     id: string;
@@ -55,21 +66,24 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
-      <AuthDotGridBackground tone="light" />
-
       {/*
         Sidebar fixed con z-30 directo en el canvas.
         Antes el main (hermano z-10 posterior) tapaba el menú y no se podía clickear.
       */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[272px] lg:block">
         <DashboardSidebar
           className="h-full w-full"
           selectedCliente={selectedCliente}
+          persona={persona}
         />
       </aside>
 
       <div className="relative z-10 flex min-h-screen min-w-0 flex-1 flex-col">
-        <DashboardLayoutChrome user={user} selectedCliente={selectedCliente}>
+        <DashboardLayoutChrome
+          user={user}
+          selectedCliente={selectedCliente}
+          persona={persona}
+        >
           {children}
         </DashboardLayoutChrome>
       </div>

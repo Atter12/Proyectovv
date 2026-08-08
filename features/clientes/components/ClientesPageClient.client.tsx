@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { routes } from "@/config/routes";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
@@ -65,7 +60,6 @@ export function ClientesPageClient() {
 
     async function load() {
       setLoading(true);
-      console.log("[Clientes] click/load → GET /api/clientes (Hecom Club) …");
       try {
         const res = await fetch("/api/clientes", {
           method: "GET",
@@ -73,17 +67,8 @@ export function ClientesPageClient() {
           cache: "no-store",
         });
         const json = (await res.json()) as ApiPayload;
-        console.log("[Clientes] status HTTP:", res.status);
-        console.log("[Clientes] payload:", json);
-        if (json.steps) {
-          console.table(json.steps);
-        }
-        if (!json.ok) {
-          console.error("[Clientes] ERROR:", json.error, json.hint ?? "");
-        }
         if (!cancelled) setPayload(json);
       } catch (err) {
-        console.error("[Clientes] fetch falló:", err);
         if (!cancelled) {
           setPayload({
             ok: false,
@@ -141,7 +126,6 @@ export function ClientesPageClient() {
     setSelectingId(client.id);
     startTransition(async () => {
       try {
-        console.log("[Clientes] seleccionar", client.id, contactName);
         const res = await fetch("/api/clientes/seleccionar", {
           method: "POST",
           credentials: "include",
@@ -168,148 +152,167 @@ export function ClientesPageClient() {
     });
   }
 
+  const total = payload?.clients?.length ?? 0;
+  const shown = filtered.length;
+
   return (
     <div className={dashboardClasses.page}>
-      <div className="dashboard-surface-card rounded-[1.5rem] p-5 sm:p-6">
-        <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
-          Hecom Club · CRM
+      <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+          {payload?.scopedToEmail ? "Tus clientes" : "CRM Hecom"}
         </p>
-        <h1 className="mt-1 text-[1.85rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem]">
+        <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
           Elegir cliente
         </h1>
-        <p className="mt-2 max-w-2xl text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {payload?.scopedToEmail ? (
             <>
-              Solo aparecen los clientes vinculados a tu correo. Si hay uno solo,
-              al entrar con código o enlace ya quedás scoped ahí.
+              Solo ves los clientes de tu cuenta. Si hay uno solo, se selecciona
+              solo al entrar.
             </>
           ) : (
             <>
-              Elegí un cliente Hecom. Después, en{" "}
-              <strong className="font-semibold text-[var(--auth-text)]">
-                Mis cuentas publicitarias
-              </strong>{" "}
-              solo vas a ver lo de esa persona.
+              Elegí un cliente para operar. Todo el panel (pagos, cuentas,
+              creativos) queda filtrado a esa persona.
             </>
           )}
         </p>
-      </div>
+
+        {!loading && payload?.ok ? (
+          <p className="mt-3 text-[12px] font-semibold tabular-nums text-[var(--auth-text-soft)]">
+            {shown === total
+              ? `${total} cliente${total === 1 ? "" : "s"}`
+              : `${shown} de ${total} clientes`}
+          </p>
+        ) : null}
+      </header>
 
       {selectError ? (
-        <Card className="border-rose-200 bg-rose-50 p-4 text-sm text-rose-950">
+        <div
+          className="rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800"
+          role="alert"
+        >
           {selectError}
-        </Card>
-      ) : null}
-
-      {loading ? (
-        <Card className="p-5 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Cargando clientes de Hecom Club…
-        </Card>
+        </div>
       ) : null}
 
       {!loading && payload && !payload.ok ? (
-        <Card className="border-rose-200 bg-rose-50 p-5 text-sm text-rose-950">
+        <div
+          className="rounded-[1rem] border border-red-200 bg-red-50 px-4 py-4 text-[14px] text-red-900"
+          role="alert"
+        >
           <p className="font-semibold">No se pudieron cargar los clientes</p>
-          <p className="mt-1">
+          <p className="mt-1 font-medium text-red-800/90">
             {payload.error ?? "Error desconocido. Reintentá en unos segundos."}
           </p>
-        </Card>
+        </div>
       ) : null}
 
-      <Card className="p-5">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar… (nombre, mail, DNI, advertiser)"
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              console.log("[Clientes] filtro local", { q, filtered: filtered.length });
-            }}
-          >
-            Filtrar
-          </Button>
+      <div className="dashboard-surface-card rounded-[1rem] p-4 sm:p-5">
+        <label className="sr-only" htmlFor="clientes-search">
+          Buscar cliente
+        </label>
+        <input
+          id="clientes-search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar por nombre, mail o advertiser…"
+          className="h-11 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3.5 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
+        />
+      </div>
+
+      {loading ? (
+        <div className="dashboard-surface-card rounded-[1rem] p-8 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
+          Cargando clientes…
         </div>
-      </Card>
+      ) : null}
 
       {!loading && payload?.ok && filtered.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-[var(--admin-text-muted,#64748b)]">
-          No hay clientes Hecom para mostrar.
-        </Card>
+        <div className="dashboard-surface-card rounded-[1rem] p-10 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
+          {q.trim()
+            ? "Ningún cliente coincide con la búsqueda."
+            : "No hay clientes Hecom para mostrar."}
+        </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((client) => {
           const contactName =
             client.contactName?.trim() || client.contactEmail || client.name;
           const busy = pending && selectingId === client.id;
+          const hasTikTok =
+            Boolean(client.tiktokAdvertiserId) ||
+            (client.tiktokAccounts?.length ?? 0) > 0;
 
           return (
-            <Card
+            <article
               key={client.id}
-              className="dashboard-surface-card flex flex-col p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgb(255_120_31_/_0.14)]"
+              className="dashboard-surface-card flex flex-col rounded-[1rem] p-4 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[var(--auth-accent)]/35 sm:p-5"
             >
               <div className="flex items-start gap-3">
                 <HecomClienteAvatar
                   name={contactName}
                   avatarUrl={client.avatarUrl}
                   size="md"
-                  className="ring-2 ring-[var(--auth-accent)]/15"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                  <h2 className="truncate text-[1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                     {contactName}
                   </h2>
-                  <p className="mt-0.5 truncate text-xs text-[var(--auth-text-muted)]">
+                  <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-muted)]">
                     {client.biz ? `${client.biz} · ` : ""}
                     {client.contactEmail ?? client.slug}
                   </p>
                 </div>
               </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--auth-text-soft)]">Cuentas TikTok</dt>
-                  <dd className="font-bold text-[var(--auth-text)]">
+              <dl className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
+                  <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                    TikTok
+                  </dt>
+                  <dd className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
                     {client.adAccountCount}
                   </dd>
                 </div>
-                <div className="rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
-                  <dt className="text-[11px] text-[var(--auth-text-soft)]">Emails</dt>
-                  <dd className="font-bold text-[var(--auth-text)]">
+                <div className="rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
+                  <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                    Contactos
+                  </dt>
+                  <dd className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
                     {client.activeMemberCount}
                   </dd>
                 </div>
               </dl>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge variant="info">Hecom CRM</Badge>
-                {client.tiktokAdvertiserId ||
-                (client.tiktokAccounts?.length ?? 0) > 0 ? (
-                  <Badge variant="neutral">TikTok linked</Badge>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
+                  Hecom
+                </span>
+                {hasTikTok ? (
+                  <span className="rounded-full border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-accent)]">
+                    TikTok
+                  </span>
                 ) : null}
               </div>
 
-              <div className="mt-5 flex flex-col gap-2">
+              <div className="mt-4 flex flex-col gap-2">
                 <button
                   type="button"
                   disabled={busy || pending}
                   onClick={() => elegirCliente(client)}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:opacity-60"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
                 >
-                  {busy ? "Eligiendo…" : "Elegir este cliente"}
+                  {busy ? "Eligiendo…" : "Operar este cliente"}
                 </button>
                 <Link
                   href={`/clientes/${client.id}`}
-                  className="text-center text-xs font-bold text-[var(--auth-accent-hover)] hover:underline"
+                  className="text-center text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)]"
                 >
                   Ver ficha
                 </Link>
               </div>
-            </Card>
+            </article>
           );
         })}
       </div>
