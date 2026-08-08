@@ -35,17 +35,21 @@ function PasswordToggle({
   );
 }
 
+/** Inputs estilo mortgage (pill suave). */
 const inputClassName =
-  "h-12 w-full rounded-[0.7rem] border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
 }
 
+/**
+ * Login Holistic — layout mortgage (form limpio).
+ * Acceso simplificado: solo correo → código / enlace mágico (OTP).
+ */
 export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Clientes: solo OTP. Admin sigue en /admin/login.
   const otpMode = hecomOtpEnabled;
 
   const [email, setEmail] = useState("");
@@ -68,12 +72,12 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       const payload = (await response.json()) as {
         error?: string;
         message?: string;
-        sent?: boolean;
-        retryAfterSec?: number;
       };
 
       if (!response.ok) {
-        setError(mapAuthErrorMessage(payload.error ?? "No se pudo enviar el acceso."));
+        setError(
+          mapAuthErrorMessage(payload.error ?? "No se pudo enviar el acceso."),
+        );
         setLoading(false);
         return;
       }
@@ -133,21 +137,14 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const magicError = searchParams.get("error") === "magic_link";
 
   return (
-    <div className="auth-panel relative w-full overflow-hidden rounded-[1.15rem] p-6 sm:p-8 lg:max-w-none">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#ffb84a] via-[var(--auth-accent)] to-[#ff4d2d]"
-        aria-hidden
-      />
-      <div className="mb-6 sm:mb-7">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
-          Acceso
-        </p>
-        <h2 className="font-display mt-2.5 text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
+    <div className="w-full">
+      <div className="mb-7">
+        <h1 className="font-display text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
           Iniciar sesión
-        </h2>
+        </h1>
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {otpMode
-            ? "Solo correo. Te mandamos un código y un enlace mágico."
+            ? "Ingresá tu correo. Te enviamos un código y un enlace para entrar."
             : "Entrá a tu panel de anunciante"}
         </p>
       </div>
@@ -159,7 +156,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
           >
             Correo electrónico
           </label>
@@ -170,7 +167,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="tu@empresa.com"
+            placeholder="tu@gmail.com"
             className={inputClassName}
           />
         </div>
@@ -180,13 +177,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             <div className="mb-2 flex items-center justify-between gap-3">
               <label
                 htmlFor="password"
-                className="block text-[14px] font-medium text-[var(--auth-text-muted)]"
+                className="block text-[13px] font-medium text-[var(--auth-text)]"
               >
                 Contraseña
               </label>
               <a
                 href={routes.forgotPassword}
-                className="text-[13px] font-medium text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-accent)]"
+                className="text-[13px] font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </a>
@@ -212,7 +209,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <p
-            className="rounded-[0.7rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error ??
@@ -223,7 +220,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 flex h-12 w-full items-center justify-center rounded-[0.7rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-[filter,transform,box-shadow] hover:brightness-[1.04] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.38)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading
             ? otpMode
@@ -233,31 +230,29 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         </button>
       </form>
 
-      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
-        {otpMode ? (
-          <p>
-            Revisá tu correo: podés entrar con el{" "}
-            <strong className="font-semibold text-[var(--auth-text)]">
-              código de 6 dígitos
-            </strong>{" "}
-            o tocando el{" "}
-            <strong className="font-semibold text-[var(--auth-text)]">
-              enlace mágico
-            </strong>
-            .
-          </p>
-        ) : (
-          <p>
-            ¿Problemas para entrar?{" "}
-            <a
-              href={routes.forgotPassword}
-              className="font-semibold text-[var(--auth-accent)] transition-colors hover:brightness-110"
-            >
-              Recuperar acceso
-            </a>
-          </p>
-        )}
-      </div>
+      {otpMode ? (
+        <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
+          Revisá tu correo: entrás con el{" "}
+          <strong className="font-semibold text-[var(--auth-text)]">
+            código de 6 dígitos
+          </strong>{" "}
+          o el{" "}
+          <strong className="font-semibold text-[var(--auth-text)]">
+            enlace mágico
+          </strong>
+          .
+        </p>
+      ) : (
+        <p className="mt-6 text-center text-[13px] text-[var(--auth-text-muted)]">
+          ¿Problemas?{" "}
+          <a
+            href={routes.forgotPassword}
+            className="font-semibold text-[var(--auth-accent)] hover:underline"
+          >
+            Recuperar acceso
+          </a>
+        </p>
+      )}
     </div>
   );
 }

@@ -1,39 +1,28 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { VerifyOtpForm } from "@/features/auth/components/VerifyOtpForm.client";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
-import {
-  LoginHeroPanel,
-  LoginMobileIntro,
-} from "@/features/auth/components/LoginHeroPanel";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 
 function AuthCardFallback() {
   return (
-    <div className="auth-panel w-full max-w-[400px] animate-pulse rounded-2xl p-8">
-      <div className="mb-7 space-y-2">
-        <div className="h-6 w-32 rounded bg-[var(--auth-skeleton)]" />
-        <div className="h-4 w-48 rounded bg-[var(--auth-skeleton)]" />
-      </div>
-      <div className="space-y-4">
-        <div className="h-12 rounded-xl bg-[var(--auth-skeleton)]" />
-        <div className="h-12 rounded-xl bg-[var(--auth-accent)]/25" />
-      </div>
+    <div className="w-full max-w-[400px] animate-pulse space-y-4 px-2 py-6">
+      <div className="h-7 w-40 rounded bg-[var(--auth-skeleton)]" />
+      <div className="h-4 w-56 rounded bg-[var(--auth-skeleton)]" />
+      <div className="h-12 rounded-full bg-[var(--auth-skeleton)]" />
+      <div className="h-12 rounded-full bg-[var(--auth-accent)]/25" />
     </div>
   );
 }
 
 export default function VerifyOtpPage() {
   return (
-    <div className="auth-canvas auth-login-shell relative min-h-screen overflow-x-hidden">
-      <div className="auth-login-orb auth-login-orb--a" aria-hidden />
-      <div className="auth-login-orb auth-login-orb--b" aria-hidden />
-      <div className="auth-login-orb auth-login-orb--c" aria-hidden />
-
+    <div className="auth-canvas mortgage-login relative min-h-screen overflow-x-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="border-b border-[var(--auth-divider)]/70 bg-white/80 backdrop-blur-md">
-          <div className="mx-auto flex h-[3.75rem] w-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
+        <header className="px-4 pt-5 sm:px-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-[930px] items-center justify-between gap-3">
             <Link
               href={routes.home}
               aria-label={siteConfig.name}
@@ -42,29 +31,53 @@ export default function VerifyOtpPage() {
               <AuthBrandMark
                 tone="light"
                 compact
-                className="!w-auto max-w-[132px] sm:max-w-[168px]"
+                className="!w-auto max-w-[132px] sm:max-w-[160px]"
               />
             </Link>
             <Link
               href={routes.login}
-              className="shrink-0 text-[0.8125rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:text-[0.875rem]"
+              className="text-[0.8125rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)] sm:text-[0.875rem]"
             >
-              <span className="sm:hidden">Login</span>
-              <span className="hidden sm:inline">Volver al login</span>
+              Volver al login
             </Link>
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-4 py-7 sm:px-6 sm:py-12 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,400px)] lg:items-center lg:gap-16 lg:px-8 lg:py-16 xl:gap-[4.5rem]">
-          <LoginHeroPanel />
-          <div className="mx-auto flex w-full max-w-[420px] flex-col lg:mx-0 lg:max-w-none">
-            <LoginMobileIntro />
-            <Suspense fallback={<AuthCardFallback />}>
-              <VerifyOtpForm />
-            </Suspense>
-            <p className="mt-5 text-center text-[12px] tracking-wide text-[var(--auth-text-soft)]">
-              © {new Date().getFullYear()} {siteConfig.companyName}
-            </p>
+        <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6 sm:py-14 lg:py-16">
+          <div className="w-full max-w-[930px]">
+            <div className="mortgage-login-card flex items-stretch overflow-hidden rounded-[1.75rem] bg-white py-2.5 pr-2.5 max-lg:pr-0 max-lg:py-0">
+              <div className="flex w-full max-w-[400px] flex-col justify-center px-6 py-10 sm:px-8 sm:py-14 lg:shrink-0">
+                <Suspense fallback={<AuthCardFallback />}>
+                  <VerifyOtpForm />
+                </Suspense>
+                <p className="mt-8 text-center text-[12px] tracking-wide text-[var(--auth-text-soft)] lg:text-left">
+                  © {new Date().getFullYear()} {siteConfig.companyName}
+                </p>
+              </div>
+
+              <figure className="relative hidden min-h-[520px] flex-1 overflow-hidden rounded-[1.25rem] lg:block">
+                <Image
+                  src="/auth/login-side-holistic.png"
+                  alt={`${siteConfig.name} — panel de operación`}
+                  fill
+                  priority
+                  sizes="456px"
+                  className="object-cover object-top"
+                />
+                <div
+                  className="absolute inset-0 bg-gradient-to-t from-[rgb(28_25_23_/_0.45)] via-transparent to-transparent"
+                  aria-hidden
+                />
+                <figcaption className="absolute inset-x-0 bottom-0 p-6 text-white">
+                  <p className="text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[rgb(255_200_150)]">
+                    Acceso seguro
+                  </p>
+                  <p className="mt-1.5 text-[1.05rem] font-semibold leading-snug tracking-[-0.02em]">
+                    Código de 6 dígitos o enlace mágico en tu correo.
+                  </p>
+                </figcaption>
+              </figure>
+            </div>
           </div>
         </main>
       </div>

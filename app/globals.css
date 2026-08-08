@@ -521,6 +521,28 @@ body {
     linear-gradient(180deg, #fff8f2 0%, #faf6f1 42%, #f3efe9 100%);
 }
 
+/* Login mortgage-services (NextSaaS) adaptado Holistic */
+.mortgage-login {
+  background-color: #f3f1ed;
+  background-image:
+    radial-gradient(50% 40% at 50% 0%, rgb(255 120 31 / 0.1), transparent 70%),
+    linear-gradient(180deg, #faf8f5 0%, #f3f1ed 55%, #ebe7e1 100%);
+}
+
+.mortgage-login-card {
+  border: 1px solid rgb(236 231 224 / 0.9);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.9) inset,
+    0 24px 60px -32px rgb(28 25 23 / 0.28);
+}
+
+@media (max-width: 1023px) {
+  .mortgage-login-card {
+    border-radius: 1.35rem;
+    padding: 0;
+  }
+}
+
 .auth-login-orb {
   pointer-events: none;
   position: absolute;

@@ -15,7 +15,7 @@ async function assertAdminAccess(): Promise<boolean> {
 }
 
 const inputClassName =
-  "h-12 w-full rounded-[0.7rem] border border-[var(--auth-input-border)] bg-white px-3.5 text-center text-[18px] tracking-[0.35em] text-[var(--auth-text)] placeholder:tracking-[0.35em] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 text-center text-[18px] tracking-[0.35em] text-[var(--auth-text)] placeholder:tracking-[0.35em] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 export function VerifyOtpForm() {
   const router = useRouter();
@@ -178,12 +178,9 @@ export function VerifyOtpForm() {
   }
 
   return (
-    <div className="auth-panel relative w-full max-w-[400px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
+    <div className="w-full">
       <div className="mb-7">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[var(--auth-accent)]">
-          Acceso
-        </p>
-        <h1 className="font-display mt-2.5 text-[1.55rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.75rem]">
+        <h1 className="font-display text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
           {isHecomFlow ? "Código o enlace" : "Verificá tu correo"}
         </h1>
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
@@ -210,7 +207,7 @@ export function VerifyOtpForm() {
         <div>
           <label
             htmlFor="otp"
-            className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
           >
             Código de verificación
           </label>
@@ -232,7 +229,7 @@ export function VerifyOtpForm() {
 
         {error && (
           <p
-            className="rounded-[0.7rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error}
@@ -241,7 +238,7 @@ export function VerifyOtpForm() {
 
         {success && (
           <p
-            className="rounded-[0.7rem] border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
+            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
             role="status"
           >
             {success}
@@ -251,13 +248,13 @@ export function VerifyOtpForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 flex h-12 w-full items-center justify-center rounded-[0.7rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-[filter,transform,box-shadow] hover:brightness-[1.04] hover:shadow-[0_12px_28px_rgb(255_120_31_/_0.38)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Verificando…" : "Verificar y continuar"}
         </button>
       </form>
 
-      <div className="mt-6 space-y-3 border-t border-[var(--auth-divider)] pt-5 text-center text-[14px]">
+      <div className="mt-6 space-y-3 text-center text-[14px]">
         <button
           type="button"
           onClick={handleResend}
