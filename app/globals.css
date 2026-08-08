@@ -536,10 +536,10 @@ body {
     0 24px 60px -32px rgb(28 25 23 / 0.28);
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 639px) {
   .mortgage-login-card {
-    border-radius: 1.35rem;
-    padding: 0;
+    border-radius: 1.25rem;
+    box-shadow: 0 16px 40px -28px rgb(28 25 23 / 0.22);
   }
 }
 

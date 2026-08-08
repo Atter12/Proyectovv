@@ -138,11 +138,11 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-7">
-        <h1 className="font-display text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
+      <div className="mb-6 sm:mb-7">
+        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
+        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
           {otpMode
             ? "Ingresá tu correo. Te enviamos un código y un enlace para entrar."
             : "Entrá a tu panel de anunciante"}
