@@ -57,8 +57,9 @@ export function DashboardLayoutChrome({
       )}
 
       <div
+        id="dashboard-mobile-sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[min(288px,88vw)] transition-transform duration-200 ease-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[min(300px,90vw)] transition-transform duration-200 ease-out lg:hidden",
           sidebarOpen
             ? "translate-x-0 pointer-events-auto"
             : "-translate-x-full pointer-events-none",
@@ -66,13 +67,14 @@ export function DashboardLayoutChrome({
         role="dialog"
         aria-modal={sidebarOpen}
         aria-hidden={!sidebarOpen}
+        aria-label="Menú de navegación"
       >
-        <div className="relative h-full shadow-2xl">
+        <div className="relative h-full overflow-hidden rounded-r-[1.25rem] border-r border-[var(--auth-border)] shadow-[8px_0_40px_-12px_rgb(28_25_23_/_0.28)]">
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Cerrar menú"
-            className="absolute right-2 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
+            className="absolute right-2.5 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -95,7 +97,7 @@ export function DashboardLayoutChrome({
           selectedCliente={selectedCliente}
           persona={persona}
         />
-        <main className="mx-auto min-w-0 w-full max-w-[1480px] flex-1 px-4 py-5 pb-24 sm:px-5 md:px-6 md:py-6 md:pb-16 lg:pb-8 xl:px-8">
+        <main className="mx-auto min-w-0 w-full max-w-[1480px] flex-1 px-3.5 py-4 pb-20 sm:px-5 sm:py-5 sm:pb-24 md:px-6 md:py-6 md:pb-16 lg:pb-8 xl:px-8">
           {children}
         </main>
       </div>

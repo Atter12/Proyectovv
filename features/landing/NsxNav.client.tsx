@@ -20,7 +20,7 @@ export function NsxNav() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 100);
+    const onScroll = () => setScrolled(window.scrollY > 80);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -36,24 +36,24 @@ export function NsxNav() {
   return (
     <header
       className={cn(
-        "fixed left-1/2 z-50 w-[min(100%-1.25rem,1290px)] -translate-x-1/2 rounded-full backdrop-blur-[25px] transition-all duration-500",
-        scrolled ? "top-2" : "top-5",
+        "fixed left-1/2 z-50 w-[min(100%-1rem,1290px)] -translate-x-1/2 rounded-full backdrop-blur-[25px] transition-all duration-500 sm:w-[min(100%-1.25rem,1290px)]",
+        scrolled ? "top-2" : "top-3 sm:top-5",
       )}
     >
-      <div className="flex w-full items-center justify-between rounded-full bg-white px-2.5 py-2.5 shadow-[0_10px_40px_-18px_rgb(28_34_43_/_0.22)] xl:py-0">
+      <div className="flex w-full items-center justify-between rounded-full bg-white px-2 py-2 shadow-[0_10px_40px_-18px_rgb(28_34_43_/_0.22)] sm:px-2.5 sm:py-2.5 xl:py-0">
         <Link
           href={routes.home}
-          className="inline-flex items-center px-1.5"
+          className="inline-flex min-w-0 items-center px-1"
           aria-label={siteConfig.name}
           onClick={() => setOpen(false)}
         >
           <HolisticLogo
             size={168}
-            className="hidden h-9 w-auto max-w-[168px] object-contain object-left lg:block"
+            className="hidden h-9 w-auto max-w-[168px] object-contain object-left sm:block"
           />
           <HolisticLogo
-            size={44}
-            className="h-10 w-10 object-contain lg:hidden"
+            size={120}
+            className="h-8 w-auto max-w-[120px] object-contain object-left sm:hidden"
           />
         </Link>
 
@@ -78,7 +78,7 @@ export function NsxNav() {
 
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--nsx-secondary)] xl:hidden"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--nsx-secondary)] xl:hidden"
           aria-expanded={open}
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           onClick={() => setOpen((v) => !v)}
@@ -94,8 +94,8 @@ export function NsxNav() {
       </div>
 
       {open ? (
-        <div className="mt-2 rounded-3xl border border-[var(--nsx-stroke)] bg-white p-4 shadow-xl xl:hidden">
-          <ul className="space-y-1">
+        <div className="mt-2 max-h-[min(70vh,28rem)] overflow-y-auto rounded-3xl border border-[var(--nsx-stroke)] bg-white p-3 shadow-xl sm:p-4 xl:hidden">
+          <ul className="space-y-0.5">
             {NAV.map((item) => (
               <li key={item.href}>
                 <a
@@ -108,10 +108,10 @@ export function NsxNav() {
               </li>
             ))}
           </ul>
-          <div className="mt-3">
+          <div className="mt-2 border-t border-[var(--nsx-stroke)] pt-3">
             <NsxBtnPrimary
               href={routes.login}
-              className="w-full justify-start"
+              className="w-full justify-center"
             >
               Entrar
             </NsxBtnPrimary>

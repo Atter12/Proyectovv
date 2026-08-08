@@ -163,6 +163,31 @@ body{
   font-weight:700;
 }
 .auth-canvas div[title="Equipos en Latam"]>span:first-child{margin-left:0}
+
+/* ===== Landing Nsx (anti-FOUC primer paint) ===== */
+.nsx-landing{
+  min-height:100vh;
+  overflow-x:hidden;
+  background:#f5f5f7;
+  color:rgb(26 26 28 / 0.6);
+  font-family:var(--font-jakarta),ui-sans-serif,system-ui,sans-serif;
+}
+.nsx-landing .nsx-reveal{opacity:1;transform:none}
+.nsx-landing .nsx-container{
+  width:100%;
+  max-width:1290px;
+  margin-inline:auto;
+  padding-inline:1.25rem;
+}
+.nsx-landing .nsx-h1{
+  font-size:clamp(1.85rem,1.2rem + 4.2vw,4.25rem);
+  font-weight:500;
+  line-height:1.08;
+  letter-spacing:-0.03em;
+  color:#1a1a1c;
+  margin:0;
+}
+.nsx-landing .nsx-hero{position:relative;padding-top:6.75rem}
 `.trim();
 
 /**

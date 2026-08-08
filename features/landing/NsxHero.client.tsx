@@ -15,79 +15,72 @@ const AVATARS = [
 export function NsxHero() {
   return (
     <section className="nsx-hero" id="soluciones">
+      {/* Video solo desktop: en móvil parpadea / pesa y rompe el primer paint */}
       <video
-        className="nsx-hero-video"
+        className="nsx-hero-video nsx-hero-video--desktop"
         autoPlay
         muted
         loop
         playsInline
+        preload="none"
         poster="/landing/holistic/hero-dashboard.png"
+        aria-hidden
       >
         <source
           src="/nexsas/automation/videos/hero-video.mp4"
           type="video/mp4"
         />
       </video>
+      <div className="nsx-hero-static" aria-hidden />
       <div className="nsx-hero-scrim" aria-hidden />
 
       <div className="nsx-container relative z-10">
-        <div className="space-y-9 text-center md:space-y-16">
-          <div className="space-y-8 md:space-y-[4.25rem]">
-            <div className="space-y-6">
-              <div className="mx-auto flex max-w-[18rem] items-center justify-center gap-x-3 sm:max-w-[20rem]">
-                <div className="flex -space-x-3.5">
-                  {AVATARS.map((src, i) => (
-                    <NsxReveal key={src} delayMs={80 + i * 60}>
-                      <Image
-                        src={src}
-                        alt=""
-                        width={44}
-                        height={44}
-                        className="size-11 rounded-full object-cover outline outline-2 outline-[#f5f5f7]"
-                      />
-                    </NsxReveal>
-                  ))}
-                </div>
-                <NsxReveal delayMs={220}>
-                  <p className="max-w-[11rem] shrink-0 text-left text-[0.875rem] leading-snug text-[rgb(26_26_28_/_0.8)]">
-                    <span className="font-semibold text-[var(--nsx-secondary)]">
-                      +180
-                    </span>{" "}
-                    equipos en Latam ya operan con {siteConfig.name}.
-                  </p>
-                </NsxReveal>
+        <div className="nsx-hero-stack">
+          <div className="nsx-hero-copy">
+            <div className="nsx-hero-social">
+              <div className="nsx-hero-avatars">
+                {AVATARS.map((src) => (
+                  <Image
+                    key={src}
+                    src={src}
+                    alt=""
+                    width={44}
+                    height={44}
+                    className="nsx-hero-avatar"
+                  />
+                ))}
               </div>
-
-              <div className="space-y-4">
-                <NsxReveal delayMs={120}>
-                  <h1 className="nsx-h1 mx-auto max-w-[950px]">
-                    Opera campañas, pagos y saldos
-                    <br className="hidden sm:block" /> en un solo lugar.
-                  </h1>
-                </NsxReveal>
-                <NsxReveal delayMs={180}>
-                  <p className="mx-auto max-w-[560px] text-base text-[var(--nsx-muted)] md:text-lg">
-                    Recarga la {siteConfig.walletName}, asigna presupuesto a
-                    cuentas TikTok y controla gasto, cobros Hecom Club y
-                    clientes sin planillas ni dashboards genéricos.
-                  </p>
-                </NsxReveal>
-              </div>
+              <p className="nsx-hero-social-text">
+                <span className="font-semibold text-[var(--nsx-secondary)]">
+                  +180
+                </span>{" "}
+                equipos en Latam ya operan con {siteConfig.name}.
+              </p>
             </div>
 
-            <NsxReveal delayMs={240}>
-              <div className="flex flex-col items-center justify-center">
-                <NsxBtnPrimary
-                  href={routes.login}
-                  className="w-[70%] justify-center md:w-auto"
-                >
-                  Entrar
-                </NsxBtnPrimary>
-              </div>
-            </NsxReveal>
+            <div className="nsx-hero-titles">
+              <h1 className="nsx-h1 mx-auto max-w-[950px]">
+                Opera campañas, pagos y saldos
+                <br className="hidden sm:block" /> en un solo lugar.
+              </h1>
+              <p className="nsx-hero-lead">
+                Recarga la {siteConfig.walletName}, asigna presupuesto a cuentas
+                TikTok y controla gasto, cobros Hecom Club y clientes sin
+                planillas ni dashboards genéricos.
+              </p>
+            </div>
+
+            <div className="nsx-hero-cta">
+              <NsxBtnPrimary
+                href={routes.login}
+                className="nsx-hero-cta-btn justify-center"
+              >
+                Entrar
+              </NsxBtnPrimary>
+            </div>
           </div>
 
-          <NsxReveal delayMs={300}>
+          <NsxReveal delayMs={80} eager>
             <figure className="nsx-hero-banner relative z-10">
               <Image
                 src="/landing/holistic/hero-dashboard.png"
@@ -95,6 +88,7 @@ export function NsxHero() {
                 width={1600}
                 height={1000}
                 priority
+                sizes="(max-width: 768px) 100vw, min(1290px, 92vw)"
                 className="size-full object-cover object-top"
               />
             </figure>
@@ -109,6 +103,7 @@ export function NsxHero() {
           width={1920}
           height={700}
           className="size-full object-cover"
+          priority={false}
         />
       </figure>
     </section>

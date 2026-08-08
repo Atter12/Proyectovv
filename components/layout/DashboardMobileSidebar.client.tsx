@@ -30,7 +30,10 @@ export function DashboardMobileSidebar({
 }: DashboardMobileSidebarProps) {
   return (
     <aside
-      className={cn("dashboard-rail flex h-full shrink-0 flex-col", className)}
+      className={cn(
+        "dashboard-rail flex h-full shrink-0 flex-col bg-white",
+        className,
+      )}
     >
       <div className="border-b border-[var(--auth-divider)] px-4 py-4 pt-14">
         <div className="flex items-center justify-between gap-2 pr-8">
@@ -62,6 +65,29 @@ export function DashboardMobileSidebar({
       </div>
 
       <DashboardNavLinks onNavigate={onNavigate} persona={persona} />
+
+      <div className="mt-auto border-t border-[var(--auth-divider)] p-4">
+        <div className="rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-3.5">
+          <div className="flex items-start gap-2.5">
+            <span
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]"
+              aria-hidden
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.2 13.7 8.3 20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2.2Z" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-bold text-[var(--auth-text)]">
+                {siteConfig.name}
+              </p>
+              <p className="mt-0.5 text-[11.5px] leading-4 text-[var(--auth-text-muted)]">
+                Plataforma de marketing integral para marcas y agencias.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }

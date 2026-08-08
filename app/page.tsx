@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { LandingPage } from "@/features/landing/LandingPage";
 import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
+import "@/features/landing/automation-landing.css";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} — Crece con control real en ads`,
