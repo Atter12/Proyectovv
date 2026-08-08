@@ -23,9 +23,23 @@ export function ClienteScopedPayments({
 
   const kpis = [
     {
+      label: "Gasto de hoy",
+      value: moneyUsd(summary.gastoHoy),
+      accent: true as const,
+      hint:
+        summary.dailySource === "none"
+          ? "Sin sync"
+          : summary.gastoHoy > 0
+            ? "America/Lima"
+            : "Sin actividad",
+    },
+    {
+      label: "Últimos 7 días",
+      value: moneyUsd(summary.gasto7d),
+    },
+    {
       label: "Total cobros",
       value: moneyUsd(summary.cobroTotal),
-      accent: true as const,
     },
     {
       label: "Total gastos",
@@ -68,7 +82,7 @@ export function ClienteScopedPayments({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3 lg:grid-cols-6">
           {kpis.map((kpi) => (
             <div key={kpi.label} className="bg-white px-4 py-4 sm:px-5">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
@@ -83,6 +97,11 @@ export function ClienteScopedPayments({
               >
                 {kpi.value}
               </p>
+              {"hint" in kpi && kpi.hint ? (
+                <p className="mt-1 text-[11px] font-medium text-[var(--auth-text-soft)]">
+                  {kpi.hint}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>

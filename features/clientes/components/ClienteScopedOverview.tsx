@@ -139,12 +139,32 @@ export function ClienteScopedOverview({
       </section>
 
       {/* KPIs claros */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <Kpi
+          label="Gasto de hoy"
+          value={moneyUsd(summary.gastoHoy)}
+          accent
+          hint={
+            summary.dailySource === "none"
+              ? "Sin sync del día"
+              : summary.gastoHoy > 0
+                ? "America/Lima"
+                : "Sin actividad hoy"
+          }
+        />
+        <Kpi label="Últimos 7 días" value={moneyUsd(summary.gasto7d)} />
         <Kpi label="Cuentas TikTok" value={String(summary.accountCount)} />
-        <Kpi label="Cobros" value={moneyUsd(summary.cobroTotal)} accent />
+        <Kpi label="Cobros" value={moneyUsd(summary.cobroTotal)} />
         <Kpi label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
-        <Kpi label="Fees" value={moneyUsd(summary.feeTotal)} />
       </section>
+
+      <DailySpendPanel
+        series={summary.dailySeries}
+        gastoHoy={summary.gastoHoy}
+        gasto7d={summary.gasto7d}
+        gasto30d={summary.gasto30d}
+        source={summary.dailySource}
+      />
 
       {/* Acciones rápidas */}
       <section>
@@ -179,14 +199,153 @@ export function ClienteScopedOverview({
   );
 }
 
+function dailySourceLabel(
+  source: HecomClienteDashboard["summary"]["dailySource"],
+) {
+  if (source === "snapshots") return "TikTok sync";
+  if (source === "gastos") return "Hecom gastos";
+  return "Sin datos";
+}
+
+function shortDayLabel(dateYmd: string) {
+  const iso = dateYmd.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return dateYmd;
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+function DailySpendPanel({
+  series,
+  gastoHoy,
+  gasto7d,
+  gasto30d,
+  source,
+}: {
+  series: HecomClienteDashboard["summary"]["dailySeries"];
+  gastoHoy: number;
+  gasto7d: number;
+  gasto30d: number;
+  source: HecomClienteDashboard["summary"]["dailySource"];
+}) {
+  const max = Math.max(...series.map((p) => p.spend), 0);
+  const peak = max > 0 ? max : 1;
+  const hasAny = series.some((p) => p.spend > 0);
+
+  return (
+    <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+              Gasto diario
+            </h2>
+            <span
+              className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                source === "none"
+                  ? "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
+                  : "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
+              }`}
+            >
+              {dailySourceLabel(source)}
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] font-medium text-[var(--auth-text-muted)]">
+            Últimos {series.length} días · reloj America/Lima
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 text-right">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+              Hoy
+            </p>
+            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-accent)]">
+              {moneyUsd(gastoHoy)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+              7d
+            </p>
+            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-text)]">
+              {moneyUsd(gasto7d)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+              30d
+            </p>
+            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-text)]">
+              {moneyUsd(gasto30d)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {!hasAny ? (
+        <p className="px-5 py-10 text-[13px] font-medium text-[var(--auth-text-muted)]">
+          Aún no hay gasto diario registrado para este cliente. Cuando la sync
+          TikTok escriba snapshots (o haya filas de gasto con fecha), se verán
+          aquí.
+        </p>
+      ) : (
+        <div className="px-4 pb-4 pt-5 sm:px-5">
+          <div className="flex h-40 items-end gap-1.5 sm:gap-2">
+            {series.map((point, index) => {
+              const barPx =
+                point.spend > 0
+                  ? Math.max(8, Math.round((point.spend / peak) * 112))
+                  : 4;
+              const isToday = index === series.length - 1;
+              return (
+                <div
+                  key={point.date}
+                  className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
+                  title={`${shortDayLabel(point.date)}: ${moneyUsd(point.spend)}`}
+                >
+                  <span className="max-w-full truncate text-[9px] font-semibold tabular-nums text-[var(--auth-text-soft)] sm:text-[10px]">
+                    {point.spend > 0
+                      ? moneyUsd(point.spend).replace(/^\$/, "")
+                      : "\u00a0"}
+                  </span>
+                  <div
+                    className={`w-full max-w-[2.25rem] rounded-t-md ${
+                      isToday
+                        ? "bg-[var(--auth-accent)]"
+                        : point.spend > 0
+                          ? "bg-[var(--auth-accent)]/55"
+                          : "bg-[var(--auth-divider)]"
+                    }`}
+                    style={{ height: barPx }}
+                  />
+                  <span
+                    className={`text-[9px] font-semibold tabular-nums sm:text-[10px] ${
+                      isToday
+                        ? "text-[var(--auth-accent)]"
+                        : "text-[var(--auth-text-soft)]"
+                    }`}
+                  >
+                    {shortDayLabel(point.date)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Kpi({
   label,
   value,
   accent = false,
+  hint,
 }: {
   label: string;
   value: string;
   accent?: boolean;
+  hint?: string;
 }) {
   return (
     <div className="dashboard-kpi rounded-[1rem] px-4 py-3.5">
@@ -200,6 +359,11 @@ function Kpi({
       >
         {value}
       </p>
+      {hint ? (
+        <p className="mt-1 truncate text-[11px] font-medium text-[var(--auth-text-soft)]">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

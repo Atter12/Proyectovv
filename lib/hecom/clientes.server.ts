@@ -331,7 +331,7 @@ export async function listHecomClienteSpend(clientId: string, limit = 30) {
       const gastos = await hecom
         .from("gastos")
         .select(
-          "id,client_id,gasto,camp,mes,source,fecha_movimiento,fee,codigo,created_at",
+          "id,client_id,gasto,camp,mes,source,fecha_movimiento,tiktok_stat_date,fee,codigo,created_at",
         )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })

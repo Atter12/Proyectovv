@@ -53,6 +53,14 @@ export type HecomCreativoProyecto = {
   published: boolean | null;
 };
 
+/** One calendar day of ad spend (USD). */
+export type HecomDailySpendPoint = {
+  date: string;
+  spend: number;
+};
+
+export type HecomDailySpendSource = "snapshots" | "gastos" | "none";
+
 export type HecomClienteDashboard = {
   source: "hecom_live" | "hecom_backup";
   cliente: HecomCliente;
@@ -71,8 +79,18 @@ export type HecomClienteDashboard = {
     saldoEstimado: number;
     creativeCount: number;
     projectCount: number;
+    /** Gasto ads del día (tz America/Lima). */
+    gastoHoy: number;
+    gasto7d: number;
+    gasto30d: number;
+    /** Serie diaria rellena (incluye 0), del más viejo al más nuevo. */
+    dailySeries: HecomDailySpendPoint[];
+    dailySource: HecomDailySpendSource;
   };
 };
+
+const DAILY_SPEND_TZ = "America/Lima";
+const DAILY_SERIES_DAYS = 14;
 
 function resolveAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
   if (cliente.tiktokAccounts.length > 0) return cliente.tiktokAccounts;
@@ -157,12 +175,135 @@ function feeAmountForGasto(row: HecomGastoRow, fallbackFeePct: number | null): n
   return Math.round(row.gasto * (pct / 100) * 100) / 100;
 }
 
+function calendarDateInTz(
+  date: Date = new Date(),
+  timeZone: string = DAILY_SPEND_TZ,
+): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function shiftCalendarDate(dateYmd: string, deltaDays: number): string {
+  const base = new Date(`${dateYmd}T12:00:00.000Z`);
+  base.setUTCDate(base.getUTCDate() + deltaDays);
+  return base.toISOString().slice(0, 10);
+}
+
+function dateKeyFromUnknown(value: unknown): string | null {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const iso = raw.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+}
+
+function sumSpendOnAndAfter(
+  byDate: Map<string, number>,
+  startDate: string,
+): number {
+  let total = 0;
+  for (const [date, spend] of byDate) {
+    if (date >= startDate) total += spend;
+  }
+  return Math.round(total * 100) / 100;
+}
+
+function fillDailySeries(
+  byDate: Map<string, number>,
+  endDate: string,
+  days: number,
+): HecomDailySpendPoint[] {
+  const startDate = shiftCalendarDate(endDate, -(days - 1));
+  const series: HecomDailySpendPoint[] = [];
+  for (let i = 0; i < days; i += 1) {
+    const date = shiftCalendarDate(startDate, i);
+    series.push({
+      date,
+      spend: Math.round((byDate.get(date) ?? 0) * 100) / 100,
+    });
+  }
+  return series;
+}
+
+function spendMapFromGastos(gastos: HecomGastoRow[]): Map<string, number> {
+  const byDate = new Map<string, number>();
+  for (const row of gastos) {
+    const key = dateKeyFromUnknown(row.fecha);
+    if (!key) continue;
+    byDate.set(key, (byDate.get(key) ?? 0) + row.gasto);
+  }
+  return byDate;
+}
+
+function spendMapFromSnapshotRows(
+  rows: Array<Record<string, unknown>>,
+): Map<string, number> {
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    const key = dateKeyFromUnknown(row.stat_date);
+    if (!key) continue;
+    const spend = Number(row.spend ?? 0);
+    if (!Number.isFinite(spend) || spend < 0) continue;
+    byDate.set(key, (byDate.get(key) ?? 0) + spend);
+  }
+  return byDate;
+}
+
+async function loadSnapshotSpendMap(
+  clientId: string,
+  startDate: string,
+): Promise<Map<string, number> | null> {
+  try {
+    const hecom = createHecomAdminClient();
+    const { data, error } = await hecom
+      .from("tiktok_spend_snapshots")
+      .select("stat_date,spend,client_id")
+      .eq("client_id", clientId)
+      .gte("stat_date", startDate)
+      .order("stat_date", { ascending: false })
+      .limit(5000);
+
+    if (error) return null;
+    return spendMapFromSnapshotRows(
+      (data ?? []) as Array<Record<string, unknown>>,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function buildDailySpendSummary(
+  byDate: Map<string, number>,
+  source: HecomDailySpendSource,
+) {
+  const today = calendarDateInTz();
+  const gastoHoy = Math.round((byDate.get(today) ?? 0) * 100) / 100;
+  const gasto7d = sumSpendOnAndAfter(byDate, shiftCalendarDate(today, -6));
+  const gasto30d = sumSpendOnAndAfter(byDate, shiftCalendarDate(today, -29));
+  return {
+    gastoHoy,
+    gasto7d,
+    gasto30d,
+    dailySeries: fillDailySeries(byDate, today, DAILY_SERIES_DAYS),
+    dailySource: source,
+  };
+}
+
+function emptyDailySpendSummary() {
+  return buildDailySpendSummary(new Map(), "none");
+}
+
 function buildSummary(
   accounts: HecomTiktokAccount[],
   gastos: HecomGastoRow[],
   cobros: HecomCobroRow[],
   creativosClientes: HecomCreativoCliente[],
   creativosProyectos: HecomCreativoProyecto[],
+  daily?: ReturnType<typeof buildDailySpendSummary>,
 ) {
   const fallbackFeePct =
     accounts.find((a) => a.fee != null)?.fee ??
@@ -174,6 +315,7 @@ function buildSummary(
   );
   const cargoTotal = Math.round((gastoTotal + feeTotal) * 100) / 100;
   const cobroTotal = cobros.reduce((sum, row) => sum + row.monto, 0);
+  const dailySummary = daily ?? emptyDailySpendSummary();
   return {
     accountCount: accounts.length,
     gastoTotal,
@@ -184,7 +326,31 @@ function buildSummary(
     saldoEstimado: Math.round((cobroTotal - cargoTotal) * 100) / 100,
     creativeCount: creativosClientes.length,
     projectCount: creativosProyectos.length,
+    ...dailySummary,
   };
+}
+
+async function resolveDailySpend(
+  clientId: string,
+  gastos: HecomGastoRow[],
+  cfgConfigured: boolean,
+): Promise<ReturnType<typeof buildDailySpendSummary>> {
+  const today = calendarDateInTz();
+  const start30 = shiftCalendarDate(today, -(Math.max(DAILY_SERIES_DAYS, 30) - 1));
+
+  if (cfgConfigured) {
+    const snapshots = await loadSnapshotSpendMap(clientId, start30);
+    if (snapshots && snapshots.size > 0) {
+      return buildDailySpendSummary(snapshots, "snapshots");
+    }
+  }
+
+  const fromGastos = spendMapFromGastos(gastos);
+  if (fromGastos.size > 0) {
+    return buildDailySpendSummary(fromGastos, "gastos");
+  }
+
+  return emptyDailySpendSummary();
 }
 
 async function loadLiveFinance(
@@ -309,7 +475,7 @@ export const getHecomClienteDashboard = cache(
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
-          summary: buildSummary(accounts, [], [], [], []),
+          summary: buildSummary(accounts, [], [], [], [], emptyDailySpendSummary()),
         };
       }
 
@@ -320,6 +486,7 @@ export const getHecomClienteDashboard = cache(
         if (live) {
           const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
           const cobros = live.cobros;
+          const daily = await resolveDailySpend(clienteId, gastos, true);
           return {
             source: "hecom_live",
             cliente,
@@ -334,6 +501,7 @@ export const getHecomClienteDashboard = cache(
               cobros,
               live.creativosClientes,
               live.creativosProyectos,
+              daily,
             ),
           };
         }
@@ -349,7 +517,7 @@ export const getHecomClienteDashboard = cache(
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
-          summary: buildSummary(accounts, [], [], [], []),
+          summary: buildSummary(accounts, [], [], [], [], emptyDailySpendSummary()),
         };
       }
 
@@ -362,6 +530,7 @@ export const getHecomClienteDashboard = cache(
       const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
       const creativosProyectos =
         filtered.creativosProyectos.map(mapCreativoProyecto);
+      const daily = await resolveDailySpend(clienteId, gastos, cfg.configured);
 
       return {
         source: "hecom_backup",
@@ -377,6 +546,7 @@ export const getHecomClienteDashboard = cache(
           cobros,
           creativosClientes,
           creativosProyectos,
+          daily,
         ),
       };
     } catch (error) {
