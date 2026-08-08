@@ -1,0 +1,264 @@
+/* Nexsas — Automation SaaS landing (template-faithful light skin) */
+
+.nsx-landing {
+  --nsx-secondary: #1a1a1c;
+  --nsx-accent: #fcfcfc;
+  --nsx-muted: rgb(26 26 28 / 0.6);
+  --nsx-bg: #f5f5f7;
+  --nsx-bg-soft: #ffffff;
+  --nsx-stroke: #e8e8ea;
+  --nsx-lime: #c6f56f;
+  --nsx-lime-deep: #b4e85a;
+  --nsx-font: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --nsx-container: 1290px;
+
+  font-family: var(--nsx-font);
+  color: var(--nsx-muted);
+  background: var(--nsx-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.nsx-landing section[id] {
+  scroll-margin-top: 6rem;
+}
+
+.nsx-container {
+  width: 100%;
+  max-width: var(--nsx-container);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .nsx-container {
+    padding-inline: 1.75rem;
+  }
+}
+
+.nsx-h1 {
+  font-size: clamp(2.35rem, 1.2rem + 3.8vw, 4.25rem);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--nsx-secondary);
+}
+
+.nsx-h2 {
+  font-size: clamp(1.85rem, 1.1rem + 2.2vw, 3.25rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--nsx-secondary);
+}
+
+.nsx-h3 {
+  font-size: clamp(1.15rem, 1rem + 0.4vw, 1.5rem);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--nsx-secondary);
+}
+
+.nsx-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--nsx-secondary);
+  background: var(--nsx-lime);
+}
+
+/* Pill buttons with chevron disc (Nexsas) */
+.nsx-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 3rem;
+  border-radius: 999px;
+  padding: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  transition: filter 0.2s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.nsx-btn:active {
+  transform: translateY(1px);
+}
+
+.nsx-btn-icon {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.nsx-btn-primary {
+  background: var(--nsx-secondary);
+  color: #fff;
+}
+
+.nsx-btn-primary .nsx-btn-icon {
+  background: linear-gradient(135deg, #c6f56f 0%, #83e7ee 100%);
+  color: #000;
+}
+
+.nsx-btn-secondary {
+  background: #fff;
+  color: var(--nsx-secondary);
+  box-shadow: inset 0 0 0 1px var(--nsx-stroke);
+}
+
+.nsx-btn-secondary .nsx-btn-icon {
+  background: #000;
+  color: #fff;
+}
+
+.nsx-btn span:last-child {
+  padding-inline: 1rem 1.15rem;
+}
+
+.nsx-btn-white {
+  background: #fff;
+  color: var(--nsx-secondary);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.06);
+  padding-inline: 1.25rem;
+  height: 2.75rem;
+}
+
+.nsx-btn-white:hover {
+  filter: brightness(0.98);
+}
+
+/* Reveal */
+.nsx-reveal {
+  opacity: 0;
+  transform: translateY(1.1rem);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--nsx-delay, 0ms);
+}
+
+.nsx-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nsx-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Hero */
+.nsx-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-top: 11.5rem;
+  padding-bottom: 0;
+}
+
+.nsx-hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nsx-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgb(245 245 247 / 0.35) 0%, rgb(245 245 247 / 0.15) 40%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 20%, rgb(255 255 255 / 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.nsx-hero-banner {
+  height: 350px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 25px 80px -12px rgb(28 34 43 / 0.18);
+}
+
+@media (min-width: 768px) {
+  .nsx-hero-banner {
+    height: 650px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .nsx-hero-banner {
+    height: 780px;
+  }
+}
+
+.nsx-hero-gradient {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  z-index: 5;
+  width: 100%;
+  height: 320px;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .nsx-hero-gradient {
+    height: 480px;
+  }
+}
+
+.nsx-section {
+  padding-block: 5rem;
+}
+
+@media (min-width: 1024px) {
+  .nsx-section {
+    padding-block: 7rem;
+  }
+}
+
+.nsx-card {
+  border-radius: 20px;
+  background: #fff;
+  padding: 1.5rem;
+}
+
+.nsx-feature-card {
+  display: flex;
+  height: 100%;
+  min-height: 22rem;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 20px;
+  background: #fff;
+  padding: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .nsx-feature-card {
+    min-height: 28rem;
+  }
+}
+
+.nsx-footer {
+  border-top: 1px solid var(--nsx-stroke);
+  background: #fff;
+  padding-block: 2.5rem;
+}

@@ -1,38 +1,32 @@
-import "./nexsas-landing.css";
-import { NsNav } from "./NsNav.client";
-import { NsHero } from "./NsHero";
-import { NsServices } from "./NsServices";
-import { NsSteps } from "./NsSteps";
-import { NsWhyUs } from "./NsWhyUs";
-import { NsResults } from "./NsResults";
-import { NsTestimonials } from "./NsTestimonials";
-import { NsCta, NsFooter } from "./NsCta";
+import "./automation-landing.css";
+import { NsxNav } from "./NsxNav.client";
+import { NsxHero } from "./NsxHero.client";
+import { NsxAbout } from "./NsxAbout";
+import { NsxFeatures } from "./NsxFeatures";
+import { NsxCta, NsxFooter } from "./NsxCta";
 
 /**
- * Landing principal — layout NextSaaS / Nexsas demo **digital-marketing**,
- * contenido y marca Holistic. Template reference queda fuera del repo.
+ * Landing principal — demo Nexsas **Automation SaaS** (template intacto:
+ * logo Nexsas, copy, hero video + product UI, estructura del home).
  */
 export function LandingPage() {
   return (
-    <div className="ns-landing relative min-h-screen overflow-x-hidden">
+    <div className="nsx-landing relative min-h-screen overflow-x-hidden">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm"
       >
-        Saltar al contenido
+        Skip to content
       </a>
 
-      <NsNav />
+      <NsxNav />
       <main id="contenido">
-        <NsHero />
-        <NsServices />
-        <NsSteps />
-        <NsWhyUs />
-        <NsResults />
-        <NsTestimonials />
-        <NsCta />
+        <NsxHero />
+        <NsxAbout />
+        <NsxFeatures />
+        <NsxCta />
       </main>
-      <NsFooter />
+      <NsxFooter />
     </div>
   );
 }
