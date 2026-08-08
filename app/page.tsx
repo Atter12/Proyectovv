@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { getSession } from "@/lib/auth/session.server";
 import { LandingPage } from "@/features/landing/LandingPage";
+import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Automation SaaS || Nexsas",
+  title: `${siteConfig.name} — Crece con control real en ads`,
   description:
-    "Automate your workflows and eliminate manual tasks with Nexsas — connect tools, design smart workflows, and run on autopilot.",
+    "Holistic Marketing: cartera, cuentas TikTok, gasto diario, pagos Hecom y operación para agencias y equipos de performance en Latam.",
 };
 
 export default async function HomePage() {

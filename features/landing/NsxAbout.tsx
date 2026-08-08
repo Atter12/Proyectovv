@@ -1,11 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/config/routes";
+import { siteConfig } from "@/config/site";
 import { NsxReveal } from "./NsxReveal.client";
 
 export function NsxAbout() {
   return (
-    <section id="about" className="nsx-section relative z-10 -mt-8 bg-[var(--nsx-bg)] md:-mt-16">
+    <section
+      id="nosotros"
+      className="nsx-section relative z-10 -mt-8 bg-[var(--nsx-bg)] md:-mt-16"
+    >
       <div className="nsx-container">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-14">
           <NsxReveal delayMs={80} className="lg:col-span-3">
@@ -25,17 +29,20 @@ export function NsxAbout() {
               <div className="flex flex-col items-center justify-center gap-y-8 md:gap-x-8 lg:flex-row xl:gap-x-14">
                 <div className="w-full space-y-5 lg:w-1/2">
                   <NsxReveal delayMs={100}>
-                    <span className="nsx-badge">About Us</span>
+                    <span className="nsx-badge">Nosotros</span>
                   </NsxReveal>
                   <NsxReveal delayMs={140}>
-                    <h2 className="nsx-h2">The team behind smarter automation</h2>
+                    <h2 className="nsx-h2">
+                      El equipo detrás de {siteConfig.name}
+                    </h2>
                   </NsxReveal>
                 </div>
                 <div className="w-full space-y-8 lg:w-1/2">
                   <NsxReveal delayMs={180}>
                     <p className="text-[1.05rem] leading-relaxed text-[var(--nsx-muted)]">
-                      We created this platform to solve one simple problem — too
-                      much time is wasted on repetitive work.
+                      Construimos este panel para un problema real de Latam: demasiado
+                      tiempo en Excel y demasiada fricción entre cartera, fondeo TikTok
+                      y la operación Hecom Club de cada cliente.
                     </p>
                   </NsxReveal>
                   <NsxReveal delayMs={220}>
@@ -43,7 +50,7 @@ export function NsxAbout() {
                       href={routes.register}
                       className="nsx-btn nsx-btn-white inline-flex"
                     >
-                      Learn more
+                      Conocer el producto
                     </Link>
                   </NsxReveal>
                 </div>
@@ -51,33 +58,26 @@ export function NsxAbout() {
 
               <div className="flex flex-col items-stretch justify-end gap-5 md:flex-row md:gap-8 xl:gap-14">
                 <div className="w-full space-y-8 md:w-1/2">
-                  <div className="flex items-center gap-x-10">
+                  <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
                     <div className="space-y-1">
                       <p className="nsx-h3">
-                        90<span className="text-[1.1rem]">%</span>
+                        +180
                       </p>
                       <p className="text-sm text-[var(--nsx-muted)]">
-                        Client Satisfaction
+                        equipos y agencias
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <p className="nsx-h3">
-                        10<span className="text-[1.1rem]">M+</span>
-                      </p>
+                      <p className="nsx-h3">TikTok</p>
                       <p className="text-sm text-[var(--nsx-muted)]">
-                        automated workflows
+                        accounts & BM funding
                       </p>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="nsx-h3 flex items-center gap-2">
-                      4.9
-                      <span className="text-[var(--nsx-lime-deep)]" aria-hidden>
-                        ★★★★★
-                      </span>
-                    </p>
+                    <p className="nsx-h3">Stripe + Hecom</p>
                     <p className="text-sm text-[var(--nsx-muted)]">
-                      Average rating from product reviews
+                      Recargas del cliente y cobros CRM alineados a la operación real
                     </p>
                   </div>
                 </div>

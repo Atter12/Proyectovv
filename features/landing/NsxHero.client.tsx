@@ -22,7 +22,10 @@ export function NsxHero() {
         playsInline
         poster="/nexsas/automation/images/ns-img-3.png"
       >
-        <source src="/nexsas/automation/videos/hero-video.mp4" type="video/mp4" />
+        <source
+          src="/nexsas/automation/videos/hero-video.mp4"
+          type="video/mp4"
+        />
       </video>
       <div className="nsx-hero-scrim" aria-hidden />
 
@@ -30,7 +33,7 @@ export function NsxHero() {
         <div className="space-y-9 text-center md:space-y-16">
           <div className="space-y-8 md:space-y-[4.25rem]">
             <div className="space-y-6">
-              <div className="mx-auto flex max-w-[16rem] items-center justify-center gap-x-3">
+              <div className="mx-auto flex max-w-[18rem] items-center justify-center gap-x-3 sm:max-w-[20rem]">
                 <div className="flex -space-x-3.5">
                   {AVATARS.map((src, i) => (
                     <NsxReveal key={src} delayMs={80 + i * 60}>
@@ -45,9 +48,11 @@ export function NsxHero() {
                   ))}
                 </div>
                 <NsxReveal delayMs={220}>
-                  <p className="max-w-[9rem] shrink-0 text-left text-[0.875rem] leading-snug text-[rgb(26_26_28_/_0.8)]">
-                    <span className="font-semibold text-[var(--nsx-secondary)]">2,000+</span>{" "}
-                    teams shipping faster this week.
+                  <p className="max-w-[11rem] shrink-0 text-left text-[0.875rem] leading-snug text-[rgb(26_26_28_/_0.8)]">
+                    <span className="font-semibold text-[var(--nsx-secondary)]">
+                      +180
+                    </span>{" "}
+                    equipos en Latam ya operan con Holistic.
                   </p>
                 </NsxReveal>
               </div>
@@ -55,15 +60,15 @@ export function NsxHero() {
               <div className="space-y-4">
                 <NsxReveal delayMs={120}>
                   <h1 className="nsx-h1 mx-auto max-w-[950px]">
-                    Automate your workflows
-                    <br className="hidden sm:block" />{" "}
-                    eliminate manual tasks.
+                    Opera campañas, pagos y saldos
+                    <br className="hidden sm:block" /> en un solo lugar.
                   </h1>
                 </NsxReveal>
                 <NsxReveal delayMs={180}>
-                  <p className="mx-auto max-w-[500px] text-base text-[var(--nsx-muted)] md:text-lg">
-                    Connect your tools, design smart workflows, and automate
-                    repetitive work — so your business runs on autopilot.
+                  <p className="mx-auto max-w-[560px] text-base text-[var(--nsx-muted)] md:text-lg">
+                    Recargá la Cartera Holistic, asigná presupuesto a cuentas
+                    TikTok y controlá gasto, cobros Hecom y clientes sin
+                    planillas ni dashboards genéricos.
                   </p>
                 </NsxReveal>
               </div>
@@ -75,13 +80,13 @@ export function NsxHero() {
                   href={routes.register}
                   className="w-[70%] justify-center md:w-auto"
                 >
-                  Start free trial
+                  Crear cuenta
                 </NsxBtnPrimary>
                 <NsxBtnSecondary
                   href={routes.login}
                   className="w-[70%] justify-center md:w-auto"
                 >
-                  Book demo
+                  Entrar al panel
                 </NsxBtnSecondary>
               </div>
             </NsxReveal>
@@ -91,7 +96,7 @@ export function NsxHero() {
             <figure className="nsx-hero-banner relative z-10">
               <Image
                 src="/nexsas/automation/images/ns-img-3.png"
-                alt="Nexsas product dashboard"
+                alt="Panel Holistic — cartera, pagos y cuentas ads"
                 width={1600}
                 height={1000}
                 priority

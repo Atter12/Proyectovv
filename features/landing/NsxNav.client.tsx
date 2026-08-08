@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/config/routes";
+import { siteConfig } from "@/config/site";
+import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { cn } from "@/lib/cn";
 import { NsxBtnPrimary } from "./NsxButtons";
 
 const NAV = [
-  { label: "Company" },
-  { label: "Inner pages" },
-  { label: "Platform" },
-  { label: "Plans & Support" },
+  { href: "#soluciones", label: "Soluciones" },
+  { href: "#proceso", label: "Proceso" },
+  { href: "#nosotros", label: "Nosotros" },
+  { href: "#resultados", label: "Resultados" },
 ] as const;
 
 export function NsxNav() {
@@ -41,63 +42,51 @@ export function NsxNav() {
     >
       <div className="flex w-full items-center justify-between rounded-full bg-white px-2.5 py-2.5 shadow-[0_10px_40px_-18px_rgb(28_34_43_/_0.22)] xl:py-0">
         <Link
-          href="/"
-          className="inline-flex items-center px-1"
-          aria-label="Nexsas home"
+          href={routes.home}
+          className="inline-flex items-center px-1.5"
+          aria-label={siteConfig.name}
           onClick={() => setOpen(false)}
         >
-          <Image
-            src="/nexsas/automation/logo/main-logo.svg"
-            alt="Nexsas"
-            width={198}
-            height={40}
-            priority
-            className="hidden h-10 w-auto lg:block"
+          <HolisticLogo
+            size={168}
+            className="hidden h-9 w-auto max-w-[168px] object-contain object-left lg:block"
           />
-          <Image
-            src="/nexsas/automation/logo/logo.svg"
-            alt="Nexsas"
-            width={44}
-            height={44}
-            priority
-            className="h-11 w-11 lg:hidden"
+          <HolisticLogo
+            size={44}
+            className="h-10 w-10 object-contain lg:hidden"
           />
         </Link>
 
-        <nav className="hidden items-center xl:flex" aria-label="Main">
+        <nav className="hidden items-center xl:flex" aria-label="Principal">
           <ul className="flex items-center">
             {NAV.map((item) => (
-              <li key={item.label} className="relative py-2.5">
-                <span className="flex cursor-default items-center gap-1 rounded-full border border-transparent px-4 py-2 text-[0.95rem] text-[rgb(26_26_28_/_0.6)]">
+              <li key={item.href} className="relative py-2.5">
+                <a
+                  href={item.href}
+                  className="flex items-center gap-1 rounded-full border border-transparent px-4 py-2 text-[0.95rem] text-[rgb(26_26_28_/_0.6)] transition-colors hover:text-[var(--nsx-secondary)]"
+                >
                   {item.label}
-                  <svg
-                    className="size-4 opacity-60"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                    />
-                  </svg>
-                </span>
+                </a>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div className="hidden xl:block">
-          <NsxBtnPrimary href={routes.register}>Get started</NsxBtnPrimary>
+        <div className="hidden items-center gap-2 xl:flex">
+          <Link
+            href={routes.login}
+            className="rounded-full px-3 py-2 text-[0.9rem] font-medium text-[rgb(26_26_28_/_0.6)] transition-colors hover:text-[var(--nsx-secondary)]"
+          >
+            Entrar
+          </Link>
+          <NsxBtnPrimary href={routes.register}>Empezar</NsxBtnPrimary>
         </div>
 
         <button
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--nsx-secondary)] xl:hidden"
           aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
+          aria-label={open ? "Cerrar menú" : "Abrir menú"}
           onClick={() => setOpen((v) => !v)}
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -114,16 +103,30 @@ export function NsxNav() {
         <div className="mt-2 rounded-3xl border border-[var(--nsx-stroke)] bg-white p-4 shadow-xl xl:hidden">
           <ul className="space-y-1">
             {NAV.map((item) => (
-              <li key={item.label}>
-                <span className="block rounded-xl px-3 py-3 text-[0.95rem] font-medium text-[var(--nsx-secondary)]">
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-3 text-[0.95rem] font-medium text-[var(--nsx-secondary)]"
+                >
                   {item.label}
-                </span>
+                </a>
               </li>
             ))}
           </ul>
-          <div className="mt-3">
-            <NsxBtnPrimary href={routes.register} className="w-full justify-start">
-              Get started
+          <div className="mt-3 grid gap-2">
+            <Link
+              href={routes.login}
+              onClick={() => setOpen(false)}
+              className="nsx-btn nsx-btn-white w-full justify-center"
+            >
+              Entrar
+            </Link>
+            <NsxBtnPrimary
+              href={routes.register}
+              className="w-full justify-start"
+            >
+              Empezar
             </NsxBtnPrimary>
           </div>
         </div>

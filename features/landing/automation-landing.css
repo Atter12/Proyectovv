@@ -64,9 +64,9 @@
   border-radius: 999px;
   padding: 0.4rem 0.9rem;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--nsx-secondary);
-  background: var(--nsx-lime);
+  font-weight: 600;
+  color: #c2410c;
+  background: #fff1e8;
 }
 
 /* Pill buttons with chevron disc (Nexsas) */
@@ -104,8 +104,8 @@
 }
 
 .nsx-btn-primary .nsx-btn-icon {
-  background: linear-gradient(135deg, #c6f56f 0%, #83e7ee 100%);
-  color: #000;
+  background: linear-gradient(135deg, #ffb84a 0%, #ff781f 55%, #ff4d2d 100%);
+  color: #fff;
 }
 
 .nsx-btn-secondary {

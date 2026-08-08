@@ -6,8 +6,8 @@ import { NsxFeatures } from "./NsxFeatures";
 import { NsxCta, NsxFooter } from "./NsxCta";
 
 /**
- * Landing principal — demo Nexsas **Automation SaaS** (template intacto:
- * logo Nexsas, copy, hero video + product UI, estructura del home).
+ * Landing principal — layout Automation SaaS (Nexsas template),
+ * marca e info Holistic Marketing / Hecom.
  */
 export function LandingPage() {
   return (
@@ -16,7 +16,7 @@ export function LandingPage() {
         href="#contenido"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm"
       >
-        Skip to content
+        Saltar al contenido
       </a>
 
       <NsxNav />
