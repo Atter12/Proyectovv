@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: `${siteConfig.name} — Crece con control real en ads`,
   description:
-    "Landing Holistic Marketing: cartera, cuentas TikTok, pagos y operación para agencias y equipos de performance en Latam.",
+    "Holistic Marketing: cartera, cuentas TikTok, gasto diario, pagos y operación Hecom para agencias y equipos de performance en Latam.",
 };
 
 export default async function HomePage() {

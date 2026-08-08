@@ -1,0 +1,411 @@
+/* Holistic × Nexsas digital-marketing layout (light).
+   Structure matches NextSaaS digital-marketing demo; brand stays Holistic coral. */
+
+.ns-landing {
+  --ns-primary: #ff781f;
+  --ns-primary-soft: #fff1e8;
+  --ns-secondary: #1a1a1c;
+  --ns-accent: #fcfcfc;
+  --ns-muted: rgb(26 26 28 / 0.6);
+  --ns-bg-1: #fcfcfd;
+  --ns-bg-2: #f9fafb;
+  --ns-bg-3: #f4f5f8;
+  --ns-stroke: #dfe4eb;
+  --ns-stroke-soft: rgb(27 35 47 / 0.12);
+  --ns-cyan: #83e7ee;
+  --ns-cyan-soft: #cdf5f8;
+  --ns-green: #c6f56f;
+  --ns-yellow: #f9eb57;
+  --ns-font: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --ns-container: 1290px;
+
+  font-family: var(--ns-font);
+  color: var(--ns-muted);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+.ns-landing section[id] {
+  scroll-margin-top: 6rem;
+}
+
+.ns-container {
+  width: 100%;
+  max-width: var(--ns-container);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .ns-container {
+    padding-inline: 1.75rem;
+  }
+}
+
+.ns-section {
+  padding-block: 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .ns-section {
+    padding-block: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ns-section {
+    padding-block: 5.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ns-section {
+    padding-block: 6.25rem;
+  }
+}
+
+.ns-h1 {
+  font-size: clamp(2.25rem, 1.2rem + 3.5vw, 4.25rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ns-secondary);
+}
+
+.ns-h2 {
+  font-size: clamp(1.75rem, 1.1rem + 2vw, 3.25rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--ns-secondary);
+}
+
+.ns-h3 {
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.5rem);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--ns-secondary);
+}
+
+.ns-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ns-secondary);
+  background: var(--ns-cyan-soft);
+}
+
+.ns-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.ns-btn:active {
+  transform: translateY(1px);
+}
+
+.ns-btn-xl {
+  min-height: 3.25rem;
+  padding: 0.95rem 1.75rem;
+}
+
+.ns-btn-md {
+  min-height: 2.75rem;
+  padding: 0.75rem 1.35rem;
+}
+
+.ns-btn-primary {
+  background: var(--ns-primary);
+  color: #fff;
+}
+
+.ns-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.ns-btn-secondary {
+  background: var(--ns-secondary);
+  color: #fff;
+}
+
+.ns-btn-secondary:hover {
+  background: #2b2b2e;
+}
+
+.ns-btn-white {
+  background: #fff;
+  color: var(--ns-secondary);
+  border: 1px solid var(--ns-stroke);
+}
+
+.ns-btn-white:hover {
+  background: var(--ns-secondary);
+  color: #fff;
+  border-color: var(--ns-secondary);
+}
+
+.ns-btn-dark {
+  background: #0f1217;
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.ns-btn-dark:hover {
+  background: #fff;
+  color: var(--ns-secondary);
+}
+
+/* Reveal */
+.ns-reveal {
+  opacity: 0;
+  transform: translateY(1.25rem);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--ns-delay, 0ms);
+}
+
+.ns-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ns-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Hero */
+.ns-hero {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  background-color: #e8edf4;
+  background-image: url("/nexsas/ns-img-291.png");
+  background-size: cover;
+  background-position: center;
+  padding-top: 10rem;
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 1536px) {
+  .ns-hero {
+    padding-top: 14rem;
+  }
+}
+
+.ns-hero-dots {
+  position: absolute;
+  inset: auto 0 0;
+  left: 50%;
+  z-index: 0;
+  width: 100%;
+  max-width: 1362px;
+  height: 100%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ns-hero-dots img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Services stack cards */
+.ns-service-card {
+  position: relative;
+  min-height: 10.5rem;
+  width: 100%;
+  border-radius: 1.25rem;
+  border: 1px solid var(--ns-stroke-soft);
+  background: var(--ns-bg-2);
+  padding: 2rem;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.ns-service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 65px -5px rgb(28 34 43 / 0.08);
+}
+
+/* Why us panel */
+.ns-why {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  background: var(--ns-secondary);
+  padding: 2.6rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .ns-why {
+    padding-inline: 3.5rem;
+  }
+}
+
+.ns-why-glow {
+  position: absolute;
+  top: -40%;
+  right: -40%;
+  z-index: 0;
+  width: min(66rem, 120vw);
+  height: min(66rem, 120vw);
+  pointer-events: none;
+  opacity: 0.85;
+  transform: rotate(-40deg);
+}
+
+/* Marquee */
+.ns-marquee {
+  position: relative;
+  overflow: hidden;
+}
+
+.ns-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 2rem;
+  animation: ns-marquee 42s linear infinite;
+}
+
+.ns-marquee:hover .ns-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes ns-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ns-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.ns-result-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  min-height: 16.8rem;
+  min-width: 20rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: 2rem;
+  transition:
+    background 0.5s ease,
+    color 0.5s ease;
+}
+
+@media (min-width: 640px) {
+  .ns-result-card {
+    min-width: 22.5rem;
+  }
+}
+
+.ns-result-card:hover {
+  background: var(--ns-secondary);
+  color: rgb(255 255 255 / 0.7);
+}
+
+.ns-result-card:hover .ns-result-value {
+  color: var(--ns-yellow);
+}
+
+.ns-result-card:hover .ns-result-label,
+.ns-result-card:hover .ns-result-desc {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.ns-quote-card {
+  min-width: 20rem;
+  max-width: 28rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: 1.75rem;
+  transition: background 0.4s ease;
+}
+
+@media (min-width: 1024px) {
+  .ns-quote-card {
+    min-width: 28rem;
+    max-width: 40rem;
+    padding: 2.5rem;
+  }
+}
+
+.ns-quote-card:hover {
+  background: var(--ns-secondary);
+  color: rgb(255 255 255 / 0.8);
+}
+
+.ns-quote-card:hover p,
+.ns-quote-card:hover span {
+  color: inherit;
+}
+
+/* Progress */
+.ns-progress {
+  position: relative;
+  height: 4px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ns-stroke);
+}
+
+.ns-progress > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: inherit;
+  background: var(--ns-green);
+  transition: width 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ns-progress.is-on > i {
+  width: 100%;
+}
+
+.ns-progress.is-on[data-step="1"] > i {
+  width: 100%;
+}
+.ns-progress.is-on[data-step="2"] > i {
+  width: 100%;
+}
+.ns-progress.is-on[data-step="3"] > i {
+  width: 100%;
+}
