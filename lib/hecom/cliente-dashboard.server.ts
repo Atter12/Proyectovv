@@ -116,10 +116,11 @@ function mapGasto(row: Record<string, unknown>): HecomGastoRow {
     fee: row.fee != null && Number.isFinite(Number(row.fee)) ? Number(row.fee) : null,
     mes: row.mes ? String(row.mes) : null,
     source: row.source ? String(row.source) : null,
-    fecha: row.fecha_movimiento
-      ? String(row.fecha_movimiento)
-      : row.tiktok_stat_date
-        ? String(row.tiktok_stat_date)
+    // Día de gasto ads = tiktok_stat_date (prioridad) para hoy / 7d / 30d.
+    fecha: row.tiktok_stat_date
+      ? String(row.tiktok_stat_date)
+      : row.fecha_movimiento
+        ? String(row.fecha_movimiento)
         : row.mes
           ? String(row.mes)
           : null,
@@ -234,9 +235,45 @@ function spendMapFromGastos(gastos: HecomGastoRow[]): Map<string, number> {
   for (const row of gastos) {
     const key = dateKeyFromUnknown(row.fecha);
     if (!key) continue;
-    byDate.set(key, (byDate.get(key) ?? 0) + row.gasto);
+    const spend = Number(row.gasto);
+    if (!Number.isFinite(spend) || spend <= 0) continue;
+    byDate.set(key, (byDate.get(key) ?? 0) + spend);
   }
   return byDate;
+}
+
+/**
+ * Une gasto Hecom + snapshots TikTok.
+ * - Gastos rellenan el mapa (CRM / historial visible).
+ * - Snapshots pisan el mismo día (fuente TikTok del día).
+ * Así no se pierden días reales del listado cuando los snapshots están viejos.
+ */
+function mergeDailySpendMaps(
+  fromGastos: Map<string, number>,
+  fromSnapshots: Map<string, number> | null,
+): { byDate: Map<string, number>; source: HecomDailySpendSource } {
+  const byDate = new Map<string, number>();
+  for (const [date, spend] of fromGastos) {
+    byDate.set(date, spend);
+  }
+
+  let usedSnapshots = false;
+  if (fromSnapshots && fromSnapshots.size > 0) {
+    for (const [date, spend] of fromSnapshots) {
+      if (!Number.isFinite(spend) || spend < 0) continue;
+      const existing = byDate.get(date) ?? 0;
+      // Snapshot gana si trae gasto real; no pisar un día Hecom > 0 con un 0 vacío.
+      if (spend > 0 || existing <= 0) {
+        byDate.set(date, spend);
+      }
+      if (spend > 0) usedSnapshots = true;
+    }
+  }
+
+  if (byDate.size === 0) return { byDate, source: "none" };
+  if (usedSnapshots) return { byDate, source: "snapshots" };
+  if (fromGastos.size > 0) return { byDate, source: "gastos" };
+  return { byDate, source: fromSnapshots && fromSnapshots.size > 0 ? "snapshots" : "none" };
 }
 
 function spendMapFromSnapshotRows(
@@ -330,27 +367,69 @@ function buildSummary(
   };
 }
 
+async function loadGastosSpendMapForWindow(
+  clientId: string,
+  startDate: string,
+): Promise<Map<string, number>> {
+  try {
+    const hecom = createHecomAdminClient();
+    // Ventana amplia: no depender solo del listado UI (limit 80).
+    const { data, error } = await hecom
+      .from("gastos")
+      .select("gasto,fecha_movimiento,tiktok_stat_date,mes,client_id")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(4000);
+
+    if (error || !data) return new Map();
+
+    const rows = (data as Record<string, unknown>[])
+      .filter((row) => String(row.client_id ?? "") === clientId)
+      .map(mapGasto);
+
+    const byDate = spendMapFromGastos(rows);
+    // Recortar ruido muy viejo fuera de la ventana pedida.
+    const trimmed = new Map<string, number>();
+    for (const [date, spend] of byDate) {
+      if (date >= startDate) trimmed.set(date, spend);
+    }
+    return trimmed;
+  } catch {
+    return new Map();
+  }
+}
+
 async function resolveDailySpend(
   clientId: string,
   gastos: HecomGastoRow[],
   cfgConfigured: boolean,
 ): Promise<ReturnType<typeof buildDailySpendSummary>> {
   const today = calendarDateInTz();
-  const start30 = shiftCalendarDate(today, -(Math.max(DAILY_SERIES_DAYS, 30) - 1));
+  const start30 = shiftCalendarDate(
+    today,
+    -(Math.max(DAILY_SERIES_DAYS, 30) - 1),
+  );
 
+  let fromSnapshots: Map<string, number> | null = null;
   if (cfgConfigured) {
-    const snapshots = await loadSnapshotSpendMap(clientId, start30);
-    if (snapshots && snapshots.size > 0) {
-      return buildDailySpendSummary(snapshots, "snapshots");
-    }
+    fromSnapshots = await loadSnapshotSpendMap(clientId, start30);
   }
 
-  const fromGastos = spendMapFromGastos(gastos);
-  if (fromGastos.size > 0) {
-    return buildDailySpendSummary(fromGastos, "gastos");
+  // 1) listado ya cargado  2) query dedicada últimos ~30d (más completa)
+  const fromList = spendMapFromGastos(gastos);
+  const fromWindow = cfgConfigured
+    ? await loadGastosSpendMapForWindow(clientId, start30)
+    : new Map<string, number>();
+
+  const fromGastos = new Map<string, number>();
+  for (const [date, spend] of fromList) fromGastos.set(date, spend);
+  for (const [date, spend] of fromWindow) {
+    fromGastos.set(date, Math.max(fromGastos.get(date) ?? 0, spend));
   }
 
-  return emptyDailySpendSummary();
+  const { byDate, source } = mergeDailySpendMaps(fromGastos, fromSnapshots);
+  if (byDate.size === 0) return emptyDailySpendSummary();
+  return buildDailySpendSummary(byDate, source);
 }
 
 async function loadLiveFinance(
