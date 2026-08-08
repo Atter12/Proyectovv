@@ -16,14 +16,14 @@ export function PaymentToolbar({
   onStatusChange,
 }: PaymentToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 border-b border-[rgb(20_18_16_/_0.06)] bg-[#faf7f3] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
-      <p className="w-full text-[12px] leading-5 text-[#6b645c] sm:hidden">
-        Tocá <span className="font-medium text-[#1a1612]">Asignar saldo</span> en
+    <div className="flex flex-col gap-3 border-b border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
+      <p className="w-full text-[12px] leading-5 text-[var(--auth-text-muted)] sm:hidden">
+        Tocá <span className="font-semibold text-[var(--auth-text)]">Asignar saldo</span> en
         la cuenta que quieras fondear.
       </p>
       <div className="relative flex-1 sm:max-w-xs">
         <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#8a8178]"
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--auth-text-soft)]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -39,13 +39,13 @@ export function PaymentToolbar({
           placeholder="Buscar cuenta"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-9 border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px]"
+          className="h-9 border-[var(--auth-border)] bg-white pl-9 text-[13px]"
         />
       </div>
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value)}
-        className="h-9 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15"
+        className="h-9 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
       >
         <option value="all">Todos los estados</option>
         <option value="active">Activa</option>

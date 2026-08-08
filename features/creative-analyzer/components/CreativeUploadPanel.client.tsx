@@ -263,7 +263,7 @@ export function CreativeUploadPanel({
                       <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                         Imagen, video o PDF · máx. {MAX_MB} MB
                       </p>
-                      <span className="mt-3 inline-flex h-8 items-center rounded-lg bg-[#0f0e0c] px-3 text-[12px] font-bold text-white transition-colors group-hover:bg-[#1a1816]">
+                      <span className="mt-3 inline-flex h-8 items-center rounded-lg bg-[var(--auth-accent)] px-3 text-[12px] font-bold text-white transition-[filter] group-hover:brightness-[1.05]">
                         Elegir archivo
                       </span>
                     </div>

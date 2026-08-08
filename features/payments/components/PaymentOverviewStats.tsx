@@ -12,6 +12,9 @@ interface PaymentOverviewStatsProps {
   isStaff?: boolean;
 }
 
+/**
+ * Resumen de pagos — grilla clara (sin banda negra “Holistic en números”).
+ */
 export function PaymentOverviewStats({
   wallet,
   summary,
@@ -28,12 +31,13 @@ export function PaymentOverviewStats({
       hint: hideWalletAsFunding
         ? "No se usa en modo BM"
         : "Cartera de la organización",
-      accent: hideWalletAsFunding,
+      accent: true as boolean,
     },
     {
       label: "Pasarela activa",
       value: activeGateway.name,
       hint: hideWalletAsFunding ? "Solo camino cliente" : "Método seleccionado",
+      accent: false,
     },
     {
       label: "Cuentas listas",
@@ -45,39 +49,42 @@ export function PaymentOverviewStats({
       label: "Reembolsos",
       value: formatNumber(summary.pendingRefunds),
       hint: "Pendientes",
+      accent: false,
     },
   ];
 
   return (
-    <section
-      aria-label="Resumen de pagos"
-      className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.07)] bg-[#0f0e0c] text-white shadow-[0_18px_40px_rgb(15_14_12_/_0.18)]"
-    >
-      <div className="border-b border-white/10 px-5 py-4 sm:px-7">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#ff9a4a]">
-          Holistic en números
+    <section aria-label="Resumen de pagos" className="space-y-3">
+      <div>
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+          Resumen
         </p>
-        <p className="mt-1 text-[14px] font-medium text-white/70">
+        <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
           Pulso de cartera y asignación
         </p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4">
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {items.map((item) => (
           <div
             key={item.label}
-            className="border-t border-white/10 px-5 py-5 sm:border-t-0 sm:border-l sm:border-white/10 sm:px-6 sm:first:border-l-0"
+            className="relative overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white px-4 py-3.5 shadow-[0_10px_28px_-20px_rgb(28_25_23_/_0.16)]"
           >
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,#ff781f,#ffa12c,transparent)] opacity-90"
+            />
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               {item.label}
             </p>
             <p
-              className={`mt-2 truncate font-display text-[1.15rem] font-semibold tracking-[-0.03em] tabular-nums sm:text-[1.3rem] ${
-                item.accent ? "text-[#ff9a4a]" : "text-white"
+              className={`mt-1.5 truncate text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums ${
+                item.accent ? "text-[#ff781f]" : "text-[#1c1917]"
               }`}
             >
               {item.value}
             </p>
-            <p className="mt-1 text-[11px] font-medium text-white/40">
+            <p className="mt-1 text-[11px] font-medium text-[#5c564e]">
               {item.hint}
             </p>
           </div>

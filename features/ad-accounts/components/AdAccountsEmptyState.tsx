@@ -5,7 +5,7 @@ import { AdAccountsOpenCreateModalButton } from "./AdAccountsOpenCreateModalButt
 export function AdAccountsEmptyState() {
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#f3eee8] text-[#6b5344] ring-1 ring-[rgb(20_18_16_/_0.08)]">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-border)]">
         <svg
           className="h-7 w-7"
           fill="none"
@@ -20,19 +20,19 @@ export function AdAccountsEmptyState() {
           />
         </svg>
       </div>
-      <h3 className="text-[15px] font-medium tracking-[-0.01em] text-[#1a1612]">
+      <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--auth-text)]">
         Aún no hay cuentas publicitarias
       </h3>
-      <p className="mt-2 max-w-md text-[14px] leading-6 text-[#6b645c]">
+      <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
         Creá la primera para asignar presupuesto, configurar campañas y empezar
         a publicar.
       </p>
-      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#e85a1c] px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#d14e16]">
+      <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]">
         Crear cuenta publicitaria
       </AdAccountsOpenCreateModalButton>
       <Link
         href={routes.payments}
-        className="mt-3 text-[13px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+        className="mt-3 text-[13px] font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
       >
         Cargar saldo en cartera
       </Link>

@@ -12,7 +12,7 @@ interface PaymentsFundingModeSwitchProps {
   canSwitchFundingModes: boolean;
 }
 
-/** Selector visible: Cliente (Stripe) vs Gerente (cash BM). */
+/** Switch dual: Cliente (Stripe) vs Gerente (BM) — solo super admin. */
 export function PaymentsFundingModeSwitch({
   mode,
   onChange,
@@ -25,65 +25,76 @@ export function PaymentsFundingModeSwitch({
   }
 
   return (
-    <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
-      <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
+    <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
+      <div className="border-b border-[var(--auth-divider)] px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+            Super admin
+          </p>
+          <span className="dashboard-role-badge" data-role="super_admin">
+            Dual
+          </span>
+        </div>
+        <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
           Cómo vas a fondear
-        </p>
-        <h2 className="font-display mt-1.5 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--auth-text)]">
-          Elegí el camino
         </h2>
-        <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Super admin: cliente (Stripe) o gerente (cash BM).
+        <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
+          Cambiá entre camino cliente (Stripe) y gerente (cash BM).
         </p>
       </div>
 
-      <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+      <div
+        className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4"
+        role="tablist"
+        aria-label="Modo de fondeo"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={mode === "client"}
           disabled={!canClientStripeFund}
           onClick={() => canClientStripeFund && onChange("client")}
           className={cn(
-            "rounded-[1.1rem] border px-4 py-3.5 text-left transition-[transform,box-shadow,border-color]",
+            "rounded-[0.85rem] border px-4 py-3.5 text-left transition-colors",
             mode === "client"
-              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)] shadow-[0_10px_24px_rgb(255_120_31_/_0.12)]"
-              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:-translate-y-0.5 hover:border-[rgb(255_120_31_/_0.3)]",
-            !canClientStripeFund &&
-              "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-[rgb(20_18_16_/_0.08)]",
+              ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
+              : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/35",
+            !canClientStripeFund && "cursor-not-allowed opacity-50",
           )}
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-accent)]">
             Cliente
           </p>
-          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-            Recargar con Stripe / manual
+          <p className="mt-1 text-[14px] font-bold text-[var(--auth-text)]">
+            Stripe / manual
           </p>
-          <p className="mt-1 text-[12px] leading-4 text-[var(--auth-text-muted)]">
-            Plata a la cartera Holistic y después asignás a la cuenta ads.
+          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+            Plata a la cartera Holistic → asignás a la cuenta ads.
           </p>
         </button>
 
         <button
           type="button"
+          role="tab"
+          aria-selected={mode === "agency_bm"}
           disabled={!canAgencyBmFund}
           onClick={() => canAgencyBmFund && onChange("agency_bm")}
           className={cn(
-            "rounded-[1.1rem] border px-4 py-3.5 text-left transition-[transform,box-shadow,border-color]",
+            "rounded-[0.85rem] border px-4 py-3.5 text-left transition-colors",
             mode === "agency_bm"
-              ? "border-[var(--auth-accent)] bg-[rgb(255_120_31_/_0.08)] shadow-[0_10px_24px_rgb(255_120_31_/_0.12)]"
-              : "border-[rgb(20_18_16_/_0.08)] bg-white hover:-translate-y-0.5 hover:border-[rgb(255_120_31_/_0.3)]",
-            !canAgencyBmFund &&
-              "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-[rgb(20_18_16_/_0.08)]",
+              ? "border-[var(--auth-text)] bg-[var(--auth-bg)]"
+              : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-text)]/25",
+            !canAgencyBmFund && "cursor-not-allowed opacity-50",
           )}
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
-            Gerente / staff
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-muted)]">
+            Gerente
           </p>
-          <p className="mt-1 text-[15px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-            Fondear desde BM (cash agencia)
+          <p className="mt-1 text-[14px] font-bold text-[var(--auth-text)]">
+            Cash BM TikTok
           </p>
-          <p className="mt-1 text-[12px] leading-4 text-[var(--auth-text-muted)]">
-            Sin Stripe: cash del Business Center → cuenta ads del cliente.
+          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+            Sin Stripe: cash del Business Center → cuenta ads.
           </p>
         </button>
       </div>

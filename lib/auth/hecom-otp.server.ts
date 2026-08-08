@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  isDemoClienteEmail,
+  isDemoGerenteEmail,
+  isDemoOtpClienteEmail,
+} from "@/lib/auth/demo-personas.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
@@ -19,6 +24,7 @@ const DEFAULT_STAFF_EMAILS = [
   "gian.rojas.arcos@gmail.com",
   "victor.minas@unmsm.edu.pe",
   "attermayerbasiliorengifo@gmail.com",
+  "atlvbasiliorengifo@gmail.com",
   "branlyn.lopez.r@gmail.com",
   "freddyjgt258@gmail.com",
   "sebasnodeal@gmail.com",
@@ -42,9 +48,19 @@ function normalizeEmail(email: string): string {
 export function isHecomOtpStaffEmail(emailRaw: string): boolean {
   const email = normalizeEmail(emailRaw);
   if (!email) return false;
+  // Demostración dual: cliente forzado nunca es staff; gerente sí.
+  if (isDemoClienteEmail(email)) return false;
+  if (isDemoGerenteEmail(email)) return true;
   if (serverEnv.authHecomOtpStaffEmails.includes(email)) return true;
   if (serverEnv.adminAllowedEmails.includes(email)) return true;
   return DEFAULT_STAFF_EMAILS.includes(email);
+}
+
+function isOtpTestClienteEmail(email: string): boolean {
+  return (
+    serverEnv.authHecomOtpTestEmails.includes(email) ||
+    isDemoOtpClienteEmail(email)
+  );
 }
 
 function buildTestCliente(email: string): HecomCliente {
@@ -73,10 +89,7 @@ export async function resolveHecomClientesForEmail(
 ): Promise<HecomCliente[]> {
   const email = normalizeEmail(emailRaw);
   let clientes = await findHecomClientesByEmail(email);
-  if (
-    clientes.length === 0 &&
-    serverEnv.authHecomOtpTestEmails.includes(email)
-  ) {
+  if (clientes.length === 0 && isOtpTestClienteEmail(email)) {
     clientes = [buildTestCliente(email)];
   }
   return clientes;

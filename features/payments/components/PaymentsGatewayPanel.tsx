@@ -137,12 +137,12 @@ export async function PaymentsGatewayPanel({
         {hecomAdvertiserIds != null && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
-            className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-5 py-5 shadow-[0_12px_32px_rgb(20_18_16_/_0.045)] sm:px-6 sm:py-6"
+            className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
           >
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-              2 · Fondear cuenta ads · {clienteName ?? "Este cliente"}
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+              Fondear cuenta ads · {clienteName ?? "Este cliente"}
             </p>
-            <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
+            <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
               Sin cuentas Aprobadas para asignar
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
@@ -151,12 +151,11 @@ export async function PaymentsGatewayPanel({
                 Aprobado
               </span>{" "}
               en TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
-              suspendidas, no aparecen acá. Activá/aprobá en el BM o mapeá la
-              cuenta correcta en Hecom.
+              suspendidas, no aparecen acá.
             </p>
             <Link
               href={routes.adAccounts}
-              className="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter] hover:brightness-[1.05]"
+              className="mt-4 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
             >
               Ver cuentas del cliente
             </Link>

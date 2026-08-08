@@ -72,16 +72,16 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         hideCreate
       />
 
-      <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]">
-        <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
+      <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
+        <div className="border-b border-[var(--auth-divider)] px-5 py-4 sm:px-6">
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
             Listado
           </p>
-          <h2 className="font-display mt-1 text-[1.15rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
+          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
             Advertisers de {clienteName}
           </h2>
           <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Filtrá por nombre o estado. Solo lectura desde esta vista.
+            Filtrá por nombre o estado. Solo lectura.
           </p>
         </div>
         <Suspense fallback={null}>

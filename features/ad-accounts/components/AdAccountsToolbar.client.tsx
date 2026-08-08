@@ -72,7 +72,7 @@ export function AdAccountsToolbar({
 
   return (
     <>
-      <div className="border-b border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.65)] px-4 py-3.5 sm:px-5">
+      <div className="border-b border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:px-5">
         <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="relative min-w-0 flex-1 sm:max-w-xs">
@@ -97,7 +97,7 @@ export function AdAccountsToolbar({
                   setSearch(value);
                   updateParams({ q: value || null });
                 }}
-                className="h-9 w-full border-[rgb(20_18_16_/_0.1)] bg-white pl-9 text-[13px] font-normal"
+                className="h-9 w-full border-[var(--auth-border)] bg-white pl-9 text-[13px] font-normal"
               />
             </div>
             <select
@@ -107,7 +107,7 @@ export function AdAccountsToolbar({
                 setStatus(value);
                 updateParams({ status: value === "all" ? null : value });
               }}
-              className="h-9 w-full rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] font-normal text-[#2a241f] focus:border-[#c45a18] focus:outline-none focus:ring-2 focus:ring-[#c45a18]/15 sm:w-auto"
+              className="h-9 w-full rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[13px] font-normal text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15 sm:w-auto"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -116,7 +116,7 @@ export function AdAccountsToolbar({
               ))}
             </select>
             {!hideCreate ? (
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[12px] font-normal text-[#6b645c]">
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[12px] font-normal text-[var(--auth-text-muted)]">
                 <input
                   type="checkbox"
                   checked={includeArchived}
@@ -125,7 +125,7 @@ export function AdAccountsToolbar({
                     setIncludeArchived(checked);
                     updateParams({ archived: checked ? "1" : null });
                   }}
-                  className="h-3.5 w-3.5 rounded border-[rgb(20_18_16_/_0.2)] text-[#c45a18] focus:ring-[#c45a18]"
+                  className="h-3.5 w-3.5 rounded border-[var(--auth-border)] text-[var(--auth-accent)] focus:ring-[var(--auth-accent)]"
                 />
                 Ver archivadas
               </label>
@@ -135,7 +135,7 @@ export function AdAccountsToolbar({
             <Link href={routes.creativeAnalyzer} className="shrink-0">
               <Button
                 variant="outline"
-                className="h-9 rounded-lg border-[rgb(20_18_16_/_0.12)] bg-white px-3 text-[12px] font-normal text-[#4a433c] hover:bg-[#f3eee8]"
+                className="h-9 rounded-lg border-[var(--auth-border)] bg-white px-3 text-[12px] font-semibold text-[var(--auth-text)] hover:bg-[var(--auth-bg)]"
               >
                 Analizador creativo
               </Button>
@@ -143,7 +143,7 @@ export function AdAccountsToolbar({
             {!hideCreate ? (
               <Button
                 onClick={() => setModalOpen(true)}
-                className="hidden h-9 rounded-lg bg-[#e85a1c] px-3.5 text-[12px] font-medium hover:bg-[#d14e16] md:inline-flex"
+                className="hidden h-9 rounded-lg bg-[var(--auth-accent)] px-3.5 text-[12px] font-semibold text-white hover:brightness-[1.05] md:inline-flex"
               >
                 Crear nuevo
               </Button>

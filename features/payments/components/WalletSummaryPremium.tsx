@@ -11,45 +11,56 @@ interface WalletSummaryPremiumProps {
   canClientStripeFund?: boolean;
 }
 
+/**
+ * Cartera Holistic — fondo claro (nunca negro).
+ */
 export function WalletSummaryPremium({
   wallet,
   preferredGateway,
   staffMode = false,
   canClientStripeFund = true,
 }: WalletSummaryPremiumProps) {
-  return (
-    <section className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.07)] bg-[#0f0e0c] text-white shadow-[0_18px_40px_rgb(15_14_12_/_0.18)]">
-      <div className="border-b border-white/10 px-5 py-4 sm:px-7">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#ff9a4a]">
-          Cartera Holistic
-        </p>
-        <p className="mt-1 text-[14px] font-medium text-white/70">
-          {staffMode && !canClientStripeFund
-            ? "Modo gerente: fondeá desde BM (sin Stripe)"
-            : staffMode
-              ? "Super admin: Stripe o BM según el camino elegido"
-              : "Listo para asignar a cuentas TikTok"}
-        </p>
-      </div>
+  const subtitle =
+    staffMode && !canClientStripeFund
+      ? "Modo gerente: fondeá desde BM (sin Stripe)"
+      : staffMode
+        ? "Super admin: Stripe o BM según el camino elegido"
+        : "Listo para asignar a cuentas TikTok";
 
-      <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:py-6">
+  return (
+    <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_12px_32px_-20px_rgb(28_25_23_/_0.18)]">
+      {/* Acento superior naranja, sin banda oscura */}
+      <div
+        aria-hidden
+        className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
+      />
+
+      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-white/55">
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+            Cartera Holistic
+          </p>
+          <p className="mt-1 text-[13px] font-medium text-[#5c564e]">
+            {subtitle}
+          </p>
+          <p className="mt-1 truncate text-[12px] text-[#8a8177]">
             {wallet.name}
           </p>
-          <p className="mt-2 font-display text-[2.15rem] font-semibold leading-none tracking-[-0.04em] tabular-nums text-white sm:text-[2.5rem]">
+          <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] tabular-nums text-[#1c1917] sm:text-[2.35rem]">
             {formatMoney(wallet.balance, wallet.currency)}
           </p>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-white/45">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#5c564e]">
             <span>
               Última recarga:{" "}
-              <span className="text-white/75">
+              <span className="font-semibold text-[#1c1917]">
                 {wallet.lastTopUp ?? "Sin registros"}
               </span>
             </span>
             <span>
               Método:{" "}
-              <span className="text-white/75">{preferredGateway.name}</span>
+              <span className="font-semibold text-[#1c1917]">
+                {preferredGateway.name}
+              </span>
             </span>
           </div>
         </div>
@@ -58,12 +69,11 @@ export function WalletSummaryPremium({
           <WalletSummaryActions
             availableBalance={wallet.balance}
             currency={wallet.currency}
-            tone="dark"
           />
         ) : (
           <a
             href="#asignar-saldo"
-            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.35)] transition-[filter] hover:brightness-[1.05] sm:w-auto"
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
             Ir a fondear BM
           </a>

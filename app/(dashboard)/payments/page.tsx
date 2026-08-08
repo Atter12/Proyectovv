@@ -17,7 +17,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "success") {
     return (
       <div
-        className="rounded-[1.2rem] border border-emerald-200/80 bg-emerald-50 px-4 py-3.5 text-[13px] font-medium text-emerald-950 shadow-[0_8px_20px_rgb(16_185_129_/_0.08)]"
+        className="rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
         role="status"
       >
         Pago ok. En unos segundos se acredita en la cartera. Después andá a{" "}
@@ -27,7 +27,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
         >
           Asignar saldo
         </a>{" "}
-        y pasalo a una cuenta TikTok para que las campañas puedan gastar.
+        y pasalo a una cuenta TikTok.
       </div>
     );
   }
@@ -35,7 +35,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
   if (status === "cancelled") {
     return (
       <div
-        className="rounded-[1.2rem] border border-amber-200/80 bg-amber-50 px-4 py-3.5 text-[13px] font-medium text-amber-950 shadow-[0_8px_20px_rgb(245_158_11_/_0.08)]"
+        className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
         role="status"
       >
         El checkout de Stripe se canceló. Podés intentar de nuevo cuando quieras.
@@ -131,7 +131,7 @@ export default async function PaymentsPage({
       </Suspense>
 
       <div
-        className="border-t border-[rgb(20_18_16_/_0.08)] pt-2"
+        className="border-t border-[var(--auth-divider)] pt-2"
         aria-label={`Historial Hecom de ${cliente.name}`}
       >
         <ClienteScopedPayments data={data} />

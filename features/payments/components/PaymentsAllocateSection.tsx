@@ -24,9 +24,9 @@ export function PaymentsAllocateSection({
   return (
     <section
       id="asignar-saldo"
-      className="overflow-hidden rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_12px_32px_rgb(20_18_16_/_0.045)]"
+      className="dashboard-surface-card overflow-hidden rounded-[1rem]"
     >
-      <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
+      <div className="border-b border-[var(--auth-border)] px-5 py-4 sm:px-6">
         <PaymentsAllocateSectionCopy
           walletBalanceLabel={walletBalanceLabel}
           walletBalance={walletBalance}
