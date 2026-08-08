@@ -7,8 +7,12 @@ import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
-import { getPaymentPageCore } from "@/services/payments.service";
+import {
+  getPaymentPageCore,
+  listOrganizationAdAccountsForAllocation,
+} from "@/services/payments.service";
 import type { SessionUser } from "@/types/auth";
+import type { PaymentAccountAllocation } from "@/types/payment";
 import Link from "next/link";
 import { routes } from "@/config/routes";
 
@@ -26,6 +30,12 @@ interface PaymentsGatewayPanelProps {
   skipApprovedSync?: boolean;
 }
 
+/**
+ * Pagos / Asignar — mismo resultado para gerente y super admin en el mismo cliente.
+ * 1) Sync BM (aprobadas) → upsert en org del usuario
+ * 2) Lista ad_accounts vía service role (no depende de quirks de RLS/viewer)
+ * 3) Scope a advertisers del cliente operativo
+ */
 export async function PaymentsGatewayPanel({
   session,
   hecomAdvertiserIds,
@@ -55,7 +65,7 @@ export async function PaymentsGatewayPanel({
     }
   }
 
-  let approvedIds = hecomAdvertiserIds ?? [];
+  let approvedIds = [...(hecomAdvertiserIds ?? [])];
   let syncNote: string | null = null;
 
   if (
@@ -64,21 +74,44 @@ export async function PaymentsGatewayPanel({
     hecomClienteId
   ) {
     try {
+      // Gerentes sin mapeo Hecom: force BM match + upsert en SU org.
+      const forceRefresh =
+        capabilities.canAgencyBmFund && (hecomAdvertiserIds?.length ?? 0) === 0;
+
       const sync = await syncApprovedAdAccountsForCliente({
         organizationId: session.organizationId,
         clienteId: hecomClienteId,
         userId: session.id,
+        forceRefresh,
       });
+
       if (!sync.skippedUnavailableStatus) {
-        approvedIds = sync.approvedAdvertiserIds;
-        if (approvedIds.length === 0) {
-          syncNote =
-            "No hay cuentas TikTok Aprobadas para este cliente. Revisá el BM o el mapeo en Hecom.";
+        if (sync.approvedAdvertiserIds.length > 0) {
+          approvedIds = sync.approvedAdvertiserIds;
         }
+        if (sync.approvedAdvertiserIds.length === 0) {
+          syncNote =
+            "No hay cuentas TikTok Aprobadas para este cliente (BM + Hecom). Revisá el advertiser o el nombre en el Business Center.";
+        }
+      } else if (approvedIds.length === 0) {
+        syncNote =
+          "No se pudo consultar TikTok; si Hecom no tiene advertiser_id, no hay cuentas para fondear todavía.";
       } else {
         syncNote =
           "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
       }
+
+      console.info("[payments] allocate_scope", {
+        email: session.email,
+        isStaff: capabilities.isStaff,
+        isSuperAdmin: capabilities.isSuperAdmin,
+        org: session.organizationId,
+        clienteId: hecomClienteId,
+        hecomIds: hecomAdvertiserIds?.length ?? 0,
+        approvedIds: approvedIds.length,
+        upserted: sync.upserted,
+        skipped: sync.skippedUnavailableStatus,
+      });
     } catch (error) {
       console.error("[payments] approved_sync_failed", {
         error: error instanceof Error ? error.message : "unknown",
@@ -93,15 +126,24 @@ export async function PaymentsGatewayPanel({
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
     core.gateways[0]!;
 
-  const scopedAccounts =
-    hecomAdvertiserIds != null
-      ? scopeAllocationAccountsToHecomAdvertisers(
-          core.adAccountsForAllocation,
-          approvedIds,
-        ).filter((account) => account.status !== "disabled")
-      : core.adAccountsForAllocation.filter(
-          (account) => account.status !== "disabled",
-        );
+  // Staff/gerente: leer con service role para no quedar en 0 por org RLS/viewer.
+  let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
+  if (capabilities.canAgencyBmFund && session.organizationId) {
+    const adminPool = await listOrganizationAdAccountsForAllocation(
+      session.organizationId,
+    );
+    if (adminPool.length > 0) {
+      pool = adminPool;
+    }
+  }
+
+  const hasClienteScope = hecomAdvertiserIds != null || Boolean(hecomClienteId);
+
+  const scopedAccounts = hasClienteScope
+    ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds).filter(
+        (account) => account.status !== "disabled",
+      )
+    : pool.filter((account) => account.status !== "disabled");
 
   const scopedSummary = {
     ...core.summary,
@@ -134,7 +176,7 @@ export async function PaymentsGatewayPanel({
           </p>
         ) : null}
 
-        {hecomAdvertiserIds != null && scopedAccounts.length === 0 ? (
+        {hasClienteScope && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
             className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
@@ -151,7 +193,8 @@ export async function PaymentsGatewayPanel({
                 Aprobado
               </span>{" "}
               en TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
-              suspendidas, no aparecen acá.
+              suspendidas, no aparecen acá. Probá recargar o mapear el
+              advertiser_id en Hecom.
             </p>
             <Link
               href={routes.adAccounts}

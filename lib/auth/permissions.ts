@@ -67,8 +67,24 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   support: [...READ_PERMISSIONS, "support:create"],
 };
 
-export function getPermissionsForRole(role: UserRole): Permission[] {
-  return ROLE_PERMISSIONS[role] ?? READ_PERMISSIONS;
+/**
+ * Permissions for Holistic staff (OTP gerentes) always include allocate/fund.
+ * Org role can be viewer while the persona is gerente.
+ */
+export function getPermissionsForRole(
+  role: UserRole,
+  options?: { staffPayments?: boolean },
+): Permission[] {
+  const base = ROLE_PERMISSIONS[role] ?? READ_PERMISSIONS;
+  if (!options?.staffPayments) return base;
+  const extra: Permission[] = [
+    "payments:read",
+    "payments:create",
+    "wallet:read",
+    "wallet:deposit",
+    "adAccounts:read",
+  ];
+  return [...new Set([...base, ...extra])];
 }
 
 export function hasPermission(

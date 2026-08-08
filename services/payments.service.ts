@@ -73,6 +73,90 @@ async function getAdAccountBalanceMap(organizationId: string): Promise<Map<strin
   );
 }
 
+/**
+ * Lista ad_accounts de la org con service role (sin RLS de anon).
+ * Importante: gerentes y super admin ven el mismo set para Asignar/Fondear.
+ */
+export async function listOrganizationAdAccountsForAllocation(
+  organizationId: string,
+): Promise<PaymentAccountAllocation[]> {
+  if (!organizationId) return [];
+
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const [accountsRes, balanceByAccount] = await Promise.all([
+      admin
+        .from("ad_accounts")
+        .select(
+          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false }),
+      getAdAccountBalanceMapAdmin(organizationId),
+    ]);
+
+    if (accountsRes.error) {
+      console.warn("[payments] list_org_ad_accounts", accountsRes.error.message);
+      return [];
+    }
+
+    const accountRows = (accountsRes.data ?? []) as DbAdAccountRow[];
+    return accountRows.map((account) => ({
+      id: account.id,
+      name: account.name,
+      status: account.status,
+      balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
+      autoRecharge: false,
+      thresholdInfo: "Sin auto-recarga configurada",
+      externalAccountId: account.external_account_id ?? null,
+    }));
+  } catch (error) {
+    console.error("[payments] list_org_ad_accounts_fatal", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return [];
+  }
+}
+
+async function getAdAccountBalanceMapAdmin(
+  organizationId: string,
+): Promise<Map<string, number>> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data: ledgerRows, error: ledgerError } = await admin
+      .from("v_ad_account_ledger_balances")
+      .select("ad_account_id, available_balance_cents")
+      .eq("organization_id", organizationId);
+
+    if (!ledgerError && ledgerRows) {
+      return new Map(
+        ledgerRows.map((row) => [
+          String((row as { ad_account_id: string }).ad_account_id),
+          Number(
+            (row as { available_balance_cents?: number }).available_balance_cents ??
+              0,
+          ),
+        ]),
+      );
+    }
+
+    const { data: legacyRows } = await admin
+      .from("ad_account_balances")
+      .select("ad_account_id, balance_cents")
+      .eq("organization_id", organizationId);
+
+    return new Map(
+      ((legacyRows ?? []) as Array<{ ad_account_id: string; balance_cents: number }>).map(
+        (row) => [row.ad_account_id, row.balance_cents],
+      ),
+    );
+  } catch {
+    return new Map();
+  }
+}
+
 async function getWalletLedgerBalance(organizationId: string): Promise<{
   walletId: string;
   currency: string;

@@ -8,6 +8,7 @@ import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHer
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
@@ -87,8 +88,10 @@ export default async function PaymentsPage({
   }
 
   const cliente = data.cliente;
-  const hecomAdvertiserIds = data.accounts
-    .map((account) => account.advertiserId?.trim())
+  // Incluye match BM por nombre (no solo mapeo Hecom) — igual que Cuentas ads.
+  const adsOverview = await getHecomClienteAdAccountsOverview(cliente.id);
+  const hecomAdvertiserIds = adsOverview.accounts
+    .map((account) => account.externalAccountId?.trim())
     .filter((id): id is string => Boolean(id));
 
   if (capabilities.isStaff && session.organizationId) {

@@ -60,6 +60,8 @@ export type SyncApprovedAdAccountsResult = {
 };
 
 const SYNC_TTL_MS = 5 * 60 * 1000;
+const SYNC_EMPTY_TTL_MS = 20 * 1000;
+const SYNC_FAIL_TTL_MS = 30 * 1000;
 const syncResultCache = new Map<
   string,
   { at: number; result: SyncApprovedAdAccountsResult }
@@ -69,7 +71,8 @@ const syncResultCache = new Map<
  * Asegura que Holistic tenga filas fondeables = advertisers Aprobados
  * del cliente (mapeo Hecom + match por nombre en BM).
  * Oculta/desactiva suspendidas.
- * Cache 5 min por cliente para no bloquear cada visita a Pagos / retorno Stripe.
+ * Cache 5 min por cliente; fallos/vacíos se cachean poco (gerente no se queda
+ * sin “Asignar” por un cold miss de TikTok).
  */
 export async function syncApprovedAdAccountsForCliente(input: {
   organizationId: string;
@@ -79,8 +82,16 @@ export async function syncApprovedAdAccountsForCliente(input: {
 }): Promise<SyncApprovedAdAccountsResult> {
   const cacheKey = `${input.organizationId}:${input.clienteId}`;
   const hit = syncResultCache.get(cacheKey);
-  if (!input.forceRefresh && hit && Date.now() - hit.at < SYNC_TTL_MS) {
-    return hit.result;
+  if (!input.forceRefresh && hit) {
+    const ttl =
+      hit.result.skippedUnavailableStatus
+        ? SYNC_FAIL_TTL_MS
+        : hit.result.approvedAdvertiserIds.length === 0
+          ? SYNC_EMPTY_TTL_MS
+          : SYNC_TTL_MS;
+    if (Date.now() - hit.at < ttl) {
+      return hit.result;
+    }
   }
 
   const cliente = await getHecomCliente(input.clienteId);

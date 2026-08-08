@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { getPermissionsForRole } from "@/lib/auth/permissions";
 import { getAvatarInitials } from "@/lib/auth/utils";
+import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { createClient } from "@/lib/supabase/server";
 import type {
   OrganizationMembershipRow,
@@ -63,14 +64,16 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
 
   const organization = membership ? resolveOrganization(membership) : null;
   const role = membership?.role ?? "viewer";
+  const email = profile?.email ?? user.email ?? "";
+  const staffPayments = isHecomOtpStaffEmail(email);
 
   return {
     id: user.id,
     name: fullName,
-    email: profile?.email ?? user.email ?? "",
+    email,
     avatarInitials: getAvatarInitials(fullName),
     role,
-    permissions: getPermissionsForRole(role),
+    permissions: getPermissionsForRole(role, { staffPayments }),
     companyId: membership?.organization_id ?? "",
     organizationId: membership?.organization_id ?? "",
     organizationName: organization?.name ?? "",
