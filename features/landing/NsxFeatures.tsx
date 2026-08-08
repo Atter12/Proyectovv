@@ -1,170 +1,178 @@
-import Image from "next/image";
-import Link from "next/link";
+import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
-import { NsxReveal } from "./NsxReveal.client";
+import Link from "next/link";
 
 const features = [
   {
-    title: "Cartera Holistic",
-    body: "Recargá saldo con Stripe u operaciones del equipo. Listo para asignar a ads sin salir del panel.",
-    img: "/nexsas/automation/images/ns-img-9.svg",
+    title: "Cartera y recargas",
+    body: "Saldo del cliente, movimientos y top-ups con Stripe o el flujo operativo que ya usas en Hecom Club.",
+    icon: "wallet",
   },
   {
-    title: "Cuentas TikTok Ads",
-    body: "Advertisers mapeados por cliente Hecom, fees y estado de sync visibles de un vistazo.",
-    img: "/nexsas/automation/images/ns-img-8.svg",
+    title: "Cuentas y Business Manager",
+    body: "Alcance por agencia o cuenta, sin mezclar clientes ni cuentas publicitarias de otros.",
+    icon: "scope",
   },
   {
-    title: "Pagos y ledger",
-    body: "Cobros Hecom, gasto diario, deuda neta estimada y fondeo BM para gerentes.",
-    img: "/nexsas/automation/images/ns-img-10.svg",
+    title: "Gasto TikTok al día",
+    body: "Historial y totales por periodo. Menos Excel, más control de cuánto quemó cada cuenta.",
+    icon: "trend",
   },
   {
-    title: "Cliente y gerente",
-    body: "El cliente ve su scope; el gerente opera cualquier cliente con la misma verdad de datos.",
-    img: "/nexsas/automation/images/ns-img-11.svg",
+    title: "Roles claros",
+    body: "Cliente, manager y admin ven solo lo suyo: mismo producto, permisos y paneles distintos.",
+    icon: "people",
+  },
+  {
+    title: "Hecom Club + CRM",
+    body: "Cobros y operación alineados a lo que pasa en la calle, no a un export desactualizado.",
+    icon: "link",
+  },
+  {
+    title: "Un solo lugar de verdad",
+    body: "Deja de pelear con hojas sueltas entre finanzas, media buying y el cliente final.",
+    icon: "board",
   },
 ] as const;
 
-const steps = [
-  {
-    n: "01",
-    title: "Recargar cartera",
-    body: "Ingresá saldo con Stripe o el flujo que use tu operación Holistic.",
-  },
-  {
-    n: "02",
-    title: "Asignar a cuentas ads",
-    body: "Distribuí presupuesto a TikTok / advertisers aprobados en segundos.",
-  },
-  {
-    n: "03",
-    title: "Gastar y controlar",
-    body: "Seguí cobros, gastos diarios y saldo estimado sin salir del panel.",
-  },
-] as const;
+function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
+  const common = {
+    width: 22,
+    height: 22,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    "aria-hidden": true as const,
+  };
+  switch (name) {
+    case "wallet":
+      return (
+        <svg {...common}>
+          <path d="M3 8.5h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10Z" />
+          <path d="M3 8.5 5.2 4.8A2 2 0 0 1 7 4h10a2 2 0 0 1 1.8.8L21 8.5" />
+          <circle cx="17" cy="13.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "scope":
+      return (
+        <svg {...common}>
+          <rect x="4" y="5" width="7" height="7" rx="1.5" />
+          <rect x="13" y="5" width="7" height="7" rx="1.5" />
+          <rect x="4" y="14" width="7" height="5" rx="1.5" />
+          <rect x="13" y="14" width="7" height="5" rx="1.5" />
+        </svg>
+      );
+    case "trend":
+      return (
+        <svg {...common}>
+          <path d="M4 17 10 11l4 4 6-8" />
+          <path d="M14 7h6v6" />
+        </svg>
+      );
+    case "people":
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="8" r="3" />
+          <circle cx="17" cy="9" r="2.5" />
+          <path d="M3.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5" />
+          <path d="M14 19c.3-2 1.6-3.5 3.5-3.5 1.4 0 2.5.8 3 2" />
+        </svg>
+      );
+    case "link":
+      return (
+        <svg {...common}>
+          <path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2" />
+          <path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M3 9h18M9 9v11" />
+        </svg>
+      );
+  }
+}
 
 export function NsxFeatures() {
   return (
-    <>
-      <section id="soluciones" className="nsx-section">
-        <div className="nsx-container space-y-14">
-          <div className="space-y-8 text-center">
-            <div className="space-y-5">
-              <NsxReveal delayMs={40}>
-                <span className="nsx-badge">Soluciones</span>
-              </NsxReveal>
-              <div className="space-y-3">
-                <NsxReveal delayMs={100}>
-                  <h2 className="nsx-h2">
-                    Servicios para operar y crecer con control
-                  </h2>
-                </NsxReveal>
-                <NsxReveal delayMs={150}>
-                  <p className="mx-auto max-w-[550px] text-[var(--nsx-muted)]">
-                    Cartera, cuentas TikTok, pagos Hecom y roles claros — pensado
-                    para agencias y equipos de performance en Latam.
-                  </p>
-                </NsxReveal>
+    <section className="nsx-section nsx-features" id="producto">
+      <div className="nsx-container">
+        <div className="nsx-section-head">
+          <span className="nsx-pill">Producto</span>
+          <h2 className="nsx-h2">Hecho para operar, no para otro CRM</h2>
+          <p>
+            {siteConfig.name} concentra el día a día de agencias y equipos que
+            viven de TikTok Ads y de la red Hecom Club.
+          </p>
+        </div>
+
+        <div className="nsx-feature-grid">
+          {features.map((f) => (
+            <article key={f.title} className="nsx-feature-card">
+              <div className="nsx-feature-icon" aria-hidden>
+                <FeatureIcon name={f.icon} />
               </div>
-            </div>
-            <NsxReveal delayMs={200}>
-              <Link
-                href={routes.register}
-                className="nsx-btn nsx-btn-white inline-flex"
-              >
-                Ver el panel
-              </Link>
-            </NsxReveal>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {features.map((item, i) => (
-              <NsxReveal key={item.title} delayMs={80 + i * 60}>
-                <div className="nsx-feature-card">
-                  <div className="space-y-1">
-                    <h3 className="nsx-h3">{item.title}</h3>
-                    <p className="text-[0.95rem] text-[var(--nsx-muted)]">
-                      {item.body}
-                    </p>
-                  </div>
-                  <figure className="mx-auto mt-6 flex max-h-56 items-center justify-center">
-                    <Image
-                      src={item.img}
-                      alt=""
-                      width={320}
-                      height={220}
-                      className="h-auto max-h-52 w-auto object-contain"
-                    />
-                  </figure>
-                </div>
-              </NsxReveal>
-            ))}
-          </div>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </article>
+          ))}
         </div>
-      </section>
 
-      <section id="proceso" className="nsx-section !pt-0">
-        <div className="nsx-container space-y-10">
-          <div className="mx-auto max-w-2xl space-y-3 text-center">
-            <NsxReveal delayMs={40}>
-              <span className="nsx-badge">Proceso</span>
-            </NsxReveal>
-            <NsxReveal delayMs={100}>
-              <h2 className="nsx-h2">
-                Nuestro flujo para crecer tu operación de ads
-              </h2>
-            </NsxReveal>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {steps.map((step, i) => (
-              <NsxReveal key={step.n} delayMs={80 + i * 70}>
-                <div className="nsx-card space-y-3">
-                  <p className="text-sm font-semibold text-[#ff781f]">
-                    {step.n}
-                  </p>
-                  <h3 className="nsx-h3">{step.title}</h3>
-                  <p className="text-[0.95rem] text-[var(--nsx-muted)]">
-                    {step.body}
-                  </p>
-                </div>
-              </NsxReveal>
-            ))}
-          </div>
+        <div className="nsx-feature-cta">
+          <p>¿Ya tienes acceso? Entra al panel con tu cuenta.</p>
+          <Link href={routes.login} className="nsx-btn-dark">
+            Entrar <span aria-hidden>→</span>
+          </Link>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      <section id="resultados" className="nsx-section !pt-0">
-        <div className="nsx-container">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                value: "+180",
-                label: "Equipos",
-                detail: "Agencias y performance en Latam",
-              },
-              {
-                value: "Hoy / 7d",
-                label: "Gasto",
-                detail: "Visibilidad diaria en el overview",
-              },
-              {
-                value: "2 roles",
-                label: "Scope",
-                detail: "Cliente y gerente, misma verdad",
-              },
-            ].map((item, i) => (
-              <NsxReveal key={item.label} delayMs={60 + i * 50}>
-                <div className="nsx-card space-y-2 text-center sm:text-left">
-                  <p className="text-sm text-[var(--nsx-muted)]">{item.label}</p>
-                  <p className="nsx-h2 text-[2rem]">{item.value}</p>
-                  <p className="text-sm text-[var(--nsx-muted)]">{item.detail}</p>
-                </div>
-              </NsxReveal>
-            ))}
-          </div>
+/** Ancla de “Proceso” para el menú — flujo operativo simple. */
+export function NsxProcess() {
+  const steps = [
+    {
+      n: "01",
+      title: "Entras al panel",
+      body: "Un solo acceso con la cuenta que te dio Holistic Marketing.",
+    },
+    {
+      n: "02",
+      title: "Ves solo lo tuyo",
+      body: "Cliente, manager o admin: cada rol ve cartera y cuentas que le corresponden.",
+    },
+    {
+      n: "03",
+      title: "Operas el día a día",
+      body: "Recargas, gasto TikTok, cobros Hecom y estados de cuenta sin depender de Excel.",
+    },
+  ];
+
+  return (
+    <section className="nsx-section nsx-process" id="proceso">
+      <div className="nsx-container">
+        <div className="nsx-section-head">
+          <span className="nsx-pill">Proceso</span>
+          <h2 className="nsx-h2">Cómo se trabaja con el panel</h2>
+          <p>
+            Sin onboarding eterno: el producto está pensado para la operación
+            real de {siteConfig.name} y Hecom Club.
+          </p>
         </div>
-      </section>
-    </>
+        <ol className="nsx-process-grid">
+          {steps.map((s) => (
+            <li key={s.n} className="nsx-process-card">
+              <span className="nsx-process-n">{s.n}</span>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }

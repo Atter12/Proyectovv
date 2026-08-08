@@ -2,12 +2,14 @@ import "./automation-landing.css";
 import { NsxNav } from "./NsxNav.client";
 import { NsxHero } from "./NsxHero.client";
 import { NsxAbout } from "./NsxAbout";
-import { NsxFeatures } from "./NsxFeatures";
+import { NsxFeatures, NsxProcess } from "./NsxFeatures";
+import { NsxGallery } from "./NsxGallery";
 import { NsxCta, NsxFooter } from "./NsxCta";
 
 /**
  * Landing principal — layout Automation SaaS (Nexsas template),
  * marca e info Holistic Marketing / Hecom.
+ * Un solo acceso público: Entrar → login.
  */
 export function LandingPage() {
   return (
@@ -23,7 +25,9 @@ export function LandingPage() {
       <main id="contenido">
         <NsxHero />
         <NsxAbout />
+        <NsxProcess />
         <NsxFeatures />
+        <NsxGallery />
         <NsxCta />
       </main>
       <NsxFooter />

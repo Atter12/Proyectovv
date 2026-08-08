@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { routes } from "@/config/routes";
-import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
+import { siteConfig } from "@/config/site";
+import { NsxBtnPrimary } from "./NsxButtons";
 import { NsxReveal } from "./NsxReveal.client";
 
 const AVATARS = [
@@ -13,14 +14,14 @@ const AVATARS = [
 
 export function NsxHero() {
   return (
-    <section className="nsx-hero">
+    <section className="nsx-hero" id="soluciones">
       <video
         className="nsx-hero-video"
         autoPlay
         muted
         loop
         playsInline
-        poster="/nexsas/automation/images/ns-img-3.png"
+        poster="/landing/holistic/hero-dashboard.png"
       >
         <source
           src="/nexsas/automation/videos/hero-video.mp4"
@@ -52,7 +53,7 @@ export function NsxHero() {
                     <span className="font-semibold text-[var(--nsx-secondary)]">
                       +180
                     </span>{" "}
-                    equipos en Latam ya operan con Holistic.
+                    equipos en Latam ya operan con {siteConfig.name}.
                   </p>
                 </NsxReveal>
               </div>
@@ -66,28 +67,22 @@ export function NsxHero() {
                 </NsxReveal>
                 <NsxReveal delayMs={180}>
                   <p className="mx-auto max-w-[560px] text-base text-[var(--nsx-muted)] md:text-lg">
-                    Recargá la Cartera Holistic, asigná presupuesto a cuentas
-                    TikTok y controlá gasto, cobros Hecom y clientes sin
-                    planillas ni dashboards genéricos.
+                    Recarga la {siteConfig.walletName}, asigna presupuesto a
+                    cuentas TikTok y controla gasto, cobros Hecom Club y
+                    clientes sin planillas ni dashboards genéricos.
                   </p>
                 </NsxReveal>
               </div>
             </div>
 
             <NsxReveal delayMs={240}>
-              <div className="flex flex-col items-center justify-center gap-y-3 md:flex-row md:gap-x-5">
+              <div className="flex flex-col items-center justify-center">
                 <NsxBtnPrimary
-                  href={routes.register}
-                  className="w-[70%] justify-center md:w-auto"
-                >
-                  Crear cuenta
-                </NsxBtnPrimary>
-                <NsxBtnSecondary
                   href={routes.login}
                   className="w-[70%] justify-center md:w-auto"
                 >
-                  Entrar al panel
-                </NsxBtnSecondary>
+                  Entrar
+                </NsxBtnPrimary>
               </div>
             </NsxReveal>
           </div>
@@ -95,8 +90,8 @@ export function NsxHero() {
           <NsxReveal delayMs={300}>
             <figure className="nsx-hero-banner relative z-10">
               <Image
-                src="/nexsas/automation/images/ns-img-3.png"
-                alt="Panel Holistic — cartera, pagos y cuentas ads"
+                src="/landing/holistic/hero-dashboard.png"
+                alt={`${siteConfig.name} — panel de cartera, cuentas TikTok y operación Hecom`}
                 width={1600}
                 height={1000}
                 priority
@@ -105,25 +100,6 @@ export function NsxHero() {
             </figure>
           </NsxReveal>
         </div>
-
-        <figure className="pointer-events-none absolute top-[50%] left-[-5%] z-20 hidden h-14 will-change-transform md:block 2xl:left-[-8%]">
-          <Image
-            src="/nexsas/automation/images/ns-img-27.svg"
-            alt=""
-            width={200}
-            height={56}
-            className="h-full w-auto"
-          />
-        </figure>
-        <figure className="pointer-events-none absolute top-[42%] right-[-3%] z-20 hidden h-14 will-change-transform md:block 2xl:right-[-5%]">
-          <Image
-            src="/nexsas/automation/images/ns-img-28.svg"
-            alt=""
-            width={200}
-            height={56}
-            className="h-full w-auto"
-          />
-        </figure>
       </div>
 
       <figure className="nsx-hero-gradient" aria-hidden>

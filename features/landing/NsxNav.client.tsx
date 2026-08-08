@@ -72,14 +72,8 @@ export function NsxNav() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-2 xl:flex">
-          <Link
-            href={routes.login}
-            className="rounded-full px-3 py-2 text-[0.9rem] font-medium text-[rgb(26_26_28_/_0.6)] transition-colors hover:text-[var(--nsx-secondary)]"
-          >
-            Entrar
-          </Link>
-          <NsxBtnPrimary href={routes.register}>Empezar</NsxBtnPrimary>
+        <div className="hidden items-center xl:flex">
+          <NsxBtnPrimary href={routes.login}>Entrar</NsxBtnPrimary>
         </div>
 
         <button
@@ -114,19 +108,12 @@ export function NsxNav() {
               </li>
             ))}
           </ul>
-          <div className="mt-3 grid gap-2">
-            <Link
-              href={routes.login}
-              onClick={() => setOpen(false)}
-              className="nsx-btn nsx-btn-white w-full justify-center"
-            >
-              Entrar
-            </Link>
+          <div className="mt-3">
             <NsxBtnPrimary
-              href={routes.register}
+              href={routes.login}
               className="w-full justify-start"
             >
-              Empezar
+              Entrar
             </NsxBtnPrimary>
           </div>
         </div>
