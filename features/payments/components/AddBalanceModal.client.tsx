@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
+import {
+  formatFeePercentLabel,
+  splitDepositByFeePercent,
+} from "@/lib/payments/deposit-fee";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isVoucherPaymentProvider } from "@/types/payment";
 
@@ -14,6 +18,8 @@ interface AddBalanceModalProps {
   open: boolean;
   onClose: () => void;
   selectedGateway?: PaymentGatewayId;
+  /** Fee % Hecom (tiktok_default_fee / cuenta). */
+  feePercent?: number;
 }
 
 interface CreateIntentResponse {
@@ -24,6 +30,10 @@ interface CreateIntentResponse {
     checkoutUrl: string | null;
     providerConfigured: boolean;
     message?: string;
+    feePercent?: number;
+    feeCents?: number;
+    creditCents?: number;
+    grossCents?: number;
   };
 }
 
@@ -53,6 +63,7 @@ export function AddBalanceModal({
   open,
   onClose,
   selectedGateway = "stripe",
+  feePercent = 10,
 }: AddBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -89,6 +100,11 @@ export function AddBalanceModal({
     parsedAmount >= MIN_AMOUNT &&
     parsedAmount <= MAX_AMOUNT;
   const isVoucher = isVoucherPaymentProvider(selectedGateway);
+
+  const feePreview = useMemo(() => {
+    if (!isValidAmount) return null;
+    return splitDepositByFeePercent(Math.round(parsedAmount * 100), feePercent);
+  }, [feePercent, isValidAmount, parsedAmount]);
 
   function handleClose() {
     setStep("form");
@@ -133,8 +149,14 @@ export function AddBalanceModal({
       }
 
       setPaymentIntentId(data.paymentIntent.paymentIntentId);
+      const creditLabel =
+        data.paymentIntent.creditCents != null
+          ? formatMoney(data.paymentIntent.creditCents / 100)
+          : feePreview
+            ? formatMoney(feePreview.creditCents / 100)
+            : formatMoney(parsedAmount);
       const defaultMessage = data.paymentIntent.providerConfigured
-        ? "Intención de pago creada. Te avisaremos cuando se confirme el depósito."
+        ? `Intención creada. Pagás ${formatMoney(parsedAmount)}; a la cartera llegan ${creditLabel} (fee ${formatFeePercentLabel(feePercent)}).`
         : "La pasarela aún no está configurada. Se registró una intención pendiente.";
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
@@ -216,7 +238,9 @@ export function AddBalanceModal({
               Agregar saldo
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Recarga tu cartera mediante la pasarela seleccionada.
+              El monto es lo que pagás. El fee Holistic (
+              {formatFeePercentLabel(feePercent)}) se descuenta y a la cartera
+              llega el neto.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -225,7 +249,7 @@ export function AddBalanceModal({
                   htmlFor="topup-amount"
                   className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
                 >
-                  Monto (USD)
+                  Monto a pagar (USD)
                 </label>
                 <Input
                   id="topup-amount"
@@ -233,7 +257,7 @@ export function AddBalanceModal({
                   min={MIN_AMOUNT}
                   max={MAX_AMOUNT}
                   step="0.01"
-                  placeholder="100.00"
+                  placeholder="110.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   autoFocus
@@ -244,6 +268,32 @@ export function AddBalanceModal({
                   </p>
                 )}
               </div>
+
+              {feePreview ? (
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[var(--admin-text-muted,#64748b)]">
+                      Fee Holistic ({formatFeePercentLabel(feePercent)})
+                    </span>
+                    <span className="font-medium text-[var(--foreground)]">
+                      {formatMoney(feePreview.feeCents / 100)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-2">
+                    <span className="font-medium text-[var(--foreground)]">
+                      Llega a tu cartera
+                    </span>
+                    <span className="text-base font-bold text-[var(--brand-primary,#ff781f)]">
+                      {formatMoney(feePreview.creditCents / 100)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
+                    Ej.: pagás $110 con fee 10% → llegan $100 (no el 90% de
+                    $110).
+                  </p>
+                </div>
+              ) : null}
+
               <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
                 <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
                   Método seleccionado
@@ -286,15 +336,36 @@ export function AddBalanceModal({
               Confirmar depósito
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Se creará una intención de pago real en tu organización.
+              Se cobrará el bruto; a la cartera se acredita el neto tras el fee
+              Hecom.
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <div>
                 <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Monto
+                  Pagás
                 </dt>
                 <dd className="text-lg font-bold text-[var(--foreground)]">
                   {formatMoney(parsedAmount)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Fee ({formatFeePercentLabel(feePercent)})
+                </dt>
+                <dd className="font-medium text-[var(--foreground)]">
+                  {feePreview
+                    ? formatMoney(feePreview.feeCents / 100)
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Llega a cartera
+                </dt>
+                <dd className="text-lg font-bold text-[var(--brand-primary,#ff781f)]">
+                  {feePreview
+                    ? formatMoney(feePreview.creditCents / 100)
+                    : formatMoney(parsedAmount)}
                 </dd>
               </div>
               <div>
@@ -345,7 +416,10 @@ export function AddBalanceModal({
             </p>
             <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <p className="font-semibold text-[var(--foreground)]">
-                {formatMoney(parsedAmount)}
+                Pagás {formatMoney(parsedAmount)}
+                {feePreview
+                  ? ` · llegan ${formatMoney(feePreview.creditCents / 100)}`
+                  : null}
               </p>
               <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
                 ID de intención:{" "}

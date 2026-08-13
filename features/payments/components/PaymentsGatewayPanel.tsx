@@ -7,6 +7,9 @@ import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { getHecomCliente } from "@/lib/hecom/clientes.server";
+import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
+import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
   ensureAdvertisersInOrganizationForAllocation,
   getPaymentPageCore,
@@ -147,6 +150,21 @@ export async function PaymentsGatewayPanel({
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
     core.gateways[0]!;
 
+  let depositFeePercent = DEFAULT_DEPOSIT_FEE_PERCENT;
+  if (hecomClienteId) {
+    try {
+      const hecomCliente = await getHecomCliente(hecomClienteId);
+      depositFeePercent = resolveFeePercentFromHecomCliente({
+        tiktokDefaultFee: hecomCliente?.tiktokDefaultFee ?? null,
+        accountFees: (hecomCliente?.tiktokAccounts ?? []).map((a) => a.fee),
+      }).feePercent;
+    } catch (error) {
+      console.warn("[payments] deposit_fee_resolve_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
+
   // Staff/gerente: leer con service role para no quedar en 0 por org RLS/viewer.
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
   if (capabilities.canAgencyBmFund && session.organizationId) {
@@ -253,6 +271,7 @@ export async function PaymentsGatewayPanel({
         <PaymentsGatewayBlockClient
           gateways={core.gateways}
           initialSelected={core.selectedGateway}
+          depositFeePercent={depositFeePercent}
         />
 
         <PaymentOverviewStats

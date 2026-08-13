@@ -18,14 +18,17 @@ import {
   paymentSucceededTemplate,
 } from "@/lib/email/templates/payments";
 import { serverEnv } from "@/lib/env/env.server";
+import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 
 export interface CreatePaymentIntentRequest {
+  /** Monto bruto que paga el cliente (incluye fee Holistic). */
   amount: number;
   currency?: string;
   provider: PaymentGatewayId;
   idempotencyKey?: string;
+  hecomClienteId?: string | null;
 }
 
 export interface CreatePaymentIntentResponse {
@@ -35,6 +38,10 @@ export interface CreatePaymentIntentResponse {
   checkoutUrl: string | null;
   providerConfigured: boolean;
   message?: string;
+  feePercent: number;
+  feeCents: number;
+  creditCents: number;
+  grossCents: number;
 }
 
 export async function createPaymentIntentForSession(
@@ -67,6 +74,12 @@ export async function createPaymentIntentForSession(
     throw new ProviderNotConfiguredError(provider);
   }
 
+  const fee = await resolveDepositFeeForSession({
+    userId: session.id,
+    grossCents: amountCents,
+    hecomClienteId: input.hecomClienteId,
+  });
+
   const walletId = await resolveWalletId(session.organizationId);
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
 
@@ -78,7 +91,17 @@ export async function createPaymentIntentForSession(
     provider,
     createdBy: session.id,
     idempotencyKey,
-    metadata: { provider, source: "dashboard" },
+    metadata: {
+      provider,
+      source: "dashboard",
+      hecom_cliente_id: fee.hecomClienteId,
+      hecom_cliente_name: fee.hecomClienteName,
+      fee_percent: fee.feePercent,
+      fee_source: fee.feeSource,
+      fee_amount_cents: fee.feeCents,
+      credit_amount_cents: fee.creditCents,
+      gross_amount_cents: fee.grossCents,
+    },
   });
 
   const checkoutResult = await providerImpl.createCheckout({
@@ -124,6 +147,10 @@ export async function createPaymentIntentForSession(
     checkoutUrl: checkoutResult.checkoutUrl,
     providerConfigured: configured,
     message: checkoutResult.message,
+    feePercent: fee.feePercent,
+    feeCents: fee.feeCents,
+    creditCents: fee.creditCents,
+    grossCents: fee.grossCents,
   };
 }
 

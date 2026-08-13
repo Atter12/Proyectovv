@@ -15,11 +15,14 @@ const AddBalanceModal = dynamic(
 interface PaymentsGatewayBlockClientProps {
   gateways: PaymentGateway[];
   initialSelected: PaymentGatewayId;
+  /** Fee % Hecom del cliente activo. */
+  depositFeePercent?: number;
 }
 
 export function PaymentsGatewayBlockClient({
   gateways,
   initialSelected,
+  depositFeePercent = 10,
 }: PaymentsGatewayBlockClientProps) {
   const {
     fundingMode,
@@ -73,6 +76,7 @@ export function PaymentsGatewayBlockClient({
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           selectedGateway={selectedGateway}
+          feePercent={depositFeePercent}
         />
       ) : null}
     </>

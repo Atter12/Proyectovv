@@ -12,10 +12,12 @@ const AddBalanceModal = dynamic(
 
 interface PaymentsAddBalanceModalHostProps {
   selectedGateway: PaymentGatewayId;
+  depositFeePercent?: number;
 }
 
 export function PaymentsAddBalanceModalHost({
   selectedGateway,
+  depositFeePercent = 10,
 }: PaymentsAddBalanceModalHostProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -38,6 +40,7 @@ export function PaymentsAddBalanceModalHost({
       open={modalOpen}
       onClose={() => setModalOpen(false)}
       selectedGateway={selectedGateway}
+      feePercent={depositFeePercent}
     />
   );
 }
