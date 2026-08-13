@@ -97,8 +97,20 @@ export function ClienteScopedOverview({
             <p className="mt-2 max-w-xl text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
               {canChangeCliente
                 ? "Gestioná cuentas TikTok y el saldo Hecom del cliente operativo."
-                : "Tus cuentas TikTok, cobros y gasto ads. Recargá con Stripe en Pagos."}
+                : "Tus cuentas TikTok, cobros y gasto ads. Recargá con Stripe en Pagos."}{" "}
+              Fee Holistic de este cliente:{" "}
+              <span className="font-bold text-[var(--auth-text)]">
+                {summary.depositFeePercent}%
+              </span>{" "}
+              (Hecom Club). Al depositar se acredita el neto, no el bruto.
             </p>
+
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3 py-1.5 text-[12px] font-bold text-[var(--auth-accent)]">
+              Fee Hecom {summary.depositFeePercent}%
+              <span className="font-medium text-[var(--auth-text-muted)]">
+                · depósitos → neto a cartera
+              </span>
+            </div>
 
             <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:flex-row sm:flex-wrap">
               <Link
@@ -150,11 +162,16 @@ export function ClienteScopedOverview({
       </section>
 
       {/* KPIs detalle — tablet/desktop */}
-      <section className="hidden grid-cols-2 gap-2.5 sm:grid sm:gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <section className="hidden grid-cols-2 gap-2.5 sm:grid sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <Kpi
+          label="Fee Holistic"
+          value={`${summary.depositFeePercent}%`}
+          accent
+          hint="Desde Hecom Club"
+        />
         <Kpi
           label="Gasto de hoy"
           value={moneyUsd(summary.gastoHoy)}
-          accent
           hint={
             summary.dailySource === "none"
               ? "Sin sync del día"
@@ -189,9 +206,10 @@ export function ClienteScopedOverview({
         />
         <SummaryChip
           icon="trend"
-          label="En sync"
-          value={`${activeAccounts}`}
-          hint="Cuentas activas"
+          label="Fee Holistic"
+          value={`${summary.depositFeePercent}%`}
+          hint="Hecom Club"
+          accent
         />
         <SummaryChip
           icon="clock"

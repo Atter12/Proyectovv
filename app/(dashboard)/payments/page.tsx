@@ -99,6 +99,7 @@ export default async function PaymentsPage({
     cobroTotal: data.summary.cobroTotal,
     gastoTotal: data.summary.gastoTotal,
     feeTotal: data.summary.feeTotal,
+    depositFeePercent: data.summary.depositFeePercent,
   };
 
   // Si overview aún viene vacío (cold TikTok), el panel fuerza live + mirror de org.

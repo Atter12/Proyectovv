@@ -4,4 +4,6 @@ export type HecomFinanceSnapshot = {
   cobroTotal: number;
   gastoTotal: number;
   feeTotal: number;
+  /** % Holistic del cliente según Hecom Club. */
+  depositFeePercent: number;
 };

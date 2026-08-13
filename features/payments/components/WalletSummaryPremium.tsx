@@ -80,6 +80,12 @@ export function WalletSummaryPremium({
                   {formatMoney(hecomFinance.feeTotal, "USD")}
                 </span>
               </span>
+              <span>
+                Fee %:{" "}
+                <span className="font-semibold text-[#ff781f]">
+                  {hecomFinance.depositFeePercent}%
+                </span>
+              </span>
             </div>
             <p className="mt-2 max-w-lg text-[12px] leading-5 text-[#8a8177]">
               El fondeo BM no baja la deuda neta: solo un cobro registrado en

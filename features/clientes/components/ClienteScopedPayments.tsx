@@ -34,9 +34,14 @@ export function ClienteScopedPayments({
 
   const kpis = [
     {
+      label: "Fee Holistic",
+      value: `${summary.depositFeePercent}%`,
+      accent: true as const,
+      hint: "Hecom Club",
+    },
+    {
       label: "Gasto de hoy",
       value: moneyUsd(summary.gastoHoy),
-      accent: true as const,
       hint:
         summary.dailySource === "none"
           ? "Sin sync"
@@ -63,8 +68,9 @@ export function ClienteScopedPayments({
       value: moneyUsd(summary.gastoTotal),
     },
     {
-      label: "Fees",
+      label: "Fees $",
       value: moneyUsd(summary.feeTotal),
+      hint: `${summary.depositFeePercent}% cliente`,
     },
     {
       label: summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado",
@@ -93,13 +99,18 @@ export function ClienteScopedPayments({
               <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
                 {staffMode
                   ? "Solo lectura del CRM. El fondeo BM suma presupuesto a ads y no reduce la deuda neta — baja con cobro del cliente."
-                  : "Solo lectura del CRM. El fondeo se hace con la cartera de arriba."}
+                  : "Solo lectura del CRM. El fondeo se hace con la cartera de arriba."}{" "}
+                Fee del cliente:{" "}
+                <span className="font-semibold text-[var(--auth-text)]">
+                  {summary.depositFeePercent}%
+                </span>
+                .
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           {kpis.map((kpi) => (
             <div key={kpi.label} className="bg-white px-4 py-4 sm:px-5">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">

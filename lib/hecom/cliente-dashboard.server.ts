@@ -15,6 +15,7 @@ import {
   createHecomAdminClient,
   getHecomSupabaseConfig,
 } from "@/lib/hecom/supabase.server";
+import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 
 export type HecomGastoRow = {
   id: string;
@@ -88,6 +89,12 @@ export type HecomClienteDashboard = {
     dailySource: HecomDailySpendSource;
     /** Fecha ancla YYYY-MM-DD (hoy Lima o último día con gasto). */
     dailyAnchorDate: string;
+    /**
+     * % Holistic del cliente (Hecom: tiktok_default_fee / fee de cuenta).
+     * Usado en depósitos: neto = bruto / (1 + fee/100).
+     */
+    depositFeePercent: number;
+    depositFeeSource: "hecom_cliente" | "hecom_account" | "default";
   };
 };
 
@@ -416,6 +423,7 @@ function emptyDailySpendSummary() {
 }
 
 function buildSummary(
+  cliente: HecomCliente,
   accounts: HecomTiktokAccount[],
   gastos: HecomGastoRow[],
   cobros: HecomCobroRow[],
@@ -423,9 +431,11 @@ function buildSummary(
   creativosProyectos: HecomCreativoProyecto[],
   daily?: ReturnType<typeof buildDailySpendSummary>,
 ) {
-  const fallbackFeePct =
-    accounts.find((a) => a.fee != null)?.fee ??
-    null;
+  const feeResolved = resolveFeePercentFromHecomCliente({
+    tiktokDefaultFee: cliente.tiktokDefaultFee,
+    accountFees: accounts.map((a) => a.fee),
+  });
+  const fallbackFeePct = feeResolved.feePercent;
   const gastoTotal = gastos.reduce((sum, row) => sum + row.gasto, 0);
   const feeTotal = gastos.reduce(
     (sum, row) => sum + feeAmountForGasto(row, fallbackFeePct),
@@ -444,6 +454,8 @@ function buildSummary(
     saldoEstimado: Math.round((cobroTotal - cargoTotal) * 100) / 100,
     creativeCount: creativosClientes.length,
     projectCount: creativosProyectos.length,
+    depositFeePercent: feeResolved.feePercent,
+    depositFeeSource: feeResolved.feeSource,
     ...dailySummary,
   };
 }
@@ -635,7 +647,7 @@ export const getHecomClienteDashboard = cache(
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
-          summary: buildSummary(accounts, [], [], [], [], emptyDailySpendSummary()),
+          summary: buildSummary(cliente, accounts, [], [], [], [], emptyDailySpendSummary()),
         };
       }
 
@@ -656,6 +668,7 @@ export const getHecomClienteDashboard = cache(
             creativosClientes: live.creativosClientes,
             creativosProyectos: live.creativosProyectos,
             summary: buildSummary(
+              cliente,
               accounts,
               gastos,
               cobros,
@@ -677,7 +690,7 @@ export const getHecomClienteDashboard = cache(
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
-          summary: buildSummary(accounts, [], [], [], [], emptyDailySpendSummary()),
+          summary: buildSummary(cliente, accounts, [], [], [], [], emptyDailySpendSummary()),
         };
       }
 
@@ -701,6 +714,7 @@ export const getHecomClienteDashboard = cache(
         creativosClientes,
         creativosProyectos,
         summary: buildSummary(
+          cliente,
           accounts,
           gastos,
           cobros,
@@ -762,7 +776,7 @@ export const getHecomClienteShell = cache(
         const live = await loadLiveFinance(clienteId, { includeCreativos: false });
         if (live) {
           const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
-          const summary = buildSummary(accounts, gastos, live.cobros, [], []);
+          const summary = buildSummary(cliente, accounts, gastos, live.cobros, [], []);
           return {
             id: cliente.id,
             name: cliente.name,
