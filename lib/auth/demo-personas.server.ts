@@ -2,9 +2,10 @@ import "server-only";
 
 /**
  * Cuentas demo / prueba (Holistic) — se resuelven por email, no por org role.
- * Útil para validar UI Cliente vs Gerente con los mismos flujos.
+ * Vacío a propósito: ferbasiliorengifo@gmail.com ahora es cliente real Hecom
+ * (p. ej. Adriana Trujillo). Agregá acá solo mails sintéticos sin ficha CRM.
  */
-const DEMO_CLIENTE_EMAILS = ["ferbasiliorengifo@gmail.com"] as const;
+const DEMO_CLIENTE_EMAILS: readonly string[] = [];
 
 const DEMO_GERENTE_EMAILS = ["atlvbasiliorengifo@gmail.com"] as const;
 
@@ -15,10 +16,7 @@ function normalizeEmail(email: string): string {
 /** Cliente OTP + Pagos solo Stripe / cartera (nunca staff ni BM dual). */
 export function isDemoClienteEmail(emailRaw: string): boolean {
   const email = normalizeEmail(emailRaw);
-  return (
-    email.length > 0 &&
-    (DEMO_CLIENTE_EMAILS as readonly string[]).includes(email)
-  );
+  return email.length > 0 && DEMO_CLIENTE_EMAILS.includes(email);
 }
 
 /** Gerente — lista de clientes + fondeo BM (sin Stripe como camino principal). */

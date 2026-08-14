@@ -46,17 +46,14 @@ export function isOtpTestClienteId(id: string): boolean {
  */
 export function buildOtpTestHecomCliente(id: string): HecomCliente {
   const email = id.slice("otp-test:".length).trim().toLowerCase() || "demo@local";
-  const isFerDemo = email === "ferbasiliorengifo@gmail.com";
   return {
     id,
-    name: isFerDemo ? "Cliente demo Holistic" : "Cliente prueba OTP",
+    name: "Cliente prueba OTP",
     dni: null,
     emails: [email],
     phones: [],
-    biz: isFerDemo ? "Demo cliente Holistic" : "OTP test",
-    notes: isFerDemo
-      ? "Cuenta demo UI — no es registro CRM Hecom"
-      : "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
+    biz: "OTP test",
+    notes: "Allowlist AUTH_HECOM_OTP_TEST_EMAILS",
     ig: null,
     avatarUrl: null,
     createdAt: null,

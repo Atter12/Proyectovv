@@ -47,7 +47,6 @@ export type PaymentsFundingCapabilities = {
  * - Super admin (Atter) → ambos
  *
  * Cuentas demo:
- * - ferbasiliorengifo@gmail.com → cliente
  * - atlvbasiliorengifo@gmail.com → gerente
  */
 export function resolvePaymentsFundingCapabilities(input: {
