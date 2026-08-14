@@ -120,14 +120,18 @@ export async function createPaymentIntentForSession(
     customerEmail: session.email,
   });
 
-  const nextStatus =
-    isVoucherPaymentProvider(provider)
+  // Manual siempre voucher. Crypto: voucher solo si no hay checkout automático (NOWPayments).
+  const voucherFlow =
+    provider === "manual" ||
+    (provider === "crypto" && !checkoutResult.checkoutUrl);
+
+  const nextStatus = voucherFlow
+    ? "requires_payment"
+    : checkoutResult.status === "requires_payment"
       ? "requires_payment"
-      : checkoutResult.status === "requires_payment"
-        ? "requires_payment"
-        : checkoutResult.status === "processing"
-          ? "processing"
-          : "created";
+      : checkoutResult.status === "processing"
+        ? "processing"
+        : "created";
 
   await updatePaymentIntentRecord(intent.id, {
     status: nextStatus,
@@ -135,7 +139,18 @@ export async function createPaymentIntentForSession(
     checkoutUrl: checkoutResult.checkoutUrl,
   });
 
-  if (isVoucherPaymentProvider(provider)) {
+  // Anotar modo cripto sin pisar metadata de fee.
+  if (provider === "crypto") {
+    await updatePaymentIntentRecord(intent.id, {
+      metadata: {
+        ...intent.metadata,
+        crypto_mode: voucherFlow ? "manual_proof" : "nowpayments",
+        nowpayments_invoice_id: checkoutResult.providerReference,
+      },
+    });
+  }
+
+  if (voucherFlow) {
     await sendManualPaymentEmailBestEffort({
       to: session.email,
       userId: session.id,

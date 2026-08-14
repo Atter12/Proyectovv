@@ -135,6 +135,13 @@ export const serverEnv = {
     300,
   ),
 
+  /** NOWPayments (cripto). Sandbox: api-sandbox.nowpayments.io */
+  nowPaymentsApiKey: process.env.NOWPAYMENTS_API_KEY ?? "",
+  nowPaymentsIpnSecret: process.env.NOWPAYMENTS_IPN_SECRET ?? "",
+  nowPaymentsSandbox: parseBoolean(process.env.NOWPAYMENTS_SANDBOX, !isProduction),
+  /** Opcional: forzar moneda (ej. usdttrc20). Vacío = el cliente elige en el checkout. */
+  nowPaymentsPayCurrency: process.env.NOWPAYMENTS_PAY_CURRENCY ?? "",
+
   // Si hay RESEND_API_KEY y no fijaron provider, usamos Resend.
   emailProvider:
     process.env.EMAIL_PROVIDER ??

@@ -311,7 +311,7 @@ export function AddBalanceModal({
                 {isVoucher ? (
                   <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
                     {selectedGateway === "crypto"
-                      ? "Después enviás USDT y subís captura / TxID para revisión."
+                      ? "Si NOWPayments está activo te redirige al checkout. Si no, enviás USDT y subís captura / TxID."
                       : "Después de crear la intención podrás subir el voucher para revisión."}
                   </p>
                 ) : null}

@@ -20,7 +20,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "crypto",
     name: "Cripto (USDT)",
-    description: "USDT / Binance · subís comprobante",
+    description: "NOWPayments / USDT · checkout o comprobante",
   },
   {
     id: "manual",
