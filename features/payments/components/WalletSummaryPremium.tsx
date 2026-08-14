@@ -155,10 +155,9 @@ export function WalletSummaryPremium({
                 {hecomFinance.depositFeePercent}%
               </p>
               <p className="mt-1 text-[12px] leading-4 text-[#5c564e]">
-                Al recargar se acredita el neto (bruto ÷ 1 + fee). Con fee{" "}
-                {hecomFinance.depositFeePercent}%: si pagás $
-                {(100 * (1 + hecomFinance.depositFeePercent / 100)).toFixed(0)}{" "}
-                llegan $100.
+                Ponés lo que querés en cartera; se cobra ese monto + fee. Con fee{" "}
+                {hecomFinance.depositFeePercent}%: si querés $100 se cobran $
+                {(100 * (1 + hecomFinance.depositFeePercent / 100)).toFixed(0)}.
               </p>
             </div>
           ) : null}

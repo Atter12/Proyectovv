@@ -18,14 +18,13 @@ export function PaymentsMoneyFlowGuide({
       <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         Fee de este cliente (Hecom Club):{" "}
         <span className="font-bold text-[var(--auth-text)]">{feeLabel}</span>.
-        Si depositás $110 con fee 10%, a la cartera llegan $100 (neto = bruto ÷
-        1,10). Cada cliente puede tener 8%, 10%, etc.
+        Si querés $100 con fee 10%, se cobran $110 y a la cartera llegan $100.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <Step
           n="1"
           title="Recargar cartera"
-          body={`Pagás el bruto. Holistic retiene el fee ${feeLabel} y acredita el neto.`}
+          body={`Indicás el neto. Holistic suma el fee ${feeLabel} y cobra el bruto.`}
         />
         <Step n="2" title="Asignar a ads" body="Saldo de cartera → cuenta TikTok." />
         <Step n="3" title="Campañas gastan" body="El spend ocurre en el advertiser." />

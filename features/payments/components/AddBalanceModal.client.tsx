@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import {
   formatFeePercentLabel,
-  splitDepositByFeePercent,
+  depositFromDesiredCredit,
 } from "@/lib/payments/deposit-fee";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isVoucherPaymentProvider } from "@/types/payment";
@@ -103,7 +103,7 @@ export function AddBalanceModal({
 
   const feePreview = useMemo(() => {
     if (!isValidAmount) return null;
-    return splitDepositByFeePercent(Math.round(parsedAmount * 100), feePercent);
+    return depositFromDesiredCredit(Math.round(parsedAmount * 100), feePercent);
   }, [feePercent, isValidAmount, parsedAmount]);
 
   function handleClose() {
@@ -149,14 +149,14 @@ export function AddBalanceModal({
       }
 
       setPaymentIntentId(data.paymentIntent.paymentIntentId);
-      const creditLabel =
-        data.paymentIntent.creditCents != null
-          ? formatMoney(data.paymentIntent.creditCents / 100)
+      const chargeLabel =
+        data.paymentIntent.grossCents != null
+          ? formatMoney(data.paymentIntent.grossCents / 100)
           : feePreview
-            ? formatMoney(feePreview.creditCents / 100)
+            ? formatMoney(feePreview.grossCents / 100)
             : formatMoney(parsedAmount);
       const defaultMessage = data.paymentIntent.providerConfigured
-        ? `Intención creada. Pagás ${formatMoney(parsedAmount)}; a la cartera llegan ${creditLabel} (fee ${formatFeePercentLabel(feePercent)}).`
+        ? `Intención creada. Querés ${formatMoney(parsedAmount)} en cartera; se cobra ${chargeLabel} (fee ${formatFeePercentLabel(feePercent)}).`
         : "La pasarela aún no está configurada. Se registró una intención pendiente.";
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
@@ -238,9 +238,9 @@ export function AddBalanceModal({
               Agregar saldo
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              El monto es lo que pagás. El fee Holistic (
-              {formatFeePercentLabel(feePercent)}) se descuenta y a la cartera
-              llega el neto.
+              Indicá cuánto querés en cartera. El fee Holistic (
+              {formatFeePercentLabel(feePercent)}) se suma y eso es lo que se
+              cobra.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -249,7 +249,7 @@ export function AddBalanceModal({
                   htmlFor="topup-amount"
                   className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
                 >
-                  Monto a pagar (USD)
+                  Quiero en cartera (USD)
                 </label>
                 <Input
                   id="topup-amount"
@@ -257,7 +257,7 @@ export function AddBalanceModal({
                   min={MIN_AMOUNT}
                   max={MAX_AMOUNT}
                   step="0.01"
-                  placeholder="110.00"
+                  placeholder="100.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   autoFocus
@@ -273,6 +273,14 @@ export function AddBalanceModal({
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[var(--admin-text-muted,#64748b)]">
+                      Llega a tu cartera
+                    </span>
+                    <span className="font-medium text-[var(--foreground)]">
+                      {formatMoney(feePreview.creditCents / 100)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="text-[var(--admin-text-muted,#64748b)]">
                       Fee Holistic ({formatFeePercentLabel(feePercent)})
                     </span>
                     <span className="font-medium text-[var(--foreground)]">
@@ -281,15 +289,14 @@ export function AddBalanceModal({
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-2">
                     <span className="font-medium text-[var(--foreground)]">
-                      Llega a tu cartera
+                      Se cobra
                     </span>
                     <span className="text-base font-bold text-[var(--brand-primary,#ff781f)]">
-                      {formatMoney(feePreview.creditCents / 100)}
+                      {formatMoney(feePreview.grossCents / 100)}
                     </span>
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
-                    Ej.: pagás $110 con fee 10% → llegan $100 (no el 90% de
-                    $110).
+                    Ej.: querés $100 con fee 10% → se cobran $110.
                   </p>
                 </div>
               ) : null}
@@ -336,15 +343,14 @@ export function AddBalanceModal({
               Confirmar depósito
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Se cobrará el bruto; a la cartera se acredita el neto tras el fee
-              Hecom.
+              Se acredita el monto pedido; Stripe cobra ese monto + fee Hecom.
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <div>
                 <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Pagás
+                  Llega a cartera
                 </dt>
-                <dd className="text-lg font-bold text-[var(--foreground)]">
+                <dd className="text-lg font-bold text-[var(--brand-primary,#ff781f)]">
                   {formatMoney(parsedAmount)}
                 </dd>
               </div>
@@ -360,11 +366,11 @@ export function AddBalanceModal({
               </div>
               <div>
                 <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Llega a cartera
+                  Se cobra
                 </dt>
-                <dd className="text-lg font-bold text-[var(--brand-primary,#ff781f)]">
+                <dd className="text-lg font-bold text-[var(--foreground)]">
                   {feePreview
-                    ? formatMoney(feePreview.creditCents / 100)
+                    ? formatMoney(feePreview.grossCents / 100)
                     : formatMoney(parsedAmount)}
                 </dd>
               </div>
@@ -416,9 +422,9 @@ export function AddBalanceModal({
             </p>
             <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <p className="font-semibold text-[var(--foreground)]">
-                Pagás {formatMoney(parsedAmount)}
+                Llegan {formatMoney(parsedAmount)}
                 {feePreview
-                  ? ` · llegan ${formatMoney(feePreview.creditCents / 100)}`
+                  ? ` · se cobran ${formatMoney(feePreview.grossCents / 100)}`
                   : null}
               </p>
               <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">

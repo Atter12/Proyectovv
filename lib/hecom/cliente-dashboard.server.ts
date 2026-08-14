@@ -91,7 +91,7 @@ export type HecomClienteDashboard = {
     dailyAnchorDate: string;
     /**
      * % Holistic del cliente (Hecom: tiktok_default_fee / fee de cuenta).
-     * Usado en depósitos: neto = bruto / (1 + fee/100).
+     * Usado en depósitos: cliente elige neto; bruto = neto * (1 + fee/100).
      */
     depositFeePercent: number;
     depositFeeSource: "hecom_cliente" | "hecom_account" | "default";

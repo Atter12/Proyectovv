@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getDepositFeePreviewForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
-import { splitDepositByFeePercent } from "@/lib/payments/deposit-fee";
+import { depositFromDesiredCredit } from "@/lib/payments/deposit-fee";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -26,9 +26,10 @@ export async function GET(request: Request) {
     userId: session.id,
   });
 
+  // `amount` = neto deseado en cartera.
   const breakdown =
     amount != null && Number.isFinite(amount) && amount > 0
-      ? splitDepositByFeePercent(Math.round(amount * 100), preview.feePercent)
+      ? depositFromDesiredCredit(Math.round(amount * 100), preview.feePercent)
       : null;
 
   return NextResponse.json({

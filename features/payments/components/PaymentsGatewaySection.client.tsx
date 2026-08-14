@@ -62,12 +62,13 @@ export function PaymentsGatewaySection({
               <span className="font-bold text-[var(--auth-text)]">
                 {depositFeePercent}%
               </span>{" "}
-              (Hecom) — se descuenta al acreditar.
+              (Hecom) — se suma al cobrar.
             </p>
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--auth-accent)]/35 bg-[var(--auth-accent-soft)] px-3 py-1.5 text-[12px] font-bold text-[var(--auth-accent)]">
               Fee Holistic {depositFeePercent}%
               <span className="font-medium text-[var(--auth-text-muted)]">
-                · pagás bruto → llega neto
+                · querés $100 → se cobran $
+                {(100 * (1 + depositFeePercent / 100)).toFixed(0)}
               </span>
             </div>
           </div>

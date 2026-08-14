@@ -23,7 +23,7 @@ import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 
 export interface CreatePaymentIntentRequest {
-  /** Monto bruto que paga el cliente (incluye fee Holistic). */
+  /** Monto que el cliente quiere acreditar en cartera (neto). Se cobra bruto + fee. */
   amount: number;
   currency?: string;
   provider: PaymentGatewayId;
@@ -56,8 +56,8 @@ export async function createPaymentIntentForSession(
     throw new Error("Proveedor de pago inválido.");
   }
 
-  const amountCents = Math.round(input.amount * 100);
-  if (amountCents <= 0) {
+  const creditCents = Math.round(input.amount * 100);
+  if (creditCents <= 0) {
     throw new Error("El monto debe ser mayor a cero.");
   }
 
@@ -76,9 +76,14 @@ export async function createPaymentIntentForSession(
 
   const fee = await resolveDepositFeeForSession({
     userId: session.id,
-    grossCents: amountCents,
+    creditCents,
     hecomClienteId: input.hecomClienteId,
   });
+
+  const amountCents = fee.grossCents;
+  if (amountCents <= 0) {
+    throw new Error("El monto a cobrar debe ser mayor a cero.");
+  }
 
   const walletId = await resolveWalletId(session.organizationId);
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
@@ -94,6 +99,7 @@ export async function createPaymentIntentForSession(
     metadata: {
       provider,
       source: "dashboard",
+      input_mode: "desired_credit",
       hecom_cliente_id: fee.hecomClienteId,
       hecom_cliente_name: fee.hecomClienteName,
       fee_percent: fee.feePercent,

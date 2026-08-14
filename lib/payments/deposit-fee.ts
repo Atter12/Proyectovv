@@ -1,12 +1,15 @@
 /**
  * Fee Holistic en depósitos (modelo Hecom Club).
  *
- * Ejemplo: fee 10%, depósito $110 → acredita $100
- *   credit = gross / (1 + fee/100)
+ * UX: el cliente indica cuánto quiere en cartera (neto).
+ * Ejemplo fee 10%: quiere $100 → se cobra $110 → acredita $100
+ *   gross = credit * (1 + fee/100)
  */
 
 export type DepositFeeBreakdown = {
+  /** Monto cobrado al cliente (Stripe / pasarela). */
   grossCents: number;
+  /** Monto que llega a la cartera Holistic. */
   creditCents: number;
   feeCents: number;
   feePercent: number;
@@ -28,6 +31,44 @@ export function normalizeFeePercent(raw: number | null | undefined): number | nu
   return Math.round(raw * 100) / 100;
 }
 
+/**
+ * A partir del neto deseado en cartera, calcula cuánto cobrar (bruto + fee).
+ */
+export function depositFromDesiredCredit(
+  creditCents: number,
+  feePercent: number,
+): DepositFeeBreakdown {
+  const credit = Math.max(0, Math.round(creditCents));
+  const pct = Math.max(0, feePercent);
+
+  if (credit <= 0) {
+    return { grossCents: 0, creditCents: 0, feeCents: 0, feePercent: pct };
+  }
+
+  if (pct <= 0) {
+    return {
+      grossCents: credit,
+      creditCents: credit,
+      feeCents: 0,
+      feePercent: 0,
+    };
+  }
+
+  const grossCents = Math.round(credit * (1 + pct / 100));
+  const feeCents = Math.max(0, grossCents - credit);
+
+  return {
+    grossCents,
+    creditCents: credit,
+    feeCents,
+    feePercent: pct,
+  };
+}
+
+/**
+ * @deprecated Preferí depositFromDesiredCredit (UX: cliente elige neto).
+ * Conservado por si llega un bruto conocido (reconciliación).
+ */
 export function splitDepositByFeePercent(
   grossCents: number,
   feePercent: number,

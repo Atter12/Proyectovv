@@ -3,8 +3,8 @@ import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   DEFAULT_DEPOSIT_FEE_PERCENT,
+  depositFromDesiredCredit,
   normalizeFeePercent,
-  splitDepositByFeePercent,
   type DepositFeeBreakdown,
 } from "@/lib/payments/deposit-fee";
 
@@ -39,9 +39,13 @@ export function resolveFeePercentFromHecomCliente(input: {
   };
 }
 
+/**
+ * `creditCents` = lo que el cliente quiere en cartera.
+ * Devuelve bruto a cobrar + fee Hecom.
+ */
 export async function resolveDepositFeeForSession(input: {
   userId: string;
-  grossCents: number;
+  creditCents: number;
   hecomClienteId?: string | null;
 }): Promise<ResolvedHecomDepositFee> {
   const selected =
@@ -50,8 +54,8 @@ export async function resolveDepositFeeForSession(input: {
       : await getSelectedHecomCliente(input.userId);
 
   if (!selected?.id) {
-    const split = splitDepositByFeePercent(
-      input.grossCents,
+    const split = depositFromDesiredCredit(
+      input.creditCents,
       DEFAULT_DEPOSIT_FEE_PERCENT,
     );
     return {
@@ -68,7 +72,7 @@ export async function resolveDepositFeeForSession(input: {
     accountFees: (cliente?.tiktokAccounts ?? []).map((a) => a.fee),
   });
 
-  const split = splitDepositByFeePercent(input.grossCents, feePercent);
+  const split = depositFromDesiredCredit(input.creditCents, feePercent);
 
   return {
     ...split,
@@ -90,7 +94,7 @@ export async function getDepositFeePreviewForSession(input: {
 }> {
   const resolved = await resolveDepositFeeForSession({
     userId: input.userId,
-    grossCents: 11_000,
+    creditCents: 10_000,
     hecomClienteId: input.hecomClienteId,
   });
 

@@ -126,7 +126,7 @@ export function PaymentsPageHero({
                   {formatMoney(hecomFinance.feeTotal, "USD")}
                 </p>
                 <p className="mt-3 inline-flex items-center rounded-full border border-[var(--auth-accent)]/30 bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--auth-accent)]">
-                  Fee Hecom {hecomFinance.depositFeePercent}% · neto al recargar
+                  Fee Hecom {hecomFinance.depositFeePercent}% · querés X → cobrás X+fee
                 </p>
               </div>
             ) : null}
