@@ -146,6 +146,22 @@ export function WalletSummaryPremium({
           <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] tabular-nums text-[#1c1917] sm:text-[2.35rem]">
             {formatMoney(wallet.balance, wallet.currency)}
           </p>
+          {hecomFinance != null ? (
+            <div className="mt-3 rounded-xl border border-[#ff781f]/35 bg-[#fff1e8] px-3.5 py-2.5">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
+                Fee Holistic · Hecom Club
+              </p>
+              <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] text-[#1c1917]">
+                {hecomFinance.depositFeePercent}%
+              </p>
+              <p className="mt-1 text-[12px] leading-4 text-[#5c564e]">
+                Al recargar se acredita el neto (bruto ÷ 1 + fee). Con fee{" "}
+                {hecomFinance.depositFeePercent}%: si pagás $
+                {(100 * (1 + hecomFinance.depositFeePercent / 100)).toFixed(0)}{" "}
+                llegan $100.
+              </p>
+            </div>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#5c564e]">
             <span>
               Última recarga:{" "}

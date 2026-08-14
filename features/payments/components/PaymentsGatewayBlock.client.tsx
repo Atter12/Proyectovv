@@ -69,6 +69,7 @@ export function PaymentsGatewayBlockClient({
         canClientStripeFund={canClientStripeFund}
         canAgencyBmFund={canAgencyBmFund}
         canSwitchFundingModes={canSwitchFundingModes}
+        depositFeePercent={depositFeePercent}
       />
 
       {canClientStripeFund && modalOpen ? (

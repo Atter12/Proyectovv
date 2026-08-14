@@ -17,6 +17,8 @@ interface PaymentsGatewaySectionProps {
   canClientStripeFund: boolean;
   canAgencyBmFund: boolean;
   canSwitchFundingModes: boolean;
+  /** Fee % Hecom del cliente activo (visible en Recargar). */
+  depositFeePercent?: number;
 }
 
 export function PaymentsGatewaySection({
@@ -29,6 +31,7 @@ export function PaymentsGatewaySection({
   canClientStripeFund,
   canAgencyBmFund,
   canSwitchFundingModes,
+  depositFeePercent = 10,
 }: PaymentsGatewaySectionProps) {
   const selectedGateway = gateways.find((g) => g.id === selected);
   const showClientDeposit =
@@ -55,8 +58,18 @@ export function PaymentsGatewaySection({
             </h2>
             <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
               No paga TikTok directo: recargás la cartera y después asignás a
-              una cuenta ads.
+              una cuenta ads. Fee de este cliente:{" "}
+              <span className="font-bold text-[var(--auth-text)]">
+                {depositFeePercent}%
+              </span>{" "}
+              (Hecom) — se descuenta al acreditar.
             </p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--auth-accent)]/35 bg-[var(--auth-accent-soft)] px-3 py-1.5 text-[12px] font-bold text-[var(--auth-accent)]">
+              Fee Holistic {depositFeePercent}%
+              <span className="font-medium text-[var(--auth-text-muted)]">
+                · pagás bruto → llega neto
+              </span>
+            </div>
           </div>
 
           <div className="px-5 py-4 sm:px-6 sm:py-5">
