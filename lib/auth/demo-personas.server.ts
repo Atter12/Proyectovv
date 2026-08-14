@@ -2,10 +2,14 @@ import "server-only";
 
 /**
  * Cuentas demo / prueba (Holistic) — se resuelven por email, no por org role.
- * Vacío a propósito: ferbasiliorengifo@gmail.com ahora es cliente real Hecom
- * (p. ej. Adriana Trujillo). Agregá acá solo mails sintéticos sin ficha CRM.
+ *
+ * ferbasiliorengifo: fuerza UI **Cliente** (Stripe), aunque el perfil en
+ * Supabase sea owner (si no, cae a Gerente). El cliente Hecom real se toma
+ * del array `emails` en CRM (ej. Adriana Trujillo), no el otp-test sintético.
  */
-const DEMO_CLIENTE_EMAILS: readonly string[] = [];
+const DEMO_CLIENTE_EMAILS: readonly string[] = [
+  "ferbasiliorengifo@gmail.com",
+];
 
 const DEMO_GERENTE_EMAILS = ["atlvbasiliorengifo@gmail.com"] as const;
 
