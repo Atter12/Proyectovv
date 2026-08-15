@@ -136,9 +136,8 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
       is_fixed_rate: true,
     };
 
-    if (serverEnv.nowPaymentsPayCurrency) {
-      body.pay_currency = serverEnv.nowPaymentsPayCurrency;
-    }
+    // Solo USDT (red configurada). Sin esto NOWPayments deja elegir BTC/ETH/etc.
+    body.pay_currency = serverEnv.nowPaymentsPayCurrency;
 
     const response = await fetch(`${nowPaymentsBaseUrl()}/invoice`, {
       method: "POST",
