@@ -45,7 +45,9 @@ export function DashboardTopbar({
               ? "Afiliados"
               : currentPage?.href === "/creative-analyzer"
                 ? "Creativos"
-                : (currentPage?.label ?? "Panel");
+                : currentPage?.href === "/support"
+                  ? "Soporte"
+                  : (currentPage?.label ?? "Panel");
 
   const canPickClients = persona !== "cliente";
 

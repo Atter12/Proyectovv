@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from "react";
 import type { ChatMessage } from "../types/support.types";
+import { cn } from "@/lib/cn";
 
 interface ChatConversationProps {
   messages: ChatMessage[];
@@ -7,6 +8,10 @@ interface ChatConversationProps {
   sending?: boolean;
   loading?: boolean;
   error?: string | null;
+  showBack?: boolean;
+  className?: string;
+  title?: string;
+  subtitle?: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onBack: () => void;
@@ -18,6 +23,10 @@ export function ChatConversation({
   sending = false,
   loading = false,
   error = null,
+  showBack = true,
+  className,
+  title = "Escríbenos",
+  subtitle = "Tu conversación queda guardada como ticket de soporte.",
   onInputChange,
   onSend,
   onBack,
@@ -30,23 +39,23 @@ export function ChatConversation({
   }
 
   return (
-    <div className="flex h-[480px] flex-col">
+    <div className={cn("flex h-[480px] flex-col", className)}>
       <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
-          aria-label="Volver"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-          Volver
-        </button>
-        <p className="text-sm font-bold text-white">Escríbenos</p>
-        <p className="text-xs text-white/70">
-          Tu conversación queda guardada como ticket de soporte.
-        </p>
+        {showBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
+            aria-label="Volver"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Volver
+          </button>
+        ) : null}
+        <p className="text-sm font-bold text-white">{title}</p>
+        <p className="text-xs text-white/70">{subtitle}</p>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--surface-soft)] p-4">

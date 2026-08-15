@@ -12,6 +12,7 @@ export const routes = {
   payments: "/payments",
   affiliates: "/affiliates",
   creativeAnalyzer: "/creative-analyzer",
+  support: "/support",
   adminLogin: "/admin/login",
   adminOverview: "/admin/overview",
   adminUnauthorized: "/admin/unauthorized",

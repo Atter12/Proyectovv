@@ -8,6 +8,7 @@ export const mainNavigation: NavItem[] = [
   { label: "Pago", href: routes.payments, icon: "payments" },
   { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
   { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },
+  { label: "Soporte", href: routes.support, icon: "support" },
 ];
 
 export interface AdminNavItem {

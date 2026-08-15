@@ -75,7 +75,7 @@ export async function createSupportTicket(
       status: "open",
       priority: "normal",
       category: "chat",
-      metadata: { source: "floating_chat" },
+      metadata: { source: "support_chat" },
       updated_at: now,
     })
     .select("id")
