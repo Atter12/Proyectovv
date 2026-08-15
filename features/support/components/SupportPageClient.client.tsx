@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { cn } from "@/lib/cn";
@@ -8,7 +8,6 @@ import { TICKET_STATUS_LABELS } from "@/lib/constants/status";
 import { supportMock } from "@/features/support/mocks/support.mock";
 import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
-import { ChatFaqCategories } from "@/features/support/components/ChatFaqCategories";
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
 
@@ -34,20 +33,28 @@ interface CreateTicketResponse {
   ok: boolean;
   ticketId: string;
   message: ChatMessage;
+  error?: string;
 }
 
 interface PostMessageResponse {
   ok: boolean;
   message: ChatMessage;
+  error?: string;
 }
 
-type PanelMode = "home" | "chat" | Extract<SupportView, "faqCategories" | "faqCategoryDetail" | "faqArticleDetail">;
+type PanelMode =
+  | "home"
+  | "chat"
+  | Extract<
+      SupportView,
+      "faqCategories" | "faqCategoryDetail" | "faqArticleDetail"
+    >;
 
 function greetingMessage(): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: "Hola, cuéntanos qué necesitas y crearemos un ticket para darle seguimiento.",
+    text: "Hola. Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá fotos/PDF. El equipo de Ads Holistic te responde acá.",
     timestamp: new Date().toLocaleTimeString("es", {
       hour: "2-digit",
       minute: "2-digit",
@@ -68,16 +75,25 @@ function formatTicketDate(value: string) {
   }
 }
 
+/** FAQ Holistic (renombre visual sin “Default”). */
+const holisticFaqCategories = supportMock.categories.map((category) => ({
+  ...category,
+  title: category.title
+    .replace(/Default Media/gi, "Ads Holistic")
+    .replace(/Default/gi, "Holistic"),
+}));
+
 export function SupportPageClient() {
   const [tickets, setTickets] = useState<SupportTicketSummary[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
 
-  const [panel, setPanel] = useState<PanelMode>("home");
+  const [panel, setPanel] = useState<PanelMode>("chat");
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const [faqQuery, setFaqQuery] = useState("");
 
   const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
   const [inputValue, setInputValue] = useState("");
@@ -86,11 +102,35 @@ export function SupportPageClient() {
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedCategory = supportMock.categories.find((c) => c.id === selectedCategoryId);
-  const categoryArticles = supportMock.articles.filter(
-    (a) => a.categoryId === selectedCategoryId,
+  const selectedCategory = holisticFaqCategories.find(
+    (c) => c.id === selectedCategoryId,
   );
-  const selectedArticle = supportMock.articles.find((a) => a.id === selectedArticleId);
+  const categoryArticles = supportMock.articles
+    .filter((a) => a.categoryId === selectedCategoryId)
+    .map((article) => ({
+      ...article,
+      title: article.title.replace(/Default/gi, "Holistic"),
+      content: article.content.replace(/Default Media/gi, "Ads Holistic").replace(/Default/gi, "Holistic"),
+    }));
+  const selectedArticle = categoryArticles.find((a) => a.id === selectedArticleId);
+
+  const filteredFaqCategories = useMemo(() => {
+    const q = faqQuery.trim().toLowerCase();
+    if (!q) return holisticFaqCategories;
+    return holisticFaqCategories.filter((category) => {
+      const articles = supportMock.articles.filter(
+        (a) => a.categoryId === category.id,
+      );
+      return (
+        category.title.toLowerCase().includes(q) ||
+        articles.some(
+          (a) =>
+            a.title.toLowerCase().includes(q) ||
+            a.content.toLowerCase().includes(q),
+        )
+      );
+    });
+  }, [faqQuery]);
 
   const loadTickets = useCallback(async () => {
     setTicketsLoading(true);
@@ -124,7 +164,9 @@ export function SupportPageClient() {
         `/api/support/tickets/${id}/messages`,
       );
       setMessages(
-        messagesData.messages.length > 0 ? messagesData.messages : [greetingMessage()],
+        messagesData.messages.length > 0
+          ? messagesData.messages
+          : [greetingMessage()],
       );
     } catch (err) {
       setError(
@@ -147,9 +189,9 @@ export function SupportPageClient() {
     setMobileShowChat(true);
   }
 
-  async function handleSend() {
+  async function handleSend(files: File[] = []) {
     const text = inputValue.trim();
-    if (!text || sending) return;
+    if ((!text && files.length === 0) || sending) return;
 
     setSending(true);
     setError(null);
@@ -158,11 +200,21 @@ export function SupportPageClient() {
     const optimistic: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text,
+      text: text || (files.length ? "📎 Adjunto" : ""),
       timestamp: new Date().toLocaleTimeString("es", {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      attachments: files
+        .filter((f) => f.type.startsWith("image/"))
+        .map((file, index) => ({
+          name: file.name,
+          mimeType: file.type,
+          path: `local-${index}`,
+          bucket: "local",
+          size: file.size,
+          url: URL.createObjectURL(file),
+        })),
     };
     setMessages((prev) => [
       ...prev.filter((msg) => msg.id !== "support-greeting"),
@@ -170,24 +222,35 @@ export function SupportPageClient() {
     ]);
 
     try {
+      const formData = new FormData();
+      if (text) formData.set("message", text);
+      for (const file of files) formData.append("files", file);
+
       if (!ticketId) {
-        const data = await apiClient<CreateTicketResponse>("/api/support/tickets", {
+        const res = await fetch("/api/support/tickets", {
           method: "POST",
-          body: JSON.stringify({ message: text }),
+          body: formData,
+          credentials: "include",
         });
+        const data = (await res.json()) as CreateTicketResponse;
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? "No se pudo crear el ticket.");
+        }
         setTicketId(data.ticketId);
         setMessages((prev) =>
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
         );
         await loadTickets();
       } else {
-        const data = await apiClient<PostMessageResponse>(
-          `/api/support/tickets/${ticketId}/messages`,
-          {
-            method: "POST",
-            body: JSON.stringify({ message: text }),
-          },
-        );
+        const res = await fetch(`/api/support/tickets/${ticketId}/messages`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        const data = (await res.json()) as PostMessageResponse;
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? "No se pudo enviar el mensaje.");
+        }
         setMessages((prev) =>
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
         );
@@ -196,11 +259,7 @@ export function SupportPageClient() {
     } catch (err) {
       setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
       setInputValue(text);
-      setError(
-        err instanceof ApiClientError
-          ? err.message
-          : "No se pudo enviar el mensaje.",
-      );
+      setError(err instanceof Error ? err.message : "No se pudo enviar el mensaje.");
     } finally {
       setSending(false);
     }
@@ -210,16 +269,49 @@ export function SupportPageClient() {
     switch (panel) {
       case "faqCategories":
         return (
-          <div className="overflow-hidden rounded-[1rem] ring-1 ring-[var(--border-subtle)]">
-            <ChatFaqCategories
-              brandName="Ads Holistic"
-              categories={supportMock.categories}
-              onSelectCategory={(id) => {
-                setSelectedCategoryId(id);
-                setPanel("faqCategoryDetail");
-              }}
-              onBack={() => setPanel("home")}
-            />
+          <div className="dashboard-surface-card overflow-hidden rounded-[1rem]">
+            <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(135deg,#1a1008_0%,#2a1810_55%,#e8451a_160%)] px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setPanel("home")}
+                className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
+              >
+                ← Volver
+              </button>
+              <p className="text-sm font-bold text-white">Preguntas frecuentes</p>
+              <p className="text-xs text-white/70">Guías rápidas de Ads Holistic</p>
+            </div>
+            <div className="p-4">
+              <input
+                type="search"
+                value={faqQuery}
+                onChange={(e) => setFaqQuery(e.target.value)}
+                placeholder="Buscar en FAQ…"
+                className="mb-3 h-10 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
+              />
+              <ul className="space-y-1">
+                {filteredFaqCategories.map((category) => (
+                  <li key={category.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryId(category.id);
+                        setPanel("faqCategoryDetail");
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-[14px] font-medium text-[var(--auth-text)] transition-colors hover:bg-[var(--surface-soft)]"
+                    >
+                      <span>{category.title}</span>
+                      <span className="text-[var(--auth-text-soft)]">→</span>
+                    </button>
+                  </li>
+                ))}
+                {filteredFaqCategories.length === 0 ? (
+                  <li className="px-3 py-6 text-center text-[13px] text-[var(--auth-text-muted)]">
+                    No hay resultados para “{faqQuery}”.
+                  </li>
+                ) : null}
+              </ul>
+            </div>
           </div>
         );
       case "faqCategoryDetail":
@@ -279,6 +371,7 @@ export function SupportPageClient() {
         <button
           type="button"
           onClick={() => {
+            setFaqQuery("");
             setPanel("faqCategories");
             setMobileShowChat(false);
           }}
@@ -289,7 +382,7 @@ export function SupportPageClient() {
               Preguntas frecuentes
             </p>
             <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
-              Guías rápidas antes de abrir un ticket
+              Buscá guías antes de abrir un ticket
             </p>
           </div>
           <svg
@@ -359,7 +452,7 @@ export function SupportPageClient() {
   );
 
   const chatColumn = (
-    <div className="dashboard-surface-card overflow-hidden rounded-[1rem]">
+    <div className="dashboard-surface-card h-full min-h-[560px] overflow-hidden rounded-[1.25rem] shadow-[0_16px_40px_rgb(15_23_42_/_0.06)]">
       <ChatConversation
         messages={messages}
         inputValue={inputValue}
@@ -367,11 +460,11 @@ export function SupportPageClient() {
         loading={loadingConversation}
         error={error}
         showBack={mobileShowChat}
-        className="h-[min(640px,70vh)] min-h-[420px]"
+        className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
         title={ticketId ? "Conversación" : "Nueva consulta"}
-        subtitle="Escribí acá. El equipo de Ads Holistic responde desde Soporte."
+        subtitle="Escribí, pegá capturas (Ctrl+V) o adjuntá fotos/PDF. Respondemos desde Soporte Holistic."
         onInputChange={setInputValue}
-        onSend={() => void handleSend()}
+        onSend={(files) => void handleSend(files)}
         onBack={() => {
           setMobileShowChat(false);
           setPanel("home");
@@ -390,14 +483,21 @@ export function SupportPageClient() {
           Ayuda y consultas
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Chateá con el equipo Holistic, abrí reclamos o revisá preguntas frecuentes.
-          Todo queda en tickets dentro de Ads Holistic — sin WhatsApp.
+          Chat interno de Ads Holistic: mensajes, fotos y archivos. Sin WhatsApp.
         </p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <div className={cn(mobileShowChat && "hidden lg:block")}>{leftColumn}</div>
-        <div className={cn(!mobileShowChat && panel !== "chat" && "hidden lg:block")}>
+        <div
+          className={cn(
+            "min-w-0",
+            !mobileShowChat &&
+              panel !== "chat" &&
+              faqMode &&
+              "hidden lg:block",
+          )}
+        >
           {chatColumn}
         </div>
       </div>

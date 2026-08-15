@@ -1,6 +1,23 @@
-import type { KeyboardEvent } from "react";
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
 import type { ChatMessage } from "../types/support.types";
 import { cn } from "@/lib/cn";
+
+interface PendingFile {
+  id: string;
+  file: File;
+  previewUrl: string | null;
+}
 
 interface ChatConversationProps {
   messages: ChatMessage[];
@@ -13,8 +30,19 @@ interface ChatConversationProps {
   title?: string;
   subtitle?: string;
   onInputChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (files: File[]) => void;
   onBack: () => void;
+}
+
+const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
+
+function isAllowedFile(file: File) {
+  return (
+    !file.type ||
+    ACCEPT.split(",").includes(file.type) ||
+    file.type.startsWith("image/") ||
+    file.type === "application/pdf"
+  );
 }
 
 export function ChatConversation({
@@ -31,21 +59,119 @@ export function ChatConversation({
   onSend,
   onBack,
 }: ChatConversationProps) {
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [pending, setPending] = useState<PendingFile[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+
+  const pendingFiles = useMemo(() => pending.map((item) => item.file), [pending]);
+
+  useEffect(() => {
+    return () => {
+      pending.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup on unmount only
+  }, []);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [inputValue]);
+
+  function addFiles(list: FileList | File[]) {
+    const next = Array.from(list).filter(isAllowedFile).slice(0, 5);
+    if (next.length === 0) return;
+    setPending((prev) => {
+      const room = Math.max(0, 5 - prev.length);
+      const toAdd = next.slice(0, room).map((file) => ({
+        id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+        file,
+        previewUrl: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : null,
+      }));
+      return [...prev, ...toAdd];
+    });
+  }
+
+  function removePending(id: string) {
+    setPending((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((item) => item.id !== id);
+    });
+  }
+
+  function clearPending() {
+    setPending((prev) => {
+      prev.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+      return [];
+    });
+  }
+
+  function handleSend() {
+    if (sending) return;
+    if (!inputValue.trim() && pendingFiles.length === 0) return;
+    onSend(pendingFiles);
+    clearPending();
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
   }
 
+  function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length > 0) {
+      e.preventDefault();
+      addFiles(files);
+    }
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+  }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    if (e.target.files?.length) addFiles(e.target.files);
+    e.target.value = "";
+  }
+
   return (
-    <div className={cn("flex h-[480px] flex-col", className)}>
-      <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
+    <div
+      className={cn("flex min-h-[520px] flex-col", className)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(135deg,#1a1008_0%,#2a1810_55%,#e8451a_160%)] px-5 py-4">
         {showBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
+            className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white lg:hidden"
             aria-label="Volver"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -54,18 +180,24 @@ export function ChatConversation({
             Volver
           </button>
         ) : null}
-        <p className="text-sm font-bold text-white">{title}</p>
-        <p className="text-xs text-white/70">{subtitle}</p>
+        <p className="text-[15px] font-bold text-white">{title}</p>
+        <p className="mt-0.5 text-[12px] text-white/75">{subtitle}</p>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--surface-soft)] p-4">
+      <div className="relative flex-1 space-y-3 overflow-y-auto bg-[#f7f4ef] p-4 sm:p-5">
+        {dragOver ? (
+          <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
+            Soltá la imagen o PDF acá
+          </div>
+        ) : null}
+
         {loading ? (
-          <p className="rounded-2xl bg-white px-3 py-2 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
+          <p className="rounded-2xl bg-white px-4 py-3 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
             Cargando historial…
           </p>
         ) : messages.length === 0 ? (
-          <div className="rounded-2xl bg-white px-3 py-2 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
-            Cuéntanos en qué podemos ayudarte y crearemos un ticket para darle seguimiento.
+          <div className="rounded-2xl bg-white px-4 py-3 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
+            Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.
           </div>
         ) : (
           messages.map((message) => (
@@ -74,14 +206,58 @@ export function ChatConversation({
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                className={`max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
                   message.role === "user"
                     ? "bg-[var(--brand-primary)] text-white"
-                    : "bg-white text-[#3f3a34] shadow-sm ring-1 ring-[var(--border-subtle)]"
+                    : "bg-white text-[#3f3a34] ring-1 ring-[var(--border-subtle)]"
                 }`}
               >
-                <p>{message.text}</p>
-                <p className={`mt-1 text-[10px] ${message.role === "user" ? "text-white/70" : "text-[#9a9187]"}`}>
+                {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+                {message.attachments && message.attachments.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {message.attachments.map((attachment) => {
+                      const isImage = attachment.mimeType.startsWith("image/");
+                      if (isImage && attachment.url) {
+                        return (
+                          <a
+                            key={`${message.id}-${attachment.path}`}
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-xl"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={attachment.url}
+                              alt={attachment.name}
+                              className="max-h-56 w-full object-cover"
+                            />
+                          </a>
+                        );
+                      }
+                      return (
+                        <a
+                          key={`${message.id}-${attachment.path}`}
+                          href={attachment.url ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                            message.role === "user"
+                              ? "bg-white/15 text-white"
+                              : "bg-[var(--surface-soft)] text-[var(--auth-text)]"
+                          }`}
+                        >
+                          📎 {attachment.name}
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                <p
+                  className={`mt-1.5 text-[10px] ${
+                    message.role === "user" ? "text-white/70" : "text-[#9a9187]"
+                  }`}
+                >
                   {message.timestamp}
                 </p>
               </div>
@@ -95,32 +271,90 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="border-t border-[var(--border-subtle)] bg-white p-3">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
+      <div className="border-t border-[var(--auth-divider)] bg-white p-3 sm:p-4">
+        {pending.length > 0 ? (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {pending.map((item) => (
+              <div
+                key={item.id}
+                className="relative overflow-hidden rounded-xl border border-[var(--auth-input-border)] bg-[var(--surface-soft)]"
+              >
+                {item.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.previewUrl}
+                    alt={item.file.name}
+                    className="h-16 w-16 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-28 items-center px-2 text-[11px] font-medium text-[var(--auth-text-muted)]">
+                    {item.file.name}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removePending(item.id)}
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
+                  aria-label="Quitar archivo"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="rounded-2xl border border-[var(--auth-input-border)] bg-[#faf8f5] p-2 focus-within:border-[var(--auth-accent)]/70 focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/15">
+          <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribe tu mensaje..."
+            onPaste={handlePaste}
+            rows={2}
+            placeholder="Escribí tu mensaje… Podés pegar capturas con Ctrl+V"
             aria-label="Escribir mensaje"
-            className="h-9 flex-1 rounded-full border border-[var(--border-subtle)] px-4 text-sm text-[#141210] placeholder:text-[#9a9187] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+            className="max-h-40 min-h-[52px] w-full resize-none bg-transparent px-2.5 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={onSend}
-            disabled={sending || !inputValue.trim()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
-            aria-label="Enviar mensaje"
-          >
-            {sending ? (
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-              </svg>
-            )}
-          </button>
+          <div className="flex items-center justify-between gap-2 px-1 pb-1">
+            <div className="flex items-center gap-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPT}
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
+                aria-label="Adjuntar archivo"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                </svg>
+                Adjuntar
+              </button>
+              <span className="hidden text-[11px] text-[var(--auth-text-soft)] sm:inline">
+                Enter envía · Shift+Enter nueva línea
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || (!inputValue.trim() && pendingFiles.length === 0)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
+            >
+              {sending ? "Enviando…" : "Enviar"}
+              {!sending ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+              ) : null}
+            </button>
+          </div>
         </div>
       </div>
     </div>

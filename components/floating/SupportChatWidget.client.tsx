@@ -132,9 +132,9 @@ export function SupportChatWidget({
     await loadConversation();
   }
 
-  async function handleSend() {
+  async function handleSend(files: File[] = []) {
     const text = inputValue.trim();
-    if (!text || sending) return;
+    if ((!text && files.length === 0) || sending) return;
 
     setSending(true);
     setError(null);
@@ -143,7 +143,7 @@ export function SupportChatWidget({
     const optimistic: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text,
+      text: text || (files.length ? "📎 Adjunto" : ""),
       timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
     };
     setMessages((prev) => [
@@ -152,24 +152,35 @@ export function SupportChatWidget({
     ]);
 
     try {
+      const formData = new FormData();
+      if (text) formData.set("message", text);
+      for (const file of files) formData.append("files", file);
+
       if (!ticketId) {
-        const data = await apiClient<CreateTicketResponse>("/api/support/tickets", {
+        const res = await fetch("/api/support/tickets", {
           method: "POST",
-          body: JSON.stringify({ message: text }),
+          body: formData,
+          credentials: "include",
         });
+        const data = (await res.json()) as CreateTicketResponse & { error?: string };
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? "No se pudo crear el ticket.");
+        }
         setTicketId(data.ticketId);
         setConversationLoaded(true);
         setMessages((prev) =>
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
         );
       } else {
-        const data = await apiClient<PostMessageResponse>(
-          `/api/support/tickets/${ticketId}/messages`,
-          {
-            method: "POST",
-            body: JSON.stringify({ message: text }),
-          },
-        );
+        const res = await fetch(`/api/support/tickets/${ticketId}/messages`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        const data = (await res.json()) as PostMessageResponse & { error?: string };
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? "No se pudo enviar el mensaje.");
+        }
         setMessages((prev) =>
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
         );
@@ -178,7 +189,7 @@ export function SupportChatWidget({
       setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
       setInputValue(text);
       setError(
-        err instanceof ApiClientError
+        err instanceof ApiClientError || err instanceof Error
           ? err.message
           : "No se pudo enviar el mensaje.",
       );
@@ -198,7 +209,7 @@ export function SupportChatWidget({
             loading={loadingConversation}
             error={error}
             onInputChange={setInputValue}
-            onSend={handleSend}
+            onSend={(files) => void handleSend(files)}
             onBack={() => setView("home")}
           />
         );

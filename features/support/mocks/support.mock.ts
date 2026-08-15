@@ -1,9 +1,9 @@
 import type { SupportConfig } from "../types/support.types";
 
 export const supportMock: SupportConfig = {
-  brandName: "Default Media",
-  poweredByLabel: "Desarrollado por Default Support",
-  whatsappUrl: "https://wa.me/000000000",
+  brandName: "Ads Holistic",
+  poweredByLabel: "Soporte Ads Holistic",
+  whatsappUrl: "",
   initialMessages: [
     {
       id: "bot-welcome",
@@ -15,7 +15,7 @@ export const supportMock: SupportConfig = {
   categories: [
     {
       id: "platform-guideline",
-      title: "Guía de la plataforma Default",
+      title: "Guía de la plataforma Ads Holistic",
       articleIds: [
         "intro",
         "step-register",

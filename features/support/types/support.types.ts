@@ -20,11 +20,21 @@ export interface SupportArticle {
   bullets: string[];
 }
 
+export interface ChatAttachment {
+  name: string;
+  mimeType: string;
+  path: string;
+  bucket: string;
+  size: number;
+  url?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "bot";
   text: string;
   timestamp: string;
+  attachments?: ChatAttachment[];
 }
 
 export interface SupportConfig {

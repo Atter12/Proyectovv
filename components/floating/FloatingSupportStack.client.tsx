@@ -5,8 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { routes } from "@/config/routes";
-import { supportMock } from "@/features/support/mocks/support.mock";
-import { WhatsAppFloatingButton } from "./WhatsAppFloatingButton.client";
 import { SupportChatWidget } from "./SupportChatWidget.client";
 
 const OnboardingWidgetLoader = dynamic(
@@ -20,11 +18,18 @@ const OnboardingWidgetLoader = dynamic(
 export function FloatingSupportStack() {
   const [chatOpen, setChatOpen] = useState(false);
   const pathname = usePathname();
+  const onSupportPage =
+    pathname === routes.support || pathname.startsWith(`${routes.support}/`);
   const needsStickyLift =
     pathname === routes.payments ||
     pathname.startsWith(`${routes.payments}/`) ||
     pathname === routes.adAccounts ||
     pathname.startsWith(`${routes.adAccounts}/`);
+
+  // En /support la página completa es el canal; sin WhatsApp ni burbuja duplicada.
+  if (onSupportPage) {
+    return null;
+  }
 
   return (
     <div
@@ -37,15 +42,11 @@ export function FloatingSupportStack() {
     >
       <div className="pointer-events-auto flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:max-w-none sm:gap-3">
         <OnboardingWidgetLoader chatOpen={chatOpen} />
-
-        <div className="flex flex-row items-end justify-end gap-2 sm:flex-col sm:gap-3">
-          <WhatsAppFloatingButton url={supportMock.whatsappUrl} />
-          <SupportChatWidget
-            isOpen={chatOpen}
-            onToggle={() => setChatOpen(true)}
-            onOpenChange={setChatOpen}
-          />
-        </div>
+        <SupportChatWidget
+          isOpen={chatOpen}
+          onToggle={() => setChatOpen(true)}
+          onOpenChange={setChatOpen}
+        />
       </div>
     </div>
   );
