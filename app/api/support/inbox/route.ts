@@ -26,6 +26,10 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") ?? "all";
   const q = searchParams.get("q") ?? "";
 
-  const tickets = await listInboxTickets({ status, q });
-  return NextResponse.json({ ok: true, tickets });
+  const tickets = await listInboxTickets({
+    status,
+    q,
+    assignedUserId: session.id,
+  });
+  return NextResponse.json({ ok: true, tickets, me: { id: session.id, email: session.email } });
 }

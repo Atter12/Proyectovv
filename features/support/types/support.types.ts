@@ -35,6 +35,9 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   attachments?: ChatAttachment[];
+  /** Etiqueta visible estilo Whaticket (Cliente / nombre del agente). */
+  senderName?: string | null;
+  senderKind?: "client" | "agent" | "system";
 }
 
 export interface SupportConfig {

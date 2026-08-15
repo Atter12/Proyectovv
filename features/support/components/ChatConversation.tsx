@@ -32,6 +32,8 @@ interface ChatConversationProps {
   onInputChange: (value: string) => void;
   onSend: (files: File[]) => void;
   onBack: () => void;
+  composerDisabled?: boolean;
+  composerDisabledReason?: string;
 }
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
@@ -58,6 +60,8 @@ export function ChatConversation({
   onInputChange,
   onSend,
   onBack,
+  composerDisabled = false,
+  composerDisabledReason,
 }: ChatConversationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -116,7 +120,7 @@ export function ChatConversation({
   }
 
   function handleSend() {
-    if (sending) return;
+    if (sending || composerDisabled) return;
     if (!inputValue.trim() && pendingFiles.length === 0) return;
     onSend(pendingFiles);
     clearPending();
@@ -253,8 +257,19 @@ export function ChatConversation({
                     })}
                   </div>
                 ) : null}
+                {message.senderName ? (
+                  <p
+                    className={`mt-1.5 text-[10px] font-semibold ${
+                      message.role === "user"
+                        ? "text-white/85"
+                        : "text-[var(--auth-accent)]"
+                    }`}
+                  >
+                    {message.senderName}
+                  </p>
+                ) : null}
                 <p
-                  className={`mt-1.5 text-[10px] ${
+                  className={`mt-1 text-[10px] ${
                     message.role === "user" ? "text-white/70" : "text-[#9a9187]"
                   }`}
                 >
@@ -272,6 +287,11 @@ export function ChatConversation({
       </div>
 
       <div className="border-t border-[var(--auth-divider)] bg-white p-3 sm:p-4">
+        {composerDisabled ? (
+          <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
+            {composerDisabledReason ?? "No podés escribir en este chat ahora."}
+          </p>
+        ) : null}
         {pending.length > 0 ? (
           <div className="mb-3 flex flex-wrap gap-2">
             {pending.map((item) => (
@@ -312,9 +332,10 @@ export function ChatConversation({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             rows={2}
+            disabled={composerDisabled}
             placeholder="Escribí tu mensaje… Podés pegar capturas con Ctrl+V"
             aria-label="Escribir mensaje"
-            className="max-h-40 min-h-[52px] w-full resize-none bg-transparent px-2.5 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none"
+            className="max-h-40 min-h-[52px] w-full resize-none bg-transparent px-2.5 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none disabled:opacity-60"
           />
           <div className="flex items-center justify-between gap-2 px-1 pb-1">
             <div className="flex items-center gap-1">
@@ -328,6 +349,7 @@ export function ChatConversation({
               />
               <button
                 type="button"
+                disabled={sending || composerDisabled}
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
                 aria-label="Adjuntar archivo"
@@ -344,7 +366,11 @@ export function ChatConversation({
             <button
               type="button"
               onClick={handleSend}
-              disabled={sending || (!inputValue.trim() && pendingFiles.length === 0)}
+              disabled={
+                composerDisabled ||
+                sending ||
+                (!inputValue.trim() && pendingFiles.length === 0)
+              }
               className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
             >
               {sending ? "Enviando…" : "Enviar"}

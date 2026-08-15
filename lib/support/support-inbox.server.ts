@@ -70,6 +70,8 @@ export interface InboxTicketItem {
   requesterEmail: string | null;
   requesterName: string | null;
   assignedUserId: string | null;
+  assignedUserName: string | null;
+  assignedUserEmail: string | null;
 }
 
 function parseAttachments(raw: unknown): SupportAttachmentInput[] {
@@ -120,6 +122,7 @@ async function withSignedUrls(
 export async function listInboxTickets(filters?: {
   status?: string;
   q?: string;
+  assignedUserId?: string;
 }): Promise<InboxTicketItem[]> {
   const admin = createAdminClient();
   let query = admin
@@ -133,7 +136,13 @@ export async function listInboxTickets(filters?: {
   if (filters?.status && filters.status !== "all") {
     if (filters.status === "active") {
       query = query.in("status", ["open", "pending"]);
-    } else {
+    } else if (filters.status === "unassigned") {
+      query = query.in("status", ["open", "pending"]).is("assigned_user_id", null);
+    } else if (filters.status === "mine" && filters.assignedUserId) {
+      query = query
+        .in("status", ["open", "pending"])
+        .eq("assigned_user_id", filters.assignedUserId);
+    } else if (filters.status !== "mine") {
       query = query.eq("status", filters.status);
     }
   }
@@ -185,6 +194,9 @@ export async function listInboxTickets(filters?: {
     const requester = row.requester_user_id
       ? profileMap.get(row.requester_user_id as string)
       : undefined;
+    const assignee = row.assigned_user_id
+      ? profileMap.get(row.assigned_user_id as string)
+      : undefined;
     return {
       id: row.id as string,
       subject: row.subject as string,
@@ -200,16 +212,33 @@ export async function listInboxTickets(filters?: {
       requesterEmail: requester?.email ?? null,
       requesterName: requester?.name ?? null,
       assignedUserId: (row.assigned_user_id as string | null) ?? null,
+      assignedUserName: assignee?.name ?? null,
+      assignedUserEmail: assignee?.email ?? null,
     };
   });
 
   const q = filters?.q?.trim().toLowerCase();
   if (q) {
     items = items.filter((item) =>
-      [item.subject, item.organizationName, item.requesterEmail, item.requesterName, item.category]
+      [
+        item.subject,
+        item.organizationName,
+        item.requesterEmail,
+        item.requesterName,
+        item.assignedUserName,
+        item.assignedUserEmail,
+        item.category,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
     );
+  }
+
+  if (filters?.status === "unassigned") {
+    items = items.filter((item) => !item.assignedUserId);
+  }
+  if (filters?.status === "mine" && filters.assignedUserId) {
+    items = items.filter((item) => item.assignedUserId === filters.assignedUserId);
   }
 
   return items;
@@ -267,14 +296,30 @@ export async function listInboxTicketMessagesForAgent(
   if (error || !data) return [];
 
   const requesterId = ticket?.requester_user_id ?? null;
+  const senderIds = [
+    ...new Set(
+      data
+        .map((row) => row.sender_user_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const { data: profiles } = senderIds.length
+    ? await admin.from("profiles").select("id, email, full_name").in("id", senderIds)
+    : { data: [] as Array<{ id: string; email: string | null; full_name: string | null }> };
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [
+      p.id,
+      p.full_name?.trim() || p.email?.split("@")[0] || "Agente",
+    ]),
+  );
 
   return Promise.all(
     data.map(async (row) => {
       const attachments = await withSignedUrls(parseAttachments(row.attachments));
       const fromClient = row.sender_user_id === requesterId;
+      const senderId = row.sender_user_id as string | null;
       return {
         id: row.id as string,
-        // En UI agente: cliente a la izquierda (bot), agente a la derecha (user)
         role: fromClient ? "bot" : "user",
         text: row.body as string,
         timestamp: new Date(row.created_at as string).toLocaleTimeString("es", {
@@ -282,9 +327,91 @@ export async function listInboxTicketMessagesForAgent(
           minute: "2-digit",
         }),
         attachments,
+        senderKind: fromClient ? "client" : "agent",
+        senderName: fromClient
+          ? "Cliente"
+          : senderId
+            ? (profileMap.get(senderId) ?? "Agente")
+            : "Soporte",
       } satisfies ChatMessage;
     }),
   );
+}
+
+export async function claimInboxTicket(input: {
+  session: SessionUser;
+  ticketId: string;
+}): Promise<InboxTicketItem | null> {
+  const admin = createAdminClient();
+  const { data: ticket, error } = await admin
+    .from("support_tickets")
+    .select("id, assigned_user_id, status")
+    .eq("id", input.ticketId)
+    .maybeSingle<{ id: string; assigned_user_id: string | null; status: string }>();
+
+  if (error || !ticket) {
+    throw new Error(error?.message ?? "Ticket no encontrado.");
+  }
+
+  if (
+    ticket.assigned_user_id &&
+    ticket.assigned_user_id !== input.session.id
+  ) {
+    throw new Error("Otro agente ya tomó este chat.");
+  }
+
+  const { error: updateError } = await admin
+    .from("support_tickets")
+    .update({
+      assigned_user_id: input.session.id,
+      status: ticket.status === "closed" || ticket.status === "resolved" ? ticket.status : "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.ticketId);
+
+  if (updateError) {
+    // Si pending falla por enum raro, al menos asignar.
+    const { error: fallbackError } = await admin
+      .from("support_tickets")
+      .update({
+        assigned_user_id: input.session.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.ticketId);
+    if (fallbackError) throw new Error(fallbackError.message);
+  }
+
+  const items = await listInboxTickets({ status: "all" });
+  return items.find((item) => item.id === input.ticketId) ?? null;
+}
+
+export async function releaseInboxTicket(input: {
+  session: SessionUser;
+  ticketId: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+  const { data: ticket, error } = await admin
+    .from("support_tickets")
+    .select("id, assigned_user_id")
+    .eq("id", input.ticketId)
+    .maybeSingle<{ id: string; assigned_user_id: string | null }>();
+
+  if (error || !ticket) {
+    throw new Error(error?.message ?? "Ticket no encontrado.");
+  }
+  if (ticket.assigned_user_id && ticket.assigned_user_id !== input.session.id) {
+    throw new Error("Solo el agente asignado puede liberar el chat.");
+  }
+
+  const { error: updateError } = await admin
+    .from("support_tickets")
+    .update({
+      assigned_user_id: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.ticketId);
+
+  if (updateError) throw new Error(updateError.message);
 }
 
 export async function replyInboxTicket(input: {
@@ -297,7 +424,7 @@ export async function replyInboxTicket(input: {
   const admin = createAdminClient();
   const { data: ticket, error } = await admin
     .from("support_tickets")
-    .select("id, organization_id, requester_user_id, subject, status")
+    .select("id, organization_id, requester_user_id, subject, status, assigned_user_id")
     .eq("id", input.ticketId)
     .maybeSingle<{
       id: string;
@@ -305,10 +432,29 @@ export async function replyInboxTicket(input: {
       requester_user_id: string | null;
       subject: string;
       status: string;
+      assigned_user_id: string | null;
     }>();
 
   if (error || !ticket) {
     throw new Error(error?.message ?? "Ticket no encontrado.");
+  }
+
+  if (
+    ticket.assigned_user_id &&
+    ticket.assigned_user_id !== input.session.id
+  ) {
+    throw new Error("Este chat lo está atendiendo otro agente. Pedile que lo libere o tomalo solo si está libre.");
+  }
+
+  // Whaticket-style: al responder se toma el chat automáticamente.
+  if (!ticket.assigned_user_id) {
+    await admin
+      .from("support_tickets")
+      .update({
+        assigned_user_id: input.session.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", ticket.id);
   }
 
   const files = input.files ?? [];
@@ -364,6 +510,9 @@ export async function replyInboxTicket(input: {
   });
 
   const signed = await withSignedUrls(parseAttachments(message.attachments));
+  const agentLabel =
+    input.session.email?.split("@")[0] ||
+    "Agente";
   return {
     id: message.id as string,
     role: "user",
@@ -373,6 +522,8 @@ export async function replyInboxTicket(input: {
       minute: "2-digit",
     }),
     attachments: signed,
+    senderKind: "agent",
+    senderName: agentLabel,
   };
 }
 

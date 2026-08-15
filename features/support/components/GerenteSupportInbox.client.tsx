@@ -18,6 +18,9 @@ interface InboxTicket {
   organizationName: string | null;
   requesterEmail: string | null;
   requesterName: string | null;
+  assignedUserId: string | null;
+  assignedUserName: string | null;
+  assignedUserEmail: string | null;
 }
 
 function formatTicketDate(value: string) {
@@ -38,21 +41,25 @@ function emptyThread(): ChatMessage[] {
     {
       id: "inbox-empty",
       role: "bot",
-      text: "Elegí un ticket a la izquierda para ver la conversación y responder.",
+      text: "Elegí un ticket a la izquierda. Tomá el chat (estilo Whaticket) y respondé.",
       timestamp: new Date().toLocaleTimeString("es", {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      senderName: "Sistema",
+      senderKind: "system",
     },
   ];
 }
 
 export function GerenteSupportInbox() {
   const [tickets, setTickets] = useState<InboxTicket[]>([]);
+  const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
+  const [claiming, setClaiming] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(emptyThread());
@@ -63,11 +70,23 @@ export function GerenteSupportInbox() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const selected = tickets.find((t) => t.id === selectedId) ?? null;
+  const iOwnSelected =
+    Boolean(selected?.assignedUserId) && selected?.assignedUserId === meId;
+  const isUnassigned = selected && !selected.assignedUserId;
+  const ownedByOther =
+    selected?.assignedUserId && selected.assignedUserId !== meId;
 
   const filteredTickets = tickets.filter((ticket) => {
     const query = q.trim().toLowerCase();
     if (!query) return true;
-    return [ticket.subject, ticket.organizationName, ticket.requesterEmail, ticket.requesterName]
+    return [
+      ticket.subject,
+      ticket.organizationName,
+      ticket.requesterEmail,
+      ticket.requesterName,
+      ticket.assignedUserName,
+      ticket.assignedUserEmail,
+    ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
   });
@@ -76,9 +95,7 @@ export function GerenteSupportInbox() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        status: statusFilter,
-      });
+      const params = new URLSearchParams({ status: statusFilter });
       const res = await fetch(`/api/support/inbox?${params.toString()}`, {
         credentials: "include",
         cache: "no-store",
@@ -86,12 +103,14 @@ export function GerenteSupportInbox() {
       const data = (await res.json()) as {
         ok?: boolean;
         tickets?: InboxTicket[];
+        me?: { id: string; email: string };
         error?: string;
       };
       if (!res.ok || !data.ok) {
         throw new Error(data.error ?? "No se pudo cargar el inbox.");
       }
       setTickets(data.tickets ?? []);
+      if (data.me?.id) setMeId(data.me.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar inbox.");
     } finally {
@@ -133,6 +152,7 @@ export function GerenteSupportInbox() {
                   hour: "2-digit",
                   minute: "2-digit",
                 }),
+                senderName: "Sistema",
               },
             ],
       );
@@ -141,6 +161,29 @@ export function GerenteSupportInbox() {
       setMessages(emptyThread());
     } finally {
       setLoadingThread(false);
+    }
+  }
+
+  async function claimOrRelease(action: "claim" | "release") {
+    if (!selectedId) return;
+    setClaiming(true);
+    setThreadError(null);
+    try {
+      const res = await fetch(`/api/support/inbox/${selectedId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? "No se pudo actualizar la asignación.");
+      }
+      await loadTickets();
+    } catch (err) {
+      setThreadError(err instanceof Error ? err.message : "Error de asignación.");
+    } finally {
+      setClaiming(false);
     }
   }
 
@@ -161,6 +204,8 @@ export function GerenteSupportInbox() {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      senderName: "Vos",
+      senderKind: "agent",
     };
     setMessages((prev) => [...prev.filter((m) => m.id !== "inbox-empty"), optimistic]);
 
@@ -215,18 +260,20 @@ export function GerenteSupportInbox() {
     }
   }
 
+  const assigneeLabel = selected?.assignedUserName || selected?.assignedUserEmail;
+
   return (
     <div className={dashboardClasses.page}>
       <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Gerente · Inbox
+          Gerente · Inbox (estilo Whaticket)
         </p>
         <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
           Inbox Soporte
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Acá llegan las consultas y reclamos de los clientes. Respondé en el
-          chat; el cliente lo ve en su sección Soporte.
+          Cola compartida: tomá el chat, atendé y se ve quién responde. El cliente
+          recibe todo en su sección Soporte.
         </p>
       </header>
 
@@ -237,13 +284,14 @@ export function GerenteSupportInbox() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar cliente, mail o asunto…"
+                placeholder="Buscar cliente, mail, agente o asunto…"
                 className="h-10 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
               />
               <div className="flex flex-wrap gap-1.5">
                 {[
+                  { id: "unassigned", label: "Sin atender" },
+                  { id: "mine", label: "Míos" },
                   { id: "active", label: "Activos" },
-                  { id: "open", label: "Abiertos" },
                   { id: "pending", label: "Pendientes" },
                   { id: "all", label: "Todos" },
                   { id: "resolved", label: "Resueltos" },
@@ -284,6 +332,8 @@ export function GerenteSupportInbox() {
               ) : (
                 filteredTickets.map((ticket) => {
                   const active = ticket.id === selectedId;
+                  const mine = ticket.assignedUserId === meId;
+                  const free = !ticket.assignedUserId;
                   return (
                     <button
                       key={ticket.id}
@@ -312,6 +362,22 @@ export function GerenteSupportInbox() {
                           ? ` · ${ticket.organizationName}`
                           : ""}
                       </p>
+                      <p
+                        className={cn(
+                          "mt-1 text-[11px] font-semibold",
+                          free
+                            ? "text-amber-700"
+                            : mine
+                              ? "text-emerald-700"
+                              : "text-[var(--auth-text-soft)]",
+                        )}
+                      >
+                        {free
+                          ? "Sin atender — tomá el chat"
+                          : mine
+                            ? "Lo estás atendiendo vos"
+                            : `Atendido por ${ticket.assignedUserName || ticket.assignedUserEmail || "otro agente"}`}
+                      </p>
                       <p className="mt-0.5 text-[11px] text-[var(--auth-text-soft)]">
                         {formatTicketDate(ticket.updatedAt ?? ticket.createdAt)}
                       </p>
@@ -329,7 +395,30 @@ export function GerenteSupportInbox() {
               <p className="mr-auto text-[13px] font-medium text-[var(--auth-text-muted)]">
                 {selected.requesterEmail ?? "Sin email"} ·{" "}
                 {TICKET_STATUS_LABELS[selected.status] ?? selected.status}
+                {assigneeLabel ? ` · Agente: ${assigneeLabel}` : " · Sin agente"}
               </p>
+
+              {isUnassigned ? (
+                <button
+                  type="button"
+                  disabled={claiming}
+                  onClick={() => void claimOrRelease("claim")}
+                  className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
+                >
+                  {claiming ? "Tomando…" : "Tomar chat"}
+                </button>
+              ) : null}
+              {iOwnSelected ? (
+                <button
+                  type="button"
+                  disabled={claiming}
+                  onClick={() => void claimOrRelease("release")}
+                  className="rounded-lg border border-[var(--auth-input-border)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--auth-text-muted)] hover:text-[var(--auth-text)] disabled:opacity-50"
+                >
+                  Liberar
+                </button>
+              ) : null}
+
               {[
                 { id: "open", label: "Abrir" },
                 { id: "pending", label: "Pendiente" },
@@ -348,6 +437,13 @@ export function GerenteSupportInbox() {
             </div>
           ) : null}
 
+          {ownedByOther ? (
+            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-900">
+              Este chat lo tiene otro agente. Podés leerlo; para responder tiene que
+              liberarlo o pedirle que te lo pase.
+            </p>
+          ) : null}
+
           <div className="dashboard-surface-card overflow-hidden rounded-[1.25rem] shadow-[0_16px_40px_rgb(15_23_42_/_0.06)]">
             <ChatConversation
               messages={messages}
@@ -360,12 +456,18 @@ export function GerenteSupportInbox() {
               title={selected ? selected.subject : "Inbox Soporte"}
               subtitle={
                 selected
-                  ? `Respondé al cliente${selected.requesterEmail ? ` (${selected.requesterEmail})` : ""}.`
+                  ? isUnassigned
+                    ? "Tomá el chat o respondé (al enviar se te asigna)."
+                    : iOwnSelected
+                      ? `Atendiendo vos · ${selected.requesterEmail ?? "cliente"}`
+                      : `Atendido por ${assigneeLabel ?? "otro agente"}`
                   : "Seleccioná un ticket para atender."
               }
               onInputChange={setInputValue}
               onSend={(files) => void handleSend(files)}
               onBack={() => setMobileShowChat(false)}
+              composerDisabled={Boolean(ownedByOther)}
+              composerDisabledReason="Otro agente tiene este chat. Pedile que lo libere para responder."
             />
           </div>
         </div>
