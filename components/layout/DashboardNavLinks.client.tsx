@@ -73,7 +73,9 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   if (item.href === "/overview") return "Resumen";
   if (item.href === "/affiliates") return "Afiliados";
   if (item.href === "/creative-analyzer") return "Creativos";
-  if (item.href === "/support") return "Soporte";
+  if (item.href === "/support") {
+    return persona === "cliente" ? "Soporte" : "Inbox Soporte";
+  }
   return item.label;
 }
 
