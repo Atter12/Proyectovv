@@ -51,7 +51,7 @@ export function GerenteSupportInbox() {
   const [tickets, setTickets] = useState<InboxTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("open");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -242,6 +242,7 @@ export function GerenteSupportInbox() {
               />
               <div className="flex flex-wrap gap-1.5">
                 {[
+                  { id: "active", label: "Activos" },
                   { id: "open", label: "Abiertos" },
                   { id: "pending", label: "Pendientes" },
                   { id: "all", label: "Todos" },

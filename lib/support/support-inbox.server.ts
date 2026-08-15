@@ -131,7 +131,11 @@ export async function listInboxTickets(filters?: {
     .limit(100);
 
   if (filters?.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
+    if (filters.status === "active") {
+      query = query.in("status", ["open", "pending"]);
+    } else {
+      query = query.eq("status", filters.status);
+    }
   }
 
   const { data, error } = await query;
@@ -344,18 +348,11 @@ export async function replyInboxTicket(input: {
       ? input.status
       : "pending";
 
-  await admin
-    .from("support_tickets")
-    .update({
-      status: nextStatus,
-      assigned_user_id: input.session.id,
-      updated_at: new Date().toISOString(),
-      closed_at:
-        nextStatus === "closed" || nextStatus === "resolved"
-          ? new Date().toISOString()
-          : null,
-    })
-    .eq("id", ticket.id);
+  await updateTicketStatusWithFallback({
+    ticketId: ticket.id,
+    status: nextStatus,
+    assignedUserId: input.session.id,
+  });
 
   await createNotificationBestEffort({
     organizationId: ticket.organization_id,
@@ -387,18 +384,40 @@ export async function updateInboxTicketStatus(input: {
   if (!["open", "pending", "resolved", "closed"].includes(input.status)) {
     throw new Error("Estado inválido.");
   }
+  await updateTicketStatusWithFallback({
+    ticketId: input.ticketId,
+    status: input.status,
+    assignedUserId: input.session.id,
+  });
+}
+
+async function updateTicketStatusWithFallback(input: {
+  ticketId: string;
+  status: string;
+  assignedUserId: string;
+}): Promise<void> {
   const admin = createAdminClient();
-  const { error } = await admin
-    .from("support_tickets")
-    .update({
-      status: input.status,
-      assigned_user_id: input.session.id,
-      updated_at: new Date().toISOString(),
-      closed_at:
-        input.status === "closed" || input.status === "resolved"
-          ? new Date().toISOString()
-          : null,
-    })
-    .eq("id", input.ticketId);
+  const desired = input.status;
+  const closedAt =
+    desired === "closed" || desired === "resolved"
+      ? new Date().toISOString()
+      : null;
+
+  const run = async (status: string) =>
+    admin
+      .from("support_tickets")
+      .update({
+        status,
+        assigned_user_id: input.assignedUserId,
+        updated_at: new Date().toISOString(),
+        closed_at: status === "closed" || status === "resolved" ? closedAt : null,
+      })
+      .eq("id", input.ticketId);
+
+  let { error } = await run(desired);
+  if (error && desired === "resolved") {
+    // Prod a veces no tiene el valor `resolved` en el enum.
+    ({ error } = await run("closed"));
+  }
   if (error) throw new Error(error.message);
 }
