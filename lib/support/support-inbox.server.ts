@@ -75,6 +75,8 @@ export interface InboxTicketItem {
   assignedUserName: string | null;
   assignedUserEmail: string | null;
   assignedUserDisplayName: string | null;
+  /** true si aún no hay ticket de soporte (solo contacto CRM). */
+  hasTicket?: boolean;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -279,6 +281,326 @@ export async function listInboxTickets(filters?: {
   }
 
   return items;
+}
+
+/**
+ * Lista TODOS los clientes (organizaciones) con su último ticket si existe.
+ * Filtro "all" = agenda completa estilo WhatsApp / Whaticket.
+ */
+export async function listInboxContacts(filters?: {
+  status?: string;
+  q?: string;
+  assignedUserId?: string;
+}): Promise<InboxTicketItem[]> {
+  const admin = createAdminClient();
+
+  const { data: orgs, error: orgsError } = await admin
+    .from("organizations")
+    .select("id, name, created_at, updated_at")
+    .order("name", { ascending: true })
+    .limit(300);
+
+  if (orgsError || !orgs) return [];
+
+  const orgIds = orgs.map((o) => o.id as string);
+  if (orgIds.length === 0) return [];
+
+  const [{ data: memberships }, { data: tickets }] = await Promise.all([
+    admin
+      .from("organization_memberships")
+      .select("organization_id, user_id, role, status, created_at")
+      .in("organization_id", orgIds)
+      .eq("status", "active"),
+    admin
+      .from("support_tickets")
+      .select(
+        "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at",
+      )
+      .in("organization_id", orgIds)
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(500),
+  ]);
+
+  const userIds = [
+    ...new Set(
+      (memberships ?? [])
+        .map((m) => m.user_id as string)
+        .concat(
+          (tickets ?? []).flatMap((t) => [
+            t.requester_user_id as string | null,
+            t.assigned_user_id as string | null,
+          ].filter((id): id is string => Boolean(id))),
+        ),
+    ),
+  ];
+
+  const { data: profiles } = userIds.length
+    ? await admin.from("profiles").select("id, email, full_name").in("id", userIds)
+    : { data: [] as Array<{ id: string; email: string | null; full_name: string | null }> };
+
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [
+      p.id,
+      { email: p.email, name: p.full_name },
+    ]),
+  );
+
+  const membersByOrg = new Map<
+    string,
+    Array<{ user_id: string; role: string; created_at: string }>
+  >();
+  for (const m of memberships ?? []) {
+    const orgId = m.organization_id as string;
+    const list = membersByOrg.get(orgId) ?? [];
+    list.push({
+      user_id: m.user_id as string,
+      role: m.role as string,
+      created_at: m.created_at as string,
+    });
+    membersByOrg.set(orgId, list);
+  }
+
+  const latestTicketByOrg = new Map<
+    string,
+    {
+      id: string;
+      organization_id: string | null;
+      requester_user_id: string | null;
+      assigned_user_id: string | null;
+      subject: string;
+      status: string;
+      priority: string | null;
+      category: string | null;
+      created_at: string;
+      updated_at: string | null;
+    }
+  >();
+  for (const t of tickets ?? []) {
+    const orgId = t.organization_id as string | null;
+    if (!orgId || latestTicketByOrg.has(orgId)) continue;
+    latestTicketByOrg.set(orgId, {
+      id: t.id as string,
+      organization_id: (t.organization_id as string | null) ?? null,
+      requester_user_id: (t.requester_user_id as string | null) ?? null,
+      assigned_user_id: (t.assigned_user_id as string | null) ?? null,
+      subject: t.subject as string,
+      status: t.status as string,
+      priority: (t.priority as string | null) ?? null,
+      category: (t.category as string | null) ?? null,
+      created_at: t.created_at as string,
+      updated_at: (t.updated_at as string | null) ?? null,
+    });
+  }
+
+  function primaryForOrg(orgId: string) {
+    const list = (membersByOrg.get(orgId) ?? []).slice().sort((a, b) => {
+      const score = (role: string) =>
+        role === "owner" ? 0 : role === "admin" ? 1 : 2;
+      return score(a.role) - score(b.role);
+    });
+    const primaryId = list[0]?.user_id;
+    return primaryId ? profileMap.get(primaryId) : undefined;
+  }
+
+  let items: InboxTicketItem[] = orgs.map((org) => {
+    const organizationId = org.id as string;
+    const organizationName = (org.name as string) ?? null;
+    const ticket = latestTicketByOrg.get(organizationId);
+    const primary = primaryForOrg(organizationId);
+    const requester = ticket?.requester_user_id
+      ? profileMap.get(ticket.requester_user_id as string)
+      : primary;
+    const assignee = ticket?.assigned_user_id
+      ? profileMap.get(ticket.assigned_user_id as string)
+      : undefined;
+    const requesterName = requester?.name ?? primary?.name ?? null;
+    const requesterEmail = requester?.email ?? primary?.email ?? null;
+    const assignedUserName = assignee?.name ?? null;
+    const assignedUserEmail = assignee?.email ?? null;
+
+    return {
+      // Sin ticket: id sintético org:… (el UI crea ticket al primer mensaje).
+      id: ticket ? (ticket.id as string) : `org:${organizationId}`,
+      subject: ticket
+        ? (ticket.subject as string)
+        : "Sin conversación todavía",
+      status: ticket ? (ticket.status as string) : "none",
+      priority: ticket ? ((ticket.priority as string) ?? "normal") : "normal",
+      category: ticket ? ((ticket.category as string | null) ?? null) : null,
+      createdAt: ticket
+        ? (ticket.created_at as string)
+        : ((org.created_at as string) ?? new Date().toISOString()),
+      updatedAt: ticket
+        ? ((ticket.updated_at as string | null) ?? null)
+        : ((org.updated_at as string | null) ?? null),
+      organizationId,
+      organizationName,
+      requesterEmail,
+      requesterName,
+      requesterDisplayName: personDisplayName(
+        requesterName,
+        requesterEmail,
+        "Cliente",
+        organizationName,
+      ),
+      assignedUserId: ticket
+        ? ((ticket.assigned_user_id as string | null) ?? null)
+        : null,
+      assignedUserName,
+      assignedUserEmail,
+      assignedUserDisplayName: ticket?.assigned_user_id
+        ? personDisplayName(assignedUserName, assignedUserEmail, "Agente")
+        : null,
+      hasTicket: Boolean(ticket),
+    };
+  });
+
+  // Con ticket activo primero, luego alfabético por nombre.
+  items.sort((a, b) => {
+    const aActive = a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
+    const bActive = b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    if (aActive === 0) {
+      const aTime = new Date(a.updatedAt ?? a.createdAt).getTime();
+      const bTime = new Date(b.updatedAt ?? b.createdAt).getTime();
+      return bTime - aTime;
+    }
+    return a.requesterDisplayName.localeCompare(b.requesterDisplayName, "es");
+  });
+
+  const status = filters?.status ?? "all";
+  if (status && status !== "all") {
+    if (status === "active") {
+      items = items.filter(
+        (item) => item.hasTicket && ["open", "pending"].includes(item.status),
+      );
+    } else if (status === "unassigned") {
+      items = items.filter(
+        (item) =>
+          item.hasTicket &&
+          ["open", "pending"].includes(item.status) &&
+          !item.assignedUserId,
+      );
+    } else if (status === "mine" && filters?.assignedUserId) {
+      items = items.filter(
+        (item) =>
+          item.hasTicket &&
+          ["open", "pending"].includes(item.status) &&
+          item.assignedUserId === filters.assignedUserId,
+      );
+    } else if (status === "pending") {
+      items = items.filter((item) => item.hasTicket && item.status === "pending");
+    } else if (status === "resolved" || status === "closed") {
+      items = items.filter((item) => item.hasTicket && item.status === status);
+    }
+  }
+
+  const q = filters?.q?.trim().toLowerCase();
+  if (q) {
+    items = items.filter((item) =>
+      [
+        item.requesterDisplayName,
+        item.requesterName,
+        item.organizationName,
+        item.subject,
+        item.requesterEmail,
+        item.assignedUserDisplayName,
+        item.assignedUserName,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q)),
+    );
+  }
+
+  return items;
+}
+
+/** Crea (o reutiliza) el ticket abierto de una organización para que el gerente pueda escribir. */
+export async function ensureInboxTicketForOrganization(input: {
+  session: SessionUser;
+  organizationId: string;
+}): Promise<InboxTicketItem> {
+  const admin = createAdminClient();
+  const organizationId = input.organizationId;
+
+  const { data: existingRows } = await admin
+    .from("support_tickets")
+    .select(
+      "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at",
+    )
+    .eq("organization_id", organizationId)
+    .in("status", ["open", "pending"])
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1);
+
+  const existing = existingRows?.[0];
+  if (existing) {
+    const contacts = await listInboxContacts({ status: "all" });
+    const found = contacts.find((c) => c.id === existing.id);
+    if (found) return found;
+  }
+
+  const { data: membership } = await admin
+    .from("organization_memberships")
+    .select("user_id, role")
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(20);
+
+  const sorted = (membership ?? []).slice().sort((a, b) => {
+    const score = (role: string) =>
+      role === "owner" ? 0 : role === "admin" ? 1 : 2;
+    return score(a.role as string) - score(b.role as string);
+  });
+  const requesterUserId = (sorted[0]?.user_id as string | undefined) ?? null;
+
+  const now = new Date().toISOString();
+  const { data: ticket, error } = await admin
+    .from("support_tickets")
+    .insert({
+      organization_id: organizationId,
+      requester_user_id: requesterUserId,
+      assigned_user_id: input.session.id,
+      subject: "Consulta de soporte",
+      status: "open",
+      priority: "normal",
+      category: "chat",
+      metadata: { source: "gerente_inbox" },
+      updated_at: now,
+    })
+    .select(
+      "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at",
+    )
+    .single();
+
+  if (error || !ticket) {
+    throw new Error(error?.message ?? "No se pudo abrir el chat del cliente.");
+  }
+
+  const contacts = await listInboxContacts({ status: "all" });
+  const found = contacts.find((c) => c.id === ticket.id);
+  if (found) return found;
+
+  return {
+    id: ticket.id as string,
+    subject: ticket.subject as string,
+    status: ticket.status as string,
+    priority: (ticket.priority as string) ?? "normal",
+    category: (ticket.category as string | null) ?? null,
+    createdAt: ticket.created_at as string,
+    updatedAt: (ticket.updated_at as string | null) ?? null,
+    organizationId,
+    organizationName: null,
+    requesterEmail: null,
+    requesterName: null,
+    requesterDisplayName: "Cliente",
+    assignedUserId: input.session.id,
+    assignedUserName: null,
+    assignedUserEmail: input.session.email,
+    assignedUserDisplayName: personDisplayName(null, input.session.email, "Agente"),
+    hasTicket: true,
+  };
 }
 
 export async function listInboxTicketMessages(

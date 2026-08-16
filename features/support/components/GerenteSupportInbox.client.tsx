@@ -15,6 +15,7 @@ interface InboxTicket {
   category: string | null;
   createdAt: string;
   updatedAt: string | null;
+  organizationId?: string | null;
   organizationName: string | null;
   requesterEmail: string | null;
   requesterName: string | null;
@@ -23,6 +24,7 @@ interface InboxTicket {
   assignedUserName: string | null;
   assignedUserEmail: string | null;
   assignedUserDisplayName: string | null;
+  hasTicket?: boolean;
 }
 
 function formatTicketDate(value: string) {
@@ -77,7 +79,7 @@ export function GerenteSupportInbox() {
   const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [q, setQ] = useState("");
   const [claiming, setClaiming] = useState(false);
 
@@ -90,11 +92,14 @@ export function GerenteSupportInbox() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const selected = tickets.find((t) => t.id === selectedId) ?? null;
+  const hasRealTicket = Boolean(selected?.hasTicket !== false && selected && !selected.id.startsWith("org:"));
   const iOwnSelected =
     Boolean(selected?.assignedUserId) && selected?.assignedUserId === meId;
-  const isUnassigned = selected && !selected.assignedUserId;
+  const isUnassigned = Boolean(hasRealTicket && selected && !selected.assignedUserId);
   const ownedByOther =
-    selected?.assignedUserId && selected.assignedUserId !== meId;
+    hasRealTicket &&
+    selected?.assignedUserId &&
+    selected.assignedUserId !== meId;
   const selectedClientName = selected ? clientLabel(selected) : null;
   const assigneeLabel = agentLabel(selected);
 
@@ -145,11 +150,64 @@ export function GerenteSupportInbox() {
     void loadTickets();
   }, [loadTickets]);
 
+  async function ensureTicketId(contact: InboxTicket): Promise<string> {
+    if (contact.hasTicket !== false && !contact.id.startsWith("org:")) {
+      return contact.id;
+    }
+    const organizationId =
+      contact.organizationId ||
+      (contact.id.startsWith("org:") ? contact.id.slice(4) : null);
+    if (!organizationId) {
+      throw new Error("Cliente sin organización.");
+    }
+    const res = await fetch("/api/support/inbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "ensure", organizationId }),
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      ticket?: InboxTicket;
+      error?: string;
+    };
+    if (!res.ok || !data.ok || !data.ticket) {
+      throw new Error(data.error ?? "No se pudo abrir el chat.");
+    }
+    setTickets((prev) => {
+      const withoutSynthetic = prev.filter(
+        (t) => t.id !== contact.id && t.id !== data.ticket!.id,
+      );
+      return [data.ticket!, ...withoutSynthetic];
+    });
+    setSelectedId(data.ticket.id);
+    return data.ticket.id;
+  }
+
   async function openTicket(id: string) {
     setSelectedId(id);
     setMobileShowChat(true);
     setLoadingThread(true);
     setThreadError(null);
+
+    if (id.startsWith("org:")) {
+      setMessages([
+        {
+          id: "no-thread",
+          role: "bot",
+          text: "Todavía no hay mensajes con este cliente. Escribí abajo para iniciar el chat.",
+          timestamp: new Date().toLocaleTimeString("es", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          senderName: "Sistema",
+          senderKind: "system",
+        },
+      ]);
+      setLoadingThread(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/support/inbox/${id}/messages`, {
         credentials: "include",
@@ -170,7 +228,7 @@ export function GerenteSupportInbox() {
               {
                 id: "empty",
                 role: "bot",
-                text: "Sin mensajes todavía.",
+                text: "Sin mensajes todavía. Escribí para responder.",
                 timestamp: new Date().toLocaleTimeString("es", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -188,7 +246,7 @@ export function GerenteSupportInbox() {
   }
 
   async function claimOrRelease(action: "claim" | "release") {
-    if (!selectedId) return;
+    if (!selectedId || selectedId.startsWith("org:")) return;
     setClaiming(true);
     setThreadError(null);
     try {
@@ -211,7 +269,7 @@ export function GerenteSupportInbox() {
   }
 
   async function handleSend(files: File[] = []) {
-    if (!selectedId) return;
+    if (!selected) return;
     const text = inputValue.trim();
     if ((!text && files.length === 0) || sending) return;
 
@@ -230,15 +288,19 @@ export function GerenteSupportInbox() {
       senderName: "Vos",
       senderKind: "agent",
     };
-    setMessages((prev) => [...prev.filter((m) => m.id !== "inbox-empty"), optimistic]);
+    setMessages((prev) => [
+      ...prev.filter((m) => m.id !== "inbox-empty" && m.id !== "no-thread"),
+      optimistic,
+    ]);
 
     try {
+      const ticketId = await ensureTicketId(selected);
       const formData = new FormData();
       if (text) formData.set("message", text);
       formData.set("status", "pending");
       for (const file of files) formData.append("files", file);
 
-      const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
+      const res = await fetch(`/api/support/inbox/${ticketId}/messages`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -265,7 +327,7 @@ export function GerenteSupportInbox() {
   }
 
   async function setStatus(status: string) {
-    if (!selectedId) return;
+    if (!selectedId || selectedId.startsWith("org:")) return;
     try {
       const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
         method: "POST",
@@ -293,7 +355,7 @@ export function GerenteSupportInbox() {
           Inbox Soporte
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Lista de clientes por nombre. Tomá el chat, atendé y se ve quién responde.
+          Todos los clientes a la izquierda. Filtrá por atención o buscá por nombre.
         </p>
       </header>
 
@@ -309,11 +371,11 @@ export function GerenteSupportInbox() {
               />
               <div className="flex flex-wrap gap-1.5">
                 {[
+                  { id: "all", label: "Todos" },
                   { id: "unassigned", label: "Sin atender" },
                   { id: "mine", label: "Míos" },
                   { id: "active", label: "Activos" },
                   { id: "pending", label: "Pendientes" },
-                  { id: "all", label: "Todos" },
                   { id: "resolved", label: "Resueltos" },
                   { id: "closed", label: "Cerrados" },
                 ].map((item) => (
@@ -392,20 +454,25 @@ export function GerenteSupportInbox() {
                         <span
                           className={cn(
                             "mt-1 block text-[11px] font-semibold",
-                            free
-                              ? "text-amber-700"
-                              : mine
-                                ? "text-emerald-700"
-                                : "text-[var(--auth-text-soft)]",
+                            !ticket.hasTicket && ticket.status === "none"
+                              ? "text-[var(--auth-text-soft)]"
+                              : free
+                                ? "text-amber-700"
+                                : mine
+                                  ? "text-emerald-700"
+                                  : "text-[var(--auth-text-soft)]",
                           )}
                         >
-                          {free
-                            ? "Sin atender"
-                            : mine
-                              ? "Lo estás atendiendo"
-                              : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
-                          {" · "}
-                          {TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}
+                          {!ticket.hasTicket || ticket.status === "none"
+                            ? "Sin chat todavía"
+                            : free
+                              ? "Sin atender"
+                              : mine
+                                ? "Lo estás atendiendo"
+                                : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
+                          {ticket.hasTicket && ticket.status !== "none"
+                            ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
+                            : ""}
                         </span>
                       </span>
                     </button>
