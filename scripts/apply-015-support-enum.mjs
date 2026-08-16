@@ -1,5 +1,5 @@
-const fs = require("fs");
-const { Client } = require("pg");
+import fs from "fs";
+import { Client } from "pg";
 
 const env = Object.fromEntries(
   fs
