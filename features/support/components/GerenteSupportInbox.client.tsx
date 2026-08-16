@@ -425,16 +425,18 @@ export function GerenteSupportInbox() {
   ) : null;
 
   return (
-    /* Full-bleed Whaticket-style: pega la lista al borde izquierdo del main (sin hueco). */
-    <div className="-mx-3.5 -mt-4 flex h-[calc(100dvh-4.25rem)] min-h-[520px] flex-col overflow-hidden border border-[rgb(15_23_42_/_0.08)] bg-white shadow-[0_8px_28px_rgb(15_23_42_/_0.06)] sm:-mx-5 sm:-mt-5 md:-mx-6 md:-mt-6 xl:-mx-8">
-      <div className="flex min-h-0 flex-1">
-        {/* Lista de chats — columna izquierda tipo CRM */}
-        <aside
-          className={cn(
-            "flex w-full shrink-0 flex-col border-r border-[rgb(15_23_42_/_0.08)] bg-[#faf9f7] lg:w-[22rem] xl:w-[24rem]",
-            mobileShowChat && "hidden lg:flex",
-          )}
-        >
+    <>
+      {/* Reserva altura en el flujo; el panel real va fixed pegado al sidebar. */}
+      <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]" aria-hidden />
+      <div className="fixed inset-x-0 top-14 bottom-0 z-[15] flex flex-col overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-white sm:top-16 lg:left-[272px]">
+        <div className="flex min-h-0 flex-1">
+          {/* Lista de chats — columna izquierda tipo CRM */}
+          <aside
+            className={cn(
+              "flex w-full shrink-0 flex-col border-r border-[rgb(15_23_42_/_0.08)] bg-[#faf9f7] lg:w-[22rem] xl:w-[24rem]",
+              mobileShowChat && "hidden lg:flex",
+            )}
+          >
           <div className="shrink-0 border-b border-[rgb(15_23_42_/_0.08)] bg-white px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <div>
@@ -611,6 +613,7 @@ export function GerenteSupportInbox() {
           />
         </section>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
