@@ -282,9 +282,6 @@ export async function postTicketMessage(
   if (!ticket) {
     throw new Error("Ticket no encontrado.");
   }
-  if (["closed", "resolved"].includes(ticket.status)) {
-    throw new Error("Este ticket ya está cerrado.");
-  }
 
   const trimmed = body.trim();
   if (!trimmed && attachments.length === 0) {

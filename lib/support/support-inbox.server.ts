@@ -69,9 +69,30 @@ export interface InboxTicketItem {
   organizationName: string | null;
   requesterEmail: string | null;
   requesterName: string | null;
+  /** Nombre visible estilo WhatsApp (nunca el correo como título). */
+  requesterDisplayName: string;
   assignedUserId: string | null;
   assignedUserName: string | null;
   assignedUserEmail: string | null;
+  assignedUserDisplayName: string | null;
+}
+
+/** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
+export function personDisplayName(
+  name?: string | null,
+  email?: string | null,
+  fallback = "Cliente",
+  orgName?: string | null,
+): string {
+  const trimmed = name?.trim();
+  if (trimmed) return trimmed;
+  const org = orgName?.trim();
+  if (org) return org;
+  const local = email?.split("@")[0]?.replace(/[._+-]+/g, " ").trim();
+  if (local) {
+    return local.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  return fallback;
 }
 
 function parseAttachments(raw: unknown): SupportAttachmentInput[] {
@@ -197,6 +218,13 @@ export async function listInboxTickets(filters?: {
     const assignee = row.assigned_user_id
       ? profileMap.get(row.assigned_user_id as string)
       : undefined;
+    const organizationName = row.organization_id
+      ? (orgMap.get(row.organization_id as string) ?? null)
+      : null;
+    const requesterName = requester?.name ?? null;
+    const requesterEmail = requester?.email ?? null;
+    const assignedUserName = assignee?.name ?? null;
+    const assignedUserEmail = assignee?.email ?? null;
     return {
       id: row.id as string,
       subject: row.subject as string,
@@ -206,14 +234,21 @@ export async function listInboxTickets(filters?: {
       createdAt: row.created_at as string,
       updatedAt: (row.updated_at as string | null) ?? null,
       organizationId: (row.organization_id as string | null) ?? null,
-      organizationName: row.organization_id
-        ? (orgMap.get(row.organization_id as string) ?? null)
-        : null,
-      requesterEmail: requester?.email ?? null,
-      requesterName: requester?.name ?? null,
+      organizationName,
+      requesterEmail,
+      requesterName,
+      requesterDisplayName: personDisplayName(
+        requesterName,
+        requesterEmail,
+        "Cliente",
+        organizationName,
+      ),
       assignedUserId: (row.assigned_user_id as string | null) ?? null,
-      assignedUserName: assignee?.name ?? null,
-      assignedUserEmail: assignee?.email ?? null,
+      assignedUserName,
+      assignedUserEmail,
+      assignedUserDisplayName: row.assigned_user_id
+        ? personDisplayName(assignedUserName, assignedUserEmail, "Agente")
+        : null,
     };
   });
 
@@ -221,10 +256,12 @@ export async function listInboxTickets(filters?: {
   if (q) {
     items = items.filter((item) =>
       [
-        item.subject,
-        item.organizationName,
-        item.requesterEmail,
+        item.requesterDisplayName,
         item.requesterName,
+        item.organizationName,
+        item.subject,
+        item.requesterEmail,
+        item.assignedUserDisplayName,
         item.assignedUserName,
         item.assignedUserEmail,
         item.category,
@@ -309,7 +346,7 @@ export async function listInboxTicketMessagesForAgent(
   const profileMap = new Map(
     (profiles ?? []).map((p) => [
       p.id,
-      p.full_name?.trim() || p.email?.split("@")[0] || "Agente",
+      personDisplayName(p.full_name, p.email, "Agente"),
     ]),
   );
 

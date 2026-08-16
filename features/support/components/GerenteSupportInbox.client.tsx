@@ -18,9 +18,11 @@ interface InboxTicket {
   organizationName: string | null;
   requesterEmail: string | null;
   requesterName: string | null;
+  requesterDisplayName: string;
   assignedUserId: string | null;
   assignedUserName: string | null;
   assignedUserEmail: string | null;
+  assignedUserDisplayName: string | null;
 }
 
 function formatTicketDate(value: string) {
@@ -36,12 +38,30 @@ function formatTicketDate(value: string) {
   }
 }
 
+function clientLabel(ticket: InboxTicket) {
+  return (
+    ticket.requesterDisplayName ||
+    ticket.requesterName ||
+    ticket.organizationName ||
+    "Cliente"
+  );
+}
+
+function agentLabel(ticket: InboxTicket | null) {
+  if (!ticket) return null;
+  return (
+    ticket.assignedUserDisplayName ||
+    ticket.assignedUserName ||
+    null
+  );
+}
+
 function emptyThread(): ChatMessage[] {
   return [
     {
       id: "inbox-empty",
       role: "bot",
-      text: "Elegí un ticket a la izquierda. Tomá el chat (estilo Whaticket) y respondé.",
+      text: "Elegí un cliente a la izquierda. Tomá el chat y respondé.",
       timestamp: new Date().toLocaleTimeString("es", {
         hour: "2-digit",
         minute: "2-digit",
@@ -75,17 +95,20 @@ export function GerenteSupportInbox() {
   const isUnassigned = selected && !selected.assignedUserId;
   const ownedByOther =
     selected?.assignedUserId && selected.assignedUserId !== meId;
+  const selectedClientName = selected ? clientLabel(selected) : null;
+  const assigneeLabel = agentLabel(selected);
 
   const filteredTickets = tickets.filter((ticket) => {
     const query = q.trim().toLowerCase();
     if (!query) return true;
     return [
-      ticket.subject,
-      ticket.organizationName,
-      ticket.requesterEmail,
+      ticket.requesterDisplayName,
       ticket.requesterName,
+      ticket.organizationName,
+      ticket.subject,
+      ticket.requesterEmail,
+      ticket.assignedUserDisplayName,
       ticket.assignedUserName,
-      ticket.assignedUserEmail,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
@@ -260,20 +283,17 @@ export function GerenteSupportInbox() {
     }
   }
 
-  const assigneeLabel = selected?.assignedUserName || selected?.assignedUserEmail;
-
   return (
     <div className={dashboardClasses.page}>
       <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Gerente · Inbox (estilo Whaticket)
+          Gerente · Inbox
         </p>
         <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
           Inbox Soporte
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Cola compartida: tomá el chat, atendé y se ve quién responde. El cliente
-          recibe todo en su sección Soporte.
+          Lista de clientes por nombre. Tomá el chat, atendé y se ve quién responde.
         </p>
       </header>
 
@@ -284,7 +304,7 @@ export function GerenteSupportInbox() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar cliente, mail, agente o asunto…"
+                placeholder="Buscar por nombre de cliente…"
                 className="h-10 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
               />
               <div className="flex flex-wrap gap-1.5">
@@ -320,67 +340,74 @@ export function GerenteSupportInbox() {
               </p>
             ) : null}
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-1.5">
               {loading ? (
                 <p className="py-8 text-center text-[14px] text-[var(--auth-text-muted)]">
-                  Cargando inbox…
+                  Cargando clientes…
                 </p>
               ) : filteredTickets.length === 0 ? (
                 <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-8 text-center text-[14px] text-[var(--auth-text-muted)]">
-                  No hay tickets en este filtro.
+                  No hay clientes en este filtro.
                 </p>
               ) : (
                 filteredTickets.map((ticket) => {
                   const active = ticket.id === selectedId;
                   const mine = ticket.assignedUserId === meId;
                   const free = !ticket.assignedUserId;
+                  const name = clientLabel(ticket);
                   return (
                     <button
                       key={ticket.id}
                       type="button"
                       onClick={() => void openTicket(ticket.id)}
                       className={cn(
-                        "flex w-full flex-col rounded-lg border px-3.5 py-3 text-left transition-colors",
+                        "flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
                         active
                           ? "border-[var(--auth-accent)]/50 bg-[rgb(255_120_31_/_0.06)]"
-                          : "border-[var(--auth-input-border)] bg-white hover:border-[var(--auth-accent)]/35",
+                          : "border-transparent hover:bg-[var(--surface-soft)]",
                       )}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="min-w-0 truncate text-[14px] font-semibold text-[var(--auth-text)]">
+                      <span
+                        aria-hidden
+                        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2a1810_0%,#e8451a_120%)] text-[13px] font-bold text-white"
+                      >
+                        {name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="min-w-0 truncate text-[14px] font-semibold text-[var(--auth-text)]">
+                            {name}
+                          </span>
+                          <span className="shrink-0 text-[11px] text-[var(--auth-text-soft)]">
+                            {formatTicketDate(ticket.updatedAt ?? ticket.createdAt)}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
                           {ticket.subject}
-                        </p>
-                        <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--auth-text-muted)]">
+                          {ticket.organizationName &&
+                          ticket.organizationName !== name
+                            ? ` · ${ticket.organizationName}`
+                            : ""}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-1 block text-[11px] font-semibold",
+                            free
+                              ? "text-amber-700"
+                              : mine
+                                ? "text-emerald-700"
+                                : "text-[var(--auth-text-soft)]",
+                          )}
+                        >
+                          {free
+                            ? "Sin atender"
+                            : mine
+                              ? "Lo estás atendiendo"
+                              : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
+                          {" · "}
                           {TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}
                         </span>
-                      </div>
-                      <p className="mt-1 truncate text-[12px] font-medium text-[var(--auth-text-muted)]">
-                        {ticket.requesterName ||
-                          ticket.requesterEmail ||
-                          "Cliente"}
-                        {ticket.organizationName
-                          ? ` · ${ticket.organizationName}`
-                          : ""}
-                      </p>
-                      <p
-                        className={cn(
-                          "mt-1 text-[11px] font-semibold",
-                          free
-                            ? "text-amber-700"
-                            : mine
-                              ? "text-emerald-700"
-                              : "text-[var(--auth-text-soft)]",
-                        )}
-                      >
-                        {free
-                          ? "Sin atender — tomá el chat"
-                          : mine
-                            ? "Lo estás atendiendo vos"
-                            : `Atendido por ${ticket.assignedUserName || ticket.assignedUserEmail || "otro agente"}`}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-[var(--auth-text-soft)]">
-                        {formatTicketDate(ticket.updatedAt ?? ticket.createdAt)}
-                      </p>
+                      </span>
                     </button>
                   );
                 })
@@ -393,7 +420,16 @@ export function GerenteSupportInbox() {
           {selected ? (
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <p className="mr-auto text-[13px] font-medium text-[var(--auth-text-muted)]">
-                {selected.requesterEmail ?? "Sin email"} ·{" "}
+                <span className="font-semibold text-[var(--auth-text)]">
+                  {selectedClientName}
+                </span>
+                {selected.requesterEmail ? (
+                  <span className="text-[var(--auth-text-soft)]">
+                    {" "}
+                    · {selected.requesterEmail}
+                  </span>
+                ) : null}
+                {" · "}
                 {TICKET_STATUS_LABELS[selected.status] ?? selected.status}
                 {assigneeLabel ? ` · Agente: ${assigneeLabel}` : " · Sin agente"}
               </p>
@@ -440,7 +476,7 @@ export function GerenteSupportInbox() {
           {ownedByOther ? (
             <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-900">
               Este chat lo tiene otro agente. Podés leerlo; para responder tiene que
-              liberarlo o pedirle que te lo pase.
+              liberarlo.
             </p>
           ) : null}
 
@@ -453,15 +489,15 @@ export function GerenteSupportInbox() {
               error={threadError}
               showBack={mobileShowChat}
               className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
-              title={selected ? selected.subject : "Inbox Soporte"}
+              title={selectedClientName ?? "Inbox Soporte"}
               subtitle={
                 selected
                   ? isUnassigned
                     ? "Tomá el chat o respondé (al enviar se te asigna)."
                     : iOwnSelected
-                      ? `Atendiendo vos · ${selected.requesterEmail ?? "cliente"}`
+                      ? "Lo estás atendiendo vos"
                       : `Atendido por ${assigneeLabel ?? "otro agente"}`
-                  : "Seleccioná un ticket para atender."
+                  : "Seleccioná un cliente a la izquierda."
               }
               onInputChange={setInputValue}
               onSend={(files) => void handleSend(files)}
