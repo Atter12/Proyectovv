@@ -87,6 +87,8 @@ export interface InboxTicketItem {
   hecomClienteId?: string | null;
   /** Tiene usuario/org en Ads Holistic para recibir Soporte. */
   hasHolisticAccount?: boolean;
+  /** Foto de perfil Hecom (avatar_url). */
+  avatarUrl?: string | null;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -591,6 +593,7 @@ export async function listInboxContacts(filters?: {
       hasTicket: Boolean(ticket),
       hecomClienteId: cliente.id,
       hasHolisticAccount,
+      avatarUrl: cliente.avatarUrl ?? null,
     };
   });
 
@@ -794,6 +797,7 @@ export async function ensureInboxTicketForHecomCliente(input: {
     hasTicket: true,
     hecomClienteId: cliente.id,
     hasHolisticAccount: true,
+    avatarUrl: cliente.avatarUrl ?? null,
   };
 }
 

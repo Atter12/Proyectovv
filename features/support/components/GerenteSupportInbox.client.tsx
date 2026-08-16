@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { cn } from "@/lib/cn";
 import { TICKET_STATUS_LABELS } from "@/lib/constants/status";
 import type { ChatMessage } from "@/features/support/types/support.types";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 interface InboxTicket {
   id: string;
@@ -27,16 +27,21 @@ interface InboxTicket {
   hasTicket?: boolean;
   hecomClienteId?: string | null;
   hasHolisticAccount?: boolean;
+  avatarUrl?: string | null;
 }
 
 function formatTicketDate(value: string) {
   try {
-    return new Date(value).toLocaleString("es", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const d = new Date(value);
+    const now = new Date();
+    const sameDay =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    if (sameDay) {
+      return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString("es", { day: "2-digit", month: "short" });
   } catch {
     return value;
   }
@@ -53,11 +58,7 @@ function clientLabel(ticket: InboxTicket) {
 
 function agentLabel(ticket: InboxTicket | null) {
   if (!ticket) return null;
-  return (
-    ticket.assignedUserDisplayName ||
-    ticket.assignedUserName ||
-    null
-  );
+  return ticket.assignedUserDisplayName || ticket.assignedUserName || null;
 }
 
 function emptyThread(): ChatMessage[] {
@@ -65,7 +66,7 @@ function emptyThread(): ChatMessage[] {
     {
       id: "inbox-empty",
       role: "bot",
-      text: "Elegí un cliente a la izquierda. Tomá el chat y respondé.",
+      text: "Elegí un cliente a la izquierda para atender.",
       timestamp: new Date().toLocaleTimeString("es", {
         hour: "2-digit",
         minute: "2-digit",
@@ -75,6 +76,16 @@ function emptyThread(): ChatMessage[] {
     },
   ];
 }
+
+const FILTERS = [
+  { id: "all", label: "Todos" },
+  { id: "unassigned", label: "Sin atender" },
+  { id: "mine", label: "Míos" },
+  { id: "active", label: "Activos" },
+  { id: "pending", label: "Pendientes" },
+  { id: "resolved", label: "Resueltos" },
+  { id: "closed", label: "Cerrados" },
+] as const;
 
 export function GerenteSupportInbox() {
   const [tickets, setTickets] = useState<InboxTicket[]>([]);
@@ -102,7 +113,9 @@ export function GerenteSupportInbox() {
   );
   const iOwnSelected =
     Boolean(selected?.assignedUserId) && selected?.assignedUserId === meId;
-  const isUnassigned = Boolean(hasRealTicket && selected && !selected.assignedUserId);
+  const isUnassigned = Boolean(
+    hasRealTicket && selected && !selected.assignedUserId,
+  );
   const ownedByOther =
     hasRealTicket &&
     selected?.assignedUserId &&
@@ -215,7 +228,7 @@ export function GerenteSupportInbox() {
           role: "bot",
           text: noAccount
             ? "Este cliente de Hecom aún no tiene cuenta en Ads Holistic. Cuando entre con su correo, verá Soporte Holistic acá."
-            : "Todavía no hay mensajes con este cliente. Escribí abajo para iniciar el chat; le llega a su Soporte Holistic.",
+            : "Todavía no hay mensajes. Escribí para iniciar; le llega a su Soporte Holistic.",
           timestamp: new Date().toLocaleTimeString("es", {
             hour: "2-digit",
             minute: "2-digit",
@@ -266,7 +279,8 @@ export function GerenteSupportInbox() {
   }
 
   async function claimOrRelease(action: "claim" | "release") {
-    if (!selectedId || selectedId.startsWith("org:")) return;
+    if (!selectedId || selectedId.startsWith("org:") || selectedId.startsWith("hecom:"))
+      return;
     setClaiming(true);
     setThreadError(null);
     try {
@@ -347,7 +361,12 @@ export function GerenteSupportInbox() {
   }
 
   async function setStatus(status: string) {
-    if (!selectedId || selectedId.startsWith("org:")) return;
+    if (
+      !selectedId ||
+      selectedId.startsWith("org:") ||
+      selectedId.startsWith("hecom:")
+    )
+      return;
     try {
       const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
         method: "POST",
@@ -365,245 +384,232 @@ export function GerenteSupportInbox() {
     }
   }
 
+  const headerActions = selected ? (
+    <>
+      {isUnassigned ? (
+        <button
+          type="button"
+          disabled={claiming}
+          onClick={() => void claimOrRelease("claim")}
+          className="rounded-md bg-[var(--brand-primary)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
+        >
+          {claiming ? "…" : "Tomar"}
+        </button>
+      ) : null}
+      {iOwnSelected ? (
+        <button
+          type="button"
+          disabled={claiming}
+          onClick={() => void claimOrRelease("release")}
+          className="rounded-md bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
+        >
+          Liberar
+        </button>
+      ) : null}
+      {[
+        { id: "open", label: "Abrir" },
+        { id: "pending", label: "Pend." },
+        { id: "resolved", label: "OK" },
+        { id: "closed", label: "Cerrar" },
+      ].map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => void setStatus(item.id)}
+          className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/85 hover:bg-white/15"
+        >
+          {item.label}
+        </button>
+      ))}
+    </>
+  ) : null;
+
   return (
-    <div className={dashboardClasses.page}>
-      <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Gerente · Inbox
-        </p>
-        <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
-          Inbox Soporte
-        </h1>
-        <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Clientes de Hecom Club. Al responderles, el mensaje llega a su Soporte
-          Holistic.
-        </p>
-      </header>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
-        <div className={cn("space-y-4", mobileShowChat && "hidden lg:block")}>
-          <div className="dashboard-surface-card rounded-[1rem] p-4 sm:p-5">
-            <div className="flex flex-col gap-3">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nombre de cliente…"
-                className="h-10 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
-              />
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { id: "all", label: "Todos" },
-                  { id: "unassigned", label: "Sin atender" },
-                  { id: "mine", label: "Míos" },
-                  { id: "active", label: "Activos" },
-                  { id: "pending", label: "Pendientes" },
-                  { id: "resolved", label: "Resueltos" },
-                  { id: "closed", label: "Cerrados" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setStatusFilter(item.id)}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-[12px] font-semibold transition-colors",
-                      statusFilter === item.id
-                        ? "bg-[var(--brand-primary)] text-white"
-                        : "bg-[var(--surface-soft)] text-[var(--auth-text-muted)] hover:text-[var(--auth-text)]",
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+    /* Full-bleed Whaticket-style: pega la lista al borde izquierdo del main (sin hueco). */
+    <div className="-mx-3.5 -mt-4 flex h-[calc(100dvh-4.25rem)] min-h-[520px] flex-col overflow-hidden border border-[rgb(15_23_42_/_0.08)] bg-white shadow-[0_8px_28px_rgb(15_23_42_/_0.06)] sm:-mx-5 sm:-mt-5 md:-mx-6 md:-mt-6 xl:-mx-8">
+      <div className="flex min-h-0 flex-1">
+        {/* Lista de chats — columna izquierda tipo CRM */}
+        <aside
+          className={cn(
+            "flex w-full shrink-0 flex-col border-r border-[rgb(15_23_42_/_0.08)] bg-[#faf9f7] lg:w-[22rem] xl:w-[24rem]",
+            mobileShowChat && "hidden lg:flex",
+          )}
+        >
+          <div className="shrink-0 border-b border-[rgb(15_23_42_/_0.08)] bg-white px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
+                  Inbox
+                </p>
+                <h1 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                  Soporte · Hecom
+                </h1>
               </div>
+              <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
+                {filteredTickets.length}
+              </span>
             </div>
-
-            {error ? (
-              <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">
-                {error}
-              </p>
-            ) : null}
-
-            <div className="mt-4 space-y-1.5">
-              {loading ? (
-                <p className="py-8 text-center text-[14px] text-[var(--auth-text-muted)]">
-                  Cargando clientes…
-                </p>
-              ) : filteredTickets.length === 0 ? (
-                <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-8 text-center text-[14px] text-[var(--auth-text-muted)]">
-                  No hay clientes en este filtro.
-                </p>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const active = ticket.id === selectedId;
-                  const mine = ticket.assignedUserId === meId;
-                  const free = !ticket.assignedUserId;
-                  const name = clientLabel(ticket);
-                  return (
-                    <button
-                      key={ticket.id}
-                      type="button"
-                      onClick={() => void openTicket(ticket.id)}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
-                        active
-                          ? "border-[var(--auth-accent)]/50 bg-[rgb(255_120_31_/_0.06)]"
-                          : "border-transparent hover:bg-[var(--surface-soft)]",
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#2a1810_0%,#e8451a_120%)] text-[13px] font-bold text-white"
-                      >
-                        {name.slice(0, 1).toUpperCase()}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="min-w-0 truncate text-[14px] font-semibold text-[var(--auth-text)]">
-                            {name}
-                          </span>
-                          <span className="shrink-0 text-[11px] text-[var(--auth-text-soft)]">
-                            {formatTicketDate(ticket.updatedAt ?? ticket.createdAt)}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
-                          {ticket.subject}
-                          {ticket.requesterEmail
-                            ? ` · ${ticket.requesterEmail}`
-                            : ""}
-                        </span>
-                        <span
-                          className={cn(
-                            "mt-1 block text-[11px] font-semibold",
-                            ticket.hasHolisticAccount === false
-                              ? "text-amber-700"
-                              : !ticket.hasTicket || ticket.status === "none"
-                                ? "text-[var(--auth-text-soft)]"
-                                : free
-                                  ? "text-amber-700"
-                                  : mine
-                                    ? "text-emerald-700"
-                                    : "text-[var(--auth-text-soft)]",
-                          )}
-                        >
-                          {ticket.hasHolisticAccount === false
-                            ? "Sin cuenta Holistic aún"
-                            : !ticket.hasTicket || ticket.status === "none"
-                              ? "Sin chat todavía"
-                              : free
-                                ? "Sin atender"
-                                : mine
-                                  ? "Lo estás atendiendo"
-                                  : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
-                          {ticket.hasTicket && ticket.status !== "none"
-                            ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
-                            : ""}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className={cn("min-w-0", !mobileShowChat && "hidden lg:block")}>
-          {selected ? (
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <p className="mr-auto text-[13px] font-medium text-[var(--auth-text-muted)]">
-                <span className="font-semibold text-[var(--auth-text)]">
-                  {selectedClientName}
-                </span>
-                {selected.requesterEmail ? (
-                  <span className="text-[var(--auth-text-soft)]">
-                    {" "}
-                    · {selected.requesterEmail}
-                  </span>
-                ) : null}
-                {" · "}
-                {TICKET_STATUS_LABELS[selected.status] ?? selected.status}
-                {assigneeLabel ? ` · Agente: ${assigneeLabel}` : " · Sin agente"}
-              </p>
-
-              {isUnassigned ? (
-                <button
-                  type="button"
-                  disabled={claiming}
-                  onClick={() => void claimOrRelease("claim")}
-                  className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
-                >
-                  {claiming ? "Tomando…" : "Tomar chat"}
-                </button>
-              ) : null}
-              {iOwnSelected ? (
-                <button
-                  type="button"
-                  disabled={claiming}
-                  onClick={() => void claimOrRelease("release")}
-                  className="rounded-lg border border-[var(--auth-input-border)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--auth-text-muted)] hover:text-[var(--auth-text)] disabled:opacity-50"
-                >
-                  Liberar
-                </button>
-              ) : null}
-
-              {[
-                { id: "open", label: "Abrir" },
-                { id: "pending", label: "Pendiente" },
-                { id: "resolved", label: "Resuelto" },
-                { id: "closed", label: "Cerrar" },
-              ].map((item) => (
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar cliente…"
+              className="mt-2.5 h-9 w-full rounded-lg border border-[var(--auth-input-border)] bg-[#f6f4f1] px-3 text-[13px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
+            />
+            <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {FILTERS.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => void setStatus(item.id)}
-                  className="rounded-lg border border-[var(--auth-input-border)] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[var(--auth-text-muted)] hover:border-[var(--auth-accent)]/40 hover:text-[var(--auth-text)]"
+                  onClick={() => setStatusFilter(item.id)}
+                  className={cn(
+                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    statusFilter === item.id
+                      ? "bg-[var(--brand-primary)] text-white"
+                      : "bg-[var(--surface-soft)] text-[var(--auth-text-muted)] hover:text-[var(--auth-text)]",
+                  )}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-          ) : null}
+          </div>
 
-          {ownedByOther ? (
-            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-900">
-              Este chat lo tiene otro agente. Podés leerlo; para responder tiene que
-              liberarlo.
+          {error ? (
+            <p className="mx-3 mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+              {error}
             </p>
           ) : null}
 
-          <div className="dashboard-surface-card overflow-hidden rounded-[1.25rem] shadow-[0_16px_40px_rgb(15_23_42_/_0.06)]">
-            <ChatConversation
-              messages={messages}
-              inputValue={inputValue}
-              sending={sending}
-              loading={loadingThread}
-              error={threadError}
-              showBack={mobileShowChat}
-              className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
-              title={selectedClientName ?? "Inbox Soporte"}
-              subtitle={
-                selected
-                  ? isUnassigned
-                    ? "Tomá el chat o respondé (al enviar se te asigna)."
-                    : iOwnSelected
-                      ? "Lo estás atendiendo vos"
-                      : `Atendido por ${assigneeLabel ?? "otro agente"}`
-                  : "Seleccioná un cliente a la izquierda."
-              }
-              onInputChange={setInputValue}
-              onSend={(files) => void handleSend(files)}
-              onBack={() => setMobileShowChat(false)}
-              composerDisabled={
-                Boolean(ownedByOther) || selected?.hasHolisticAccount === false
-              }
-              composerDisabledReason={
-                selected?.hasHolisticAccount === false
-                  ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
-                  : "Otro agente tiene este chat. Pedile que lo libere para responder."
-              }
-            />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {loading ? (
+              <p className="px-4 py-10 text-center text-[13px] text-[var(--auth-text-muted)]">
+                Cargando clientes…
+              </p>
+            ) : filteredTickets.length === 0 ? (
+              <p className="px-4 py-10 text-center text-[13px] text-[var(--auth-text-muted)]">
+                No hay clientes en este filtro.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[rgb(15_23_42_/_0.06)]">
+                {filteredTickets.map((ticket) => {
+                  const active = ticket.id === selectedId;
+                  const mine = ticket.assignedUserId === meId;
+                  const free = !ticket.assignedUserId && Boolean(ticket.hasTicket);
+                  const name = clientLabel(ticket);
+                  return (
+                    <li key={ticket.id}>
+                      <button
+                        type="button"
+                        onClick={() => void openTicket(ticket.id)}
+                        className={cn(
+                          "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                          active
+                            ? "bg-[rgb(255_120_31_/_0.1)]"
+                            : "hover:bg-white",
+                        )}
+                      >
+                        <HecomClienteAvatar
+                          name={name}
+                          avatarUrl={ticket.avatarUrl}
+                          size="md"
+                          className="h-11 w-11 text-[12px]"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="truncate text-[13.5px] font-semibold text-[var(--auth-text)]">
+                              {name}
+                            </span>
+                            <span className="shrink-0 text-[10px] tabular-nums text-[var(--auth-text-soft)]">
+                              {formatTicketDate(
+                                ticket.updatedAt ?? ticket.createdAt,
+                              )}
+                            </span>
+                          </span>
+                          <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
+                            {ticket.subject}
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-0.5 block truncate text-[10.5px] font-semibold",
+                              ticket.hasHolisticAccount === false
+                                ? "text-amber-700"
+                                : free
+                                  ? "text-amber-700"
+                                  : mine
+                                    ? "text-emerald-700"
+                                    : "text-[var(--auth-text-soft)]",
+                            )}
+                          >
+                            {ticket.hasHolisticAccount === false
+                              ? "Sin cuenta Holistic"
+                              : !ticket.hasTicket || ticket.status === "none"
+                                ? "Sin chat"
+                                : free
+                                  ? "Sin atender"
+                                  : mine
+                                    ? "Atendiendo vos"
+                                    : `Agente: ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro"}`}
+                            {ticket.hasTicket && ticket.status !== "none"
+                              ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
+                              : ""}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-        </div>
+        </aside>
+
+        {/* Panel de conversación */}
+        <section
+          className={cn(
+            "min-w-0 flex-1 bg-[#efeae2]",
+            !mobileShowChat && "hidden lg:flex lg:flex-col",
+            mobileShowChat && "flex flex-col",
+          )}
+        >
+          {ownedByOther ? (
+            <p className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-3 py-1.5 text-[12px] font-medium text-amber-900">
+              Otro agente tiene este chat. Solo lectura hasta que lo libere.
+            </p>
+          ) : null}
+
+          <ChatConversation
+            messages={messages}
+            inputValue={inputValue}
+            sending={sending}
+            loading={loadingThread}
+            error={threadError}
+            showBack={mobileShowChat}
+            className="min-h-0 flex-1"
+            title={selectedClientName ?? "Inbox Soporte"}
+            subtitle={
+              selected
+                ? isUnassigned
+                  ? "Sin agente · tomá el chat o respondé"
+                  : iOwnSelected
+                    ? "Lo estás atendiendo vos"
+                    : `Atendido por ${assigneeLabel ?? "otro agente"}`
+                : "Seleccioná un cliente en la lista"
+            }
+            avatarUrl={selected?.avatarUrl}
+            headerActions={headerActions}
+            onInputChange={setInputValue}
+            onSend={(files) => void handleSend(files)}
+            onBack={() => setMobileShowChat(false)}
+            composerDisabled={
+              Boolean(ownedByOther) || selected?.hasHolisticAccount === false
+            }
+            composerDisabledReason={
+              selected?.hasHolisticAccount === false
+                ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
+                : "Otro agente tiene este chat. Pedile que lo libere para responder."
+            }
+          />
+        </section>
       </div>
     </div>
   );

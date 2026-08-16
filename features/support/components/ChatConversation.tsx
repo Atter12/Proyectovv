@@ -9,9 +9,11 @@ import {
   type ClipboardEvent,
   type DragEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import type { ChatMessage } from "../types/support.types";
 import { cn } from "@/lib/cn";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
 interface PendingFile {
   id: string;
@@ -29,6 +31,9 @@ interface ChatConversationProps {
   className?: string;
   title?: string;
   subtitle?: string;
+  /** URL de foto (Hecom) para el header. */
+  avatarUrl?: string | null;
+  headerActions?: ReactNode;
   onInputChange: (value: string) => void;
   onSend: (files: File[]) => void;
   onBack: () => void;
@@ -57,6 +62,8 @@ export function ChatConversation({
   className,
   title = "Escríbenos",
   subtitle = "Tu conversación queda guardada como ticket de soporte.",
+  avatarUrl = null,
+  headerActions,
   onInputChange,
   onSend,
   onBack,
@@ -170,25 +177,37 @@ export function ChatConversation({
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(135deg,#1a1008_0%,#2a1810_55%,#e8451a_160%)] px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-[rgb(15_23_42_/_0.08)] bg-[#1c1410] px-3.5 py-2.5 sm:px-4">
         {showBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white lg:hidden"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
             aria-label="Volver"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
-            Volver
           </button>
         ) : null}
-        <p className="text-[15px] font-bold text-white">{title}</p>
-        <p className="mt-0.5 text-[12px] text-white/75">{subtitle}</p>
+        <HecomClienteAvatar
+          name={title}
+          avatarUrl={avatarUrl}
+          size="sm"
+          className="ring-white/20"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-semibold text-white">{title}</p>
+          <p className="truncate text-[11px] text-white/65">{subtitle}</p>
+        </div>
+        {headerActions ? (
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            {headerActions}
+          </div>
+        ) : null}
       </div>
 
-      <div className="relative flex-1 space-y-3 overflow-y-auto bg-[#f7f4ef] p-4 sm:p-5">
+      <div className="relative flex-1 space-y-2.5 overflow-y-auto bg-[#efeae2] p-3 sm:p-4">
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
             Soltá la imagen o PDF acá
