@@ -10,6 +10,12 @@ import {
   SUPPORT_ATTACHMENTS_BUCKET,
   type SupportAttachmentInput,
 } from "@/services/support.service";
+import {
+  getHecomCliente,
+  listHecomClientes,
+  type HecomCliente,
+} from "@/lib/hecom/clientes.server";
+import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 
 async function uploadInboxAttachment(
   ticketId: string,
@@ -77,6 +83,10 @@ export interface InboxTicketItem {
   assignedUserDisplayName: string | null;
   /** true si aún no hay ticket de soporte (solo contacto CRM). */
   hasTicket?: boolean;
+  /** Cliente Hecom Club (fuente de la lista del gerente). */
+  hecomClienteId?: string | null;
+  /** Tiene usuario/org en Ads Holistic para recibir Soporte. */
+  hasHolisticAccount?: boolean;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -284,8 +294,8 @@ export async function listInboxTickets(filters?: {
 }
 
 /**
- * Lista TODOS los clientes (organizaciones) con su último ticket si existe.
- * Filtro "all" = agenda completa estilo WhatsApp / Whaticket.
+ * Lista clientes de Hecom Club (no gerentes) + último ticket Holistic si existe.
+ * Al responder, el mensaje llega al Soporte de la cuenta Holistic del cliente.
  */
 export async function listInboxContacts(filters?: {
   status?: string;
@@ -294,171 +304,301 @@ export async function listInboxContacts(filters?: {
 }): Promise<InboxTicketItem[]> {
   const admin = createAdminClient();
 
-  const { data: orgs, error: orgsError } = await admin
-    .from("organizations")
-    .select("id, name, created_at, updated_at")
-    .order("name", { ascending: true })
-    .limit(300);
+  let hecomClientes: HecomCliente[] = [];
+  try {
+    const listed = await listHecomClientes();
+    hecomClientes = listed.clientes;
+  } catch (error) {
+    console.error("[support-inbox] hecom list", error);
+    return [];
+  }
 
-  if (orgsError || !orgs) return [];
+  // Sacar gerentes / staff: la lista es solo clientes CRM.
+  hecomClientes = hecomClientes.filter(
+    (cliente) => !cliente.emails.some((email) => isHecomOtpStaffEmail(email)),
+  );
 
-  const orgIds = orgs.map((o) => o.id as string);
-  if (orgIds.length === 0) return [];
+  if (hecomClientes.length === 0) return [];
 
-  const [{ data: memberships }, { data: tickets }] = await Promise.all([
-    admin
-      .from("organization_memberships")
-      .select("organization_id, user_id, role, status, created_at")
-      .in("organization_id", orgIds)
-      .eq("status", "active"),
-    admin
-      .from("support_tickets")
-      .select(
-        "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at",
-      )
-      .in("organization_id", orgIds)
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .limit(500),
-  ]);
-
-  const userIds = [
+  const hecomIds = hecomClientes.map((c) => c.id);
+  const allEmails = [
     ...new Set(
-      (memberships ?? [])
-        .map((m) => m.user_id as string)
-        .concat(
-          (tickets ?? []).flatMap((t) => [
-            t.requester_user_id as string | null,
-            t.assigned_user_id as string | null,
-          ].filter((id): id is string => Boolean(id))),
-        ),
+      hecomClientes.flatMap((c) =>
+        c.emails.map((e) => e.trim().toLowerCase()).filter(Boolean),
+      ),
     ),
   ];
 
-  const { data: profiles } = userIds.length
-    ? await admin.from("profiles").select("id, email, full_name").in("id", userIds)
-    : { data: [] as Array<{ id: string; email: string | null; full_name: string | null }> };
+  const { data: links } = await admin
+    .from("hecom_cliente_user_links")
+    .select("hecom_cliente_id, user_id, email")
+    .in("hecom_cliente_id", hecomIds);
+
+  const linkUserIds = [
+    ...new Set((links ?? []).map((l) => l.user_id as string).filter(Boolean)),
+  ];
+
+  // Perfiles por email del CRM (cuenta Holistic del cliente).
+  const emailProfiles: Array<{
+    id: string;
+    email: string | null;
+    full_name: string | null;
+  }> = [];
+  const chunkSize = 80;
+  for (let i = 0; i < allEmails.length; i += chunkSize) {
+    const chunk = allEmails.slice(i, i + chunkSize);
+    const { data } = await admin
+      .from("profiles")
+      .select("id, email, full_name")
+      .in("email", chunk);
+    if (data) emailProfiles.push(...data);
+  }
+
+  const profileByEmail = new Map(
+    emailProfiles
+      .filter((p) => p.email)
+      .map((p) => [String(p.email).trim().toLowerCase(), p]),
+  );
+
+  const userIds = [
+    ...new Set([
+      ...linkUserIds,
+      ...emailProfiles.map((p) => p.id),
+    ]),
+  ];
+
+  const [{ data: memberships }, { data: profileRows }] = await Promise.all([
+    userIds.length
+      ? admin
+          .from("organization_memberships")
+          .select("organization_id, user_id, role, status")
+          .in("user_id", userIds)
+          .eq("status", "active")
+      : Promise.resolve({ data: [] as Array<{
+          organization_id: string;
+          user_id: string;
+          role: string;
+          status: string;
+        }> }),
+    userIds.length
+      ? admin.from("profiles").select("id, email, full_name").in("id", userIds)
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string;
+            email: string | null;
+            full_name: string | null;
+          }>,
+        }),
+  ]);
 
   const profileMap = new Map(
-    (profiles ?? []).map((p) => [
+    (profileRows ?? []).map((p) => [
       p.id,
       { email: p.email, name: p.full_name },
     ]),
   );
 
-  const membersByOrg = new Map<
+  const membershipByUser = new Map<
     string,
-    Array<{ user_id: string; role: string; created_at: string }>
+    { organization_id: string; role: string }
   >();
   for (const m of memberships ?? []) {
-    const orgId = m.organization_id as string;
-    const list = membersByOrg.get(orgId) ?? [];
-    list.push({
-      user_id: m.user_id as string,
-      role: m.role as string,
-      created_at: m.created_at as string,
-    });
-    membersByOrg.set(orgId, list);
-  }
-
-  const latestTicketByOrg = new Map<
-    string,
-    {
-      id: string;
-      organization_id: string | null;
-      requester_user_id: string | null;
-      assigned_user_id: string | null;
-      subject: string;
-      status: string;
-      priority: string | null;
-      category: string | null;
-      created_at: string;
-      updated_at: string | null;
+    const uid = m.user_id as string;
+    const prev = membershipByUser.get(uid);
+    const score = (role: string) =>
+      role === "owner" ? 0 : role === "admin" ? 1 : 2;
+    if (!prev || score(m.role as string) < score(prev.role)) {
+      membershipByUser.set(uid, {
+        organization_id: m.organization_id as string,
+        role: m.role as string,
+      });
     }
-  >();
-  for (const t of tickets ?? []) {
-    const orgId = t.organization_id as string | null;
-    if (!orgId || latestTicketByOrg.has(orgId)) continue;
-    latestTicketByOrg.set(orgId, {
-      id: t.id as string,
-      organization_id: (t.organization_id as string | null) ?? null,
-      requester_user_id: (t.requester_user_id as string | null) ?? null,
-      assigned_user_id: (t.assigned_user_id as string | null) ?? null,
-      subject: t.subject as string,
-      status: t.status as string,
-      priority: (t.priority as string | null) ?? null,
-      category: (t.category as string | null) ?? null,
-      created_at: t.created_at as string,
-      updated_at: (t.updated_at as string | null) ?? null,
-    });
   }
 
-  function primaryForOrg(orgId: string) {
-    const list = (membersByOrg.get(orgId) ?? []).slice().sort((a, b) => {
-      const score = (role: string) =>
-        role === "owner" ? 0 : role === "admin" ? 1 : 2;
-      return score(a.role) - score(b.role);
-    });
-    const primaryId = list[0]?.user_id;
-    return primaryId ? profileMap.get(primaryId) : undefined;
+  const linksByCliente = new Map<string, string[]>();
+  for (const link of links ?? []) {
+    const cid = link.hecom_cliente_id as string;
+    const uid = link.user_id as string;
+    const list = linksByCliente.get(cid) ?? [];
+    list.push(uid);
+    linksByCliente.set(cid, list);
   }
 
-  let items: InboxTicketItem[] = orgs.map((org) => {
-    const organizationId = org.id as string;
-    const organizationName = (org.name as string) ?? null;
-    const ticket = latestTicketByOrg.get(organizationId);
-    const primary = primaryForOrg(organizationId);
-    const requester = ticket?.requester_user_id
-      ? profileMap.get(ticket.requester_user_id as string)
-      : primary;
+  type Binding = {
+    organizationId: string | null;
+    requesterUserId: string | null;
+    requesterEmail: string | null;
+    requesterName: string | null;
+  };
+
+  function bindCliente(cliente: HecomCliente): Binding {
+    const linkedUsers = linksByCliente.get(cliente.id) ?? [];
+    for (const uid of linkedUsers) {
+      const mem = membershipByUser.get(uid);
+      if (mem) {
+        const profile = profileMap.get(uid);
+        return {
+          organizationId: mem.organization_id,
+          requesterUserId: uid,
+          requesterEmail: profile?.email ?? cliente.emails[0] ?? null,
+          requesterName: profile?.name ?? cliente.name,
+        };
+      }
+    }
+    for (const email of cliente.emails) {
+      const profile = profileByEmail.get(email.trim().toLowerCase());
+      if (!profile) continue;
+      const mem = membershipByUser.get(profile.id);
+      if (!mem) continue;
+      return {
+        organizationId: mem.organization_id,
+        requesterUserId: profile.id,
+        requesterEmail: profile.email,
+        requesterName: profile.full_name ?? cliente.name,
+      };
+    }
+    return {
+      organizationId: null,
+      requesterUserId: null,
+      requesterEmail: cliente.emails[0] ?? null,
+      requesterName: cliente.name,
+    };
+  }
+
+  const bindings = new Map(
+    hecomClientes.map((c) => [c.id, bindCliente(c)] as const),
+  );
+
+  const orgIds = [
+    ...new Set(
+      [...bindings.values()]
+        .map((b) => b.organizationId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const [{ data: orgs }, { data: tickets }] = await Promise.all([
+    orgIds.length
+      ? admin.from("organizations").select("id, name").in("id", orgIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    orgIds.length
+      ? admin
+          .from("support_tickets")
+          .select(
+            "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at, metadata",
+          )
+          .in("organization_id", orgIds)
+          .order("updated_at", { ascending: false, nullsFirst: false })
+          .limit(800)
+      : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+  ]);
+
+  const orgNameMap = new Map((orgs ?? []).map((o) => [o.id, o.name]));
+
+  const assigneeIds = [
+    ...new Set(
+      (tickets ?? [])
+        .map((t) => t.assigned_user_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const { data: assigneeProfiles } = assigneeIds.length
+    ? await admin.from("profiles").select("id, email, full_name").in("id", assigneeIds)
+    : { data: [] as Array<{ id: string; email: string | null; full_name: string | null }> };
+  for (const p of assigneeProfiles ?? []) {
+    profileMap.set(p.id, { email: p.email, name: p.full_name });
+  }
+
+  type TicketRow = {
+    id: string;
+    organization_id: string | null;
+    requester_user_id: string | null;
+    assigned_user_id: string | null;
+    subject: string;
+    status: string;
+    priority: string | null;
+    category: string | null;
+    created_at: string;
+    updated_at: string | null;
+    metadata: unknown;
+  };
+
+  const ticketRows = (tickets ?? []) as TicketRow[];
+
+  // Ticket más reciente por hecom_cliente_id (metadata) o por organization_id.
+  const latestByHecom = new Map<string, TicketRow>();
+  const latestByOrg = new Map<string, TicketRow>();
+  for (const t of ticketRows) {
+    const meta = (t.metadata ?? {}) as Record<string, unknown>;
+    const hecomId =
+      typeof meta.hecom_cliente_id === "string" ? meta.hecom_cliente_id : null;
+    if (hecomId && !latestByHecom.has(hecomId)) {
+      latestByHecom.set(hecomId, t);
+    }
+    const orgId = t.organization_id;
+    if (orgId && !latestByOrg.has(orgId)) {
+      latestByOrg.set(orgId, t);
+    }
+  }
+
+  let items: InboxTicketItem[] = hecomClientes.map((cliente) => {
+    const binding = bindings.get(cliente.id)!;
+    const ticket =
+      latestByHecom.get(cliente.id) ??
+      (binding.organizationId
+        ? latestByOrg.get(binding.organizationId)
+        : undefined);
     const assignee = ticket?.assigned_user_id
       ? profileMap.get(ticket.assigned_user_id as string)
       : undefined;
-    const requesterName = requester?.name ?? primary?.name ?? null;
-    const requesterEmail = requester?.email ?? primary?.email ?? null;
-    const assignedUserName = assignee?.name ?? null;
-    const assignedUserEmail = assignee?.email ?? null;
+    const organizationName = binding.organizationId
+      ? (orgNameMap.get(binding.organizationId) ?? null)
+      : null;
+    const displayName = (cliente.name || "").trim() || "Cliente";
+    const hasHolisticAccount = Boolean(binding.organizationId);
 
     return {
-      // Sin ticket: id sintético org:… (el UI crea ticket al primer mensaje).
-      id: ticket ? (ticket.id as string) : `org:${organizationId}`,
+      id: ticket
+        ? (ticket.id as string)
+        : `hecom:${cliente.id}`,
       subject: ticket
         ? (ticket.subject as string)
-        : "Sin conversación todavía",
+        : hasHolisticAccount
+          ? "Sin conversación todavía"
+          : "Sin cuenta Holistic aún",
       status: ticket ? (ticket.status as string) : "none",
       priority: ticket ? ((ticket.priority as string) ?? "normal") : "normal",
       category: ticket ? ((ticket.category as string | null) ?? null) : null,
       createdAt: ticket
         ? (ticket.created_at as string)
-        : ((org.created_at as string) ?? new Date().toISOString()),
+        : (cliente.createdAt ?? new Date().toISOString()),
       updatedAt: ticket
         ? ((ticket.updated_at as string | null) ?? null)
-        : ((org.updated_at as string | null) ?? null),
-      organizationId,
+        : (cliente.createdAt ?? null),
+      organizationId: binding.organizationId,
       organizationName,
-      requesterEmail,
-      requesterName,
-      requesterDisplayName: personDisplayName(
-        requesterName,
-        requesterEmail,
-        "Cliente",
-        organizationName,
-      ),
+      requesterEmail: binding.requesterEmail,
+      requesterName: displayName,
+      requesterDisplayName: displayName,
       assignedUserId: ticket
         ? ((ticket.assigned_user_id as string | null) ?? null)
         : null,
-      assignedUserName,
-      assignedUserEmail,
+      assignedUserName: assignee?.name ?? null,
+      assignedUserEmail: assignee?.email ?? null,
       assignedUserDisplayName: ticket?.assigned_user_id
-        ? personDisplayName(assignedUserName, assignedUserEmail, "Agente")
+        ? personDisplayName(assignee?.name, assignee?.email, "Agente")
         : null,
       hasTicket: Boolean(ticket),
+      hecomClienteId: cliente.id,
+      hasHolisticAccount,
     };
   });
 
-  // Con ticket activo primero, luego alfabético por nombre.
   items.sort((a, b) => {
-    const aActive = a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
-    const bActive = b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
+    const aActive =
+      a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
+    const bActive =
+      b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
     if (aActive !== bActive) return aActive - bActive;
     if (aActive === 0) {
       const aTime = new Date(a.updatedAt ?? a.createdAt).getTime();
@@ -504,8 +644,7 @@ export async function listInboxContacts(filters?: {
         item.organizationName,
         item.subject,
         item.requesterEmail,
-        item.assignedUserDisplayName,
-        item.assignedUserName,
+        item.hecomClienteId,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
@@ -515,58 +654,102 @@ export async function listInboxContacts(filters?: {
   return items;
 }
 
-/** Crea (o reutiliza) el ticket abierto de una organización para que el gerente pueda escribir. */
-export async function ensureInboxTicketForOrganization(input: {
+/** Abre / reutiliza ticket Holistic para un cliente Hecom (mensaje llega a su Soporte). */
+export async function ensureInboxTicketForHecomCliente(input: {
   session: SessionUser;
-  organizationId: string;
+  hecomClienteId: string;
 }): Promise<InboxTicketItem> {
   const admin = createAdminClient();
-  const organizationId = input.organizationId;
+  const cliente = await getHecomCliente(input.hecomClienteId);
+  if (!cliente) {
+    throw new Error("Cliente Hecom no encontrado.");
+  }
+  if (cliente.emails.some((email) => isHecomOtpStaffEmail(email))) {
+    throw new Error("Ese contacto es gerente/staff, no un cliente.");
+  }
 
-  const { data: existingRows } = await admin
+  const contacts = await listInboxContacts({ status: "all" });
+  const existingContact = contacts.find(
+    (c) => c.hecomClienteId === cliente.id && c.hasTicket,
+  );
+  if (existingContact && !existingContact.id.startsWith("hecom:")) {
+    return existingContact;
+  }
+
+  const bindingContact = contacts.find((c) => c.hecomClienteId === cliente.id);
+  if (!bindingContact?.organizationId || !bindingContact.hasHolisticAccount) {
+    throw new Error(
+      "Este cliente aún no tiene cuenta en Ads Holistic. Cuando entre con su correo, verá Soporte Holistic.",
+    );
+  }
+
+  const organizationId = bindingContact.organizationId;
+
+  const { data: openRows } = await admin
     .from("support_tickets")
-    .select(
-      "id, organization_id, requester_user_id, assigned_user_id, subject, status, priority, category, created_at, updated_at",
-    )
+    .select("id")
     .eq("organization_id", organizationId)
     .in("status", ["open", "pending"])
     .order("updated_at", { ascending: false, nullsFirst: false })
-    .limit(1);
+    .limit(5);
 
-  const existing = existingRows?.[0];
-  if (existing) {
-    const contacts = await listInboxContacts({ status: "all" });
-    const found = contacts.find((c) => c.id === existing.id);
+  for (const row of openRows ?? []) {
+    const found = contacts.find((c) => c.id === row.id);
     if (found) return found;
   }
 
-  const { data: membership } = await admin
-    .from("organization_memberships")
-    .select("user_id, role")
-    .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true })
-    .limit(20);
-
-  const sorted = (membership ?? []).slice().sort((a, b) => {
-    const score = (role: string) =>
-      role === "owner" ? 0 : role === "admin" ? 1 : 2;
-    return score(a.role as string) - score(b.role as string);
-  });
-  const requesterUserId = (sorted[0]?.user_id as string | undefined) ?? null;
+  let requesterId: string | null = null;
+  const { data: links } = await admin
+    .from("hecom_cliente_user_links")
+    .select("user_id")
+    .eq("hecom_cliente_id", cliente.id)
+    .limit(5);
+  if (links?.[0]?.user_id) {
+    requesterId = links[0].user_id as string;
+  } else {
+    for (const email of cliente.emails) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("id")
+        .ilike("email", email.trim())
+        .maybeSingle<{ id: string }>();
+      if (profile?.id) {
+        requesterId = profile.id;
+        break;
+      }
+    }
+  }
+  if (!requesterId) {
+    const { data: membership } = await admin
+      .from("organization_memberships")
+      .select("user_id, role")
+      .eq("organization_id", organizationId)
+      .eq("status", "active")
+      .limit(20);
+    const sorted = (membership ?? []).slice().sort((a, b) => {
+      const score = (role: string) =>
+        role === "owner" ? 0 : role === "admin" ? 1 : 2;
+      return score(a.role as string) - score(b.role as string);
+    });
+    requesterId = (sorted[0]?.user_id as string | undefined) ?? null;
+  }
 
   const now = new Date().toISOString();
   const { data: ticket, error } = await admin
     .from("support_tickets")
     .insert({
       organization_id: organizationId,
-      requester_user_id: requesterUserId,
+      requester_user_id: requesterId,
       assigned_user_id: input.session.id,
-      subject: "Consulta de soporte",
+      subject: `Soporte · ${cliente.name}`,
       status: "open",
       priority: "normal",
       category: "chat",
-      metadata: { source: "gerente_inbox" },
+      metadata: {
+        source: "gerente_inbox",
+        hecom_cliente_id: cliente.id,
+        hecom_cliente_name: cliente.name,
+      },
       updated_at: now,
     })
     .select(
@@ -578,9 +761,14 @@ export async function ensureInboxTicketForOrganization(input: {
     throw new Error(error?.message ?? "No se pudo abrir el chat del cliente.");
   }
 
-  const contacts = await listInboxContacts({ status: "all" });
-  const found = contacts.find((c) => c.id === ticket.id);
-  if (found) return found;
+  await createNotificationBestEffort({
+    organizationId,
+    userId: requesterId,
+    title: "Soporte Holistic te escribió",
+    body: `Tenés un mensaje nuevo de soporte.`,
+    type: "support_reply",
+    data: { ticket_id: ticket.id, url: "/support", hecom_cliente_id: cliente.id },
+  });
 
   return {
     id: ticket.id as string,
@@ -591,16 +779,50 @@ export async function ensureInboxTicketForOrganization(input: {
     createdAt: ticket.created_at as string,
     updatedAt: (ticket.updated_at as string | null) ?? null,
     organizationId,
-    organizationName: null,
-    requesterEmail: null,
-    requesterName: null,
-    requesterDisplayName: "Cliente",
+    organizationName: bindingContact.organizationName,
+    requesterEmail: bindingContact.requesterEmail,
+    requesterName: cliente.name,
+    requesterDisplayName: cliente.name,
     assignedUserId: input.session.id,
     assignedUserName: null,
     assignedUserEmail: input.session.email,
-    assignedUserDisplayName: personDisplayName(null, input.session.email, "Agente"),
+    assignedUserDisplayName: personDisplayName(
+      null,
+      input.session.email,
+      "Agente",
+    ),
     hasTicket: true,
+    hecomClienteId: cliente.id,
+    hasHolisticAccount: true,
   };
+}
+
+/** @deprecated Prefer ensureInboxTicketForHecomCliente */
+export async function ensureInboxTicketForOrganization(input: {
+  session: SessionUser;
+  organizationId: string;
+}): Promise<InboxTicketItem> {
+  const admin = createAdminClient();
+  const organizationId = input.organizationId;
+
+  const { data: existingRows } = await admin
+    .from("support_tickets")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("status", ["open", "pending"])
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1);
+
+  const existingId = existingRows?.[0]?.id as string | undefined;
+  if (existingId) {
+    const contacts = await listInboxContacts({ status: "all" });
+    const found = contacts.find((c) => c.id === existingId);
+    if (found) return found;
+  }
+
+  throw new Error(
+    "Usá un cliente de Hecom Club. Este inbox ya no abre chats por organización interna.",
+  );
 }
 
 export async function listInboxTicketMessages(

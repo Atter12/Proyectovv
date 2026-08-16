@@ -25,6 +25,8 @@ interface InboxTicket {
   assignedUserEmail: string | null;
   assignedUserDisplayName: string | null;
   hasTicket?: boolean;
+  hecomClienteId?: string | null;
+  hasHolisticAccount?: boolean;
 }
 
 function formatTicketDate(value: string) {
@@ -92,7 +94,12 @@ export function GerenteSupportInbox() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const selected = tickets.find((t) => t.id === selectedId) ?? null;
-  const hasRealTicket = Boolean(selected?.hasTicket !== false && selected && !selected.id.startsWith("org:"));
+  const hasRealTicket = Boolean(
+    selected?.hasTicket !== false &&
+      selected &&
+      !selected.id.startsWith("org:") &&
+      !selected.id.startsWith("hecom:"),
+  );
   const iOwnSelected =
     Boolean(selected?.assignedUserId) && selected?.assignedUserId === meId;
   const isUnassigned = Boolean(hasRealTicket && selected && !selected.assignedUserId);
@@ -151,20 +158,29 @@ export function GerenteSupportInbox() {
   }, [loadTickets]);
 
   async function ensureTicketId(contact: InboxTicket): Promise<string> {
-    if (contact.hasTicket !== false && !contact.id.startsWith("org:")) {
+    if (
+      contact.hasTicket !== false &&
+      !contact.id.startsWith("org:") &&
+      !contact.id.startsWith("hecom:")
+    ) {
       return contact.id;
     }
-    const organizationId =
-      contact.organizationId ||
-      (contact.id.startsWith("org:") ? contact.id.slice(4) : null);
-    if (!organizationId) {
-      throw new Error("Cliente sin organización.");
+    if (!contact.hecomClienteId) {
+      throw new Error("Cliente Hecom no identificado.");
+    }
+    if (contact.hasHolisticAccount === false) {
+      throw new Error(
+        "Este cliente aún no tiene cuenta en Ads Holistic. Cuando entre con su correo verá Soporte Holistic.",
+      );
     }
     const res = await fetch("/api/support/inbox", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ action: "ensure", organizationId }),
+      body: JSON.stringify({
+        action: "ensure",
+        hecomClienteId: contact.hecomClienteId,
+      }),
     });
     const data = (await res.json()) as {
       ok?: boolean;
@@ -190,12 +206,16 @@ export function GerenteSupportInbox() {
     setLoadingThread(true);
     setThreadError(null);
 
-    if (id.startsWith("org:")) {
+    if (id.startsWith("org:") || id.startsWith("hecom:")) {
+      const contact = tickets.find((t) => t.id === id);
+      const noAccount = contact?.hasHolisticAccount === false;
       setMessages([
         {
           id: "no-thread",
           role: "bot",
-          text: "Todavía no hay mensajes con este cliente. Escribí abajo para iniciar el chat.",
+          text: noAccount
+            ? "Este cliente de Hecom aún no tiene cuenta en Ads Holistic. Cuando entre con su correo, verá Soporte Holistic acá."
+            : "Todavía no hay mensajes con este cliente. Escribí abajo para iniciar el chat; le llega a su Soporte Holistic.",
           timestamp: new Date().toLocaleTimeString("es", {
             hour: "2-digit",
             minute: "2-digit",
@@ -355,7 +375,8 @@ export function GerenteSupportInbox() {
           Inbox Soporte
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Todos los clientes a la izquierda. Filtrá por atención o buscá por nombre.
+          Clientes de Hecom Club. Al responderles, el mensaje llega a su Soporte
+          Holistic.
         </p>
       </header>
 
@@ -446,30 +467,33 @@ export function GerenteSupportInbox() {
                         </span>
                         <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
                           {ticket.subject}
-                          {ticket.organizationName &&
-                          ticket.organizationName !== name
-                            ? ` · ${ticket.organizationName}`
+                          {ticket.requesterEmail
+                            ? ` · ${ticket.requesterEmail}`
                             : ""}
                         </span>
                         <span
                           className={cn(
                             "mt-1 block text-[11px] font-semibold",
-                            !ticket.hasTicket && ticket.status === "none"
-                              ? "text-[var(--auth-text-soft)]"
-                              : free
-                                ? "text-amber-700"
-                                : mine
-                                  ? "text-emerald-700"
-                                  : "text-[var(--auth-text-soft)]",
+                            ticket.hasHolisticAccount === false
+                              ? "text-amber-700"
+                              : !ticket.hasTicket || ticket.status === "none"
+                                ? "text-[var(--auth-text-soft)]"
+                                : free
+                                  ? "text-amber-700"
+                                  : mine
+                                    ? "text-emerald-700"
+                                    : "text-[var(--auth-text-soft)]",
                           )}
                         >
-                          {!ticket.hasTicket || ticket.status === "none"
-                            ? "Sin chat todavía"
-                            : free
-                              ? "Sin atender"
-                              : mine
-                                ? "Lo estás atendiendo"
-                                : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
+                          {ticket.hasHolisticAccount === false
+                            ? "Sin cuenta Holistic aún"
+                            : !ticket.hasTicket || ticket.status === "none"
+                              ? "Sin chat todavía"
+                              : free
+                                ? "Sin atender"
+                                : mine
+                                  ? "Lo estás atendiendo"
+                                  : `Atendido por ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro agente"}`}
                           {ticket.hasTicket && ticket.status !== "none"
                             ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
                             : ""}
@@ -569,8 +593,14 @@ export function GerenteSupportInbox() {
               onInputChange={setInputValue}
               onSend={(files) => void handleSend(files)}
               onBack={() => setMobileShowChat(false)}
-              composerDisabled={Boolean(ownedByOther)}
-              composerDisabledReason="Otro agente tiene este chat. Pedile que lo libere para responder."
+              composerDisabled={
+                Boolean(ownedByOther) || selected?.hasHolisticAccount === false
+              }
+              composerDisabledReason={
+                selected?.hasHolisticAccount === false
+                  ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
+                  : "Otro agente tiene este chat. Pedile que lo libere para responder."
+              }
             />
           </div>
         </div>

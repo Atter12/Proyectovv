@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import {
-  ensureInboxTicketForOrganization,
+  ensureInboxTicketForHecomCliente,
   listInboxContacts,
 } from "@/lib/support/support-inbox.server";
 
@@ -29,19 +29,25 @@ export async function GET(request: Request) {
   const status = searchParams.get("status") ?? "all";
   const q = searchParams.get("q") ?? "";
 
-  const tickets = await listInboxContacts({
-    status,
-    q,
-    assignedUserId: session.id,
-  });
-  return NextResponse.json({
-    ok: true,
-    tickets,
-    me: { id: session.id, email: session.email },
-  });
+  try {
+    const tickets = await listInboxContacts({
+      status,
+      q,
+      assignedUserId: session.id,
+    });
+    return NextResponse.json({
+      ok: true,
+      tickets,
+      me: { id: session.id, email: session.email },
+    });
+  } catch (error) {
+    const msg =
+      error instanceof Error ? error.message : "No se pudo cargar el inbox.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
-/** Abre / reutiliza chat de un cliente (organización) sin ticket previo. */
+/** Abre / reutiliza chat Holistic de un cliente Hecom Club. */
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -54,17 +60,21 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       action?: string;
+      hecomClienteId?: string;
       organizationId?: string;
     };
-    if (body.action !== "ensure" || !body.organizationId) {
+    if (body.action !== "ensure") {
+      return NextResponse.json({ error: "Acción inválida." }, { status: 400 });
+    }
+    if (!body.hecomClienteId) {
       return NextResponse.json(
-        { error: "organizationId requerido." },
+        { error: "hecomClienteId requerido (cliente Hecom Club)." },
         { status: 400 },
       );
     }
-    const ticket = await ensureInboxTicketForOrganization({
+    const ticket = await ensureInboxTicketForHecomCliente({
       session,
-      organizationId: body.organizationId,
+      hecomClienteId: body.hecomClienteId,
     });
     return NextResponse.json({ ok: true, ticket });
   } catch (error) {
