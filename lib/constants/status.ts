@@ -24,7 +24,7 @@ export const TICKET_STATUS_LABELS: Record<string, string> = {
 export const AD_ACCOUNT_STATUS_LABELS: Record<string, string> = {
   active: "Activa",
   pending: "Pendiente",
-  disabled: "Desactivada",
+  disabled: "Suspendida",
   review: "En revisión",
 };
 

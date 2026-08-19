@@ -30,12 +30,14 @@ export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps)
       valueClass: "text-[#1a1612]",
     },
     {
-      label: "Pendientes",
-      value: formatNumber(summary.pendingSetup),
-      hint: "Falta configuración",
-      accent: "bg-[#b45309]",
+      label: "Suspendidas",
+      value: formatNumber(summary.disabledAccounts ?? 0),
+      hint: "Baneadas o castigadas en TikTok",
+      accent: "bg-[#c53030]",
       valueClass:
-        summary.pendingSetup > 0 ? "text-[#92400e]" : "text-[#1a1612]",
+        (summary.disabledAccounts ?? 0) > 0
+          ? "text-[#9b2c2c]"
+          : "text-[#1a1612]",
     },
   ];
 

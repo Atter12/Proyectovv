@@ -34,6 +34,7 @@ export const adAccountsOverviewMock: AdAccountsOverview = {
     activeAccounts: 0,
     assignedBalance: 0,
     pendingSetup: 0,
+    disabledAccounts: 0,
   },
   accounts: adAccountsMock,
 };

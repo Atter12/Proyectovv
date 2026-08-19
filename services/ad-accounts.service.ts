@@ -89,6 +89,7 @@ export async function getAdAccountsOverview(
     activeAccounts: accounts.filter((a) => a.status === "active").length,
     assignedBalance: centsToAmount(assignedBalanceCents || pageSummary?.assigned_balance_cents || 0),
     pendingSetup: accounts.filter((a) => a.status === "pending").length,
+    disabledAccounts: accounts.filter((a) => a.status === "disabled").length,
   };
 
   return { summary, accounts };
@@ -421,6 +422,7 @@ function emptyOverview(): AdAccountsOverview {
       activeAccounts: 0,
       assignedBalance: 0,
       pendingSetup: 0,
+      disabledAccounts: 0,
     },
     accounts: [],
   };

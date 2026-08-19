@@ -27,6 +27,8 @@ export interface AdAccountsSummary {
   activeAccounts: number;
   assignedBalance: number;
   pendingSetup: number;
+  /** Suspendidas / baneadas en TikTok (status disabled). */
+  disabledAccounts?: number;
 }
 
 export interface AdAccountsOverview {

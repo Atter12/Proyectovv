@@ -24,7 +24,7 @@ const platforms: { value: AdAccountPlatform; label: string }[] = [
 const statuses: { value: Exclude<AdAccountStatus, "archived">; label: string }[] = [
   { value: "active", label: "Activa" },
   { value: "pending", label: "Pendiente" },
-  { value: "disabled", label: "Desactivada" },
+  { value: "disabled", label: "Suspendida" },
   { value: "review", label: "En revisión" },
 ];
 

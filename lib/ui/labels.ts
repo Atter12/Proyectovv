@@ -4,7 +4,7 @@ import { mapTransactionStatusLabel } from "@/lib/services/mappers";
 export const AD_ACCOUNT_STATUS_LABELS: Record<AdAccountStatus, string> = {
   active: "Activa",
   pending: "Pendiente",
-  disabled: "Desactivada",
+  disabled: "Suspendida",
   review: "En revisión",
   archived: "Archivada",
 };

@@ -5,6 +5,7 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
+import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
@@ -12,6 +13,8 @@ import {
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
+
+export { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 
 function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
   if (cliente.tiktokAccounts.length > 0) return cliente.tiktokAccounts;
@@ -29,35 +32,33 @@ function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
   return [];
 }
 
-function normalizeName(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function advertiserMatchesCliente(
-  advertiserName: string,
-  clienteName: string,
-): boolean {
-  const adv = normalizeName(advertiserName);
-  const client = normalizeName(clienteName);
-  if (!adv || !client || client.length < 4) return false;
-  if (adv.startsWith(client)) return true;
-  const tokens = client.split(" ").filter((t) => t.length >= 3);
-  if (tokens.length === 0) return false;
-  return tokens.every((token) => adv.includes(token));
+function resolveDisplayName(input: {
+  clienteName: string;
+  hecomName: string | null | undefined;
+  liveName: string | null | undefined;
+  bmBucket: string | null | undefined;
+}): string {
+  const live = input.liveName?.trim();
+  if (live) return live;
+  const hecom = input.hecomName?.trim();
+  if (hecom) return hecom;
+  const bucket = input.bmBucket?.trim();
+  if (bucket) return `${input.clienteName} · BM ${bucket}`;
+  return `${input.clienteName} · TikTok`;
 }
 
 export function mapHecomTiktokToAdAccount(
   cliente: HecomCliente,
   account: HecomTiktokAccount,
   statusKind: TikTokBcAdvertiserStatusKind = "unknown",
+  liveName?: string | null,
 ): AdAccount {
-  const label =
-    account.advertiserName?.trim() || `${cliente.name} · TikTok`;
+  const label = resolveDisplayName({
+    clienteName: cliente.name,
+    hecomName: account.advertiserName,
+    liveName,
+    bmBucket: account.bmBucket,
+  });
   const status =
     statusKind === "suspended"
       ? "disabled"
@@ -74,7 +75,7 @@ export function mapHecomTiktokToAdAccount(
     bcId: account.bmBucket || account.advertiserId,
     externalAccountId: account.advertiserId,
     externalBusinessId: account.bmBucket,
-    externalAccountName: account.advertiserName,
+    externalAccountName: liveName?.trim() || account.advertiserName,
     status,
     cost: account.fee ?? 0,
     dailyBudget: 0,
@@ -88,7 +89,7 @@ export function mapHecomTiktokToAdAccount(
           ? `Aprobada · fee ${account.fee}%`
           : "Aprobada en TikTok"
         : statusKind === "suspended"
-          ? "Suspendida en TikTok"
+          ? "Suspendida / baneada en TikTok"
           : account.fee != null
             ? `Fee Hecom ${account.fee}%`
             : "Cuenta Hecom Club",
@@ -100,51 +101,41 @@ export function mapHecomTiktokToAdAccount(
 
 /**
  * Cuentas ads del cliente.
- * - Con mapeo Hecom: muestra rápido (cache TikTok si hay).
- * - Sin mapeo Hecom: consulta BM TikTok y matchea por nombre (como Hecom Club / path histórico).
- *   Sin esto, el gerente ve “sin cuentas” y no puede fondear.
+ * - Prioridad: mapeo Hecom por advertiser_id (activo o suspendido).
+ * - Fallback: BM TikTok match por nombre (aprobadas + suspendidas).
+ * - Nombres: preferir nombre exacto de TikTok cuando hay ID en live.
  */
 export async function getHecomClienteAdAccountsOverview(
   clienteId: string,
 ): Promise<AdAccountsOverview & { cliente: HecomCliente | null }> {
   const started = Date.now();
 
+  const emptySummary = {
+    totalAccounts: 0,
+    activeAccounts: 0,
+    assignedBalance: 0,
+    pendingSetup: 0,
+    disabledAccounts: 0,
+  };
+
   const cliente = await getHecomCliente(clienteId);
   if (!cliente) {
-    return {
-      cliente: null,
-      accounts: [],
-      summary: {
-        totalAccounts: 0,
-        activeAccounts: 0,
-        assignedBalance: 0,
-        pendingSetup: 0,
-      },
-    };
+    return { cliente: null, accounts: [], summary: emptySummary };
   }
 
   if (isOtpTestClienteId(clienteId)) {
-    return {
-      cliente,
-      accounts: [],
-      summary: {
-        totalAccounts: 0,
-        activeAccounts: 0,
-        assignedBalance: 0,
-        pendingSetup: 0,
-      },
-    };
+    return { cliente, accounts: [], summary: emptySummary };
   }
 
   const hecomAccounts = resolveHecomAccounts(cliente).filter(
     (account) => account.syncEnabled !== false,
   );
+  const hecomIds = new Set(
+    hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
+  );
 
-  let statusById = new Map<string, TikTokBcAdvertiserStatusKind>();
-  let liveApprovedExtras: Array<{
-    advertiserId: string;
-    advertiserName: string;
-  }> = [];
+  let liveById = new Map<string, TikTokBcAdvertiser>();
+  let nameMatchedExtras: TikTokBcAdvertiser[] = [];
   let liveSource: "cache" | "live" | "none" = "none";
 
   try {
@@ -152,8 +143,7 @@ export async function getHecomClienteAdAccountsOverview(
       await listHolisticBcAdvertisersCachedFirst();
     liveSource = live.length > 0 ? "cache" : "none";
 
-    // Sin mapeo en Hecom (caso típico), hay que ir al BM por nombre.
-    // También si cache vacío: un force para no dejar 0 cuentas al gerente.
+    // Sin mapeo Hecom o cache vacío → forzar live BM.
     if (hecomAccounts.length === 0 || live.length === 0) {
       try {
         live = await listHolisticBcAdvertisers();
@@ -167,18 +157,19 @@ export async function getHecomClienteAdAccountsOverview(
     }
 
     if (live.length > 0) {
-      statusById = new Map(live.map((row) => [row.advertiserId, row.statusKind]));
-      liveApprovedExtras = live
-        .filter(
-          (row) =>
-            row.statusKind === "approved" &&
-            advertiserMatchesCliente(row.advertiserName, cliente.name) &&
-            !hecomAccounts.some((h) => h.advertiserId === row.advertiserId),
-        )
-        .map((row) => ({
-          advertiserId: row.advertiserId,
-          advertiserName: row.advertiserName,
-        }));
+      liveById = new Map(live.map((row) => [row.advertiserId, row]));
+
+      // Fallback nombre: aprobadas + suspendidas (no solo activas).
+      nameMatchedExtras = live.filter((row) => {
+        if (hecomIds.has(row.advertiserId)) return false;
+        if (
+          row.statusKind !== "approved" &&
+          row.statusKind !== "suspended"
+        ) {
+          return false;
+        }
+        return advertiserMatchesCliente(row.advertiserName, cliente.name);
+      });
     }
   } catch (error) {
     console.warn("[ad-accounts] bc_status_skip", {
@@ -187,34 +178,59 @@ export async function getHecomClienteAdAccountsOverview(
     });
   }
 
-  const mapped = hecomAccounts.map((account) =>
-    mapHecomTiktokToAdAccount(
+  // A) ID-first: siempre incluir filas Hecom (activas o suspendidas).
+  const mapped = hecomAccounts.map((account) => {
+    const live = liveById.get(account.advertiserId.trim());
+    return mapHecomTiktokToAdAccount(
       cliente,
-      account,
-      statusById.get(account.advertiserId) ?? "unknown",
-    ),
-  );
+      {
+        ...account,
+        bmBucket: account.bmBucket || live?.bcId || null,
+      },
+      live?.statusKind ?? "unknown",
+      live?.advertiserName,
+    );
+  });
 
-  const extras = liveApprovedExtras.map((row) =>
+  // B) Extras solo por nombre cuando no hay ID Hecom.
+  const extras = nameMatchedExtras.map((row) =>
     mapHecomTiktokToAdAccount(
       cliente,
       {
         advertiserId: row.advertiserId,
         advertiserName: row.advertiserName,
-        bmBucket: null,
+        bmBucket: row.bcId,
         fee: cliente.tiktokDefaultFee,
         syncEnabled: true,
       },
-      "approved",
+      row.statusKind,
+      row.advertiserName,
     ),
   );
 
-  const hasLiveStatus = statusById.size > 0;
-  // Con snapshot TikTok: solo aprobadas (fondeables).
-  // Sin snapshot: mostrar mapeo Hecom para no vaciar la UI.
-  const accounts = [...mapped, ...extras].filter((account) => {
-    if (!hasLiveStatus) return account.status !== "disabled";
-    return account.status === "active";
+  const byExternalId = new Map<string, AdAccount>();
+  for (const account of [...mapped, ...extras]) {
+    const key = account.externalAccountId?.trim() || account.id;
+    const prev = byExternalId.get(key);
+    if (!prev) {
+      byExternalId.set(key, account);
+      continue;
+    }
+    // Preferir fila con status conocido (active/disabled) sobre pending.
+    const rank = (s: AdAccount["status"]) =>
+      s === "active" ? 3 : s === "disabled" ? 2 : s === "pending" ? 1 : 0;
+    if (rank(account.status) >= rank(prev.status)) {
+      byExternalId.set(key, account);
+    }
+  }
+
+  // Mostrar activas, suspendidas (disabled) y pendientes. No ocultar baneadas.
+  const accounts = [...byExternalId.values()].sort((a, b) => {
+    const order = (s: AdAccount["status"]) =>
+      s === "active" ? 0 : s === "pending" ? 1 : s === "disabled" ? 2 : 3;
+    const d = order(a.status) - order(b.status);
+    if (d !== 0) return d;
+    return a.name.localeCompare(b.name, "es");
   });
 
   console.info("[ad-accounts] overview", {
@@ -222,9 +238,11 @@ export async function getHecomClienteAdAccountsOverview(
     clienteName: cliente.name,
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
-    bmMatches: liveApprovedExtras.length,
+    bmNameMatches: nameMatchedExtras.length,
     liveSource,
     shown: accounts.length,
+    active: accounts.filter((a) => a.status === "active").length,
+    suspended: accounts.filter((a) => a.status === "disabled").length,
   });
 
   return {
@@ -235,6 +253,7 @@ export async function getHecomClienteAdAccountsOverview(
       activeAccounts: accounts.filter((a) => a.status === "active").length,
       assignedBalance: 0,
       pendingSetup: accounts.filter((a) => a.status === "pending").length,
+      disabledAccounts: accounts.filter((a) => a.status === "disabled").length,
     },
   };
 }

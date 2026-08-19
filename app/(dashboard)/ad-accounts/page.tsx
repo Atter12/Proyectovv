@@ -50,6 +50,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             activeAccounts: 0,
             assignedBalance: 0,
             pendingSetup: 0,
+            disabledAccounts: 0,
           }}
           hecomScoped={false}
           hideCreate
@@ -104,13 +105,13 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               {clienteName} no tiene cuentas TikTok para operar
             </p>
             <p className="mx-auto mt-2 max-w-lg text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              Buscamos en Hecom ({" "}
+              Buscamos primero por{" "}
               <code className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[12px] text-[var(--auth-accent)]">
                 advertiser_id
-              </code>
-              ) y en el BM por nombre del cliente. Si no aparece nada, el
-              advertiser no está Aprobado en el BC de Holistic, o el nombre en
-              TikTok no coincide con “{clienteName}”.
+              </code>{" "}
+              en Hecom (activas y suspendidas) y, si falta el ID, por nombre en el
+              BM. Si no aparece nada, no hay mapeo en Hecom ni coincidencia de
+              nombre con “{clienteName}”.
             </p>
             <Link
               href={routes.payments}

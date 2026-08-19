@@ -20,7 +20,7 @@ import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
 const statusLabels: Record<AdAccountStatus, string> = {
   active: "Activa",
   pending: "Pendiente",
-  disabled: "Desactivada",
+  disabled: "Suspendida",
   review: "En revisión",
   archived: "Archivada",
 };
@@ -28,7 +28,7 @@ const statusLabels: Record<AdAccountStatus, string> = {
 const statusStyles: Record<AdAccountStatus, string> = {
   active: "bg-[#ecf7f0] text-[#1f5c40] ring-[#c5e4d2]",
   pending: "bg-[#fff7eb] text-[#92400e] ring-[#f0d9b0]",
-  disabled: "bg-[#f3eee8] text-[#5c564e] ring-[#e4ddd4]",
+  disabled: "bg-[#fdeceb] text-[#9b2c2c] ring-[#f0c4c4]",
   review: "bg-[#f0f4f8] text-[#334e68] ring-[#d3dde8]",
   archived: "bg-[#f3eee8] text-[#7a736a] ring-[#e4ddd4]",
 };
@@ -36,7 +36,7 @@ const statusStyles: Record<AdAccountStatus, string> = {
 const statusDot: Record<AdAccountStatus, string> = {
   active: "bg-[#2f7a57]",
   pending: "bg-[#d97706]",
-  disabled: "bg-[#8a8178]",
+  disabled: "bg-[#c53030]",
   review: "bg-[#486581]",
   archived: "bg-[#a39a90]",
 };

@@ -20,7 +20,7 @@ const statusOptions: { value: AdAccountStatus | "all"; label: string }[] = [
   { value: "all", label: "Todos los estados" },
   { value: "active", label: "Activa" },
   { value: "pending", label: "Pendiente" },
-  { value: "disabled", label: "Desactivada" },
+  { value: "disabled", label: "Suspendida" },
   { value: "review", label: "En revisión" },
   { value: "archived", label: "Archivada" },
 ];

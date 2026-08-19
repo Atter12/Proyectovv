@@ -26,7 +26,7 @@ export function AdAccountsPageHeader({
   hideCreate = false,
 }: AdAccountsPageHeaderProps) {
   const description = hecomScoped
-    ? `Cuentas TikTok Aprobadas de ${clienteName ?? "este cliente"} (solo lectura).`
+    ? `Cuentas TikTok de ${clienteName ?? "este cliente"}: activas y suspendidas (solo lectura).`
     : "Seleccioná un cliente para ver sus cuentas publicitarias.";
 
   return (
@@ -96,8 +96,13 @@ export function AdAccountsPageHeader({
             </p>
             <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">
               {formatNumber(summary.activeAccounts)} activa
-              {summary.activeAccounts === 1 ? "" : "s"} ·{" "}
-              {formatNumber(summary.totalAccounts)} total
+              {summary.activeAccounts === 1 ? "" : "s"}
+              {(summary.disabledAccounts ?? 0) > 0
+                ? ` · ${formatNumber(summary.disabledAccounts ?? 0)} suspendida${
+                    (summary.disabledAccounts ?? 0) === 1 ? "" : "s"
+                  }`
+                : ""}{" "}
+              · {formatNumber(summary.totalAccounts)} total
             </p>
           </div>
         </div>
@@ -111,7 +116,10 @@ export function AdAccountsPageHeader({
           accent
         />
         <Kpi label="Saldo" value={formatMoney(summary.assignedBalance)} />
-        <Kpi label="Pendientes" value={formatNumber(summary.pendingSetup)} />
+        <Kpi
+          label="Suspendidas"
+          value={formatNumber(summary.disabledAccounts ?? 0)}
+        />
       </section>
     </div>
   );

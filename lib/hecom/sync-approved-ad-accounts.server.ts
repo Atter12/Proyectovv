@@ -6,6 +6,7 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
+import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
@@ -27,29 +28,6 @@ function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
     ];
   }
   return [];
-}
-
-function normalizeName(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-/** "Branlyn Lopez 206,0 USD" ≈ cliente "Branlyn Lopez" */
-function advertiserMatchesCliente(
-  advertiserName: string,
-  clienteName: string,
-): boolean {
-  const adv = normalizeName(advertiserName);
-  const client = normalizeName(clienteName);
-  if (!adv || !client || client.length < 4) return false;
-  if (adv.startsWith(client)) return true;
-  const tokens = client.split(" ").filter((t) => t.length >= 3);
-  if (tokens.length === 0) return false;
-  return tokens.every((token) => adv.includes(token));
 }
 
 export type SyncApprovedAdAccountsResult = {
@@ -176,13 +154,15 @@ export async function syncApprovedAdAccountsForCliente(input: {
     });
   }
 
-  // Cuentas aprobadas del BM con el nombre del cliente (ej. 206 si Hecom solo mapeó 204).
+  // BM por nombre (aprobadas + suspendidas). ID Hecom ya entró arriba.
   for (const live of bcAdvertisers) {
-    if (live.statusKind !== "approved") continue;
+    if (live.statusKind !== "approved" && live.statusKind !== "suspended") {
+      continue;
+    }
     if (!advertiserMatchesCliente(live.advertiserName, cliente.name)) continue;
     const existing = candidates.get(live.advertiserId);
     if (existing) {
-      existing.statusKind = "approved";
+      existing.statusKind = live.statusKind;
       existing.name = live.advertiserName || existing.name;
       existing.bcId = live.bcId || existing.bcId;
       continue;
@@ -191,7 +171,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
       advertiserId: live.advertiserId,
       name: live.advertiserName || `${cliente.name} · TikTok`,
       bcId: live.bcId,
-      statusKind: "approved",
+      statusKind: live.statusKind,
       fromHecom: hecomIds.has(live.advertiserId),
     });
   }
@@ -265,30 +245,37 @@ export async function syncApprovedAdAccountsForCliente(input: {
   }
 
   for (const row of suspended) {
-    const { data: existing } = await admin
-      .from("ad_accounts")
-      .select("id, status")
-      .eq("organization_id", input.organizationId)
-      .eq("platform", "tiktok")
-      .eq("external_account_id", row.advertiserId)
-      .maybeSingle<{ id: string; status: string }>();
-
-    if (!existing?.id || existing.status === "disabled") continue;
-
-    const { error } = await admin
-      .from("ad_accounts")
-      .update({
+    const { error } = await admin.from("ad_accounts").upsert(
+      {
+        organization_id: input.organizationId,
+        name: row.name,
+        platform: "tiktok",
+        external_account_id: row.advertiserId,
+        external_business_id: row.bcId,
+        external_account_name: row.name,
         status: "disabled",
+        currency: "USD",
+        timezone: "America/Lima",
+        created_by: input.userId ?? null,
         last_synced_at: new Date().toISOString(),
         metadata: {
           source: "hecom_approved_sync",
           hecom_cliente_id: input.clienteId,
+          hecom_cliente_name: cliente.name,
           tiktok_status: "suspended",
+          from_hecom_map: row.fromHecom,
         },
-      })
-      .eq("id", existing.id);
+      },
+      { onConflict: "organization_id,platform,external_account_id" },
+    );
 
     if (!error) disabled += 1;
+    else {
+      console.warn("[hecom-sync] suspend_upsert_failed", {
+        advertiserId: row.advertiserId,
+        error: error.message,
+      });
+    }
   }
 
   const approvedAdvertiserIds = approved.map((row) => row.advertiserId);
