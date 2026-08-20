@@ -178,19 +178,26 @@ export async function getHecomClienteAdAccountsOverview(
     });
   }
 
-  // A) ID-first: siempre incluir filas Hecom (activas o suspendidas).
-  const mapped = hecomAccounts.map((account) => {
-    const live = liveById.get(account.advertiserId.trim());
-    return mapHecomTiktokToAdAccount(
-      cliente,
-      {
-        ...account,
-        bmBucket: account.bmBucket || live?.bcId || null,
-      },
-      live?.statusKind ?? "unknown",
-      live?.advertiserName,
-    );
-  });
+  // A) ID-first: filas Hecom que sigan existiendo en BM (evita IDs obsoletos).
+  const mapped = hecomAccounts
+    .map((account) => {
+      const live = liveById.get(account.advertiserId.trim());
+      return mapHecomTiktokToAdAccount(
+        cliente,
+        {
+          ...account,
+          bmBucket: account.bmBucket || live?.bcId || null,
+        },
+        live?.statusKind ?? "unknown",
+        live?.advertiserName,
+      );
+    })
+    .filter((account) => {
+      const id = account.externalAccountId?.trim();
+      if (!id) return false;
+      if (liveById.size === 0) return true;
+      return liveById.has(id);
+    });
 
   // B) Extras solo por nombre cuando no hay ID Hecom.
   const extras = nameMatchedExtras.map((row) =>

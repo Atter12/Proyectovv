@@ -24,6 +24,10 @@
 # misc
 .DS_Store
 *.pem
+/tmp/
+
+# local audit exports (Hecom↔TikTok mapping)
+/tmp/**
 
 # debug
 npm-debug.log*
