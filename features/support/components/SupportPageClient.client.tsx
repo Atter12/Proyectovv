@@ -197,7 +197,8 @@ export function SupportPageClient() {
   }, [ticketId]);
 
   useSupportThreadPolling({
-    enabled: Boolean(ticketId) && !loadingConversation && !clearingChat,
+    enabled:
+      Boolean(ticketId) && !sending && !loadingConversation && !clearingChat,
     intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
     onMessages: setMessages,

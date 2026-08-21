@@ -4,9 +4,19 @@ import { useEffect, useRef } from "react";
 import type { ChatMessage } from "@/features/support/types/support.types";
 
 const OPTIMISTIC_PREFIXES = ["user-", "agent-", "local-"];
+const SYSTEM_IDS = new Set([
+  "support-greeting",
+  "inbox-empty",
+  "no-thread",
+  "empty",
+]);
 
 function isOptimisticId(id: string) {
   return OPTIMISTIC_PREFIXES.some((p) => id.startsWith(p));
+}
+
+function isSystemId(id: string) {
+  return SYSTEM_IDS.has(id);
 }
 
 /** Une poll del server con optimistas locales (mientras viaja el POST). */
@@ -15,19 +25,24 @@ export function mergePolledMessages(
   next: ChatMessage[],
 ): ChatMessage[] {
   if (next.length === 0) {
-    const onlySystem = prev.every(
-      (m) =>
-        m.id === "support-greeting" ||
-        m.id === "inbox-empty" ||
-        m.id === "no-thread" ||
-        m.id === "empty",
-    );
-    return onlySystem ? prev : next;
+    const onlyPlaceholders = prev.every((m) => isSystemId(m.id));
+    return onlyPlaceholders ? prev : next;
   }
 
-  const serverIds = new Set(next.map((m) => m.id));
+  const nextIds = new Set(next.map((m) => m.id));
+  const prevServerIds = prev
+    .filter((m) => !isOptimisticId(m.id) && !isSystemId(m.id))
+    .map((m) => m.id);
+
+  // Poll stale: llegó tarde y aún no trae mensajes que ya confirmó el POST.
+  // Sin esto el bubble “se manda → desaparece → vuelve”.
+  const lostConfirmed = prevServerIds.some((id) => !nextIds.has(id));
+  if (lostConfirmed && next.length < prevServerIds.length) {
+    return prev;
+  }
+
   const pendingOptimistic = prev.filter(
-    (m) => isOptimisticId(m.id) && !serverIds.has(m.id),
+    (m) => isOptimisticId(m.id) && !nextIds.has(m.id),
   );
 
   // Si el server ya trae el mismo texto reciente, dropear optimista duplicado.

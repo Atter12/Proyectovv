@@ -320,6 +320,7 @@ export function GerenteSupportInbox() {
       Boolean(selectedId) &&
       !selectedId?.startsWith("org:") &&
       !selectedId?.startsWith("hecom:") &&
+      !sending &&
       !clearingChat &&
       !loadingThread,
     intervalMs: 2000,
