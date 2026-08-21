@@ -6,6 +6,10 @@ import { TICKET_STATUS_LABELS } from "@/lib/constants/status";
 import type { ChatMessage } from "@/features/support/types/support.types";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
+import {
+  useSupportListPolling,
+  useSupportThreadPolling,
+} from "@/features/support/hooks/useSupportPolling";
 
 interface InboxTicket {
   id: string;
@@ -139,9 +143,11 @@ export function GerenteSupportInbox() {
       .some((value) => String(value).toLowerCase().includes(query));
   });
 
-  const loadTickets = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadTickets = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const params = new URLSearchParams({ status: statusFilter });
       const res = await fetch(`/api/support/inbox?${params.toString()}`, {
@@ -160,15 +166,59 @@ export function GerenteSupportInbox() {
       setTickets(data.tickets ?? []);
       if (data.me?.id) setMeId(data.me.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar inbox.");
+      if (!opts?.silent) {
+        setError(err instanceof Error ? err.message : "Error al cargar inbox.");
+      }
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [statusFilter]);
 
   useEffect(() => {
     void loadTickets();
   }, [loadTickets]);
+
+  const refreshTicketsSilent = useCallback(async () => {
+    await loadTickets({ silent: true });
+  }, [loadTickets]);
+
+  useSupportListPolling({
+    enabled: !sending,
+    intervalMs: 8000,
+    refresh: refreshTicketsSilent,
+  });
+
+  const fetchLiveMessages = useCallback(async (): Promise<ChatMessage[] | null> => {
+    if (
+      !selectedId ||
+      selectedId.startsWith("org:") ||
+      selectedId.startsWith("hecom:")
+    ) {
+      return null;
+    }
+    const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      messages?: ChatMessage[];
+    };
+    if (!res.ok || !data.ok) return null;
+    return data.messages ?? [];
+  }, [selectedId]);
+
+  useSupportThreadPolling({
+    enabled:
+      Boolean(selectedId) &&
+      !selectedId?.startsWith("org:") &&
+      !selectedId?.startsWith("hecom:") &&
+      !sending &&
+      !loadingThread,
+    intervalMs: 2500,
+    fetchMessages: fetchLiveMessages,
+    onMessages: setMessages,
+  });
 
   async function ensureTicketId(contact: InboxTicket): Promise<string> {
     if (

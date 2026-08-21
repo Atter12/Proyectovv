@@ -9,6 +9,7 @@ import type { ChatMessage, SupportView } from "@/features/support/types/support.
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
+import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
 
 interface SupportTicketSummary {
   id: string;
@@ -185,6 +186,21 @@ export function SupportPageClient() {
   useEffect(() => {
     void bootChat();
   }, [bootChat]);
+
+  const fetchLiveMessages = useCallback(async (): Promise<ChatMessage[] | null> => {
+    if (!ticketId) return null;
+    const messagesData = await apiClient<MessagesResponse>(
+      `/api/support/tickets/${ticketId}/messages`,
+    );
+    return messagesData.messages ?? [];
+  }, [ticketId]);
+
+  useSupportThreadPolling({
+    enabled: Boolean(ticketId) && !sending && !loadingConversation,
+    intervalMs: 2500,
+    fetchMessages: fetchLiveMessages,
+    onMessages: setMessages,
+  });
 
   async function handleSend(files: File[] = []) {
     const text = inputValue.trim();
