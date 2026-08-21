@@ -115,19 +115,48 @@ export function classifyTikTokAdvertiserStatus(
   ) {
     return "suspended";
   }
+  // SHOW_STATUS / advertiser_status “habilitada”
   if (
-    /ENABLE|ACTIVE|APPROVE|STATUS_OK|STATUS_ENABLE|STATUS_APPROVED/.test(st) ||
-    st === "OK"
+    /ENABLE|ACTIVE|APPROVE|STATUS_OK|STATUS_ENABLE|STATUS_APPROVED|SHOW_STATUS_APPROVED|STATUS_BOUND/.test(
+      st,
+    ) ||
+    st === "OK" ||
+    st === "APPROVED"
   ) {
     return "approved";
   }
   return "unknown";
 }
 
-export function isTikTokAdvertiserFundable(
-  status?: string | null,
-): boolean {
-  return classifyTikTokAdvertiserStatus(status) === "approved";
+/**
+ * El campo `status` del asset suele ser relación BM↔cuenta (casi siempre ENABLE).
+ * El ban/castigo viene en advertiser_show_status / advertiser_status.
+ */
+function pickAdvertiserStatusRaw(
+  row: Record<string, unknown>,
+  info: Record<string, unknown>,
+): string | null {
+  const candidates = [
+    info.advertiser_show_status,
+    row.advertiser_show_status,
+    info.advertiser_status,
+    row.advertiser_status,
+    info.show_status,
+    row.show_status,
+    info.account_status,
+    row.account_status,
+    // Último recurso: status genérico (puede ser solo relación).
+    info.status,
+    row.status,
+    row.asset_status,
+    info.audit_status,
+  ];
+  for (const value of candidates) {
+    if (value == null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return null;
 }
 
 function resolveBcIds(): string[] {
@@ -136,6 +165,12 @@ function resolveBcIds(): string[] {
   if (fromEnv) ids.add(fromEnv);
   for (const id of DEFAULT_HOLISTIC_BC_IDS) ids.add(id);
   return [...ids];
+}
+
+export function isTikTokAdvertiserFundable(
+  status?: string | null,
+): boolean {
+  return classifyTikTokAdvertiserStatus(status) === "approved";
 }
 
 function extractList(data: unknown): Record<string, unknown>[] {
@@ -178,24 +213,13 @@ function parseAssetRow(
       "",
   ).trim();
 
-  const statusRaw =
-    info.status ??
-    info.advertiser_status ??
-    row.status ??
-    row.asset_status ??
-    info.audit_status ??
-    null;
-
-  const status =
-    statusRaw != null && String(statusRaw).trim()
-      ? String(statusRaw)
-      : null;
+  const statusRaw = pickAdvertiserStatusRaw(row, info);
 
   return {
     advertiserId,
     advertiserName,
-    statusRaw: status,
-    statusKind: classifyTikTokAdvertiserStatus(status),
+    statusRaw,
+    statusKind: classifyTikTokAdvertiserStatus(statusRaw),
     bcId,
   };
 }
@@ -224,17 +248,22 @@ async function listBcAdvertisersAtPath(
   accessToken: string,
   bcId: string,
   apiPath: string,
+  filtering?: Record<string, string>,
 ): Promise<TikTokBcAdvertiser[]> {
   const all: TikTokBcAdvertiser[] = [];
   let page = 1;
   let totalPages = 1;
   while (page <= totalPages && page <= 40) {
-    const json = await tiktokGet(apiPath, accessToken, {
+    const query: Record<string, string | number> = {
       bc_id: bcId,
       asset_type: "ADVERTISER",
       page,
       page_size: 50,
-    });
+    };
+    if (filtering && Object.keys(filtering).length > 0) {
+      query.filtering = JSON.stringify(filtering);
+    }
+    const json = await tiktokGet(apiPath, accessToken, query);
     const chunk = extractList(json);
     for (const row of chunk) {
       const parsed = parseAssetRow(row, bcId);
@@ -249,22 +278,64 @@ async function listBcAdvertisersAtPath(
   return all;
 }
 
+/** Status de cuenta que suelen ser baneadas/castigadas (filtro TikTok). */
+const SUSPENDED_SHOW_STATUSES = [
+  "STATUS_LIMIT",
+  "STATUS_DISABLE",
+  "STATUS_CONFIRM_FAIL",
+  "STATUS_CONFIRM_FAIL_END",
+  "STATUS_CLOSE",
+] as const;
+
 async function listBcAdvertisers(
   accessToken: string,
   bcId: string,
 ): Promise<TikTokBcAdvertiser[]> {
   const paths = ["/bc/asset/admin/get/", "/bc/asset/get/"];
   let lastError: Error | null = null;
+  let base: TikTokBcAdvertiser[] = [];
+
   for (const path of paths) {
     try {
       const rows = await listBcAdvertisersAtPath(accessToken, bcId, path);
-      if (rows.length) return rows;
+      if (rows.length) {
+        base = rows;
+        break;
+      }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
-  if (lastError) throw lastError;
-  return [];
+
+  if (!base.length) {
+    if (lastError) throw lastError;
+    return [];
+  }
+
+  // TikTok a veces no marca bien el ban en el listado “all”. Traemos por show_status.
+  const byId = new Map(base.map((row) => [row.advertiserId, row]));
+  const path = "/bc/asset/admin/get/";
+  await Promise.all(
+    SUSPENDED_SHOW_STATUSES.map(async (showStatus) => {
+      try {
+        const rows = await listBcAdvertisersAtPath(accessToken, bcId, path, {
+          advertiser_show_status: showStatus,
+        });
+        for (const row of rows) {
+          // Forzar kind suspended aunque el parse haya leído mal el campo.
+          byId.set(row.advertiserId, {
+            ...row,
+            statusRaw: row.statusRaw ?? showStatus,
+            statusKind: "suspended",
+          });
+        }
+      } catch {
+        // filtro no soportado / sin resultados
+      }
+    }),
+  );
+
+  return [...byId.values()];
 }
 
 /**
@@ -327,6 +398,9 @@ export async function listHolisticBcAdvertisers(input?: {
     count: advertisers.length,
     approved: advertisers.filter((a) => a.statusKind === "approved").length,
     suspended: advertisers.filter((a) => a.statusKind === "suspended").length,
+    unknown: advertisers.filter((a) => a.statusKind === "unknown").length,
+    sampleStatusRaw: [...new Set(advertisers.map((a) => a.statusRaw ?? "(null)"))]
+      .slice(0, 12),
   });
   return advertisers;
 }

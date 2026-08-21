@@ -139,21 +139,19 @@ export async function getHecomClienteAdAccountsOverview(
   let liveSource: "cache" | "live" | "none" = "none";
 
   try {
-    let live: TikTokBcAdvertiser[] =
-      await listHolisticBcAdvertisersCachedFirst();
-    liveSource = live.length > 0 ? "cache" : "none";
-
-    // Sin mapeo Hecom o cache vacío → forzar live BM.
-    if (hecomAccounts.length === 0 || live.length === 0) {
-      try {
-        live = await listHolisticBcAdvertisers();
-        liveSource = live.length > 0 ? "live" : "none";
-      } catch (error) {
-        console.warn("[ad-accounts] bc_live_failed", {
-          clienteId,
-          error: error instanceof Error ? error.message : "unknown",
-        });
-      }
+    // Siempre live para estado ban/castigo (cache podía traer status de vínculo BM).
+    let live: TikTokBcAdvertiser[] = [];
+    liveSource = "none";
+    try {
+      live = await listHolisticBcAdvertisers();
+      liveSource = live.length > 0 ? "live" : "none";
+    } catch (error) {
+      console.warn("[ad-accounts] bc_live_failed", {
+        clienteId,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      live = await listHolisticBcAdvertisersCachedFirst();
+      liveSource = live.length > 0 ? "cache" : "none";
     }
 
     if (live.length > 0) {
