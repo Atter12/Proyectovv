@@ -52,7 +52,7 @@ export function useSupportThreadPolling(options: {
     updater: (prev: ChatMessage[]) => ChatMessage[],
   ) => void;
 }) {
-  const { enabled, intervalMs = 2500, fetchMessages, onMessages } = options;
+  const { enabled, intervalMs = 2000, fetchMessages, onMessages } = options;
   const fetchRef = useRef(fetchMessages);
   const onRef = useRef(onMessages);
   fetchRef.current = fetchMessages;
@@ -103,7 +103,7 @@ export function useSupportListPolling(options: {
   intervalMs?: number;
   refresh: () => Promise<void>;
 }) {
-  const { enabled, intervalMs = 8000, refresh } = options;
+  const { enabled, intervalMs = 3000, refresh } = options;
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
   const inFlight = useRef(false);
@@ -128,6 +128,7 @@ export function useSupportListPolling(options: {
       }
     }
 
+    void tick();
     const id = window.setInterval(() => void tick(), intervalMs);
     function onVisible() {
       if (document.visibilityState === "visible") void tick();

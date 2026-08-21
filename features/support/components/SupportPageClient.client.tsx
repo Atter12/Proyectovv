@@ -197,8 +197,8 @@ export function SupportPageClient() {
   }, [ticketId]);
 
   useSupportThreadPolling({
-    enabled: Boolean(ticketId) && !sending && !loadingConversation && !clearingChat,
-    intervalMs: 2500,
+    enabled: Boolean(ticketId) && !loadingConversation && !clearingChat,
+    intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
     onMessages: setMessages,
   });

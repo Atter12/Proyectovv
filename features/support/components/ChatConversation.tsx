@@ -77,10 +77,13 @@ export function ChatConversation({
 }: ChatConversationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
   const pendingFiles = useMemo(() => pending.map((item) => item.file), [pending]);
+  const lastMessageId = messages[messages.length - 1]?.id;
 
   useEffect(() => {
     return () => {
@@ -90,6 +93,15 @@ export function ChatConversation({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup on unmount only
   }, []);
+
+  // Live chat: bajar al último mensaje cuando llega uno nuevo (sin F5).
+  useEffect(() => {
+    if (loading) return;
+    const end = messagesEndRef.current;
+    const scroller = messagesScrollRef.current;
+    if (!end || !scroller) return;
+    end.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [lastMessageId, messages.length, loading]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -231,7 +243,10 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="relative flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_20%_0%,rgb(255_255_255_/_0.9),transparent_32%),#f3eee8] p-3 sm:p-5">
+      <div
+        ref={messagesScrollRef}
+        className="relative flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_20%_0%,rgb(255_255_255_/_0.9),transparent_32%),#f3eee8] p-3 sm:p-5"
+      >
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
             Soltá la imagen o PDF acá
@@ -322,6 +337,7 @@ export function ChatConversation({
             </div>
           ))
         )}
+        <div ref={messagesEndRef} className="h-px w-full shrink-0" aria-hidden />
         {error ? (
           <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
             {error}

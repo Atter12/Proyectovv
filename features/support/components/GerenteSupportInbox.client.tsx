@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { TICKET_STATUS_LABELS } from "@/lib/constants/status";
 import type { ChatMessage } from "@/features/support/types/support.types";
@@ -107,6 +107,12 @@ export function GerenteSupportInbox() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [unreadIds, setUnreadIds] = useState<Set<string>>(() => new Set());
+  const knownUpdatedAtRef = useRef<Map<string, string>>(new Map());
+  const selectedMetaRef = useRef<{
+    id: string;
+    hecomClienteId?: string | null;
+  } | null>(null);
 
   const selected = tickets.find((t) => t.id === selectedId) ?? null;
   const hasRealTicket = Boolean(
@@ -126,6 +132,21 @@ export function GerenteSupportInbox() {
     selected.assignedUserId !== meId;
   const selectedClientName = selected ? clientLabel(selected) : null;
   const assigneeLabel = agentLabel(selected);
+
+  useEffect(() => {
+    selectedMetaRef.current = selected
+      ? { id: selected.id, hecomClienteId: selected.hecomClienteId }
+      : null;
+  }, [selected]);
+
+  useEffect(() => {
+    const n = unreadIds.size;
+    const base = "Soporte · Hecom";
+    document.title = n > 0 ? `(${n}) ${base}` : base;
+    return () => {
+      document.title = base;
+    };
+  }, [unreadIds]);
 
   const filteredTickets = tickets.filter((ticket) => {
     const query = q.trim().toLowerCase();
@@ -163,8 +184,94 @@ export function GerenteSupportInbox() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error ?? "No se pudo cargar el inbox.");
       }
-      setTickets(data.tickets ?? []);
+      const nextTickets = data.tickets ?? [];
+      setTickets(nextTickets);
       if (data.me?.id) setMeId(data.me.id);
+
+      const meta = selectedMetaRef.current;
+      const selectedNow = meta?.id ?? null;
+
+      // Badge "nuevo mensaje" si updatedAt cambió y no es el chat abierto.
+      if (opts?.silent) {
+        const fresh = new Set<string>();
+        for (const ticket of nextTickets) {
+          if (!ticket.hasTicket || ticket.status === "none") continue;
+          if (
+            ticket.id.startsWith("org:") ||
+            ticket.id.startsWith("hecom:")
+          ) {
+            continue;
+          }
+          const stamp = ticket.updatedAt ?? ticket.createdAt;
+          if (ticket.id === selectedNow) {
+            knownUpdatedAtRef.current.set(ticket.id, stamp);
+            continue;
+          }
+          const prev = knownUpdatedAtRef.current.get(ticket.id);
+          if (!prev || stamp !== prev) {
+            fresh.add(ticket.id);
+          }
+          knownUpdatedAtRef.current.set(ticket.id, stamp);
+        }
+        if (fresh.size > 0) {
+          setUnreadIds((prev) => {
+            const merged = new Set(prev);
+            for (const id of fresh) merged.add(id);
+            if (selectedNow) merged.delete(selectedNow);
+            return merged;
+          });
+        }
+      } else {
+        for (const ticket of nextTickets) {
+          if (!ticket.hasTicket || ticket.status === "none") continue;
+          knownUpdatedAtRef.current.set(
+            ticket.id,
+            ticket.updatedAt ?? ticket.createdAt,
+          );
+        }
+      }
+
+      // Si estaba en contacto Hecom sin ticket y el cliente escribió → abrir hilo real.
+      if (
+        meta &&
+        (meta.id.startsWith("hecom:") || meta.id.startsWith("org:")) &&
+        meta.hecomClienteId
+      ) {
+        const real = nextTickets.find(
+          (t) =>
+            t.hecomClienteId === meta.hecomClienteId &&
+            t.hasTicket !== false &&
+            !t.id.startsWith("hecom:") &&
+            !t.id.startsWith("org:"),
+        );
+        if (real) {
+          setSelectedId(real.id);
+          setUnreadIds((prev) => {
+            const next = new Set(prev);
+            next.delete(real.id);
+            return next;
+          });
+          knownUpdatedAtRef.current.set(
+            real.id,
+            real.updatedAt ?? real.createdAt,
+          );
+          try {
+            const msgRes = await fetch(
+              `/api/support/inbox/${real.id}/messages`,
+              { credentials: "include", cache: "no-store" },
+            );
+            const msgData = (await msgRes.json()) as {
+              ok?: boolean;
+              messages?: ChatMessage[];
+            };
+            if (msgRes.ok && msgData.ok && msgData.messages?.length) {
+              setMessages(msgData.messages);
+            }
+          } catch {
+            // el poll del hilo reintenta
+          }
+        }
+      }
     } catch (err) {
       if (!opts?.silent) {
         setError(err instanceof Error ? err.message : "Error al cargar inbox.");
@@ -183,8 +290,8 @@ export function GerenteSupportInbox() {
   }, [loadTickets]);
 
   useSupportListPolling({
-    enabled: !sending,
-    intervalMs: 8000,
+    enabled: true,
+    intervalMs: 3000,
     refresh: refreshTicketsSilent,
   });
 
@@ -213,10 +320,9 @@ export function GerenteSupportInbox() {
       Boolean(selectedId) &&
       !selectedId?.startsWith("org:") &&
       !selectedId?.startsWith("hecom:") &&
-      !sending &&
       !clearingChat &&
       !loadingThread,
-    intervalMs: 2500,
+    intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
     onMessages: setMessages,
   });
@@ -312,6 +418,12 @@ export function GerenteSupportInbox() {
     setMobileShowChat(true);
     setLoadingThread(true);
     setThreadError(null);
+    setUnreadIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
     if (id.startsWith("org:") || id.startsWith("hecom:")) {
       const contact = tickets.find((t) => t.id === id);
@@ -528,6 +640,11 @@ export function GerenteSupportInbox() {
               </div>
               <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
                 {filteredTickets.length}
+                {unreadIds.size > 0 ? (
+                  <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {unreadIds.size}
+                  </span>
+                ) : null}
               </span>
             </div>
             <input
@@ -579,6 +696,7 @@ export function GerenteSupportInbox() {
                   const mine = ticket.assignedUserId === meId;
                   const free = !ticket.assignedUserId && Boolean(ticket.hasTicket);
                   const name = clientLabel(ticket);
+                  const unread = unreadIds.has(ticket.id);
                   return (
                     <li key={ticket.id}>
                       <button
@@ -588,9 +706,17 @@ export function GerenteSupportInbox() {
                           "relative flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                           active
                             ? "bg-[rgb(255_120_31_/_0.1)]"
-                            : "hover:bg-white",
+                            : unread
+                              ? "bg-[rgb(255_120_31_/_0.06)] hover:bg-[rgb(255_120_31_/_0.1)]"
+                              : "hover:bg-white",
                         )}
                       >
+                        {unread ? (
+                          <span
+                            className="absolute left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[var(--brand-primary)] shadow-[0_0_0_3px_rgb(255_120_31_/_0.25)]"
+                            aria-label="Nuevo mensaje"
+                          />
+                        ) : null}
                         <HecomClienteAvatar
                           name={name}
                           avatarUrl={ticket.avatarUrl}
@@ -599,16 +725,36 @@ export function GerenteSupportInbox() {
                         />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-[14px] font-bold text-[var(--auth-text)]">
+                            <span
+                              className={cn(
+                                "truncate text-[14px] text-[var(--auth-text)]",
+                                unread ? "font-extrabold" : "font-bold",
+                              )}
+                            >
                               {name}
                             </span>
-                            <span className="shrink-0 text-[10px] tabular-nums text-[var(--auth-text-soft)]">
+                            <span
+                              className={cn(
+                                "shrink-0 text-[10px] tabular-nums",
+                                unread
+                                  ? "font-bold text-[var(--brand-primary)]"
+                                  : "text-[var(--auth-text-soft)]",
+                              )}
+                            >
                               {formatTicketDate(
                                 ticket.updatedAt ?? ticket.createdAt,
                               )}
                             </span>
                           </span>
-                          <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
+                          <span
+                            className={cn(
+                              "mt-0.5 block truncate text-[12px]",
+                              unread
+                                ? "font-semibold text-[var(--auth-text)]"
+                                : "text-[var(--auth-text-muted)]",
+                            )}
+                          >
+                            {unread ? "Nuevo mensaje · " : ""}
                             {ticket.subject}
                           </span>
                           <span
