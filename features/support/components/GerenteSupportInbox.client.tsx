@@ -82,13 +82,9 @@ function emptyThread(): ChatMessage[] {
 }
 
 const FILTERS = [
-  { id: "all", label: "Todos" },
   { id: "unassigned", label: "Sin atender" },
   { id: "mine", label: "Míos" },
-  { id: "active", label: "Activos" },
-  { id: "pending", label: "Pendientes" },
   { id: "resolved", label: "Resueltos" },
-  { id: "closed", label: "Cerrados" },
 ] as const;
 
 export function GerenteSupportInbox() {
@@ -96,7 +92,7 @@ export function GerenteSupportInbox() {
   const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("unassigned");
   const [q, setQ] = useState("");
   const [claiming, setClaiming] = useState(false);
 
@@ -480,43 +476,28 @@ export function GerenteSupportInbox() {
   }
 
   const headerActions = selected ? (
-    <>
+    <div className="flex items-center gap-2">
       {isUnassigned ? (
-        <button
-          type="button"
-          disabled={claiming}
-          onClick={() => void claimOrRelease("claim")}
-          className="rounded-md bg-[var(--brand-primary)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
-        >
-          {claiming ? "…" : "Tomar"}
+        <button type="button" disabled={claiming} onClick={() => void claimOrRelease("claim")} className="rounded-full bg-[var(--brand-primary)] px-4 py-2 text-[12px] font-bold text-white shadow-sm hover:bg-[var(--brand-primary-deep)] disabled:opacity-50">
+          {claiming ? "Tomando..." : "Tomar chat"}
         </button>
       ) : null}
-      {iOwnSelected ? (
-        <button
-          type="button"
-          disabled={claiming}
-          onClick={() => void claimOrRelease("release")}
-          className="rounded-md bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
-        >
-          Liberar
+      {hasRealTicket && selected.status !== "resolved" ? (
+        <button type="button" onClick={() => void setStatus("resolved")} className="hidden rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[12px] font-semibold text-white hover:bg-white/20 sm:inline-flex">
+          Resolver
         </button>
       ) : null}
-      {[
-        { id: "open", label: "Abrir" },
-        { id: "pending", label: "Pend." },
-        { id: "resolved", label: "OK" },
-        { id: "closed", label: "Cerrar" },
-      ].map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => void setStatus(item.id)}
-          className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/85 hover:bg-white/15"
-        >
-          {item.label}
-        </button>
-      ))}
-    </>
+      <details className="relative">
+        <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-lg font-bold text-white/80 hover:bg-white/10 [&::-webkit-details-marker]:hidden" aria-label="Más acciones">•••</summary>
+        <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-black/10 bg-white p-1.5 text-[#332820] shadow-xl">
+          {[{ id: "open", label: "Marcar abierto" }, { id: "pending", label: "Dejar pendiente" }, { id: "closed", label: "Cerrar conversación" }].map((item) => (
+            <button key={item.id} type="button" onClick={() => void setStatus(item.id)} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-[#f7f2ed]">{item.label}</button>
+          ))}
+          {iOwnSelected ? <button type="button" disabled={claiming} onClick={() => void claimOrRelease("release")} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-[#f7f2ed]">Liberar chat</button> : null}
+          {hasRealTicket ? <button type="button" disabled={clearingChat} onClick={() => { if (window.confirm("¿Borrar todos los mensajes de esta conversación?")) void handleClearChat(); }} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50">Borrar conversación</button> : null}
+        </div>
+      </details>
+    </div>
   ) : null;
 
   return (
@@ -550,7 +531,7 @@ export function GerenteSupportInbox() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar cliente…"
-              className="mt-2.5 h-9 w-full rounded-lg border border-[var(--auth-input-border)] bg-[#f6f4f1] px-3 text-[13px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
+              className="mt-3 h-10 w-full rounded-xl border border-[var(--auth-input-border)] bg-[#f7f5f2] px-3.5 text-[13px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
             />
             <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FILTERS.map((item) => (
@@ -559,7 +540,7 @@ export function GerenteSupportInbox() {
                   type="button"
                   onClick={() => setStatusFilter(item.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
                     statusFilter === item.id
                       ? "bg-[var(--brand-primary)] text-white"
                       : "bg-[var(--surface-soft)] text-[var(--auth-text-muted)] hover:text-[var(--auth-text)]",
@@ -599,7 +580,7 @@ export function GerenteSupportInbox() {
                         type="button"
                         onClick={() => void openTicket(ticket.id)}
                         className={cn(
-                          "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                          "relative flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors",
                           active
                             ? "bg-[rgb(255_120_31_/_0.1)]"
                             : "hover:bg-white",
@@ -609,11 +590,11 @@ export function GerenteSupportInbox() {
                           name={name}
                           avatarUrl={ticket.avatarUrl}
                           size="md"
-                          className="h-11 w-11 text-[12px]"
+                          className="h-12 w-12 text-[13px] shadow-sm ring-2 ring-white"
                         />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
-                            <span className="truncate text-[13.5px] font-semibold text-[var(--auth-text)]">
+                            <span className="truncate text-[14px] font-bold text-[var(--auth-text)]">
                               {name}
                             </span>
                             <span className="shrink-0 text-[10px] tabular-nums text-[var(--auth-text-soft)]">
@@ -696,10 +677,6 @@ export function GerenteSupportInbox() {
             headerActions={headerActions}
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
-            onClearChat={
-              hasRealTicket ? () => void handleClearChat() : undefined
-            }
-            clearingChat={clearingChat}
             onBack={() => setMobileShowChat(false)}
             composerDisabled={
               Boolean(ownedByOther) || selected?.hasHolisticAccount === false

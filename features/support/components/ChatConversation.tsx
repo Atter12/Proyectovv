@@ -182,7 +182,7 @@ export function ChatConversation({
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      <div className="flex items-center gap-3 border-b border-[rgb(15_23_42_/_0.08)] bg-[#1c1410] px-3.5 py-2.5 sm:px-4">
+      <div className="flex min-h-[68px] items-center gap-3 border-b border-white/10 bg-[linear-gradient(135deg,#21150f_0%,#382117_70%,#612b18_140%)] px-3.5 py-3 shadow-sm sm:px-5">
         {showBack ? (
           <button
             type="button"
@@ -199,11 +199,11 @@ export function ChatConversation({
           name={title}
           avatarUrl={avatarUrl}
           size="sm"
-          className="ring-white/20"
+          className="h-11 w-11 text-[12px] shadow-md ring-2 ring-white/20"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-white">{title}</p>
-          <p className="truncate text-[11px] text-white/65">{subtitle}</p>
+          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-white">{title}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-white/70"><span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />{subtitle}</p>
         </div>
         {onClearChat || headerActions ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -231,7 +231,7 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="relative flex-1 space-y-2.5 overflow-y-auto bg-[#efeae2] p-3 sm:p-4">
+      <div className="relative flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_20%_0%,rgb(255_255_255_/_0.9),transparent_32%),#f3eee8] p-3 sm:p-5">
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
             Soltá la imagen o PDF acá
@@ -253,10 +253,10 @@ export function ChatConversation({
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
+                className={`max-w-[min(88%,32rem)] px-3.5 py-2.5 text-sm shadow-sm ${
                   message.role === "user"
-                    ? "bg-[var(--brand-primary)] text-white"
-                    : "bg-white text-[#3f3a34] ring-1 ring-[var(--border-subtle)]"
+                    ? "rounded-[18px_18px_5px_18px] bg-[linear-gradient(135deg,var(--brand-primary),#e85a1a)] text-white"
+                    : "rounded-[18px_18px_18px_5px] bg-white text-[#3f3a34] ring-1 ring-black/5"
                 }`}
               >
                 {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
@@ -329,7 +329,7 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="border-t border-[var(--auth-divider)] bg-white p-3 sm:p-4">
+      <div className="border-t border-[var(--auth-divider)] bg-white/95 p-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.04)] backdrop-blur sm:px-5 sm:py-4">
         {composerDisabled ? (
           <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
             {composerDisabledReason ?? "No podés escribir en este chat ahora."}
@@ -367,7 +367,7 @@ export function ChatConversation({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-[var(--auth-input-border)] bg-[#faf8f5] p-2 focus-within:border-[var(--auth-accent)]/70 focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/15">
+        <div className="rounded-[22px] border border-[var(--auth-input-border)] bg-[#f8f5f1] p-2 shadow-sm transition focus-within:border-[var(--auth-accent)]/70 focus-within:bg-white focus-within:ring-4 focus-within:ring-[var(--auth-accent)]/10">
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -378,7 +378,7 @@ export function ChatConversation({
             disabled={composerDisabled}
             placeholder="Escribí tu mensaje… Podés pegar capturas con Ctrl+V"
             aria-label="Escribir mensaje"
-            className="max-h-40 min-h-[52px] w-full resize-none bg-transparent px-2.5 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none disabled:opacity-60"
+            className="max-h-40 min-h-[48px] w-full resize-none bg-transparent px-3 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none disabled:opacity-60"
           />
           <div className="flex items-center justify-between gap-2 px-1 pb-1">
             <div className="flex items-center gap-1">
@@ -394,13 +394,13 @@ export function ChatConversation({
                 type="button"
                 disabled={sending || composerDisabled}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
                 aria-label="Adjuntar archivo"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
                 </svg>
-                Adjuntar
+                <span className="sr-only">Adjuntar</span>
               </button>
               <span className="hidden text-[11px] text-[var(--auth-text-soft)] sm:inline">
                 Enter envía · Shift+Enter nueva línea
@@ -414,7 +414,7 @@ export function ChatConversation({
                 sending ||
                 (!inputValue.trim() && pendingFiles.length === 0)
               }
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
+              className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-bold text-white shadow-md shadow-orange-500/20 hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
             >
               {sending ? "Enviando…" : "Enviar"}
               {!sending ? (
