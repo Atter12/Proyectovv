@@ -104,6 +104,7 @@ export function GerenteSupportInbox() {
   const [messages, setMessages] = useState<ChatMessage[]>(emptyThread());
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
+  const [clearingChat, setClearingChat] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
@@ -214,11 +215,55 @@ export function GerenteSupportInbox() {
       !selectedId?.startsWith("org:") &&
       !selectedId?.startsWith("hecom:") &&
       !sending &&
+      !clearingChat &&
       !loadingThread,
     intervalMs: 2500,
     fetchMessages: fetchLiveMessages,
     onMessages: setMessages,
   });
+
+  async function handleClearChat() {
+    if (
+      !selectedId ||
+      selectedId.startsWith("org:") ||
+      selectedId.startsWith("hecom:") ||
+      clearingChat
+    ) {
+      return;
+    }
+    setClearingChat(true);
+    setThreadError(null);
+    try {
+      const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? "No se pudo borrar el chat.");
+      }
+      setMessages([
+        {
+          id: "empty",
+          role: "bot",
+          text: "Chat borrado. Escribí para empezar de nuevo.",
+          timestamp: new Date().toLocaleTimeString("es", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          senderName: "Sistema",
+          senderKind: "system",
+        },
+      ]);
+      await loadTickets({ silent: true });
+    } catch (err) {
+      setThreadError(
+        err instanceof Error ? err.message : "No se pudo borrar el chat.",
+      );
+    } finally {
+      setClearingChat(false);
+    }
+  }
 
   async function ensureTicketId(contact: InboxTicket): Promise<string> {
     if (
@@ -651,6 +696,10 @@ export function GerenteSupportInbox() {
             headerActions={headerActions}
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
+            onClearChat={
+              hasRealTicket ? () => void handleClearChat() : undefined
+            }
+            clearingChat={clearingChat}
             onBack={() => setMobileShowChat(false)}
             composerDisabled={
               Boolean(ownedByOther) || selected?.hasHolisticAccount === false

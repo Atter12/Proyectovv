@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   createSupportTicket,
+  clearSupportTicketChat,
   listTicketMessages,
   postTicketMessage,
   uploadSupportAttachment,
@@ -118,6 +119,30 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     const msg =
       error instanceof Error ? error.message : "No se pudo enviar el mensaje.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+  if (!hasPermission(session.permissions, "support:create")) {
+    return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  try {
+    const result = await clearSupportTicketChat({
+      ticketId: id,
+      organizationId: session.organizationId,
+      asStaff: false,
+    });
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    const msg =
+      error instanceof Error ? error.message : "No se pudo borrar el chat.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

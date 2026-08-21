@@ -94,6 +94,7 @@ export function SupportPageClient() {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [ticketStatus, setTicketStatus] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [clearingChat, setClearingChat] = useState(false);
   const [loadingConversation, setLoadingConversation] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -196,11 +197,33 @@ export function SupportPageClient() {
   }, [ticketId]);
 
   useSupportThreadPolling({
-    enabled: Boolean(ticketId) && !sending && !loadingConversation,
+    enabled: Boolean(ticketId) && !sending && !loadingConversation && !clearingChat,
     intervalMs: 2500,
     fetchMessages: fetchLiveMessages,
     onMessages: setMessages,
   });
+
+  async function handleClearChat() {
+    if (!ticketId || clearingChat) return;
+    setClearingChat(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/support/tickets/${ticketId}/messages`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? "No se pudo borrar el chat.");
+      }
+      setMessages([greetingMessage()]);
+      setTicketStatus("open");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar el chat.");
+    } finally {
+      setClearingChat(false);
+    }
+  }
 
   async function handleSend(files: File[] = []) {
     const text = inputValue.trim();
@@ -458,6 +481,8 @@ export function SupportPageClient() {
         subtitle="Escribí, pegá capturas (Ctrl+V) o adjuntá fotos/PDF."
         onInputChange={setInputValue}
         onSend={(files) => void handleSend(files)}
+        onClearChat={ticketId ? () => void handleClearChat() : undefined}
+        clearingChat={clearingChat}
         onBack={() => setMobileShowChat(false)}
       />
     </div>

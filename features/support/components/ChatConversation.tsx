@@ -34,6 +34,9 @@ interface ChatConversationProps {
   /** URL de foto (Hecom) para el header. */
   avatarUrl?: string | null;
   headerActions?: ReactNode;
+  /** Borra todo el hilo (pide confirmación en el botón). */
+  onClearChat?: () => void;
+  clearingChat?: boolean;
   onInputChange: (value: string) => void;
   onSend: (files: File[]) => void;
   onBack: () => void;
@@ -64,6 +67,8 @@ export function ChatConversation({
   subtitle = "Tu conversación queda guardada como ticket de soporte.",
   avatarUrl = null,
   headerActions,
+  onClearChat,
+  clearingChat = false,
   onInputChange,
   onSend,
   onBack,
@@ -200,8 +205,27 @@ export function ChatConversation({
           <p className="truncate text-[14px] font-semibold text-white">{title}</p>
           <p className="truncate text-[11px] text-white/65">{subtitle}</p>
         </div>
-        {headerActions ? (
+        {onClearChat || headerActions ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            {onClearChat ? (
+              <button
+                type="button"
+                disabled={clearingChat || sending || loading}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "¿Borrar todo el chat? Se eliminan los mensajes de esta conversación.",
+                    )
+                  ) {
+                    return;
+                  }
+                  onClearChat();
+                }}
+                className="rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
+              >
+                {clearingChat ? "Borrando…" : "Borrar chat"}
+              </button>
+            ) : null}
             {headerActions}
           </div>
         ) : null}

@@ -6,6 +6,7 @@ import {
   replyInboxTicket,
   updateInboxTicketStatus,
 } from "@/lib/support/support-inbox.server";
+import { clearSupportTicketChat } from "@/services/support.service";
 
 export const runtime = "nodejs";
 
@@ -129,6 +130,36 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     const msg =
       error instanceof Error ? error.message : "No se pudo responder.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+  if (!assertStaff(session.email, session.role)) {
+    return NextResponse.json({ error: "Solo gerentes." }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  if (id.startsWith("org:") || id.startsWith("hecom:")) {
+    return NextResponse.json(
+      { error: "No hay chat para borrar todavía." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await clearSupportTicketChat({
+      ticketId: id,
+      asStaff: true,
+    });
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    const msg =
+      error instanceof Error ? error.message : "No se pudo borrar el chat.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

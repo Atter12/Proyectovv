@@ -372,3 +372,82 @@ export async function uploadSupportAttachment(
     size: file.size,
   };
 }
+
+/**
+ * Borra todos los mensajes del ticket (y adjuntos best-effort).
+ * Cliente: solo su organización. Staff: cualquier ticket.
+ */
+export async function clearSupportTicketChat(input: {
+  ticketId: string;
+  organizationId?: string | null;
+  asStaff?: boolean;
+}): Promise<{ deleted: number }> {
+  const admin = createAdminClient();
+  const ticketId = input.ticketId.trim();
+  if (!ticketId) throw new Error("Ticket inválido.");
+
+  let query = admin
+    .from("support_tickets")
+    .select("id, organization_id")
+    .eq("id", ticketId);
+
+  if (!input.asStaff) {
+    if (!input.organizationId) {
+      throw new Error("Organización no disponible.");
+    }
+    query = query.eq("organization_id", input.organizationId);
+  }
+
+  const { data: ticket, error: ticketError } = await query.maybeSingle<{
+    id: string;
+    organization_id: string;
+  }>();
+
+  if (ticketError || !ticket) {
+    throw new Error(ticketError?.message ?? "Ticket no encontrado.");
+  }
+
+  const { data: rows } = await admin
+    .from("support_messages")
+    .select("id, attachments")
+    .eq("ticket_id", ticketId);
+
+  const pathsByBucket = new Map<string, string[]>();
+  for (const row of rows ?? []) {
+    for (const att of parseAttachments(row.attachments)) {
+      const list = pathsByBucket.get(att.bucket) ?? [];
+      list.push(att.path);
+      pathsByBucket.set(att.bucket, list);
+    }
+  }
+
+  for (const [bucket, paths] of pathsByBucket) {
+    if (paths.length === 0) continue;
+    try {
+      await admin.storage.from(bucket).remove(paths);
+    } catch {
+      // best-effort
+    }
+  }
+
+  const { error: deleteError, count } = await admin
+    .from("support_messages")
+    .delete({ count: "exact" })
+    .eq("ticket_id", ticketId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message || "No se pudo borrar el chat.");
+  }
+
+  await admin
+    .from("support_tickets")
+    .update({
+      status: "open",
+      assigned_user_id: null,
+      closed_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", ticketId);
+
+  return { deleted: count ?? rows?.length ?? 0 };
+}
