@@ -107,7 +107,14 @@ export function classifyTikTokAdvertiserStatus(
 ): TikTokBcAdvertiserStatusKind {
   const st = String(status ?? "").toUpperCase();
   if (!st) return "unknown";
-  if (/SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE/.test(st)) return "suspended";
+  // Cerradas / castigadas / rechazadas (STATUS_LIMIT = “usuario castigado” en TikTok).
+  if (
+    /SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE|\bLIMIT\b|CONFIRM_FAIL|CONFIRM_MODIFY_FAIL/.test(
+      st,
+    )
+  ) {
+    return "suspended";
+  }
   if (
     /ENABLE|ACTIVE|APPROVE|STATUS_OK|STATUS_ENABLE|STATUS_APPROVED/.test(st) ||
     st === "OK"
@@ -294,7 +301,15 @@ export async function listHolisticBcAdvertisers(input?: {
   for (const rows of batches) {
     for (const row of rows) {
       const prev = byId.get(row.advertiserId);
-      if (!prev || row.statusKind === "approved") {
+      if (!prev) {
+        byId.set(row.advertiserId, row);
+        continue;
+      }
+      // Preferir estado más “útil”: suspended > approved > unknown
+      // (antes solo ganaba approved y se perdían baneadas).
+      const rank = (k: TikTokBcAdvertiserStatusKind) =>
+        k === "suspended" ? 3 : k === "approved" ? 2 : 1;
+      if (rank(row.statusKind) >= rank(prev.statusKind)) {
         byId.set(row.advertiserId, row);
       }
     }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,7 +68,7 @@ export function EditTikTokIdsModal({
         ID TikTok de la cuenta
       </h2>
       <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-        Holistic fondea el advertiser que esté acá. Tiene que ser el de la
+        Holistic recarga el advertiser que esté acá. Tiene que ser el de la
         cuenta <span className="font-medium text-[var(--foreground)]">Aprobada</span>{" "}
         en TikTok BM (no la suspendida).
       </p>

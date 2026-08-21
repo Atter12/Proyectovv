@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { routes } from "@/config/routes";
@@ -57,7 +57,7 @@ export function SidebarWalletCard({
           Sin cliente
         </p>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Elegí un cliente del CRM para fondear desde el BM.
+          Elegí un cliente del CRM para recargar desde el BM.
         </p>
         <Link
           href={routes.clientes}
@@ -115,7 +115,7 @@ export function SidebarWalletCard({
           onClick={onNavigate}
           className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
-          {canPickClients ? "Fondear" : "Pagos"}
+          {canPickClients ? "Recargar" : "Pagos"}
         </Link>
         {canPickClients ? (
           <Link

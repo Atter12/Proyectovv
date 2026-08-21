@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 
 export function PickClienteEmpty({
@@ -67,7 +67,7 @@ export function PickClienteEmpty({
         Elegí un cliente para operar
       </h3>
       <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-        Para ver {section}, abrí la lista y elegí a quién fondear desde el BM.
+        Para ver {section}, abrí la lista y Elegí a quién recargar desde el BM.
         Después el panel queda filtrado a ese cliente.
       </p>
       <Link

@@ -1,4 +1,4 @@
-import { PaymentOverviewStats } from "./PaymentOverviewStats";
+﻿import { PaymentOverviewStats } from "./PaymentOverviewStats";
 import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
@@ -104,7 +104,7 @@ export async function PaymentsGatewayPanel({
         }
       } else if (approvedIds.length === 0) {
         syncNote =
-          "No se pudo consultar TikTok; si Hecom no tiene advertiser_id, no hay cuentas para fondear todavía.";
+          "No se pudo consultar TikTok; si Hecom no tiene advertiser_id, no hay cuentas para recargar todavía.";
       } else {
         syncNote =
           "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
@@ -297,7 +297,7 @@ export async function PaymentsGatewayPanel({
             className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
           >
             <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-              Fondear cuenta ads · {clienteName ?? "Este cliente"}
+              Recargar cuenta ads · {clienteName ?? "Este cliente"}
             </p>
             <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
               Sin cuentas Aprobadas para asignar

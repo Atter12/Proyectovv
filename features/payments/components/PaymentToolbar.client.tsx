@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Input } from "@/components/ui/Input";
 
@@ -19,7 +19,7 @@ export function PaymentToolbar({
     <div className="flex flex-col gap-3 border-b border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
       <p className="w-full text-[12px] leading-5 text-[var(--auth-text-muted)] sm:hidden">
         Tocá <span className="font-semibold text-[var(--auth-text)]">Asignar saldo</span> en
-        la cuenta que quieras fondear.
+        la cuenta que quieras recargar.
       </p>
       <div className="relative flex-1 sm:max-w-xs">
         <svg

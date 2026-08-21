@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import type { HecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
@@ -130,7 +130,7 @@ export function ClienteScopedAffiliates({
               href: routes.payments,
               eyebrow: "Cartera",
               title: "Pagos",
-              hint: "Recargar o fondear BM",
+              hint: "Recargar BM",
             },
             {
               href: routes.adAccounts,

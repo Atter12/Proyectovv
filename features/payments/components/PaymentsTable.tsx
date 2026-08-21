@@ -21,6 +21,8 @@ interface PaymentsTableProps {
   accounts: PaymentAccountAllocation[];
   onAllocate?: (account: PaymentAccountAllocation) => void;
   onEditTikTokIds?: (account: PaymentAccountAllocation) => void;
+  /** Modo gerente BM: copy “Recargar” en vez de “Asignar”. */
+  agencyBmFunding?: boolean;
 }
 
 interface AllocationResponse {
@@ -32,12 +34,16 @@ export function PaymentsTable({
   accounts,
   onAllocate,
   onEditTikTokIds,
+  agencyBmFunding = false,
 }: PaymentsTableProps) {
   const router = useRouter();
   const [loadingAccountId, setLoadingAccountId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isEmpty = accounts.length === 0;
+  const actionLabel = agencyBmFunding ? "Recargar" : "Asignar";
+  const actionLabelLong = agencyBmFunding ? "Recargar saldo" : "Asignar saldo";
+  const actionLoading = agencyBmFunding ? "Recargando…" : "Asignando…";
 
   async function handleAllocate(account: PaymentAccountAllocation) {
     const rawAmount = window.prompt(
@@ -142,7 +148,7 @@ export function PaymentsTable({
                 disabled={loadingAccountId === account.id}
                 onClick={() => runAllocate(account)}
               >
-                {loadingAccountId === account.id ? "Asignando…" : "Asignar saldo"}
+                {loadingAccountId === account.id ? actionLoading : actionLabelLong}
               </Button>
               {onEditTikTokIds ? (
                 <button
@@ -232,7 +238,9 @@ export function PaymentsTable({
                         disabled={loadingAccountId === account.id}
                         onClick={() => runAllocate(account)}
                       >
-                        {loadingAccountId === account.id ? "Asignando…" : "Asignar"}
+                        {loadingAccountId === account.id
+                          ? actionLoading
+                          : actionLabel}
                       </Button>
                       {onEditTikTokIds ? (
                         <button

@@ -68,7 +68,7 @@ export default async function PaymentsPage({
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="pagos y fondeo"
+          section="Pagos y recargas"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -80,7 +80,7 @@ export default async function PaymentsPage({
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="pagos y fondeo"
+          section="Pagos y recargas"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -120,7 +120,7 @@ export default async function PaymentsPage({
   const introCopy = capabilities.canSwitchFundingModes
     ? `Super admin: operá como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
     : capabilities.canAgencyBmFund
-      ? `Modo gerente: fondeá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Saldo estimado Hecom arriba y en el historial.`
+      ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Saldo estimado Hecom arriba y en el historial.`
       : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}. Abajo: historial Hecom.`;
 
   return (

@@ -78,7 +78,7 @@ function matches(advName, clientName) {
 
 function classify(st) {
   const s = String(st ?? "").toUpperCase();
-  if (/SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE/.test(s)) return "suspended";
+  if (/SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE|\bLIMIT\b|CONFIRM_FAIL|CONFIRM_MODIFY_FAIL/.test(s)) return "suspended";
   if (/ENABLE|ACTIVE|APPROVE|STATUS_OK|OK/.test(s)) return "approved";
   return "unknown";
 }

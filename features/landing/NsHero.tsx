@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/config/routes";
 import { NsReveal } from "./NsReveal.client";
@@ -43,7 +43,7 @@ export function NsHero() {
           </NsReveal>
           <NsReveal delayMs={120}>
             <p className="mb-7 max-w-[850px] text-base text-[var(--ns-muted)] md:mb-14 md:text-lg">
-              Cartera, cuentas TikTok, fondeo y gasto del cliente en un solo
+              Cartera, cuentas TikTok, recargas y gasto del cliente en un solo
               lugar — para gerentes y marcas que operan en Latam con Holistic
               Marketing.
             </p>

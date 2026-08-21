@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { cn } from "@/lib/cn";
 
@@ -36,7 +36,7 @@ export function PaymentsFundingModeSwitch({
           </span>
         </div>
         <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-          Cómo vas a fondear
+          Cómo vas a recargar
         </h2>
         <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
           Cambiá entre camino cliente (Stripe) y gerente (cash BM).
@@ -46,7 +46,7 @@ export function PaymentsFundingModeSwitch({
       <div
         className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4"
         role="tablist"
-        aria-label="Modo de fondeo"
+        aria-label="Modo de recarga"
       >
         <button
           type="button"

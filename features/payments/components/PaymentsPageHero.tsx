@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 import { formatMoney } from "@/lib/format-money";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
@@ -35,9 +35,9 @@ export function PaymentsPageHero({
 
   const title =
     persona === "gerente"
-      ? "Fondear ads desde BM"
+      ? "Recargar ads desde BM"
       : persona === "super_admin"
-        ? "Pagos y fondeo"
+        ? "Pagos y recargas"
         : "Recargar y asignar";
 
   const modeLabel =
@@ -143,7 +143,7 @@ export function PaymentsPageHero({
               </p>
               <p className="mt-2 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                 {persona === "gerente"
-                  ? "Cash del Business Center directo a la cuenta ads. El historial de abajo no baja con fondeo BM."
+                  ? "Cash del Business Center directo a la cuenta ads. El historial de abajo no baja con recarga BM."
                   : "Recargá arriba; el historial Hecom está abajo."}
               </p>
             </div>

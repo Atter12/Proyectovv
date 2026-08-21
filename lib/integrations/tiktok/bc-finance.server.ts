@@ -1,4 +1,4 @@
-import { serverEnv } from "@/lib/env/env.server";
+﻿import { serverEnv } from "@/lib/env/env.server";
 import { getTikTokConnection } from "@/lib/integrations/tiktok/client.server";
 
 interface TikTokApiResponse<T> {
@@ -63,7 +63,7 @@ export async function resolveTikTokFinanceAccessToken(
   }
 
   throw new Error(
-    "Sin token TikTok para fondear BM. Configurá TIKTOK_ACCESS_TOKEN (usuario con finance_role en el BM) o conectá TikTok en la org.",
+    "Sin token TikTok para recargar BM. Configurá TIKTOK_ACCESS_TOKEN (usuario con finance_role en el BM) o conectá TikTok en la org.",
   );
 }
 
@@ -94,7 +94,7 @@ function formatTransferError(input: {
     (input.code === 40002 && /permission/i.test(input.message))
   ) {
     return [
-      "Falta permiso Finance en el Business Center para fondear.",
+      "Falta permiso Finance en el Business Center para recargar.",
       "En TikTok BM → Usuarios → rol Finance, regenerá el token y actualizá TIKTOK_ACCESS_TOKEN.",
     ].join(" ");
   }

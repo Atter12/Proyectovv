@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 
@@ -9,7 +9,7 @@ const images = {
 
 const stats = [
   { value: "+180", label: "equipos y agencias en la red" },
-  { value: "TikTok", label: "cuentas, Business Manager y fondeo" },
+  { value: "TikTok", label: "cuentas, Business Manager y recargas" },
   {
     value: "Stripe + Hecom",
     label: "recargas del cliente y cobros CRM al día real",
@@ -28,7 +28,7 @@ export function NsxAbout() {
           <div className="nsx-about-lead">
             <p>
               Construimos este panel para un problema real de Latam: demasiado
-              tiempo en Excel y demasiada fricción entre cartera, fondeo TikTok y
+              tiempo en Excel y demasiada fricción entre cartera, recargas TikTok y
               la operación Hecom Club de cada cliente.
             </p>
             <Link href="#producto" className="nsx-btn-outline">

@@ -42,6 +42,7 @@ export function PaymentsAssignmentPanel({
         accounts={filteredAccounts}
         onAllocate={setSelectedAccount}
         onEditTikTokIds={setEditAccount}
+        agencyBmFunding={agencyBmFunding}
       />
       <AllocateBalanceModal
         account={selectedAccount}

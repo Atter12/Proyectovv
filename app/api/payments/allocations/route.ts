@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   if (wantsAgencyBm && !capabilities.canAgencyBmFund) {
     return NextResponse.json(
-      { error: "Solo gerentes/staff pueden fondear desde el BM sin recarga del cliente." },
+      { error: "Solo gerentes/staff pueden recargar desde el BM sin recarga del cliente." },
       { status: 403 },
     );
   }
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         body.idempotencyKey ??
         `allocation:${session.organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,
       description: wantsAgencyBm
-        ? body.description ?? "Fondeo gerente desde BM TikTok"
+        ? body.description ?? "Recarga gerente desde BM TikTok"
         : body.description ?? "Asignación desde dashboard",
     });
 

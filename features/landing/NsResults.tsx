@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 import { NsReveal } from "./NsReveal.client";
 
@@ -24,7 +24,7 @@ const results = [
     description: "Cliente, gerente y super admin en un flujo unificado.",
   },
   {
-    label: "Fondeo",
+    label: "Recargas",
     value: "Stripe + BM",
     description: "Recarga del cliente y trasferencia BC de agencia.",
   },

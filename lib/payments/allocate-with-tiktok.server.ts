@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   allocateToAdAccount,
@@ -162,7 +162,7 @@ export async function allocateWithOptionalTikTokFunding(
 
   if (fundingOn && isTikTok && !advertiserId) {
     throw new Error(
-      "Esta cuenta no tiene advertiser_id de TikTok (external_account_id). No se puede fondear el BM.",
+      "Esta cuenta no tiene advertiser_id de TikTok (external_account_id). No se puede recargar el BM.",
     );
   }
 
@@ -227,7 +227,7 @@ export async function allocateWithOptionalTikTokFunding(
     amountCents: input.amountCents,
     idempotencyKey,
     description: agencyBmFunding
-      ? input.description ?? "Fondeo gerente desde BM TikTok"
+      ? input.description ?? "Recarga gerente desde BM TikTok"
       : input.description ?? "Asignación desde dashboard",
     metadata: {
       source: agencyBmFunding ? "agency_bm" : "dashboard",

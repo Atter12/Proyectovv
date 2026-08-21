@@ -1,4 +1,4 @@
-import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+﻿import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
@@ -117,7 +117,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               href={routes.payments}
               className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
             >
-              Ir a pagos para fondear
+              Ir a pagos para recargar
             </Link>
           </div>
         ) : (

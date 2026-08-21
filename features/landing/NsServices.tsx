@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 import { NsReveal } from "./NsReveal.client";
 
@@ -6,7 +6,7 @@ const services = [
   {
     title: "Cartera y recargas",
     description:
-      "Saldo central para operar. Stripe para clientes; fondeo BM para el equipo Holistic.",
+      "Saldo central para operar. Stripe para clientes; recarga BM para el equipo Holistic.",
   },
   {
     title: "Cuentas TikTok Ads",

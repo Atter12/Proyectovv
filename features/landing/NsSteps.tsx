@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
@@ -14,9 +14,9 @@ const steps = [
   },
   {
     n: "02",
-    title: "Recargá o fondeá ads.",
+    title: "Recargá ads.",
     description:
-      "Cliente con Stripe; gerente con fondeo BM. La plata llega a la cuenta que importa.",
+      "Cliente con Stripe; gerente con recarga BM. La plata llega a la cuenta que importa.",
   },
   {
     n: "03",

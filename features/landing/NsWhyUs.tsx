@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/config/routes";
 import { NsReveal } from "./NsReveal.client";
@@ -25,7 +25,7 @@ const right = [
   {
     title: "Retail digital",
     description:
-      "Visibilidad del gasto y del fondeo para equipos multi-cuenta TikTok.",
+      "Visibilidad del gasto y de las recargas para equipos multi-cuenta TikTok.",
   },
   {
     title: "Marcas locales",

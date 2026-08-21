@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/format-money";
+﻿import { formatMoney } from "@/lib/format-money";
 import { WalletSummaryActions } from "./WalletSummaryActions.client";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentGateway, WalletOverview } from "@/types/payment";
@@ -49,7 +49,7 @@ export function WalletSummaryPremium({
             <p className="mt-1 text-[13px] font-medium text-[#5c564e]">
               {clienteName
                 ? `Cliente operativo · ${clienteName}`
-                : "Modo gerente: fondeá desde cash del BM (sin Stripe)"}
+                : "Modo gerente: recargá desde cash del BM (sin Stripe)"}
             </p>
             <p className="mt-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               {debt ? "Deuda neta" : "Saldo estimado"}
@@ -88,7 +88,7 @@ export function WalletSummaryPremium({
               </span>
             </div>
             <p className="mt-2 max-w-lg text-[12px] leading-5 text-[#8a8177]">
-              El fondeo BM no baja la deuda neta: solo un cobro registrado en
+              La recarga BM no baja la deuda neta: solo un cobro registrado en
               Hecom.
             </p>
           </div>
@@ -97,7 +97,7 @@ export function WalletSummaryPremium({
             href="#asignar-saldo"
             className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
-            Ir a fondear BM
+            Ir a recargar BM
           </a>
         </div>
       </section>
@@ -106,7 +106,7 @@ export function WalletSummaryPremium({
 
   const subtitle =
     staffMode && !canClientStripeFund
-      ? "Modo gerente: fondeá desde BM (sin Stripe)"
+      ? "Modo gerente: recargá desde BM (sin Stripe)"
       : staffMode
         ? "Super admin: Stripe o BM según el camino elegido"
         : "Listo para asignar a cuentas TikTok";
@@ -187,7 +187,7 @@ export function WalletSummaryPremium({
             href="#asignar-saldo"
             className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
-            Ir a fondear BM
+            Ir a recargar BM
           </a>
         )}
       </div>

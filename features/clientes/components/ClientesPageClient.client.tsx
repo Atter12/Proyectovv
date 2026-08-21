@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -171,12 +171,12 @@ export function ClientesPageClient({
           {isStaffPicker ? "Gerente · CRM Hecom" : "Tu cuenta"}
         </p>
         <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
-          {isStaffPicker ? "Elegí a quién fondear" : "Elegir cliente"}
+          {isStaffPicker ? "Elegí a quién recargar" : "Elegir cliente"}
         </h1>
         <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {isStaffPicker ? (
             <>
-              Lista completa del CRM. Elegí un cliente y fondeá sus cuentas ads
+              Lista completa del CRM. Elegí un cliente y recargá sus cuentas ads
               con <span className="font-semibold text-[var(--auth-text)]">cash del BM</span>
               {" "}(sin Stripe). Al seleccionar vas a Pagos listo para asignar.
             </>
@@ -313,7 +313,7 @@ export function ClientesPageClient({
                   onClick={() => elegirCliente(client)}
                   className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
                 >
-                  {busy ? "Eligiendo…" : isStaffPicker ? "Fondear este cliente" : "Operar este cliente"}
+                  {busy ? "Eligiendo…" : isStaffPicker ? "Recargar este cliente" : "Operar este cliente"}
                 </button>
                 <Link
                   href={`/clientes/${client.id}`}

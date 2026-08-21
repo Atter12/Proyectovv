@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { routes } from "@/config/routes";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
@@ -118,7 +118,7 @@ export function ClienteScopedOverview({
                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--auth-accent)] px-4 text-[13.5px] font-bold text-white shadow-[0_10px_22px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px sm:h-10 sm:w-auto sm:rounded-lg sm:shadow-none"
               >
                 <WalletIcon />
-                {canChangeCliente ? "Fondear / asignar" : "Recargar"}
+                {canChangeCliente ? "Recargar / asignar" : "Recargar"}
               </Link>
               <Link
                 href={routes.adAccounts}
@@ -155,7 +155,7 @@ export function ClienteScopedOverview({
               {moneyUsd(summary.feeTotal)}
             </p>
             <p className="mt-2 text-[11px] leading-4 text-[var(--auth-text-soft)]">
-              El fondeo BM no baja esta deuda: solo un cobro Hecom.
+              La recarga BM no baja esta deuda: solo un cobro Hecom.
             </p>
           </div>
         </div>
@@ -247,7 +247,7 @@ export function ClienteScopedOverview({
           <ActionTile
             href={routes.payments}
             title="Pagos"
-            body="Recarga o fondeo BM."
+            body="Recarga BM o cartera."
           />
           <ActionTile
             href={`${routes.payments}#asignar-saldo`}

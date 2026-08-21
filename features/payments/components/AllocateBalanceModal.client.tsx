@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -90,7 +90,7 @@ export function AllocateBalanceModal({
 
       setSuccess(
         agencyBmFunding
-          ? `Listo: se fondearon ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
+          ? `Listo: se recargaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
           : `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
       );
       router.refresh();
@@ -124,7 +124,7 @@ export function AllocateBalanceModal({
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
-          {agencyBmFunding ? "Fondear desde BM" : "Asignar saldo"}
+          {agencyBmFunding ? "Recargar desde BM" : "Asignar saldo"}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {agencyBmFunding
@@ -209,7 +209,7 @@ export function AllocateBalanceModal({
                 ? "Fondeando…"
                 : "Asignando…"
               : agencyBmFunding
-                ? "Fondear desde BM"
+                ? "Recargar desde BM"
                 : "Asignar saldo"}
           </Button>
         </div>

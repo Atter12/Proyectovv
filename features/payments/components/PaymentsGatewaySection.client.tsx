@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
 import {
@@ -114,13 +114,13 @@ export function PaymentsGatewaySection({
           <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
             Bajá a{" "}
             <span className="font-semibold text-[var(--auth-text)]">Asignar</span>{" "}
-            y fondeá la cuenta ads con cash del Business Center.
+            y recargá la cuenta ads con cash del Business Center.
           </p>
           <a
             href="#asignar-saldo"
             className="mt-4 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
           >
-            Ir a fondear cuenta ads
+            Ir a recargar cuenta ads
           </a>
         </section>
       )}

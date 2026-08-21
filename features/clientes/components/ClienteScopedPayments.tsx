@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   formatHecomFecha,
@@ -98,8 +98,8 @@ export function ClienteScopedPayments({
               </h2>
               <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
                 {staffMode
-                  ? "Solo lectura del CRM. El fondeo BM suma presupuesto a ads y no reduce la deuda neta — baja con cobro del cliente."
-                  : "Solo lectura del CRM. El fondeo se hace con la cartera de arriba."}{" "}
+                  ? "Solo lectura del CRM. La recarga BM suma presupuesto a ads y no reduce la deuda neta — baja con cobro del cliente."
+                  : "Solo lectura del CRM. La recarga se hace con la cartera de arriba."}{" "}
                 Fee del cliente:{" "}
                 <span className="font-semibold text-[var(--auth-text)]">
                   {summary.depositFeePercent}%

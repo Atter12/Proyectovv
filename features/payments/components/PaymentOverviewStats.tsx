@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
@@ -51,7 +51,7 @@ export function PaymentOverviewStats({
         {
           label: "Cuentas listas",
           value: formatNumber(summary.accountsReadyForAllocation),
-          hint: "Para fondear / asignar",
+          hint: "Para Recargar / asignar",
           accent: true,
           warn: false,
         },

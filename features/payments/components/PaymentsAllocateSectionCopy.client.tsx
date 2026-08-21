@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 
@@ -19,7 +19,7 @@ export function PaymentsAllocateSectionCopy({
     return (
       <>
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Gerente · Fondear desde BM
+          Gerente · Recargar desde BM
           {clienteName ? ` · ${clienteName}` : ""}
         </p>
         <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
