@@ -417,6 +417,54 @@ export async function listHolisticBcAdvertisers(input?: {
   return advertisers;
 }
 
+/**
+ * Busca en BM por keyword + show_status (p.ej. baneadas de un cliente).
+ * Complementa el listado completo cuando el nombre no matchea bien.
+ */
+export async function searchHolisticBcAdvertisers(input: {
+  keyword: string;
+  organizationId?: string;
+  showStatuses?: string[];
+}): Promise<TikTokBcAdvertiser[]> {
+  const keyword = input.keyword.trim();
+  if (keyword.length < 3) return [];
+
+  const { token } = await resolveTikTokFinanceAccessToken(input.organizationId);
+  const bcIds = resolveBcIds();
+  const statuses =
+    input.showStatuses?.length ? input.showStatuses : [...SUSPENDED_SHOW_STATUSES];
+  const byId = new Map<string, TikTokBcAdvertiser>();
+
+  await Promise.all(
+    bcIds.flatMap((bcId) =>
+      statuses.map(async (showStatus) => {
+        try {
+          const rows = await listBcAdvertisersAtPath(
+            token,
+            bcId,
+            "/bc/asset/admin/get/",
+            {
+              keyword,
+              advertiser_show_status: showStatus,
+            },
+          );
+          for (const row of rows) {
+            byId.set(row.advertiserId, {
+              ...row,
+              statusRaw: row.statusRaw ?? showStatus,
+              statusKind: "suspended",
+            });
+          }
+        } catch {
+          // BM sin permiso / filtro vacío
+        }
+      }),
+    ),
+  );
+
+  return [...byId.values()];
+}
+
 export function resolveBcIdForHecomBucket(
   bmBucket: string | null | undefined,
   fallbackBcId?: string | null,

@@ -41,6 +41,7 @@ function tokensMatch(clientTokens: string[], adv: string): boolean {
 /**
  * Ej. cliente "Adriana" ↔ "Adriana 200 USD".
  * "Jhosdan Rodrigez Calderon" ↔ "Jhosdan Rodriguez 200 USD".
+ * Con nombre+apellido exige ambos tokens (evita Adriano↔Adriana).
  */
 export function advertiserMatchesCliente(
   advertiserName: string,
@@ -54,8 +55,13 @@ export function advertiserMatchesCliente(
   }
   const tokens = client.split(" ").filter((t) => t.length >= 3);
   if (tokens.length === 0) return false;
-  if (tokensMatch(tokens, adv)) return true;
 
+  // Nombre + apellido (o más): todos los tokens deben aparecer.
+  if (tokens.length >= 2) {
+    return tokensMatch(tokens, adv);
+  }
+
+  // Un solo token de cliente: prefijo / fuzzy.
   const first = tokens[0];
   if (first && first.length >= 5) {
     const advTokens = adv.split(" ").filter(Boolean);
@@ -66,5 +72,5 @@ export function advertiserMatchesCliente(
       return true;
     }
   }
-  return false;
+  return tokensMatch(tokens, adv);
 }

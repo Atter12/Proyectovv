@@ -9,9 +9,11 @@ import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
+  searchHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
+import { normalizeAdvertiserName } from "@/lib/hecom/advertiser-match";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
 
 export { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
@@ -168,6 +170,44 @@ export async function getHecomClienteAdAccountsOverview(
         }
         return advertiserMatchesCliente(row.advertiserName, cliente.name);
       });
+
+      // Baneadas por keyword TikTok (nombres raros que no pasan el match local).
+      const keywords = [
+        ...new Set(
+          [
+            cliente.name.trim(),
+            ...normalizeAdvertiserName(cliente.name)
+              .split(" ")
+              .filter((t) => t.length >= 5),
+          ].filter(Boolean),
+        ),
+      ].slice(0, 3);
+
+      const keywordSuspended = (
+        await Promise.all(
+          keywords.map((keyword) =>
+            searchHolisticBcAdvertisers({ keyword }).catch(() => []),
+          ),
+        )
+      ).flat();
+
+      for (const row of keywordSuspended) {
+        const belongs =
+          hecomIds.has(row.advertiserId) ||
+          advertiserMatchesCliente(row.advertiserName, cliente.name);
+        if (!belongs) continue;
+
+        const prev = liveById.get(row.advertiserId);
+        if (!prev || prev.statusKind !== "suspended") {
+          liveById.set(row.advertiserId, row);
+        }
+        if (hecomIds.has(row.advertiserId)) continue;
+        if (
+          !nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
+        ) {
+          nameMatchedExtras.push(row);
+        }
+      }
     }
   } catch (error) {
     console.warn("[ad-accounts] bc_status_skip", {
@@ -244,6 +284,28 @@ export async function getHecomClienteAdAccountsOverview(
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
     bmNameMatches: nameMatchedExtras.length,
+    bmNameMatchesSuspended: nameMatchedExtras.filter(
+      (r) => r.statusKind === "suspended",
+    ).length,
+    bmSuspendedNameHits: liveById.size
+      ? [...liveById.values()].filter(
+          (r) =>
+            r.statusKind === "suspended" &&
+            advertiserMatchesCliente(r.advertiserName, cliente.name),
+        ).length
+      : 0,
+    sampleSuspendedHits: [...liveById.values()]
+      .filter(
+        (r) =>
+          r.statusKind === "suspended" &&
+          advertiserMatchesCliente(r.advertiserName, cliente.name),
+      )
+      .slice(0, 5)
+      .map((r) => ({
+        id: r.advertiserId,
+        name: r.advertiserName,
+        status: r.statusRaw,
+      })),
     liveSource,
     shown: accounts.length,
     active: accounts.filter((a) => a.status === "active").length,
