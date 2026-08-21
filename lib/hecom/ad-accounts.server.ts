@@ -221,9 +221,9 @@ export async function getHecomClienteAdAccountsOverview(
       byExternalId.set(key, account);
       continue;
     }
-    // Preferir fila con status conocido (active/disabled) sobre pending.
+    // Preferir suspendida sobre activa (ban gana al vínculo ENABLE).
     const rank = (s: AdAccount["status"]) =>
-      s === "active" ? 3 : s === "disabled" ? 2 : s === "pending" ? 1 : 0;
+      s === "disabled" ? 3 : s === "active" ? 2 : s === "pending" ? 1 : 0;
     if (rank(account.status) >= rank(prev.status)) {
       byExternalId.set(key, account);
     }

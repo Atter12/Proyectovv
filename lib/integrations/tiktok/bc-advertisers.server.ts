@@ -108,8 +108,9 @@ export function classifyTikTokAdvertiserStatus(
   const st = String(status ?? "").toUpperCase();
   if (!st) return "unknown";
   // Cerradas / castigadas / rechazadas (STATUS_LIMIT = “usuario castigado” en TikTok).
+  // Ojo: no usar \bLIMIT\b — en JS "_" es word-char y STATUS_LIMIT no matchea.
   if (
-    /SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE|\bLIMIT\b|CONFIRM_FAIL|CONFIRM_MODIFY_FAIL/.test(
+    /SUSPEND|DISABLE|REJECT|PUNISH|BAN|CLOSE|LIMIT|CONFIRM_FAIL|CONFIRM_MODIFY_FAIL/.test(
       st,
     )
   ) {
@@ -131,6 +132,7 @@ export function classifyTikTokAdvertiserStatus(
 /**
  * El campo `status` del asset suele ser relación BM↔cuenta (casi siempre ENABLE).
  * El ban/castigo viene en advertiser_show_status / advertiser_status.
+ * Si hay varios campos, preferimos el más “grave” (suspendida > activa > unknown).
  */
 function pickAdvertiserStatusRaw(
   row: Record<string, unknown>,
@@ -145,18 +147,28 @@ function pickAdvertiserStatusRaw(
     row.show_status,
     info.account_status,
     row.account_status,
-    // Último recurso: status genérico (puede ser solo relación).
     info.status,
     row.status,
     row.asset_status,
     info.audit_status,
-  ];
-  for (const value of candidates) {
-    if (value == null) continue;
-    const text = String(value).trim();
-    if (text) return text;
+  ]
+    .map((value) => (value == null ? null : String(value).trim()))
+    .filter((value): value is string => Boolean(value));
+
+  if (!candidates.length) return null;
+
+  const rank = (status: string) => {
+    const kind = classifyTikTokAdvertiserStatus(status);
+    if (kind === "suspended") return 3;
+    if (kind === "approved") return 2;
+    return 1;
+  };
+
+  let best = candidates[0]!;
+  for (const candidate of candidates.slice(1)) {
+    if (rank(candidate) > rank(best)) best = candidate;
   }
-  return null;
+  return best;
 }
 
 function resolveBcIds(): string[] {
