@@ -82,8 +82,10 @@ function emptyThread(): ChatMessage[] {
 }
 
 const FILTERS = [
+  { id: "all", label: "Todos" },
   { id: "unassigned", label: "Sin atender" },
   { id: "mine", label: "Míos" },
+  { id: "active", label: "Activos" },
   { id: "resolved", label: "Resueltos" },
 ] as const;
 
@@ -92,7 +94,8 @@ export function GerenteSupportInbox() {
   const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("unassigned");
+  // "all" = lista completa Hecom Club (default). "unassigned" oculta clientes sin ticket abierto.
+  const [statusFilter, setStatusFilter] = useState("all");
   const [q, setQ] = useState("");
   const [claiming, setClaiming] = useState(false);
 
@@ -565,7 +568,9 @@ export function GerenteSupportInbox() {
               </p>
             ) : filteredTickets.length === 0 ? (
               <p className="px-4 py-10 text-center text-[13px] text-[var(--auth-text-muted)]">
-                No hay clientes en este filtro.
+                {statusFilter === "all"
+                  ? "No hay clientes Hecom para mostrar."
+                  : "No hay clientes en este filtro. Probá “Todos”."}
               </p>
             ) : (
               <ul className="divide-y divide-[rgb(15_23_42_/_0.06)]">
