@@ -12,14 +12,6 @@ import type {
   SessionUser,
 } from "@/types/auth";
 
-function resolveOrganization(
-  membership: OrganizationMembershipRow,
-): OrganizationRow | null {
-  const org = membership.organizations;
-  if (!org) return null;
-  return Array.isArray(org) ? (org[0] ?? null) : org;
-}
-
 function getUserMetadataValue(
   metadata: Record<string, unknown> | undefined,
   key: string,
@@ -44,11 +36,11 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
       .select("id, email, full_name, status, email_verified, onboarding_status")
       .eq("id", user.id)
       .maybeSingle<ProfileRow>(),
+    // Sin embed a organizations: si RLS de orgs falla/deniega, el join
+    // tumba toda la membresía y provoca bucle overview ⇄ account-setup.
     supabase
       .from("organization_memberships")
-      .select(
-        "id, organization_id, user_id, role, status, organizations(id, name)",
-      )
+      .select("id, organization_id, user_id, role, status")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: true })
@@ -56,13 +48,21 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
       .maybeSingle<OrganizationMembershipRow>(),
   ]);
 
+  let organization: OrganizationRow | null = null;
+  if (membership?.organization_id) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .eq("id", membership.organization_id)
+      .maybeSingle<OrganizationRow>();
+    organization = org ?? null;
+  }
+
   const fullName =
     profile?.full_name?.trim() ||
     getUserMetadataValue(user.user_metadata, "full_name") ||
     user.email?.split("@")[0] ||
     "Usuario";
-
-  const organization = membership ? resolveOrganization(membership) : null;
   const role = membership?.role ?? "viewer";
   const email = profile?.email ?? user.email ?? "";
   const staffPayments = isHecomOtpStaffEmail(email);
