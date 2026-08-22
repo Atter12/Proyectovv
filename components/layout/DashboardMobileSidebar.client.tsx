@@ -10,10 +10,7 @@ import {
   SidebarWalletCard,
   type SidebarSelectedCliente,
 } from "./SidebarWalletCard.client";
-import {
-  dashboardPersonaLabel,
-  type DashboardPersona,
-} from "@/types/dashboard-persona";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 
 interface DashboardMobileSidebarProps {
   onNavigate: () => void;
@@ -36,7 +33,7 @@ export function DashboardMobileSidebar({
       )}
     >
       <div className="border-b border-[var(--auth-divider)] px-4 pb-5 pt-14">
-        <div className="flex items-center justify-between gap-2 pr-8">
+        <div className="flex justify-center">
           <Link
             href={routes.overview}
             prefetch
@@ -46,9 +43,6 @@ export function DashboardMobileSidebar({
           >
             <HolisticLogo size={132} className="h-9 w-auto max-w-[140px]" />
           </Link>
-          <span className="dashboard-role-badge" data-role={persona}>
-            {dashboardPersonaLabel(persona)}
-          </span>
         </div>
 
         <SidebarWalletCard
