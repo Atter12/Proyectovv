@@ -1,8 +1,14 @@
 ﻿import Link from "next/link";
 import { routes } from "@/config/routes";
-import { CrmPanel } from "@/components/dashboard/crm-ui";
-import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
-import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
+import {
+  CrmAsideStat,
+  CrmHeroButton,
+  CrmMetricCell,
+  CrmMetricsStrip,
+  CrmPanel,
+  CrmQuickLinks,
+  CrmScopeHero,
+} from "@/components/dashboard/crm-ui";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
@@ -69,80 +75,42 @@ export function ClienteScopedOverview({
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Hero — identidad + saldo + acciones */}
-      <section className="border-b border-[var(--auth-divider)] pb-5 sm:pb-6">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-8">
-          <div className="min-w-0">
-            <div className="flex items-start gap-3">
-              <HecomClienteAvatar
-                name={cliente.name}
-                avatarUrl={cliente.avatarUrl}
-                size="lg"
-                className="ring-2 ring-white"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-                  Hecom Club
-                </p>
-                <OverviewClientTitle name={cliente.name} />
-                <p className="mt-1 truncate text-[12px] text-[var(--auth-text-muted)]">
-                  {cliente.biz ? (
-                    <>
-                      <span className="font-medium text-[var(--auth-text)]">
-                        {cliente.biz}
-                      </span>
-                      <span className="mx-1.5 text-[var(--auth-text-soft)]">·</span>
-                    </>
-                  ) : null}
-                  Fee Holistic {summary.depositFeePercent}%
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link
-                href={routes.payments}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.04] sm:w-auto"
-              >
-                <WalletIcon />
-                {canChangeCliente ? "Recargar / asignar" : "Recargar"}
-              </Link>
-              <Link
-                href={routes.adAccounts}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-text-soft)] sm:w-auto"
-              >
-                <ChartIcon />
-                Ver cuentas
-              </Link>
-              {canChangeCliente ? (
-                <Link
-                  href={routes.clientes}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-lg px-3 text-[13px] font-medium text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)] sm:w-auto"
-                >
-                  Cambiar cliente
-                </Link>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="lg:min-w-[220px] lg:border-l lg:border-[var(--auth-divider)] lg:pl-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-              {debt ? "Deuda neta" : "Saldo estimado"}
-            </p>
-            <p
-              className={`mt-1 text-[1.75rem] font-bold leading-none tracking-[-0.03em] tabular-nums sm:text-[2rem] ${
-                debt ? "text-[#b45309]" : "text-[var(--auth-text)]"
-              }`}
-            >
-              {moneyUsd(summary.saldoEstimado)}
-            </p>
-            <p className="mt-2 text-[12px] tabular-nums text-[var(--auth-text-muted)]">
-              {moneyUsd(summary.cobroTotal)} cobros · {moneyUsd(summary.gastoTotal)} gastos ·{" "}
-              {moneyUsd(summary.feeTotal)} fees
-            </p>
-          </div>
-        </div>
-      </section>
+      <CrmScopeHero
+        module="Hecom Club"
+        title={cliente.name}
+        cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl, biz: cliente.biz }}
+        meta={`Fee Holistic ${summary.depositFeePercent}%`}
+        actions={
+          <>
+            <CrmHeroButton href={routes.payments}>
+              <WalletIcon />
+              {canChangeCliente ? "Recargar / asignar" : "Recargar"}
+            </CrmHeroButton>
+            <CrmHeroButton href={routes.adAccounts} variant="secondary">
+              <ChartIcon />
+              Ver cuentas
+            </CrmHeroButton>
+            {canChangeCliente ? (
+              <CrmHeroButton href={routes.clientes} variant="ghost">
+                Cambiar cliente
+              </CrmHeroButton>
+            ) : null}
+          </>
+        }
+        aside={
+          <CrmAsideStat
+            label={debt ? "Deuda neta" : "Saldo estimado"}
+            value={moneyUsd(summary.saldoEstimado)}
+            valueClassName={debt ? "text-[#b45309]" : "text-[var(--auth-text)]"}
+            detail={
+              <>
+                {moneyUsd(summary.cobroTotal)} cobros · {moneyUsd(summary.gastoTotal)} gastos ·{" "}
+                {moneyUsd(summary.feeTotal)} fees
+              </>
+            }
+          />
+        }
+      />
 
       {/* Métricas — una sola superficie */}
       <OverviewMetricsStrip
@@ -161,43 +129,18 @@ export function ClienteScopedOverview({
         source={summary.dailySource}
       />
 
-      <OverviewQuickLinks />
+      <CrmQuickLinks
+        links={[
+          { href: routes.adAccounts, label: "Cuentas ads" },
+          { href: routes.payments, label: "Pagos" },
+          { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
+        ]}
+      />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
         <GastosPanel gastos={recentGastos} source={data.source} />
       </div>
-    </div>
-  );
-}
-
-function OverviewMetricCell({
-  label,
-  value,
-  hint,
-  emphasis = "default",
-  className = "",
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  emphasis?: "primary" | "default" | "muted";
-  className?: string;
-}) {
-  const valueClass =
-    emphasis === "primary"
-      ? "text-[1.125rem] font-bold text-[var(--auth-text)] sm:text-[1.25rem]"
-      : emphasis === "muted"
-        ? "text-[14px] font-semibold text-[var(--auth-text-muted)]"
-        : "text-[15px] font-semibold text-[var(--auth-text)]";
-
-  return (
-    <div className={`min-w-0 px-4 py-3 sm:px-5 sm:py-3.5 ${className}`}>
-      <p className="text-[11px] font-medium text-[var(--auth-text-soft)]">{label}</p>
-      <p className={`mt-0.5 tabular-nums tracking-[-0.02em] ${valueClass}`}>{value}</p>
-      {hint ? (
-        <p className="mt-0.5 truncate text-[11px] text-[var(--auth-text-muted)]">{hint}</p>
-      ) : null}
     </div>
   );
 }
@@ -225,9 +168,9 @@ function OverviewMetricsStrip({
     accountCount > 0 ? `${activeAccounts} activas · ${pausedAccounts} pausadas` : undefined;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[var(--auth-border)] bg-white">
+    <CrmMetricsStrip>
       <div className="border-b border-[var(--auth-divider)] sm:hidden">
-        <OverviewMetricCell
+        <CrmMetricCell
           label="Gasto de hoy"
           value={moneyUsd(summary.gastoHoy)}
           hint={gastoHoyHint}
@@ -235,72 +178,38 @@ function OverviewMetricsStrip({
         />
       </div>
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)]">
-        <OverviewMetricCell
+        <CrmMetricCell
           className="hidden sm:block"
           label="Gasto de hoy"
           value={moneyUsd(summary.gastoHoy)}
           hint={gastoHoyHint}
           emphasis="primary"
         />
-        <OverviewMetricCell
+        <CrmMetricCell
           className="border-r border-[var(--auth-divider)] sm:border-r-0"
           label="Últimos 7 días"
           value={moneyUsd(summary.gasto7d)}
         />
-        <OverviewMetricCell
+        <CrmMetricCell
           className="border-b border-[var(--auth-divider)] sm:border-b-0"
           label="Cobros"
           value={moneyUsd(summary.cobroTotal)}
         />
-        <OverviewMetricCell label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
-        <OverviewMetricCell
+        <CrmMetricCell label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
+        <CrmMetricCell
           className="border-r border-[var(--auth-divider)] sm:border-r-0"
           label="Fee Holistic"
           value={`${summary.depositFeePercent}%`}
           emphasis="muted"
         />
-        <OverviewMetricCell
+        <CrmMetricCell
           label="Cuentas TikTok"
           value={String(accountCount)}
           hint={accountsHint}
           emphasis="muted"
         />
       </div>
-    </section>
-  );
-}
-
-function OverviewQuickLinks() {
-  const links = [
-    { href: routes.adAccounts, label: "Cuentas ads" },
-    { href: routes.payments, label: "Pagos" },
-    { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
-  ] as const;
-
-  return (
-    <nav
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px]"
-      aria-label="Accesos rápidos"
-    >
-      <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-        Accesos
-      </span>
-      {links.map((link, index) => (
-        <span key={link.href} className="inline-flex items-center">
-          {index > 0 ? (
-            <span className="mx-2 text-[var(--auth-text-soft)]" aria-hidden>
-              ·
-            </span>
-          ) : null}
-          <Link
-            href={link.href}
-            className="font-medium text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
-          >
-            {link.label}
-          </Link>
-        </span>
-      ))}
-    </nav>
+    </CrmMetricsStrip>
   );
 }
 
@@ -548,7 +457,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
     <CrmPanel
       title="Cuentas TikTok"
       subtitle="Hecom · solo lectura"
-      className="flex h-full flex-col overflow-hidden shadow-none"
+      className="flex h-full flex-col overflow-hidden"
       action={
         <Link
           href={routes.adAccounts}
@@ -686,7 +595,7 @@ function GastosPanel({
           </Link>
         </div>
       }
-      className="flex h-full flex-col overflow-hidden shadow-none"
+      className="flex h-full flex-col overflow-hidden"
     >
       {gastos.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">

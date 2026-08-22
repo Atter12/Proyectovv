@@ -166,30 +166,20 @@ export function ClientesPageClient({
 
   return (
     <div className={dashboardClasses.page}>
-      <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          {isStaffPicker ? "Gerente · CRM Hecom" : "Tu cuenta"}
+      <header className="border-b border-[var(--auth-divider)] pb-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+          {isStaffPicker ? "CRM Hecom" : "Tu cuenta"}
         </p>
-        <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
+        <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
           {isStaffPicker ? "Elegí a quién recargar" : "Elegir cliente"}
         </h1>
-        <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          {isStaffPicker ? (
-            <>
-              Lista completa del CRM. Elegí un cliente y recargá sus cuentas ads
-              con <span className="font-semibold text-[var(--auth-text)]">cash del BM</span>
-              {" "}(sin Stripe). Al seleccionar vas a Pagos listo para asignar.
-            </>
-          ) : (
-            <>
-              Solo ves los clientes de tu cuenta. Si hay uno solo, se selecciona
-              al entrar.
-            </>
-          )}
+        <p className="mt-1 text-[13px] text-[var(--auth-text-muted)]">
+          {isStaffPicker
+            ? "Lista del CRM · al seleccionar vas a Pagos para asignar."
+            : "Solo ves los clientes de tu cuenta."}
         </p>
-
         {!loading && payload?.ok ? (
-          <p className="mt-3 text-[12px] font-semibold tabular-nums text-[var(--auth-text-soft)]">
+          <p className="mt-2 text-[12px] font-medium tabular-nums text-[var(--auth-text-soft)]">
             {shown === total
               ? `${total} cliente${total === 1 ? "" : "s"}`
               : `${shown} de ${total} clientes`}
@@ -218,7 +208,7 @@ export function ClientesPageClient({
         </div>
       ) : null}
 
-      <div className="dashboard-surface-card rounded-[1rem] p-4 sm:p-5">
+      <div className="rounded-lg border border-[var(--auth-border)] bg-white p-4 sm:p-5">
         <label className="sr-only" htmlFor="clientes-search">
           Buscar cliente
         </label>
@@ -257,7 +247,7 @@ export function ClientesPageClient({
           return (
             <article
               key={client.id}
-              className="dashboard-surface-card flex flex-col rounded-[1rem] p-4 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[var(--auth-accent)]/35 sm:p-5"
+              className="flex flex-col rounded-lg border border-[var(--auth-border)] bg-white p-4 transition-colors hover:border-[var(--auth-text-soft)] sm:p-5"
             >
               <div className="flex items-start gap-3">
                 <HecomClienteAvatar

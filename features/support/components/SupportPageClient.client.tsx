@@ -491,15 +491,15 @@ export function SupportPageClient() {
 
   return (
     <div className={dashboardClasses.page}>
-      <header className="dashboard-surface-card rounded-[1rem] p-5 sm:p-6">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
+      <header className="border-b border-[var(--auth-divider)] pb-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
           Soporte
         </p>
-        <h1 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.65rem]">
+        <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
           {SUPPORT_NAME}
         </h1>
-        <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Un solo chat con el equipo de Ads Holistic. Sin WhatsApp.
+        <p className="mt-1 max-w-2xl text-[13px] text-[var(--auth-text-muted)]">
+          Chat con el equipo de Ads Holistic.
         </p>
       </header>
 

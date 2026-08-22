@@ -1,5 +1,9 @@
 ﻿import type { ReactNode } from "react";
-import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
+import {
+  CrmMetricCell,
+  CrmMetricsStrip,
+  CrmPanel,
+} from "@/components/dashboard/crm-ui";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
@@ -81,59 +85,39 @@ export function ClienteScopedPayments({
 
   return (
     <div className="space-y-5">
-      <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
-        <div className="border-b border-[var(--auth-divider)] px-5 py-4 sm:px-6">
-          <div className="flex min-w-0 items-start gap-3">
-            <HecomClienteAvatar
-              name={cliente.name}
-              avatarUrl={cliente.avatarUrl}
-              size="md"
-            />
-            <div className="min-w-0">
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-                Historial Hecom
-              </p>
-              <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                Cobrado y gastado · {cliente.name}
-              </h2>
-              <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-                {staffMode
-                  ? "Solo lectura del CRM. La recarga BM suma presupuesto a ads y no reduce la deuda neta — baja con cobro del cliente."
-                  : "Solo lectura del CRM. La recarga se hace con la cartera de arriba."}{" "}
-                Fee del cliente:{" "}
-                <span className="font-semibold text-[var(--auth-text)]">
-                  {summary.depositFeePercent}%
-                </span>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
+      <header className="border-b border-[var(--auth-divider)] pb-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+          Historial Hecom
+        </p>
+        <h2 className="mt-1 text-[1.125rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+          Cobrado y gastado · {cliente.name}
+        </h2>
+        <p className="mt-1 text-[12px] text-[var(--auth-text-muted)]">
+          Solo lectura CRM · Fee {summary.depositFeePercent}%
+          {staffMode ? " · Recarga BM no reduce deuda neta" : ""}
+        </p>
+      </header>
 
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <CrmMetricsStrip>
+        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-4 lg:grid-cols-7">
           {kpis.map((kpi) => (
-            <div key={kpi.label} className="bg-white px-4 py-4 sm:px-5">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-                {kpi.label}
-              </p>
-              <p
-                className={`mt-1.5 truncate text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums ${
-                  kpi.accent
-                    ? "text-[var(--auth-accent)]"
-                    : "text-[var(--auth-text)]"
-                }`}
-              >
-                {kpi.value}
-              </p>
-              {"hint" in kpi && kpi.hint ? (
-                <p className="mt-1 text-[11px] font-medium text-[var(--auth-text-soft)]">
-                  {kpi.hint}
-                </p>
-              ) : null}
+            <div key={kpi.label} className="bg-white">
+              <CrmMetricCell
+                label={kpi.label}
+                value={kpi.value}
+                hint={"hint" in kpi ? kpi.hint : undefined}
+                emphasis={
+                  kpi.label === "Gasto de hoy" || kpi.label.includes("Saldo") || kpi.label.includes("Deuda")
+                    ? "primary"
+                    : kpi.label === "Fee Holistic"
+                      ? "muted"
+                      : "default"
+                }
+              />
             </div>
           ))}
         </div>
-      </section>
+      </CrmMetricsStrip>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <LedgerPanel
@@ -235,27 +219,18 @@ function LedgerPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="dashboard-surface-card flex h-full flex-col overflow-hidden rounded-[1rem]">
-      <div className="border-b border-[var(--auth-divider)] px-5 py-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            {title}
-          </h3>
-          <span className="rounded-md bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-[var(--auth-accent)]">
-            {total}
-          </span>
-        </div>
-        <p className="mt-1 text-[12px] font-medium text-[var(--auth-text-muted)]">
-          {subtitle}
-        </p>
-      </div>
+    <CrmPanel
+      title={title}
+      subtitle={`${subtitle} · ${total} registro${total === 1 ? "" : "s"}`}
+      className="flex h-full flex-col overflow-hidden"
+    >
       {total === 0 ? (
-        <p className="px-5 py-10 text-[13px] font-medium text-[var(--auth-text-muted)]">
+        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
           {empty}
         </p>
       ) : (
         <ul className="max-h-[28rem] flex-1 overflow-y-auto">{children}</ul>
       )}
-    </section>
+    </CrmPanel>
   );
 }
