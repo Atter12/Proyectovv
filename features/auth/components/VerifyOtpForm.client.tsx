@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import {
+  HECOM_OTP_COOLDOWN_SECONDS,
+  normalizeHecomOtpEmail,
+} from "@/lib/auth/hecom-otp-email";
 import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
 
 async function assertAdminAccess(): Promise<boolean> {
@@ -23,19 +27,47 @@ export function VerifyOtpForm() {
   const emailParam = searchParams.get("email") ?? "";
   const isAdminContext = searchParams.get("context") === "admin";
   const isHecomFlow = searchParams.get("flow") === "hecom";
+  const justSent = searchParams.get("sent") === "1";
+  const initialCooldown = Number(searchParams.get("cooldown") ?? "");
   const adminDestination = resolveSafeNextPath(
     searchParams.get("next"),
     routes.adminOverview,
     { requiredPrefix: "/admin" },
   );
-  const [email] = useState(emailParam);
+  const email = useMemo(
+    () => normalizeHecomOtpEmail(emailParam),
+    [emailParam],
+  );
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(() => {
+    if (!isHecomFlow || !justSent) return 0;
+    if (Number.isFinite(initialCooldown) && initialCooldown > 0) {
+      return Math.ceil(initialCooldown);
+    }
+    return HECOM_OTP_COOLDOWN_SECONDS;
+  });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(
     searchParams.get("hint"),
   );
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = window.setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [resendCooldown]);
+
+  function applyResendCooldown(seconds?: number) {
+    const next =
+      typeof seconds === "number" && seconds > 0
+        ? Math.ceil(seconds)
+        : HECOM_OTP_COOLDOWN_SECONDS;
+    setResendCooldown(next);
+  }
 
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,7 +90,7 @@ export function VerifyOtpForm() {
     const supabase = createClient();
     let verifyError = (
       await supabase.auth.verifyOtp({
-        email: email.trim(),
+        email,
         token: otp.trim(),
         type: isHecomFlow ? "magiclink" : "email",
       })
@@ -68,7 +100,7 @@ export function VerifyOtpForm() {
     if (verifyError && isHecomFlow) {
       verifyError = (
         await supabase.auth.verifyOtp({
-          email: email.trim(),
+          email,
           token: otp.trim(),
           type: "email",
         })
@@ -134,6 +166,7 @@ export function VerifyOtpForm() {
       setError("Falta el correo electrónico.");
       return;
     }
+    if (resendCooldown > 0) return;
 
     setResending(true);
     setError(null);
@@ -145,15 +178,24 @@ export function VerifyOtpForm() {
         const response = await fetch(routes.api.auth.otpRequest, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email }),
         });
-        const payload = (await response.json()) as { error?: string; message?: string };
+        const payload = (await response.json()) as {
+          error?: string;
+          message?: string;
+          retryAfterSec?: number;
+        };
         if (!response.ok) {
+          if (response.status === 429 && payload.retryAfterSec) {
+            applyResendCooldown(payload.retryAfterSec);
+          }
           setError(mapAuthErrorMessage(payload.error ?? "No se pudo reenviar."));
         } else {
+          applyResendCooldown(payload.retryAfterSec);
+          setOtp("");
           setSuccess(
             payload.message ??
-              "Te enviamos un nuevo código y enlace mágico a tu correo.",
+              "Te enviamos un nuevo código y enlace mágico. El código anterior ya no sirve.",
           );
         }
       } catch {
@@ -258,13 +300,22 @@ export function VerifyOtpForm() {
         <button
           type="button"
           onClick={handleResend}
-          disabled={resending}
+          disabled={resending || resendCooldown > 0}
           className={cn(
             "font-semibold text-[var(--auth-accent)] transition-colors hover:brightness-110 disabled:opacity-50",
           )}
         >
-          {resending ? "Reenviando…" : "Reenviar código y enlace"}
+          {resending
+            ? "Reenviando…"
+            : resendCooldown > 0
+              ? `Reenviar en ${resendCooldown}s`
+              : "Reenviar código y enlace"}
         </button>
+        {isHecomFlow ? (
+          <p className="text-[12px] leading-5 text-[var(--auth-text-soft)]">
+            Si pedís otro código, usá solo el más reciente del correo.
+          </p>
+        ) : null}
         <p className="text-[var(--auth-text-muted)]">
           <Link
             href={isAdminContext ? routes.adminLogin : routes.login}

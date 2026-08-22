@@ -72,6 +72,8 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       const payload = (await response.json()) as {
         error?: string;
         message?: string;
+        email?: string;
+        retryAfterSec?: number;
       };
 
       if (!response.ok) {
@@ -82,9 +84,20 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         return;
       }
 
+      const canonicalEmail =
+        payload.email?.trim() ||
+        email.trim().toLowerCase();
+
       const verifyUrl = new URL(routes.verifyOtp, window.location.origin);
-      verifyUrl.searchParams.set("email", email.trim().toLowerCase());
+      verifyUrl.searchParams.set("email", canonicalEmail);
       verifyUrl.searchParams.set("flow", "hecom");
+      verifyUrl.searchParams.set("sent", "1");
+      if (payload.retryAfterSec) {
+        verifyUrl.searchParams.set(
+          "cooldown",
+          String(payload.retryAfterSec),
+        );
+      }
       if (payload.message) {
         verifyUrl.searchParams.set("hint", payload.message);
       }

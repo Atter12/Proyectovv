@@ -22,6 +22,12 @@ function buildAdminDestination(request: NextRequest): string {
   );
 }
 
+function appendHecomOtpFlow(verifyUrl: URL) {
+  if (process.env.AUTH_HECOM_OTP_LOGIN === "true") {
+    verifyUrl.searchParams.set("flow", "hecom");
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { user, supabase, supabaseResponse } = await updateSession(request);
@@ -56,6 +62,7 @@ export async function proxy(request: NextRequest) {
         verifyUrl.searchParams.set("email", user.email);
       }
       verifyUrl.searchParams.set("context", "admin");
+      appendHecomOtpFlow(verifyUrl);
       verifyUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(verifyUrl);
     }
@@ -77,6 +84,7 @@ export async function proxy(request: NextRequest) {
         verifyUrl.searchParams.set("email", user.email);
       }
       verifyUrl.searchParams.set("context", "admin");
+      appendHecomOtpFlow(verifyUrl);
       verifyUrl.searchParams.set("next", buildAdminDestination(request));
       return NextResponse.redirect(verifyUrl);
     }
@@ -104,6 +112,7 @@ export async function proxy(request: NextRequest) {
       if (user?.email) {
         verifyUrl.searchParams.set("email", user.email);
       }
+      appendHecomOtpFlow(verifyUrl);
       return NextResponse.redirect(verifyUrl);
     }
   }
@@ -124,6 +133,7 @@ export async function proxy(request: NextRequest) {
     if (user?.email) {
       verifyUrl.searchParams.set("email", user.email);
     }
+    appendHecomOtpFlow(verifyUrl);
     return NextResponse.redirect(verifyUrl);
   }
 
@@ -164,6 +174,7 @@ export async function proxy(request: NextRequest) {
       if (user?.email) {
         verifyUrl.searchParams.set("email", user.email);
       }
+      appendHecomOtpFlow(verifyUrl);
       return NextResponse.redirect(verifyUrl);
     }
 

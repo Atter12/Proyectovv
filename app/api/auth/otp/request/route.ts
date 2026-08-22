@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requestHecomClientOtp } from "@/lib/auth/hecom-otp.server";
+import { HECOM_OTP_COOLDOWN_SECONDS } from "@/lib/auth/hecom-otp-email";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 
 export async function POST(request: Request) {
@@ -21,7 +22,10 @@ export async function POST(request: Request) {
       status: result.status,
       error: result.error,
     });
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error, retryAfterSec: result.retryAfterSec },
+      { status: result.status },
+    );
   }
 
   logHecomOtp("info", "api_request_ok", {
@@ -33,11 +37,11 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     message: result.message,
+    email: result.email,
     sent: result.sent ?? result.allowed,
-    // No exponer allowed/clienteIds al cliente en prod UX; útil en preview.
+    retryAfterSec: result.retryAfterSec ?? HECOM_OTP_COOLDOWN_SECONDS,
     ...(process.env.NODE_ENV !== "production"
       ? { allowed: result.allowed, clienteIds: result.clienteIds }
       : {}),
-    retryAfterSec: result.retryAfterSec,
   });
 }

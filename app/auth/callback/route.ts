@@ -74,15 +74,19 @@ export async function GET(request: NextRequest) {
     }
   } else if (tokenHash) {
     const typesToTry: EmailOtpType[] = [];
-    if (
-      typeParam === "email" ||
-      typeParam === "magiclink" ||
-      typeParam === "signup"
-    ) {
-      typesToTry.push(typeParam);
+    if (flow === "hecom") {
+      typesToTry.push("magiclink");
+    } else {
+      if (
+        typeParam === "email" ||
+        typeParam === "magiclink" ||
+        typeParam === "signup"
+      ) {
+        typesToTry.push(typeParam);
+      }
+      if (!typesToTry.includes("magiclink")) typesToTry.push("magiclink");
+      if (!typesToTry.includes("email")) typesToTry.push("email");
     }
-    if (!typesToTry.includes("magiclink")) typesToTry.push("magiclink");
-    if (!typesToTry.includes("email")) typesToTry.push("email");
 
     let lastError: string | null = null;
     let verified = false;

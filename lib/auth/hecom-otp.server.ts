@@ -14,8 +14,12 @@ import {
   type HecomCliente,
 } from "@/lib/hecom/clientes.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
+import {
+  HECOM_OTP_COOLDOWN_SECONDS,
+  normalizeHecomOtpEmail,
+} from "@/lib/auth/hecom-otp-email";
 
-const OTP_COOLDOWN_SECONDS = 60;
+const OTP_COOLDOWN_SECONDS = HECOM_OTP_COOLDOWN_SECONDS;
 const GENERIC_OK =
   "Si tu correo está habilitado, te enviamos un código y un enlace mágico.";
 
@@ -31,19 +35,14 @@ const DEFAULT_STAFF_EMAILS = [
   "sebasnodeal@gmail.com",
 ];
 
-/** Alias / typos frecuentes al tipear el mail de Annie. */
-const STAFF_EMAIL_ALIASES: Record<string, string> = {
-  "anniealejandrova@gmail.com": "anniealejandrova6@gmail.com",
-  "annie.alejandrova6@gmail.com": "anniealejandrova6@gmail.com",
-};
+export { normalizeHecomOtpEmail } from "@/lib/auth/hecom-otp-email";
+
+function normalizeEmail(email: string): string {
+  return normalizeHecomOtpEmail(email);
+}
 
 export function isHecomOtpLoginEnabled(): boolean {
   return serverEnv.authHecomOtpLogin;
-}
-
-function normalizeEmail(email: string): string {
-  const raw = email.trim().toLowerCase();
-  return STAFF_EMAIL_ALIASES[raw] ?? raw;
 }
 
 export function isHecomOtpStaffEmail(emailRaw: string): boolean {
@@ -127,18 +126,30 @@ async function markOtpSent(email: string): Promise<void> {
   );
 }
 
+async function releaseOtpCooldown(email: string): Promise<void> {
+  const admin = createAdminClient();
+  const past = new Date(
+    Date.now() - (OTP_COOLDOWN_SECONDS + 5) * 1000,
+  ).toISOString();
+  await admin
+    .from("hecom_otp_rate_limits")
+    .update({ last_sent_at: past })
+    .eq("email", email);
+}
+
 export async function requestHecomClientOtp(input: {
   email: string;
 }): Promise<
   | {
       ok: true;
       message: string;
+      email: string;
       allowed: boolean;
       sent?: boolean;
       clienteIds: string[];
       retryAfterSec?: number;
     }
-  | { ok: false; error: string; status: number }
+  | { ok: false; error: string; status: number; retryAfterSec?: number }
 > {
   if (!isHecomOtpLoginEnabled()) {
     logHecomOtp("warn", "request_disabled", {});
@@ -172,8 +183,9 @@ export async function requestHecomClientOtp(input: {
     });
     return {
       ok: false,
-      error: `Esperá ${rate.retryAfterSec ?? 60}s antes de pedir otro código.`,
+      error: `Esperá ${rate.retryAfterSec ?? OTP_COOLDOWN_SECONDS}s antes de pedir otro código.`,
       status: 429,
+      retryAfterSec: rate.retryAfterSec ?? OTP_COOLDOWN_SECONDS,
     };
   }
 
@@ -201,6 +213,7 @@ export async function requestHecomClientOtp(input: {
     return {
       ok: true,
       message: GENERIC_OK,
+      email,
       allowed: false,
       sent: false,
       clienteIds: [],
@@ -227,6 +240,14 @@ export async function requestHecomClientOtp(input: {
     };
   }
 
+  // Reservar cooldown justo antes de generar OTP (evita doble clic que invalida el código anterior).
+  await markOtpSent(email).catch((error) => {
+    logHecomOtp("warn", "request_rate_mark_failed", {
+      email: emailMasked,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  });
+
   // Link propio con hashed_token → /auth/callback (PKCE-safe).
   // NO usar action_link de Supabase: con PKCE el verify externo suele fallar
   // o redirigir sin code/token_hash que el server pueda leer.
@@ -249,6 +270,7 @@ export async function requestHecomClientOtp(input: {
       email: emailMasked,
       error: linkError?.message ?? "no_data",
     });
+    await releaseOtpCooldown(email).catch(() => undefined);
     return {
       ok: false,
       error: linkError?.message ?? "No se pudo generar el acceso.",
@@ -265,6 +287,7 @@ export async function requestHecomClientOtp(input: {
       hasHashedToken: Boolean(hashedToken),
       hasActionLink: Boolean(linkData.properties?.action_link),
     });
+    await releaseOtpCooldown(email).catch(() => undefined);
     return {
       ok: false,
       error: "Supabase no devolvió código/enlace. Revisá Auth settings.",
@@ -282,6 +305,7 @@ export async function requestHecomClientOtp(input: {
     const sent = await sendHecomOtpEmail({ to: email, code, magicLink });
     if (!sent.sent) {
       logHecomOtp("error", "request_resend_not_sent", { email: emailMasked });
+      await releaseOtpCooldown(email).catch(() => undefined);
       return {
         ok: false,
         error: "Resend no envió el correo. Revisá RESEND_API_KEY y RESEND_FROM.",
@@ -302,23 +326,19 @@ export async function requestHecomClientOtp(input: {
       email: emailMasked,
       error: message,
     });
+    await releaseOtpCooldown(email).catch(() => undefined);
     return { ok: false, error: message, status: 502 };
   }
-
-  await markOtpSent(email).catch((error) => {
-    logHecomOtp("warn", "request_rate_mark_failed", {
-      email: emailMasked,
-      error: error instanceof Error ? error.message : "unknown",
-    });
-  });
 
   return {
     ok: true,
     message:
       "Te enviamos un código y un enlace mágico. Revisá bandeja de entrada y spam.",
+    email,
     allowed: true,
     sent: true,
     clienteIds: clientes.map((item) => item.id),
+    retryAfterSec: OTP_COOLDOWN_SECONDS,
   };
 }
 
