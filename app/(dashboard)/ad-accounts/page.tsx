@@ -11,6 +11,7 @@ import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { getSearchParam } from "@/lib/search-params";
 import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
+import { CrmPanel } from "@/components/dashboard/crm-ui";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -75,18 +76,11 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         hideCreate
       />
 
-      <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
-        <div className="border-b border-[var(--auth-divider)] px-5 py-4 sm:px-6">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-            Listado
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            Advertisers de {clienteName}
-          </h2>
-          <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Filtrá por nombre o estado. Solo lectura.
-          </p>
-        </div>
+      <CrmPanel
+        title={`Advertisers de ${clienteName}`}
+        subtitle="Filtrá por nombre o estado · solo lectura"
+        className="overflow-hidden"
+      >
         <Suspense fallback={null}>
           <AdAccountsToolbar
             initialSearch={search}
@@ -123,7 +117,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         ) : (
           <AdAccountsTable accounts={filteredAccounts} readOnly />
         )}
-      </section>
+      </CrmPanel>
       <AdAccountsMobileStickyCta hideCreate />
     </div>
   );

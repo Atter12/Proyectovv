@@ -4,8 +4,7 @@ import { formatNumber } from "@/lib/format-number";
 import {
   CrmAsideStat,
   CrmHeroButton,
-  CrmMetricCell,
-  CrmMetricsStrip,
+  CrmMetricRow,
   CrmScopeHero,
 } from "@/components/dashboard/crm-ui";
 import { AdAccountsOpenCreateModalButton } from "./AdAccountsOpenCreateModalButton.client";
@@ -20,6 +19,26 @@ interface AdAccountsPageHeaderProps {
   hideCreate?: boolean;
 }
 
+function accountStatusHint(summary: AdAccountsSummary) {
+  const total = summary.totalAccounts;
+  const active = summary.activeAccounts;
+  const suspended = summary.disabledAccounts ?? 0;
+  const pending = summary.pendingSetup ?? 0;
+
+  if (total === 0) return "Sin advertisers mapeados";
+  if (suspended === 0 && pending === 0 && active === total) {
+    return "Todas en campaña";
+  }
+
+  const parts: string[] = [];
+  if (active > 0) parts.push(`${formatNumber(active)} activa${active === 1 ? "" : "s"}`);
+  if (suspended > 0) {
+    parts.push(`${formatNumber(suspended)} suspendida${suspended === 1 ? "" : "s"}`);
+  }
+  if (pending > 0) parts.push(`${formatNumber(pending)} pendiente${pending === 1 ? "" : "s"}`);
+  return parts.join(" · ");
+}
+
 export function AdAccountsPageHeader({
   summary,
   hecomScoped = false,
@@ -27,8 +46,44 @@ export function AdAccountsPageHeader({
   avatarUrl,
   hideCreate = false,
 }: AdAccountsPageHeaderProps) {
+  const suspended = summary.disabledAccounts ?? 0;
+  const pending = summary.pendingSetup ?? 0;
+  const statusHint = accountStatusHint(summary);
+
+  const metricItems: Array<{
+    label: string;
+    value: string;
+    hint?: string;
+    emphasis?: "primary" | "default" | "muted";
+  }> = [
+    {
+      label: "Cuentas TikTok",
+      value: formatNumber(summary.totalAccounts),
+      hint: statusHint,
+      emphasis: "primary",
+    },
+  ];
+
+  if (suspended > 0) {
+    metricItems.push({
+      label: "Suspendidas",
+      value: formatNumber(suspended),
+      hint: "Requieren revisión en TikTok",
+      emphasis: "muted",
+    });
+  }
+
+  if (pending > 0) {
+    metricItems.push({
+      label: "Pendientes",
+      value: formatNumber(pending),
+      hint: "Sin setup completo",
+      emphasis: "muted",
+    });
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <CrmScopeHero
         module="Cuentas ads"
         title="Mis cuentas publicitarias"
@@ -59,47 +114,12 @@ export function AdAccountsPageHeader({
           <CrmAsideStat
             label="Saldo asignado"
             value={formatMoney(summary.assignedBalance)}
-            detail={
-              <>
-                {formatNumber(summary.activeAccounts)} activa
-                {summary.activeAccounts === 1 ? "" : "s"}
-                {(summary.disabledAccounts ?? 0) > 0
-                  ? ` · ${formatNumber(summary.disabledAccounts ?? 0)} suspendida${
-                      (summary.disabledAccounts ?? 0) === 1 ? "" : "s"
-                    }`
-                  : ""}{" "}
-                · {formatNumber(summary.totalAccounts)} total
-              </>
-            }
+            detail={statusHint}
           />
         }
       />
 
-      <CrmMetricsStrip>
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)]">
-          <CrmMetricCell
-            label="Totales"
-            value={formatNumber(summary.totalAccounts)}
-            emphasis="muted"
-          />
-          <CrmMetricCell
-            className="border-r border-[var(--auth-divider)] sm:border-r-0"
-            label="Activas"
-            value={formatNumber(summary.activeAccounts)}
-            emphasis="primary"
-          />
-          <CrmMetricCell
-            className="border-b border-[var(--auth-divider)] sm:border-b-0"
-            label="Saldo"
-            value={formatMoney(summary.assignedBalance)}
-          />
-          <CrmMetricCell
-            label="Suspendidas"
-            value={formatNumber(summary.disabledAccounts ?? 0)}
-            emphasis="muted"
-          />
-        </div>
-      </CrmMetricsStrip>
+      <CrmMetricRow items={metricItems} />
     </div>
   );
 }

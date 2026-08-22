@@ -43,28 +43,66 @@ export function CrmMetricCell({
   hint,
   emphasis = "default",
   className = "",
+  align = "left",
 }: {
   label: string;
   value: string;
   hint?: string;
   emphasis?: "primary" | "default" | "muted";
   className?: string;
+  align?: "left" | "center";
 }) {
   const valueClass =
     emphasis === "primary"
-      ? "text-[1.125rem] font-bold text-[var(--auth-text)] sm:text-[1.25rem]"
+      ? "text-[1.5rem] font-bold leading-none text-[var(--auth-text)] sm:text-[1.625rem]"
       : emphasis === "muted"
-        ? "text-[14px] font-semibold text-[var(--auth-text-muted)]"
-        : "text-[15px] font-semibold text-[var(--auth-text)]";
+        ? "text-[1.25rem] font-semibold leading-none text-[var(--auth-text-muted)]"
+        : "text-[1.375rem] font-semibold leading-none text-[var(--auth-text)]";
 
   return (
-    <div className={`min-w-0 px-4 py-3 sm:px-5 sm:py-3.5 ${className}`}>
-      <p className="text-[11px] font-medium text-[var(--auth-text-soft)]">{label}</p>
-      <p className={`mt-0.5 tabular-nums tracking-[-0.02em] ${valueClass}`}>{value}</p>
+    <div
+      className={`min-w-0 px-4 py-3.5 sm:px-5 sm:py-4 ${
+        align === "center" ? "text-center" : "text-left"
+      } ${className}`}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+        {label}
+      </p>
+      <p className={`mt-1.5 tabular-nums tracking-[-0.03em] ${valueClass}`}>{value}</p>
       {hint ? (
-        <p className="mt-0.5 truncate text-[11px] text-[var(--auth-text-muted)]">{hint}</p>
+        <p className="mt-1.5 text-[11px] leading-snug text-[var(--auth-text-muted)]">{hint}</p>
       ) : null}
     </div>
+  );
+}
+
+export function CrmMetricRow({
+  items,
+}: {
+  items: Array<{
+    label: string;
+    value: string;
+    hint?: string;
+    emphasis?: "primary" | "default" | "muted";
+  }>;
+}) {
+  const cols = Math.min(Math.max(items.length, 1), 4);
+  return (
+    <CrmMetricsStrip>
+      <div
+        className="grid divide-y divide-[var(--auth-divider)] sm:divide-x sm:divide-y-0"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => (
+          <CrmMetricCell
+            key={item.label}
+            {...item}
+            align="center"
+            className="sm:text-left"
+          />
+        ))}
+      </div>
+    </CrmMetricsStrip>
   );
 }
 
