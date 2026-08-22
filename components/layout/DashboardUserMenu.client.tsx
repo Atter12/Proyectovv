@@ -88,7 +88,7 @@ export function DashboardUserMenu({
             {user.name}
           </span>
           <span className="block max-w-[130px] truncate text-[11px] text-[var(--auth-text-soft)] xl:max-w-[160px]">
-            {dashboardPersonaLabel(persona)}
+            {persona === "cliente" ? user.email : dashboardPersonaLabel(persona)}
           </span>
         </span>
         <svg
@@ -118,11 +118,13 @@ export function DashboardUserMenu({
             <p className="mt-0.5 truncate text-[12px] text-[var(--auth-text-muted)]">
               {user.email}
             </p>
-            <p className="mt-2">
-              <span className="dashboard-role-badge" data-role={persona}>
-                {dashboardPersonaLabel(persona)}
-              </span>
-            </p>
+            {persona !== "cliente" ? (
+              <p className="mt-2">
+                <span className="dashboard-role-badge" data-role={persona}>
+                  {dashboardPersonaLabel(persona)}
+                </span>
+              </p>
+            ) : null}
           </div>
 
           <button

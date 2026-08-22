@@ -8,10 +8,7 @@ import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown
 import { DashboardUserMenu } from "@/components/layout/DashboardUserMenu.client";
 import type { User } from "@/types/user";
 import type { SidebarSelectedCliente } from "./SidebarWalletCard.client";
-import {
-  dashboardPersonaLabel,
-  type DashboardPersona,
-} from "@/types/dashboard-persona";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 
 interface DashboardTopbarProps {
   user: User;
@@ -70,17 +67,9 @@ export function DashboardTopbar({
         </button>
 
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-[1rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.15rem]">
-              {pageTitle}
-            </h1>
-            <span
-              className="dashboard-role-badge"
-              data-role={persona}
-            >
-              {dashboardPersonaLabel(persona)}
-            </span>
-          </div>
+          <h1 className="truncate text-[1rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.15rem]">
+            {pageTitle}
+          </h1>
           {selectedCliente ? (
             <p className="mt-0.5 truncate text-[11.5px] font-medium text-[var(--auth-text-muted)] sm:text-[12px]">
               {canPickClients ? (

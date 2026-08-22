@@ -8,10 +8,7 @@ import {
   SidebarWalletCard,
   type SidebarSelectedCliente,
 } from "./SidebarWalletCard.client";
-import {
-  dashboardPersonaLabel,
-  type DashboardPersona,
-} from "@/types/dashboard-persona";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 
 interface DashboardSidebarProps {
   className?: string;
@@ -30,7 +27,7 @@ export function DashboardSidebar({
       className={cn("dashboard-rail flex h-full shrink-0 flex-col", className)}
     >
       <div className="border-b border-[var(--auth-divider)] px-4 pb-5 pt-5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex justify-center">
           <Link
             href={routes.overview}
             prefetch
@@ -39,9 +36,6 @@ export function DashboardSidebar({
           >
             <HolisticLogo size={132} className="h-9 w-auto max-w-[140px]" />
           </Link>
-          <span className="dashboard-role-badge" data-role={persona}>
-            {dashboardPersonaLabel(persona)}
-          </span>
         </div>
 
         <SidebarWalletCard
