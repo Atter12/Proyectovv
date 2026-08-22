@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import { routes } from "@/config/routes";
-import { CrmActionTile, CrmPanel, CrmStat } from "@/components/dashboard/crm-ui";
+import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
 import {
@@ -52,8 +52,7 @@ function initials(name: string) {
 }
 
 /**
- * Overview del cliente — desktop + móvil (cards / KPIs 2×2 / chart scroll).
- * Referencia visual: operación Hecom light Holistic (naranja, sin purple).
+ * Overview del cliente — consola operativa Ads Holistic.
  */
 export function ClienteScopedOverview({
   data,
@@ -69,61 +68,48 @@ export function ClienteScopedOverview({
   const pausedAccounts = Math.max(0, accounts.length - activeAccounts);
 
   return (
-    <div className="space-y-5 sm:space-y-6 lg:space-y-7">
-      {/* Hero */}
-      <CrmPanel flush className="overflow-hidden">
-        <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-10">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Hero — identidad + saldo + acciones */}
+      <section className="border-b border-[var(--auth-divider)] pb-5 sm:pb-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-8">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <HecomClienteAvatar
                 name={cliente.name}
                 avatarUrl={cliente.avatarUrl}
                 size="lg"
                 className="ring-2 ring-white"
               />
-              <div className="min-w-0">
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-                  Operación Hecom Club
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+                  Hecom Club
                 </p>
-                {cliente.biz ? (
-                  <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-soft)]">
-                    {cliente.biz}
-                  </p>
-                ) : null}
+                <OverviewClientTitle name={cliente.name} />
+                <p className="mt-1 truncate text-[12px] text-[var(--auth-text-muted)]">
+                  {cliente.biz ? (
+                    <>
+                      <span className="font-medium text-[var(--auth-text)]">
+                        {cliente.biz}
+                      </span>
+                      <span className="mx-1.5 text-[var(--auth-text-soft)]">·</span>
+                    </>
+                  ) : null}
+                  Fee Holistic {summary.depositFeePercent}%
+                </p>
               </div>
             </div>
 
-            <OverviewClientTitle name={cliente.name} />
-
-            <p className="mt-2 max-w-xl text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
-              {canChangeCliente
-                ? "Gestioná cuentas TikTok y el saldo Hecom del cliente operativo."
-                : "Tus cuentas TikTok, cobros y gasto ads. Recargá con Stripe en Pagos."}{" "}
-              Fee Holistic de este cliente:{" "}
-              <span className="font-bold text-[var(--auth-text)]">
-                {summary.depositFeePercent}%
-              </span>{" "}
-              (Hecom Club). Al recargar ponés el neto; se cobra neto + fee.
-            </p>
-
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3 py-1.5 text-[12px] font-bold text-[var(--auth-accent)]">
-              Fee Hecom {summary.depositFeePercent}%
-              <span className="font-medium text-[var(--auth-text-muted)]">
-                · depósitos → neto a cartera
-              </span>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:flex-row sm:flex-wrap">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Link
                 href={routes.payments}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--auth-accent)] px-4 text-[13.5px] font-bold text-white shadow-[0_10px_22px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px sm:h-10 sm:w-auto sm:rounded-lg sm:shadow-none"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.04] sm:w-auto"
               >
                 <WalletIcon />
                 {canChangeCliente ? "Recargar / asignar" : "Recargar"}
               </Link>
               <Link
                 href={routes.adAccounts}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--auth-accent)]/45 bg-white px-4 text-[13.5px] font-bold text-[var(--auth-accent)] transition-colors hover:bg-[var(--auth-accent-soft)] sm:h-10 sm:w-auto sm:rounded-lg"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-text-soft)] sm:w-auto"
               >
                 <ChartIcon />
                 Ver cuentas
@@ -131,7 +117,7 @@ export function ClienteScopedOverview({
               {canChangeCliente ? (
                 <Link
                   href={routes.clientes}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-lg px-3 text-[13px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)] sm:w-auto"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-lg px-3 text-[13px] font-medium text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)] sm:w-auto"
                 >
                   Cambiar cliente
                 </Link>
@@ -139,93 +125,33 @@ export function ClienteScopedOverview({
             </div>
           </div>
 
-          <div className="w-full rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-4 sm:p-5 lg:min-w-[260px] lg:max-w-sm">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
+          <div className="lg:min-w-[220px] lg:border-l lg:border-[var(--auth-divider)] lg:pl-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
               {debt ? "Deuda neta" : "Saldo estimado"}
             </p>
             <p
-              className={`mt-2 text-[1.85rem] font-bold leading-none tracking-[-0.04em] tabular-nums sm:text-[2rem] ${
+              className={`mt-1 text-[1.75rem] font-bold leading-none tracking-[-0.03em] tabular-nums sm:text-[2rem] ${
                 debt ? "text-[#b45309]" : "text-[var(--auth-text)]"
               }`}
             >
               {moneyUsd(summary.saldoEstimado)}
             </p>
-            <p className="mt-3 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-              Cobros {moneyUsd(summary.cobroTotal)} − gastos{" "}
-              {moneyUsd(summary.gastoTotal)} − fees{" "}
-              {moneyUsd(summary.feeTotal)}
-            </p>
-            <p className="mt-2 text-[11px] leading-4 text-[var(--auth-text-soft)]">
-              La recarga BM no baja esta deuda: solo un cobro Hecom.
+            <p className="mt-2 text-[12px] tabular-nums text-[var(--auth-text-muted)]">
+              {moneyUsd(summary.cobroTotal)} cobros · {moneyUsd(summary.gastoTotal)} gastos ·{" "}
+              {moneyUsd(summary.feeTotal)} fees
             </p>
           </div>
         </div>
-      </CrmPanel>
-
-      {/* KPIs detalle — tablet/desktop */}
-      <section className="hidden grid-cols-2 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-6">
-        <CrmStat
-          label="Fee Holistic"
-          value={`${summary.depositFeePercent}%`}
-          accent
-          hint="Desde Hecom Club"
-        />
-        <CrmStat
-          label="Gasto de hoy"
-          value={moneyUsd(summary.gastoHoy)}
-          hint={
-            summary.dailySource === "none"
-              ? "Sin sync del día"
-              : summary.gastoHoy > 0
-                ? "America/Lima"
-                : "Sin actividad hoy"
-          }
-        />
-        <CrmStat label="Últimos 7 días" value={moneyUsd(summary.gasto7d)} />
-        <CrmStat
-          label="Cuentas TikTok"
-          value={String(summary.accountCount)}
-          hint={
-            accounts.length
-              ? `${activeAccounts} activas · ${pausedAccounts} pausadas`
-              : undefined
-          }
-        />
-        <CrmStat label="Cobros" value={moneyUsd(summary.cobroTotal)} />
-        <CrmStat label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
       </section>
 
-      {/* Resumen rápido estilo mock — solo móvil */}
-      <section className="grid grid-cols-2 gap-2.5 sm:hidden">
-        <SummaryChip
-          icon="wallet"
-          label="Saldo estimado"
-          value={moneyUsd(summary.saldoEstimado)}
-          hint="Total Hecom"
-          accent={!debt}
-          warn={debt}
-        />
-        <SummaryChip
-          icon="trend"
-          label="Fee Holistic"
-          value={`${summary.depositFeePercent}%`}
-          hint="Hecom Club"
-          accent
-        />
-        <SummaryChip
-          icon="clock"
-          label="Gasto hoy"
-          value={moneyUsd(summary.gastoHoy)}
-          hint="America/Lima"
-          accent
-        />
-        <SummaryChip
-          icon="pause"
-          label="Pausadas"
-          value={`${pausedAccounts}`}
-          hint="Sin sync"
-        />
-      </section>
+      {/* Métricas — una sola superficie */}
+      <OverviewMetricsStrip
+        summary={summary}
+        activeAccounts={activeAccounts}
+        pausedAccounts={pausedAccounts}
+        accountCount={summary.accountCount}
+        dailySource={summary.dailySource}
+      />
 
       <DailySpendPanel
         series={summary.dailySeries}
@@ -235,34 +161,146 @@ export function ClienteScopedOverview({
         source={summary.dailySource}
       />
 
-      <section>
-        <p className="mb-3 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
-          Accesos rápidos
-        </p>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-          <CrmActionTile
-            href={routes.adAccounts}
-            title="Cuentas ads"
-            body="Advertisers TikTok mapeados."
-          />
-          <CrmActionTile
-            href={routes.payments}
-            title="Pagos"
-            body="Recarga BM o cartera."
-          />
-          <CrmActionTile
-            href={`${routes.payments}#asignar-saldo`}
-            title="Asignar saldo"
-            body="Presupuesto hacia ads."
-          />
-        </div>
-      </section>
+      <OverviewQuickLinks />
 
-      <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
         <GastosPanel gastos={recentGastos} source={data.source} />
       </div>
     </div>
+  );
+}
+
+function OverviewMetricCell({
+  label,
+  value,
+  hint,
+  emphasis = "default",
+  className = "",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  emphasis?: "primary" | "default" | "muted";
+  className?: string;
+}) {
+  const valueClass =
+    emphasis === "primary"
+      ? "text-[1.125rem] font-bold text-[var(--auth-text)] sm:text-[1.25rem]"
+      : emphasis === "muted"
+        ? "text-[14px] font-semibold text-[var(--auth-text-muted)]"
+        : "text-[15px] font-semibold text-[var(--auth-text)]";
+
+  return (
+    <div className={`min-w-0 px-4 py-3 sm:px-5 sm:py-3.5 ${className}`}>
+      <p className="text-[11px] font-medium text-[var(--auth-text-soft)]">{label}</p>
+      <p className={`mt-0.5 tabular-nums tracking-[-0.02em] ${valueClass}`}>{value}</p>
+      {hint ? (
+        <p className="mt-0.5 truncate text-[11px] text-[var(--auth-text-muted)]">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function OverviewMetricsStrip({
+  summary,
+  activeAccounts,
+  pausedAccounts,
+  accountCount,
+  dailySource,
+}: {
+  summary: HecomClienteDashboard["summary"];
+  activeAccounts: number;
+  pausedAccounts: number;
+  accountCount: number;
+  dailySource: HecomClienteDashboard["summary"]["dailySource"];
+}) {
+  const gastoHoyHint =
+    dailySource === "none"
+      ? "Sin sync del día"
+      : summary.gastoHoy > 0
+        ? "America/Lima"
+        : "Sin actividad hoy";
+  const accountsHint =
+    accountCount > 0 ? `${activeAccounts} activas · ${pausedAccounts} pausadas` : undefined;
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-[var(--auth-border)] bg-white">
+      <div className="border-b border-[var(--auth-divider)] sm:hidden">
+        <OverviewMetricCell
+          label="Gasto de hoy"
+          value={moneyUsd(summary.gastoHoy)}
+          hint={gastoHoyHint}
+          emphasis="primary"
+        />
+      </div>
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)]">
+        <OverviewMetricCell
+          className="hidden sm:block"
+          label="Gasto de hoy"
+          value={moneyUsd(summary.gastoHoy)}
+          hint={gastoHoyHint}
+          emphasis="primary"
+        />
+        <OverviewMetricCell
+          className="border-r border-[var(--auth-divider)] sm:border-r-0"
+          label="Últimos 7 días"
+          value={moneyUsd(summary.gasto7d)}
+        />
+        <OverviewMetricCell
+          className="border-b border-[var(--auth-divider)] sm:border-b-0"
+          label="Cobros"
+          value={moneyUsd(summary.cobroTotal)}
+        />
+        <OverviewMetricCell label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
+        <OverviewMetricCell
+          className="border-r border-[var(--auth-divider)] sm:border-r-0"
+          label="Fee Holistic"
+          value={`${summary.depositFeePercent}%`}
+          emphasis="muted"
+        />
+        <OverviewMetricCell
+          label="Cuentas TikTok"
+          value={String(accountCount)}
+          hint={accountsHint}
+          emphasis="muted"
+        />
+      </div>
+    </section>
+  );
+}
+
+function OverviewQuickLinks() {
+  const links = [
+    { href: routes.adAccounts, label: "Cuentas ads" },
+    { href: routes.payments, label: "Pagos" },
+    { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
+  ] as const;
+
+  return (
+    <nav
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px]"
+      aria-label="Accesos rápidos"
+    >
+      <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+        Accesos
+      </span>
+      {links.map((link, index) => (
+        <span key={link.href} className="inline-flex items-center">
+          {index > 0 ? (
+            <span className="mx-2 text-[var(--auth-text-soft)]" aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <Link
+            href={link.href}
+            className="font-medium text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
+          >
+            {link.label}
+          </Link>
+        </span>
+      ))}
+    </nav>
   );
 }
 
@@ -341,44 +379,48 @@ function DailySpendPanel({
     <CrmPanel
       title="Gasto diario"
       subtitle={`Últimos ${series.length} días · America/Lima`}
+      className="shadow-none"
       action={
-        <div className="flex gap-4 text-left sm:text-right">
+        <div className="flex items-center gap-4 text-left sm:text-right">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
               Hoy
             </p>
-            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-accent)]">
+            <p className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
               {moneyUsd(gastoHoy)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
               7d
             </p>
-            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-text)]">
+            <p className="mt-0.5 text-[14px] font-semibold tabular-nums text-[var(--auth-text)]">
               {moneyUsd(gasto7d)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
               30d
             </p>
-            <p className="mt-0.5 text-[14px] font-bold tabular-nums text-[var(--auth-text)]">
+            <p className="mt-0.5 text-[14px] font-semibold tabular-nums text-[var(--auth-text)]">
               {moneyUsd(gasto30d)}
             </p>
           </div>
         </div>
       }
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--auth-divider)] px-4 pb-3">
-        <span
-          className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-            source === "none"
-              ? "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
-              : "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
-          }`}
-        >
-          {dailySourceLabel(source)}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--auth-divider)] px-4 pb-3 pt-0.5">
+        <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
+          Fuente:{" "}
+          <span
+            className={
+              source === "none"
+                ? "text-[var(--auth-text-soft)]"
+                : "text-[var(--auth-text)]"
+            }
+          >
+            {dailySourceLabel(source)}
+          </span>
         </span>
       </div>
 
@@ -485,98 +527,6 @@ function DailySpendPanel({
   );
 }
 
-function SummaryChip({
-  icon,
-  label,
-  value,
-  hint,
-  accent = false,
-  warn = false,
-}: {
-  icon: "wallet" | "trend" | "clock" | "pause";
-  label: string;
-  value: string;
-  hint: string;
-  accent?: boolean;
-  warn?: boolean;
-}) {
-  return (
-    <div className="dashboard-kpi flex items-start gap-3 rounded-[1rem] px-3.5 py-3.5">
-      <span
-        className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-          warn
-            ? "bg-amber-50 text-amber-700"
-            : accent
-              ? "bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]"
-              : "bg-[var(--auth-bg)] text-[var(--auth-text-muted)]"
-        }`}
-        aria-hidden
-      >
-        <ChipIcon name={icon} />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-          {label}
-        </p>
-        <p
-          className={`mt-0.5 truncate text-[1.05rem] font-bold tabular-nums tracking-[-0.02em] ${
-            warn
-              ? "text-[#b45309]"
-              : accent
-                ? "text-[var(--auth-accent)]"
-                : "text-[var(--auth-text)]"
-          }`}
-        >
-          {value}
-        </p>
-        <p className="mt-0.5 truncate text-[11px] text-[var(--auth-text-soft)]">
-          {hint}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ChipIcon({ name }: { name: "wallet" | "trend" | "clock" | "pause" }) {
-  const common = {
-    width: 16,
-    height: 16,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-  } as const;
-  switch (name) {
-    case "wallet":
-      return (
-        <svg {...common}>
-          <path d="M3 8.5h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10Z" />
-          <path d="M3 8.5 5.2 4.8A2 2 0 0 1 7 4h10a2 2 0 0 1 1.8.8L21 8.5" />
-        </svg>
-      );
-    case "trend":
-      return (
-        <svg {...common}>
-          <path d="M4 17 10 11l4 4 6-8" />
-          <path d="M14 7h6v6" />
-        </svg>
-      );
-    case "clock":
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 8v4.5l3 1.5" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...common}>
-          <path d="M8 6v12M16 6v12" strokeLinecap="round" />
-        </svg>
-      );
-  }
-}
-
 function statusMeta(syncEnabled: boolean | undefined) {
   if (syncEnabled === false) {
     return {
@@ -598,15 +548,15 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
     <CrmPanel
       title="Cuentas TikTok"
       subtitle="Hecom · solo lectura"
+      className="flex h-full flex-col overflow-hidden shadow-none"
       action={
         <Link
           href={routes.adAccounts}
-          className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)] hover:underline"
+          className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
         >
           Ver todas ({accounts.length})
         </Link>
       }
-      className="flex h-full flex-col overflow-hidden"
     >
       {accounts.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
@@ -724,25 +674,19 @@ function GastosPanel({
       title="Últimos gastos"
       subtitle="Consumo reciente de campañas"
       action={
-        <>
-          <span
-            className={`mr-2 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-              source === "hecom_live"
-                ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
-                : "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
-            }`}
-          >
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
             {sourceLabel(source)}
           </span>
           <Link
             href={routes.payments}
-            className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)] hover:underline"
+            className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
           >
             Ver pagos
           </Link>
-        </>
+        </div>
       }
-      className="flex h-full flex-col overflow-hidden"
+      className="flex h-full flex-col overflow-hidden shadow-none"
     >
       {gastos.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
