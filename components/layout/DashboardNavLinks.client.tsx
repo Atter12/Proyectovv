@@ -8,7 +8,7 @@ import type { NavItem } from "@/types/navigation";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 
 function NavIcon({ icon }: { icon: NavItem["icon"] }) {
-  const className = "h-[18px] w-[18px] shrink-0";
+  const className = "app-nav-icon";
 
   switch (icon) {
     case "overview":
@@ -100,7 +100,7 @@ export function DashboardNavLinks({
   const items = navItemsForPersona(persona);
 
   return (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 pt-2">
+    <nav className="dashboard-sidebar-nav">
       {items.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -118,7 +118,7 @@ export function DashboardNavLinks({
             )}
           >
             <NavIcon icon={item.icon} />
-            <span className="min-w-0 leading-tight">
+            <span className="min-w-0 truncate leading-none">
               {labelFor(item, persona)}
             </span>
           </Link>

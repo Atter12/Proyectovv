@@ -32,18 +32,18 @@ export function SidebarWalletCard({
   if (!selectedCliente) {
     if (!canPickClients) {
       return (
-        <div className={cn("dashboard-rail-glass mt-4 rounded-xl p-3.5", className)}>
+        <div className={cn("dashboard-rail-glass mt-5 p-4", className)}>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             Tu cuenta
           </p>
-          <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+          <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
             Recargá saldo con Stripe y asignalo a tus cuentas ads.
           </p>
           <Link
             href={routes.payments}
             prefetch
             onClick={onNavigate}
-            className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
           >
             Ir a pagos
           </Link>
@@ -52,18 +52,18 @@ export function SidebarWalletCard({
     }
 
     return (
-      <div className={cn("dashboard-rail-glass mt-4 rounded-xl p-3.5", className)}>
+      <div className={cn("dashboard-rail-glass mt-5 p-4", className)}>
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
           Sin cliente
         </p>
-        <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
+        <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
           Elegí un cliente del CRM para recargar desde el BM.
         </p>
         <Link
           href={routes.clientes}
           prefetch
           onClick={onNavigate}
-          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(255_120_31_/_0.65)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px"
+          className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[13px] font-semibold text-white shadow-[0_8px_18px_-10px_rgb(255_120_31_/_0.65)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px"
         >
           Ver clientes
         </Link>
@@ -72,8 +72,8 @@ export function SidebarWalletCard({
   }
 
   return (
-    <div className={cn("dashboard-rail-glass mt-4 rounded-xl p-3.5", className)}>
-      <div className="flex items-center gap-2.5">
+    <div className={cn("dashboard-rail-glass mt-5 p-4", className)}>
+      <div className="flex items-center gap-3">
         <HecomClienteAvatar
           name={selectedCliente.name}
           avatarUrl={selectedCliente.avatarUrl}
@@ -84,19 +84,19 @@ export function SidebarWalletCard({
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             {canPickClients ? "Operando" : "Tu cuenta"}
           </p>
-          <p className="mt-0.5 truncate text-[14px] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)]">
+          <p className="mt-1 truncate text-[14px] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)]">
             {selectedCliente.name}
           </p>
         </div>
       </div>
 
-      <div className="mt-3 border-t border-[var(--auth-divider)] pt-3">
+      <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
         <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
           {selectedCliente.saldoEstimado != null && selectedCliente.saldoEstimado < 0
             ? "Deuda neta Hecom"
             : "Saldo estimado"}
         </p>
-        <p className="mt-0.5 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
+        <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
           {selectedCliente.saldoEstimado == null
             ? "…"
             : formatMoney(selectedCliente.saldoEstimado, "USD")}
@@ -105,7 +105,7 @@ export function SidebarWalletCard({
 
       <div
         className={cn(
-          "mt-3 grid gap-2",
+          "mt-4 grid gap-2",
           canPickClients ? "grid-cols-2" : "grid-cols-1",
         )}
       >
@@ -113,7 +113,7 @@ export function SidebarWalletCard({
           href={routes.payments}
           prefetch
           onClick={onNavigate}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+          className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
           {canPickClients ? "Recargar" : "Pagos"}
         </Link>
@@ -122,7 +122,7 @@ export function SidebarWalletCard({
             href={routes.clientes}
             prefetch
             onClick={onNavigate}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
+            className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--auth-control-border)] bg-white text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
           >
             Cambiar
           </Link>

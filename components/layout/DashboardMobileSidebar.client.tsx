@@ -35,7 +35,7 @@ export function DashboardMobileSidebar({
         className,
       )}
     >
-      <div className="border-b border-[var(--auth-divider)] px-4 py-4 pt-14">
+      <div className="border-b border-[var(--auth-divider)] px-4 pb-5 pt-14">
         <div className="flex items-center justify-between gap-2 pr-8">
           <Link
             href={routes.overview}
@@ -58,11 +58,7 @@ export function DashboardMobileSidebar({
         />
       </div>
 
-      <div className="px-4 pt-4">
-        <p className="px-1 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
-          Menú
-        </p>
-      </div>
+      <p className="dashboard-sidebar-menu-label">Menú</p>
 
       <DashboardNavLinks onNavigate={onNavigate} persona={persona} />
 
