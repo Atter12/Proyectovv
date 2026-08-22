@@ -89,7 +89,7 @@ export function DashboardLayoutChrome({
         </div>
       </div>
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[272px]">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[248px]">
         <DashboardTopbar
           user={user}
           sidebarOpen={sidebarOpen}
@@ -97,7 +97,7 @@ export function DashboardLayoutChrome({
           selectedCliente={selectedCliente}
           persona={persona}
         />
-        <main className="mx-auto min-w-0 w-full max-w-[1480px] flex-1 px-3.5 py-4 pb-20 sm:px-5 sm:py-5 sm:pb-24 md:px-6 md:py-6 md:pb-16 lg:pb-8 xl:px-8">
+        <main className="app-content mx-auto min-w-0 w-full max-w-[1280px] flex-1 px-4 py-5 pb-20 sm:px-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8">
           {children}
         </main>
       </div>

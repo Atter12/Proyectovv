@@ -54,7 +54,7 @@ export function DashboardTopbar({
   const canPickClients = persona !== "cliente";
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 border-b border-[var(--auth-divider)] bg-[rgb(255_255_255_/_0.94)] px-3.5 backdrop-blur-md sm:h-16 sm:min-h-[64px] sm:gap-3 sm:px-5 lg:px-6">
+    <header className="app-topbar sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 px-3.5 sm:h-16 sm:min-h-[64px] sm:gap-3 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
         <button
           type="button"

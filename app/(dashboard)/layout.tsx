@@ -98,7 +98,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[272px] lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] lg:block">
         <DashboardSidebar
           className="h-full w-full"
           selectedCliente={selectedCliente}

@@ -113,13 +113,10 @@ export function DashboardNavLinks({
             scroll={false}
             onClick={onNavigate}
             className={cn(
-              "dashboard-nav-item relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors",
-              isActive && "is-active",
+              "app-nav-link",
+              isActive && "app-nav-link--active",
             )}
           >
-            {isActive ? (
-              <span className="absolute inset-y-0 left-0 my-auto h-5 w-[3px] rounded-r-full bg-[var(--auth-accent)]" />
-            ) : null}
             <NavIcon icon={item.icon} />
             <span className="min-w-0 leading-tight">
               {labelFor(item, persona)}

@@ -1,5 +1,6 @@
 ﻿import Link from "next/link";
 import { routes } from "@/config/routes";
+import { CrmActionTile, CrmPanel, CrmStat } from "@/components/dashboard/crm-ui";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { OverviewClientTitle } from "@/features/clientes/components/OverviewClientTitle.client";
 import {
@@ -70,7 +71,7 @@ export function ClienteScopedOverview({
   return (
     <div className="space-y-5 sm:space-y-6 lg:space-y-7">
       {/* Hero */}
-      <section className="dashboard-surface-card overflow-hidden rounded-[1.05rem]">
+      <CrmPanel flush className="overflow-hidden">
         <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-10">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
@@ -159,17 +160,17 @@ export function ClienteScopedOverview({
             </p>
           </div>
         </div>
-      </section>
+      </CrmPanel>
 
       {/* KPIs detalle — tablet/desktop */}
-      <section className="hidden grid-cols-2 gap-2.5 sm:grid sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi
+      <section className="hidden grid-cols-2 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-6">
+        <CrmStat
           label="Fee Holistic"
           value={`${summary.depositFeePercent}%`}
           accent
           hint="Desde Hecom Club"
         />
-        <Kpi
+        <CrmStat
           label="Gasto de hoy"
           value={moneyUsd(summary.gastoHoy)}
           hint={
@@ -180,8 +181,8 @@ export function ClienteScopedOverview({
                 : "Sin actividad hoy"
           }
         />
-        <Kpi label="Últimos 7 días" value={moneyUsd(summary.gasto7d)} />
-        <Kpi
+        <CrmStat label="Últimos 7 días" value={moneyUsd(summary.gasto7d)} />
+        <CrmStat
           label="Cuentas TikTok"
           value={String(summary.accountCount)}
           hint={
@@ -190,8 +191,8 @@ export function ClienteScopedOverview({
               : undefined
           }
         />
-        <Kpi label="Cobros" value={moneyUsd(summary.cobroTotal)} />
-        <Kpi label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
+        <CrmStat label="Cobros" value={moneyUsd(summary.cobroTotal)} />
+        <CrmStat label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
       </section>
 
       {/* Resumen rápido estilo mock — solo móvil */}
@@ -239,17 +240,17 @@ export function ClienteScopedOverview({
           Accesos rápidos
         </p>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-          <ActionTile
+          <CrmActionTile
             href={routes.adAccounts}
             title="Cuentas ads"
             body="Advertisers TikTok mapeados."
           />
-          <ActionTile
+          <CrmActionTile
             href={routes.payments}
             title="Pagos"
             body="Recarga BM o cartera."
           />
-          <ActionTile
+          <CrmActionTile
             href={`${routes.payments}#asignar-saldo`}
             title="Asignar saldo"
             body="Presupuesto hacia ads."
@@ -337,31 +338,10 @@ function DailySpendPanel({
   const mobileSeries = series.slice(-7);
 
   return (
-    <section className="dashboard-surface-card overflow-hidden rounded-[1.05rem]">
-      <div className="flex flex-col gap-3 border-b border-[var(--auth-divider)] px-4 py-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 sm:px-5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Gasto diario
-            </h2>
-            <span
-              className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-                source === "none"
-                  ? "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
-                  : "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
-              }`}
-            >
-              {dailySourceLabel(source)}
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] font-medium text-[var(--auth-text-muted)]">
-            <span className="sm:hidden">Últimos 7 días</span>
-            <span className="hidden sm:inline">
-              Últimos {series.length} días
-            </span>{" "}
-            · America/Lima
-          </p>
-        </div>
+    <CrmPanel
+      title="Gasto diario"
+      subtitle={`Últimos ${series.length} días · America/Lima`}
+      action={
         <div className="flex gap-4 text-left sm:text-right">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
@@ -388,10 +368,22 @@ function DailySpendPanel({
             </p>
           </div>
         </div>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--auth-divider)] px-4 pb-3">
+        <span
+          className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+            source === "none"
+              ? "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
+              : "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
+          }`}
+        >
+          {dailySourceLabel(source)}
+        </span>
       </div>
 
       {!hasAny ? (
-        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
+        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:py-10">
           Aún no hay gasto diario registrado para este cliente. Cuando la sync
           TikTok escriba snapshots (o haya filas de gasto con fecha), se verán
           aquí.
@@ -489,43 +481,7 @@ function DailySpendPanel({
           </div>
         </>
       )}
-    </section>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  accent = false,
-  hint,
-  className = "",
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  hint?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`dashboard-kpi rounded-[1rem] px-3.5 py-3 sm:px-4 sm:py-3.5 ${className}`}
-    >
-      <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)] sm:text-[0.68rem]">
-        {label}
-      </p>
-      <p
-        className={`mt-1.5 text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums sm:text-[1.35rem] ${
-          accent ? "text-[var(--auth-accent)]" : "text-[var(--auth-text)]"
-        }`}
-      >
-        <span className="block truncate">{value}</span>
-      </p>
-      {hint ? (
-        <p className="mt-1 truncate text-[11px] font-medium text-[var(--auth-text-soft)]">
-          {hint}
-        </p>
-      ) : null}
-    </div>
+    </CrmPanel>
   );
 }
 
@@ -621,46 +577,6 @@ function ChipIcon({ name }: { name: "wallet" | "trend" | "clock" | "pause" }) {
   }
 }
 
-function ActionTile({
-  href,
-  title,
-  body,
-}: {
-  href: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-[1rem] border border-[var(--auth-border)] bg-white p-4 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-[var(--auth-accent)]/40 active:scale-[0.99]"
-    >
-      <p className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-        {title}
-      </p>
-      <p className="mt-1 text-[13px] leading-5 text-[var(--auth-text-muted)]">
-        {body}
-      </p>
-      <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[var(--auth-accent)]">
-        Abrir
-        <svg
-          className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-          />
-        </svg>
-      </span>
-    </Link>
-  );
-}
-
 function statusMeta(syncEnabled: boolean | undefined) {
   if (syncEnabled === false) {
     return {
@@ -679,29 +595,19 @@ function statusMeta(syncEnabled: boolean | undefined) {
 
 function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
   return (
-    <section className="dashboard-surface-card flex h-full flex-col overflow-hidden rounded-[1.05rem]">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-4 py-4 sm:px-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Cuentas TikTok
-            </h2>
-            <span className="rounded-md bg-[var(--auth-bg)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--auth-text-muted)]">
-              {accounts.length}
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] font-medium text-[var(--auth-text-muted)]">
-            Hecom · solo lectura
-          </p>
-        </div>
+    <CrmPanel
+      title="Cuentas TikTok"
+      subtitle="Hecom · solo lectura"
+      action={
         <Link
           href={routes.adAccounts}
           className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)] hover:underline"
         >
-          Ver todas
+          Ver todas ({accounts.length})
         </Link>
-      </div>
-
+      }
+      className="flex h-full flex-col overflow-hidden"
+    >
       {accounts.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
           Sin advertiser mapeado en Hecom.
@@ -802,7 +708,7 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
           })}
         </ul>
       )}
-    </section>
+    </CrmPanel>
   );
 }
 
@@ -814,35 +720,30 @@ function GastosPanel({
   source: HecomClienteDashboard["source"];
 }) {
   return (
-    <section className="dashboard-surface-card flex h-full flex-col overflow-hidden rounded-[1.05rem]">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-4 py-4 sm:px-5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Últimos gastos
-            </h2>
-            <span
-              className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-                source === "hecom_live"
-                  ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
-                  : "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
-              }`}
-            >
-              {sourceLabel(source)}
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] font-medium text-[var(--auth-text-muted)]">
-            Consumo reciente de campañas
-          </p>
-        </div>
-        <Link
-          href={routes.payments}
-          className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)] hover:underline"
-        >
-          Ver pagos
-        </Link>
-      </div>
-
+    <CrmPanel
+      title="Últimos gastos"
+      subtitle="Consumo reciente de campañas"
+      action={
+        <>
+          <span
+            className={`mr-2 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+              source === "hecom_live"
+                ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80"
+                : "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]"
+            }`}
+          >
+            {sourceLabel(source)}
+          </span>
+          <Link
+            href={routes.payments}
+            className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)] hover:underline"
+          >
+            Ver pagos
+          </Link>
+        </>
+      }
+      className="flex h-full flex-col overflow-hidden"
+    >
       {gastos.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
           Sin gastos registrados para este cliente.
@@ -886,6 +787,6 @@ function GastosPanel({
           })}
         </ul>
       )}
-    </section>
+    </CrmPanel>
   );
 }

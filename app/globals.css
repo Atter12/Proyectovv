@@ -754,10 +754,8 @@ body {
     sans-serif;
   color: var(--auth-text);
 
-  background-color: #faf8f5;
-  background-image:
-    radial-gradient(55% 40% at 50% 0%, rgb(255 120 31 / 0.06), transparent 70%),
-    linear-gradient(180deg, #ffffff 0%, #faf8f5 50%, #f5f2ed 100%);
+  background-color: #f3f4f6;
+  background-image: none;
 }
 
 .dashboard-canvas .font-display,
@@ -864,10 +862,103 @@ body {
 }
 
 .dashboard-nav-item.is-active {
+  background: var(--auth-text);
+  color: #ffffff;
+  box-shadow: 0 1px 0 rgb(28 25 23 / 0.2);
+  font-weight: 600;
+}
+
+.dashboard-nav-item.is-active:hover {
+  background: #1a1a22;
+  color: #ffffff;
+}
+
+/* ─── CRM shell (oddo → Holistic) ───────────────── */
+.app-topbar {
+  border-bottom: 1px solid var(--auth-border);
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.app-content {
+  animation: app-fade-in 160ms ease-out;
+}
+
+@keyframes app-fade-in {
+  from {
+    opacity: 0.55;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.app-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text-muted);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.app-nav-link:hover {
+  background: var(--auth-bg);
+  color: var(--auth-text);
+}
+
+.app-nav-link--active {
+  background: var(--auth-text);
+  color: #fff;
+  box-shadow: 0 1px 0 rgb(28 25 23 / 0.2);
+}
+
+.app-nav-link--active:hover {
+  background: #1a1a22;
+  color: #fff;
+}
+
+.app-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--auth-border);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--auth-text-muted);
+  background: #fff;
+}
+
+.app-nav-chip--active {
+  border-color: var(--auth-text);
   background: var(--auth-accent-soft);
   color: var(--auth-accent-hover);
-  box-shadow: 0 0 0 1px rgb(255 120 31 / 0.18);
-  font-weight: 600;
+}
+
+.app-stat {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgb(28 25 23 / 0.04);
+}
+
+.app-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--auth-accent);
 }
 
 .dashboard-role-badge {
