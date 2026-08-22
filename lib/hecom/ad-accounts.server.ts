@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import {
   getHecomCliente,
   isOtpTestClienteId,
@@ -10,6 +11,7 @@ import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
   searchHolisticBcAdvertisers,
+  warmHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
@@ -101,14 +103,26 @@ export function mapHecomTiktokToAdAccount(
   };
 }
 
+export type HecomAdAccountsLoadSpeed = "fast" | "live";
+
 /**
  * Cuentas ads del cliente.
  * - Prioridad: mapeo Hecom por advertiser_id (activo o suspendido).
  * - Fallback: BM TikTok match por nombre (aprobadas + suspendidas).
  * - Nombres: preferir nombre exacto de TikTok cuando hay ID en live.
  */
-export async function getHecomClienteAdAccountsOverview(
+export const getHecomClienteAdAccountsOverview = cache(
+  async function getHecomClienteAdAccountsOverview(
+    clienteId: string,
+    speed: HecomAdAccountsLoadSpeed = "fast",
+  ): Promise<AdAccountsOverview & { cliente: HecomCliente | null }> {
+    return getHecomClienteAdAccountsOverviewImpl(clienteId, speed);
+  },
+);
+
+async function getHecomClienteAdAccountsOverviewImpl(
   clienteId: string,
+  speed: HecomAdAccountsLoadSpeed = "fast",
 ): Promise<AdAccountsOverview & { cliente: HecomCliente | null }> {
   const started = Date.now();
 
@@ -141,19 +155,25 @@ export async function getHecomClienteAdAccountsOverview(
   let liveSource: "cache" | "live" | "none" = "none";
 
   try {
-    // Siempre live para estado ban/castigo (cache podía traer status de vínculo BM).
     let live: TikTokBcAdvertiser[] = [];
     liveSource = "none";
-    try {
-      live = await listHolisticBcAdvertisers();
-      liveSource = live.length > 0 ? "live" : "none";
-    } catch (error) {
-      console.warn("[ad-accounts] bc_live_failed", {
-        clienteId,
-        error: error instanceof Error ? error.message : "unknown",
-      });
+
+    if (speed === "live") {
+      try {
+        live = await listHolisticBcAdvertisers();
+        liveSource = live.length > 0 ? "live" : "none";
+      } catch (error) {
+        console.warn("[ad-accounts] bc_live_failed", {
+          clienteId,
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        live = await listHolisticBcAdvertisersCachedFirst();
+        liveSource = live.length > 0 ? "cache" : "none";
+      }
+    } else {
       live = await listHolisticBcAdvertisersCachedFirst();
       liveSource = live.length > 0 ? "cache" : "none";
+      warmHolisticBcAdvertisers();
     }
 
     if (live.length > 0) {
@@ -171,41 +191,43 @@ export async function getHecomClienteAdAccountsOverview(
         return advertiserMatchesCliente(row.advertiserName, cliente.name);
       });
 
-      // Baneadas por keyword TikTok (nombres raros que no pasan el match local).
-      const keywords = [
-        ...new Set(
-          [
-            cliente.name.trim(),
-            ...normalizeAdvertiserName(cliente.name)
-              .split(" ")
-              .filter((t) => t.length >= 5),
-          ].filter(Boolean),
-        ),
-      ].slice(0, 3);
-
-      const keywordSuspended = (
-        await Promise.all(
-          keywords.map((keyword) =>
-            searchHolisticBcAdvertisers({ keyword }).catch(() => []),
+      // Keyword search es costoso (muchas llamadas BM) — solo en modo live (Pagos).
+      if (speed === "live") {
+        const keywords = [
+          ...new Set(
+            [
+              cliente.name.trim(),
+              ...normalizeAdvertiserName(cliente.name)
+                .split(" ")
+                .filter((t) => t.length >= 5),
+            ].filter(Boolean),
           ),
-        )
-      ).flat();
+        ].slice(0, 3);
 
-      for (const row of keywordSuspended) {
-        const belongs =
-          hecomIds.has(row.advertiserId) ||
-          advertiserMatchesCliente(row.advertiserName, cliente.name);
-        if (!belongs) continue;
+        const keywordSuspended = (
+          await Promise.all(
+            keywords.map((keyword) =>
+              searchHolisticBcAdvertisers({ keyword }).catch(() => []),
+            ),
+          )
+        ).flat();
 
-        const prev = liveById.get(row.advertiserId);
-        if (!prev || prev.statusKind !== "suspended") {
-          liveById.set(row.advertiserId, row);
-        }
-        if (hecomIds.has(row.advertiserId)) continue;
-        if (
-          !nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-        ) {
-          nameMatchedExtras.push(row);
+        for (const row of keywordSuspended) {
+          const belongs =
+            hecomIds.has(row.advertiserId) ||
+            advertiserMatchesCliente(row.advertiserName, cliente.name);
+          if (!belongs) continue;
+
+          const prev = liveById.get(row.advertiserId);
+          if (!prev || prev.statusKind !== "suspended") {
+            liveById.set(row.advertiserId, row);
+          }
+          if (hecomIds.has(row.advertiserId)) continue;
+          if (
+            !nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
+          ) {
+            nameMatchedExtras.push(row);
+          }
         }
       }
     }
@@ -281,6 +303,7 @@ export async function getHecomClienteAdAccountsOverview(
   console.info("[ad-accounts] overview", {
     clienteId,
     clienteName: cliente.name,
+    speed,
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
     bmNameMatches: nameMatchedExtras.length,

@@ -37,12 +37,10 @@ export default async function DashboardLayout({
     selected = null;
   }
 
-  // Precalienta cache TikTok BC en background (no bloquea HTML).
-  if (funding.isStaff || funding.isSuperAdmin || funding.canAgencyBmFund) {
-    warmHolisticBcAdvertisers({
-      organizationId: session.organizationId ?? undefined,
-    });
-  }
+  // Precalienta cache TikTok BC en background (Cuentas ads / Pagos más rápidos).
+  warmHolisticBcAdvertisers({
+    organizationId: session.organizationId ?? undefined,
+  });
 
   let selectedCliente: {
     id: string;

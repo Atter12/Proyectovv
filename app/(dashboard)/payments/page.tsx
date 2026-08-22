@@ -89,7 +89,7 @@ export default async function PaymentsPage({
 
   const cliente = data.cliente;
   // Incluye match BM por nombre (no solo mapeo Hecom) — igual que Cuentas ads.
-  const adsOverview = await getHecomClienteAdAccountsOverview(cliente.id);
+  const adsOverview = await getHecomClienteAdAccountsOverview(cliente.id, "live");
   const hecomAdvertiserIds = adsOverview.accounts
     .map((account) => account.externalAccountId?.trim())
     .filter((id): id is string => Boolean(id));

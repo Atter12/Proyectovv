@@ -61,7 +61,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
     );
   }
 
-  const data = await getHecomClienteAdAccountsOverview(selected.id);
+  const data = await getHecomClienteAdAccountsOverview(selected.id, "fast");
   const clienteName = data.cliente?.name ?? selected.name;
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
 
