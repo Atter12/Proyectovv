@@ -16,18 +16,11 @@ import {
   getHecomSupabaseConfig,
 } from "@/lib/hecom/supabase.server";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
+import { sortGastosByDateDesc } from "@/lib/hecom/gasto-date";
+import type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
 
-export type HecomGastoRow = {
-  id: string;
-  camp: string | null;
-  gasto: number;
-  fee: number | null;
-  mes: string | null;
-  source: string | null;
-  fecha: string | null;
-  codigo: string | null;
-  notas: string | null;
-};
+export type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
+export { moneyUsd } from "@/lib/format/money-usd";
 
 export type HecomCobroRow = {
   id: string;
@@ -545,7 +538,7 @@ async function loadLiveFinance(
         )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })
-        .limit(80),
+        .limit(500),
       hecom
         .from("cobros")
         .select("id,client_id,monto,fecha,metodo,notas,codigo,created_at")
@@ -565,9 +558,11 @@ async function loadLiveFinance(
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    const gastos = ((gastosRes.data ?? []) as Record<string, unknown>[])
-      .filter((row) => String(row.client_id ?? "") === clientId)
-      .map(mapGasto);
+    const gastos = sortGastosByDateDesc(
+      ((gastosRes.data ?? []) as Record<string, unknown>[])
+        .filter((row) => String(row.client_id ?? "") === clientId)
+        .map(mapGasto),
+    );
     const cobros = ((cobrosRes.data ?? []) as Record<string, unknown>[])
       .filter((row) => String(row.client_id ?? "") === clientId)
       .map(mapCobro);
@@ -656,7 +651,9 @@ export const getHecomClienteDashboard = cache(
       if (cfg.configured) {
         const live = await loadLiveFinance(clienteId);
         if (live) {
-          const gastos = scopeGastosToAdvertisers(live.gastos, advertiserIds);
+          const gastos = sortGastosByDateDesc(
+            scopeGastosToAdvertisers(live.gastos, advertiserIds),
+          );
           const cobros = live.cobros;
           const daily = await resolveDailySpend(clienteId, gastos, true);
           return {
@@ -695,9 +692,11 @@ export const getHecomClienteDashboard = cache(
       }
 
       const filtered = filterBackupByClient(backup.data, clienteId);
-      const gastos = scopeGastosToAdvertisers(
-        filtered.gastos.map(mapGasto),
-        advertiserIds,
+      const gastos = sortGastosByDateDesc(
+        scopeGastosToAdvertisers(
+          filtered.gastos.map(mapGasto),
+          advertiserIds,
+        ),
       );
       const cobros = filtered.cobros.map(mapCobro);
       const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
@@ -801,11 +800,3 @@ export const getHecomClienteShell = cache(
     }
   },
 );
-
-export function moneyUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
