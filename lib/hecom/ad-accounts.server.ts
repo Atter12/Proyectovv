@@ -9,7 +9,7 @@ import {
 import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
-  listHolisticBcAdvertisersCachedFirst,
+  peekHolisticBcAdvertisersCache,
   searchHolisticBcAdvertisers,
   warmHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
@@ -105,6 +105,48 @@ export function mapHecomTiktokToAdAccount(
 
 export type HecomAdAccountsLoadSpeed = "fast" | "live";
 
+/** BM TikTok para Cuentas ads: cache si hay; si no, live (necesario para match por nombre). */
+async function resolveBmAdvertisersForAdAccounts(
+  speed: HecomAdAccountsLoadSpeed,
+): Promise<{
+  live: TikTokBcAdvertiser[];
+  liveSource: "cache" | "live" | "none";
+}> {
+  if (speed === "live") {
+    try {
+      const live = await listHolisticBcAdvertisers();
+      return { live, liveSource: live.length > 0 ? "live" : "none" };
+    } catch (error) {
+      console.warn("[ad-accounts] bc_live_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      const cached = peekHolisticBcAdvertisersCache({ allowStaleMs: 15 * 60 * 1000 });
+      return {
+        live: cached ?? [],
+        liveSource: cached && cached.length > 0 ? "cache" : "none",
+      };
+    }
+  }
+
+  const cached = peekHolisticBcAdvertisersCache({ allowStaleMs: 15 * 60 * 1000 });
+  if (cached && cached.length > 0) {
+    warmHolisticBcAdvertisers();
+    return { live: cached, liveSource: "cache" };
+  }
+
+  // Cache fría: sin BM no hay match por nombre (ej. Adriana 200/201/202 USD).
+  try {
+    const live = await listHolisticBcAdvertisers();
+    return { live, liveSource: live.length > 0 ? "live" : "none" };
+  } catch (error) {
+    console.warn("[ad-accounts] bc_cold_fetch_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    warmHolisticBcAdvertisers();
+    return { live: [], liveSource: "none" };
+  }
+}
+
 /**
  * Cuentas ads del cliente.
  * - Prioridad: mapeo Hecom por advertiser_id (activo o suspendido).
@@ -155,26 +197,9 @@ async function getHecomClienteAdAccountsOverviewImpl(
   let liveSource: "cache" | "live" | "none" = "none";
 
   try {
-    let live: TikTokBcAdvertiser[] = [];
-    liveSource = "none";
-
-    if (speed === "live") {
-      try {
-        live = await listHolisticBcAdvertisers();
-        liveSource = live.length > 0 ? "live" : "none";
-      } catch (error) {
-        console.warn("[ad-accounts] bc_live_failed", {
-          clienteId,
-          error: error instanceof Error ? error.message : "unknown",
-        });
-        live = await listHolisticBcAdvertisersCachedFirst();
-        liveSource = live.length > 0 ? "cache" : "none";
-      }
-    } else {
-      live = await listHolisticBcAdvertisersCachedFirst();
-      liveSource = live.length > 0 ? "cache" : "none";
-      warmHolisticBcAdvertisers();
-    }
+    const bm = await resolveBmAdvertisersForAdAccounts(speed);
+    let live = bm.live;
+    liveSource = bm.liveSource;
 
     if (live.length > 0) {
       liveById = new Map(live.map((row) => [row.advertiserId, row]));
@@ -238,7 +263,8 @@ async function getHecomClienteAdAccountsOverviewImpl(
     });
   }
 
-  // A) ID-first: filas Hecom que sigan existiendo en BM (evita IDs obsoletos).
+  // A) ID-first: filas Hecom. Solo ocultamos IDs obsoletos con listado BM live completo.
+  const pruneObsoleteHecomIds = liveSource === "live" && liveById.size > 0;
   const mapped = hecomAccounts
     .map((account) => {
       const live = liveById.get(account.advertiserId.trim());
@@ -255,7 +281,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
     .filter((account) => {
       const id = account.externalAccountId?.trim();
       if (!id) return false;
-      if (liveById.size === 0) return true;
+      if (!pruneObsoleteHecomIds) return true;
       return liveById.has(id);
     });
 
