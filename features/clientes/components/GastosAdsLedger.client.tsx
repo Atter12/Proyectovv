@@ -65,21 +65,23 @@ export function GastosAdsLedger({
     <CrmPanel
       title={title}
       subtitle={panelSubtitle}
-      className="flex h-full flex-col overflow-hidden [&>div:first-child]:overflow-visible"
-      action={
-        sorted.length > 0 ? (
-          <div className="relative z-30 w-full min-w-[220px] sm:w-[248px]">
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChange={handleRangeChange}
-              minDate={bounds.min}
-              maxDate={bounds.max ?? todayYmdInTz()}
-            />
-          </div>
-        ) : null
-      }
+      className="flex h-full flex-col"
     >
+      {sorted.length > 0 ? (
+        <div className="border-b border-[var(--auth-divider)] px-4 py-3 sm:px-5">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+            Filtrar por fecha
+          </p>
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={handleRangeChange}
+            minDate={bounds.min}
+            maxDate={bounds.max ?? todayYmdInTz()}
+            className="w-full max-w-full sm:max-w-[280px]"
+          />
+        </div>
+      ) : null}
       {sorted.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
           Sin gastos para este cliente.

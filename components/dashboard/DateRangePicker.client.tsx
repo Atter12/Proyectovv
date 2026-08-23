@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 
@@ -81,11 +89,6 @@ function buildMonthGrid(monthYmd: string): Array<{ ymd: string; inMonth: boolean
     last.setUTCDate(last.getUTCDate() + 1);
     cells.push({ ymd: formatYmd(last), inMonth: false });
   }
-  while (cells.length < 42) {
-    const last = parseYmd(cells[cells.length - 1].ymd);
-    last.setUTCDate(last.getUTCDate() + 1);
-    cells.push({ ymd: formatYmd(last), inMonth: false });
-  }
   return cells;
 }
 
@@ -114,7 +117,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-[15px] font-medium text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
+      className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-[var(--auth-border)] bg-white px-2 text-[15px] font-medium text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-bg)]"
     >
       {children}
     </button>
@@ -130,6 +133,13 @@ interface DateRangePickerProps {
   className?: string;
 }
 
+type PopoverPosition = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+};
+
 export function DateRangePicker({
   startDate,
   endDate,
@@ -138,13 +148,25 @@ export function DateRangePicker({
   maxDate,
   className,
 }: DateRangePickerProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [draftStart, setDraftStart] = useState(startDate);
   const [draftEnd, setDraftEnd] = useState(endDate);
   const [anchorMonth, setAnchorMonth] = useState(monthStart(startDate));
   const [pickingEnd, setPickingEnd] = useState(false);
+  const [position, setPosition] = useState<PopoverPosition>({
+    top: 0,
+    left: 0,
+    width: 320,
+    maxHeight: 480,
+  });
   const today = useMemo(() => todayYmdInTz(), []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -156,11 +178,59 @@ export function DateRangePicker({
     setAnchorMonth(monthStart(startDate));
   }, [open, startDate, endDate]);
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    function updatePosition() {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportPad = 12;
+      const width = Math.min(640, window.innerWidth - viewportPad * 2);
+      let left = rect.right - width;
+      left = Math.max(
+        viewportPad,
+        Math.min(left, window.innerWidth - width - viewportPad),
+      );
+
+      const popoverHeight = popoverRef.current?.offsetHeight ?? 420;
+      const gap = 8;
+      let top = rect.bottom + gap;
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPad;
+      const spaceAbove = rect.top - viewportPad;
+
+      if (spaceBelow < popoverHeight && spaceAbove > spaceBelow) {
+        top = Math.max(viewportPad, rect.top - popoverHeight - gap);
+      } else {
+        top = Math.min(top, window.innerHeight - viewportPad - popoverHeight);
+      }
+
+      setPosition({
+        top: Math.max(viewportPad, top),
+        left,
+        width,
+        maxHeight: window.innerHeight - viewportPad * 2,
+      });
+    }
+
+    updatePosition();
+    const raf = window.requestAnimationFrame(updatePosition);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, anchorMonth]);
+
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -217,13 +287,15 @@ export function DateRangePicker({
     setOpen(false);
   }
 
-  function renderMonth(monthYmd: string) {
+  function renderMonth(monthYmd: string, showTitle = true) {
     const cells = buildMonthGrid(monthYmd);
     return (
-      <div className="min-w-[220px] flex-1">
-        <p className="mb-2 text-center text-[12px] font-semibold text-[var(--auth-text)] sm:hidden">
-          {monthLabel(monthYmd)}
-        </p>
+      <div className="min-w-0 flex-1">
+        {showTitle ? (
+          <p className="mb-2 text-center text-[12px] font-semibold text-[var(--auth-text)]">
+            {monthLabel(monthYmd)}
+          </p>
+        ) : null}
         <div className="grid grid-cols-7 gap-0.5">
           {WEEKDAYS.map((day) => (
             <span
@@ -270,40 +342,29 @@ export function DateRangePicker({
 
   const displayRange = `${startDate} ~ ${endDate}`;
 
-  return (
-    <div ref={rootRef} className={cn("relative", className)}>
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-left text-[12px] font-medium text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)]/35 hover:bg-[var(--auth-bg)]"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-      >
-        <span className="truncate tabular-nums">{displayRange}</span>
-        <svg
-          className="h-4 w-4 shrink-0 text-[var(--auth-text-soft)]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.75}
-          aria-hidden
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6.75 3v2.25M17.25 3v2.25M3 9.75h18M4.5 19.5h15a1.5 1.5 0 001.5-1.5V6.75A1.5 1.5 0 0019.5 5.25h-15A1.5 1.5 0 003 6.75v11.25A1.5 1.5 0 004.5 19.5z"
-          />
-        </svg>
-      </button>
-
-      {open ? (
+  const popover =
+    open && mounted ? (
+      <>
+        <button
+          type="button"
+          aria-label="Cerrar calendario"
+          className="fixed inset-0 z-[199] bg-[rgb(28_25_23_/_0.18)]"
+          onClick={() => setOpen(false)}
+        />
         <div
+          ref={popoverRef}
           role="dialog"
           aria-label="Seleccionar rango de fechas"
-          className="absolute right-0 z-[60] mt-2 w-[min(100vw-1.5rem,640px)] overflow-hidden rounded-xl border border-[var(--auth-border)] bg-white shadow-[0_18px_40px_rgb(28_25_23_/_0.14)]"
+          className="fixed z-[200] flex flex-col overflow-hidden rounded-xl border border-[var(--auth-border)] bg-white shadow-[0_18px_40px_rgb(28_25_23_/_0.18)]"
+          style={{
+            top: position.top,
+            left: position.left,
+            width: position.width,
+            maxHeight: position.maxHeight,
+          }}
         >
-          <div className="flex flex-col sm:flex-row">
-            <div className="border-b border-[var(--auth-divider)] p-2 sm:w-[148px] sm:border-b-0 sm:border-r">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto sm:flex-row">
+            <div className="shrink-0 border-b border-[var(--auth-divider)] p-2 sm:w-[148px] sm:border-b-0 sm:border-r">
               {PRESETS.map((preset) => (
                 <button
                   key={preset.id}
@@ -317,8 +378,8 @@ export function DateRangePicker({
             </div>
 
             <div className="min-w-0 flex-1 p-3">
-              <div className="mb-3 flex items-center justify-between gap-1">
-                <div className="flex items-center gap-0.5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex shrink-0 items-center gap-1">
                   <NavButton
                     label="Año anterior"
                     onClick={() => setAnchorMonth(addMonths(anchorMonth, -12))}
@@ -333,14 +394,16 @@ export function DateRangePicker({
                   </NavButton>
                 </div>
 
-                <p className="hidden px-2 text-center text-[12px] font-semibold text-[var(--auth-text)] sm:block">
+                <p className="min-w-0 flex-1 truncate px-1 text-center text-[12px] font-semibold text-[var(--auth-text)]">
                   {monthLabel(leftMonth)}
-                  {monthKey(leftMonth) !== monthKey(rightMonth)
-                    ? ` · ${monthLabel(rightMonth)}`
-                    : ""}
+                  <span className="hidden sm:inline">
+                    {monthKey(leftMonth) !== monthKey(rightMonth)
+                      ? ` · ${monthLabel(rightMonth)}`
+                      : ""}
+                  </span>
                 </p>
 
-                <div className="flex items-center gap-0.5">
+                <div className="flex shrink-0 items-center gap-1">
                   <NavButton
                     label="Mes siguiente"
                     onClick={() => setAnchorMonth(addMonths(anchorMonth, 1))}
@@ -357,12 +420,12 @@ export function DateRangePicker({
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
-                {renderMonth(leftMonth)}
-                <div className="hidden sm:block">
-                  {monthKey(leftMonth) !== monthKey(rightMonth)
-                    ? renderMonth(rightMonth)
-                    : null}
-                </div>
+                {renderMonth(leftMonth, false)}
+                {monthKey(leftMonth) !== monthKey(rightMonth) ? (
+                  <div className="hidden min-w-0 flex-1 sm:block">
+                    {renderMonth(rightMonth, false)}
+                  </div>
+                ) : null}
               </div>
 
               <p className="mt-3 text-[11px] text-[var(--auth-text-muted)]">
@@ -373,7 +436,38 @@ export function DateRangePicker({
             </div>
           </div>
         </div>
-      ) : null}
-    </div>
+      </>
+    ) : null;
+
+  return (
+    <>
+      <div className={cn("relative", className)}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-left text-[12px] font-medium text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)]/35 hover:bg-[var(--auth-bg)]"
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          <span className="truncate tabular-nums">{displayRange}</span>
+          <svg
+            className="h-4 w-4 shrink-0 text-[var(--auth-text-soft)]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.75}
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.75 3v2.25M17.25 3v2.25M3 9.75h18M4.5 19.5h15a1.5 1.5 0 001.5-1.5V6.75A1.5 1.5 0 0019.5 5.25h-15A1.5 1.5 0 003 6.75v11.25A1.5 1.5 0 004.5 19.5z"
+            />
+          </svg>
+        </button>
+      </div>
+      {mounted && popover ? createPortal(popover, document.body) : null}
+    </>
   );
 }
