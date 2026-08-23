@@ -13,6 +13,10 @@ import {
   resolveBcIdForHecomBucket,
   type TikTokBcAdvertiser,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
+import {
+  discoverTikTokAdvertisersForCliente,
+  isHecomMappedAccountFundable,
+} from "@/lib/hecom/tiktok-advertiser-discovery";
 
 function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
   if (cliente.tiktokAccounts.length > 0) return cliente.tiktokAccounts;
@@ -118,12 +122,24 @@ export async function syncApprovedAdAccountsForCliente(input: {
   }
 
   const byId = new Map(bcAdvertisers.map((row) => [row.advertiserId, row]));
-  const hecomAccounts = resolveHecomAccounts(cliente).filter(
+  const allHecomAccounts = resolveHecomAccounts(cliente);
+  const hecomAccounts = allHecomAccounts.filter(
     (account) => account.syncEnabled !== false,
   );
   const hecomIds = new Set(
     hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
   );
+
+  const nameMatchedExtras: TikTokBcAdvertiser[] = [];
+  if (statusAvailable) {
+    await discoverTikTokAdvertisersForCliente({
+      cliente,
+      hecomAccounts: allHecomAccounts,
+      hecomIds,
+      liveById: byId,
+      nameMatchedExtras,
+    });
+  }
 
   const candidates = new Map<
     string,
@@ -139,6 +155,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
   for (const account of hecomAccounts) {
     const id = account.advertiserId.trim();
     const live = byId.get(id);
+    const statusKind = live?.statusKind ?? "unknown";
     candidates.set(id, {
       advertiserId: id,
       name:
@@ -149,7 +166,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
         account.bmBucket,
         live?.bcId,
       ),
-      statusKind: live?.statusKind ?? (statusAvailable ? "unknown" : "unknown"),
+      statusKind,
       fromHecom: true,
     });
   }
@@ -177,7 +194,14 @@ export async function syncApprovedAdAccountsForCliente(input: {
   }
 
   const approved = [...candidates.values()].filter(
-    (row) => row.statusKind === "approved",
+    (row) =>
+      row.statusKind === "approved" ||
+      (row.fromHecom &&
+        hecomAccounts.some(
+          (account) =>
+            account.advertiserId === row.advertiserId &&
+            isHecomMappedAccountFundable(account, row.statusKind),
+        )),
   );
   const suspended = [...candidates.values()].filter(
     (row) => row.statusKind === "suspended",

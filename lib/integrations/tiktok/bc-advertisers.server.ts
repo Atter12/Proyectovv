@@ -46,6 +46,20 @@ function advertiserStatusRank(kind: TikTokBcAdvertiserStatusKind): number {
   return kind === "suspended" ? 3 : kind === "approved" ? 2 : 1;
 }
 
+/** Mezcla fila TikTok priorizando approved > unknown > suspended parcial. */
+export function mergeTikTokAdvertiserIntoMap(
+  liveById: Map<string, TikTokBcAdvertiser>,
+  row: TikTokBcAdvertiser,
+): void {
+  const prev = liveById.get(row.advertiserId);
+  if (
+    !prev ||
+    advertiserStatusRank(row.statusKind) >= advertiserStatusRank(prev.statusKind)
+  ) {
+    liveById.set(row.advertiserId, row);
+  }
+}
+
 const cache = new Map<
   string,
   { at: number; advertisers: TikTokBcAdvertiser[] }
@@ -509,14 +523,7 @@ export async function searchHolisticBcAdvertisersByKeyword(input: {
           { keyword },
         );
         for (const row of rows) {
-          const prev = byId.get(row.advertiserId);
-          if (
-            !prev ||
-            advertiserStatusRank(row.statusKind) >=
-              advertiserStatusRank(prev.statusKind)
-          ) {
-            byId.set(row.advertiserId, row);
-          }
+          mergeTikTokAdvertiserIntoMap(byId, row);
         }
       } catch {
         // BM sin permiso / filtro vacío

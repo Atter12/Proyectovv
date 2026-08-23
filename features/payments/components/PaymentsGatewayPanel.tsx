@@ -7,6 +7,10 @@ import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  buildAdvertiserEnsureList,
+  enrichAllocationAccountsFromAdsOverview,
+} from "@/lib/payments/enrich-allocation-accounts";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
@@ -17,6 +21,7 @@ import {
 } from "@/services/payments.service";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { SessionUser } from "@/types/auth";
+import type { AdAccount } from "@/types/ad-account";
 import type { PaymentAccountAllocation } from "@/types/payment";
 import Link from "next/link";
 import { routes } from "@/config/routes";
@@ -27,6 +32,8 @@ interface PaymentsGatewayPanelProps {
   hecomClienteId?: string;
   clienteName?: string;
   hecomFinance?: HecomFinanceSnapshot | null;
+  /** Cuentas ads del cliente (nombres TikTok + BM para Pagos). */
+  adsAccounts?: AdAccount[];
   /** Si el cleanup ya corrió (o se diferió) en la página. */
   skipOrphanCleanup?: boolean;
   /**
@@ -48,6 +55,7 @@ export async function PaymentsGatewayPanel({
   hecomClienteId,
   clienteName,
   hecomFinance = null,
+  adsAccounts = [],
   skipOrphanCleanup = false,
   skipApprovedSync = false,
 }: PaymentsGatewayPanelProps) {
@@ -75,6 +83,8 @@ export async function PaymentsGatewayPanel({
   let approvedIds = [...(hecomAdvertiserIds ?? [])];
   let syncNote: string | null = null;
   let ensured = 0;
+  const advertiserEnsureList = (ids: string[]) =>
+    buildAdvertiserEnsureList(ids, adsAccounts);
 
   if (
     !skipApprovedSync &&
@@ -117,10 +127,7 @@ export async function PaymentsGatewayPanel({
           clienteId: hecomClienteId,
           clienteName,
           userId: session.id,
-          advertisers: approvedIds.map((advertiserId) => ({
-            advertiserId,
-            name: clienteName ? `${clienteName} · TikTok` : null,
-          })),
+          advertisers: advertiserEnsureList(approvedIds),
         });
       }
 
@@ -179,10 +186,7 @@ export async function PaymentsGatewayPanel({
         clienteId: hecomClienteId,
         clienteName,
         userId: session.id,
-        advertisers: approvedIds.map((advertiserId) => ({
-          advertiserId,
-          name: clienteName ? `${clienteName} · TikTok` : null,
-        })),
+        advertisers: advertiserEnsureList(approvedIds),
       });
     }
 
@@ -252,11 +256,14 @@ export async function PaymentsGatewayPanel({
 
   const hasClienteScope = hecomAdvertiserIds != null || Boolean(hecomClienteId);
 
-  const scopedAccounts = hasClienteScope
-    ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds).filter(
-        (account) => account.status !== "disabled",
-      )
-    : pool.filter((account) => account.status !== "disabled");
+  const scopedAccounts = enrichAllocationAccountsFromAdsOverview(
+    hasClienteScope
+      ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds).filter(
+          (account) => account.status !== "disabled",
+        )
+      : pool.filter((account) => account.status !== "disabled"),
+    adsAccounts,
+  );
 
   const scopedSummary = {
     ...core.summary,

@@ -6,19 +6,21 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
-import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
+import { advertiserMatchesCliente, normalizeAdvertiserName } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
+  mergeTikTokAdvertiserIntoMap,
   peekHolisticBcAdvertisersCache,
-  resolveBcIdForHecomBucket,
   resolveBmBucketFromBcId,
   searchHolisticBcAdvertisers,
-  searchHolisticBcAdvertisersByKeyword,
   warmHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
-import { normalizeAdvertiserName } from "@/lib/hecom/advertiser-match";
+import {
+  discoverTikTokAdvertisersForCliente,
+  resolveHecomMappedStatusKind,
+} from "@/lib/hecom/tiktok-advertiser-discovery";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
 
 export { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
@@ -54,39 +56,35 @@ function resolveDisplayName(input: {
   return `${input.clienteName} · TikTok`;
 }
 
-function resolveBmBucketLabel(
-  bmBucket: string | null | undefined,
-  bcId?: string | null,
-): string | null {
-  const bucket = bmBucket?.trim();
-  if (bucket && /^\d{1,3}$/.test(bucket)) return bucket;
-  return resolveBmBucketFromBcId(bcId);
-}
-
 export function mapHecomTiktokToAdAccount(
   cliente: HecomCliente,
   account: HecomTiktokAccount,
-  statusKind: TikTokBcAdvertiserStatusKind = "unknown",
+  liveStatusKind: TikTokBcAdvertiserStatusKind = "unknown",
   liveName?: string | null,
   liveBcId?: string | null,
+  options?: { trustHecomMap?: boolean },
 ): AdAccount {
-  const bmBucket = resolveBmBucketLabel(account.bmBucket, liveBcId);
+  const bmBucket = resolveAccountBmBucket(account.bmBucket, liveBcId);
   const label = resolveDisplayName({
     clienteName: cliente.name,
     hecomName: account.advertiserName,
     liveName,
     bmBucket,
   });
+  const statusKind =
+    options?.trustHecomMap === true
+      ? resolveHecomMappedStatusKind(account, liveStatusKind)
+      : liveStatusKind;
   const status =
     account.syncEnabled === false
       ? "disabled"
       : statusKind === "suspended"
-      ? "disabled"
-      : statusKind === "approved"
-        ? "active"
-        : account.syncEnabled
-          ? "pending"
-          : "disabled";
+        ? "disabled"
+        : statusKind === "approved"
+          ? "active"
+          : account.syncEnabled
+            ? "pending"
+            : "disabled";
 
   const thresholdInfo =
     account.syncEnabled === false
@@ -123,106 +121,13 @@ export function mapHecomTiktokToAdAccount(
   };
 }
 
-function buildAdAccountKeywordQueries(
-  cliente: HecomCliente,
-  hecomAccounts: HecomTiktokAccount[],
-): string[] {
-  const queries = new Set<string>();
-  const name = cliente.name.trim();
-  if (name.length >= 3) queries.add(name);
-
-  const tokens = normalizeAdvertiserName(name)
-    .split(" ")
-    .filter((t) => t.length >= 3);
-  if (tokens.length >= 2) {
-    queries.add(`${tokens[0]} ${tokens[1]}`);
-    queries.add(`${tokens[0]} ${tokens[1]} 10`);
-  }
-
-  for (const account of hecomAccounts) {
-    const advName = account.advertiserName?.trim();
-    if (advName && advName.length >= 3) queries.add(advName);
-    if (account.bmBucket === "10" && tokens.length >= 2) {
-      queries.add(`${tokens[0]} ${tokens[1]} 10.0`);
-    }
-  }
-
-  return [...queries].slice(0, 6);
-}
-
-async function mergeKeywordHits(input: {
-  cliente: HecomCliente;
-  hecomIds: Set<string>;
-  hecomAccounts: HecomTiktokAccount[];
-  liveById: Map<string, TikTokBcAdvertiser>;
-  nameMatchedExtras: TikTokBcAdvertiser[];
-}): Promise<number> {
-  const keywords = buildAdAccountKeywordQueries(
-    input.cliente,
-    input.hecomAccounts,
-  );
-  let totalHits = 0;
-
-  for (const keyword of keywords) {
-    const keywordHits = await searchHolisticBcAdvertisersByKeyword({
-      keyword,
-    }).catch(() => [] as TikTokBcAdvertiser[]);
-    totalHits += keywordHits.length;
-
-    for (const row of keywordHits) {
-      if (!input.liveById.has(row.advertiserId)) {
-        input.liveById.set(row.advertiserId, row);
-      }
-      const belongs =
-        input.hecomIds.has(row.advertiserId) ||
-        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
-      if (!belongs) continue;
-      if (input.hecomIds.has(row.advertiserId)) continue;
-      if (
-        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-      ) {
-        input.nameMatchedExtras.push(row);
-      }
-    }
-  }
-
-  const bmBuckets = [
-    ...new Set(
-      input.hecomAccounts
-        .map((a) => a.bmBucket?.trim())
-        .filter((b): b is string => Boolean(b)),
-    ),
-  ];
-  for (const bucket of bmBuckets) {
-    const bcId = resolveBcIdForHecomBucket(bucket);
-    const focalKeyword =
-      input.hecomAccounts
-        .find((a) => a.bmBucket === bucket)
-        ?.advertiserName?.trim() || input.cliente.name.trim();
-    if (focalKeyword.length < 3) continue;
-    const focalHits = await searchHolisticBcAdvertisersByKeyword({
-      keyword: focalKeyword,
-      bcIds: [bcId],
-    }).catch(() => [] as TikTokBcAdvertiser[]);
-    totalHits += focalHits.length;
-    for (const row of focalHits) {
-      if (!input.liveById.has(row.advertiserId)) {
-        input.liveById.set(row.advertiserId, row);
-      }
-      const belongs =
-        input.hecomIds.has(row.advertiserId) ||
-        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
-      if (!belongs) continue;
-      if (input.hecomIds.has(row.advertiserId)) continue;
-      if (
-        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-      ) {
-        input.nameMatchedExtras.push(row);
-      }
-    }
-  }
-
-  return totalHits;
+function resolveAccountBmBucket(
+  bmBucket: string | null | undefined,
+  bcId?: string | null,
+): string | null {
+  const bucket = bmBucket?.trim();
+  if (bucket && /^\d{1,3}$/.test(bucket)) return bucket;
+  return resolveBmBucketFromBcId(bcId);
 }
 
 export type HecomAdAccountsLoadSpeed = "fast" | "live";
@@ -340,7 +245,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
       });
     }
 
-    keywordHitCount = await mergeKeywordHits({
+    keywordHitCount = await discoverTikTokAdvertisersForCliente({
       cliente,
       hecomIds,
       hecomAccounts,
@@ -376,10 +281,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
             advertiserMatchesCliente(row.advertiserName, cliente.name);
           if (!belongs) continue;
 
-          const prev = liveById.get(row.advertiserId);
-          if (!prev || prev.statusKind !== "suspended") {
-            liveById.set(row.advertiserId, row);
-          }
+          mergeTikTokAdvertiserIntoMap(liveById, row);
           if (hecomIds.has(row.advertiserId)) continue;
           if (
             !nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
@@ -405,12 +307,13 @@ async function getHecomClienteAdAccountsOverviewImpl(
         {
           ...account,
           bmBucket:
-            resolveBmBucketLabel(account.bmBucket, live?.bcId) ||
+            resolveAccountBmBucket(account.bmBucket, live?.bcId) ||
             account.bmBucket,
         },
         live?.statusKind ?? "unknown",
         live?.advertiserName,
         live?.bcId,
+        { trustHecomMap: true },
       );
     })
     .filter((account) => Boolean(account.externalAccountId?.trim()));

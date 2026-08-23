@@ -36,6 +36,10 @@ export interface PaymentAccountAllocation {
   thresholdInfo: string;
   /** TikTok advertiser id when linked; used to scope by Hecom cliente. */
   externalAccountId?: string | null;
+  /** Nombre exacto en TikTok (cuando está disponible). */
+  externalAccountName?: string | null;
+  /** Etiqueta corta de BM: BM 10, BM 200, etc. */
+  bmLabel?: string | null;
 }
 
 export interface TransactionHistoryItem {

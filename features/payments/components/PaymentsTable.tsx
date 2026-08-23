@@ -115,10 +115,17 @@ export function PaymentsTable({
                   <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     {account.name}
                   </p>
-                  <p className="mt-0.5 truncate font-mono text-[10px] text-[#9a9187]">
-                    adv{" "}
-                    {account.externalAccountId?.trim() || "— sin TikTok ID —"}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    {account.bmLabel ? (
+                      <span className="rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
+                        {account.bmLabel}
+                      </span>
+                    ) : null}
+                    <p className="truncate font-mono text-[10px] text-[#9a9187]">
+                      adv{" "}
+                      {account.externalAccountId?.trim() || "— sin TikTok ID —"}
+                    </p>
+                  </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span className="rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]">
                       {mapAdAccountStatusLabel(account.status)}
@@ -198,11 +205,18 @@ export function PaymentsTable({
                   <TableCell className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     <div className="min-w-0">
                       <p className="truncate">{account.name}</p>
-                      <p className="mt-0.5 truncate font-mono text-[10px] font-normal text-[#9a9187]">
-                        adv{" "}
-                        {account.externalAccountId?.trim() ||
-                          "— sin TikTok ID —"}
-                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        {account.bmLabel ? (
+                          <span className="rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
+                            {account.bmLabel}
+                          </span>
+                        ) : null}
+                        <p className="truncate font-mono text-[10px] font-normal text-[#9a9187]">
+                          adv{" "}
+                          {account.externalAccountId?.trim() ||
+                            "— sin TikTok ID —"}
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
