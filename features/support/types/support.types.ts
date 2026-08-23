@@ -35,6 +35,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "bot";
   text: string;
+  /** ISO UTC — fuente de verdad para formatear en Lima. */
+  createdAt?: string;
   timestamp: string;
   attachments?: ChatAttachment[];
   /** Etiqueta visible estilo Whaticket (Cliente / nombre del agente). */

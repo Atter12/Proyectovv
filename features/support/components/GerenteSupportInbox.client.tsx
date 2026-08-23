@@ -10,6 +10,10 @@ import {
   useSupportListPolling,
   useSupportThreadPolling,
 } from "@/features/support/hooks/useSupportPolling";
+import {
+  formatInboxListTime,
+  supportChatTimestampsNow,
+} from "@/lib/support/chat-time";
 
 interface InboxTicket {
   id: string;
@@ -32,23 +36,8 @@ interface InboxTicket {
   hecomClienteId?: string | null;
   hasHolisticAccount?: boolean;
   avatarUrl?: string | null;
-}
-
-function formatTicketDate(value: string) {
-  try {
-    const d = new Date(value);
-    const now = new Date();
-    const sameDay =
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate();
-    if (sameDay) {
-      return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
-    }
-    return d.toLocaleDateString("es", { day: "2-digit", month: "short" });
-  } catch {
-    return value;
-  }
+  lastMessagePreview?: string | null;
+  lastMessageAt?: string | null;
 }
 
 function clientLabel(ticket: InboxTicket) {
@@ -71,10 +60,7 @@ function emptyThread(): ChatMessage[] {
       id: "inbox-empty",
       role: "bot",
       text: "Elegí un cliente a la izquierda para atender.",
-      timestamp: new Date().toLocaleTimeString("es", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      ...supportChatTimestampsNow(),
       senderName: "Sistema",
       senderKind: "system",
     },
@@ -156,6 +142,7 @@ export function GerenteSupportInbox() {
       ticket.requesterName,
       ticket.organizationName,
       ticket.subject,
+      ticket.lastMessagePreview,
       ticket.requesterEmail,
       ticket.assignedUserDisplayName,
       ticket.assignedUserName,
@@ -202,7 +189,8 @@ export function GerenteSupportInbox() {
           ) {
             continue;
           }
-          const stamp = ticket.updatedAt ?? ticket.createdAt;
+          const stamp =
+            ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt;
           if (ticket.id === selectedNow) {
             knownUpdatedAtRef.current.set(ticket.id, stamp);
             continue;
@@ -353,10 +341,7 @@ export function GerenteSupportInbox() {
           id: "empty",
           role: "bot",
           text: "Chat borrado. Escribí para empezar de nuevo.",
-          timestamp: new Date().toLocaleTimeString("es", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          ...supportChatTimestampsNow(),
           senderName: "Sistema",
           senderKind: "system",
         },
@@ -436,10 +421,7 @@ export function GerenteSupportInbox() {
           text: noAccount
             ? "Este cliente de Hecom aún no tiene cuenta en Ads Holistic. Cuando entre con su correo, verá Soporte Holistic acá."
             : "Todavía no hay mensajes. Escribí para iniciar; le llega a su Soporte Holistic.",
-          timestamp: new Date().toLocaleTimeString("es", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          ...supportChatTimestampsNow(),
           senderName: "Sistema",
           senderKind: "system",
         },
@@ -469,10 +451,7 @@ export function GerenteSupportInbox() {
                 id: "empty",
                 role: "bot",
                 text: "Sin mensajes todavía. Escribí para responder.",
-                timestamp: new Date().toLocaleTimeString("es", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
+                ...supportChatTimestampsNow(),
                 senderName: "Sistema",
               },
             ],
@@ -522,10 +501,7 @@ export function GerenteSupportInbox() {
       id: `agent-${Date.now()}`,
       role: "user",
       text: text || "📎 Adjunto",
-      timestamp: new Date().toLocaleTimeString("es", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      ...supportChatTimestampsNow(),
       senderName: "Vos",
       senderKind: "agent",
     };
@@ -685,11 +661,28 @@ export function GerenteSupportInbox() {
                 Cargando clientes…
               </p>
             ) : filteredTickets.length === 0 ? (
-              <p className="px-4 py-10 text-center text-[13px] text-[var(--auth-text-muted)]">
-                {statusFilter === "all"
-                  ? "No hay clientes Hecom para mostrar."
-                  : "No hay clientes en este filtro. Probá “Todos”."}
-              </p>
+              <div className="flex flex-col items-center px-6 py-14 text-center">
+                <span
+                  aria-hidden
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-black/5"
+                >
+                  {q.trim() ? "🔍" : "💬"}
+                </span>
+                <p className="mt-4 text-[14px] font-bold text-[var(--auth-text)]">
+                  {q.trim()
+                    ? "Sin resultados"
+                    : statusFilter === "all"
+                      ? "No hay clientes Hecom"
+                      : "Nadie en este filtro"}
+                </p>
+                <p className="mt-1.5 max-w-[16rem] text-[12px] leading-relaxed text-[var(--auth-text-muted)]">
+                  {q.trim()
+                    ? "Probá con otro nombre, correo o fragmento del último mensaje."
+                    : statusFilter === "all"
+                      ? "Cuando un cliente escriba en Soporte Holistic, aparecerá acá."
+                      : 'Cambiá a "Todos" o probá otro filtro para ver más clientes.'}
+                </p>
+              </div>
             ) : (
               <ul className="divide-y divide-[rgb(15_23_42_/_0.06)]">
                 {filteredTickets.map((ticket) => {
@@ -742,8 +735,10 @@ export function GerenteSupportInbox() {
                                   : "text-[var(--auth-text-soft)]",
                               )}
                             >
-                              {formatTicketDate(
-                                ticket.updatedAt ?? ticket.createdAt,
+                              {formatInboxListTime(
+                                ticket.lastMessageAt ??
+                                  ticket.updatedAt ??
+                                  ticket.createdAt,
                               )}
                             </span>
                           </span>
@@ -756,7 +751,7 @@ export function GerenteSupportInbox() {
                             )}
                           >
                             {unread ? "Nuevo mensaje · " : ""}
-                            {ticket.subject}
+                            {ticket.lastMessagePreview?.trim() || ticket.subject}
                           </span>
                           <span
                             className={cn(
@@ -807,6 +802,29 @@ export function GerenteSupportInbox() {
             </p>
           ) : null}
 
+          {!selectedId ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-[#efeae2] px-8 text-center">
+              <span
+                aria-hidden
+                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-md ring-1 ring-black/5"
+              >
+                📥
+              </span>
+              <p className="mt-5 text-[17px] font-bold tracking-[-0.02em] text-[#3f3a34]">
+                Inbox Soporte Holistic
+              </p>
+              <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[#6b645c]">
+                Elegí un cliente de la lista para ver el historial, tomar el chat
+                y responder. Los mensajes le llegan a su Soporte en Ads Holistic.
+              </p>
+              {unreadIds.size > 0 ? (
+                <p className="mt-4 rounded-full bg-[var(--brand-primary)] px-4 py-1.5 text-[12px] font-bold text-white shadow-sm">
+                  {unreadIds.size} conversación
+                  {unreadIds.size === 1 ? "" : "es"} con mensajes nuevos
+                </p>
+              ) : null}
+            </div>
+          ) : (
           <ChatConversation
             messages={messages}
             inputValue={inputValue}
@@ -838,7 +856,9 @@ export function GerenteSupportInbox() {
                 ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
                 : "Otro agente tiene este chat. Pedile que lo libere para responder."
             }
+            emptyHint="Escribí para responder al cliente. Podés pegar capturas o adjuntar archivos."
           />
+          )}
         </section>
       </div>
       </div>

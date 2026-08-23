@@ -6,6 +6,7 @@ import type {
   ChatAttachment,
   ChatMessage,
 } from "@/features/support/types/support.types";
+import { supportChatTimestamps } from "@/lib/support/chat-time";
 
 export const SUPPORT_ATTACHMENTS_BUCKET = "support-attachments";
 
@@ -88,10 +89,7 @@ async function toChatMessage(
     id: row.id,
     role: row.sender_user_id === session.id ? "user" : "bot",
     text: row.body,
-    timestamp: new Date(row.created_at).toLocaleTimeString("es", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    ...supportChatTimestamps(row.created_at),
     attachments,
   };
 }

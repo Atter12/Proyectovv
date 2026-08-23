@@ -32,6 +32,20 @@ export const HECOM_BM_BUCKET_TO_BC: Record<string, string> = {
   "10": "7561222896295837712",
 };
 
+/** BC ID TikTok → bm_bucket Hecom ("10" | "30" | "200"). */
+export function resolveBmBucketFromBcId(bcId: string | null | undefined): string | null {
+  const id = String(bcId ?? "").trim();
+  if (!id) return null;
+  for (const [bucket, mapped] of Object.entries(HECOM_BM_BUCKET_TO_BC)) {
+    if (mapped === id) return bucket;
+  }
+  return null;
+}
+
+function advertiserStatusRank(kind: TikTokBcAdvertiserStatusKind): number {
+  return kind === "suspended" ? 3 : kind === "approved" ? 2 : 1;
+}
+
 const cache = new Map<
   string,
   { at: number; advertisers: TikTokBcAdvertiser[] }
@@ -460,6 +474,49 @@ export async function searchHolisticBcAdvertisers(input: {
         }
       }),
     ),
+  );
+
+  return [...byId.values()];
+}
+
+/**
+ * Busca advertisers por keyword en los 3 BM (aprobadas + suspendidas).
+ * Complementa el listado paginado cuando una cuenta no entra en las primeras páginas.
+ */
+export async function searchHolisticBcAdvertisersByKeyword(input: {
+  keyword: string;
+  organizationId?: string;
+}): Promise<TikTokBcAdvertiser[]> {
+  const keyword = input.keyword.trim();
+  if (keyword.length < 3) return [];
+
+  const { token } = await resolveTikTokFinanceAccessToken(input.organizationId);
+  const bcIds = resolveBcIds();
+  const byId = new Map<string, TikTokBcAdvertiser>();
+
+  await Promise.all(
+    bcIds.map(async (bcId) => {
+      try {
+        const rows = await listBcAdvertisersAtPath(
+          token,
+          bcId,
+          "/bc/asset/admin/get/",
+          { keyword },
+        );
+        for (const row of rows) {
+          const prev = byId.get(row.advertiserId);
+          if (
+            !prev ||
+            advertiserStatusRank(row.statusKind) >=
+              advertiserStatusRank(prev.statusKind)
+          ) {
+            byId.set(row.advertiserId, row);
+          }
+        }
+      } catch {
+        // BM sin permiso / filtro vacío
+      }
+    }),
   );
 
   return [...byId.values()];

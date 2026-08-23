@@ -10,7 +10,9 @@ import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   peekHolisticBcAdvertisersCache,
+  resolveBmBucketFromBcId,
   searchHolisticBcAdvertisers,
+  searchHolisticBcAdvertisersByKeyword,
   warmHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
@@ -51,17 +53,28 @@ function resolveDisplayName(input: {
   return `${input.clienteName} · TikTok`;
 }
 
+function resolveBmBucketLabel(
+  bmBucket: string | null | undefined,
+  bcId?: string | null,
+): string | null {
+  const bucket = bmBucket?.trim();
+  if (bucket && /^\d{1,3}$/.test(bucket)) return bucket;
+  return resolveBmBucketFromBcId(bcId);
+}
+
 export function mapHecomTiktokToAdAccount(
   cliente: HecomCliente,
   account: HecomTiktokAccount,
   statusKind: TikTokBcAdvertiserStatusKind = "unknown",
   liveName?: string | null,
+  liveBcId?: string | null,
 ): AdAccount {
+  const bmBucket = resolveBmBucketLabel(account.bmBucket, liveBcId);
   const label = resolveDisplayName({
     clienteName: cliente.name,
     hecomName: account.advertiserName,
     liveName,
-    bmBucket: account.bmBucket,
+    bmBucket,
   });
   const status =
     statusKind === "suspended"
@@ -76,9 +89,9 @@ export function mapHecomTiktokToAdAccount(
     id: `hecom:${cliente.id}:${account.advertiserId}`,
     name: label,
     platform: "tiktok",
-    bcId: account.bmBucket || account.advertiserId,
+    bcId: bmBucket || account.advertiserId,
     externalAccountId: account.advertiserId,
-    externalBusinessId: account.bmBucket,
+    externalBusinessId: bmBucket,
     externalAccountName: liveName?.trim() || account.advertiserName,
     status,
     cost: account.fee ?? 0,
@@ -195,6 +208,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
   let liveById = new Map<string, TikTokBcAdvertiser>();
   let nameMatchedExtras: TikTokBcAdvertiser[] = [];
   let liveSource: "cache" | "live" | "none" = "none";
+  let keywordHitCount = 0;
 
   try {
     const bm = await resolveBmAdvertisersForAdAccounts(speed);
@@ -209,14 +223,37 @@ async function getHecomClienteAdAccountsOverviewImpl(
         if (hecomIds.has(row.advertiserId)) return false;
         if (
           row.statusKind !== "approved" &&
-          row.statusKind !== "suspended"
+          row.statusKind !== "suspended" &&
+          row.statusKind !== "unknown"
         ) {
           return false;
         }
         return advertiserMatchesCliente(row.advertiserName, cliente.name);
       });
+    }
 
-      // Keyword search es costoso (muchas llamadas BM) — solo en modo live (Pagos).
+    // Keyword en los 3 BM: cubre cuentas fuera del listado paginado (ej. BM 10).
+    const keywordHits = await searchHolisticBcAdvertisersByKeyword({
+      keyword: cliente.name.trim(),
+    }).catch(() => [] as TikTokBcAdvertiser[]);
+    keywordHitCount = keywordHits.length;
+
+    for (const row of keywordHits) {
+      if (!liveById.has(row.advertiserId)) {
+        liveById.set(row.advertiserId, row);
+      }
+      const belongs =
+        hecomIds.has(row.advertiserId) ||
+        advertiserMatchesCliente(row.advertiserName, cliente.name);
+      if (!belongs) continue;
+      if (hecomIds.has(row.advertiserId)) continue;
+      if (!nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)) {
+        nameMatchedExtras.push(row);
+      }
+    }
+
+    if (live.length > 0) {
+      // Keyword search suspendidas (modo live / Pagos).
       if (speed === "live") {
         const keywords = [
           ...new Set(
@@ -263,8 +300,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
     });
   }
 
-  // A) ID-first: filas Hecom. Solo ocultamos IDs obsoletos con listado BM live completo.
-  const pruneObsoleteHecomIds = liveSource === "live" && liveById.size > 0;
+  // A) ID-first: filas Hecom. No ocultar mapeos explícitos aunque falten en el snapshot BM.
   const mapped = hecomAccounts
     .map((account) => {
       const live = liveById.get(account.advertiserId.trim());
@@ -272,18 +308,16 @@ async function getHecomClienteAdAccountsOverviewImpl(
         cliente,
         {
           ...account,
-          bmBucket: account.bmBucket || live?.bcId || null,
+          bmBucket:
+            resolveBmBucketLabel(account.bmBucket, live?.bcId) ||
+            account.bmBucket,
         },
         live?.statusKind ?? "unknown",
         live?.advertiserName,
+        live?.bcId,
       );
     })
-    .filter((account) => {
-      const id = account.externalAccountId?.trim();
-      if (!id) return false;
-      if (!pruneObsoleteHecomIds) return true;
-      return liveById.has(id);
-    });
+    .filter((account) => Boolean(account.externalAccountId?.trim()));
 
   // B) Extras solo por nombre cuando no hay ID Hecom.
   const extras = nameMatchedExtras.map((row) =>
@@ -292,12 +326,13 @@ async function getHecomClienteAdAccountsOverviewImpl(
       {
         advertiserId: row.advertiserId,
         advertiserName: row.advertiserName,
-        bmBucket: row.bcId,
+        bmBucket: resolveBmBucketFromBcId(row.bcId),
         fee: cliente.tiktokDefaultFee,
         syncEnabled: true,
       },
       row.statusKind,
       row.advertiserName,
+      row.bcId,
     ),
   );
 
@@ -333,6 +368,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
     bmNameMatches: nameMatchedExtras.length,
+    keywordBackfill: keywordHitCount,
     bmNameMatchesSuspended: nameMatchedExtras.filter(
       (r) => r.statusKind === "suspended",
     ).length,

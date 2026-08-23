@@ -12,6 +12,8 @@ import { ChatConversation } from "@/features/support/components/ChatConversation
 import { ChatFaqCategories } from "@/features/support/components/ChatFaqCategories";
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
+import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
+import { supportChatTimestampsNow } from "@/lib/support/chat-time";
 
 interface SupportChatWidgetProps {
   isOpen: boolean;
@@ -53,7 +55,7 @@ function greetingMessage(): ChatMessage {
     id: "support-greeting",
     role: "bot",
     text: "Hola, cuéntanos qué necesitas y crearemos un ticket para darle seguimiento.",
-    timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+    ...supportChatTimestampsNow(),
   };
 }
 
@@ -119,6 +121,26 @@ export function SupportChatWidget({
     }
   }, [conversationLoaded, loadingConversation]);
 
+  const fetchLiveMessages = useCallback(async (): Promise<ChatMessage[] | null> => {
+    if (!ticketId) return null;
+    const messagesData = await apiClient<MessagesResponse>(
+      `/api/support/tickets/${ticketId}/messages`,
+    );
+    return messagesData.messages ?? [];
+  }, [ticketId]);
+
+  useSupportThreadPolling({
+    enabled:
+      isOpen &&
+      view === "conversation" &&
+      Boolean(ticketId) &&
+      !sending &&
+      !loadingConversation,
+    intervalMs: 2000,
+    fetchMessages: fetchLiveMessages,
+    onMessages: setMessages,
+  });
+
   function handleClose() {
     onOpenChange(false);
     setView("home");
@@ -152,7 +174,7 @@ export function SupportChatWidget({
       id: `user-${Date.now()}`,
       role: "user",
       text: text || (files.length ? "📎 Adjunto" : ""),
-      timestamp: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+      ...supportChatTimestampsNow(),
     };
     setMessages((prev) => [
       ...prev.filter((msg) => msg.id !== "support-greeting"),

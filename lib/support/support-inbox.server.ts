@@ -16,6 +16,7 @@ import {
   type HecomCliente,
 } from "@/lib/hecom/clientes.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
+import { supportChatTimestamps } from "@/lib/support/chat-time";
 
 async function uploadInboxAttachment(
   ticketId: string,
@@ -89,6 +90,10 @@ export interface InboxTicketItem {
   hasHolisticAccount?: boolean;
   /** Foto de perfil Hecom (avatar_url). */
   avatarUrl?: string | null;
+  /** Vista previa del último mensaje público del ticket. */
+  lastMessagePreview?: string | null;
+  /** Fecha del último mensaje (para ordenar / lista lateral). */
+  lastMessageAt?: string | null;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -130,6 +135,65 @@ function parseAttachments(raw: unknown): SupportAttachmentInput[] {
       return { name, mimeType, path, bucket, size };
     })
     .filter((item): item is SupportAttachmentInput => Boolean(item));
+}
+
+function summarizeMessagePreview(body: string, attachmentsRaw: unknown): string {
+  const text = (body ?? "").trim().replace(/\s+/g, " ");
+  if (text) {
+    return text.length > 72 ? `${text.slice(0, 69)}…` : text;
+  }
+  const atts = parseAttachments(attachmentsRaw);
+  if (atts.length === 0) return "";
+  return atts.some((a) => a.mimeType.startsWith("image/")) ? "📷 Foto" : "📎 Adjunto";
+}
+
+async function attachLastMessagePreviews(
+  items: InboxTicketItem[],
+): Promise<InboxTicketItem[]> {
+  const ticketIds = items
+    .filter(
+      (item) =>
+        item.hasTicket !== false &&
+        !item.id.startsWith("org:") &&
+        !item.id.startsWith("hecom:"),
+    )
+    .map((item) => item.id);
+  if (ticketIds.length === 0) return items;
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("support_messages")
+    .select("ticket_id, body, created_at, attachments")
+    .in("ticket_id", ticketIds)
+    .eq("internal_note", false)
+    .order("created_at", { ascending: false })
+    .limit(Math.min(ticketIds.length * 25, 800));
+
+  const previewByTicket = new Map<
+    string,
+    { preview: string; at: string }
+  >();
+  for (const row of data ?? []) {
+    const ticketId = row.ticket_id as string;
+    if (previewByTicket.has(ticketId)) continue;
+    previewByTicket.set(ticketId, {
+      preview: summarizeMessagePreview(
+        row.body as string,
+        row.attachments,
+      ),
+      at: row.created_at as string,
+    });
+  }
+
+  return items.map((item) => {
+    const latest = previewByTicket.get(item.id);
+    if (!latest) return item;
+    return {
+      ...item,
+      lastMessagePreview: latest.preview || item.subject,
+      lastMessageAt: latest.at,
+    };
+  });
 }
 
 async function withSignedUrls(
@@ -266,6 +330,8 @@ export async function listInboxTickets(filters?: {
     };
   });
 
+  items = await attachLastMessagePreviews(items);
+
   const q = filters?.q?.trim().toLowerCase();
   if (q) {
     items = items.filter((item) =>
@@ -274,6 +340,7 @@ export async function listInboxTickets(filters?: {
         item.requesterName,
         item.organizationName,
         item.subject,
+        item.lastMessagePreview,
         item.requesterEmail,
         item.assignedUserDisplayName,
         item.assignedUserName,
@@ -597,20 +664,6 @@ export async function listInboxContacts(filters?: {
     };
   });
 
-  items.sort((a, b) => {
-    const aActive =
-      a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
-    const bActive =
-      b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
-    if (aActive !== bActive) return aActive - bActive;
-    if (aActive === 0) {
-      const aTime = new Date(a.updatedAt ?? a.createdAt).getTime();
-      const bTime = new Date(b.updatedAt ?? b.createdAt).getTime();
-      return bTime - aTime;
-    }
-    return a.requesterDisplayName.localeCompare(b.requesterDisplayName, "es");
-  });
-
   const status = filters?.status ?? "all";
   if (status && status !== "all") {
     if (status === "active") {
@@ -638,6 +691,26 @@ export async function listInboxContacts(filters?: {
     }
   }
 
+  items = await attachLastMessagePreviews(items);
+
+  items.sort((a, b) => {
+    const aActive =
+      a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
+    const bActive =
+      b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    if (aActive === 0) {
+      const aTime = new Date(
+        a.lastMessageAt ?? a.updatedAt ?? a.createdAt,
+      ).getTime();
+      const bTime = new Date(
+        b.lastMessageAt ?? b.updatedAt ?? b.createdAt,
+      ).getTime();
+      return bTime - aTime;
+    }
+    return a.requesterDisplayName.localeCompare(b.requesterDisplayName, "es");
+  });
+
   const q = filters?.q?.trim().toLowerCase();
   if (q) {
     items = items.filter((item) =>
@@ -646,6 +719,7 @@ export async function listInboxContacts(filters?: {
         item.requesterName,
         item.organizationName,
         item.subject,
+        item.lastMessagePreview,
         item.requesterEmail,
         item.hecomClienteId,
       ]
@@ -850,10 +924,7 @@ export async function listInboxTicketMessages(
         id: row.id as string,
         role: row.sender_user_id === session.id ? "user" : "bot",
         text: row.body as string,
-        timestamp: new Date(row.created_at as string).toLocaleTimeString("es", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        ...supportChatTimestamps(row.created_at as string),
         attachments,
       } satisfies ChatMessage;
     }),
@@ -907,10 +978,7 @@ export async function listInboxTicketMessagesForAgent(
         id: row.id as string,
         role: fromClient ? "bot" : "user",
         text: row.body as string,
-        timestamp: new Date(row.created_at as string).toLocaleTimeString("es", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        ...supportChatTimestamps(row.created_at as string),
         attachments,
         senderKind: fromClient ? "client" : "agent",
         senderName: fromClient
@@ -1102,10 +1170,7 @@ export async function replyInboxTicket(input: {
     id: message.id as string,
     role: "user",
     text: message.body as string,
-    timestamp: new Date(message.created_at as string).toLocaleTimeString("es", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    ...supportChatTimestamps(message.created_at as string),
     attachments: signed,
     senderKind: "agent",
     senderName: agentLabel,

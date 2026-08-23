@@ -12,6 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import type { ChatMessage } from "../types/support.types";
+import { formatSupportChatTimestamp } from "@/lib/support/chat-time";
+import { buildChatTimeline } from "@/features/support/lib/chat-message-timeline";
 import { cn } from "@/lib/cn";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 
@@ -42,6 +44,8 @@ interface ChatConversationProps {
   onBack: () => void;
   composerDisabled?: boolean;
   composerDisabledReason?: string;
+  /** Texto cuando no hay mensajes (además del estado de carga). */
+  emptyHint?: string;
 }
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
@@ -74,6 +78,7 @@ export function ChatConversation({
   onBack,
   composerDisabled = false,
   composerDisabledReason,
+  emptyHint = "Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.",
 }: ChatConversationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +89,7 @@ export function ChatConversation({
 
   const pendingFiles = useMemo(() => pending.map((item) => item.file), [pending]);
   const lastMessageId = messages[messages.length - 1]?.id;
+  const timeline = useMemo(() => buildChatTimeline(messages), [messages]);
 
   useEffect(() => {
     return () => {
@@ -258,84 +264,35 @@ export function ChatConversation({
             Cargando historial…
           </p>
         ) : messages.length === 0 ? (
-          <div className="rounded-2xl bg-white px-4 py-3 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
-            Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.
+          <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center shadow-sm ring-1 ring-[var(--border-subtle)]">
+            <span
+              aria-hidden
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f7f2ed] text-xl"
+            >
+              💬
+            </span>
+            <p className="mt-3 text-sm font-semibold text-[#3f3a34]">
+              Todavía no hay mensajes
+            </p>
+            <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-[#6b645c]">
+              {emptyHint}
+            </p>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[min(88%,32rem)] px-3.5 py-2.5 text-sm shadow-sm ${
-                  message.role === "user"
-                    ? "rounded-[18px_18px_5px_18px] bg-[linear-gradient(135deg,var(--brand-primary),#e85a1a)] text-white"
-                    : "rounded-[18px_18px_18px_5px] bg-white text-[#3f3a34] ring-1 ring-black/5"
-                }`}
-              >
-                {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
-                {message.attachments && message.attachments.length > 0 ? (
-                  <div className="mt-2 space-y-2">
-                    {message.attachments.map((attachment) => {
-                      const isImage = attachment.mimeType.startsWith("image/");
-                      if (isImage && attachment.url) {
-                        return (
-                          <a
-                            key={`${message.id}-${attachment.path}`}
-                            href={attachment.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block overflow-hidden rounded-xl"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={attachment.url}
-                              alt={attachment.name}
-                              className="max-h-56 w-full object-cover"
-                            />
-                          </a>
-                        );
-                      }
-                      return (
-                        <a
-                          key={`${message.id}-${attachment.path}`}
-                          href={attachment.url ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
-                            message.role === "user"
-                              ? "bg-white/15 text-white"
-                              : "bg-[var(--surface-soft)] text-[var(--auth-text)]"
-                          }`}
-                        >
-                          📎 {attachment.name}
-                        </a>
-                      );
-                    })}
-                  </div>
-                ) : null}
-                {message.senderName ? (
-                  <p
-                    className={`mt-1.5 text-[10px] font-semibold ${
-                      message.role === "user"
-                        ? "text-white/85"
-                        : "text-[var(--auth-accent)]"
-                    }`}
-                  >
-                    {message.senderName}
-                  </p>
-                ) : null}
-                <p
-                  className={`mt-1 text-[10px] ${
-                    message.role === "user" ? "text-white/70" : "text-[#9a9187]"
-                  }`}
-                >
-                  {message.timestamp}
-                </p>
-              </div>
-            </div>
-          ))
+          timeline.map((item) => {
+            if (item.kind === "day") {
+              return (
+                <div key={item.key} className="flex justify-center py-1">
+                  <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#6b645c] shadow-sm ring-1 ring-black/5">
+                    {item.label}
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <ChatMessageBubble key={item.message.id} message={item.message} />
+            );
+          })
         )}
         <div ref={messagesEndRef} className="h-px w-full shrink-0" aria-hidden />
         {error ? (
@@ -441,6 +398,84 @@ export function ChatConversation({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatMessageBubble({ message }: { message: ChatMessage }) {
+  return (
+    <div
+      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+    >
+      <div
+        className={`max-w-[min(88%,32rem)] px-3.5 py-2.5 text-sm shadow-sm ${
+          message.role === "user"
+            ? "rounded-[18px_18px_5px_18px] bg-[linear-gradient(135deg,var(--brand-primary),#e85a1a)] text-white"
+            : "rounded-[18px_18px_18px_5px] bg-white text-[#3f3a34] ring-1 ring-black/5"
+        }`}
+      >
+        {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+        {message.attachments && message.attachments.length > 0 ? (
+          <div className="mt-2 space-y-2">
+            {message.attachments.map((attachment) => {
+              const isImage = attachment.mimeType.startsWith("image/");
+              if (isImage && attachment.url) {
+                return (
+                  <a
+                    key={`${message.id}-${attachment.path}`}
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block overflow-hidden rounded-xl"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={attachment.url}
+                      alt={attachment.name}
+                      className="max-h-56 w-full object-cover"
+                    />
+                  </a>
+                );
+              }
+              return (
+                <a
+                  key={`${message.id}-${attachment.path}`}
+                  href={attachment.url ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                    message.role === "user"
+                      ? "bg-white/15 text-white"
+                      : "bg-[var(--surface-soft)] text-[var(--auth-text)]"
+                  }`}
+                >
+                  📎 {attachment.name}
+                </a>
+              );
+            })}
+          </div>
+        ) : null}
+        {message.senderName ? (
+          <p
+            className={`mt-1.5 text-[10px] font-semibold ${
+              message.role === "user"
+                ? "text-white/85"
+                : "text-[var(--auth-accent)]"
+            }`}
+          >
+            {message.senderName}
+          </p>
+        ) : null}
+        <p
+          className={`mt-1 text-[10px] ${
+            message.role === "user" ? "text-white/70" : "text-[#9a9187]"
+          }`}
+        >
+          {message.createdAt
+            ? formatSupportChatTimestamp(message.createdAt)
+            : message.timestamp}
+        </p>
       </div>
     </div>
   );

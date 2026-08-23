@@ -12,6 +12,7 @@ import { ChatConversation } from "@/features/support/components/ChatConversation
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
+import { supportChatTimestampsNow } from "@/lib/support/chat-time";
 
 interface SupportTicketSummary {
   id: string;
@@ -58,10 +59,7 @@ function greetingMessage(): ChatMessage {
     id: "support-greeting",
     role: "bot",
     text: `Hola. Este es el chat de ${SUPPORT_NAME}. Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá fotos/PDF. Te respondemos acá.`,
-    timestamp: new Date().toLocaleTimeString("es", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    ...supportChatTimestampsNow(),
     senderName: SUPPORT_NAME,
     senderKind: "system",
   };
@@ -254,10 +252,7 @@ export function SupportPageClient({
       id: `user-${Date.now()}`,
       role: "user",
       text: text || (files.length ? "📎 Adjunto" : ""),
-      timestamp: new Date().toLocaleTimeString("es", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      ...supportChatTimestampsNow(),
       attachments: files
         .filter((f) => f.type.startsWith("image/"))
         .map((file, index) => ({
