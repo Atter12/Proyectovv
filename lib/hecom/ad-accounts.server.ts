@@ -10,6 +10,7 @@ import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   peekHolisticBcAdvertisersCache,
+  resolveBcIdForHecomBucket,
   resolveBmBucketFromBcId,
   searchHolisticBcAdvertisers,
   searchHolisticBcAdvertisersByKeyword,
@@ -77,13 +78,28 @@ export function mapHecomTiktokToAdAccount(
     bmBucket,
   });
   const status =
-    statusKind === "suspended"
+    account.syncEnabled === false
+      ? "disabled"
+      : statusKind === "suspended"
       ? "disabled"
       : statusKind === "approved"
         ? "active"
         : account.syncEnabled
           ? "pending"
           : "disabled";
+
+  const thresholdInfo =
+    account.syncEnabled === false
+      ? "Pausada en Hecom (sync desactivado)"
+      : statusKind === "approved"
+        ? account.fee != null
+          ? `Aprobada · fee ${account.fee}%`
+          : "Aprobada en TikTok"
+        : statusKind === "suspended"
+          ? "Suspendida / baneada en TikTok"
+          : account.fee != null
+            ? `Fee Hecom ${account.fee}%`
+            : "Cuenta Hecom Club";
 
   return {
     id: `hecom:${cliente.id}:${account.advertiserId}`,
@@ -100,20 +116,113 @@ export function mapHecomTiktokToAdAccount(
     balance: 0,
     autoRecharge: false,
     rechargeThreshold: 0,
-    thresholdInfo:
-      statusKind === "approved"
-        ? account.fee != null
-          ? `Aprobada · fee ${account.fee}%`
-          : "Aprobada en TikTok"
-        : statusKind === "suspended"
-          ? "Suspendida / baneada en TikTok"
-          : account.fee != null
-            ? `Fee Hecom ${account.fee}%`
-            : "Cuenta Hecom Club",
+    thresholdInfo,
     timezone: "America/Lima",
     connectionLabel: "Hecom · TikTok Ads",
     isArchived: false,
   };
+}
+
+function buildAdAccountKeywordQueries(
+  cliente: HecomCliente,
+  hecomAccounts: HecomTiktokAccount[],
+): string[] {
+  const queries = new Set<string>();
+  const name = cliente.name.trim();
+  if (name.length >= 3) queries.add(name);
+
+  const tokens = normalizeAdvertiserName(name)
+    .split(" ")
+    .filter((t) => t.length >= 3);
+  if (tokens.length >= 2) {
+    queries.add(`${tokens[0]} ${tokens[1]}`);
+    queries.add(`${tokens[0]} ${tokens[1]} 10`);
+  }
+
+  for (const account of hecomAccounts) {
+    const advName = account.advertiserName?.trim();
+    if (advName && advName.length >= 3) queries.add(advName);
+    if (account.bmBucket === "10" && tokens.length >= 2) {
+      queries.add(`${tokens[0]} ${tokens[1]} 10.0`);
+    }
+  }
+
+  return [...queries].slice(0, 6);
+}
+
+async function mergeKeywordHits(input: {
+  cliente: HecomCliente;
+  hecomIds: Set<string>;
+  hecomAccounts: HecomTiktokAccount[];
+  liveById: Map<string, TikTokBcAdvertiser>;
+  nameMatchedExtras: TikTokBcAdvertiser[];
+}): Promise<number> {
+  const keywords = buildAdAccountKeywordQueries(
+    input.cliente,
+    input.hecomAccounts,
+  );
+  let totalHits = 0;
+
+  for (const keyword of keywords) {
+    const keywordHits = await searchHolisticBcAdvertisersByKeyword({
+      keyword,
+    }).catch(() => [] as TikTokBcAdvertiser[]);
+    totalHits += keywordHits.length;
+
+    for (const row of keywordHits) {
+      if (!input.liveById.has(row.advertiserId)) {
+        input.liveById.set(row.advertiserId, row);
+      }
+      const belongs =
+        input.hecomIds.has(row.advertiserId) ||
+        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
+      if (!belongs) continue;
+      if (input.hecomIds.has(row.advertiserId)) continue;
+      if (
+        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
+      ) {
+        input.nameMatchedExtras.push(row);
+      }
+    }
+  }
+
+  const bmBuckets = [
+    ...new Set(
+      input.hecomAccounts
+        .map((a) => a.bmBucket?.trim())
+        .filter((b): b is string => Boolean(b)),
+    ),
+  ];
+  for (const bucket of bmBuckets) {
+    const bcId = resolveBcIdForHecomBucket(bucket);
+    const focalKeyword =
+      input.hecomAccounts
+        .find((a) => a.bmBucket === bucket)
+        ?.advertiserName?.trim() || input.cliente.name.trim();
+    if (focalKeyword.length < 3) continue;
+    const focalHits = await searchHolisticBcAdvertisersByKeyword({
+      keyword: focalKeyword,
+      bcIds: [bcId],
+    }).catch(() => [] as TikTokBcAdvertiser[]);
+    totalHits += focalHits.length;
+    for (const row of focalHits) {
+      if (!input.liveById.has(row.advertiserId)) {
+        input.liveById.set(row.advertiserId, row);
+      }
+      const belongs =
+        input.hecomIds.has(row.advertiserId) ||
+        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
+      if (!belongs) continue;
+      if (input.hecomIds.has(row.advertiserId)) continue;
+      if (
+        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
+      ) {
+        input.nameMatchedExtras.push(row);
+      }
+    }
+  }
+
+  return totalHits;
 }
 
 export type HecomAdAccountsLoadSpeed = "fast" | "live";
@@ -198,9 +307,8 @@ async function getHecomClienteAdAccountsOverviewImpl(
     return { cliente, accounts: [], summary: emptySummary };
   }
 
-  const hecomAccounts = resolveHecomAccounts(cliente).filter(
-    (account) => account.syncEnabled !== false,
-  );
+  const allHecomAccounts = resolveHecomAccounts(cliente);
+  const hecomAccounts = allHecomAccounts;
   const hecomIds = new Set(
     hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
   );
@@ -232,25 +340,13 @@ async function getHecomClienteAdAccountsOverviewImpl(
       });
     }
 
-    // Keyword en los 3 BM: cubre cuentas fuera del listado paginado (ej. BM 10).
-    const keywordHits = await searchHolisticBcAdvertisersByKeyword({
-      keyword: cliente.name.trim(),
-    }).catch(() => [] as TikTokBcAdvertiser[]);
-    keywordHitCount = keywordHits.length;
-
-    for (const row of keywordHits) {
-      if (!liveById.has(row.advertiserId)) {
-        liveById.set(row.advertiserId, row);
-      }
-      const belongs =
-        hecomIds.has(row.advertiserId) ||
-        advertiserMatchesCliente(row.advertiserName, cliente.name);
-      if (!belongs) continue;
-      if (hecomIds.has(row.advertiserId)) continue;
-      if (!nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)) {
-        nameMatchedExtras.push(row);
-      }
-    }
+    keywordHitCount = await mergeKeywordHits({
+      cliente,
+      hecomIds,
+      hecomAccounts,
+      liveById,
+      nameMatchedExtras,
+    });
 
     if (live.length > 0) {
       // Keyword search suspendidas (modo live / Pagos).

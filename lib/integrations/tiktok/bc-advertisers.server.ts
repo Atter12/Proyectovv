@@ -486,12 +486,17 @@ export async function searchHolisticBcAdvertisers(input: {
 export async function searchHolisticBcAdvertisersByKeyword(input: {
   keyword: string;
   organizationId?: string;
+  /** Si se pasa, busca solo en esos BC (ej. BM 10). */
+  bcIds?: string[];
 }): Promise<TikTokBcAdvertiser[]> {
   const keyword = input.keyword.trim();
   if (keyword.length < 3) return [];
 
   const { token } = await resolveTikTokFinanceAccessToken(input.organizationId);
-  const bcIds = resolveBcIds();
+  const bcIds =
+    input.bcIds?.length && input.bcIds.every(Boolean)
+      ? input.bcIds
+      : resolveBcIds();
   const byId = new Map<string, TikTokBcAdvertiser>();
 
   await Promise.all(
