@@ -5,7 +5,9 @@ import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { cn } from "@/lib/cn";
 import { supportMock } from "@/features/support/mocks/support.mock";
+import { supportFaqForPersona } from "@/features/support/lib/support-faq-for-persona";
 import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
@@ -74,14 +76,28 @@ function pickActiveTicket(tickets: SupportTicketSummary[]): SupportTicketSummary
 }
 
 /** FAQ Holistic (renombre visual sin “Default”). */
-const holisticFaqCategories = supportMock.categories.map((category) => ({
-  ...category,
-  title: category.title
-    .replace(/Default Media/gi, "Ads Holistic")
-    .replace(/Default/gi, "Holistic"),
-}));
+function mapFaqCategories(persona: DashboardPersona) {
+  return supportFaqForPersona(supportMock, persona).categories.map((category) => ({
+    ...category,
+    title: category.title
+      .replace(/Default Media/gi, "Ads Holistic")
+      .replace(/Default/gi, "Holistic"),
+  }));
+}
 
-export function SupportPageClient() {
+export function SupportPageClient({
+  persona = "cliente",
+}: {
+  persona?: DashboardPersona;
+}) {
+  const faqConfig = useMemo(
+    () => supportFaqForPersona(supportMock, persona),
+    [persona],
+  );
+  const holisticFaqCategories = useMemo(
+    () => mapFaqCategories(persona),
+    [persona],
+  );
   const [panel, setPanel] = useState<PanelMode>("chat");
   const [mobileShowChat, setMobileShowChat] = useState(true);
 
@@ -102,7 +118,7 @@ export function SupportPageClient() {
   const selectedCategory = holisticFaqCategories.find(
     (c) => c.id === selectedCategoryId,
   );
-  const categoryArticles = supportMock.articles
+  const categoryArticles = faqConfig.articles
     .filter((a) => a.categoryId === selectedCategoryId)
     .map((article) => ({
       ...article,
@@ -117,7 +133,7 @@ export function SupportPageClient() {
     const q = faqQuery.trim().toLowerCase();
     if (!q) return holisticFaqCategories;
     return holisticFaqCategories.filter((category) => {
-      const articles = supportMock.articles.filter(
+      const articles = faqConfig.articles.filter(
         (a) => a.categoryId === category.id,
       );
       return (
@@ -129,7 +145,7 @@ export function SupportPageClient() {
         )
       );
     });
-  }, [faqQuery]);
+  }, [faqQuery, faqConfig.articles, holisticFaqCategories]);
 
   const openTicket = useCallback(async (ticket: SupportTicketSummary) => {
     setTicketId(ticket.id);

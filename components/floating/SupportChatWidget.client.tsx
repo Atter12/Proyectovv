@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { supportMock } from "@/features/support/mocks/support.mock";
+import { supportFaqForPersona } from "@/features/support/lib/support-faq-for-persona";
 import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ChatHome } from "@/features/support/components/ChatHome";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { ChatFaqCategories } from "@/features/support/components/ChatFaqCategories";
@@ -15,6 +17,7 @@ interface SupportChatWidgetProps {
   isOpen: boolean;
   onToggle: () => void;
   onOpenChange: (open: boolean) => void;
+  persona?: DashboardPersona;
 }
 
 interface SupportTicketSummary {
@@ -58,7 +61,12 @@ export function SupportChatWidget({
   isOpen,
   onToggle,
   onOpenChange,
+  persona = "cliente",
 }: SupportChatWidgetProps) {
+  const faqConfig = useMemo(
+    () => supportFaqForPersona(supportMock, persona),
+    [persona],
+  );
   const [view, setView] = useState<SupportView>("home");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
@@ -70,13 +78,13 @@ export function SupportChatWidget({
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedCategory = supportMock.categories.find(
+  const selectedCategory = faqConfig.categories.find(
     (c) => c.id === selectedCategoryId,
   );
-  const categoryArticles = supportMock.articles.filter(
+  const categoryArticles = faqConfig.articles.filter(
     (a) => a.categoryId === selectedCategoryId,
   );
-  const selectedArticle = supportMock.articles.find(
+  const selectedArticle = faqConfig.articles.find(
     (a) => a.id === selectedArticleId,
   );
 
@@ -216,8 +224,8 @@ export function SupportChatWidget({
       case "faqCategories":
         return (
           <ChatFaqCategories
-            brandName={supportMock.brandName}
-            categories={supportMock.categories}
+            brandName={faqConfig.brandName}
+            categories={faqConfig.categories}
             onSelectCategory={(id) => {
               setSelectedCategoryId(id);
               setView("faqCategoryDetail");
@@ -247,9 +255,9 @@ export function SupportChatWidget({
       default:
         return (
           <ChatHome
-            brandName={supportMock.brandName}
-            poweredByLabel={supportMock.poweredByLabel}
-            categories={supportMock.categories}
+            brandName={faqConfig.brandName}
+            poweredByLabel={faqConfig.poweredByLabel}
+            categories={faqConfig.categories}
             onOpenConversation={openConversation}
             onOpenFaqCategories={() => setView("faqCategories")}
             onSelectCategory={(id) => {

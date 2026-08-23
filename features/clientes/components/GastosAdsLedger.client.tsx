@@ -65,10 +65,10 @@ export function GastosAdsLedger({
     <CrmPanel
       title={title}
       subtitle={panelSubtitle}
-      className="flex h-full flex-col overflow-hidden"
+      className="flex h-full flex-col overflow-hidden [&>div:first-child]:overflow-visible"
       action={
         sorted.length > 0 ? (
-          <div className="w-full min-w-[220px] sm:w-[248px]">
+          <div className="relative z-30 w-full min-w-[220px] sm:w-[248px]">
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}

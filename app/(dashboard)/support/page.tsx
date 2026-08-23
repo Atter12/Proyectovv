@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 import { SupportPageClient } from "@/features/support/components/SupportPageClient.client";
 import { GerenteSupportInbox } from "@/features/support/components/GerenteSupportInbox.client";
 
@@ -13,6 +14,11 @@ export default async function SupportPage() {
     role: session.role,
   });
   const isGerenteInbox = funding.isStaff || funding.isSuperAdmin;
+  const persona: DashboardPersona = funding.isSuperAdmin
+    ? "super_admin"
+    : funding.isStaff
+      ? "gerente"
+      : "cliente";
 
   return (
     <Suspense
@@ -22,7 +28,7 @@ export default async function SupportPage() {
         </div>
       }
     >
-      {isGerenteInbox ? <GerenteSupportInbox /> : <SupportPageClient />}
+      {isGerenteInbox ? <GerenteSupportInbox /> : <SupportPageClient persona={persona} />}
     </Suspense>
   );
 }

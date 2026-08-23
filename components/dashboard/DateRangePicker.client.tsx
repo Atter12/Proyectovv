@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 
@@ -95,6 +95,32 @@ function isBetween(ymd: string, start: string, end: string): boolean {
   return ymd >= lo && ymd <= hi;
 }
 
+function monthLabel(ymd: string): string {
+  const date = parseYmd(ymd);
+  return `${date.getUTCFullYear()} ${MONTHS_ES[date.getUTCMonth()]}`;
+}
+
+function NavButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-[15px] font-medium text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
+    >
+      {children}
+    </button>
+  );
+}
+
 interface DateRangePickerProps {
   startDate: string;
   endDate: string;
@@ -125,7 +151,9 @@ export function DateRangePicker({
       setDraftStart(startDate);
       setDraftEnd(endDate);
       setPickingEnd(false);
+      return;
     }
+    setAnchorMonth(monthStart(startDate));
   }, [open, startDate, endDate]);
 
   useEffect(() => {
@@ -189,16 +217,11 @@ export function DateRangePicker({
     setOpen(false);
   }
 
-  function monthLabel(ymd: string): string {
-    const date = parseYmd(ymd);
-    return `${date.getUTCFullYear()} ${MONTHS_ES[date.getUTCMonth()]}`;
-  }
-
   function renderMonth(monthYmd: string) {
     const cells = buildMonthGrid(monthYmd);
     return (
-      <div className="min-w-0 flex-1">
-        <p className="mb-2 text-center text-[12px] font-semibold text-[var(--auth-text)]">
+      <div className="min-w-[220px] flex-1">
+        <p className="mb-2 text-center text-[12px] font-semibold text-[var(--auth-text)] sm:hidden">
           {monthLabel(monthYmd)}
         </p>
         <div className="grid grid-cols-7 gap-0.5">
@@ -211,12 +234,9 @@ export function DateRangePicker({
             </span>
           ))}
           {cells.map((cell) => {
-            const selected =
-              cell.ymd === draftStart || cell.ymd === draftEnd;
+            const selected = cell.ymd === draftStart || cell.ymd === draftEnd;
             const inRange =
-              draftStart &&
-              draftEnd &&
-              isBetween(cell.ymd, draftStart, draftEnd);
+              draftStart && draftEnd && isBetween(cell.ymd, draftStart, draftEnd);
             const disabled =
               (minDate != null && cell.ymd < minDate) ||
               (maxDate != null && cell.ymd > maxDate);
@@ -232,13 +252,11 @@ export function DateRangePicker({
                   !cell.inMonth && "text-[var(--auth-text-soft)]/70",
                   cell.inMonth && !disabled && "text-[var(--auth-text)]",
                   disabled && "cursor-not-allowed opacity-35",
-                  inRange && !selected && "bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]",
-                  selected &&
-                    "bg-[var(--auth-accent)] font-semibold text-white",
-                  !selected &&
-                    !inRange &&
-                    !disabled &&
-                    "hover:bg-[var(--auth-bg)]",
+                  inRange &&
+                    !selected &&
+                    "bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]",
+                  selected && "bg-[var(--auth-accent)] font-semibold text-white",
+                  !selected && !inRange && !disabled && "hover:bg-[var(--auth-bg)]",
                 )}
               >
                 {Number(cell.ymd.slice(8, 10))}
@@ -282,7 +300,7 @@ export function DateRangePicker({
         <div
           role="dialog"
           aria-label="Seleccionar rango de fechas"
-          className="absolute left-0 right-0 z-50 mt-2 w-full overflow-hidden rounded-xl border border-[var(--auth-border)] bg-white shadow-[0_18px_40px_rgb(28_25_23_/_0.14)] sm:left-auto sm:right-0 sm:w-[min(100vw-2rem,640px)]"
+          className="absolute right-0 z-[60] mt-2 w-[min(100vw-1.5rem,640px)] overflow-hidden rounded-xl border border-[var(--auth-border)] bg-white shadow-[0_18px_40px_rgb(28_25_23_/_0.14)]"
         >
           <div className="flex flex-col sm:flex-row">
             <div className="border-b border-[var(--auth-divider)] p-2 sm:w-[148px] sm:border-b-0 sm:border-r">
@@ -299,30 +317,52 @@ export function DateRangePicker({
             </div>
 
             <div className="min-w-0 flex-1 p-3">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAnchorMonth(addMonths(anchorMonth, -1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--auth-text-muted)] hover:bg-[var(--auth-bg)]"
-                  aria-label="Mes anterior"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAnchorMonth(addMonths(anchorMonth, 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--auth-text-muted)] hover:bg-[var(--auth-bg)]"
-                  aria-label="Mes siguiente"
-                >
-                  ›
-                </button>
+              <div className="mb-3 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-0.5">
+                  <NavButton
+                    label="Año anterior"
+                    onClick={() => setAnchorMonth(addMonths(anchorMonth, -12))}
+                  >
+                    «
+                  </NavButton>
+                  <NavButton
+                    label="Mes anterior"
+                    onClick={() => setAnchorMonth(addMonths(anchorMonth, -1))}
+                  >
+                    ‹
+                  </NavButton>
+                </div>
+
+                <p className="hidden px-2 text-center text-[12px] font-semibold text-[var(--auth-text)] sm:block">
+                  {monthLabel(leftMonth)}
+                  {monthKey(leftMonth) !== monthKey(rightMonth)
+                    ? ` · ${monthLabel(rightMonth)}`
+                    : ""}
+                </p>
+
+                <div className="flex items-center gap-0.5">
+                  <NavButton
+                    label="Mes siguiente"
+                    onClick={() => setAnchorMonth(addMonths(anchorMonth, 1))}
+                  >
+                    ›
+                  </NavButton>
+                  <NavButton
+                    label="Año siguiente"
+                    onClick={() => setAnchorMonth(addMonths(anchorMonth, 12))}
+                  >
+                    »
+                  </NavButton>
+                </div>
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
                 {renderMonth(leftMonth)}
-                {monthKey(leftMonth) !== monthKey(rightMonth)
-                  ? renderMonth(rightMonth)
-                  : null}
+                <div className="hidden sm:block">
+                  {monthKey(leftMonth) !== monthKey(rightMonth)
+                    ? renderMonth(rightMonth)
+                    : null}
+                </div>
               </div>
 
               <p className="mt-3 text-[11px] text-[var(--auth-text-muted)]">

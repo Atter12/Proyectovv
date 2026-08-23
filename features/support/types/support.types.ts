@@ -18,6 +18,8 @@ export interface SupportArticle {
   title: string;
   content: string;
   bullets: string[];
+  /** cliente | gerente | all (default all) */
+  audience?: "cliente" | "gerente" | "all";
 }
 
 export interface ChatAttachment {

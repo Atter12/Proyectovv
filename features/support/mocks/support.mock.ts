@@ -20,7 +20,7 @@ export const supportMock: SupportConfig = {
     {
       id: "empezar",
       title: "Empezar en Ads Holistic",
-      articleIds: ["que-es", "menu", "saldo-estimado"],
+      articleIds: ["que-es", "menu-cliente", "menu-gerente", "saldo-estimado"],
     },
     {
       id: "dinero",
@@ -29,6 +29,8 @@ export const supportMock: SupportConfig = {
         "como-recargar",
         "como-asignar",
         "recarga-bm-gerente",
+        "asignar-bm-gerente",
+        "cobro-hecom-gerente",
         "fee",
       ],
     },
@@ -63,15 +65,31 @@ export const supportMock: SupportConfig = {
       ],
     },
     {
-      id: "menu",
+      id: "menu-cliente",
       categoryId: "empezar",
       title: "¿Por dónde empiezo?",
+      audience: "cliente",
       content:
-        "Entrá con tu correo (OTP). En el menú izquierdo tenés todo. Si sos cliente, solo ves tus datos. Si sos gerente, primero elegís el cliente del CRM.",
+        "Entrá con tu correo (OTP). En el menú izquierdo ves solo tus datos: Resumen, Cuentas ads, Pagos y este chat de soporte.",
       bullets: [
-        "Cliente: Resumen → Cuentas ads → Pagos",
-        "Gerente: Clientes → elegir persona → operar",
-        "Saldo del sidebar = saldo estimado Hecom de ese cliente",
+        "Resumen → gastos, cobros y saldo estimado",
+        "Cuentas ads → tus advertisers TikTok",
+        "Pagos → recargar cartera y asignar a una cuenta",
+        "Saldo del sidebar = saldo estimado Hecom de tu cuenta",
+      ],
+    },
+    {
+      id: "menu-gerente",
+      categoryId: "empezar",
+      title: "¿Por dónde empiezo como gerente?",
+      audience: "gerente",
+      content:
+        "Entrá con tu correo de staff. Primero elegís el cliente en Clientes; después operás Pagos, Cuentas ads y Resumen con ese scope.",
+      bullets: [
+        "Clientes → elegir persona del CRM",
+        "Pagos → recarga BM o revisar historial del cliente",
+        "Cuentas ads → advertisers mapeados + match TikTok",
+        "Inbox Soporte → tickets de todos los clientes",
       ],
     },
     {
@@ -91,6 +109,7 @@ export const supportMock: SupportConfig = {
       id: "como-recargar",
       categoryId: "dinero",
       title: "¿Cómo recargo?",
+      audience: "cliente",
       content:
         "Como cliente: andá a Pagos → Recargar cartera (Stripe / método disponible). Elegís el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tenés saldo en cartera para asignar a una cuenta ads.",
       bullets: [
@@ -104,6 +123,7 @@ export const supportMock: SupportConfig = {
       id: "como-asignar",
       categoryId: "dinero",
       title: "¿Cómo asigno saldo a una cuenta?",
+      audience: "cliente",
       content:
         "En Pagos, sección Asignar: elegí una cuenta Aprobada, monto y confirmá. Eso mueve presupuesto hacia el advertiser TikTok. Solo aparecen cuentas activas/aprobadas (no las suspendidas).",
       bullets: [
@@ -116,14 +136,43 @@ export const supportMock: SupportConfig = {
     {
       id: "recarga-bm-gerente",
       categoryId: "dinero",
-      title: "Gerente: recargar desde el Business Center",
+      title: "Recargar desde el Business Center",
+      audience: "gerente",
       content:
-        "El gerente no usa Stripe del cliente. En Pagos (modo BM) recarga cash del Business Center TikTok directo a la cuenta ads. Eso suma presupuesto en TikTok; no reduce la deuda neta Hecom del cliente.",
+        "En Pagos (modo BM) recargás cash del Business Center TikTok directo a la cuenta ads del cliente. Eso suma presupuesto en TikTok; no reduce la deuda neta Hecom del cliente.",
       bullets: [
         "Elegí el cliente en Clientes",
         "Pagos → Recargar desde BM",
         "Cuenta Aprobada + monto (≥ 10 USD típico)",
-        "La deuda Hecom solo baja con cobro del cliente",
+        "La deuda Hecom solo baja con cobro registrado del cliente",
+      ],
+    },
+    {
+      id: "asignar-bm-gerente",
+      categoryId: "dinero",
+      title: "Asignar saldo como gerente",
+      audience: "gerente",
+      content:
+        "Podés mover presupuesto entre cuentas Aprobadas del cliente desde Pagos. Solo aparecen advertisers activos en TikTok (no suspendidas).",
+      bullets: [
+        "Cliente elegido en el rail",
+        "Pagos → Asignar / lista de cuentas",
+        "Solo cuentas Aprobadas",
+        "Si falta una cuenta: revisá mapeo Hecom o Cuentas ads",
+      ],
+    },
+    {
+      id: "cobro-hecom-gerente",
+      categoryId: "dinero",
+      title: "Cobros Hecom vs recarga BM",
+      audience: "gerente",
+      content:
+        "Recargar BM sube presupuesto TikTok pero no registra cobro en Hecom. Para bajar deuda neta del cliente necesitás un cobro en el CRM (transferencia, Stripe del cliente, etc.).",
+      bullets: [
+        "BM → presupuesto TikTok del advertiser",
+        "Cobro Hecom → baja saldo/deuda en CRM",
+        "Resumen y Pagos leen la misma fórmula Hecom",
+        "No mezclar: BM no reemplaza un cobro",
       ],
     },
     {
@@ -179,6 +228,7 @@ export const supportMock: SupportConfig = {
       id: "solo-lectura",
       categoryId: "cuentas",
       title: "¿Por qué dice solo lectura?",
+      audience: "cliente",
       content:
         "El cliente ve y opera pagos; no administra el Business Center ni crea advertisers desde Holistic. Quien mapea IDs y recarga BM es el equipo (gerente).",
       bullets: [

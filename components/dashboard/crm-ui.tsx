@@ -287,10 +287,14 @@ export function CrmPanel({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-lg border border-[var(--auth-border)] bg-white ${className}`}
+      className={`rounded-lg border border-[var(--auth-border)] bg-white ${className}`}
     >
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-4 py-3.5">
+        <div
+          className={`relative flex flex-wrap items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-4 py-3.5 ${
+            action ? "z-20 overflow-visible" : ""
+          }`}
+        >
           <div className="min-w-0">
             <h2 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
               {title}

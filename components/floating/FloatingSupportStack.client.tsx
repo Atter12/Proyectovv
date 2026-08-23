@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { routes } from "@/config/routes";
+import type { DashboardPersona } from "@/types/dashboard-persona";
 import { SupportChatWidget } from "./SupportChatWidget.client";
 
 const OnboardingWidgetLoader = dynamic(
@@ -15,7 +16,11 @@ const OnboardingWidgetLoader = dynamic(
   { ssr: false },
 );
 
-export function FloatingSupportStack() {
+export function FloatingSupportStack({
+  persona = "cliente",
+}: {
+  persona?: DashboardPersona;
+}) {
   const [chatOpen, setChatOpen] = useState(false);
   const pathname = usePathname();
   const onSupportPage =
@@ -46,6 +51,7 @@ export function FloatingSupportStack() {
           isOpen={chatOpen}
           onToggle={() => setChatOpen(true)}
           onOpenChange={setChatOpen}
+          persona={persona}
         />
       </div>
     </div>

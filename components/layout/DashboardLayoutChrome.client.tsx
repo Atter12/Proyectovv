@@ -102,7 +102,7 @@ export function DashboardLayoutChrome({
         </main>
       </div>
 
-      <FloatingSupportStack />
+      <FloatingSupportStack persona={persona} />
     </>
   );
 }
