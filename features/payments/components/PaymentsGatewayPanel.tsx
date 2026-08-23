@@ -1,4 +1,4 @@
-﻿import { PaymentOverviewStats } from "./PaymentOverviewStats";
+import { PaymentOverviewStats } from "./PaymentOverviewStats";
 import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
@@ -120,8 +120,8 @@ export async function PaymentsGatewayPanel({
           "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
       }
 
-      // Si el SA ya fondeó en otra org, copiá filas a la org del gerente.
-      if (capabilities.canAgencyBmFund && approvedIds.length > 0) {
+      // Asegurar filas en la org del usuario (gerente o cliente con cliente Hecom).
+      if (approvedIds.length > 0) {
         ensured = await ensureAdvertisersInOrganizationForAllocation({
           organizationId: session.organizationId,
           clienteId: hecomClienteId,
@@ -172,15 +172,10 @@ export async function PaymentsGatewayPanel({
     }
   }
 
-  // Staff/gerente: leer con service role para no quedar en 0 por org RLS/viewer.
+  // Con cliente Hecom: leer con service role y scopear (evita pool vacío por RLS/viewer).
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
-  if (capabilities.canAgencyBmFund && session.organizationId) {
-    // Re-ensure if overview tenía IDs pero sync falló (org del gerente vacía).
-    if (
-      pool.length === 0 &&
-      approvedIds.length > 0 &&
-      hecomClienteId
-    ) {
+  if (session.organizationId && hecomClienteId) {
+    if (pool.length === 0 && approvedIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
         organizationId: session.organizationId,
         clienteId: hecomClienteId,
@@ -190,6 +185,13 @@ export async function PaymentsGatewayPanel({
       });
     }
 
+    const adminPool = await listOrganizationAdAccountsForAllocation(
+      session.organizationId,
+    );
+    if (adminPool.length > 0) {
+      pool = adminPool;
+    }
+  } else if (capabilities.canAgencyBmFund && session.organizationId) {
     const adminPool = await listOrganizationAdAccountsForAllocation(
       session.organizationId,
     );
@@ -310,13 +312,12 @@ export async function PaymentsGatewayPanel({
               Sin cuentas Aprobadas para asignar
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-              Solo listamos advertisers en estado{" "}
+              Listamos cuentas{" "}
               <span className="font-semibold text-[var(--auth-text)]">
-                Aprobado
+                aprobadas en TikTok
               </span>{" "}
-              en TikTok. Si {clienteName ?? "este cliente"} tiene cuentas
-              suspendidas, no aparecen acá. Probá recargar o mapear el
-              advertiser_id en Hecom.
+              o mapeadas en Hecom con sync activo. Las suspendidas no aparecen.
+              Si falta una BM, revisá el advertiser_id en Hecom Club.
             </p>
             <Link
               href={routes.adAccounts}

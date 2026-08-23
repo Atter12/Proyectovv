@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run lint && npm run typecheck"
+    "validate": "npm run lint && npm run typecheck",
+    "audit:hecom": "node --env-file=.env.local scripts/audit-hecom-clientes-full.mjs",
+    "audit:hecom:apply-safe": "node --env-file=.env.local scripts/apply-hecom-stale-fixes.mjs --apply",
+    "audit:hecom:dry-run": "node --env-file=.env.local scripts/apply-hecom-stale-fixes.mjs --dry-run"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

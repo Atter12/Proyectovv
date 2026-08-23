@@ -15,7 +15,10 @@ export function filterPaymentAccounts(
     const matchesSearch =
       search === "" ||
       account.name.toLowerCase().includes(q) ||
-      account.id.toLowerCase().includes(q);
+      account.id.toLowerCase().includes(q) ||
+      (account.externalAccountId ?? "").toLowerCase().includes(q) ||
+      (account.bmLabel ?? "").toLowerCase().includes(q) ||
+      (account.externalAccountName ?? "").toLowerCase().includes(q);
     const matchesStatus =
       status === "all" || account.status.toLowerCase() === status;
     return matchesSearch && matchesStatus;

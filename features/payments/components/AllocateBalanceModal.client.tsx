@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -139,6 +139,11 @@ export function AllocateBalanceModal({
           <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {targetAccount.name}
           </p>
+          {targetAccount.bmLabel ? (
+            <span className="mt-1.5 inline-flex rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
+              {targetAccount.bmLabel}
+            </span>
+          ) : null}
           <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
             Saldo actual: {formatMoney(targetAccount.balance)}
           </p>
