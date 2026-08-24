@@ -22,14 +22,14 @@ export type TikTokBcAdvertiser = {
 const DEFAULT_HOLISTIC_BC_IDS = [
   "7575005779271614480", // BM Entreprise 200
   "7564426417577148433", // BM Entreprise 30
-  "7561222896295837712", // BM Entreprise 10
+  "7652451146933698576", // BM 10.0 USD Nuevo
 ];
 
 /** bm_bucket Hecom → BC ID real */
 export const HECOM_BM_BUCKET_TO_BC: Record<string, string> = {
   "200": "7575005779271614480",
   "30": "7564426417577148433",
-  "10": "7561222896295837712",
+  "10": "7652451146933698576",
 };
 
 /** BC ID TikTok → bm_bucket Hecom ("10" | "30" | "200"). */

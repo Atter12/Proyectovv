@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const BC_IDS = [
   "7575005779271614480",
   "7564426417577148433",
-  "7561222896295837712",
+  "7652451146933698576",
 ];
 
 function normalize(v) {
@@ -144,7 +144,7 @@ async function fetchAllAdvertisers(token, base) {
 function bmBucketFromBc(bcId) {
   if (bcId === "7575005779271614480") return "200";
   if (bcId === "7564426417577148433") return "30";
-  if (bcId === "7561222896295837712") return "10";
+  if (bcId === "7652451146933698576") return "10";
   return "";
 }
 

@@ -22,13 +22,13 @@ import { loadHecomCrm } from "./lib/hecom-http.mjs";
 const BC_IDS = [
   "7575005779271614480",
   "7564426417577148433",
-  "7561222896295837712",
+  "7652451146933698576",
 ];
 
 const BM_FROM_BC = {
   "7575005779271614480": "200",
   "7564426417577148433": "30",
-  "7561222896295837712": "10",
+  "7652451146933698576": "10",
 };
 
 function normalize(v) {
@@ -95,7 +95,7 @@ function csvEscape(value) {
   return s;
 }
 
-const BM10_BC_ID = "7561222896295837712";
+const BM10_BC_ID = "7652451146933698576";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

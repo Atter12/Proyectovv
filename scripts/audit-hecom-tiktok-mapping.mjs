@@ -8,7 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 const BC_IDS = [
   "7575005779271614480",
   "7564426417577148433",
-  "7561222896295837712",
+  "7652451146933698576",
 ];
 
 function normalize(v) {
