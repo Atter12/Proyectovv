@@ -13,6 +13,7 @@ import {
   type HecomCobroRow,
 } from "@/lib/hecom/cliente-dashboard.server";
 import { GastosAdsLedger } from "@/features/clientes/components/GastosAdsLedger.client";
+import { CampaignSpendExplorer } from "@/features/clientes/components/CampaignSpendExplorer.client";
 
 export function ClienteScopedPayments({
   data,
@@ -22,7 +23,7 @@ export function ClienteScopedPayments({
   /** Gerente / path BM: copy de fondeo correcto. */
   staffMode?: boolean;
 }) {
-  const { cliente, summary, cobros, gastos } = data;
+  const { cliente, summary, cobros, gastos, campaignSpendRows, accounts } = data;
 
   const todayLima = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -118,6 +119,8 @@ export function ClienteScopedPayments({
         </div>
       </CrmMetricsStrip>
 
+      <CampaignSpendExplorer rows={campaignSpendRows} />
+
       <div className="grid gap-5 xl:grid-cols-2">
         <LedgerPanel
           title="Cobros / recargas"
@@ -157,7 +160,7 @@ export function ClienteScopedPayments({
           })}
         </LedgerPanel>
 
-        <GastosAdsLedger gastos={gastos} />
+        <GastosAdsLedger gastos={gastos} accounts={accounts} />
       </div>
     </div>
   );

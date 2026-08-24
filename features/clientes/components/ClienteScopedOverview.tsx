@@ -9,9 +9,12 @@ import {
   CrmQuickLinks,
   CrmScopeHero,
 } from "@/components/dashboard/crm-ui";
+import { CampaignSpendExplorer } from "@/features/clientes/components/CampaignSpendExplorer.client";
+import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
+  resolveBmForGasto,
 } from "@/lib/hecom/gasto-label";
 import {
   moneyUsd,
@@ -67,7 +70,7 @@ export function ClienteScopedOverview({
   data: HecomClienteDashboard;
   canChangeCliente?: boolean;
 }) {
-  const { cliente, summary, accounts, gastos } = data;
+  const { cliente, summary, accounts, gastos, campaignSpendRows } = data;
   const recentGastos = gastos.slice(0, 8);
   const debt = summary.saldoEstimado < 0;
   const activeAccounts = accounts.filter((a) => a.syncEnabled !== false).length;
@@ -129,6 +132,8 @@ export function ClienteScopedOverview({
         source={summary.dailySource}
       />
 
+      <CampaignSpendExplorer rows={campaignSpendRows} />
+
       <CrmQuickLinks
         links={[
           { href: routes.adAccounts, label: "Cuentas ads" },
@@ -139,7 +144,7 @@ export function ClienteScopedOverview({
 
       <div className="grid gap-5 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
-        <GastosPanel gastos={recentGastos} source={data.source} />
+        <GastosPanel gastos={recentGastos} accounts={accounts} source={data.source} />
       </div>
     </div>
   );
@@ -571,13 +576,25 @@ function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
   );
 }
 
+function bmMapFromAccounts(accounts: HecomTiktokAccount[]) {
+  const map = new Map<string, string | null>();
+  for (const account of accounts) {
+    map.set(account.advertiserId, formatBmBucketLabel(account.bmBucket));
+  }
+  return map;
+}
+
 function GastosPanel({
   gastos,
+  accounts,
   source,
 }: {
   gastos: HecomGastoRow[];
+  accounts: HecomTiktokAccount[];
   source: HecomClienteDashboard["source"];
 }) {
+  const bmByAdvertiser = bmMapFromAccounts(accounts);
+
   return (
     <CrmPanel
       title="Últimos gastos"
@@ -605,6 +622,7 @@ function GastosPanel({
         <ul className="max-h-[28rem] flex-1 overflow-y-auto sm:max-h-[24rem]">
           {gastos.map((row) => {
             const fecha = formatHecomFecha(row.fecha ?? row.mes);
+            const bm = resolveBmForGasto(row, bmByAdvertiser);
             const label = formatHecomGastoDisplay(row.camp, {
               notas: row.notas,
               fee: row.fee,
@@ -623,6 +641,11 @@ function GastosPanel({
                     {fecha ? (
                       <span className="rounded-full bg-[var(--auth-bg)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--auth-text-muted)]">
                         {fecha}
+                      </span>
+                    ) : null}
+                    {bm ? (
+                      <span className="rounded-full bg-[var(--auth-bg)] px-2 py-0.5 text-[10px] font-semibold text-[var(--auth-text)]">
+                        {bm}
                       </span>
                     ) : null}
                     {row.fee != null ? (

@@ -117,3 +117,27 @@ export function formatHecomFecha(value: string | null): string | null {
 export function getAdvertiserIdFromCamp(camp: string | null): string | null {
   return parseCampPlantilla(camp).advertiserId;
 }
+
+/** Campaign name from TikTok sync notes (`notas`). */
+export function getCampaignNameFromHecomNotas(notas: string | null): string | null {
+  return parseCampaignFromNotas(notas);
+}
+
+/** BM label from Hecom `gastos.camp` plantilla (pipe segment 3). */
+export function getBmFromHecomCamp(camp: string | null): string | null {
+  return parseCampPlantilla(camp).bm;
+}
+
+/** BM from camp plantilla, or from advertiser map when camp omits BM. */
+export function resolveBmForGasto(
+  row: { camp: string | null },
+  bmByAdvertiser?: Map<string, string | null>,
+): string | null {
+  const fromCamp = getBmFromHecomCamp(row.camp);
+  if (fromCamp) return fromCamp;
+  const advertiserId = getAdvertiserIdFromCamp(row.camp);
+  if (advertiserId && bmByAdvertiser?.has(advertiserId)) {
+    return bmByAdvertiser.get(advertiserId) ?? null;
+  }
+  return null;
+}

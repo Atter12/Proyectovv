@@ -10,6 +10,11 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
+import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
+import {
+  buildCampaignSpendFromGastos,
+  type HecomCampaignSpendRow,
+} from "@/lib/hecom/campaign-spend";
 import { getAdvertiserIdFromCamp } from "@/lib/hecom/gasto-label";
 import {
   createHecomAdminClient,
@@ -20,6 +25,7 @@ import { sortGastosByDateDesc } from "@/lib/hecom/gasto-date";
 import type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
 
 export type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
+export type { HecomCampaignSpendRow } from "@/lib/hecom/campaign-spend";
 export { moneyUsd } from "@/lib/format/money-usd";
 
 export type HecomCobroRow = {
@@ -60,6 +66,8 @@ export type HecomClienteDashboard = {
   cliente: HecomCliente;
   accounts: HecomTiktokAccount[];
   gastos: HecomGastoRow[];
+  /** Gasto por campaña × día (todas las BM del cliente). */
+  campaignSpendRows: HecomCampaignSpendRow[];
   cobros: HecomCobroRow[];
   creativosClientes: HecomCreativoCliente[];
   creativosProyectos: HecomCreativoProyecto[];
@@ -327,6 +335,80 @@ function spendMapFromSnapshotRows(
     byDate.set(key, (byDate.get(key) ?? 0) + spend);
   }
   return byDate;
+}
+
+const CAMPAIGN_SPEND_DAYS = 90;
+
+function bmMapFromAccounts(
+  accounts: HecomTiktokAccount[],
+): Map<string, string | null> {
+  const map = new Map<string, string | null>();
+  for (const account of accounts) {
+    map.set(
+      account.advertiserId,
+      formatBmBucketLabel(account.bmBucket),
+    );
+  }
+  return map;
+}
+
+async function loadCampaignSpendRows(
+  clientId: string,
+  accounts: HecomTiktokAccount[],
+  gastos: HecomGastoRow[],
+  cfgConfigured: boolean,
+): Promise<HecomCampaignSpendRow[]> {
+  const bmByAdvertiser = bmMapFromAccounts(accounts);
+  const today = calendarDateInTz();
+  const startDate = shiftCalendarDate(today, -(CAMPAIGN_SPEND_DAYS - 1));
+
+  if (cfgConfigured) {
+    try {
+      const hecom = createHecomAdminClient();
+      const { data, error } = await hecom
+        .from("tiktok_spend_snapshots")
+        .select(
+          "stat_date,spend,campaign_id,campaign_name,advertiser_id,client_id",
+        )
+        .eq("client_id", clientId)
+        .gte("stat_date", startDate)
+        .order("stat_date", { ascending: false })
+        .limit(8000);
+
+      if (!error && data && data.length > 0) {
+        const rows: HecomCampaignSpendRow[] = [];
+        for (const row of data as Array<Record<string, unknown>>) {
+          if (String(row.client_id ?? "") !== clientId) continue;
+          const date = dateKeyFromUnknown(row.stat_date);
+          if (!date) continue;
+          const spend = Number(row.spend ?? 0);
+          if (!Number.isFinite(spend) || spend <= 0) continue;
+          const advertiserId = row.advertiser_id
+            ? String(row.advertiser_id)
+            : null;
+          const campaignName =
+            String(row.campaign_name ?? "").trim() || "Sin nombre";
+          rows.push({
+            date,
+            campaignName,
+            campaignId: row.campaign_id ? String(row.campaign_id) : null,
+            spend: Math.round(spend * 100) / 100,
+            bm: advertiserId
+              ? (bmByAdvertiser.get(advertiserId) ?? null)
+              : null,
+            advertiserId,
+          });
+        }
+        if (rows.length > 0) return rows;
+      }
+    } catch {
+      // fallback a gastos
+    }
+  }
+
+  return buildCampaignSpendFromGastos(gastos, bmByAdvertiser).filter(
+    (row) => row.date >= startDate,
+  );
 }
 
 async function loadSnapshotSpendMap(
@@ -639,6 +721,7 @@ export const getHecomClienteDashboard = cache(
           cliente,
           accounts,
           gastos: [],
+          campaignSpendRows: [],
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
@@ -655,12 +738,16 @@ export const getHecomClienteDashboard = cache(
             scopeGastosToAdvertisers(live.gastos, advertiserIds),
           );
           const cobros = live.cobros;
-          const daily = await resolveDailySpend(clienteId, gastos, true);
+          const [daily, campaignSpendRows] = await Promise.all([
+            resolveDailySpend(clienteId, gastos, true),
+            loadCampaignSpendRows(clienteId, accounts, gastos, true),
+          ]);
           return {
             source: "hecom_live",
             cliente,
             accounts,
             gastos,
+            campaignSpendRows,
             cobros,
             creativosClientes: live.creativosClientes,
             creativosProyectos: live.creativosProyectos,
@@ -684,6 +771,7 @@ export const getHecomClienteDashboard = cache(
           cliente,
           accounts,
           gastos: [],
+          campaignSpendRows: [],
           cobros: [],
           creativosClientes: [],
           creativosProyectos: [],
@@ -703,12 +791,19 @@ export const getHecomClienteDashboard = cache(
       const creativosProyectos =
         filtered.creativosProyectos.map(mapCreativoProyecto);
       const daily = await resolveDailySpend(clienteId, gastos, cfg.configured);
+      const campaignSpendRows = await loadCampaignSpendRows(
+        clienteId,
+        accounts,
+        gastos,
+        cfg.configured,
+      );
 
       return {
         source: "hecom_backup",
         cliente,
         accounts,
         gastos,
+        campaignSpendRows,
         cobros,
         creativosClientes,
         creativosProyectos,
