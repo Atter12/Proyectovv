@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SignUp } from "@clerk/nextjs";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { ClerkMountGate } from "@/features/auth/components/ClerkMountGate.client";
-import { clerkConfigured, clerkRoutes } from "@/lib/auth/clerk";
+import { clerkConfigured, clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 
@@ -21,6 +22,10 @@ export default function ClerkSignUpPage() {
         </Link>
       </main>
     );
+  }
+
+  if (!clerkLoginEnabled()) {
+    redirect(routes.login);
   }
 
   return (

@@ -6,7 +6,7 @@ import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
-import { clerkConfigured, clerkRoutes } from "@/lib/auth/clerk";
+import { clerkConfigured, clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { holisticClerkAppearance } from "@/lib/auth/clerk-appearance";
 import { holisticClerkLocalization } from "@/lib/auth/clerk-localization";
 import { routes } from "@/config/routes";
@@ -62,7 +62,7 @@ export default function RootLayout({
   assertProductionSecrets();
 
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const clerkEnabled = clerkConfigured();
+  const clerkEnabled = clerkConfigured() && clerkLoginEnabled();
 
   const body = (
     <>
@@ -98,6 +98,11 @@ export default function RootLayout({
             signInFallbackRedirectUrl={clerkRoutes.complete}
             signUpFallbackRedirectUrl={clerkRoutes.complete}
             afterSignOutUrl={routes.login}
+            allowedRedirectOrigins={[
+              "https://www.adsholistic.com",
+              "https://adsholistic.com",
+              "http://localhost:3000",
+            ]}
           >
             {body}
           </ClerkProvider>

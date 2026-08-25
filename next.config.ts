@@ -1,17 +1,31 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { clerkCspHosts } from "./lib/auth/clerk";
 
 const isProduction = process.env.NODE_ENV === "production";
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://cdn.simpleicons.org https://images.unsplash.com https://*.supabase.co",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  [
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    ...clerkCspHosts.scripts,
+  ].join(" "),
+  [
+    "style-src 'self' 'unsafe-inline'",
+    ...clerkCspHosts.styles,
+  ].join(" "),
+  [
+    "img-src 'self' data: blob: https://cdn.simpleicons.org https://images.unsplash.com https://*.supabase.co",
+    ...clerkCspHosts.images,
+  ].join(" "),
+  ["font-src 'self' data:", ...clerkCspHosts.fonts].join(" "),
+  [
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    ...clerkCspHosts.connect,
+  ].join(" "),
+  ["frame-src 'self'", ...clerkCspHosts.frames].join(" "),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

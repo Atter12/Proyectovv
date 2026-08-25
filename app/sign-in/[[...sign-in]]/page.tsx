@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SignIn } from "@clerk/nextjs";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { ClerkMountGate } from "@/features/auth/components/ClerkMountGate.client";
-import { clerkConfigured, clerkRoutes } from "@/lib/auth/clerk";
+import {
+  clerkConfigured,
+  clerkLoginEnabled,
+  clerkRoutes,
+} from "@/lib/auth/clerk";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 
@@ -25,6 +30,11 @@ export default function ClerkSignInPage() {
         </Link>
       </main>
     );
+  }
+
+  // Prod sin satélite DNS/env → OTP (evita pantalla en blanco + clerk.impoerp.com).
+  if (!clerkLoginEnabled()) {
+    redirect(routes.login);
   }
 
   return (

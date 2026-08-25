@@ -13,7 +13,7 @@ import { routes } from "@/config/routes";
 import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
 import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
 import { userCanAccessDashboard } from "@/lib/auth/dashboard-access";
-import { clerkConfigured } from "@/lib/auth/clerk";
+import { clerkLoginEnabled } from "@/lib/auth/clerk";
 import { updateSession } from "@/lib/supabase/middleware";
 
 function buildAdminDestination(request: NextRequest): string {
@@ -196,7 +196,7 @@ const clerkHandler = clerkMiddleware(async (_auth, request) => {
 });
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (clerkConfigured()) {
+  if (clerkLoginEnabled()) {
     return clerkHandler(request, event);
   }
   return runHolisticProxy(request);
