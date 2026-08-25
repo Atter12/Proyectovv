@@ -41,6 +41,7 @@ function tokensMatch(clientTokens: string[], adv: string): boolean {
 /**
  * Ej. cliente "Adriana" ↔ "Adriana 200 USD".
  * "Jhosdan Rodrigez Calderon" ↔ "Jhosdan Rodriguez 200 USD".
+ * "Jair Santiago Arquinigo" ↔ "Jair Santiago 200.0 USD - Agencia" (sin apellido en TikTok).
  * Con nombre+apellido exige ambos tokens (evita Adriano↔Adriana).
  */
 export function advertiserMatchesCliente(
@@ -58,7 +59,15 @@ export function advertiserMatchesCliente(
 
   // Nombre + apellido (o más): todos los tokens deben aparecer.
   if (tokens.length >= 2) {
-    return tokensMatch(tokens, adv);
+    if (tokensMatch(tokens, adv)) return true;
+    // TikTok suele omitir el apellido en el nombre de la cuenta ads.
+    if (tokens.length >= 3) {
+      const withoutSurname = tokens.slice(0, -1);
+      if (withoutSurname.length >= 2 && tokensMatch(withoutSurname, adv)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Un solo token de cliente: prefijo / fuzzy.
