@@ -27,7 +27,7 @@ export function isPaymentsSuperAdminEmail(emailRaw: string): boolean {
 }
 
 export type PaymentsFundingCapabilities = {
-  /** Gerente Holistic (lista staff / owner / admin). */
+  /** Gerente Holistic (email en AUTH_HECOM_OTP_STAFF_EMAILS). */
   isStaff: boolean;
   /** Solo super admin: puede usar ambos caminos. */
   isSuperAdmin: boolean;
@@ -43,8 +43,10 @@ export type PaymentsFundingCapabilities = {
 /**
  * Roles de fondeo en Pagos:
  * - Cliente → solo Stripe / cartera
- * - Gerente → solo BM
+ * - Gerente → solo BM (email en AUTH_HECOM_OTP_STAFF_EMAILS)
  * - Super admin (Atter) → ambos
+ *
+ * Nota: el rol `owner` en la org personal del cliente NO implica gerente.
  *
  * Cuentas demo:
  * - ferbasiliorengifo@gmail.com → cliente (UI Stripe; Hecom por emails del CRM)
@@ -78,10 +80,7 @@ export function resolvePaymentsFundingCapabilities(input: {
     };
   }
 
-  const isOrgElevated =
-    input.role === "owner" || input.role === "admin";
-  const isStaff =
-    isHecomOtpStaffEmail(email) || isOrgElevated;
+  const isStaff = isHecomOtpStaffEmail(email);
   const isSuperAdmin = isPaymentsSuperAdminEmail(email);
 
   const canAgencyBmFund = isStaff;
