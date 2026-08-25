@@ -4,6 +4,7 @@ import {
   isDemoGerenteEmail,
   isDemoOtpClienteEmail,
 } from "@/lib/auth/demo-personas.server";
+import { ensureAccountProvisionedForUser } from "@/lib/auth/account-provisioning.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendHecomOtpEmail } from "@/lib/email/auth-otp.server";
@@ -18,6 +19,7 @@ import {
   HECOM_OTP_COOLDOWN_SECONDS,
   normalizeHecomOtpEmail,
 } from "@/lib/auth/hecom-otp-email";
+import type { User } from "@supabase/supabase-js";
 
 const OTP_COOLDOWN_SECONDS = HECOM_OTP_COOLDOWN_SECONDS;
 const GENERIC_OK =
@@ -448,5 +450,43 @@ export async function provisionHecomClienteAccess(input: {
     needsPicker: false,
     isStaff: false,
     nextPath: "/overview",
+  };
+}
+
+/**
+ * Tras OTP Hecom: perfil Holistic activo + org + vínculo cliente Hecom.
+ * Evita bucle overview ⇄ account-setup en clientes reales.
+ */
+export async function completeHecomOtpSession(
+  user: User,
+): Promise<{
+  accountReady: boolean;
+  accountError?: string;
+  provisioned: Awaited<ReturnType<typeof provisionHecomClienteAccess>>;
+}> {
+  const email = normalizeEmail(user.email ?? "");
+  const account = await ensureAccountProvisionedForUser(user);
+
+  if (!account.ready) {
+    logHecomOtp("warn", "account_provision_pending", {
+      email: maskEmail(email),
+      error: account.error ?? "unknown",
+    });
+  } else {
+    logHecomOtp("info", "account_provision_ok", {
+      email: maskEmail(email),
+      organizationId: account.organizationId ?? null,
+    });
+  }
+
+  const provisioned = await provisionHecomClienteAccess({
+    userId: user.id,
+    email,
+  });
+
+  return {
+    accountReady: account.ready,
+    accountError: account.error,
+    provisioned,
   };
 }

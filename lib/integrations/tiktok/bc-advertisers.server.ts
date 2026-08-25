@@ -1,5 +1,9 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
+import {
+  HECOM_BM_BUCKET_TO_BC,
+  resolveBmBucketFromBcId,
+} from "@/lib/hecom/bm-bucket.shared";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 
 interface TikTokApiResponse<T> {
@@ -25,22 +29,7 @@ const DEFAULT_HOLISTIC_BC_IDS = [
   "7652451146933698576", // BM 10.0 USD Nuevo
 ];
 
-/** bm_bucket Hecom → BC ID real */
-export const HECOM_BM_BUCKET_TO_BC: Record<string, string> = {
-  "200": "7575005779271614480",
-  "30": "7564426417577148433",
-  "10": "7652451146933698576",
-};
-
-/** BC ID TikTok → bm_bucket Hecom ("10" | "30" | "200"). */
-export function resolveBmBucketFromBcId(bcId: string | null | undefined): string | null {
-  const id = String(bcId ?? "").trim();
-  if (!id) return null;
-  for (const [bucket, mapped] of Object.entries(HECOM_BM_BUCKET_TO_BC)) {
-    if (mapped === id) return bucket;
-  }
-  return null;
-}
+export { HECOM_BM_BUCKET_TO_BC, resolveBmBucketFromBcId };
 
 function advertiserStatusRank(kind: TikTokBcAdvertiserStatusKind): number {
   return kind === "suspended" ? 3 : kind === "approved" ? 2 : 1;

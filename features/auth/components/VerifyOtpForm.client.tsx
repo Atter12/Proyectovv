@@ -122,10 +122,16 @@ export function VerifyOtpForm() {
         const provisioned = (await provisionRes.json()) as {
           nextPath?: string;
           needsPicker?: boolean;
+          accountReady?: boolean;
         };
         if (isAdminContext) {
           const allowed = await assertAdminAccess();
           router.push(allowed ? adminDestination : routes.adminUnauthorized);
+          router.refresh();
+          return;
+        }
+        if (provisioned.accountReady === false) {
+          router.push(routes.accountSetup);
           router.refresh();
           return;
         }

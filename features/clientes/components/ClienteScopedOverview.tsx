@@ -10,7 +10,7 @@ import {
   CrmScopeHero,
 } from "@/components/dashboard/crm-ui";
 import { CampaignSpendExplorer } from "@/features/clientes/components/CampaignSpendExplorer.client";
-import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
+import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,

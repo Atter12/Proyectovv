@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker.client";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
-import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
+import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,

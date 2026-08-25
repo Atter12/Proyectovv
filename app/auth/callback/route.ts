@@ -4,8 +4,8 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { routes } from "@/config/routes";
 import { serverEnv } from "@/lib/env/env.server";
 import {
+  completeHecomOtpSession,
   isHecomOtpLoginEnabled,
-  provisionHecomClienteAccess,
 } from "@/lib/auth/hecom-otp.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 
@@ -129,10 +129,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (isHecomFlow && isHecomOtpLoginEnabled() && user?.email) {
-    const provisioned = await provisionHecomClienteAccess({
-      userId: user.id,
-      email: user.email,
-    }).catch((error) => {
+    const completed = await completeHecomOtpSession(user).catch((error) => {
       logHecomOtp("error", "callback_provision_failed", {
         email: maskEmail(user.email ?? ""),
         error: error instanceof Error ? error.message : "unknown",
@@ -140,13 +137,15 @@ export async function GET(request: NextRequest) {
       return null;
     });
 
-    if (provisioned) {
-      next = provisioned.nextPath;
+    if (completed) {
+      const { accountReady, provisioned } = completed;
+      next = accountReady ? provisioned.nextPath : routes.accountSetup;
       logHecomOtp("info", "callback_provision_ok", {
         email: maskEmail(user.email),
         next,
         isStaff: provisioned.isStaff,
         needsPicker: provisioned.needsPicker,
+        accountReady,
       });
     }
   }
