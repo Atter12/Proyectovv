@@ -245,17 +245,18 @@ async function getHecomClienteAdAccountsOverviewImpl(
       });
     }
 
-    keywordHitCount = await discoverTikTokAdvertisersForCliente({
-      cliente,
-      hecomIds,
-      hecomAccounts,
-      liveById,
-      nameMatchedExtras,
-    });
+    // Keyword TikTok: solo en "live". En "fast" alcanza el snapshot BM + match nombre
+    // (evita 6+ roundtrips lentos al entrar a Cuentas ads / Pagos).
+    if (speed === "live") {
+      keywordHitCount = await discoverTikTokAdvertisersForCliente({
+        cliente,
+        hecomIds,
+        hecomAccounts,
+        liveById,
+        nameMatchedExtras,
+      });
 
-    if (live.length > 0) {
-      // Keyword search suspendidas (modo live / Pagos).
-      if (speed === "live") {
+      if (live.length > 0) {
         const keywords = [
           ...new Set(
             [

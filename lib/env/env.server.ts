@@ -91,6 +91,9 @@ export const serverEnv = {
   adminAllowedUserIds: splitCsv(process.env.ADMIN_ALLOWED_USER_IDS),
   customerAppUrl: process.env.CUSTOMER_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   authHecomOtpLogin: parseBoolean(process.env.AUTH_HECOM_OTP_LOGIN, false),
+  authClerkLogin: parseBoolean(process.env.AUTH_CLERK_LOGIN, false),
+  clerkPublishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "",
+  clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
   authHecomOtpTestEmails: splitCsv(process.env.AUTH_HECOM_OTP_TEST_EMAILS).map((email) =>
     email.toLowerCase(),
   ),

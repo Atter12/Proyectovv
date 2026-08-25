@@ -14,7 +14,6 @@ import {
   type TikTokBcAdvertiser,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
-  discoverTikTokAdvertisersForCliente,
   isHecomMappedAccountFundable,
 } from "@/lib/hecom/tiktok-advertiser-discovery";
 
@@ -130,15 +129,22 @@ export async function syncApprovedAdAccountsForCliente(input: {
     hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
   );
 
+  // Match por nombre desde el snapshot BM (sin keyword TikTok en el request crítico).
   const nameMatchedExtras: TikTokBcAdvertiser[] = [];
   if (statusAvailable) {
-    await discoverTikTokAdvertisersForCliente({
-      cliente,
-      hecomAccounts: allHecomAccounts,
-      hecomIds,
-      liveById: byId,
-      nameMatchedExtras,
-    });
+    for (const row of bcAdvertisers) {
+      if (hecomIds.has(row.advertiserId)) continue;
+      if (
+        row.statusKind !== "approved" &&
+        row.statusKind !== "suspended" &&
+        row.statusKind !== "unknown"
+      ) {
+        continue;
+      }
+      if (advertiserMatchesCliente(row.advertiserName, cliente.name)) {
+        nameMatchedExtras.push(row);
+      }
+    }
   }
 
   const candidates = new Map<

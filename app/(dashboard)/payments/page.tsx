@@ -75,7 +75,17 @@ export default async function PaymentsPage({
     );
   }
 
-  const data = await getHecomClienteDashboard(selected.id);
+  const pageStarted = Date.now();
+
+  // Paralelizar: dashboard ligero + cuentas (cache BM). Antes: serie + TikTok live.
+  const [data, adsOverview] = await Promise.all([
+    getHecomClienteDashboard(selected.id, {
+      includeCampaignSpend: false,
+      includeCreativos: false,
+      includeDailySpend: false,
+    }),
+    getHecomClienteAdAccountsOverview(selected.id, "fast"),
+  ]);
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
@@ -88,12 +98,17 @@ export default async function PaymentsPage({
   }
 
   const cliente = data.cliente;
-  // Incluye match BM por nombre (no solo mapeo Hecom) — igual que Cuentas ads.
-  const adsOverview = await getHecomClienteAdAccountsOverview(cliente.id, "live");
   const hecomAdvertiserIds = adsOverview.accounts
     .filter((account) => account.status !== "disabled")
     .map((account) => account.externalAccountId?.trim())
     .filter((id): id is string => Boolean(id));
+
+  console.info("[payments] page_load", {
+    clienteId: cliente.id,
+    ms: Date.now() - pageStarted,
+    ads: adsOverview.accounts.length,
+    cobros: data.cobros.length,
+  });
 
   const hecomFinance = {
     saldoEstimado: data.summary.saldoEstimado,
@@ -122,7 +137,7 @@ export default async function PaymentsPage({
     ? `Super admin: operá como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
     : capabilities.canAgencyBmFund
       ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Saldo estimado Hecom arriba y en el historial.`
-      : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}. Abajo: historial Hecom.`;
+      : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}.`;
 
   return (
     <div className={dashboardClasses.page}>

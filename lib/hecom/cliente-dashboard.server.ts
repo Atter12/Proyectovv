@@ -748,7 +748,19 @@ function scopeGastosToAdvertisers(
 }
 
 export const getHecomClienteDashboard = cache(
-  async (clienteId: string): Promise<HecomClienteDashboard | null> => {
+  async (
+    clienteId: string,
+    options: {
+      includeCampaignSpend?: boolean;
+      /** Pagos no usa creativos: evita 2 queries Hecom. */
+      includeCreativos?: boolean;
+      /** Pagos solo necesita KPIs de cobros/gastos: salta snapshots + ventana 30d. */
+      includeDailySpend?: boolean;
+    } = {},
+  ): Promise<HecomClienteDashboard | null> => {
+    const includeCampaignSpend = options.includeCampaignSpend !== false;
+    const includeCreativos = options.includeCreativos !== false;
+    const includeDailySpend = options.includeDailySpend !== false;
     try {
       const cliente = await getHecomCliente(clienteId);
       if (!cliente) return null;
@@ -774,16 +786,18 @@ export const getHecomClienteDashboard = cache(
       const cfg = getHecomSupabaseConfig();
 
       if (cfg.configured) {
-        const live = await loadLiveFinance(clienteId);
+        const live = await loadLiveFinance(clienteId, { includeCreativos });
         if (live) {
           const gastos = sortGastosByDateDesc(
             scopeGastosToAdvertisers(live.gastos, advertiserIds),
           );
           const cobros = live.cobros;
-          const [daily, campaignSpendRows] = await Promise.all([
-            resolveDailySpend(clienteId, gastos, true),
-            loadCampaignSpendRows(clienteId, accounts, gastos, true),
-          ]);
+          const daily = includeDailySpend
+            ? await resolveDailySpend(clienteId, gastos, true)
+            : emptyDailySpendSummary();
+          const campaignSpendRows = includeCampaignSpend
+            ? await loadCampaignSpendRows(clienteId, accounts, gastos, true)
+            : [];
           return {
             source: "hecom_live",
             cliente,
@@ -829,16 +843,23 @@ export const getHecomClienteDashboard = cache(
         ),
       );
       const cobros = filtered.cobros.map(mapCobro);
-      const creativosClientes = filtered.creativosClientes.map(mapCreativoCliente);
-      const creativosProyectos =
-        filtered.creativosProyectos.map(mapCreativoProyecto);
-      const daily = await resolveDailySpend(clienteId, gastos, cfg.configured);
-      const campaignSpendRows = await loadCampaignSpendRows(
-        clienteId,
-        accounts,
-        gastos,
-        cfg.configured,
-      );
+      const creativosClientes = includeCreativos
+        ? filtered.creativosClientes.map(mapCreativoCliente)
+        : [];
+      const creativosProyectos = includeCreativos
+        ? filtered.creativosProyectos.map(mapCreativoProyecto)
+        : [];
+      const daily = includeDailySpend
+        ? await resolveDailySpend(clienteId, gastos, cfg.configured)
+        : emptyDailySpendSummary();
+      const campaignSpendRows = includeCampaignSpend
+        ? await loadCampaignSpendRows(
+            clienteId,
+            accounts,
+            gastos,
+            cfg.configured,
+          )
+        : [];
 
       return {
         source: "hecom_backup",

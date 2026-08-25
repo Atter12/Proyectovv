@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
+import { clerkConfigured, clerkRoutes } from "@/lib/auth/clerk";
+import { holisticClerkAppearance } from "@/lib/auth/clerk-appearance";
+import { holisticClerkLocalization } from "@/lib/auth/clerk-localization";
+import { routes } from "@/config/routes";
 import "./globals.css";
 
 /** Dashboard / auth UI. */
@@ -56,6 +61,16 @@ export default function RootLayout({
 }>) {
   assertProductionSecrets();
 
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const clerkEnabled = clerkConfigured();
+
+  const body = (
+    <>
+      <DocumentThemeScope />
+      {children}
+    </>
+  );
+
   return (
     <html
       lang="es"
@@ -73,8 +88,22 @@ export default function RootLayout({
       <body
         className={`${plusJakarta.className} min-h-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)] antialiased`}
       >
-        <DocumentThemeScope />
-        {children}
+        {clerkEnabled && publishableKey ? (
+          <ClerkProvider
+            publishableKey={publishableKey}
+            localization={holisticClerkLocalization}
+            appearance={holisticClerkAppearance}
+            signInUrl={clerkRoutes.signIn}
+            signUpUrl={clerkRoutes.signUp}
+            signInFallbackRedirectUrl={clerkRoutes.complete}
+            signUpFallbackRedirectUrl={clerkRoutes.complete}
+            afterSignOutUrl={routes.login}
+          >
+            {body}
+          </ClerkProvider>
+        ) : (
+          body
+        )}
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ export const protectedRoutes = [
   routes.clientes,
   routes.adAccounts,
   routes.payments,
+  routes.gastos,
   routes.affiliates,
   routes.creativeAnalyzer,
 ] as const;
@@ -20,7 +21,13 @@ export const authRoutes = [
 ] as const;
 
 /** Rutas públicas de auth donde un usuario ya verificado no debe entrar. */
-export const guestOnlyRoutes = [routes.login, routes.register, routes.forgotPassword] as const;
+export const guestOnlyRoutes = [
+  routes.login,
+  routes.register,
+  routes.forgotPassword,
+  routes.clerkSignIn,
+  routes.clerkSignUp,
+] as const;
 
 export function isProtectedPath(pathname: string): boolean {
   return protectedRoutes.some(

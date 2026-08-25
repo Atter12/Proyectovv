@@ -39,7 +39,9 @@ export default async function OverviewPage() {
 
   let data: Awaited<ReturnType<typeof getHecomClienteDashboard>> = null;
   try {
-    data = await getHecomClienteDashboard(selected.id);
+    data = await getHecomClienteDashboard(selected.id, {
+      includeCampaignSpend: false,
+    });
   } catch (error) {
     console.error("[overview] dashboard failed", {
       clienteId: selected.id,

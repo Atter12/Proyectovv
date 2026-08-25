@@ -92,14 +92,13 @@ export async function PaymentsGatewayPanel({
     hecomClienteId
   ) {
     try {
-      // Gerente BM: siempre live BM + upsert en SU org (no la del super admin).
-      const forceRefresh = capabilities.canAgencyBmFund;
-
+      // Cache-first (también gerente BM): el forceRefresh en cada visita
+      // duplicaba el pull completo de TikTok y frenaba Pagos al entrar.
       const sync = await syncApprovedAdAccountsForCliente({
         organizationId: session.organizationId,
         clienteId: hecomClienteId,
         userId: session.id,
-        forceRefresh,
+        forceRefresh: false,
       });
 
       if (!sync.skippedUnavailableStatus) {

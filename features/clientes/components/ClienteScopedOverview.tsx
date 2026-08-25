@@ -9,13 +9,12 @@ import {
   CrmQuickLinks,
   CrmScopeHero,
 } from "@/components/dashboard/crm-ui";
-import { CampaignSpendExplorer } from "@/features/clientes/components/CampaignSpendExplorer.client";
-import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
   resolveBmForGasto,
 } from "@/lib/hecom/gasto-label";
+import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
   moneyUsd,
   type HecomClienteDashboard,
@@ -70,7 +69,7 @@ export function ClienteScopedOverview({
   data: HecomClienteDashboard;
   canChangeCliente?: boolean;
 }) {
-  const { cliente, summary, accounts, gastos, campaignSpendRows } = data;
+  const { cliente, summary, accounts, gastos } = data;
   const recentGastos = gastos.slice(0, 8);
   const debt = summary.saldoEstimado < 0;
   const activeAccounts = accounts.filter((a) => a.syncEnabled !== false).length;
@@ -132,12 +131,11 @@ export function ClienteScopedOverview({
         source={summary.dailySource}
       />
 
-      <CampaignSpendExplorer rows={campaignSpendRows} accounts={accounts} />
-
       <CrmQuickLinks
         links={[
           { href: routes.adAccounts, label: "Cuentas ads" },
           { href: routes.payments, label: "Pagos" },
+          { href: routes.gastos, label: "Gastos" },
           { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
         ]}
       />
@@ -605,10 +603,10 @@ function GastosPanel({
             {sourceLabel(source)}
           </span>
           <Link
-            href={routes.payments}
+            href={routes.gastos}
             className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
           >
-            Ver pagos
+            Ver gastos
           </Link>
         </div>
       }

@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/LoginForm.client";
 import { AuthBrandMark } from "@/features/auth/components/AuthBrandMark";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import { clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { serverEnv } from "@/lib/env/env.server";
 
 function AuthCardFallback() {
@@ -20,8 +22,13 @@ function AuthCardFallback() {
 
 /**
  * Login mortgage — form + foto (bg CSS + Image, sin hueco vacío).
+ * Si Clerk está habilitado → /sign-in (mismo patrón que ImpoERP/oddo).
  */
 export default function LoginPage() {
+  if (clerkLoginEnabled()) {
+    redirect(clerkRoutes.signIn);
+  }
+
   return (
     <div className="auth-canvas mortgage-login relative min-h-screen overflow-x-hidden">
       <div className="relative z-10 flex min-h-screen flex-col">

@@ -55,6 +55,30 @@ export function buildAdAccountKeywordQueries(
   return [...queries].slice(0, 6);
 }
 
+function mergeDiscoveryHits(
+  input: {
+    cliente: HecomCliente;
+    liveById: Map<string, TikTokBcAdvertiser>;
+    nameMatchedExtras: TikTokBcAdvertiser[];
+    hecomIds: Set<string>;
+  },
+  rows: TikTokBcAdvertiser[],
+) {
+  for (const row of rows) {
+    mergeTikTokAdvertiserIntoMap(input.liveById, row);
+    const belongs =
+      input.hecomIds.has(row.advertiserId) ||
+      advertiserMatchesCliente(row.advertiserName, input.cliente.name);
+    if (!belongs) continue;
+    if (input.hecomIds.has(row.advertiserId)) continue;
+    if (
+      !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
+    ) {
+      input.nameMatchedExtras.push(row);
+    }
+  }
+}
+
 export async function discoverTikTokAdvertisersForCliente(input: {
   cliente: HecomCliente;
   hecomAccounts: HecomTiktokAccount[];
@@ -66,27 +90,19 @@ export async function discoverTikTokAdvertisersForCliente(input: {
     input.cliente,
     input.hecomAccounts,
   );
+
+  const keywordResults = await Promise.all(
+    keywords.map((keyword) =>
+      searchHolisticBcAdvertisersByKeyword({ keyword }).catch(
+        () => [] as TikTokBcAdvertiser[],
+      ),
+    ),
+  );
+
   let totalHits = 0;
-
-  for (const keyword of keywords) {
-    const keywordHits = await searchHolisticBcAdvertisersByKeyword({
-      keyword,
-    }).catch(() => [] as TikTokBcAdvertiser[]);
+  for (const keywordHits of keywordResults) {
     totalHits += keywordHits.length;
-
-    for (const row of keywordHits) {
-      mergeTikTokAdvertiserIntoMap(input.liveById, row);
-      const belongs =
-        input.hecomIds.has(row.advertiserId) ||
-        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
-      if (!belongs) continue;
-      if (input.hecomIds.has(row.advertiserId)) continue;
-      if (
-        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-      ) {
-        input.nameMatchedExtras.push(row);
-      }
-    }
+    mergeDiscoveryHits(input, keywordHits);
   }
 
   const bmBuckets = [
@@ -96,31 +112,25 @@ export async function discoverTikTokAdvertisersForCliente(input: {
         .filter((b): b is string => Boolean(b)),
     ),
   ];
-  for (const bucket of bmBuckets) {
-    const bcId = resolveBcIdForHecomBucket(bucket);
-    const focalKeyword =
-      input.hecomAccounts
-        .find((a) => a.bmBucket === bucket)
-        ?.advertiserName?.trim() || input.cliente.name.trim();
-    if (focalKeyword.length < 3) continue;
-    const focalHits = await searchHolisticBcAdvertisersByKeyword({
-      keyword: focalKeyword,
-      bcIds: [bcId],
-    }).catch(() => [] as TikTokBcAdvertiser[]);
+
+  const focalResults = await Promise.all(
+    bmBuckets.map(async (bucket) => {
+      const bcId = resolveBcIdForHecomBucket(bucket);
+      const focalKeyword =
+        input.hecomAccounts
+          .find((a) => a.bmBucket === bucket)
+          ?.advertiserName?.trim() || input.cliente.name.trim();
+      if (focalKeyword.length < 3) return [] as TikTokBcAdvertiser[];
+      return searchHolisticBcAdvertisersByKeyword({
+        keyword: focalKeyword,
+        bcIds: [bcId],
+      }).catch(() => [] as TikTokBcAdvertiser[]);
+    }),
+  );
+
+  for (const focalHits of focalResults) {
     totalHits += focalHits.length;
-    for (const row of focalHits) {
-      mergeTikTokAdvertiserIntoMap(input.liveById, row);
-      const belongs =
-        input.hecomIds.has(row.advertiserId) ||
-        advertiserMatchesCliente(row.advertiserName, input.cliente.name);
-      if (!belongs) continue;
-      if (input.hecomIds.has(row.advertiserId)) continue;
-      if (
-        !input.nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-      ) {
-        input.nameMatchedExtras.push(row);
-      }
-    }
+    mergeDiscoveryHits(input, focalHits);
   }
 
   return totalHits;

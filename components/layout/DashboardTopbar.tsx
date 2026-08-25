@@ -36,6 +36,8 @@ export function DashboardTopbar({
         ? "Cuentas ads"
         : currentPage?.href === "/payments"
           ? "Pagos"
+          : currentPage?.href === "/gastos"
+            ? "Gastos"
           : currentPage?.href === "/clientes"
             ? "Clientes"
             : currentPage?.href === "/affiliates"

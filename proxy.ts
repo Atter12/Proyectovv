@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import {
   isAccountSetupPath,
   isAdminLoginPath,
@@ -12,6 +13,7 @@ import { routes } from "@/config/routes";
 import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
 import { resolveSafeNextPath } from "@/lib/auth/safe-next-path";
 import { userCanAccessDashboard } from "@/lib/auth/dashboard-access";
+import { clerkConfigured } from "@/lib/auth/clerk";
 import { updateSession } from "@/lib/supabase/middleware";
 
 function buildAdminDestination(request: NextRequest): string {
@@ -28,7 +30,7 @@ function appendHecomOtpFlow(verifyUrl: URL) {
   }
 }
 
-export async function proxy(request: NextRequest) {
+async function runHolisticProxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { user, supabase, supabaseResponse } = await updateSession(request);
 
@@ -189,6 +191,17 @@ export async function proxy(request: NextRequest) {
   return supabaseResponse;
 }
 
+const clerkHandler = clerkMiddleware(async (_auth, request) => {
+  return runHolisticProxy(request);
+});
+
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
+  if (clerkConfigured()) {
+    return clerkHandler(request, event);
+  }
+  return runHolisticProxy(request);
+}
+
 export const config = {
   matcher: [
     "/login",
@@ -196,6 +209,11 @@ export const config = {
     "/verify-otp",
     "/forgot-password",
     "/account-setup",
+    "/sign-in",
+    "/sign-in/(.*)",
+    "/sign-up",
+    "/sign-up/(.*)",
+    "/auth/clerk/(.*)",
     "/overview",
     "/overview/:path*",
     "/clientes",
@@ -206,6 +224,8 @@ export const config = {
     "/ad-accounts/:path*",
     "/payments",
     "/payments/:path*",
+    "/gastos",
+    "/gastos/:path*",
     "/affiliates",
     "/affiliates/:path*",
     "/creative-analyzer",
