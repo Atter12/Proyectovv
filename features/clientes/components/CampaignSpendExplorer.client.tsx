@@ -100,8 +100,15 @@ export function CampaignSpendExplorer({
   const [selectedBm, setSelectedBm] = useState(ALL_BMS);
   const [selectedCampaign, setSelectedCampaign] = useState(ALL_CAMPAIGNS);
   const [campaignSort, setCampaignSort] = useState<CampaignSortMode>("recent");
-  const [proMode, setProMode] = useState(false);
   const [chartWindow, setChartWindow] = useState<ChartWindow>("30");
+
+  const calendarMax = todayYmdInTz();
+
+  // Si llega un jale más nuevo (ej. hasta el 23), abrir el rango automáticamente.
+  useEffect(() => {
+    if (!bounds.max) return;
+    setEndDate((prev) => (bounds.max! > prev ? bounds.max! : prev));
+  }, [bounds.max]);
 
   const inDateRange = useMemo(
     () =>
@@ -260,9 +267,7 @@ export function CampaignSpendExplorer({
                 selected={selectedCampaign}
                 allTotal={sumCampaignSpend(bmFiltered)}
                 sortMode={campaignSort}
-                proMode={proMode}
                 onSortModeChange={setCampaignSort}
-                onProModeChange={setProMode}
                 onChange={setSelectedCampaign}
               />
 
@@ -275,7 +280,7 @@ export function CampaignSpendExplorer({
                   endDate={endDate}
                   onChange={handleRangeChange}
                   minDate={bounds.min}
-                  maxDate={bounds.max ?? todayYmdInTz()}
+                  maxDate={calendarMax}
                   className="w-full max-w-full"
                 />
               </div>
@@ -435,9 +440,7 @@ function CampaignSearchPicker({
   selected,
   allTotal,
   sortMode,
-  proMode,
   onSortModeChange,
-  onProModeChange,
   onChange,
 }: {
   campaigns: CampaignSpendSummary[];
@@ -445,9 +448,7 @@ function CampaignSearchPicker({
   selected: string;
   allTotal: number;
   sortMode: CampaignSortMode;
-  proMode: boolean;
   onSortModeChange: (mode: CampaignSortMode) => void;
-  onProModeChange: (value: boolean) => void;
   onChange: (value: string) => void;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -553,59 +554,24 @@ function CampaignSearchPicker({
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <ModeChip
-                active={!proMode && sortMode === "recent"}
-                onClick={() => {
-                  onProModeChange(false);
-                  onSortModeChange("recent");
-                }}
+                active={sortMode === "recent"}
+                onClick={() => onSortModeChange("recent")}
               >
                 Recientes
               </ModeChip>
               <ModeChip
-                active={!proMode && sortMode === "spend"}
-                onClick={() => {
-                  onProModeChange(false);
-                  onSortModeChange("spend");
-                }}
+                active={sortMode === "spend"}
+                onClick={() => onSortModeChange("spend")}
               >
                 Mayor gasto
               </ModeChip>
               <ModeChip
-                active={proMode}
-                onClick={() => {
-                  onProModeChange(true);
-                  onSortModeChange("az");
-                }}
+                active={sortMode === "az"}
+                onClick={() => onSortModeChange("az")}
               >
-                Modo pro
+                A–Z
               </ModeChip>
             </div>
-
-            {proMode ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                <ModeChip
-                  active={sortMode === "az"}
-                  onClick={() => onSortModeChange("az")}
-                  compact
-                >
-                  A–Z
-                </ModeChip>
-                <ModeChip
-                  active={sortMode === "spend"}
-                  onClick={() => onSortModeChange("spend")}
-                  compact
-                >
-                  $ gasto
-                </ModeChip>
-                <ModeChip
-                  active={sortMode === "recent"}
-                  onClick={() => onSortModeChange("recent")}
-                  compact
-                >
-                  Fecha
-                </ModeChip>
-              </div>
-            ) : null}
           </div>
 
           <div className="max-h-72 overflow-y-auto py-1">
@@ -628,7 +594,6 @@ function CampaignSearchPicker({
                     onClick={() => pick(c.campaignName)}
                     title={c.campaignName}
                     meta={moneyUsd(c.total)}
-                    badge={proMode ? c.bm : null}
                     date={c.lastDate}
                   />
                 ))}
@@ -656,8 +621,7 @@ function CampaignSearchPicker({
                   onClick={() => pick(c.campaignName)}
                   title={c.campaignName}
                   meta={moneyUsd(c.total)}
-                  badge={proMode ? c.bm : null}
-                  date={proMode ? c.lastDate : null}
+                  date={sortMode === "recent" ? c.lastDate : null}
                 />
               ))
             )}
@@ -672,20 +636,16 @@ function ModeChip({
   active,
   onClick,
   children,
-  compact = false,
 }: {
   active: boolean;
   onClick: () => void;
   children: ReactNode;
-  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full font-bold transition-colors ${
-        compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]"
-      } ${
+      className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
         active
           ? "bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]"
           : "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] hover:text-[var(--auth-text)]"

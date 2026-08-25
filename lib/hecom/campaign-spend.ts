@@ -208,3 +208,24 @@ export function getCampaignSpendDateBounds(rows: HecomCampaignSpendRow[]): {
   const dates = rows.map((r) => r.date).sort();
   return { min: dates[0] ?? null, max: dates.at(-1) ?? null };
 }
+
+/**
+ * Une snapshots (prioridad) con filas de gastos más nuevas,
+ * para no quedar trabados en la última fecha de sync vieja.
+ */
+export function mergeSnapshotsWithNewerGastos(
+  snapshots: HecomCampaignSpendRow[],
+  fromGastos: HecomCampaignSpendRow[],
+): HecomCampaignSpendRow[] {
+  if (snapshots.length === 0) return fromGastos;
+  if (fromGastos.length === 0) return snapshots;
+
+  let maxSnap = snapshots[0]?.date ?? "";
+  for (const row of snapshots) {
+    if (row.date > maxSnap) maxSnap = row.date;
+  }
+
+  const newer = fromGastos.filter((row) => row.date > maxSnap);
+  if (newer.length === 0) return snapshots;
+  return [...snapshots, ...newer];
+}

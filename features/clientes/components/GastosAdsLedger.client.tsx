@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker.client";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
@@ -87,6 +87,13 @@ export function GastosAdsLedger({
   const [startDate, setStartDate] = useState(initialRange.start);
   const [endDate, setEndDate] = useState(initialRange.end);
   const [selectedBm, setSelectedBm] = useState(ALL_BMS);
+
+  const calendarMax = todayYmdInTz();
+
+  useEffect(() => {
+    if (!bounds.max) return;
+    setEndDate((prev) => (bounds.max! > prev ? bounds.max! : prev));
+  }, [bounds.max]);
 
   const dateFiltered = useMemo(
     () => filterGastosByDateRange(sorted, startDate, endDate),
@@ -175,7 +182,7 @@ export function GastosAdsLedger({
                 endDate={endDate}
                 onChange={handleRangeChange}
                 minDate={bounds.min}
-                maxDate={bounds.max ?? todayYmdInTz()}
+                maxDate={calendarMax}
                 className="w-full max-w-full sm:max-w-[280px]"
               />
             </div>

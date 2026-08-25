@@ -13,6 +13,7 @@ import {
 import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
 import {
   buildCampaignSpendFromGastos,
+  mergeSnapshotsWithNewerGastos,
   type HecomCampaignSpendRow,
 } from "@/lib/hecom/campaign-spend";
 import { getAdvertiserIdFromCamp, getBmFromHecomCamp } from "@/lib/hecom/gasto-label";
@@ -362,6 +363,38 @@ async function loadCampaignSpendRows(
   const today = calendarDateInTz();
   const startDate = shiftCalendarDate(today, -(CAMPAIGN_SPEND_DAYS - 1));
 
+  const fromGastos = buildCampaignSpendFromGastos(gastos, bmByAdvertiser).filter(
+    (row) => row.date >= startDate,
+  );
+
+  // También traer gastos recientes directos (por si el listado UI de 500 no alcanza).
+  let fromGastosWindow = fromGastos;
+  if (cfgConfigured) {
+    try {
+      const hecom = createHecomAdminClient();
+      const { data, error } = await hecom
+        .from("gastos")
+        .select(
+          "id,client_id,mes,camp,gasto,fee,source,fecha_movimiento,tiktok_stat_date,codigo,notas",
+        )
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(2500);
+
+      if (!error && data) {
+        const mapped = (data as Record<string, unknown>[])
+          .filter((row) => String(row.client_id ?? "") === clientId)
+          .map(mapGasto);
+        fromGastosWindow = buildCampaignSpendFromGastos(
+          mapped,
+          bmByAdvertiser,
+        ).filter((row) => row.date >= startDate);
+      }
+    } catch {
+      // keep fromGastos
+    }
+  }
+
   if (cfgConfigured) {
     try {
       const hecom = createHecomAdminClient();
@@ -376,7 +409,6 @@ async function loadCampaignSpendRows(
         .limit(8000);
 
       if (!error && data && data.length > 0) {
-        // BM desde camp de gastos (pipe |BM200) cuando la cuenta no trae bm_bucket.
         const bmFromGastos = new Map<string, string>();
         for (const gasto of gastos) {
           const adv = getAdvertiserIdFromCamp(gasto.camp)?.trim();
@@ -384,7 +416,7 @@ async function loadCampaignSpendRows(
           if (adv && bm && !bmFromGastos.has(adv)) bmFromGastos.set(adv, bm);
         }
 
-        const rows: HecomCampaignSpendRow[] = [];
+        const snapshotRows: HecomCampaignSpendRow[] = [];
         for (const row of data as Array<Record<string, unknown>>) {
           if (String(row.client_id ?? "") !== clientId) continue;
           const date = dateKeyFromUnknown(row.stat_date);
@@ -399,7 +431,7 @@ async function loadCampaignSpendRows(
           const bm =
             (advertiserId ? bmByAdvertiser.get(advertiserId) : null) ??
             (advertiserId ? bmFromGastos.get(advertiserId) ?? null : null);
-          rows.push({
+          snapshotRows.push({
             date,
             campaignName,
             campaignId: row.campaign_id ? String(row.campaign_id) : null,
@@ -408,16 +440,17 @@ async function loadCampaignSpendRows(
             advertiserId,
           });
         }
-        if (rows.length > 0) return rows;
+
+        if (snapshotRows.length > 0) {
+          return mergeSnapshotsWithNewerGastos(snapshotRows, fromGastosWindow);
+        }
       }
     } catch {
       // fallback a gastos
     }
   }
 
-  return buildCampaignSpendFromGastos(gastos, bmByAdvertiser).filter(
-    (row) => row.date >= startDate,
-  );
+  return fromGastosWindow;
 }
 
 async function loadSnapshotSpendMap(
@@ -629,7 +662,7 @@ async function loadLiveFinance(
         )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })
-        .limit(500),
+        .limit(1500),
       hecom
         .from("cobros")
         .select("id,client_id,monto,fecha,metodo,notas,codigo,created_at")
