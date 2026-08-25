@@ -15,7 +15,7 @@ import {
   buildCampaignSpendFromGastos,
   type HecomCampaignSpendRow,
 } from "@/lib/hecom/campaign-spend";
-import { getAdvertiserIdFromCamp } from "@/lib/hecom/gasto-label";
+import { getAdvertiserIdFromCamp, getBmFromHecomCamp } from "@/lib/hecom/gasto-label";
 import {
   createHecomAdminClient,
   getHecomSupabaseConfig,
@@ -376,6 +376,14 @@ async function loadCampaignSpendRows(
         .limit(8000);
 
       if (!error && data && data.length > 0) {
+        // BM desde camp de gastos (pipe |BM200) cuando la cuenta no trae bm_bucket.
+        const bmFromGastos = new Map<string, string>();
+        for (const gasto of gastos) {
+          const adv = getAdvertiserIdFromCamp(gasto.camp)?.trim();
+          const bm = getBmFromHecomCamp(gasto.camp);
+          if (adv && bm && !bmFromGastos.has(adv)) bmFromGastos.set(adv, bm);
+        }
+
         const rows: HecomCampaignSpendRow[] = [];
         for (const row of data as Array<Record<string, unknown>>) {
           if (String(row.client_id ?? "") !== clientId) continue;
@@ -388,14 +396,15 @@ async function loadCampaignSpendRows(
             : null;
           const campaignName =
             String(row.campaign_name ?? "").trim() || "Sin nombre";
+          const bm =
+            (advertiserId ? bmByAdvertiser.get(advertiserId) : null) ??
+            (advertiserId ? bmFromGastos.get(advertiserId) ?? null : null);
           rows.push({
             date,
             campaignName,
             campaignId: row.campaign_id ? String(row.campaign_id) : null,
             spend: Math.round(spend * 100) / 100,
-            bm: advertiserId
-              ? (bmByAdvertiser.get(advertiserId) ?? null)
-              : null,
+            bm,
             advertiserId,
           });
         }

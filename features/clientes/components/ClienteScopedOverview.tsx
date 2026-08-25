@@ -132,7 +132,7 @@ export function ClienteScopedOverview({
         source={summary.dailySource}
       />
 
-      <CampaignSpendExplorer rows={campaignSpendRows} />
+      <CampaignSpendExplorer rows={campaignSpendRows} accounts={accounts} />
 
       <CrmQuickLinks
         links={[

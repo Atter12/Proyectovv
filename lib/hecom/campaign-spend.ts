@@ -19,6 +19,8 @@ export type CampaignSpendSummary = {
   campaignName: string;
   total: number;
   bm: string | null;
+  /** Último día con gasto (YYYY-MM-DD). */
+  lastDate: string | null;
 };
 
 function roundUsd(value: number) {
@@ -89,18 +91,28 @@ export function filterCampaignSpendRows(
   rows: HecomCampaignSpendRow[],
   opts: {
     bm?: string | null;
+    /** Advertiser IDs that belong to the selected BM (fallback if row.bm is null). */
+    advertiserIdsForBm?: Set<string> | null;
     campaignName?: string | null;
     startDate?: string | null;
     endDate?: string | null;
   },
 ): HecomCampaignSpendRow[] {
   const bm = opts.bm?.trim() || null;
+  const advertisers = opts.advertiserIdsForBm;
   const campaign = opts.campaignName?.trim() || null;
   const start = opts.startDate?.trim() || null;
   const end = opts.endDate?.trim() || null;
 
   return rows.filter((row) => {
-    if (bm && row.bm !== bm) return false;
+    if (bm) {
+      const bmMatch = row.bm === bm;
+      const advertiserMatch =
+        Boolean(advertisers?.size) &&
+        Boolean(row.advertiserId) &&
+        advertisers!.has(row.advertiserId!);
+      if (!bmMatch && !advertiserMatch) return false;
+    }
     if (campaign && row.campaignName !== campaign) return false;
     if (start && row.date < start) return false;
     if (end && row.date > end) return false;
@@ -115,15 +127,25 @@ export function sumCampaignSpend(rows: HecomCampaignSpendRow[]): number {
 export function listCampaignsBySpend(
   rows: HecomCampaignSpendRow[],
 ): CampaignSpendSummary[] {
-  const byName = new Map<string, { total: number; bm: string | null }>();
+  const byName = new Map<
+    string,
+    { total: number; bm: string | null; lastDate: string | null }
+  >();
 
   for (const row of rows) {
     const existing = byName.get(row.campaignName);
     if (existing) {
       existing.total = roundUsd(existing.total + row.spend);
       if (!existing.bm && row.bm) existing.bm = row.bm;
+      if (!existing.lastDate || row.date > existing.lastDate) {
+        existing.lastDate = row.date;
+      }
     } else {
-      byName.set(row.campaignName, { total: row.spend, bm: row.bm });
+      byName.set(row.campaignName, {
+        total: row.spend,
+        bm: row.bm,
+        lastDate: row.date,
+      });
     }
   }
 
@@ -132,8 +154,38 @@ export function listCampaignsBySpend(
       campaignName,
       total: meta.total,
       bm: meta.bm,
+      lastDate: meta.lastDate,
     }))
     .sort((a, b) => b.total - a.total);
+}
+
+/** Campañas con gasto más reciente primero. */
+export function listCampaignsByRecent(
+  rows: HecomCampaignSpendRow[],
+): CampaignSpendSummary[] {
+  return listCampaignsBySpend(rows).sort((a, b) => {
+    const da = a.lastDate ?? "";
+    const db = b.lastDate ?? "";
+    if (da !== db) return db.localeCompare(da);
+    return b.total - a.total;
+  });
+}
+
+export function mergeBmLabels(
+  fromRows: string[],
+  fromAccounts: Array<string | null | undefined>,
+): string[] {
+  const set = new Set<string>(fromRows);
+  for (const raw of fromAccounts) {
+    const label = String(raw ?? "").trim();
+    if (label) set.add(label);
+  }
+  return [...set].sort((a, b) => {
+    const na = Number(a.replace(/\D/g, ""));
+    const nb = Number(b.replace(/\D/g, ""));
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+    return a.localeCompare(b);
+  });
 }
 
 export function buildDailySeriesFromCampaignRows(

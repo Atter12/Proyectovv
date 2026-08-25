@@ -119,7 +119,7 @@ export function ClienteScopedPayments({
         </div>
       </CrmMetricsStrip>
 
-      <CampaignSpendExplorer rows={campaignSpendRows} />
+      <CampaignSpendExplorer rows={campaignSpendRows} accounts={accounts} />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <LedgerPanel
