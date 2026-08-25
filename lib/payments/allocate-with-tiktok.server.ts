@@ -6,6 +6,7 @@ import {
   getWalletLedgerBalance,
 } from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
+import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
@@ -146,10 +147,14 @@ export async function allocateWithOptionalTikTokFunding(
 
   const currency = (input.currency ?? account.currency ?? "USD").toUpperCase();
   const advertiserId = account.external_account_id?.trim() || "";
+  // Si en DB quedó "200"/"10"/"30" (label Hecom) → BC real TikTok.
+  // Si ya es el bc_id largo, resolve lo deja (vía fallback).
+  const rawBusinessId = account.external_business_id?.trim() || "";
   const bcId =
-    account.external_business_id?.trim() ||
-    serverEnv.tiktokDefaultBcId.trim() ||
-    "";
+    resolveBcIdForHecomBucket(
+      rawBusinessId,
+      rawBusinessId || serverEnv.tiktokDefaultBcId.trim() || null,
+    ) || "";
 
   const fundingOn = isTikTokBcFundingEnabled();
   const isTikTok = (account.platform ?? "tiktok").toLowerCase() === "tiktok";
@@ -175,6 +180,7 @@ export async function allocateWithOptionalTikTokFunding(
   console.info("[payments/allocate] resolved_targets", {
     adAccountId: account.id,
     advertiserId: advertiserId || null,
+    externalBusinessIdRaw: rawBusinessId || null,
     bcId: bcId || null,
     agencyBmFunding,
     fundingOn,
