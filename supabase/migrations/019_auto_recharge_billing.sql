@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS public.auto_recharge_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   rule_id uuid REFERENCES public.auto_recharge_rules(id) ON DELETE SET NULL,
   organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  payment_intent_id uuid REFERENCES public.payment_intents(id) ON DELETE SET NULL,
+  -- Sin FK: algunos entornos legacy no tienen payment_intents en el mismo schema.
+  payment_intent_id uuid,
   trigger_type text NOT NULL CHECK (trigger_type IN ('calendar', 'threshold', 'manual')),
   credit_cents bigint NOT NULL,
   gross_cents bigint NOT NULL,

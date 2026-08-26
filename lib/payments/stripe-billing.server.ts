@@ -64,6 +64,8 @@ export async function createStripeSetupCheckoutSession(input: {
 }): Promise<{ sessionId: string; url: string }> {
   const params = new URLSearchParams();
   params.set("mode", "setup");
+  params.set("currency", "usd");
+  params.append("payment_method_types[]", "card");
   params.set("customer", input.stripeCustomerId);
   params.set(
     "success_url",

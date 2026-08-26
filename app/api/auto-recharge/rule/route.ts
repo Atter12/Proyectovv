@@ -1,3 +1,4 @@
+import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
@@ -80,6 +81,9 @@ export async function PUT(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo guardar.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json(
+      { error: formatStripeErrorForUser(message) },
+      { status: 400 },
+    );
   }
 }

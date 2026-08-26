@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { startBillingSetupSession } from "@/lib/payments/auto-recharge/auto-recharge.server";
+import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
 
 export async function POST() {
   const session = await getSession();
@@ -34,6 +35,9 @@ export async function POST() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo iniciar guardado de tarjeta.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: formatStripeErrorForUser(message) },
+      { status: 500 },
+    );
   }
 }

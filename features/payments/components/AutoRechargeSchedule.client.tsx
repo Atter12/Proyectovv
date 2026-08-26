@@ -10,6 +10,17 @@ import {
   depositFromDesiredCredit,
   formatFeePercentLabel,
 } from "@/lib/payments/deposit-fee";
+import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
+
+function userErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiClientError) {
+    return formatStripeErrorForUser(err.message || fallback);
+  }
+  if (err instanceof Error) {
+    return formatStripeErrorForUser(err.message || fallback);
+  }
+  return fallback;
+}
 
 type PaymentMethodState = {
   brand: string | null;
@@ -70,9 +81,7 @@ export function AutoRechargeSchedule({
       if (err instanceof ApiClientError && err.status === 500) {
         setError(null);
       } else {
-        setError(
-          err instanceof Error ? err.message : "No se pudo cargar la configuración.",
-        );
+        setError(userErrorMessage(err, "No se pudo cargar la configuración."));
       }
     } finally {
       setLoading(false);
@@ -98,9 +107,7 @@ export function AutoRechargeSchedule({
         router.replace("/payments");
         await load();
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "No se pudo confirmar la tarjeta.",
-        );
+        setError(userErrorMessage(err, "No se pudo confirmar la tarjeta."));
       }
     })();
   }, [searchParams, router, load]);
@@ -125,7 +132,7 @@ export function AutoRechargeSchedule({
       }
       throw new Error("Stripe no devolvió URL.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar tarjeta.");
+      setError(userErrorMessage(err, "No se pudo abrir el formulario de tarjeta."));
       setCardLoading(false);
     }
   }
@@ -134,6 +141,25 @@ export function AutoRechargeSchedule({
     setSaving(true);
     setError(null);
     setSuccess(null);
+
+    if (enabled && !paymentMethod?.last4) {
+      setError("Primero guardá una tarjeta y después activá la recarga automática.");
+      setSaving(false);
+      return;
+    }
+
+    const credit = Number(amount);
+    if (!Number.isFinite(credit) || credit < 10) {
+      setError("El monto mínimo de recarga es $10 USD.");
+      setSaving(false);
+      return;
+    }
+    if (credit > 5000) {
+      setError("El monto máximo de recarga es $5,000 USD.");
+      setSaving(false);
+      return;
+    }
+
     try {
       await apiClient("/api/auto-recharge/rule", {
         method: "PUT",
@@ -145,12 +171,12 @@ export function AutoRechargeSchedule({
       });
       setSuccess(
         enabled
-          ? `Recarga automática activada: $${amount} cada ${intervalDays} días.`
+          ? `Listo: se cobrará ${formatMoney(preview?.grossCents ? preview.grossCents / 100 : credit)} cada ${intervalDays} días. El primer cobro es en ${intervalDays} días.`
           : "Recarga automática desactivada.",
       );
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setError(userErrorMessage(err, "No se pudo guardar la programación."));
     } finally {
       setSaving(false);
     }
@@ -173,8 +199,13 @@ export function AutoRechargeSchedule({
         Programá cobros con tu tarjeta
       </h2>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-        Guardá tu tarjeta y elegí cada cuántos días y cuánto querés recargar en
-        cartera. Se cobra el neto + fee Holistic ({formatFeePercentLabel(depositFeePercent)}).
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 1:</strong> guardá tu tarjeta.
+        {" "}
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 2:</strong> elegí cada cuántos días y cuánto USD neto querés en cartera.
+        {" "}
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 3:</strong> activá y guardá.
+        Se cobra neto + fee Holistic ({formatFeePercentLabel(depositFeePercent)}).
+        El primer cobro automático es después del intervalo elegido.
       </p>
 
       <div className="mt-5 rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-surface-muted)]/40 p-4">
@@ -187,8 +218,8 @@ export function AutoRechargeSchedule({
               : ""}
           </p>
         ) : (
-          <p className="mt-1 text-[13px] text-[var(--auth-text-muted)]">
-            Todavía no hay tarjeta guardada.
+          <p className="mt-1 text-[13px] text-amber-700">
+            Todavía no hay tarjeta guardada. Hacé clic en &quot;Guardar tarjeta&quot; para empezar.
           </p>
         )}
         <Button
