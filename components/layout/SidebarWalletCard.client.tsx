@@ -10,8 +10,12 @@ import type { DashboardPersona } from "@/types/dashboard-persona";
 export type SidebarSelectedCliente = {
   id: string;
   name: string;
-  saldoEstimado: number | null;
   avatarUrl?: string | null;
+  /** Gerente / super admin: posición Hecom (cobros − gastos − fees). */
+  saldoEstimado?: number | null;
+  /** Cliente: cartera Holistic disponible (recargas Stripe − asignaciones). */
+  walletBalanceCents?: number | null;
+  walletCurrency?: string;
 };
 
 interface SidebarWalletCardProps {
@@ -90,18 +94,38 @@ export function SidebarWalletCard({
         </div>
       </div>
 
-      <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
-        <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-          {selectedCliente.saldoEstimado != null && selectedCliente.saldoEstimado < 0
-            ? "Deuda neta Hecom"
-            : "Saldo estimado"}
-        </p>
-        <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
-          {selectedCliente.saldoEstimado == null
-            ? "…"
-            : formatMoney(selectedCliente.saldoEstimado, "USD")}
-        </p>
-      </div>
+      {canPickClients ? (
+        <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
+          <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
+            {selectedCliente.saldoEstimado != null &&
+            selectedCliente.saldoEstimado < 0
+              ? "Deuda neta Hecom"
+              : "Saldo estimado Hecom"}
+          </p>
+          <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
+            {selectedCliente.saldoEstimado == null
+              ? "…"
+              : formatMoney(selectedCliente.saldoEstimado, "USD")}
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
+          <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
+            Saldo en cartera
+          </p>
+          <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
+            {selectedCliente.walletBalanceCents == null
+              ? "…"
+              : formatMoney(
+                  selectedCliente.walletBalanceCents / 100,
+                  selectedCliente.walletCurrency ?? "USD",
+                )}
+          </p>
+          <p className="mt-1.5 text-[11px] leading-snug text-[var(--auth-text-muted)]">
+            Disponible para asignar a tus cuentas ads.
+          </p>
+        </div>
+      )}
 
       <div
         className={cn(

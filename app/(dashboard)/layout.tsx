@@ -5,6 +5,7 @@ import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 
@@ -45,35 +46,49 @@ export default async function DashboardLayout({
   let selectedCliente: {
     id: string;
     name: string;
-    saldoEstimado: number | null;
+    saldoEstimado?: number | null;
+    walletBalanceCents?: number | null;
+    walletCurrency?: string;
     avatarUrl: string | null;
   } | null = null;
 
   if (selected) {
     try {
-      // Gerente/cliente: mostrar saldo estimado real Hecom (no "—").
-      // Misma fuente que Resumen / Pagos para no mentir en el rail.
       const shell = await getHecomClienteShell(selected.id, {
-        includeSaldo: true,
+        includeSaldo: persona !== "cliente",
       });
-      selectedCliente = shell
-        ? {
-            id: shell.id,
-            name: shell.name,
-            saldoEstimado: shell.saldoEstimado,
-            avatarUrl: shell.avatarUrl,
-          }
-        : {
-            id: selected.id,
-            name: selected.name,
-            saldoEstimado: null,
-            avatarUrl: null,
-          };
+
+      if (persona === "cliente" && session.organizationId) {
+        const wallet = await getWalletLedgerBalance(session.organizationId);
+        selectedCliente = {
+          id: shell?.id ?? selected.id,
+          name: shell?.name ?? selected.name,
+          walletBalanceCents: wallet?.availableBalanceCents ?? 0,
+          walletCurrency: wallet?.currency ?? "USD",
+          avatarUrl: shell?.avatarUrl ?? null,
+        };
+      } else {
+        selectedCliente = shell
+          ? {
+              id: shell.id,
+              name: shell.name,
+              saldoEstimado: shell.saldoEstimado,
+              avatarUrl: shell.avatarUrl,
+            }
+          : {
+              id: selected.id,
+              name: selected.name,
+              saldoEstimado: null,
+              avatarUrl: null,
+            };
+      }
     } catch {
       selectedCliente = {
         id: selected.id,
         name: selected.name,
-        saldoEstimado: null,
+        ...(persona === "cliente"
+          ? { walletBalanceCents: 0, walletCurrency: "USD" }
+          : { saldoEstimado: null }),
         avatarUrl: null,
       };
     }
