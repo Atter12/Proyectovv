@@ -1,6 +1,6 @@
 # Mapa — Recarga automática (Opción B + C)
 
-> **Estado:** diseño / no implementado  
+> **Estado:** implementado v1 (calendario / Opción B) — requiere migración `019` + deploy  
 > **Repo:** Proyectovv (`adsholistic.com`)  
 > **Decisión:** combinar **B** (calendario) y **C** (umbral de saldo). Comparten tarjeta guardada y motor de cobro.
 

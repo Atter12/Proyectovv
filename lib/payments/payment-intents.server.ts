@@ -51,7 +51,7 @@ export interface CreatePaymentIntentInput {
   amountCents: number;
   currency: string;
   provider: DbPaymentProvider;
-  createdBy: string;
+  createdBy?: string | null;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
 }
@@ -91,7 +91,7 @@ export async function createPaymentIntentRecord(
       provider: input.provider,
       status: "created",
       idempotency_key: idempotencyKey,
-      created_by: input.createdBy,
+      created_by: input.createdBy ?? null,
       metadata: input.metadata ?? {},
     })
     .select(PAYMENT_INTENT_SELECT)

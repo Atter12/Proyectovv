@@ -1,3 +1,9 @@
 {
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "crons": [
+    {
+      "path": "/api/jobs/auto-recharge",
+      "schedule": "0 13 * * *"
+    }
+  ]
 }

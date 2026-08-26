@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { PAYMENTS_OPEN_ADD_BALANCE_MODAL } from "@/lib/events/modal-events";
 import { PaymentsGatewaySection } from "./PaymentsGatewaySection.client";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
@@ -9,6 +9,12 @@ import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 
 const AddBalanceModal = dynamic(
   () => import("./AddBalanceModal.client").then((m) => m.AddBalanceModal),
+  { ssr: false },
+);
+
+const AutoRechargeSchedule = dynamic(
+  () =>
+    import("./AutoRechargeSchedule.client").then((m) => m.AutoRechargeSchedule),
   { ssr: false },
 );
 
@@ -79,6 +85,12 @@ export function PaymentsGatewayBlockClient({
           selectedGateway={selectedGateway}
           feePercent={depositFeePercent}
         />
+      ) : null}
+
+      {canClientStripeFund ? (
+        <Suspense fallback={null}>
+          <AutoRechargeSchedule depositFeePercent={depositFeePercent} />
+        </Suspense>
       ) : null}
     </>
   );
