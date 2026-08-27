@@ -33,9 +33,14 @@ export type HecomCobroRow = {
   id: string;
   monto: number;
   fecha: string | null;
+  hora: string | null;
   metodo: string | null;
   notas: string | null;
   codigo: string | null;
+  periodoResumen: string | null;
+  comprobanteUrls: string[];
+  registeredBy: string | null;
+  registeredAt: string | null;
 };
 
 export type HecomCreativoCliente = {
@@ -145,14 +150,39 @@ function mapGasto(row: Record<string, unknown>): HecomGastoRow {
   };
 }
 
+function parseComprobanteUrls(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item).trim()).filter(Boolean);
+      }
+    } catch {
+      // plain path string
+    }
+    return [trimmed];
+  }
+  return [];
+}
+
 function mapCobro(row: Record<string, unknown>): HecomCobroRow {
   return {
     id: String(row.id ?? ""),
     monto: Number(row.monto ?? 0) || 0,
     fecha: row.fecha ? String(row.fecha) : null,
+    hora: row.hora ? String(row.hora) : null,
     metodo: row.metodo ? String(row.metodo) : null,
     notas: row.notas ? String(row.notas) : null,
     codigo: row.codigo ? String(row.codigo) : null,
+    periodoResumen: row.periodo_resumen ? String(row.periodo_resumen) : null,
+    comprobanteUrls: parseComprobanteUrls(row.comprobante_urls),
+    registeredBy: row.created_by ? String(row.created_by) : null,
+    registeredAt: row.created_at ? String(row.created_at) : null,
   };
 }
 
@@ -665,7 +695,9 @@ async function loadLiveFinance(
         .limit(1500),
       hecom
         .from("cobros")
-        .select("id,client_id,monto,fecha,metodo,notas,codigo,created_at")
+        .select(
+          "id,client_id,monto,fecha,hora,metodo,notas,codigo,periodo_resumen,comprobante_urls,created_by,created_at",
+        )
         .eq("client_id", clientId)
         .order("fecha", { ascending: false })
         .limit(80),

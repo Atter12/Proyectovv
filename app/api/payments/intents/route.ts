@@ -40,6 +40,7 @@ export async function POST(request: Request) {
   let body: {
     amount?: number;
     currency?: string;
+    chargeCurrency?: "USD" | "PEN";
     provider?: PaymentGatewayId;
     gatewayId?: PaymentGatewayId;
     idempotencyKey?: string;
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
     const result = await createPaymentIntentForSession(session, {
       amount,
       currency: body.currency ?? "USD",
+      chargeCurrency: body.chargeCurrency,
       provider: providerCandidate,
       idempotencyKey: body.idempotencyKey,
     });

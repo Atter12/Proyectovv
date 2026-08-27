@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getPaymentIntentById, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
+import { processManualVoucherUpload } from "@/lib/payments/process-manual-voucher.server";
 
 export const runtime = "nodejs";
 
@@ -121,23 +122,67 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const submittedAt = new Date().toISOString();
-  const metadata = mergeMetadata(intent.metadata, {
-    manual_review_status: "pending_review",
-    manual_proof: {
-      bucket: PAYMENT_PROOFS_BUCKET,
-      path: storagePath,
-      file_name: safeName,
-      mime_type: proof.type || null,
-      size_bytes: proof.size,
-      submitted_at: submittedAt,
-      submitted_by: session.id,
-    },
-  });
+  const buffer = Buffer.from(await proof.arrayBuffer());
 
-  await updatePaymentIntentRecord(intent.id, {
-    status: "processing",
-    metadata,
-  });
+  let processResult: Awaited<ReturnType<typeof processManualVoucherUpload>> | null =
+    null;
+
+  if (intent.provider === "manual") {
+    try {
+      processResult = await processManualVoucherUpload({
+        paymentIntentId: intent.id,
+        organizationId: session.organizationId,
+        buffer,
+        mimeType: proof.type || "application/octet-stream",
+        fileName: safeName,
+        storagePath,
+        submittedBy: session.id,
+      });
+    } catch (error) {
+      console.error("[payments/proof] manual process failed", error);
+    }
+  }
+
+  if (!processResult) {
+    const metadata = mergeMetadata(intent.metadata, {
+      manual_review_status: "pending_review",
+      manual_proof: {
+        bucket: PAYMENT_PROOFS_BUCKET,
+        path: storagePath,
+        file_name: safeName,
+        mime_type: proof.type || null,
+        size_bytes: proof.size,
+        submitted_at: submittedAt,
+        submitted_by: session.id,
+      },
+    });
+
+    await updatePaymentIntentRecord(intent.id, {
+      status: "processing",
+      metadata,
+    });
+
+    await createNotificationBestEffort({
+      organizationId: session.organizationId,
+      userId: session.id,
+      title: "Comprobante enviado",
+      body: "Tu pago manual quedó pendiente de revisión.",
+      type: "payment_proof_uploaded",
+      data: { payment_intent_id: intent.id, url: "/payments" },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      paymentIntent: {
+        id: intent.id,
+        status: "processing",
+        manualReviewStatus: "pending_review",
+        proofFileName: safeName,
+        submittedAt,
+        autoApproved: false,
+      },
+    });
+  }
 
   await admin.from("audit_logs").insert({
     organization_id: session.organizationId,
@@ -148,23 +193,19 @@ export async function POST(request: Request, context: RouteContext) {
     metadata: { bucket: PAYMENT_PROOFS_BUCKET, path: storagePath },
   });
 
-  await createNotificationBestEffort({
-    organizationId: session.organizationId,
-    userId: session.id,
-    title: "Comprobante enviado",
-    body: "Tu pago manual quedó pendiente de revisión.",
-    type: "payment_proof_uploaded",
-    data: { payment_intent_id: intent.id, url: "/payments" },
-  });
-
   return NextResponse.json({
     ok: true,
     paymentIntent: {
       id: intent.id,
-      status: "processing",
-      manualReviewStatus: "pending_review",
+      status: processResult.status,
+      manualReviewStatus: processResult.analysis.confirmed
+        ? "approved"
+        : "pending_review",
       proofFileName: safeName,
       submittedAt,
+      autoApproved: processResult.autoApproved,
+      analysis: processResult.analysis,
+      creditUsdCents: processResult.creditUsdCents,
     },
   });
 }

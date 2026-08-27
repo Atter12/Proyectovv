@@ -6,6 +6,7 @@ export const protectedRoutes = [
   routes.clientes,
   routes.adAccounts,
   routes.payments,
+  routes.cobros,
   routes.gastos,
   routes.affiliates,
   routes.creativeAnalyzer,

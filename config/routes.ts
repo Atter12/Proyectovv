@@ -13,6 +13,7 @@ export const routes = {
   clientes: "/clientes",
   adAccounts: "/ad-accounts",
   payments: "/payments",
+  cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",
   creativeAnalyzer: "/creative-analyzer",

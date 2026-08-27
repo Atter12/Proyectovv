@@ -111,6 +111,19 @@ export const serverEnv = {
   paymentsManualEnabled: parseBoolean(process.env.PAYMENTS_MANUAL_ENABLED),
   paymentsAllowSandboxSuccess: parseBoolean(process.env.PAYMENTS_ALLOW_SANDBOX_SUCCESS),
 
+  /** Tipo de cambio venta USD→PEN para pago manual (fijado al crear intent). */
+  holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.48"),
+  /** JSON array de cuentas bancarias / Yape para pago manual. */
+  manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
+  openAiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openAiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
+  /** Sin IA: auto-acredita al subir voucher (solo staging / demo). */
+  manualVoucherTrustUpload: parseBoolean(process.env.MANUAL_VOUCHER_TRUST_UPLOAD),
+  /** Máx. USD netos en cartera para auto-aprobación IA. */
+  manualVoucherAutoApproveMaxUsd: Number.parseFloat(
+    process.env.MANUAL_VOUCHER_AUTO_APPROVE_MAX_USD ?? "500",
+  ),
+
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",

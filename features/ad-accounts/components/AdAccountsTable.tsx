@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
@@ -15,6 +16,9 @@ import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { AdAccountsEmptyState } from "./AdAccountsEmptyState";
 import { ConfigureAdAccountModal } from "./ConfigureAdAccountModal.client";
+import { AdAccountLiveBalanceCell } from "./AdAccountLiveBalanceCell.client";
+import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import { buildGastosUrlForAdvertiser } from "@/lib/hecom/gastos-url";
 import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
 
 const statusLabels: Record<AdAccountStatus, string> = {
@@ -160,6 +164,7 @@ export function AdAccountsTable({
   readOnly = false,
 }: AdAccountsTableProps) {
   const router = useRouter();
+  const live = useAdAccountLiveMetrics(readOnly);
   const [selectedAccount, setSelectedAccount] = useState<AdAccount | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -196,6 +201,38 @@ export function AdAccountsTable({
     }
   }
 
+  function GastosLinkButton({
+    account,
+    compact = false,
+  }: {
+    account: AdAccount;
+    compact?: boolean;
+  }) {
+    const advertiserId = account.externalAccountId?.trim();
+    if (!advertiserId) return null;
+    const bm =
+      account.externalBusinessId?.replace(/^BM\s*/i, "") ??
+      account.bcId?.replace(/^BM\s*/i, "") ??
+      null;
+    const href = buildGastosUrlForAdvertiser({
+      advertiserId,
+      bmBucket: bm,
+      days: 14,
+    });
+    return (
+      <Link
+        href={href}
+        className={
+          compact
+            ? "inline-flex h-10 w-full items-center justify-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
+            : "inline-flex h-8 items-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
+        }
+      >
+        Ver gastos
+      </Link>
+    );
+  }
+
   function AccountActions({
     account,
     compact = false,
@@ -205,9 +242,12 @@ export function AdAccountsTable({
   }) {
     if (readOnly) {
       return (
-        <p className="text-[11px] font-normal uppercase tracking-[0.08em] text-[#9a9187]">
-          Solo lectura · solo Aprobadas
-        </p>
+        <div className={compact ? "flex flex-col gap-2" : "flex flex-col items-start gap-2"}>
+          <GastosLinkButton account={account} compact={compact} />
+          <p className="text-[10px] font-normal uppercase tracking-[0.08em] text-[#9a9187]">
+            Actualiza cada {live.pollSeconds}s
+          </p>
+        </div>
       );
     }
 
@@ -316,6 +356,27 @@ export function AdAccountsTable({
 
   return (
     <div>
+      {readOnly && !isEmpty ? (
+        <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[rgb(20_18_16_/_0.08)] bg-[#fffaf5] px-4 py-3 text-[12px] text-[#5c564e]">
+          <p>
+            <span className="font-semibold text-[#1a1612]">Saldo en vivo TikTok</span>
+            {" · "}
+            se actualiza automáticamente cada {live.pollSeconds} segundos.
+          </p>
+          {live.error ? (
+            <span className="text-[11px] font-medium text-red-600">{live.error}</span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void live.refresh()}
+              className="text-[11px] font-semibold text-[#c45a18] hover:underline"
+            >
+              Actualizar ahora
+            </button>
+          )}
+        </div>
+      ) : null}
+
       {(message || error) && (
         <div
           className={`mx-4 mb-3 rounded-lg border px-4 py-3 text-[13px] ${
@@ -351,8 +412,23 @@ export function AdAccountsTable({
                     <MetaChip>{account.thresholdInfo}</MetaChip>
                   )}
                 </div>
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
-                  {!readOnly ? (
+                <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px]">
+                  {readOnly ? (
+                    <div>
+                      <dt className="text-[#9a9187]">Saldo TikTok en vivo</dt>
+                      <dd>
+                        <AdAccountLiveBalanceCell
+                          advertiserId={account.externalAccountId}
+                          metric={
+                            account.externalAccountId
+                              ? live.metricsByAdvertiser[account.externalAccountId]
+                              : undefined
+                          }
+                          loading={live.loading}
+                        />
+                      </dd>
+                    </div>
+                  ) : (
                     <>
                       <div>
                         <dt className="text-[#9a9187]">Saldo</dt>
@@ -367,13 +443,6 @@ export function AdAccountsTable({
                         </dd>
                       </div>
                     </>
-                  ) : (
-                    <div>
-                      <dt className="text-[#9a9187]">Huso</dt>
-                      <dd className="text-[#5c564e]">
-                        {account.timezone || "—"}
-                      </dd>
-                    </div>
                   )}
                 </dl>
                 <div className="mt-3">
@@ -393,15 +462,19 @@ export function AdAccountsTable({
                 <Head>Cuenta</Head>
                 <Head>ID</Head>
                 <Head>Estado</Head>
-                {readOnly ? null : (
+                {readOnly ? (
+                  <>
+                    <Head>Saldo en vivo</Head>
+                    <Head>Fee</Head>
+                  </>
+                ) : (
                   <>
                     <Head>Presupuestos</Head>
                     <Head>Saldo</Head>
                     <Head>Recarga</Head>
                   </>
                 )}
-                {readOnly ? <Head>Fee</Head> : null}
-                <Head>Huso</Head>
+                {!readOnly ? <Head>Huso</Head> : null}
                 <Head>Acción</Head>
               </TableRow>
             </TableHeader>
@@ -428,15 +501,28 @@ export function AdAccountsTable({
                       <StatusPill status={account.status} />
                     </TableCell>
                     {readOnly ? (
-                      <TableCell>
-                        {display.fee ? (
-                          <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
-                        ) : (
-                          <span className="text-[12px] text-[#5c564e]">
-                            {account.thresholdInfo}
-                          </span>
-                        )}
-                      </TableCell>
+                      <>
+                        <TableCell>
+                          <AdAccountLiveBalanceCell
+                            advertiserId={account.externalAccountId}
+                            metric={
+                              account.externalAccountId
+                                ? live.metricsByAdvertiser[account.externalAccountId]
+                                : undefined
+                            }
+                            loading={live.loading}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {display.fee ? (
+                            <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                          ) : (
+                            <span className="text-[12px] text-[#5c564e]">
+                              {account.thresholdInfo}
+                            </span>
+                          )}
+                        </TableCell>
+                      </>
                     ) : (
                       <>
                         <TableCell className="text-[12px] tabular-nums text-[#5c564e]">
@@ -470,9 +556,11 @@ export function AdAccountsTable({
                         </TableCell>
                       </>
                     )}
-                    <TableCell className="text-[12px] text-[#5c564e]">
-                      {account.timezone || "—"}
-                    </TableCell>
+                    {!readOnly ? (
+                      <TableCell className="text-[12px] text-[#5c564e]">
+                        {account.timezone || "—"}
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <AccountActions account={account} />
                     </TableCell>

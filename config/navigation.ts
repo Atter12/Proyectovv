@@ -6,6 +6,7 @@ export const mainNavigation: NavItem[] = [
   { label: "Clientes", href: routes.clientes, icon: "clients" },
   { label: "Mis cuentas publicitarias", href: routes.adAccounts, icon: "ad-accounts" },
   { label: "Pago", href: routes.payments, icon: "payments" },
+  { label: "Lo cobrado", href: routes.cobros, icon: "cobros" },
   { label: "Gastos", href: routes.gastos, icon: "gastos" },
   { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
   { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },

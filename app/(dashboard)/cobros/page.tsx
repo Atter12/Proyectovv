@@ -1,13 +1,12 @@
-import { Suspense } from "react";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { ClienteScopedGastos } from "@/features/clientes/components/ClienteScopedGastos";
+import { ClienteScopedCobros } from "@/features/clientes/components/ClienteScopedCobros";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
-export default async function GastosPage() {
+export default async function CobrosPage() {
   const session = await requirePermission("payments:read");
   const selected = await getSelectedHecomCliente(session.id);
   const capabilities = resolvePaymentsFundingCapabilities({
@@ -21,7 +20,7 @@ export default async function GastosPage() {
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Gastos ads"
+          section="Lo cobrado"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -29,14 +28,16 @@ export default async function GastosPage() {
   }
 
   const data = await getHecomClienteDashboard(selected.id, {
-    includeCampaignSpend: true,
+    includeCampaignSpend: false,
+    includeCreativos: false,
+    includeDailySpend: false,
   });
 
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Gastos ads"
+          section="Lo cobrado"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -45,9 +46,7 @@ export default async function GastosPage() {
 
   return (
     <div className={dashboardClasses.page}>
-      <Suspense fallback={null}>
-        <ClienteScopedGastos data={data} />
-      </Suspense>
+      <ClienteScopedCobros data={data} />
     </div>
   );
 }

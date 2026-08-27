@@ -19,13 +19,19 @@ import {
 } from "@/lib/email/templates/payments";
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
+import {
+  buildManualDepositQuote,
+  type ManualChargeCurrency,
+} from "@/lib/payments/manual-deposit.server";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 
 export interface CreatePaymentIntentRequest {
-  /** Monto que el cliente quiere acreditar en cartera (neto). Se cobra bruto + fee. */
+  /** Monto que el cliente quiere acreditar en cartera (neto USD). Se cobra bruto + fee. */
   amount: number;
   currency?: string;
+  /** Moneda en la que transfiere (solo pago manual). */
+  chargeCurrency?: ManualChargeCurrency;
   provider: PaymentGatewayId;
   idempotencyKey?: string;
   hecomClienteId?: string | null;
@@ -42,6 +48,10 @@ export interface CreatePaymentIntentResponse {
   feeCents: number;
   creditCents: number;
   grossCents: number;
+  chargeCurrency?: ManualChargeCurrency;
+  grossChargeCents?: number;
+  grossPenCents?: number | null;
+  fxRateUsdPen?: number;
 }
 
 export async function createPaymentIntentForSession(
@@ -80,7 +90,36 @@ export async function createPaymentIntentForSession(
     hecomClienteId: input.hecomClienteId,
   });
 
-  const amountCents = fee.grossCents;
+  const chargeCurrency: ManualChargeCurrency =
+    input.provider === "manual" && input.chargeCurrency === "PEN" ? "PEN" : "USD";
+
+  let amountCents = fee.grossCents;
+  let intentCurrency = (input.currency ?? "USD").toUpperCase();
+  let manualQuoteMeta: Record<string, unknown> = {};
+
+  if (input.provider === "manual" && chargeCurrency === "PEN") {
+    const quote = buildManualDepositQuote({
+      creditUsd: input.amount,
+      feePercent: fee.feePercent,
+      chargeCurrency: "PEN",
+    });
+    amountCents = quote.grossChargeCents;
+    intentCurrency = "PEN";
+    manualQuoteMeta = {
+      charge_currency: "PEN",
+      fx_rate_usd_pen: quote.fxRateUsdPen,
+      credit_pen_cents: quote.creditPenCents,
+      gross_pen_cents: quote.grossPenCents,
+      fee_pen_cents: quote.feePenCents,
+      gross_usd_cents: quote.grossUsdCents,
+    };
+  } else if (input.provider === "manual") {
+    manualQuoteMeta = {
+      charge_currency: "USD",
+      gross_usd_cents: fee.grossCents,
+    };
+  }
+
   if (amountCents <= 0) {
     throw new Error("El monto a cobrar debe ser mayor a cero.");
   }
@@ -92,7 +131,7 @@ export async function createPaymentIntentForSession(
     organizationId: session.organizationId,
     walletId,
     amountCents,
-    currency,
+    currency: input.provider === "manual" ? intentCurrency : currency,
     provider,
     createdBy: session.id,
     idempotencyKey,
@@ -107,12 +146,14 @@ export async function createPaymentIntentForSession(
       fee_amount_cents: fee.feeCents,
       credit_amount_cents: fee.creditCents,
       gross_amount_cents: fee.grossCents,
+      wallet_credit_currency: "USD",
+      ...manualQuoteMeta,
     },
   });
 
   const checkoutResult = await providerImpl.createCheckout({
     amountCents,
-    currency,
+    currency: input.provider === "manual" ? intentCurrency : currency,
     organizationId: session.organizationId,
     walletId,
     paymentIntentId: intent.id,
@@ -172,6 +213,16 @@ export async function createPaymentIntentForSession(
     feeCents: fee.feeCents,
     creditCents: fee.creditCents,
     grossCents: fee.grossCents,
+    chargeCurrency: input.provider === "manual" ? chargeCurrency : undefined,
+    grossChargeCents: amountCents,
+    grossPenCents:
+      input.provider === "manual" && chargeCurrency === "PEN"
+        ? amountCents
+        : null,
+    fxRateUsdPen:
+      typeof manualQuoteMeta.fx_rate_usd_pen === "number"
+        ? manualQuoteMeta.fx_rate_usd_pen
+        : undefined,
   };
 }
 
