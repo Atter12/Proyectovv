@@ -94,6 +94,10 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
     params.set("line_items[0][price_data][unit_amount]", String(input.amountCents));
     params.set("line_items[0][price_data][product_data][name]", "Recarga de cartera");
     params.set("line_items[0][quantity]", "1");
+    // Solo tarjeta: Klarna/Afterpay/Affirm/etc. rompen Checkout fuera de US
+    // ("Something went wrong" en Safari / clientes internacionales).
+    params.append("payment_method_types[]", "card");
+    params.set("adaptive_pricing[enabled]", "false");
     if (input.customerEmail) {
       params.set("customer_email", input.customerEmail);
     }
