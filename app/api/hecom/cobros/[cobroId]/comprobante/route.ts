@@ -4,6 +4,13 @@ import { assertHecomClienteAccess } from "@/lib/hecom/assert-cliente-access.serv
 import { signHecomCobroComprobanteUrl } from "@/lib/hecom/cobro-comprobante.server";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
 
+function guessComprobanteKind(storagePath: string): "image" | "pdf" | "unknown" {
+  const lower = storagePath.toLowerCase();
+  if (lower.endsWith(".pdf")) return "pdf";
+  if (/\.(jpe?g|png|webp|gif|heic|bmp)$/.test(lower)) return "image";
+  return "unknown";
+}
+
 function parseComprobanteUrls(raw: unknown): string[] {
   if (Array.isArray(raw)) {
     return raw.map((item) => String(item).trim()).filter(Boolean);
@@ -70,7 +77,11 @@ export async function GET(
     }
 
     const url = await signHecomCobroComprobanteUrl(storagePath);
-    return NextResponse.json({ ok: true, url });
+    return NextResponse.json({
+      ok: true,
+      url,
+      kind: guessComprobanteKind(storagePath),
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo abrir el comprobante.";

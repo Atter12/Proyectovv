@@ -37,7 +37,7 @@ export function DashboardTopbar({
         : currentPage?.href === "/payments"
           ? "Pagos"
           : currentPage?.href === "/cobros"
-            ? "Lo cobrado"
+            ? "Lo pagado"
           : currentPage?.href === "/gastos"
             ? "Gastos"
           : currentPage?.href === "/clientes"

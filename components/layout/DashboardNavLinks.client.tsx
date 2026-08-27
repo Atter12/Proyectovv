@@ -90,7 +90,7 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   if (item.href === "/clientes") return "Clientes";
   if (item.href === "/ad-accounts") return "Cuentas ads";
   if (item.href === "/payments") return "Pagos";
-  if (item.href === "/cobros") return "Lo cobrado";
+  if (item.href === "/cobros") return "Lo pagado";
   if (item.href === "/gastos") return "Gastos";
   if (item.href === "/overview") return "Resumen";
   if (item.href === "/affiliates") return "Afiliados";

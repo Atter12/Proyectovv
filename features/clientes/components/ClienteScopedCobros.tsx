@@ -4,7 +4,7 @@ import {
   CrmMetricsStrip,
   CrmPanel,
 } from "@/components/dashboard/crm-ui";
-import { CobroComprobanteButton } from "@/features/clientes/components/CobroComprobanteButton.client";
+import { CobroComprobantePreview } from "@/features/clientes/components/CobroComprobantePreview.client";
 import { formatHecomFecha } from "@/lib/hecom/gasto-label";
 import {
   moneyUsd,
@@ -75,12 +75,11 @@ export function ClienteScopedCobros({
             Historial Hecom
           </p>
           <h2 className="mt-1 text-[1.125rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            Lo cobrado · {cliente.name}
+            Lo pagado · {cliente.name}
           </h2>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-[var(--auth-text-muted)]">
             Cada fila es un pago registrado en Hecom: fecha, período que cubre,
-            monto y comprobantes (voucher o captura). Podés abrir el archivo desde
-            el botón en la columna Comprobantes.
+            monto y comprobantes. Tocá la miniatura para ver el voucher en grande.
           </p>
         </div>
         <Link
@@ -95,7 +94,7 @@ export function ClienteScopedCobros({
         <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3">
           <div className="bg-white">
             <CrmMetricCell
-              label="Total cobrado"
+              label="Total pagado"
               value={moneyUsd(summary.cobroTotal)}
               emphasis="primary"
             />
@@ -110,7 +109,7 @@ export function ClienteScopedCobros({
             <CrmMetricCell
               label="Saldo estimado"
               value={moneyUsd(summary.saldoEstimado)}
-              hint="Cobros − (gastos + fees)"
+              hint="Pagos − (gastos + fees)"
               emphasis={summary.saldoEstimado < 0 ? "primary" : "default"}
             />
           </div>
@@ -118,13 +117,13 @@ export function ClienteScopedCobros({
       </CrmMetricsStrip>
 
       <CrmPanel
-        title="Cobros"
+        title="Historial de pagos"
         subtitle={`${cobros.length} registro${cobros.length === 1 ? "" : "s"} · solo lectura CRM`}
         className="overflow-hidden"
       >
         {cobros.length === 0 ? (
           <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-            Sin cobros para este cliente.
+            Sin pagos registrados para este cliente.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -133,7 +132,7 @@ export function ClienteScopedCobros({
                 <tr>
                   <th className="px-4 py-3 sm:px-5">Fecha de pago</th>
                   <th className="px-4 py-3">Hora</th>
-                  <th className="px-4 py-3">Cód. cobro</th>
+                  <th className="px-4 py-3">Cód. pago</th>
                   <th className="px-4 py-3">Período</th>
                   <th className="px-4 py-3">Monto</th>
                   <th className="px-4 py-3">Método</th>
@@ -181,19 +180,16 @@ function CobroTableRow({ row }: { row: HecomCobroRow }) {
       </td>
       <td className="px-4 py-3.5">
         {row.comprobanteUrls.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-[10px] text-[var(--auth-text-muted)]">
-              Pago: {fecha ?? "—"} · Período: {periodo}
-            </p>
+          <div className="flex flex-wrap items-center gap-2">
             {row.comprobanteUrls.map((_, index) => (
-              <CobroComprobanteButton
+              <CobroComprobantePreview
                 key={`${row.id}-${index}`}
                 cobroId={row.id}
                 index={index}
                 label={
                   row.comprobanteUrls.length > 1
-                    ? `Ver comprobante ${index + 1}`
-                    : "Ver comprobante"
+                    ? `Comprobante ${index + 1}`
+                    : "Comprobante"
                 }
               />
             ))}

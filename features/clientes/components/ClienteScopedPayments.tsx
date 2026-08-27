@@ -65,7 +65,7 @@ export function ClienteScopedPayments({
             href={routes.cobros}
             className="text-[var(--auth-accent)] hover:underline"
           >
-            Ver lo cobrado →
+            Ver lo pagado →
           </Link>
           <Link
             href={routes.gastos}
@@ -151,7 +151,7 @@ export function ClienteScopedPayments({
               href={routes.cobros}
               className="text-[12px] font-semibold text-[var(--auth-accent)] hover:underline"
             >
-              Ver todos los cobros y comprobantes →
+              Ver todos los pagos y comprobantes →
             </Link>
           </div>
         ) : cobros.length > 0 ? (
