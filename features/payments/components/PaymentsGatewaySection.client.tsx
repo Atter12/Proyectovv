@@ -34,6 +34,7 @@ export function PaymentsGatewaySection({
   depositFeePercent = 10,
 }: PaymentsGatewaySectionProps) {
   const selectedGateway = gateways.find((g) => g.id === selected);
+  const selectedInMaintenance = Boolean(selectedGateway?.maintenance);
   const showClientDeposit =
     canClientStripeFund && fundingMode === "client";
 
@@ -86,19 +87,24 @@ export function PaymentsGatewaySection({
                   Siguiente paso
                 </p>
                 <p className="mt-0.5 text-[13px] font-medium text-[var(--auth-text)]">
-                  {selectedGateway
-                    ? `Continuar con ${selectedGateway.name}`
-                    : "Seleccioná un método para continuar"}
+                  {selectedInMaintenance
+                    ? "Pago manual en mantenimiento — usá Stripe"
+                    : selectedGateway
+                      ? `Continuar con ${selectedGateway.name}`
+                      : "Seleccioná un método para continuar"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onContinue}
-                className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
+                disabled={selectedInMaintenance || !selectedGateway}
+                className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
-                {selectedGateway
-                  ? `Pagar con ${selectedGateway.name}`
-                  : "Agregar saldo"}
+                {selectedInMaintenance
+                  ? "No disponible"
+                  : selectedGateway
+                    ? `Pagar con ${selectedGateway.name}`
+                    : "Agregar saldo"}
               </button>
             </div>
           </div>

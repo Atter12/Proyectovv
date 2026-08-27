@@ -16,6 +16,8 @@ export interface PaymentGateway {
   id: PaymentGatewayId;
   name: string;
   description: string;
+  /** Visible pero no usable (ej. pago manual en mantenimiento). */
+  maintenance?: boolean;
 }
 
 export interface WalletOverview {

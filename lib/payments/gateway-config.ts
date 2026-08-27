@@ -1,6 +1,11 @@
 import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 import { serverEnv } from "@/lib/env/env.server";
 
+/**
+ * Gateways visibles en Pagos.
+ * Por ahora solo Stripe activo + Manual en mantenimiento.
+ * Culqi / Mercado Pago / Cripto quedan ocultos.
+ */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "stripe",
@@ -8,37 +13,22 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
     description: "Tarjetas y pagos globales",
   },
   {
-    id: "culqi",
-    name: "Culqi",
-    description: "Pagos con tarjeta en Perú",
-  },
-  {
-    id: "mercadopago",
-    name: "Mercado Pago",
-    description: "Pagos en Latinoamérica",
-  },
-  {
-    id: "crypto",
-    name: "Cripto (USDT)",
-    description: "Solo USDT (TRC20) · checkout NOWPayments o comprobante",
-  },
-  {
     id: "manual",
     name: "Pago manual",
-    description: "Transferencia bancaria revisada por el equipo",
+    description: "En mantenimiento — pronto transferencia bancaria / Yape",
+    maintenance: true,
   },
 ];
 
+export function isGatewayInMaintenance(id: PaymentGatewayId): boolean {
+  return Boolean(PAYMENT_GATEWAYS.find((g) => g.id === id)?.maintenance);
+}
+
 export function getDefaultGatewayId(): PaymentGatewayId {
   const configured = serverEnv.paymentsDefaultProvider;
-  if (
-    configured === "stripe" ||
-    configured === "culqi" ||
-    configured === "mercadopago" ||
-    configured === "manual" ||
-    configured === "crypto"
-  ) {
-    return configured;
-  }
-  return "manual";
+  const visible = PAYMENT_GATEWAYS.find((g) => g.id === configured && !g.maintenance);
+  if (visible) return visible.id;
+
+  const firstActive = PAYMENT_GATEWAYS.find((g) => !g.maintenance);
+  return firstActive?.id ?? "stripe";
 }

@@ -23,6 +23,7 @@ import {
   buildManualDepositQuote,
   type ManualChargeCurrency,
 } from "@/lib/payments/manual-deposit.server";
+import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 
@@ -64,6 +65,12 @@ export async function createPaymentIntentForSession(
 
   if (!isPaymentGatewayId(input.provider)) {
     throw new Error("Proveedor de pago inválido.");
+  }
+
+  if (isGatewayInMaintenance(input.provider)) {
+    throw new Error(
+      "Este método de pago está en mantenimiento. Usá Stripe por ahora.",
+    );
   }
 
   const creditCents = Math.round(input.amount * 100);

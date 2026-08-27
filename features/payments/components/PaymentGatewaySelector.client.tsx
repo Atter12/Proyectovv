@@ -19,22 +19,30 @@ export function PaymentGatewaySelector({
     <div
       role="radiogroup"
       aria-label="Método de pago"
-      className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+      className="grid gap-2 sm:grid-cols-2"
     >
       {gateways.map((gateway) => {
-        const isSelected = selected === gateway.id;
+        const inMaintenance = Boolean(gateway.maintenance);
+        const isSelected = selected === gateway.id && !inMaintenance;
         return (
           <button
             key={gateway.id}
             type="button"
             role="radio"
             aria-checked={isSelected}
-            onClick={() => onSelect(gateway.id)}
+            aria-disabled={inMaintenance}
+            disabled={inMaintenance}
+            onClick={() => {
+              if (inMaintenance) return;
+              onSelect(gateway.id);
+            }}
             className={cn(
               "relative flex items-start gap-3 rounded-[0.85rem] border px-3.5 py-3 text-left transition-colors",
-              isSelected
-                ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
-                : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/40 hover:bg-[var(--auth-bg)]",
+              inMaintenance
+                ? "cursor-not-allowed border-[var(--auth-border)] bg-[#f7f5f2] opacity-80"
+                : isSelected
+                  ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
+                  : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/40 hover:bg-[var(--auth-bg)]",
             )}
           >
             {isSelected ? (
@@ -51,7 +59,11 @@ export function PaymentGatewaySelector({
                 <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
                   {gateway.name}
                 </p>
-                {isSelected ? (
+                {inMaintenance ? (
+                  <span className="shrink-0 rounded-full bg-[#e7e2db] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#5c564e]">
+                    Mantenimiento
+                  </span>
+                ) : isSelected ? (
                   <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-accent)]">
                     Activo
                   </span>
