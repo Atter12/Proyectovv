@@ -3,7 +3,6 @@ import {
   CrmMetricCell,
   CrmMetricsStrip,
 } from "@/components/dashboard/crm-ui";
-import { CampaignSpendExplorer } from "@/features/clientes/components/CampaignSpendExplorer.client";
 import { GastosAdsLedger } from "@/features/clientes/components/GastosAdsLedger.client";
 import { routes } from "@/config/routes";
 import { formatHecomFecha } from "@/lib/hecom/gasto-label";
@@ -17,7 +16,7 @@ export function ClienteScopedGastos({
 }: {
   data: HecomClienteDashboard;
 }) {
-  const { cliente, summary, gastos, campaignSpendRows, accounts } = data;
+  const { cliente, summary, gastos } = data;
 
   const todayLima = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -41,7 +40,7 @@ export function ClienteScopedGastos({
             Gastos · {cliente.name}
           </h2>
           <p className="mt-1 text-[12px] text-[var(--auth-text-muted)]">
-            Por BM y campaña · solo lectura Hecom
+            Total por rango de fechas · solo lectura Hecom
           </p>
         </div>
         <Link
@@ -53,7 +52,7 @@ export function ClienteScopedGastos({
       </header>
 
       <CrmMetricsStrip>
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3">
           <div className="bg-white">
             <CrmMetricCell
               label="Gasto de hoy"
@@ -78,24 +77,19 @@ export function ClienteScopedGastos({
           </div>
           <div className="bg-white">
             <CrmMetricCell
-              label="Total gastos"
+              label="Total histórico"
               value={moneyUsd(summary.gastoTotal)}
-            />
-          </div>
-          <div className="bg-white">
-            <CrmMetricCell
-              label="Fees $"
-              value={moneyUsd(summary.feeTotal)}
-              hint={`${summary.depositFeePercent}%`}
-              emphasis="muted"
+              hint="Todos los registros Hecom"
             />
           </div>
         </div>
       </CrmMetricsStrip>
 
-      <CampaignSpendExplorer rows={campaignSpendRows} accounts={accounts} />
-
-      <GastosAdsLedger gastos={gastos} accounts={accounts} />
+      <GastosAdsLedger
+        gastos={gastos}
+        title="Gasto en el período"
+        subtitle="Elegí fechas y ves el total"
+      />
     </div>
   );
 }

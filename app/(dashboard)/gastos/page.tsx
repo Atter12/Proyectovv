@@ -29,7 +29,7 @@ export default async function GastosPage() {
   }
 
   const data = await getHecomClienteDashboard(selected.id, {
-    includeCampaignSpend: true,
+    includeCampaignSpend: false,
   });
 
   if (!data) {
