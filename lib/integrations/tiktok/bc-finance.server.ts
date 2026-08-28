@@ -140,6 +140,16 @@ export async function transferBcFundsToAdvertiser(
   if (!Number.isFinite(cashAmount) || cashAmount <= 0) {
     throw new Error("Monto de transfer TikTok inválido.");
   }
+  // Defensa: nunca enviar “centavos disfrazados de dólares” (ej. 12000 en vez de 120).
+  if (cashAmount > 50_000) {
+    throw new Error(
+      "Monto TikTok fuera de rango seguro. Operación cancelada para evitar un descuento incorrecto en el BM.",
+    );
+  }
+  // Solo 2 decimales USD.
+  if (Math.round(cashAmount * 100) / 100 !== cashAmount) {
+    throw new Error("Monto TikTok inválido (debe ser USD con máximo 2 decimales).");
+  }
   if (!input.requestId.trim()) {
     throw new Error("request_id es obligatorio (idempotencia).");
   }
@@ -149,22 +159,31 @@ export async function transferBcFundsToAdvertiser(
   const tokenFp = tokenFingerprint(accessToken);
 
   // Evitar 40002 críptico: si el BM no tiene cash, fallar con mensaje claro.
+  // BM 10/30 suelen ser SHARED: muestran "línea de crédito" en Manager, pero
+  // cash_balance=0 → /bc/transfer/ con cash_amount no puede mover nada.
   const cashAvailable = await getBcCashBalance({
     bcId,
     organizationId: input.organizationId,
   });
   if (cashAvailable != null && cashAvailable + 1e-9 < cashAmount) {
+    const portfolioHint = await getBcPortfolioHint({
+      bcId,
+      organizationId: input.organizationId,
+    });
     console.warn("[tiktok-bc] transfer_blocked_no_cash", {
       bcId,
       advertiserId,
       cashAmount,
       cashAvailable,
+      portfolioHint,
       tokenSource,
       tokenFp,
     });
     throw new Error(
       cashAvailable <= 0
-        ? "Este Business Center no tiene cash disponible para asignar. Tu saldo sigue en la cartera Holistic. Probá una cuenta de otro BM (ej. BM 200) o pedile a soporte que fondee ese BM."
+        ? portfolioHint?.shared
+          ? "Este BM (crédito compartido) no tiene saldo en efectivo. En TikTok Manager la “línea de crédito” no es cash: Asignar solo mueve cash. Usá una cuenta de BM 200 (tiene efectivo) o pedile a soporte que cargue cash en ese BM."
+          : "Este Business Center no tiene cash disponible para asignar. Tu saldo sigue en la cartera Holistic. Probá una cuenta de otro BM (ej. BM 200) o pedile a soporte que fondee ese BM."
         : `Este BM solo tiene ~$${cashAvailable.toFixed(2)} cash. Pedí menos o usá otra cuenta/BM. Tu saldo sigue en la cartera Holistic.`,
     );
   }
@@ -256,6 +275,34 @@ export async function getBcCashBalance(input: {
   bcId: string;
   organizationId?: string;
 }): Promise<number | null> {
+  const detail = await getBcBalanceDetail(input);
+  return detail?.validCashBalance ?? detail?.cashBalance ?? null;
+}
+
+export async function getBcPortfolioHint(input: {
+  bcId: string;
+  organizationId?: string;
+}): Promise<{ shared: boolean; accountBalance: number | null } | null> {
+  const detail = await getBcBalanceDetail(input);
+  if (!detail) return null;
+  return {
+    shared: detail.paymentPortfolioType === "SHARED",
+    accountBalance: detail.validAccountBalance ?? detail.accountBalance,
+  };
+}
+
+type BcBalanceDetail = {
+  cashBalance: number | null;
+  validCashBalance: number | null;
+  accountBalance: number | null;
+  validAccountBalance: number | null;
+  paymentPortfolioType: string | null;
+};
+
+async function getBcBalanceDetail(input: {
+  bcId: string;
+  organizationId?: string;
+}): Promise<BcBalanceDetail | null> {
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
   const url = new URL(apiUrl("/bc/balance/get/"));
@@ -270,7 +317,10 @@ export async function getBcCashBalance(input: {
   const json = (await response.json()) as TikTokApiResponse<{
     cash_balance?: number | string;
     valid_cash_balance?: number | string;
+    account_balance?: number | string;
+    valid_account_balance?: number | string;
     balance?: number | string;
+    payment_portfolio_type?: string;
   }>;
 
   if (!response.ok || (json.code !== undefined && json.code !== 0)) {
@@ -285,9 +335,19 @@ export async function getBcCashBalance(input: {
     return null;
   }
 
-  const raw =
-    json.data?.valid_cash_balance ?? json.data?.cash_balance ?? json.data?.balance;
-  if (raw === undefined || raw === null) return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
+  const num = (v: number | string | null | undefined): number | null => {
+    if (v === undefined || v === null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  return {
+    cashBalance: num(json.data?.cash_balance ?? json.data?.balance),
+    validCashBalance: num(json.data?.valid_cash_balance),
+    accountBalance: num(json.data?.account_balance),
+    validAccountBalance: num(json.data?.valid_account_balance),
+    paymentPortfolioType: json.data?.payment_portfolio_type
+      ? String(json.data.payment_portfolio_type)
+      : null,
+  };
 }

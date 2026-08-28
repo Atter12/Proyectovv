@@ -143,6 +143,11 @@ export function AllocateBalanceModal({
             ? "Mueve cash del Business Center a esta cuenta ads. No exige saldo en la cartera Holistic (puente contable automático)."
             : "Descuenta la cartera Holistic y mueve cash del BM a esta cuenta ads. Si la cuenta ya tiene saldo en TikTok, puede seguir pautando; esto suma más presupuesto controlado por Holistic."}
         </p>
+        <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] leading-5 text-emerald-950">
+          <span className="font-semibold">1 a 1:</span> si asignás $120, TikTok
+          recibe $120. No se suma fee al asignar (el fee Holistic solo aplica al
+          recargar la cartera).
+        </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">

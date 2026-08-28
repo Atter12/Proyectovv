@@ -12,6 +12,10 @@ import {
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
 import {
+  assertTikTokCashMatchesCents,
+  usdCentsToTikTokCashAmount,
+} from "@/lib/payments/tiktok-transfer-amount";
+import {
   createPaymentIntentRecord,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
@@ -198,9 +202,11 @@ export async function allocateWithOptionalTikTokFunding(
   }
 
   // TikTok PRIMERO. Si falla, no tocamos ledger ni puente.
+  // 1 USD asignado = 1 USD cash_amount en TikTok (sin fee extra en el transfer).
   if (canFund) {
     transferRequestId = `bc:${idempotencyKey}`;
-    const cashAmount = input.amountCents / 100;
+    const cashAmount = usdCentsToTikTokCashAmount(input.amountCents);
+    assertTikTokCashMatchesCents(cashAmount, input.amountCents);
     const transfer = await transferBcFundsToAdvertiser({
       organizationId: input.organizationId,
       bcId,
@@ -245,6 +251,10 @@ export async function allocateWithOptionalTikTokFunding(
       tiktok_bc_transfer_attempted: canFund,
       tiktok_bc_id: bcId || null,
       tiktok_advertiser_id: advertiserId || null,
+      tiktok_cash_amount_usd: canFund
+        ? usdCentsToTikTokCashAmount(input.amountCents)
+        : null,
+      tiktok_amount_cents: input.amountCents,
       tiktok_transfer_request_id: transferRequestId,
       tiktok_api_request_id: tiktokRequestId,
     },
