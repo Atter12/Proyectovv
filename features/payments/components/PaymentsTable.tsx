@@ -92,11 +92,7 @@ export function PaymentsTable({
 
   function allocateDisabledReason(account: PaymentAccountAllocation): string | null {
     if (isSystemAllocatableBmLabel(account.bmLabel)) return null;
-    const label = account.bmLabel?.trim();
-    if (label && /\bBM\s*(10|30)\b/i.test(label)) {
-      return "BM 10/30: contactá soporte Holistic para recargar.";
-    }
-    return "Solo cuentas BM 200 se recargan desde Holistic. Contactá soporte.";
+    return "Contactá a soporte para recargar esta cuenta.";
   }
 
   return (

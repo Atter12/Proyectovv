@@ -29,11 +29,11 @@ function friendlyAllocateError(raw: string): string {
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
     return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
   }
-  if (/línea de crédito|crédito compartido|BM 200|no tiene saldo en efectivo/i.test(text)) {
-    return text.length <= 280 ? text : "Este BM no tiene efectivo para Asignar (la línea de crédito no cuenta). Probá BM 200 o contactá soporte.";
+  if (/línea de crédito|crédito compartido|BM 200|no tiene saldo en efectivo|Solo BM/i.test(text)) {
+    return "Esta cuenta no se puede recargar desde aquí. Contactá a soporte. Tu dinero sigue en la cartera.";
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
-    return "No se pudo mover el saldo a esa cuenta en TikTok. Tu dinero sigue en la cartera Holistic. Probá una cuenta de BM 200 o contactá soporte.";
+    return "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Probá otra cuenta disponible o contactá soporte.";
   }
   if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
     return "No hay suficiente saldo en la cartera Holistic. Recargá e intentá de nuevo.";
@@ -77,9 +77,7 @@ export function AllocateBalanceModal({
   const canAllocateFromSystem = isSystemAllocatableBmLabel(targetAccount.bmLabel);
   const supportOnlyMessage = canAllocateFromSystem
     ? null
-    : targetAccount.bmLabel?.match(/\bBM\s*(10|30)\b/i)
-      ? "Esta cuenta es BM 10 o BM 30. No se puede asignar desde Holistic — contactá a soporte."
-      : "Solo cuentas BM 200 se recargan desde Holistic. Contactá a soporte para esta cuenta.";
+    : "Esta cuenta no se puede recargar desde aquí. Contactá a soporte.";
 
   function resetAndClose() {
     setAmount("");

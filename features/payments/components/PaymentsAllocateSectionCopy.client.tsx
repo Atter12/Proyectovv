@@ -49,14 +49,13 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
-            Tenés {walletBalanceLabel} en cartera Holistic. Asigná solo a cuentas{" "}
-            <span className="font-semibold text-[var(--auth-text)]">BM 200</span>{" "}
-            (listadas abajo). BM 10 / BM 30: contactá soporte.
+            Tenés {walletBalanceLabel} en cartera Holistic. Asigná a las cuentas
+            disponibles (listadas abajo). El resto: contactá soporte.
           </>
         ) : (
           <>
             Cartera en {walletBalanceLabel}. Primero recargá arriba (Stripe /
-            manual). Asigná solo a cuentas BM 200; el resto va por soporte.
+            manual). Luego asigná a las cuentas disponibles abajo.
           </>
         )}
       </p>

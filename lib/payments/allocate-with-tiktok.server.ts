@@ -190,7 +190,7 @@ export async function allocateWithOptionalTikTokFunding(
     const bmBucket = resolveBmBucketFromBcId(bcId);
     if (bmBucket && bmBucket !== SYSTEM_ALLOCATABLE_BM_BUCKET) {
       throw new Error(
-        `Esta cuenta es BM ${bmBucket}. Solo BM ${SYSTEM_ALLOCATABLE_BM_BUCKET} se recarga desde Holistic. Para BM 10 / BM 30 contactá a soporte.`,
+        "Esta cuenta no se puede recargar desde Holistic. Contactá a soporte.",
       );
     }
   }

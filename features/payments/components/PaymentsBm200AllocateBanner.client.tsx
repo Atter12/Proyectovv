@@ -33,22 +33,17 @@ export function PaymentsBm200AllocateBanner({
       role="note"
     >
       <p className="text-[13px] font-bold uppercase tracking-[0.06em] text-amber-950">
-        Importante — recarga desde Holistic
+        Recarga desde Holistic
       </p>
       <p className="mt-2 text-[13px] leading-5 text-amber-950">
-        Solo podés{" "}
-        <span className="font-semibold">asignar saldo desde esta plataforma</span>{" "}
-        a cuentas del{" "}
-        <span className="font-semibold">BM 200</span> (TikTok tiene efectivo
-        disponible). Las cuentas BM 10 y BM 30 usan crédito compartido:{" "}
-        <span className="font-semibold">contactá a soporte Holistic</span> para
-        recargarlas — no uses Asignar ahí.
+        Desde aquí solo podés asignar saldo a estas cuentas. Para el resto,
+        contactá a soporte.
       </p>
 
       {bm200Accounts.length > 0 ? (
         <div className="mt-3 rounded-lg border border-amber-300/80 bg-white/70 px-3 py-2.5">
           <p className="text-[12px] font-semibold text-emerald-900">
-            Cuentas habilitadas para Asignar (BM 200)
+            Cuentas disponibles
           </p>
           <ul className="mt-1.5 max-h-36 space-y-1 overflow-y-auto text-[12px] leading-5 text-[#1a1612]">
             {bm200Accounts.map((account) => (
@@ -63,17 +58,14 @@ export function PaymentsBm200AllocateBanner({
         </div>
       ) : (
         <p className="mt-3 rounded-lg border border-amber-300/80 bg-white/70 px-3 py-2.5 text-[12px] leading-5 text-amber-950">
-          No tenés cuentas BM 200 en la lista. Para recargar desde Holistic
-          necesitás una cuenta vinculada a BM 200, o pedile a soporte que te
-          ayude con BM 10 / BM 30.
+          No hay cuentas disponibles para asignar desde aquí. Contactá a
+          soporte.
         </p>
       )}
 
-      {otherAccounts.length > 0 ? (
+      {otherAccounts.length > 0 && bm200Accounts.length > 0 ? (
         <p className="mt-3 text-[12px] leading-5 text-amber-900/90">
-          {otherAccounts.length} cuenta
-          {otherAccounts.length === 1 ? "" : "s"} BM 10 / BM 30 / otras: solo
-          por soporte (el botón Asignar aparece deshabilitado).
+          Las demás cuentas se recargan por soporte.
         </p>
       ) : null}
     </div>
