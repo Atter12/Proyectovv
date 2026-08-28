@@ -23,15 +23,15 @@ export function PaymentsAllocateSectionCopy({
           {clienteName ? ` · ${clienteName}` : ""}
         </p>
         <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-          Mover cash del BM a cuentas TikTok
+          Recargar cuentas TikTok desde el BM
         </h2>
         <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Movés cash del Business Center a la cuenta ads de
-          {who}. Es presupuesto para pautar:{" "}
+          Fondeás la cuenta ads de{who} desde el Business Center (BM 200 = cash;
+          BM 10/30 = presupuesto de crédito). No exige cartera Holistic.{" "}
           <span className="font-semibold text-[var(--auth-text)]">
-            no baja la deuda neta Hecom
+            No baja la deuda neta Hecom
           </span>{" "}
-          (la deuda baja solo con cobro del cliente).
+          (eso baja solo con cobro del cliente). Usá cuentas Aprobadas.
         </p>
       </>
     );

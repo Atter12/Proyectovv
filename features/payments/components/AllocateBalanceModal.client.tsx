@@ -22,26 +22,35 @@ interface AllocateResponse {
   journalId: string;
 }
 
-/** Quita dumps técnicos (bc=/token=/req=) y deja texto usable para el cliente. */
-function friendlyAllocateError(raw: string): string {
+/** Quita dumps técnicos (bc=/token=/req=) y deja texto usable. */
+function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
   const text = raw.trim();
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
     return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
   }
-  if (/falta permiso de presupuesto|línea de crédito|crédito compartido|no tiene saldo en efectivo/i.test(text)) {
+  if (
+    /no aparece en el BM|rechazó el presupuesto|falta permiso de presupuesto|línea de crédito|crédito compartido|no tiene saldo en efectivo/i.test(
+      text,
+    )
+  ) {
     return text.length <= 280
       ? text
-      : "No se pudo asignar en esta cuenta ahora. Contactá a soporte. Tu dinero sigue en la cartera.";
+      : agencyBmFunding
+        ? "No se pudo recargar esa cuenta en TikTok. Probá otra cuenta Aprobada."
+        : "No se pudo asignar en esta cuenta ahora. Contactá a soporte. Tu dinero sigue en la cartera.";
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
-    return "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
+    return agencyBmFunding
+      ? "No se pudo recargar esa cuenta en TikTok. Probá otra cuenta o contactá soporte."
+      : "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
   }
   if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
     return "No hay suficiente saldo en la cartera Holistic. Recargá e intentá de nuevo.";
   }
-  // Si el backend ya mandó mensaje corto, usarlo (máx. razonable).
   if (text.length <= 220 && !/\| bc=/.test(text)) return text;
-  return "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
+  return agencyBmFunding
+    ? "No se pudo recargar desde el BM. Probá otra cuenta Aprobada o contactá soporte."
+    : "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
 }
 
 export function AllocateBalanceModal({
@@ -121,7 +130,7 @@ export function AllocateBalanceModal({
         err instanceof ApiClientError
           ? err.message
           : "No se pudo asignar el saldo.";
-      setError(friendlyAllocateError(raw));
+      setError(friendlyAllocateError(raw, agencyBmFunding));
     } finally {
       setLoading(false);
     }
@@ -145,7 +154,7 @@ export function AllocateBalanceModal({
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {agencyBmFunding
-            ? "Mueve cash del Business Center a esta cuenta ads. No exige saldo en la cartera Holistic (puente contable automático)."
+            ? "Fondea la cuenta en TikTok desde el BM (sin exigir cartera del cliente). BM 200 = cash; BM 10/30 = subir presupuesto de crédito. Usá cuentas Aprobadas."
             : "Descuenta la cartera Holistic y mueve cash del BM a esta cuenta ads. Si la cuenta ya tiene saldo en TikTok, puede seguir pautando; esto suma más presupuesto controlado por Holistic."}
         </p>
         <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] leading-5 text-emerald-950">
@@ -153,6 +162,13 @@ export function AllocateBalanceModal({
           recibe $120. No se suma fee al asignar (el fee Holistic solo aplica al
           recargar la cartera).
         </p>
+        {agencyBmFunding ? (
+          <p className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-5 text-sky-950">
+            Si ves error de presupuesto, la cuenta no está visible en el BM de
+            TikTok (ID mal mapeado o cuenta vieja). Probá otra Aprobada del
+            mismo cliente.
+          </p>
+        ) : null}
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">

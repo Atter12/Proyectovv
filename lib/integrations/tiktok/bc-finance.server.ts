@@ -1,4 +1,5 @@
 ﻿import { serverEnv } from "@/lib/env/env.server";
+import { HECOM_BM_BUCKET_TO_BC } from "@/lib/hecom/bm-bucket.shared";
 import { getTikTokConnection } from "@/lib/integrations/tiktok/client.server";
 
 interface TikTokApiResponse<T> {
@@ -575,6 +576,49 @@ export async function getAdvertiserBudgetSnapshot(input: {
  *
  * Requiere permiso de app `/advertiser/update/` aprobado en TikTok portal.
  */
+async function resolveSharedBudgetSnapshot(input: {
+  bcId: string;
+  advertiserId: string;
+  organizationId?: string;
+}): Promise<{
+  bcId: string;
+  snapshot: TikTokAdvertiserBudgetSnapshot;
+}> {
+  const primaryBc = input.bcId.trim();
+  const advertiserId = input.advertiserId.trim();
+  const primary = await getAdvertiserBudgetSnapshot({
+    bcId: primaryBc,
+    advertiserId,
+    organizationId: input.organizationId,
+  });
+  if (primary) return { bcId: primaryBc, snapshot: primary };
+
+  // Si Holistic tiene mal el BM (ej. label BM10 pero la cuenta vive en BM30),
+  // buscamos en los BC de agencia sin mutar nada todavía.
+  const candidates = Object.values(HECOM_BM_BUCKET_TO_BC).filter(
+    (id) => id && id !== primaryBc,
+  );
+  for (const altBc of candidates) {
+    const snap = await getAdvertiserBudgetSnapshot({
+      bcId: altBc,
+      advertiserId,
+      organizationId: input.organizationId,
+    });
+    if (snap) {
+      console.warn("[tiktok-bc] budget_snapshot_found_on_alt_bc", {
+        requestedBcId: primaryBc,
+        resolvedBcId: altBc,
+        advertiserId,
+      });
+      return { bcId: altBc, snapshot: snap };
+    }
+  }
+
+  throw new Error(
+    "Esa cuenta no aparece en el BM de TikTok (finance). Probá otra cuenta Aprobada (BM 10/30) o corregí el advertiser ID.",
+  );
+}
+
 export async function increaseSharedBmAdvertiserBudget(input: {
   bcId: string;
   advertiserId: string;
@@ -588,11 +632,10 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   budgetMode: string;
   tiktokRequestId: string | null;
 }> {
-  const bcId = input.bcId.trim();
   const advertiserId = input.advertiserId.trim();
   const increase = Math.round(input.increaseAmountUsd * 100) / 100;
 
-  if (!bcId || !advertiserId) {
+  if (!input.bcId.trim() || !advertiserId) {
     throw new Error("Falta bc_id o advertiser_id para subir presupuesto.");
   }
   if (!Number.isFinite(increase) || increase <= 0) {
@@ -602,18 +645,21 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     throw new Error("Monto fuera de rango seguro.");
   }
 
-  const snapshot = await getAdvertiserBudgetSnapshot({
-    bcId,
+  const { bcId, snapshot } = await resolveSharedBudgetSnapshot({
+    bcId: input.bcId,
     advertiserId,
     organizationId: input.organizationId,
   });
-  if (!snapshot) {
-    throw new Error(
-      "No se pudo leer el presupuesto de esa cuenta en TikTok. Contactá a soporte.",
-    );
-  }
 
-  // Modo ilimitado ya gasta del crédito sin tope: no hace falta subir presupuesto.
+  const previousBudget = snapshot.budget;
+  const budgetMode =
+    snapshot.budgetMode === "DAILY_BUDGET" ||
+    snapshot.budgetMode === "MONTHLY_BUDGET" ||
+    snapshot.budgetMode === "CUSTOM_BUDGET" ||
+    snapshot.budgetMode === "UNLIMITED"
+      ? snapshot.budgetMode
+      : "CUSTOM_BUDGET";
+
   if (snapshot.budgetMode === "UNLIMITED") {
     console.info("[tiktok-bc] budget_already_unlimited", {
       bcId,
@@ -629,14 +675,7 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     };
   }
 
-  const previousBudget = snapshot.budget;
   const newBudget = Math.round((previousBudget + increase) * 100) / 100;
-  const budgetMode =
-    snapshot.budgetMode === "DAILY_BUDGET" ||
-    snapshot.budgetMode === "MONTHLY_BUDGET" ||
-    snapshot.budgetMode === "CUSTOM_BUDGET"
-      ? snapshot.budgetMode
-      : "CUSTOM_BUDGET";
 
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
@@ -704,8 +743,14 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       );
     }
 
+    if (json.code === 52404 || /internal error/i.test(detail)) {
+      throw new Error(
+        "TikTok rechazó el presupuesto de esa cuenta. Probá otra cuenta Aprobada del mismo BM.",
+      );
+    }
+
     throw new Error(
-      "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Contactá a soporte.",
+      "No se pudo completar la asignación en TikTok. No se debitó nada en Holistic. Contactá a soporte.",
     );
   }
 
