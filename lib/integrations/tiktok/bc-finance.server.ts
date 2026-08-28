@@ -80,30 +80,47 @@ function formatTransferError(input: {
   tokenSource: TokenSource;
   tokenFp: string;
 }): string {
-  const meta = `bc=${input.bcId} adv=${input.advertiserId} token=${input.tokenSource}:${input.tokenFp} req=${input.tiktokRequestId ?? "n/a"}`;
+  // Log técnico completo solo en server; al cliente va mensaje corto.
+  console.warn("[tiktok-bc] transfer_error_detail", {
+    code: input.code,
+    message: input.message,
+    bcId: input.bcId,
+    advertiserId: input.advertiserId,
+    tokenSource: input.tokenSource,
+    tokenFp: input.tokenFp,
+    tiktokRequestId: input.tiktokRequestId,
+  });
 
-  if (/amountToTransfer is less than transferableAmount|min_transferable|minimum.*transfer/i.test(input.message)) {
-    console.warn("[tiktok-bc] transfer_min_amount", { ...input, meta });
+  if (
+    /amountToTransfer is less than transferableAmount|min_transferable|minimum.*transfer/i.test(
+      input.message,
+    )
+  ) {
     return "Ese monto es menor al mínimo que TikTok permite en esta cuenta. Probá con $10 o más.";
   }
 
-  const base = `TikTok BC transfer falló [${input.code ?? "http"}]: ${input.message}`;
-
   if (
     /finance permission|insufficient permission|no permission/i.test(input.message) ||
+    (input.code === 40001 && /permission/i.test(input.message)) ||
     (input.code === 40002 && /permission/i.test(input.message))
   ) {
-    return [
-      "Falta permiso Finance en el Business Center para recargar.",
-      "En TikTok BM → Usuarios → rol Finance, regenerá el token y actualizá TIKTOK_ACCESS_TOKEN.",
-    ].join(" ");
+    return "No hay permiso Finance en este Business Center para recargar. Pedile a soporte que revise el BM.";
   }
 
-  if (/abnormal state|cannot be used for top-up/i.test(input.message)) {
-    return "Esta cuenta ads no puede recibir saldo ahora (suele estar suspendida). Usá una cuenta Aprobada.";
+  if (/abnormal state|cannot be used for top-up|banned|suspended/i.test(input.message)) {
+    return "Esta cuenta ads no puede recibir saldo ahora (puede estar suspendida). Probá con otra cuenta Aprobada.";
   }
 
-  return `${base} | ${meta}`;
+  if (
+    input.code === 40002 ||
+    /params invalid|invalid param|cash_amount|insufficient.*(cash|balance|fund)/i.test(
+      input.message,
+    )
+  ) {
+    return "No se pudo mover saldo a esa cuenta desde su BM. Suele ser: el BM no tiene cash disponible, o la cuenta no está lista en TikTok. Probá una cuenta de BM 200 o pedile a soporte que revise el BM.";
+  }
+
+  return "No se pudo asignar el saldo en TikTok ahora. Tu dinero sigue en la cartera Holistic. Probá otra cuenta o contactá soporte.";
 }
 
 /**
@@ -130,6 +147,27 @@ export async function transferBcFundsToAdvertiser(
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
   const tokenFp = tokenFingerprint(accessToken);
+
+  // Evitar 40002 críptico: si el BM no tiene cash, fallar con mensaje claro.
+  const cashAvailable = await getBcCashBalance({
+    bcId,
+    organizationId: input.organizationId,
+  });
+  if (cashAvailable != null && cashAvailable + 1e-9 < cashAmount) {
+    console.warn("[tiktok-bc] transfer_blocked_no_cash", {
+      bcId,
+      advertiserId,
+      cashAmount,
+      cashAvailable,
+      tokenSource,
+      tokenFp,
+    });
+    throw new Error(
+      cashAvailable <= 0
+        ? "Este Business Center no tiene cash disponible para asignar. Tu saldo sigue en la cartera Holistic. Probá una cuenta de otro BM (ej. BM 200) o pedile a soporte que fondee ese BM."
+        : `Este BM solo tiene ~$${cashAvailable.toFixed(2)} cash. Pedí menos o usá otra cuenta/BM. Tu saldo sigue en la cartera Holistic.`,
+    );
+  }
 
   const body = {
     bc_id: bcId,
@@ -231,6 +269,7 @@ export async function getBcCashBalance(input: {
 
   const json = (await response.json()) as TikTokApiResponse<{
     cash_balance?: number | string;
+    valid_cash_balance?: number | string;
     balance?: number | string;
   }>;
 
@@ -246,7 +285,8 @@ export async function getBcCashBalance(input: {
     return null;
   }
 
-  const raw = json.data?.cash_balance ?? json.data?.balance;
+  const raw =
+    json.data?.valid_cash_balance ?? json.data?.cash_balance ?? json.data?.balance;
   if (raw === undefined || raw === null) return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;

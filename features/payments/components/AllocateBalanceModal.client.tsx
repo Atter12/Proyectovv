@@ -22,6 +22,23 @@ interface AllocateResponse {
   journalId: string;
 }
 
+/** Quita dumps técnicos (bc=/token=/req=) y deja texto usable para el cliente. */
+function friendlyAllocateError(raw: string): string {
+  const text = raw.trim();
+  if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
+    return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
+  }
+  if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
+    return "No se pudo mover el saldo a esa cuenta en TikTok. Tu dinero sigue en la cartera Holistic. Probá una cuenta de BM 200 o contactá soporte.";
+  }
+  if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
+    return "No hay suficiente saldo en la cartera Holistic. Recargá e intentá de nuevo.";
+  }
+  // Si el backend ya mandó mensaje corto, usarlo (máx. razonable).
+  if (text.length <= 220 && !/\| bc=/.test(text)) return text;
+  return "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
+}
+
 export function AllocateBalanceModal({
   account,
   open,
@@ -99,12 +116,7 @@ export function AllocateBalanceModal({
         err instanceof ApiClientError
           ? err.message
           : "No se pudo asignar el saldo.";
-      // Si llega un dump viejo/técnico, mostrar versión corta.
-      if (/amountToTransfer|mínimo|minimo|menor al mínimo/i.test(raw)) {
-        setError("TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.");
-      } else {
-        setError(raw);
-      }
+      setError(friendlyAllocateError(raw));
     } finally {
       setLoading(false);
     }
