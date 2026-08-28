@@ -5,7 +5,6 @@ import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
 import { PaymentToolbar } from "./PaymentToolbar.client";
 import { AllocateBalanceModal } from "./AllocateBalanceModal.client";
 import { EditTikTokIdsModal } from "./EditTikTokIdsModal.client";
-import { PaymentsBm200AllocateBanner } from "./PaymentsBm200AllocateBanner.client";
 import { PaymentsTable } from "./PaymentsTable";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -33,7 +32,6 @@ export function PaymentsAssignmentPanel({
 
   return (
     <>
-      <PaymentsBm200AllocateBanner accounts={accounts} />
       <PaymentToolbar
         search={search}
         status={status}

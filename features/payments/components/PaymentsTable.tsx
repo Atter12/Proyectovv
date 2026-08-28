@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/Table";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
-import { isSystemAllocatableBmLabel } from "@/lib/hecom/bm-bucket.shared";
 import { mapAdAccountStatusLabel } from "@/lib/ui/labels";
 import { PaymentsEmptyState } from "./PaymentsEmptyState";
 import type { PaymentAccountAllocation } from "@/types/payment";
@@ -85,14 +84,8 @@ export function PaymentsTable({
   }
 
   function runAllocate(account: PaymentAccountAllocation) {
-    if (!isSystemAllocatableBmLabel(account.bmLabel)) return;
     if (onAllocate) onAllocate(account);
     else void handleAllocate(account);
-  }
-
-  function allocateDisabledReason(account: PaymentAccountAllocation): string | null {
-    if (isSystemAllocatableBmLabel(account.bmLabel)) return null;
-    return "Contactá a soporte para recargar esta cuenta.";
   }
 
   return (
@@ -112,17 +105,10 @@ export function PaymentsTable({
 
       {!isEmpty ? (
         <div className="space-y-2.5 p-4 md:hidden">
-          {accounts.map((account) => {
-            const disabledReason = allocateDisabledReason(account);
-            const canAllocate = !disabledReason;
-            return (
+          {accounts.map((account) => (
             <article
               key={account.id}
-              className={`rounded-xl border p-4 transition-colors ${
-                canAllocate
-                  ? "border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] hover:bg-[#faf7f3]"
-                  : "border-[rgb(20_18_16_/_0.06)] bg-[#faf8f5] opacity-95"
-              }`}
+              className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -164,21 +150,12 @@ export function PaymentsTable({
                   {account.thresholdInfo}
                 </p>
               ) : null}
-              {disabledReason ? (
-                <p className="mt-2 text-[11px] leading-4 text-amber-800">
-                  {disabledReason}
-                </p>
-              ) : null}
               <Button
-                className="mt-4 h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16] disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={loadingAccountId === account.id || !canAllocate}
+                className="mt-4 h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
+                disabled={loadingAccountId === account.id}
                 onClick={() => runAllocate(account)}
               >
-                {!canAllocate
-                  ? "Solo soporte"
-                  : loadingAccountId === account.id
-                    ? actionLoading
-                    : actionLabelLong}
+                {loadingAccountId === account.id ? actionLoading : actionLabelLong}
               </Button>
               {onEditTikTokIds ? (
                 <button
@@ -190,8 +167,7 @@ export function PaymentsTable({
                 </button>
               ) : null}
             </article>
-            );
-          })}
+          ))}
         </div>
       ) : null}
 
@@ -221,15 +197,10 @@ export function PaymentsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accounts.map((account) => {
-                const disabledReason = allocateDisabledReason(account);
-                const canAllocate = !disabledReason;
-                return (
+              {accounts.map((account) => (
                 <TableRow
                   key={account.id}
-                  className={`border-b border-[rgb(20_18_16_/_0.05)] transition-colors ${
-                    canAllocate ? "hover:bg-[#faf7f3]" : "bg-[#faf8f5]/80"
-                  }`}
+                  className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
                 >
                   <TableCell className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     <div className="min-w-0">
@@ -274,25 +245,16 @@ export function PaymentsTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col items-start gap-1">
-                      {disabledReason ? (
-                        <span className="max-w-[220px] text-[11px] leading-4 text-amber-800">
-                          {disabledReason}
-                        </span>
-                      ) : null}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="font-semibold text-[#c45a18] disabled:cursor-not-allowed disabled:opacity-45"
-                        disabled={
-                          loadingAccountId === account.id || !canAllocate
-                        }
+                        className="font-semibold text-[#c45a18]"
+                        disabled={loadingAccountId === account.id}
                         onClick={() => runAllocate(account)}
                       >
                         {loadingAccountId === account.id
                           ? actionLoading
-                          : !canAllocate
-                            ? "Solo soporte"
-                            : actionLabel}
+                          : actionLabel}
                       </Button>
                       {onEditTikTokIds ? (
                         <button
@@ -306,8 +268,7 @@ export function PaymentsTable({
                     </div>
                   </TableCell>
                 </TableRow>
-                );
-              })}
+              ))}
             </TableBody>
           </Table>
         </div>

@@ -49,13 +49,13 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
-            Tenés {walletBalanceLabel} en cartera Holistic. Asigná a las cuentas
-            disponibles (listadas abajo). El resto: contactá soporte.
+            Tenés {walletBalanceLabel} en cartera Holistic. Elegí una cuenta
+            abajo y asigná el saldo.
           </>
         ) : (
           <>
             Cartera en {walletBalanceLabel}. Primero recargá arriba (Stripe /
-            manual). Luego asigná a las cuentas disponibles abajo.
+            manual). Luego asigná a una cuenta abajo.
           </>
         )}
       </p>
