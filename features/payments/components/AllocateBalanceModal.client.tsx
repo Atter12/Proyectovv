@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
+import { isSystemAllocatableBmLabel } from "@/lib/hecom/bm-bucket.shared";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface AllocateBalanceModalProps {
@@ -27,6 +28,9 @@ function friendlyAllocateError(raw: string): string {
   const text = raw.trim();
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
     return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
+  }
+  if (/línea de crédito|crédito compartido|BM 200|no tiene saldo en efectivo/i.test(text)) {
+    return text.length <= 280 ? text : "Este BM no tiene efectivo para Asignar (la línea de crédito no cuenta). Probá BM 200 o contactá soporte.";
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
     return "No se pudo mover el saldo a esa cuenta en TikTok. Tu dinero sigue en la cartera Holistic. Probá una cuenta de BM 200 o contactá soporte.";
@@ -70,6 +74,12 @@ export function AllocateBalanceModal({
   const targetAccount = account;
   const parsedAmount = Number.parseFloat(amount);
   const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const canAllocateFromSystem = isSystemAllocatableBmLabel(targetAccount.bmLabel);
+  const supportOnlyMessage = canAllocateFromSystem
+    ? null
+    : targetAccount.bmLabel?.match(/\bBM\s*(10|30)\b/i)
+      ? "Esta cuenta es BM 10 o BM 30. No se puede asignar desde Holistic — contactá a soporte."
+      : "Solo cuentas BM 200 se recargan desde Holistic. Contactá a soporte para esta cuenta.";
 
   function resetAndClose() {
     setAmount("");
@@ -80,6 +90,11 @@ export function AllocateBalanceModal({
   }
 
   async function handleSubmit() {
+    if (!canAllocateFromSystem) {
+      setError(supportOnlyMessage ?? "Contactá a soporte para recargar esta cuenta.");
+      return;
+    }
+
     if (!isValidAmount) {
       setError("Ingresá un monto válido mayor a cero.");
       return;
@@ -170,6 +185,11 @@ export function AllocateBalanceModal({
               <span className="text-red-600">no configurado</span>
             )}
           </p>
+          {supportOnlyMessage ? (
+            <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-950" role="alert">
+              {supportOnlyMessage}
+            </p>
+          ) : null}
           {targetAccount.status === "disabled" ? (
             <p className="mt-2 text-[11px] leading-4 text-amber-800" role="alert">
               Esta cuenta está desactivada/suspendida. Elegí una cuenta Aprobada
@@ -223,16 +243,18 @@ export function AllocateBalanceModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !isValidAmount}
+            disabled={loading || !isValidAmount || !canAllocateFromSystem}
             className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
           >
             {loading
               ? agencyBmFunding
                 ? "Fondeando…"
                 : "Asignando…"
-              : agencyBmFunding
-                ? "Recargar desde BM"
-                : "Asignar saldo"}
+              : !canAllocateFromSystem
+                ? "Solo soporte"
+                : agencyBmFunding
+                  ? "Recargar desde BM"
+                  : "Asignar saldo"}
           </Button>
         </div>
       </div>

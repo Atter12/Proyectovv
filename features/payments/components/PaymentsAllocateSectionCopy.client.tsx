@@ -49,15 +49,14 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
-            Tenés {walletBalanceLabel} en cartera Holistic. Listo para asignar a
-            una cuenta TikTok de
-            {who}.
+            Tenés {walletBalanceLabel} en cartera Holistic. Asigná solo a cuentas{" "}
+            <span className="font-semibold text-[var(--auth-text)]">BM 200</span>{" "}
+            (listadas abajo). BM 10 / BM 30: contactá soporte.
           </>
         ) : (
           <>
             Cartera en {walletBalanceLabel}. Primero recargá arriba (Stripe /
-            manual). Solo cuentas de
-            {who}.
+            manual). Asigná solo a cuentas BM 200; el resto va por soporte.
           </>
         )}
       </p>

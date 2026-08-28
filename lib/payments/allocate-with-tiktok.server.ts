@@ -6,6 +6,10 @@ import {
   getWalletLedgerBalance,
 } from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
+import {
+  resolveBmBucketFromBcId,
+  SYSTEM_ALLOCATABLE_BM_BUCKET,
+} from "@/lib/hecom/bm-bucket.shared";
 import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
   isTikTokBcFundingEnabled,
@@ -168,6 +172,7 @@ export async function allocateWithOptionalTikTokFunding(
   let tiktokRequestId: string | null = null;
   let transferRequestId: string | null = null;
   let bridgeJournalId: string | null = null;
+  let tiktokFundingSource: "cash" | "grant" | null = null;
 
   if (fundingOn && isTikTok && !advertiserId) {
     throw new Error(
@@ -179,6 +184,15 @@ export async function allocateWithOptionalTikTokFunding(
     throw new Error(
       "Falta bc_id. Poné external_business_id en la cuenta o TIKTOK_DEFAULT_BC_ID en Vercel.",
     );
+  }
+
+  if (canFund && bcId) {
+    const bmBucket = resolveBmBucketFromBcId(bcId);
+    if (bmBucket && bmBucket !== SYSTEM_ALLOCATABLE_BM_BUCKET) {
+      throw new Error(
+        `Esta cuenta es BM ${bmBucket}. Solo BM ${SYSTEM_ALLOCATABLE_BM_BUCKET} se recarga desde Holistic. Para BM 10 / BM 30 contactá a soporte.`,
+      );
+    }
   }
 
   console.info("[payments/allocate] resolved_targets", {
@@ -216,6 +230,7 @@ export async function allocateWithOptionalTikTokFunding(
       transferType: "RECHARGE",
     });
     tiktokRequestId = transfer.tiktokRequestId;
+    tiktokFundingSource = transfer.fundingSource;
   } else if (agencyBmFunding) {
     throw new Error(
       "Modo gerente requiere TikTok BC funding activo (advertiser + bc_id + TIKTOK_BC_FUNDING_ENABLED).",
@@ -254,6 +269,7 @@ export async function allocateWithOptionalTikTokFunding(
       tiktok_cash_amount_usd: canFund
         ? usdCentsToTikTokCashAmount(input.amountCents)
         : null,
+      tiktok_funding_source: tiktokFundingSource,
       tiktok_amount_cents: input.amountCents,
       tiktok_transfer_request_id: transferRequestId,
       tiktok_api_request_id: tiktokRequestId,

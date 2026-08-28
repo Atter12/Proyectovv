@@ -37,6 +37,27 @@ Cliente paga Stripe → dinero a cuenta Holistic (banco)
 
 Stripe **no** deposita solo en TikTok. Holistic opera con saldo en el Business Center; al asignar, la API mueve ese cash al advertiser del cliente.
 
+### BM SHARED (10 / 30) vs BM 200
+
+| Campo API | BM 10 / 30 (SHARED) | BM 200 (NON_SHARED) |
+|---|---|---|
+| `payment_portfolio_type` | SHARED | NON_SHARED |
+| `cash_balance` | **$0** (hoy) | ~$43k |
+| `account_balance` | Línea de crédito (~106k BM30) | Igual al cash |
+| ¿Asignar vía API? | **No** sin cash | **Sí** |
+
+En Manager, la **línea de crédito** no es lo mismo que **saldo en efectivo**.  
+`/bc/transfer/` solo acepta:
+
+- `cash_amount` → mueve **efectivo** del BM
+- `grant_amount` → mueve **ad credits / cupones** (`grant_balance`), no crédito mensual
+
+**No existe** parámetro para jalar desde `account_balance` (crédito compartido).  
+Probado en prod (BM30, ago 2026): `cash_amount` → `40002`; `grant_amount` → `51060 coupon balance not enough`.
+
+Workaround cliente: asignar a cuenta **BM 200**.  
+Workaround ops: cargar **cash** en el BM (wire/pago TikTok) o pedir a TikTok rep que mueva fondos.
+
 ---
 
 ## Qué falta activar (ops + env)
