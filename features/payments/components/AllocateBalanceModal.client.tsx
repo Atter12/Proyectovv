@@ -29,8 +29,10 @@ function friendlyAllocateError(raw: string): string {
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
     return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
   }
-  if (/línea de crédito|crédito compartido|BM 200|no tiene saldo en efectivo|Solo BM/i.test(text)) {
-    return "Esta cuenta no se puede recargar desde aquí. Contactá a soporte. Tu dinero sigue en la cartera.";
+  if (/falta permiso de presupuesto|línea de crédito|crédito compartido|BM 200|no tiene saldo en efectivo|Solo BM/i.test(text)) {
+    return text.length <= 280
+      ? text
+      : "No se pudo asignar en esta cuenta ahora. Contactá a soporte. Tu dinero sigue en la cartera.";
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
     return "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Probá otra cuenta disponible o contactá soporte.";

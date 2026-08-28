@@ -17,7 +17,10 @@ export function resolveBmBucketFromBcId(
   return null;
 }
 
-/** BM desde el cual Asignar funciona vía API (cash en TikTok). */
+/** BMs donde Holistic puede Asignar (cash BM200 o presupuesto crédito BM10/30). */
+export const SYSTEM_ALLOCATABLE_BM_BUCKETS = ["10", "30", "200"] as const;
+
+/** @deprecated Prefer SYSTEM_ALLOCATABLE_BM_BUCKETS — BM 200 = cash transfer. */
 export const SYSTEM_ALLOCATABLE_BM_BUCKET = "200";
 
 export function parseBmBucketFromLabel(
@@ -31,11 +34,23 @@ export function parseBmBucketFromLabel(
   return null;
 }
 
-/** Solo BM 200 tiene cash asignable desde Holistic (BM 10/30 = crédito SHARED). */
+/** Cuentas BM 10 / 30 / 200 se pueden asignar desde Holistic (vía cash o presupuesto). */
 export function isSystemAllocatableBmLabel(
   bmLabel: string | null | undefined,
 ): boolean {
-  return parseBmBucketFromLabel(bmLabel) === SYSTEM_ALLOCATABLE_BM_BUCKET;
+  const bucket = parseBmBucketFromLabel(bmLabel);
+  return (
+    bucket != null &&
+    (SYSTEM_ALLOCATABLE_BM_BUCKETS as readonly string[]).includes(bucket)
+  );
+}
+
+/** BM 10/30: crédito SHARED → Asignar sube presupuesto (no cash transfer). */
+export function isSharedCreditBmBucket(
+  bmBucket: string | null | undefined,
+): boolean {
+  const b = String(bmBucket ?? "").trim();
+  return b === "10" || b === "30";
 }
 
 /** Etiquetas cortas de BM para UI (Cuentas ads, Pagos). */

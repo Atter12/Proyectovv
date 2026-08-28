@@ -11,18 +11,18 @@ interface PaymentsBm200AllocateBannerProps {
 export function PaymentsBm200AllocateBanner({
   accounts,
 }: PaymentsBm200AllocateBannerProps) {
-  const { bm200Accounts, otherAccounts } = useMemo(() => {
-    const bm200: PaymentAccountAllocation[] = [];
-    const other: PaymentAccountAllocation[] = [];
+  const { enabledAccounts, otherCount } = useMemo(() => {
+    const enabled: PaymentAccountAllocation[] = [];
+    let other = 0;
     for (const account of accounts) {
       if (isSystemAllocatableBmLabel(account.bmLabel)) {
-        bm200.push(account);
+        enabled.push(account);
       } else {
-        other.push(account);
+        other += 1;
       }
     }
-    bm200.sort((a, b) => a.name.localeCompare(b.name, "es"));
-    return { bm200Accounts: bm200, otherAccounts: other };
+    enabled.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return { enabledAccounts: enabled, otherCount: other };
   }, [accounts]);
 
   if (accounts.length === 0) return null;
@@ -36,17 +36,17 @@ export function PaymentsBm200AllocateBanner({
         Recarga desde Holistic
       </p>
       <p className="mt-2 text-[13px] leading-5 text-amber-950">
-        Desde aquí solo podés asignar saldo a estas cuentas. Para el resto,
-        contactá a soporte.
+        Desde aquí podés asignar saldo a estas cuentas. Para el resto, contactá
+        a soporte.
       </p>
 
-      {bm200Accounts.length > 0 ? (
+      {enabledAccounts.length > 0 ? (
         <div className="mt-3 rounded-lg border border-amber-300/80 bg-white/70 px-3 py-2.5">
           <p className="text-[12px] font-semibold text-emerald-900">
             Cuentas disponibles
           </p>
           <ul className="mt-1.5 max-h-36 space-y-1 overflow-y-auto text-[12px] leading-5 text-[#1a1612]">
-            {bm200Accounts.map((account) => (
+            {enabledAccounts.map((account) => (
               <li key={account.id} className="flex gap-2">
                 <span className="text-emerald-700" aria-hidden>
                   ✓
@@ -63,7 +63,7 @@ export function PaymentsBm200AllocateBanner({
         </p>
       )}
 
-      {otherAccounts.length > 0 && bm200Accounts.length > 0 ? (
+      {otherCount > 0 && enabledAccounts.length > 0 ? (
         <p className="mt-3 text-[12px] leading-5 text-amber-900/90">
           Las demás cuentas se recargan por soporte.
         </p>

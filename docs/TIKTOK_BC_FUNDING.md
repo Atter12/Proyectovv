@@ -44,19 +44,37 @@ Stripe **no** deposita solo en TikTok. Holistic opera con saldo en el Business C
 | `payment_portfolio_type` | SHARED | NON_SHARED |
 | `cash_balance` | **$0** (hoy) | ~$43k |
 | `account_balance` | Línea de crédito (~106k BM30) | Igual al cash |
-| ¿Asignar vía API? | **No** sin cash | **Sí** |
+| ¿Asignar vía API? | **Sí → subir presupuesto** | **Sí → cash transfer** |
 
-En Manager, la **línea de crédito** no es lo mismo que **saldo en efectivo**.  
-`/bc/transfer/` solo acepta:
+#### Cómo funciona cada uno
 
-- `cash_amount` → mueve **efectivo** del BM
-- `grant_amount` → mueve **ad credits / cupones** (`grant_balance`), no crédito mensual
+**BM 200:** `POST /bc/transfer/` con `cash_amount` (mueve efectivo BM → advertiser).
 
-**No existe** parámetro para jalar desde `account_balance` (crédito compartido).  
-Probado en prod (BM30, ago 2026): `cash_amount` → `40002`; `grant_amount` → `51060 coupon balance not enough`.
+**BM 10 / 30 (crédito compartido):** no hay cash que mover. La cuenta **ya ve** la línea de crédito; lo que limita el gasto es el **presupuesto** de la cuenta (`CUSTOM_BUDGET` / diario / ilimitado).  
+En Manager eso es “Editar presupuesto” / “Ajustar”. En API:
 
-Workaround cliente: asignar a cuenta **BM 200**.  
-Workaround ops: cargar **cash** en el BM (wire/pago TikTok) o pedir a TikTok rep que mueva fondos.
+```http
+POST /open_api/v1.3/advertiser/update/
+{
+  "bc_id": "<BM>",
+  "budget_update_type": "INCREMENTAL_UPDATE",
+  "advertiser_budgets": [{
+    "advertiser_id": "<adv>",
+    "budget": <monto_a_sumar>,
+    "budget_mode": "CUSTOM_BUDGET"
+  }]
+}
+```
+
+Holistic ya enruta Asignar así: BM200 = cash, BM10/30 = presupuesto (`INCREMENTAL_UPDATE`).
+
+`budget_update_type` válidos: `INCREMENTAL_UPDATE` | `UPDATE` | `ONE_CLICK_SET` | `RESET`.
+
+**Permiso obligatorio (ops):** scope **Create Ad Account** (151) en la app → incluye `/advertiser/update/`.  
+Tras aprobar, **regenerar** `TIKTOK_ACCESS_TOKEN` (el token viejo no hereda scopes nuevos).  
+Smoke OK ago 2026: +$1 en Dominic BM30 → presupuesto 900→901.
+
+`grant_amount` en `/bc/transfer/` = cupones/ad credit, **no** la línea de crédito mensual.
 
 ---
 

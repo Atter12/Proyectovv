@@ -484,3 +484,245 @@ export function isSharedCreditOnlyBm(detail: {
     detail.paymentPortfolioType === "SHARED" && cash <= 0 && grant <= 0
   );
 }
+
+export interface TikTokAdvertiserBudgetSnapshot {
+  budget: number;
+  budgetCost: number;
+  budgetMode: string;
+  accountBalance: number | null;
+  cashBalance: number | null;
+  paymentPortfolioType: string | null;
+}
+
+export async function getAdvertiserBudgetSnapshot(input: {
+  bcId: string;
+  advertiserId: string;
+  organizationId?: string;
+}): Promise<TikTokAdvertiserBudgetSnapshot | null> {
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
+  const url = new URL(apiUrl("/advertiser/balance/get/"));
+  url.searchParams.set("bc_id", input.bcId.trim());
+  url.searchParams.set(
+    "filtering",
+    JSON.stringify({ keyword: input.advertiserId.trim() }),
+  );
+  url.searchParams.set("page", "1");
+  url.searchParams.set("page_size", "20");
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: { "Access-Token": accessToken },
+    cache: "no-store",
+  });
+  const json = (await response.json()) as TikTokApiResponse<{
+    advertiser_account_list?: Array<{
+      advertiser_id?: string | number;
+      budget?: number | string;
+      budget_cost?: number | string;
+      budget_mode?: string;
+      account_balance?: number | string;
+      cash_balance?: number | string;
+      payment_portfolio_type?: string;
+    }>;
+  }>;
+
+  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+    console.warn("[tiktok-bc] advertiser_balance_get_failed", {
+      code: json.code ?? null,
+      message: json.message ?? null,
+      bcId: input.bcId,
+      advertiserId: input.advertiserId,
+      tokenSource,
+      tokenFp: tokenFingerprint(accessToken),
+    });
+    return null;
+  }
+
+  const want = input.advertiserId.trim();
+  const row = (json.data?.advertiser_account_list ?? []).find(
+    (item) => String(item.advertiser_id ?? "") === want,
+  );
+  if (!row) return null;
+
+  const num = (v: number | string | null | undefined): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  return {
+    budget: num(row.budget),
+    budgetCost: num(row.budget_cost),
+    budgetMode: String(row.budget_mode ?? "CUSTOM_BUDGET"),
+    accountBalance:
+      row.account_balance === undefined || row.account_balance === null
+        ? null
+        : num(row.account_balance),
+    cashBalance:
+      row.cash_balance === undefined || row.cash_balance === null
+        ? null
+        : num(row.cash_balance),
+    paymentPortfolioType: row.payment_portfolio_type
+      ? String(row.payment_portfolio_type)
+      : null,
+  };
+}
+
+/**
+ * BM SHARED (10/30): no hay cash que transferir. La cuenta gasta de la línea de
+ * crédito según su presupuesto (CUSTOM/DAILY/UNLIMITED).
+ * Asignar = subir presupuesto vía POST /advertiser/update/.
+ *
+ * Requiere permiso de app `/advertiser/update/` aprobado en TikTok portal.
+ */
+export async function increaseSharedBmAdvertiserBudget(input: {
+  bcId: string;
+  advertiserId: string;
+  /** USD a sumar al presupuesto actual (1:1 con cartera Holistic). */
+  increaseAmountUsd: number;
+  organizationId?: string;
+}): Promise<{
+  ok: true;
+  previousBudget: number;
+  newBudget: number;
+  budgetMode: string;
+  tiktokRequestId: string | null;
+}> {
+  const bcId = input.bcId.trim();
+  const advertiserId = input.advertiserId.trim();
+  const increase = Math.round(input.increaseAmountUsd * 100) / 100;
+
+  if (!bcId || !advertiserId) {
+    throw new Error("Falta bc_id o advertiser_id para subir presupuesto.");
+  }
+  if (!Number.isFinite(increase) || increase <= 0) {
+    throw new Error("Monto de presupuesto inválido.");
+  }
+  if (increase > 50_000) {
+    throw new Error("Monto fuera de rango seguro.");
+  }
+
+  const snapshot = await getAdvertiserBudgetSnapshot({
+    bcId,
+    advertiserId,
+    organizationId: input.organizationId,
+  });
+  if (!snapshot) {
+    throw new Error(
+      "No se pudo leer el presupuesto de esa cuenta en TikTok. Contactá a soporte.",
+    );
+  }
+
+  // Modo ilimitado ya gasta del crédito sin tope: no hace falta subir presupuesto.
+  if (snapshot.budgetMode === "UNLIMITED") {
+    console.info("[tiktok-bc] budget_already_unlimited", {
+      bcId,
+      advertiserId,
+      increase,
+    });
+    return {
+      ok: true,
+      previousBudget: snapshot.budget,
+      newBudget: snapshot.budget,
+      budgetMode: "UNLIMITED",
+      tiktokRequestId: null,
+    };
+  }
+
+  const previousBudget = snapshot.budget;
+  const newBudget = Math.round((previousBudget + increase) * 100) / 100;
+  const budgetMode =
+    snapshot.budgetMode === "DAILY_BUDGET" ||
+    snapshot.budgetMode === "MONTHLY_BUDGET" ||
+    snapshot.budgetMode === "CUSTOM_BUDGET"
+      ? snapshot.budgetMode
+      : "CUSTOM_BUDGET";
+
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
+  const tokenFp = tokenFingerprint(accessToken);
+
+  // TikTok: INCREMENTAL_UPDATE = sumar al presupuesto (no absoluto).
+  // Allowed: INCREMENTAL_UPDATE | ONE_CLICK_SET | RESET | UPDATE
+  const body = {
+    bc_id: bcId,
+    budget_update_type: "INCREMENTAL_UPDATE",
+    advertiser_budgets: [
+      {
+        advertiser_id: advertiserId,
+        budget: increase,
+        budget_mode: budgetMode,
+      },
+    ],
+  };
+
+  console.info("[tiktok-bc] budget_increase_attempt", {
+    bcId,
+    advertiserId,
+    previousBudget,
+    newBudget,
+    increase,
+    budgetMode,
+    tokenSource,
+    tokenFp,
+  });
+
+  const response = await fetch(apiUrl("/advertiser/update/"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Token": accessToken,
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>> & {
+    log_id?: string;
+  };
+
+  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+    const detail = json.message ?? `HTTP ${response.status}`;
+    console.error("[tiktok-bc] budget_increase_failed", {
+      code: json.code ?? null,
+      message: detail,
+      bcId,
+      advertiserId,
+      previousBudget,
+      newBudget,
+      tokenSource,
+      tokenFp,
+      tiktokRequestId: json.request_id ?? json.log_id ?? null,
+    });
+
+    if (
+      json.code === 40001 ||
+      /does not grant you|advertiser\/update|permission/i.test(detail)
+    ) {
+      throw new Error(
+        "No se pudo asignar en esta cuenta todavía (falta permiso de presupuesto en TikTok). Contactá a soporte.",
+      );
+    }
+
+    throw new Error(
+      "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Contactá a soporte.",
+    );
+  }
+
+  console.info("[tiktok-bc] budget_increase_ok", {
+    bcId,
+    advertiserId,
+    previousBudget,
+    newBudget,
+    budgetMode,
+    tiktokRequestId: json.request_id ?? null,
+  });
+
+  return {
+    ok: true,
+    previousBudget,
+    newBudget,
+    budgetMode,
+    tiktokRequestId: json.request_id ?? null,
+  };
+}

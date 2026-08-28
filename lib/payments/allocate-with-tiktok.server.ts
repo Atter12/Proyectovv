@@ -7,11 +7,13 @@ import {
 } from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
 import {
+  isSharedCreditBmBucket,
   resolveBmBucketFromBcId,
-  SYSTEM_ALLOCATABLE_BM_BUCKET,
+  SYSTEM_ALLOCATABLE_BM_BUCKETS,
 } from "@/lib/hecom/bm-bucket.shared";
 import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
+  increaseSharedBmAdvertiserBudget,
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
@@ -172,7 +174,9 @@ export async function allocateWithOptionalTikTokFunding(
   let tiktokRequestId: string | null = null;
   let transferRequestId: string | null = null;
   let bridgeJournalId: string | null = null;
-  let tiktokFundingSource: "cash" | "grant" | null = null;
+  let tiktokFundingSource: "cash" | "grant" | "shared_budget" | null = null;
+  let tiktokBudgetBefore: number | null = null;
+  let tiktokBudgetAfter: number | null = null;
 
   if (fundingOn && isTikTok && !advertiserId) {
     throw new Error(
@@ -186,20 +190,27 @@ export async function allocateWithOptionalTikTokFunding(
     );
   }
 
-  if (canFund && bcId) {
-    const bmBucket = resolveBmBucketFromBcId(bcId);
-    if (bmBucket && bmBucket !== SYSTEM_ALLOCATABLE_BM_BUCKET) {
-      throw new Error(
-        "Esta cuenta no se puede recargar desde Holistic. Contactá a soporte.",
-      );
-    }
+  const bmBucket = bcId ? resolveBmBucketFromBcId(bcId) : null;
+  if (
+    canFund &&
+    bmBucket &&
+    !(SYSTEM_ALLOCATABLE_BM_BUCKETS as readonly string[]).includes(bmBucket)
+  ) {
+    throw new Error(
+      "Esta cuenta no se puede recargar desde Holistic. Contactá a soporte.",
+    );
   }
+
+  const useSharedBudgetPath =
+    canFund && (isSharedCreditBmBucket(bmBucket) || bmBucket === "10" || bmBucket === "30");
 
   console.info("[payments/allocate] resolved_targets", {
     adAccountId: account.id,
     advertiserId: advertiserId || null,
     externalBusinessIdRaw: rawBusinessId || null,
     bcId: bcId || null,
+    bmBucket,
+    useSharedBudgetPath,
     agencyBmFunding,
     fundingOn,
   });
@@ -216,21 +227,36 @@ export async function allocateWithOptionalTikTokFunding(
   }
 
   // TikTok PRIMERO. Si falla, no tocamos ledger ni puente.
-  // 1 USD asignado = 1 USD cash_amount en TikTok (sin fee extra en el transfer).
+  // BM 200 (NON_SHARED): cash_amount transfer 1:1
+  // BM 10/30 (SHARED): INCREASE_BUDGET — gasta de la línea de crédito
   if (canFund) {
     transferRequestId = `bc:${idempotencyKey}`;
     const cashAmount = usdCentsToTikTokCashAmount(input.amountCents);
     assertTikTokCashMatchesCents(cashAmount, input.amountCents);
-    const transfer = await transferBcFundsToAdvertiser({
-      organizationId: input.organizationId,
-      bcId,
-      advertiserId,
-      cashAmount,
-      requestId: transferRequestId,
-      transferType: "RECHARGE",
-    });
-    tiktokRequestId = transfer.tiktokRequestId;
-    tiktokFundingSource = transfer.fundingSource;
+
+    if (useSharedBudgetPath) {
+      const budgetResult = await increaseSharedBmAdvertiserBudget({
+        organizationId: input.organizationId,
+        bcId,
+        advertiserId,
+        increaseAmountUsd: cashAmount,
+      });
+      tiktokRequestId = budgetResult.tiktokRequestId;
+      tiktokFundingSource = "shared_budget";
+      tiktokBudgetBefore = budgetResult.previousBudget;
+      tiktokBudgetAfter = budgetResult.newBudget;
+    } else {
+      const transfer = await transferBcFundsToAdvertiser({
+        organizationId: input.organizationId,
+        bcId,
+        advertiserId,
+        cashAmount,
+        requestId: transferRequestId,
+        transferType: "RECHARGE",
+      });
+      tiktokRequestId = transfer.tiktokRequestId;
+      tiktokFundingSource = transfer.fundingSource;
+    }
   } else if (agencyBmFunding) {
     throw new Error(
       "Modo gerente requiere TikTok BC funding activo (advertiser + bc_id + TIKTOK_BC_FUNDING_ENABLED).",
@@ -270,6 +296,8 @@ export async function allocateWithOptionalTikTokFunding(
         ? usdCentsToTikTokCashAmount(input.amountCents)
         : null,
       tiktok_funding_source: tiktokFundingSource,
+      tiktok_budget_before: tiktokBudgetBefore,
+      tiktok_budget_after: tiktokBudgetAfter,
       tiktok_amount_cents: input.amountCents,
       tiktok_transfer_request_id: transferRequestId,
       tiktok_api_request_id: tiktokRequestId,
