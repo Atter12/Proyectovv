@@ -20,7 +20,7 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <AdminPageHeader eyebrow="IA creativa" title="Creativos y análisis" description="Supervisa uploads del cliente, jobs de análisis y resultados. El proveedor IA puede conectarse después sin cambiar la operación base." />
+      <AdminPageHeader eyebrow="IA creativa" title="Creativos y análisis" description="Uploads, jobs OpenAI y drafts Agent Pro. Publish TikTok solo con TIKTOK_CREATIVE_PUBLISH_ENABLED." />
       <Card className="p-5">
         <form className="mb-5 grid gap-3 md:grid-cols-[1fr_13rem_auto]">
           <Input name="q" defaultValue={q} placeholder="Buscar por job, asset, proveedor, modelo o cliente…" />

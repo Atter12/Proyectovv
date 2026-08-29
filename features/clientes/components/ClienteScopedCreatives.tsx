@@ -10,11 +10,19 @@ import {
 } from "@/components/dashboard/crm-ui";
 import { CopyTextButton } from "@/features/creative-analyzer/components/CopyTextButton.client";
 import { CreativeUploadPanel } from "@/features/creative-analyzer/components/CreativeUploadPanel.client";
+import { CreativeAssetsPanel } from "@/features/creative-analyzer/components/CreativeAssetsPanel.client";
+import { AgentProDraftsPanel } from "@/features/creative-analyzer/components/AgentProDraftsPanel.client";
+import { CreativePipelineStrip } from "@/features/creative-analyzer/components/CreativePipelineStrip.client";
 import type {
   HecomClienteDashboard,
   HecomCreativoCliente,
   HecomCreativoProyecto,
 } from "@/lib/hecom/cliente-dashboard.server";
+import type {
+  CreativeAccountOption,
+  CreativeAssetListItem,
+  CreativeDraftListItem,
+} from "@/lib/creatives/types";
 
 function platformLabel(platform: string | null) {
   if (!platform) return null;
@@ -26,44 +34,110 @@ function platformLabel(platform: string | null) {
   return platform;
 }
 
+function resolveActiveStep(input: {
+  assets: CreativeAssetListItem[];
+  drafts: CreativeDraftListItem[];
+}): 0 | 1 | 2 | 3 {
+  const hasUpload = input.assets.length > 0;
+  const hasScore = input.assets.some((a) => a.insight);
+  const hasDraft = input.drafts.length > 0;
+  const hasLaunch = input.drafts.some(
+    (d) =>
+      d.status === "approved" ||
+      d.status === "published" ||
+      d.status === "publishing",
+  );
+  if (hasLaunch) return 3;
+  if (hasDraft) return 2;
+  if (hasScore) return 1;
+  if (hasUpload) return 1;
+  return 0;
+}
+
 export function ClienteScopedCreatives({
   data,
+  accounts,
+  assets,
+  drafts,
+  publishEnabled,
 }: {
   data: HecomClienteDashboard;
+  accounts: CreativeAccountOption[];
+  assets: CreativeAssetListItem[];
+  drafts: CreativeDraftListItem[];
+  publishEnabled: boolean;
 }) {
   const { cliente, creativosClientes, creativosProyectos, summary } = data;
   const published = creativosProyectos.filter((p) => p.published === true).length;
+  const analyzed = assets.filter((a) => a.insight).length;
+  const pendingDrafts = drafts.filter(
+    (d) => d.status === "draft" || d.status === "failed",
+  ).length;
+  const activeStep = resolveActiveStep({ assets, drafts });
+  const avgScore =
+    analyzed > 0
+      ? Math.round(
+          assets
+            .filter((a) => a.insight)
+            .reduce((sum, a) => sum + (a.insight?.overallScore ?? 0), 0) /
+            analyzed,
+        )
+      : null;
 
   return (
     <div className="space-y-5 sm:space-y-6">
       <CrmScopeHero
         module="Creativos"
-        title="Analizador creativo"
+        title="Creative Hub · Agent Pro"
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl }}
-        meta={`${summary.projectCount} proyecto${summary.projectCount === 1 ? "" : "s"} · ${published} publicados`}
+        meta={`Score → brief → aprobar · ${analyzed} con IA`}
         actions={
           <>
             <CrmHeroButton href="#creative-upload">Subir creativo</CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
-              Ver cuentas
+              Cuentas TikTok
             </CrmHeroButton>
           </>
         }
       />
 
+      <CreativePipelineStrip activeStep={activeStep} />
+
       <CrmMetricsStrip>
-        <div className="grid grid-cols-3 sm:flex sm:divide-x sm:divide-[var(--auth-divider)]">
+        <div className="grid grid-cols-2 sm:flex sm:divide-x sm:divide-[var(--auth-divider)] lg:grid-cols-4">
           <CrmMetricCell
-            label="Fichas"
-            value={String(summary.creativeCount)}
+            label="Uploads"
+            value={String(assets.length)}
             emphasis="primary"
           />
-          <CrmMetricCell label="Proyectos" value={String(summary.projectCount)} />
-          <CrmMetricCell label="Publicados" value={String(published)} emphasis="muted" />
+          <CrmMetricCell
+            label="Score avg"
+            value={avgScore != null ? String(avgScore) : "—"}
+          />
+          <CrmMetricCell
+            label="Por aprobar"
+            value={String(pendingDrafts)}
+          />
+          <CrmMetricCell
+            label="Hecom"
+            value={String(summary.projectCount + published)}
+            emphasis="muted"
+          />
         </div>
       </CrmMetricsStrip>
 
-      <CreativeUploadPanel clienteName={cliente.name} />
+      <CreativeUploadPanel
+        clienteName={cliente.name}
+        accounts={accounts}
+      />
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <CreativeAssetsPanel assets={assets} />
+        <AgentProDraftsPanel
+          drafts={drafts}
+          publishEnabled={publishEnabled}
+        />
+      </div>
 
       <CrmQuickLinks
         links={[
@@ -126,7 +200,7 @@ function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
 
 function ProyectosPanel({ rows }: { rows: HecomCreativoProyecto[] }) {
   return (
-    <CrmPanel title="Proyectos" subtitle="Producción creativa sincronizada">
+    <CrmPanel title="Proyectos Hecom" subtitle="Producción creativa sincronizada">
       {rows.length === 0 ? (
         <div className="px-4 py-8 sm:px-5">
           <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">

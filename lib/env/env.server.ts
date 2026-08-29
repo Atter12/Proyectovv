@@ -200,4 +200,12 @@ export const serverEnv = {
    * antes de acreditar el ledger Holistic.
    */
   tiktokBcFundingEnabled: parseBoolean(process.env.TIKTOK_BC_FUNDING_ENABLED, false),
+  /**
+   * Si true, al aprobar un draft Agent Pro se publica en TikTok
+   * (upload video/image + campaign/adgroup/ad en PAUSED).
+   */
+  tiktokCreativePublishEnabled: parseBoolean(
+    process.env.TIKTOK_CREATIVE_PUBLISH_ENABLED,
+    false,
+  ),
 } as const;

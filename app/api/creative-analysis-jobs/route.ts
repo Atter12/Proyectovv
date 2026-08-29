@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       organization_id: session.organizationId,
       creative_asset_id: asset.id,
       status: "queued",
-      provider: "internal",
+      provider: "openai",
+      job_kind: "analyze",
       input: { source: "dashboard_reanalysis" },
       requested_by: session.id,
     })
@@ -74,6 +75,16 @@ export async function POST(request: Request) {
     body: asset.name,
     type: "creative_analysis_queued",
     data: { creative_asset_id: asset.id, job_id: job.id, url: "/creative-analyzer" },
+  });
+
+  const { processQueuedCreativeJobs } = await import(
+    "@/lib/creatives/process-jobs.server"
+  );
+  void processQueuedCreativeJobs({ jobId: job.id }).catch((err) => {
+    console.error("[creative-analysis-jobs] process_bg", {
+      jobId: job.id,
+      error: err instanceof Error ? err.message : "unknown",
+    });
   });
 
   return NextResponse.json({ ok: true, job });

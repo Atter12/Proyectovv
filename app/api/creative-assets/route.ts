@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
+import { processQueuedCreativeJobs } from "@/lib/creatives/process-jobs.server";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
 
   const asset = formData.get("asset");
   const requestedName = formData.get("name");
+  const adAccountIdRaw = formData.get("adAccountId");
+  const advertiserIdRaw = formData.get("advertiserId");
   if (!(asset instanceof File)) {
     return NextResponse.json({ error: "Archivo creativo requerido." }, { status: 400 });
   }
@@ -78,6 +81,43 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
+  let adAccountId: string | null =
+    typeof adAccountIdRaw === "string" && adAccountIdRaw.trim()
+      ? adAccountIdRaw.trim()
+      : null;
+  let externalAdvertiserId: string | null =
+    typeof advertiserIdRaw === "string" && advertiserIdRaw.trim()
+      ? advertiserIdRaw.trim()
+      : null;
+
+  if (adAccountId) {
+    const { data: account, error: accountError } = await admin
+      .from("ad_accounts")
+      .select("id, external_account_id, organization_id, status")
+      .eq("id", adAccountId)
+      .eq("organization_id", session.organizationId)
+      .maybeSingle<{
+        id: string;
+        external_account_id: string | null;
+        organization_id: string;
+        status: string;
+      }>();
+    if (accountError || !account) {
+      return NextResponse.json(
+        { error: "Cuenta ads no encontrada en tu organización." },
+        { status: 400 },
+      );
+    }
+    if (account.status === "disabled" || account.status === "archived") {
+      return NextResponse.json(
+        { error: "Elegí una cuenta Aprobada (no suspendida)." },
+        { status: 400 },
+      );
+    }
+    externalAdvertiserId =
+      account.external_account_id?.trim() || externalAdvertiserId;
+  }
+
   const safeFileName = sanitizeFileName(asset.name);
   const displayName =
     typeof requestedName === "string" && requestedName.trim()
@@ -113,7 +153,13 @@ export async function POST(request: Request) {
       storage_bucket: CREATIVE_ASSETS_BUCKET,
       storage_path: storagePath,
       status: "uploaded",
-      metadata: { source: "dashboard", original_file_name: asset.name },
+      ad_account_id: adAccountId,
+      external_advertiser_id: externalAdvertiserId,
+      metadata: {
+        source: "dashboard",
+        original_file_name: asset.name,
+        agent_pro: true,
+      },
       created_by: session.id,
     })
     .select("id, name")
@@ -133,11 +179,14 @@ export async function POST(request: Request) {
       organization_id: session.organizationId,
       creative_asset_id: creativeAsset.id,
       status: "queued",
-      provider: "internal",
+      provider: "openai",
+      job_kind: "analyze",
       input: {
         source: "dashboard_upload",
         storage_bucket: CREATIVE_ASSETS_BUCKET,
         storage_path: storagePath,
+        ad_account_id: adAccountId,
+        external_advertiser_id: externalAdvertiserId,
       },
       requested_by: session.id,
     })
@@ -161,16 +210,30 @@ export async function POST(request: Request) {
     action: "creative_asset.uploaded",
     entity_type: "creative_asset",
     entity_id: creativeAsset.id,
-    metadata: { job_id: job.id, bucket: CREATIVE_ASSETS_BUCKET, path: storagePath },
+    metadata: {
+      job_id: job.id,
+      bucket: CREATIVE_ASSETS_BUCKET,
+      path: storagePath,
+      ad_account_id: adAccountId,
+      external_advertiser_id: externalAdvertiserId,
+    },
   });
 
   await createNotificationBestEffort({
     organizationId: session.organizationId,
     userId: session.id,
     title: "Creativo subido",
-    body: "Se creó un job de análisis en cola.",
+    body: "Análisis IA en curso (Agent Pro).",
     type: "creative_asset_uploaded",
     data: { creative_asset_id: creativeAsset.id, job_id: job.id, url: "/creative-analyzer" },
+  });
+
+  // Fire-and-forget: procesar este job sin bloquear la respuesta.
+  void processQueuedCreativeJobs({ jobId: job.id }).catch((err) => {
+    console.error("[creative-assets] process_job_bg", {
+      jobId: job.id,
+      error: err instanceof Error ? err.message : "unknown",
+    });
   });
 
   return NextResponse.json({
