@@ -35,6 +35,8 @@ function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
 
 export type SyncApprovedAdAccountsResult = {
   approvedAdvertiserIds: string[];
+  /** Advertisers suspendidos/baneados en TikTok (para sección Recuperar en Pagos). */
+  suspendedAdvertiserIds: string[];
   upserted: number;
   disabled: number;
   skippedUnavailableStatus: boolean;
@@ -63,7 +65,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
 }): Promise<SyncApprovedAdAccountsResult> {
   const cacheKey = `${input.organizationId}:${input.clienteId}`;
   const hit = syncResultCache.get(cacheKey);
-  if (!input.forceRefresh && hit) {
+  if (!input.forceRefresh && hit && Array.isArray(hit.result.suspendedAdvertiserIds)) {
     const ttl =
       hit.result.skippedUnavailableStatus
         ? SYNC_FAIL_TTL_MS
@@ -79,6 +81,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
   if (!cliente) {
     const empty: SyncApprovedAdAccountsResult = {
       approvedAdvertiserIds: [],
+      suspendedAdvertiserIds: [],
       upserted: 0,
       disabled: 0,
       skippedUnavailableStatus: true,
@@ -217,6 +220,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
   if (!statusAvailable) {
     return {
       approvedAdvertiserIds: [...hecomIds],
+      suspendedAdvertiserIds: [],
       upserted: 0,
       disabled: 0,
       skippedUnavailableStatus: true,
@@ -309,17 +313,20 @@ export async function syncApprovedAdAccountsForCliente(input: {
   }
 
   const approvedAdvertiserIds = approved.map((row) => row.advertiserId);
+  const suspendedAdvertiserIds = suspended.map((row) => row.advertiserId);
 
   console.info("[hecom-sync] approved_sync", {
     clienteId: input.clienteId,
     clienteName: cliente.name,
     approved: approvedAdvertiserIds.length,
+    suspended: suspendedAdvertiserIds.length,
     upserted,
     disabled,
   });
 
   const result: SyncApprovedAdAccountsResult = {
     approvedAdvertiserIds,
+    suspendedAdvertiserIds,
     upserted,
     disabled,
     skippedUnavailableStatus: false,

@@ -20,6 +20,7 @@ import type { PaymentAccountAllocation } from "@/types/payment";
 interface PaymentsTableProps {
   accounts: PaymentAccountAllocation[];
   onAllocate?: (account: PaymentAccountAllocation) => void;
+  onReclaim?: (account: PaymentAccountAllocation) => void;
   onEditTikTokIds?: (account: PaymentAccountAllocation) => void;
   /** Modo gerente BM: copy “Recargar” en vez de “Asignar”. */
   agencyBmFunding?: boolean;
@@ -30,9 +31,21 @@ interface AllocationResponse {
   ledgerJournalId: string;
 }
 
+function isReclaimableSuspended(account: PaymentAccountAllocation): boolean {
+  return account.status === "disabled" && Number(account.balance) > 0;
+}
+
+function statusBadgeClass(status: string): string {
+  if (status === "disabled") {
+    return "rounded-md bg-[#fef2f2] px-1.5 py-0.5 text-[10px] font-semibold text-[#991b1b] ring-1 ring-[#fecaca]";
+  }
+  return "rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]";
+}
+
 export function PaymentsTable({
   accounts,
   onAllocate,
+  onReclaim,
   onEditTikTokIds,
   agencyBmFunding = false,
 }: PaymentsTableProps) {
@@ -88,6 +101,77 @@ export function PaymentsTable({
     else void handleAllocate(account);
   }
 
+  function runReclaim(account: PaymentAccountAllocation) {
+    if (onReclaim) onReclaim(account);
+  }
+
+  function renderActions(account: PaymentAccountAllocation, mobile: boolean) {
+    const reclaimable = isReclaimableSuspended(account);
+
+    if (reclaimable) {
+      return (
+        <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
+          <Button
+            className={
+              mobile
+                ? "h-11 w-full rounded-lg bg-[#c45a18] text-[13px] font-semibold hover:brightness-[1.05]"
+                : "font-semibold text-[#c45a18]"
+            }
+            variant={mobile ? undefined : "ghost"}
+            size={mobile ? undefined : "sm"}
+            onClick={() => runReclaim(account)}
+          >
+            Recuperar a saldo disponible
+          </Button>
+          <p
+            className={
+              mobile
+                ? "text-[11px] leading-4 text-[#7a736a]"
+                : "max-w-[11rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
+            }
+          >
+            Cuenta suspendida. Jalá el saldo a cartera; después sale de Pagos.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
+        <Button
+          className={
+            mobile
+              ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
+              : "font-semibold text-[#c45a18]"
+          }
+          variant={mobile ? undefined : "ghost"}
+          size={mobile ? undefined : "sm"}
+          disabled={loadingAccountId === account.id}
+          onClick={() => runAllocate(account)}
+        >
+          {loadingAccountId === account.id
+            ? actionLoading
+            : mobile
+              ? actionLabelLong
+              : actionLabel}
+        </Button>
+        {onEditTikTokIds ? (
+          <button
+            type="button"
+            className={
+              mobile
+                ? "w-full text-center text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+                : "px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[#c45a18] hover:underline"
+            }
+            onClick={() => onEditTikTokIds(account)}
+          >
+            Cambiar ID TikTok
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div>
       {(message || error) && (
@@ -108,7 +192,11 @@ export function PaymentsTable({
           {accounts.map((account) => (
             <article
               key={account.id}
-              className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
+              className={
+                isReclaimableSuspended(account)
+                  ? "rounded-xl border border-[#f0c4a8] bg-[linear-gradient(180deg,#fff8f2_0%,#fffcf8_100%)] p-4"
+                  : "rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
+              }
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -127,7 +215,7 @@ export function PaymentsTable({
                     </p>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className="rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]">
+                    <span className={statusBadgeClass(account.status)}>
                       {mapAdAccountStatusLabel(account.status)}
                     </span>
                     <span
@@ -150,22 +238,7 @@ export function PaymentsTable({
                   {account.thresholdInfo}
                 </p>
               ) : null}
-              <Button
-                className="mt-4 h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
-                disabled={loadingAccountId === account.id}
-                onClick={() => runAllocate(account)}
-              >
-                {loadingAccountId === account.id ? actionLoading : actionLabelLong}
-              </Button>
-              {onEditTikTokIds ? (
-                <button
-                  type="button"
-                  className="mt-2 w-full text-center text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
-                  onClick={() => onEditTikTokIds(account)}
-                >
-                  Cambiar ID TikTok
-                </button>
-              ) : null}
+              {renderActions(account, true)}
             </article>
           ))}
         </div>
@@ -200,7 +273,11 @@ export function PaymentsTable({
               {accounts.map((account) => (
                 <TableRow
                   key={account.id}
-                  className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
+                  className={
+                    isReclaimableSuspended(account)
+                      ? "border-b border-[#f0d9c4] bg-[#fff8f2] transition-colors hover:bg-[#fff3e8]"
+                      : "border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
+                  }
                 >
                   <TableCell className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
                     <div className="min-w-0">
@@ -220,7 +297,7 @@ export function PaymentsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]">
+                    <span className={statusBadgeClass(account.status)}>
                       {mapAdAccountStatusLabel(account.status)}
                     </span>
                   </TableCell>
@@ -243,30 +320,7 @@ export function PaymentsTable({
                       {account.thresholdInfo}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="font-semibold text-[#c45a18]"
-                        disabled={loadingAccountId === account.id}
-                        onClick={() => runAllocate(account)}
-                      >
-                        {loadingAccountId === account.id
-                          ? actionLoading
-                          : actionLabel}
-                      </Button>
-                      {onEditTikTokIds ? (
-                        <button
-                          type="button"
-                          className="px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[#c45a18] hover:underline"
-                          onClick={() => onEditTikTokIds(account)}
-                        >
-                          Cambiar ID TikTok
-                        </button>
-                      ) : null}
-                    </div>
-                  </TableCell>
+                  <TableCell>{renderActions(account, false)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

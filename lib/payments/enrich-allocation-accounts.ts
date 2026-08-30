@@ -36,6 +36,10 @@ export function enrichAllocationAccountsFromAdsOverview(
       name: displayName,
       externalAccountName: meta.externalAccountName ?? displayName,
       bmLabel,
+      // Priorizar estado live de Cuentas ads (suspendida gana).
+      status: meta.status === "disabled" ? "disabled" : account.status,
+      // Si Pagos tiene $0 pero ads overview trae balance, no inventamos;
+      // el balance de Pagos viene del ledger (fuente de verdad para Recuperar).
     };
   });
 }
@@ -75,16 +79,39 @@ export function buildAdvertiserMetaFromAdsOverview(
 export function buildAdvertiserEnsureList(
   advertiserIds: string[],
   adsAccounts: AdAccount[],
-): Array<{ advertiserId: string; name?: string | null }> {
+): Array<{ advertiserId: string; name?: string | null; status?: string | null }> {
   const metaById = new Map(
-    buildAdvertiserMetaFromAdsOverview(adsAccounts).map((row) => [
-      row.advertiserId,
-      row.name,
-    ]),
+    adsAccounts
+      .map((row) => {
+        const id = row.externalAccountId?.trim();
+        if (!id) return null;
+        return [
+          id,
+          {
+            name:
+              row.externalAccountName?.trim() ||
+              row.name?.trim() ||
+              `TikTok ${id}`,
+            status: row.status,
+          },
+        ] as const;
+      })
+      .filter(
+        (
+          entry,
+        ): entry is readonly [
+          string,
+          { name: string; status: AdAccount["status"] },
+        ] => Boolean(entry),
+      ),
   );
 
-  return advertiserIds.map((advertiserId) => ({
-    advertiserId,
-    name: metaById.get(advertiserId) ?? null,
-  }));
+  return advertiserIds.map((advertiserId) => {
+    const meta = metaById.get(advertiserId);
+    return {
+      advertiserId,
+      name: meta?.name ?? null,
+      status: meta?.status ?? null,
+    };
+  });
 }

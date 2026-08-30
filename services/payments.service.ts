@@ -129,7 +129,11 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
   clienteId: string;
   clienteName?: string;
   userId?: string | null;
-  advertisers: Array<{ advertiserId: string; name?: string | null }>;
+  advertisers: Array<{
+    advertiserId: string;
+    name?: string | null;
+    status?: string | null;
+  }>;
 }): Promise<number> {
   const orgId = input.organizationId?.trim();
   if (!orgId || input.advertisers.length === 0) return 0;
@@ -155,6 +159,12 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         row.name?.trim() || null,
       ]),
     );
+    const statusById = new Map(
+      input.advertisers.map((row) => [
+        row.advertiserId.trim(),
+        row.status?.trim() || null,
+      ]),
+    );
 
     const { data: globalRows } = await admin
       .from("ad_accounts")
@@ -172,6 +182,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         external_account_name: string | null;
         currency: string;
         timezone: string;
+        status: string;
       }
     >();
     for (const row of globalRows ?? []) {
@@ -192,18 +203,25 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         timezone:
           String((row as { timezone?: string }).timezone ?? "America/Lima") ||
           "America/Lima",
+        status: String((row as { status?: string }).status ?? "active"),
       });
     }
 
     let upserted = 0;
     for (const advertiserId of ids) {
       const template = templateById.get(advertiserId);
+      const preferredStatus = statusById.get(advertiserId);
       const displayName =
         nameById.get(advertiserId) ||
         template?.name ||
         (input.clienteName
           ? `${input.clienteName} · TikTok`
           : `TikTok ${advertiserId}`);
+
+      const status =
+        preferredStatus === "disabled" || template?.status === "disabled"
+          ? "disabled"
+          : "active";
 
       const { error } = await admin.from("ad_accounts").upsert(
         {
@@ -214,7 +232,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
           external_business_id: template?.external_business_id ?? null,
           external_account_name:
             template?.external_account_name ?? displayName,
-          status: "active",
+          status,
           currency: template?.currency ?? "USD",
           timezone: template?.timezone ?? "America/Lima",
           created_by: input.userId ?? null,

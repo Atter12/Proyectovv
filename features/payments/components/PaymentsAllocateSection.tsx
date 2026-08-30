@@ -10,6 +10,7 @@ interface PaymentsAllocateSectionProps {
   walletBalanceLabel: string;
   walletBalance: number;
   clienteName?: string;
+  allowForceLedger?: boolean;
 }
 
 /** Paso 2: fondear cuenta ads (copy depende del modo Cliente/Gerente). */
@@ -18,6 +19,7 @@ export function PaymentsAllocateSection({
   walletBalanceLabel,
   walletBalance,
   clienteName,
+  allowForceLedger = false,
 }: PaymentsAllocateSectionProps) {
   const { agencyBmFunding } = usePaymentsFundingMode();
 
@@ -37,6 +39,7 @@ export function PaymentsAllocateSection({
       <PaymentsAssignmentPanel
         accounts={accounts}
         agencyBmFunding={agencyBmFunding}
+        allowForceLedger={allowForceLedger}
       />
     </section>
   );

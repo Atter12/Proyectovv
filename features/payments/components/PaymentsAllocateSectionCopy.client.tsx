@@ -31,7 +31,10 @@ export function PaymentsAllocateSectionCopy({
           <span className="font-semibold text-[var(--auth-text)]">
             No baja la deuda neta Hecom
           </span>{" "}
-          (eso baja solo con cobro del cliente). Usá cuentas Aprobadas.
+          (eso baja solo con cobro del cliente). Usá cuentas Aprobadas. Si una se
+          suspende con saldo, queda acá con{" "}
+          <span className="font-semibold text-[var(--auth-text)]">Recuperar</span>
+          ; al jalárselo a cartera sale de esta lista (sigue en Cuentas ads).
         </p>
       </>
     );
@@ -50,7 +53,9 @@ export function PaymentsAllocateSectionCopy({
         {hasWallet ? (
           <>
             Tenés {walletBalanceLabel} en cartera Holistic. Elegí una cuenta
-            abajo y asigná el saldo.
+            abajo y asigná el saldo. Si una cuenta se suspende con plata, queda
+            acá con Recuperar; al recuperar, vuelve a saldo disponible y sale de
+            Pagos (la ves en Cuentas ads).
           </>
         ) : (
           <>

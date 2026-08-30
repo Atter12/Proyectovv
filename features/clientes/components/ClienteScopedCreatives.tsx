@@ -90,10 +90,10 @@ export function ClienteScopedCreatives({
         module="Creativos"
         title="Creative Hub · Agent Pro"
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl }}
-        meta={`Score → brief → aprobar · ${analyzed} con IA`}
+        meta={`Subí → IA → Enviar campaña · ${analyzed} con score`}
         actions={
           <>
-            <CrmHeroButton href="#creative-upload">Subir creativo</CrmHeroButton>
+            <CrmHeroButton href="#creative-upload">Subir video</CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               Cuentas TikTok
             </CrmHeroButton>

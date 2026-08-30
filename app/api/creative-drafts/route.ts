@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   approveCreativeDraft,
+  publishApprovedCreativeDraft,
   rejectCreativeDraft,
 } from "@/lib/creatives/drafts.server";
 import { listOrganizationCreativeDrafts } from "@/lib/creatives/list-creatives.server";
@@ -51,9 +52,12 @@ export async function POST(request: Request) {
 
   const draftId = typeof body.draftId === "string" ? body.draftId.trim() : "";
   const action = typeof body.action === "string" ? body.action.trim() : "";
-  if (!draftId || (action !== "approve" && action !== "reject")) {
+  if (
+    !draftId ||
+    (action !== "approve" && action !== "reject" && action !== "publish")
+  ) {
     return NextResponse.json(
-      { error: "draftId y action (approve|reject) requeridos." },
+      { error: "draftId y action (approve|reject|publish) requeridos." },
       { status: 400 },
     );
   }
@@ -66,6 +70,19 @@ export async function POST(request: Request) {
         userId: session.id,
       });
       return NextResponse.json({ ok: true, status: "rejected" });
+    }
+
+    if (action === "publish") {
+      const result = await publishApprovedCreativeDraft({
+        organizationId: session.organizationId,
+        draftId,
+        userId: session.id,
+      });
+      return NextResponse.json({
+        ok: true,
+        ...result,
+        publishEnabled: isTikTokCreativePublishEnabled(),
+      });
     }
 
     const result = await approveCreativeDraft({

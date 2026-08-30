@@ -5,6 +5,7 @@ import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
 import { PaymentToolbar } from "./PaymentToolbar.client";
 import { AllocateBalanceModal } from "./AllocateBalanceModal.client";
 import { EditTikTokIdsModal } from "./EditTikTokIdsModal.client";
+import { ReclaimBalanceModal } from "./ReclaimBalanceModal.client";
 import { PaymentsTable } from "./PaymentsTable";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -12,15 +13,19 @@ interface PaymentsAssignmentPanelProps {
   accounts: PaymentAccountAllocation[];
   /** Explicit prop — avoid relying on context inside portaled modal. */
   agencyBmFunding?: boolean;
+  allowForceLedger?: boolean;
 }
 
 export function PaymentsAssignmentPanel({
   accounts,
   agencyBmFunding = false,
+  allowForceLedger = false,
 }: PaymentsAssignmentPanelProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedAccount, setSelectedAccount] =
+    useState<PaymentAccountAllocation | null>(null);
+  const [reclaimAccount, setReclaimAccount] =
     useState<PaymentAccountAllocation | null>(null);
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
@@ -41,6 +46,7 @@ export function PaymentsAssignmentPanel({
       <PaymentsTable
         accounts={filteredAccounts}
         onAllocate={setSelectedAccount}
+        onReclaim={setReclaimAccount}
         onEditTikTokIds={setEditAccount}
         agencyBmFunding={agencyBmFunding}
       />
@@ -49,6 +55,12 @@ export function PaymentsAssignmentPanel({
         open={selectedAccount !== null}
         onClose={() => setSelectedAccount(null)}
         agencyBmFunding={agencyBmFunding}
+      />
+      <ReclaimBalanceModal
+        account={reclaimAccount}
+        open={reclaimAccount !== null}
+        onClose={() => setReclaimAccount(null)}
+        allowForceLedger={allowForceLedger}
       />
       <EditTikTokIdsModal
         account={editAccount}

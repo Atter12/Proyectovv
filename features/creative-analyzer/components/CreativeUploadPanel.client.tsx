@@ -79,6 +79,12 @@ export function CreativeUploadPanel({
       setError("Seleccioná una imagen, video o PDF.");
       return;
     }
+    if (!adAccountId) {
+      setError(
+        "Elegí una cuenta TikTok Aprobada para poder enviar la campaña después.",
+      );
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -158,14 +164,14 @@ export function CreativeUploadPanel({
     >
       <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-          Drop zone · 1 clic
+          Paso 1 · Creativo
         </p>
         <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-          Subí · scoreá · listo para brief
+          Subí el video y la IA lo scorea
         </h2>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Como AdCreative: elegís cuenta TikTok, soltás el archivo y la IA te
-          dice si vale la pena gastar
+          Elegí una cuenta <span className="font-semibold text-[var(--auth-text)]">Aprobada</span>,
+          subí el archivo y Agent Pro arma el brief para mandar la campaña a TikTok
           {clienteName ? ` · ${clienteName}` : ""}.
         </p>
       </div>
@@ -188,7 +194,7 @@ export function CreativeUploadPanel({
                   onChange={(e) => setAdAccountId(e.target.value)}
                   className="h-10 w-full rounded-xl border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[var(--auth-text)]"
                 >
-                  <option value="">Sin vincular (solo análisis)</option>
+                  <option value="">Elegí cuenta Aprobada…</option>
                   {accountChoices.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -352,11 +358,10 @@ export function CreativeUploadPanel({
           </p>
           <ul className="mt-3 space-y-2.5">
             {[
-              "Cuenta TikTok vinculada",
-              "Score pre-launch (antes de gastar)",
-              "Veredicto: testear / mejorar / policy",
-              "Brief Agent Pro automático",
-              "Vos aprobás · TikTok en pausa",
+              "Cuenta TikTok Aprobada",
+              "Score IA (antes de gastar)",
+              "Brief de campaña automático",
+              "Enviar campaña → TikTok en pausa",
             ].map((item) => (
               <li
                 key={item}

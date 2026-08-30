@@ -24,7 +24,7 @@ export async function listCreativeAccountOptions(
     )
     .eq("organization_id", organizationId)
     .eq("platform", "tiktok")
-    .neq("status", "archived")
+    .eq("status", "active")
     .order("name", { ascending: true })
     .limit(100);
 

@@ -3,10 +3,10 @@
 import { cn } from "@/lib/cn";
 
 const STEPS = [
-  { id: "upload", label: "Subir", hint: "Pieza" },
-  { id: "score", label: "Score IA", hint: "Como AdCreative" },
+  { id: "upload", label: "Subir", hint: "Video" },
+  { id: "score", label: "Score IA", hint: "Recomienda" },
   { id: "brief", label: "Brief", hint: "Agent Pro" },
-  { id: "launch", label: "Aprobar", hint: "Vos decidís" },
+  { id: "launch", label: "Enviar", hint: "TikTok pausada" },
 ] as const;
 
 export function CreativePipelineStrip({

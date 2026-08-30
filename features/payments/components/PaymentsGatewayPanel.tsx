@@ -2,7 +2,6 @@ import { PaymentOverviewStats } from "./PaymentOverviewStats";
 import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
-import { PaymentsReclaimSection } from "./PaymentsReclaimSection.client";
 import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
@@ -82,6 +81,7 @@ export async function PaymentsGatewayPanel({
   }
 
   let approvedIds = [...(hecomAdvertiserIds ?? [])];
+  let suspendedIds: string[] = [];
   let syncNote: string | null = null;
   let ensured = 0;
   const advertiserEnsureList = (ids: string[]) =>
@@ -102,6 +102,8 @@ export async function PaymentsGatewayPanel({
         forceRefresh: false,
       });
 
+      suspendedIds = [...(sync.suspendedAdvertiserIds ?? [])];
+
       if (!sync.skippedUnavailableStatus) {
         if (sync.approvedAdvertiserIds.length > 0) {
           approvedIds = [
@@ -120,14 +122,31 @@ export async function PaymentsGatewayPanel({
           "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
       }
 
-      // Asegurar filas en la org del usuario (gerente o cliente con cliente Hecom).
-      if (approvedIds.length > 0) {
+      // Asegurar filas en la org (aprobadas + suspendidas) → Recuperar + Recargar.
+      const ensureIds = [
+        ...new Set([
+          ...approvedIds,
+          ...suspendedIds,
+          ...(adsAccounts ?? [])
+            .filter((a) => a.status === "disabled")
+            .map((a) => a.externalAccountId?.trim())
+            .filter((id): id is string => Boolean(id)),
+        ]),
+      ];
+      if (ensureIds.length > 0) {
         ensured = await ensureAdvertisersInOrganizationForAllocation({
           organizationId: session.organizationId,
           clienteId: hecomClienteId,
           clienteName,
           userId: session.id,
-          advertisers: advertiserEnsureList(approvedIds),
+          advertisers: advertiserEnsureList(ensureIds).map((row) => ({
+            ...row,
+            status:
+              suspendedIds.includes(row.advertiserId) ||
+              row.status === "disabled"
+                ? "disabled"
+                : row.status,
+          })),
         });
       }
 
@@ -139,6 +158,7 @@ export async function PaymentsGatewayPanel({
         clienteId: hecomClienteId,
         hecomIds: hecomAdvertiserIds?.length ?? 0,
         approvedIds: approvedIds.length,
+        suspendedIds: suspendedIds.length,
         upserted: sync.upserted,
         ensured,
         skipped: sync.skippedUnavailableStatus,
@@ -149,6 +169,34 @@ export async function PaymentsGatewayPanel({
       });
       syncNote =
         "No se pudo sincronizar cuentas aprobadas. Probá de nuevo en unos minutos.";
+    }
+  }
+
+  // Si el sync se saltó (vuelta Stripe), igual asegurá suspendidas del overview.
+  if (
+    skipApprovedSync &&
+    session.organizationId &&
+    hecomClienteId
+  ) {
+    const disabledEnsureIds = [
+      ...new Set(
+        (adsAccounts ?? [])
+          .filter((a) => a.status === "disabled")
+          .map((a) => a.externalAccountId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (disabledEnsureIds.length > 0) {
+      await ensureAdvertisersInOrganizationForAllocation({
+        organizationId: session.organizationId,
+        clienteId: hecomClienteId,
+        clienteName,
+        userId: session.id,
+        advertisers: advertiserEnsureList(disabledEnsureIds).map((row) => ({
+          ...row,
+          status: "disabled",
+        })),
+      });
     }
   }
 
@@ -258,34 +306,64 @@ export async function PaymentsGatewayPanel({
 
   const hasClienteScope = hecomAdvertiserIds != null || Boolean(hecomClienteId);
 
-  const scopedAccounts = enrichAllocationAccountsFromAdsOverview(
+  // IDs del cliente: aprobadas + suspendidas (sync BM) + overview ads.
+  const clienteAdvIds = [
+    ...new Set(
+      [
+        ...(hecomAdvertiserIds ?? []),
+        ...approvedIds,
+        ...suspendedIds,
+        ...(adsAccounts ?? [])
+          .map((a) => a.externalAccountId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ].map((id) => id.trim()),
+    ),
+  ];
+
+  const markSuspended = (
+    accounts: PaymentAccountAllocation[],
+  ): PaymentAccountAllocation[] =>
+    enrichAllocationAccountsFromAdsOverview(accounts, adsAccounts).map(
+      (account) => {
+        const ext = account.externalAccountId?.trim();
+        if (ext && suspendedIds.includes(ext)) {
+          return { ...account, status: "disabled" };
+        }
+        return account;
+      },
+    );
+
+  // Recargar: activas/pendientes Aprobadas.
+  const fundableAccounts = markSuspended(
     hasClienteScope
-      ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds).filter(
-          (account) => account.status !== "disabled",
-        )
-      : pool.filter((account) => account.status !== "disabled"),
-    adsAccounts,
+      ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds)
+      : pool,
+  ).filter((account) => account.status !== "disabled");
+
+  // Suspendida CON saldo Holistic: se queda en la misma tabla con “Recuperar”.
+  // Sin saldo → sale de Pagos (solo vive en Cuentas ads).
+  const reclaimableInTable = markSuspended(
+    hasClienteScope
+      ? scopeAllocationAccountsToHecomAdvertisers(pool, clienteAdvIds)
+      : pool,
+  ).filter(
+    (account) =>
+      account.status === "disabled" && Number(account.balance) > 0,
   );
 
-  // Suspendidas con saldo Holistic > 0 → se pueden recuperar a cartera.
-  // Incluí IDs Hecom (aunque no estén “aprobadas”) para ver baneadas del cliente.
-  const reclaimScopeIds = [
-    ...new Set([...(hecomAdvertiserIds ?? []), ...approvedIds]),
+  const seenIds = new Set(fundableAccounts.map((a) => a.id));
+  const scopedAccounts = [
+    ...reclaimableInTable.filter((a) => {
+      if (seenIds.has(a.id)) return false;
+      seenIds.add(a.id);
+      return true;
+    }),
+    ...fundableAccounts,
   ];
-  const reclaimPool = hasClienteScope
-    ? scopeAllocationAccountsToHecomAdvertisers(pool, reclaimScopeIds)
-    : pool;
-  const reclaimAccounts = enrichAllocationAccountsFromAdsOverview(
-    reclaimPool.filter(
-      (account) =>
-        account.status === "disabled" && Number(account.balance) > 0,
-    ),
-    adsAccounts,
-  );
 
   const scopedSummary = {
     ...core.summary,
-    accountsReadyForAllocation: scopedAccounts.filter(
+    accountsReadyForAllocation: fundableAccounts.filter(
       (a) => a.status === "active" || a.status === "pending",
     ).length,
   };
@@ -316,13 +394,6 @@ export async function PaymentsGatewayPanel({
           </p>
         ) : null}
 
-        {reclaimAccounts.length > 0 ? (
-          <PaymentsReclaimSection
-            accounts={reclaimAccounts}
-            allowForceLedger={capabilities.isStaff || capabilities.isSuperAdmin}
-          />
-        ) : null}
-
         {hasClienteScope && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
@@ -332,15 +403,16 @@ export async function PaymentsGatewayPanel({
               Recargar cuenta ads · {clienteName ?? "Este cliente"}
             </p>
             <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Sin cuentas Aprobadas para asignar
+              Sin cuentas para recargar acá
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-              Listamos cuentas{" "}
+              Solo listamos cuentas Aprobadas y suspendidas que todavía tengan
+              saldo Holistic por recuperar. Las baneadas en $0 estánieron de
+              Pagos: miralas en{" "}
               <span className="font-semibold text-[var(--auth-text)]">
-                aprobadas en TikTok
-              </span>{" "}
-              o mapeadas en Hecom con sync activo. Las suspendidas no aparecen.
-              Si falta una BM, revisá el advertiser_id en Hecom Club.
+                Cuentas ads
+              </span>
+              .
             </p>
             <Link
               href={routes.adAccounts}
@@ -358,6 +430,9 @@ export async function PaymentsGatewayPanel({
             )}
             walletBalance={core.wallet.balance}
             clienteName={clienteName}
+            allowForceLedger={
+              capabilities.isStaff || capabilities.isSuperAdmin
+            }
           />
         )}
       </div>

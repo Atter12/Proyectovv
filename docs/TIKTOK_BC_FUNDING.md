@@ -93,7 +93,10 @@ Advertiser (cash sin gastar)  --DEDUCT-->  BC TikTok
 | **200** | `POST /bc/transfer/` `transfer_type=DEDUCT` (cash advertiser → BC), luego `ledger_refund_from_ad_account_to_wallet` |
 | **10 / 30** | Baja presupuesto (`UPDATE`) best-effort + refund ledger a cartera |
 
-UI: **Pagos → Recuperar saldo** (cuentas `disabled` con balance > 0).  
+UI: **Pagos → misma tabla de Recargar/Asignar**.  
+Si la cuenta se suspende **con saldo Holistic**, se queda en esa lista (badge Suspendida + botón **Recuperar a saldo disponible**).  
+Al recuperar, el monto vuelve a **saldo disponible** y la cuenta **sale de Pagos**; la baneada solo se ve en **Cuentas ads**.  
+Suspendidas en $0 no aparecen en Pagos.  
 API: `POST /api/payments/reclaim` `{ adAccountId, amount?, forceLedgerOnly? }`.
 
 - Solo se recupera lo **sin gastar** (capado por cash TikTok en BM200 y por saldo Holistic de la cuenta).
