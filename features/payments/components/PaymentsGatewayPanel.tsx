@@ -2,6 +2,7 @@ import { PaymentOverviewStats } from "./PaymentOverviewStats";
 import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
+import { PaymentsReclaimSection } from "./PaymentsReclaimSection.client";
 import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
@@ -266,6 +267,22 @@ export async function PaymentsGatewayPanel({
     adsAccounts,
   );
 
+  // Suspendidas con saldo Holistic > 0 → se pueden recuperar a cartera.
+  // Incluí IDs Hecom (aunque no estén “aprobadas”) para ver baneadas del cliente.
+  const reclaimScopeIds = [
+    ...new Set([...(hecomAdvertiserIds ?? []), ...approvedIds]),
+  ];
+  const reclaimPool = hasClienteScope
+    ? scopeAllocationAccountsToHecomAdvertisers(pool, reclaimScopeIds)
+    : pool;
+  const reclaimAccounts = enrichAllocationAccountsFromAdsOverview(
+    reclaimPool.filter(
+      (account) =>
+        account.status === "disabled" && Number(account.balance) > 0,
+    ),
+    adsAccounts,
+  );
+
   const scopedSummary = {
     ...core.summary,
     accountsReadyForAllocation: scopedAccounts.filter(
@@ -297,6 +314,13 @@ export async function PaymentsGatewayPanel({
           >
             {syncNote}
           </p>
+        ) : null}
+
+        {reclaimAccounts.length > 0 ? (
+          <PaymentsReclaimSection
+            accounts={reclaimAccounts}
+            allowForceLedger={capabilities.isStaff || capabilities.isSuperAdmin}
+          />
         ) : null}
 
         {hasClienteScope && scopedAccounts.length === 0 ? (

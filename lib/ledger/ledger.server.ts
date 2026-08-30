@@ -231,6 +231,72 @@ export async function getWalletLedgerBalance(
   };
 }
 
+export async function refundAdAccountToWallet(input: {
+  organizationId?: string;
+  adAccountId: string;
+  amountCents: number;
+  idempotencyKey?: string;
+  description?: string | null;
+  sourceBalance?: "available" | "reserved";
+  metadata?: Record<string, unknown>;
+}): Promise<string> {
+  const admin = createAdminClient();
+  await assertAdAccountBelongsToOrganization(
+    admin,
+    input.adAccountId,
+    input.organizationId,
+  );
+  const idempotencyKey =
+    input.idempotencyKey ??
+    `refund:${input.adAccountId}:${input.amountCents}:${randomUUID()}`;
+
+  const { data, error } = await admin.rpc("ledger_refund_from_ad_account_to_wallet", {
+    p_ad_account_id: input.adAccountId,
+    p_amount_cents: input.amountCents,
+    p_source_balance: input.sourceBalance ?? "available",
+    p_idempotency_key: idempotencyKey,
+    p_description:
+      input.description ?? "Recuperación de saldo a cartera Holistic",
+    p_metadata: input.metadata ?? {},
+  });
+
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+export async function getAdAccountLedgerBalance(
+  adAccountId: string,
+): Promise<LedgerAdAccountBalance | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("v_ad_account_ledger_balances")
+    .select(
+      "ad_account_id, organization_id, wallet_id, currency, available_balance_cents, reserved_balance_cents, lifetime_spend_cents",
+    )
+    .eq("ad_account_id", adAccountId)
+    .maybeSingle<{
+      ad_account_id: string;
+      organization_id: string;
+      wallet_id: string;
+      currency: string;
+      available_balance_cents: number;
+      reserved_balance_cents: number;
+      lifetime_spend_cents: number;
+    }>();
+
+  if (error || !data) return null;
+
+  return {
+    adAccountId: data.ad_account_id,
+    organizationId: data.organization_id,
+    walletId: data.wallet_id,
+    currency: data.currency,
+    availableBalanceCents: toNumber(data.available_balance_cents),
+    reservedBalanceCents: toNumber(data.reserved_balance_cents),
+    lifetimeSpendCents: toNumber(data.lifetime_spend_cents),
+  };
+}
+
 export async function getAdAccountLedgerBalances(
   organizationId: string,
 ): Promise<Map<string, LedgerAdAccountBalance>> {

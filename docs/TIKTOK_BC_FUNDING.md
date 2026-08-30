@@ -78,6 +78,29 @@ Smoke OK ago 2026: +$1 en Dominic BM30 → presupuesto 900→901.
 
 ---
 
+## Recuperar saldo (cuenta baneada / plata trabada)
+
+Caso: cliente asignó $25 a BM 200 y la cuenta se suspendió → no debe quedar plata perdida.
+
+```
+Advertiser (cash sin gastar)  --DEDUCT-->  BC TikTok
+                                              ↓
+                         ledger Holistic: ad_account → wallet_available
+```
+
+| BM | Qué hace Holistic |
+|----|-------------------|
+| **200** | `POST /bc/transfer/` `transfer_type=DEDUCT` (cash advertiser → BC), luego `ledger_refund_from_ad_account_to_wallet` |
+| **10 / 30** | Baja presupuesto (`UPDATE`) best-effort + refund ledger a cartera |
+
+UI: **Pagos → Recuperar saldo** (cuentas `disabled` con balance > 0).  
+API: `POST /api/payments/reclaim` `{ adAccountId, amount?, forceLedgerOnly? }`.
+
+- Solo se recupera lo **sin gastar** (capado por cash TikTok en BM200 y por saldo Holistic de la cuenta).
+- `forceLedgerOnly` solo staff: si TikTok falla, igual mueve ledger (riesgo de desync con cash real).
+
+---
+
 ## Qué falta activar (ops + env)
 
 En Vercel Production:

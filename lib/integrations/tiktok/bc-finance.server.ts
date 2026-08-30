@@ -253,44 +253,49 @@ export async function transferBcFundsToAdvertiser(
     await resolveTikTokFinanceAccessToken(input.organizationId);
   const tokenFp = tokenFingerprint(accessToken);
 
-  // BM 10/30 suelen ser SHARED: Manager muestra "línea de crédito" (account_balance)
-  // pero cash_balance=0. La API solo acepta cash_amount o grant_amount (cupones),
-  // NO la línea de crédito compartida.
-  const balanceDetail = await getBcBalanceDetail({
-    bcId,
-    organizationId: input.organizationId,
-  });
-  const funding = balanceDetail
-    ? resolveBcFundingSource(balanceDetail, cashAmount)
-    : { source: "cash" as const, available: Infinity };
+  // DEDUCT: cash sale del advertiser → BC. No exige cash disponible en el BM.
+  let fundingSource: TikTokBcFundingSource = "cash";
+  let fundingAvailable: number = Infinity;
 
-  if (funding.source === "blocked") {
-    const d = funding.detail;
-    const cashAvailable = d.validCashBalance ?? d.cashBalance ?? 0;
-    const grantAvailable = d.validGrantBalance ?? d.grantBalance ?? 0;
-    const accountBalance = d.validAccountBalance ?? d.accountBalance;
-    const shared = d.paymentPortfolioType === "SHARED";
-    console.warn("[tiktok-bc] transfer_blocked_no_funds", {
+  if (transferType !== "DEDUCT") {
+    const balanceDetail = await getBcBalanceDetail({
       bcId,
-      advertiserId,
-      cashAmount,
-      cashAvailable,
-      grantAvailable,
-      accountBalance,
-      shared,
-      paymentPortfolioType: d.paymentPortfolioType,
-      tokenSource,
-      tokenFp,
+      organizationId: input.organizationId,
     });
-    throw new Error(
-      formatBlockedTransferError({
+    const funding = balanceDetail
+      ? resolveBcFundingSource(balanceDetail, cashAmount)
+      : { source: "cash" as const, available: Infinity };
+
+    if (funding.source === "blocked") {
+      const d = funding.detail;
+      const cashAvailable = d.validCashBalance ?? d.cashBalance ?? 0;
+      const grantAvailable = d.validGrantBalance ?? d.grantBalance ?? 0;
+      const accountBalance = d.validAccountBalance ?? d.accountBalance;
+      const shared = d.paymentPortfolioType === "SHARED";
+      console.warn("[tiktok-bc] transfer_blocked_no_funds", {
+        bcId,
+        advertiserId,
+        cashAmount,
         cashAvailable,
         grantAvailable,
         accountBalance,
         shared,
-        cashAmount,
-      }),
-    );
+        paymentPortfolioType: d.paymentPortfolioType,
+        tokenSource,
+        tokenFp,
+      });
+      throw new Error(
+        formatBlockedTransferError({
+          cashAvailable,
+          grantAvailable,
+          accountBalance,
+          shared,
+          cashAmount,
+        }),
+      );
+    }
+    fundingSource = funding.source;
+    fundingAvailable = funding.available;
   }
 
   const body = buildTransferBody({
@@ -298,7 +303,7 @@ export async function transferBcFundsToAdvertiser(
     advertiserId,
     transferType,
     amount: cashAmount,
-    fundingSource: funding.source,
+    fundingSource,
     requestId: input.requestId,
   });
 
@@ -306,8 +311,8 @@ export async function transferBcFundsToAdvertiser(
     bcId,
     advertiserId,
     amount: cashAmount,
-    fundingSource: funding.source,
-    fundingAvailable: funding.available,
+    fundingSource,
+    fundingAvailable,
     transferType,
     requestId: input.requestId,
     tokenSource,
@@ -340,7 +345,7 @@ export async function transferBcFundsToAdvertiser(
       bcId,
       advertiserId,
       cashAmount,
-      fundingSource: funding.source,
+      fundingSource,
       transferBody: body,
       transferType,
       requestId: input.requestId,
@@ -366,7 +371,7 @@ export async function transferBcFundsToAdvertiser(
     bcId,
     advertiserId,
     cashAmount,
-    fundingSource: funding.source,
+    fundingSource,
     transferType,
     requestId: input.requestId,
     tiktokRequestId: json.request_id ?? null,
@@ -378,7 +383,7 @@ export async function transferBcFundsToAdvertiser(
     ok: true,
     requestId: input.requestId,
     tiktokRequestId: json.request_id ?? null,
-    fundingSource: funding.source,
+    fundingSource,
     raw: (json.data ?? {}) as Record<string, unknown>,
   };
 }
@@ -768,6 +773,130 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     previousBudget,
     newBudget,
     budgetMode,
+    tiktokRequestId: json.request_id ?? null,
+  };
+}
+
+/**
+ * BM SHARED: bajar presupuesto (cuenta baneada / recuperar cupo).
+ * Usa UPDATE absoluto = previous − decrease (mínimo 0).
+ */
+export async function decreaseSharedBmAdvertiserBudget(input: {
+  bcId: string;
+  advertiserId: string;
+  decreaseAmountUsd: number;
+  organizationId?: string;
+}): Promise<{
+  ok: true;
+  previousBudget: number;
+  newBudget: number;
+  tiktokRequestId: string | null;
+}> {
+  const bcId = input.bcId.trim();
+  const advertiserId = input.advertiserId.trim();
+  const decrease = Math.round(input.decreaseAmountUsd * 100) / 100;
+  if (!bcId || !advertiserId) {
+    throw new Error("Falta bc_id o advertiser_id para bajar presupuesto.");
+  }
+  if (!Number.isFinite(decrease) || decrease <= 0) {
+    throw new Error("Monto de baja de presupuesto inválido.");
+  }
+
+  const snapshot = await getAdvertiserBudgetSnapshot({
+    bcId,
+    advertiserId,
+    organizationId: input.organizationId,
+  });
+  if (!snapshot) {
+    throw new Error(
+      "No se pudo leer el presupuesto de esa cuenta en TikTok para recuperarlo.",
+    );
+  }
+  if (snapshot.budgetMode === "UNLIMITED") {
+    // Sin tope: no hay “saldo de presupuesto” que bajar.
+    return {
+      ok: true,
+      previousBudget: snapshot.budget,
+      newBudget: snapshot.budget,
+      tiktokRequestId: null,
+    };
+  }
+
+  const previousBudget = snapshot.budget;
+  const newBudget = Math.max(0, Math.round((previousBudget - decrease) * 100) / 100);
+  if (newBudget >= previousBudget) {
+    return {
+      ok: true,
+      previousBudget,
+      newBudget: previousBudget,
+      tiktokRequestId: null,
+    };
+  }
+
+  const budgetMode =
+    snapshot.budgetMode === "DAILY_BUDGET" ||
+    snapshot.budgetMode === "MONTHLY_BUDGET" ||
+    snapshot.budgetMode === "CUSTOM_BUDGET"
+      ? snapshot.budgetMode
+      : "CUSTOM_BUDGET";
+
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
+
+  const body = {
+    bc_id: bcId,
+    budget_update_type: "UPDATE",
+    advertiser_budgets: [
+      {
+        advertiser_id: advertiserId,
+        budget: newBudget,
+        budget_mode: budgetMode,
+      },
+    ],
+  };
+
+  console.info("[tiktok-bc] budget_decrease_attempt", {
+    bcId,
+    advertiserId,
+    previousBudget,
+    newBudget,
+    decrease,
+    budgetMode,
+    tokenSource,
+  });
+
+  const response = await fetch(apiUrl("/advertiser/update/"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Token": accessToken,
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>> & {
+    log_id?: string;
+  };
+
+  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+    const detail = json.message ?? `HTTP ${response.status}`;
+    console.error("[tiktok-bc] budget_decrease_failed", {
+      code: json.code ?? null,
+      message: detail,
+      bcId,
+      advertiserId,
+      tiktokRequestId: json.request_id ?? json.log_id ?? null,
+    });
+    throw new Error(
+      "No se pudo bajar el presupuesto en TikTok de esa cuenta. Contactá a soporte.",
+    );
+  }
+
+  return {
+    ok: true,
+    previousBudget,
+    newBudget,
     tiktokRequestId: json.request_id ?? null,
   };
 }
