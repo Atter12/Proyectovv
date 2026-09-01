@@ -117,11 +117,27 @@ export const serverEnv = {
   manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   openAiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
-  /** Sin IA: auto-acredita al subir voucher (solo staging / demo). */
-  manualVoucherTrustUpload: parseBoolean(process.env.MANUAL_VOUCHER_TRUST_UPLOAD),
+  /** Sin IA: auto-acredita al subir voucher (solo staging / demo; nunca en producción). */
+  manualVoucherTrustUpload:
+    isProduction ? false : parseBoolean(process.env.MANUAL_VOUCHER_TRUST_UPLOAD),
   /** Máx. USD netos en cartera para auto-aprobación IA. */
   manualVoucherAutoApproveMaxUsd: Number.parseFloat(
     process.env.MANUAL_VOUCHER_AUTO_APPROVE_MAX_USD ?? "500",
+  ),
+  /** Máx. comprobantes subidos por org/hora antes de forzar revisión manual. */
+  manualVoucherMaxUploadsPerHour: parseInteger(
+    process.env.MANUAL_VOUCHER_MAX_UPLOADS_PER_HOUR,
+    3,
+  ),
+  /** Máx. auto-aprobaciones por org en 10 min antes de pausar IA. */
+  manualVoucherMaxAutoApprovesPer10Min: parseInteger(
+    process.env.MANUAL_VOUCHER_MAX_AUTO_APPROVES_PER_10MIN,
+    2,
+  ),
+  /** Tope duro: rechaza subida si se supera en 1 hora (anti-abuso). */
+  manualVoucherHardUploadCapPerHour: parseInteger(
+    process.env.MANUAL_VOUCHER_HARD_UPLOAD_CAP_PER_HOUR,
+    10,
   ),
 
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",

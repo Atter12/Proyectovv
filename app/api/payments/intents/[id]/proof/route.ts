@@ -6,7 +6,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getPaymentIntentById, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
-import { processManualVoucherUpload } from "@/lib/payments/process-manual-voucher.server";
+import { processManualVoucherUpload, VoucherRateLimitError } from "@/lib/payments/process-manual-voucher.server";
 
 export const runtime = "nodejs";
 
@@ -139,6 +139,9 @@ export async function POST(request: Request, context: RouteContext) {
         submittedBy: session.id,
       });
     } catch (error) {
+      if (error instanceof VoucherRateLimitError) {
+        return NextResponse.json({ error: error.message }, { status: 429 });
+      }
       console.error("[payments/proof] manual process failed", error);
     }
   }
@@ -206,6 +209,7 @@ export async function POST(request: Request, context: RouteContext) {
       autoApproved: processResult.autoApproved,
       analysis: processResult.analysis,
       creditUsdCents: processResult.creditUsdCents,
+      security: processResult.security,
     },
   });
 }

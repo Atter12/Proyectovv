@@ -9,6 +9,12 @@ import {
   hashVoucherBuffer,
   type VoucherAnalysisResult,
 } from "@/lib/payments/voucher-analysis.server";
+import {
+  checkVoucherUploadRateLimits,
+  isDuplicateOperationCode,
+  normalizeOperationCode,
+  type VoucherSecurityFlags,
+} from "@/lib/payments/voucher-security.server";
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
@@ -18,6 +24,9 @@ export type ProcessManualVoucherResult = {
   autoApproved: boolean;
   status: string;
   creditUsdCents: number;
+  security: VoucherSecurityFlags;
+  rateLimited?: boolean;
+  rateLimitReason?: string | null;
 };
 
 function readChargeCurrency(metadata: Record<string, unknown> | null): ManualChargeCurrency {
@@ -59,6 +68,13 @@ async function isDuplicateVoucherHash(hash: string, excludeIntentId: string): Pr
   }
 
   return (data ?? []).some((row) => row.id !== excludeIntentId);
+}
+
+export class VoucherRateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VoucherRateLimitError";
+  }
 }
 
 function canAutoApproveCredit(creditUsdCents: number): boolean {
@@ -103,6 +119,12 @@ export async function processManualVoucherUpload(input: {
       autoApproved: true,
       status: "succeeded",
       creditUsdCents: readCreditUsdCents(meta, intent.amountCents),
+      security: {
+        duplicateContentHash: false,
+        duplicateOperationCode: false,
+        rateLimitBlocksAutoApprove: false,
+        uploadRateLimited: false,
+      },
     };
   }
 
@@ -110,6 +132,13 @@ export async function processManualVoucherUpload(input: {
   const expected = readExpectedChargeAmount(intent.amountCents, metadata);
   const creditUsdCents = readCreditUsdCents(metadata, intent.amountCents);
   const contentHash = hashVoucherBuffer(input.buffer);
+
+  const rateLimits = await checkVoucherUploadRateLimits(input.organizationId);
+  if (!rateLimits.uploadAllowed) {
+    throw new VoucherRateLimitError(
+      rateLimits.reason ?? "Demasiados comprobantes. Intentá más tarde.",
+    );
+  }
 
   const holders = getManualBankAccounts(expected.currency).map((a) => a.holder);
 
@@ -121,11 +150,33 @@ export async function processManualVoucherUpload(input: {
     holderNames: holders,
   });
 
-  const duplicate = await isDuplicateVoucherHash(contentHash, intent.id);
-  if (duplicate) {
+  const duplicateHash = await isDuplicateVoucherHash(contentHash, intent.id);
+  const normalizedOperationCode = normalizeOperationCode(analysis.operationCode);
+  const duplicateOperationCode =
+    normalizedOperationCode != null
+      ? await isDuplicateOperationCode(normalizedOperationCode, intent.id)
+      : false;
+
+  const security: VoucherSecurityFlags = {
+    duplicateContentHash: duplicateHash,
+    duplicateOperationCode,
+    rateLimitBlocksAutoApprove: !rateLimits.autoApproveAllowed,
+    uploadRateLimited: !rateLimits.uploadAllowed,
+  };
+
+  if (duplicateHash) {
     analysis.confirmed = false;
     analysis.needsReview = true;
     analysis.reason = "Este comprobante ya fue usado en otro pago.";
+  } else if (duplicateOperationCode) {
+    analysis.confirmed = false;
+    analysis.needsReview = true;
+    analysis.reason =
+      "Este código de operación ya fue registrado en otro pago.";
+  } else if (!rateLimits.autoApproveAllowed && rateLimits.reason) {
+    analysis.confirmed = false;
+    analysis.needsReview = true;
+    analysis.reason = rateLimits.reason;
   }
 
   const submittedAt = new Date().toISOString();
@@ -135,6 +186,10 @@ export async function processManualVoucherUpload(input: {
   const baseMeta = mergeMetadata(metadata, {
     manual_review_status: analysis.confirmed ? "approved" : "pending_review",
     voucher_content_hash: contentHash,
+    ...(normalizedOperationCode ?
+      { voucher_operation_code: normalizedOperationCode }
+    : {}),
+    voucher_security: security,
     manual_proof: {
       bucket: "payment-proofs",
       path: input.storagePath,
@@ -150,7 +205,9 @@ export async function processManualVoucherUpload(input: {
 
   if (
     analysis.confirmed &&
-    !duplicate &&
+    !duplicateHash &&
+    !duplicateOperationCode &&
+    rateLimits.autoApproveAllowed &&
     canAutoApproveCredit(creditUsdCents)
   ) {
     const providerReference = `manual:voucher:${intent.id}`;
@@ -163,6 +220,9 @@ export async function processManualVoucherUpload(input: {
         auto_approved: true,
         voucher_analysis_mode: analysis.analysisMode,
         voucher_content_hash: contentHash,
+        ...(normalizedOperationCode ?
+          { voucher_operation_code: normalizedOperationCode }
+        : {}),
       },
     });
 
@@ -211,5 +271,8 @@ export async function processManualVoucherUpload(input: {
     autoApproved,
     status: nextStatus,
     creditUsdCents,
+    security,
+    rateLimited: !rateLimits.uploadAllowed,
+    rateLimitReason: rateLimits.reason,
   };
 }
