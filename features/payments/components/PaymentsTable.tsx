@@ -21,6 +21,7 @@ interface PaymentsTableProps {
   accounts: PaymentAccountAllocation[];
   onAllocate?: (account: PaymentAccountAllocation) => void;
   onReclaim?: (account: PaymentAccountAllocation) => void;
+  onTransfer?: (account: PaymentAccountAllocation) => void;
   onEditTikTokIds?: (account: PaymentAccountAllocation) => void;
   /** Modo gerente BM: copy “Recargar” en vez de “Asignar”. */
   agencyBmFunding?: boolean;
@@ -35,6 +36,10 @@ function isReclaimableSuspended(account: PaymentAccountAllocation): boolean {
   return account.status === "disabled" && Number(account.balance) > 0;
 }
 
+function hasTransferableBalance(account: PaymentAccountAllocation): boolean {
+  return Number(account.balance) > 0;
+}
+
 function statusBadgeClass(status: string): string {
   if (status === "disabled") {
     return "rounded-md bg-[#fef2f2] px-1.5 py-0.5 text-[10px] font-semibold text-[#991b1b] ring-1 ring-[#fecaca]";
@@ -46,6 +51,7 @@ export function PaymentsTable({
   accounts,
   onAllocate,
   onReclaim,
+  onTransfer,
   onEditTikTokIds,
   agencyBmFunding = false,
 }: PaymentsTableProps) {
@@ -105,56 +111,77 @@ export function PaymentsTable({
     if (onReclaim) onReclaim(account);
   }
 
+  function runTransfer(account: PaymentAccountAllocation) {
+    if (onTransfer) onTransfer(account);
+  }
+
   function renderActions(account: PaymentAccountAllocation, mobile: boolean) {
     const reclaimable = isReclaimableSuspended(account);
+    const transferable = hasTransferableBalance(account);
 
-    if (reclaimable) {
-      return (
-        <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
+    return (
+      <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
+        {transferable && onTransfer ? (
           <Button
             className={
               mobile
-                ? "h-11 w-full rounded-lg bg-[#c45a18] text-[13px] font-semibold hover:brightness-[1.05]"
+                ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
                 : "font-semibold text-[#c45a18]"
             }
             variant={mobile ? undefined : "ghost"}
             size={mobile ? undefined : "sm"}
-            onClick={() => runReclaim(account)}
+            onClick={() => runTransfer(account)}
           >
-            Recuperar a saldo disponible
+            Transferir a otra cuenta
           </Button>
-          <p
+        ) : null}
+
+        {reclaimable ? (
+          <>
+            <Button
+              className={
+                mobile
+                  ? "h-11 w-full rounded-lg border border-[#c45a18] bg-white text-[13px] font-semibold text-[#c45a18] hover:bg-[#fff7f2]"
+                  : "font-semibold text-[#8a8178]"
+              }
+              variant={mobile ? undefined : "ghost"}
+              size={mobile ? undefined : "sm"}
+              onClick={() => runReclaim(account)}
+            >
+              Recuperar a cartera
+            </Button>
+            <p
+              className={
+                mobile
+                  ? "text-[11px] leading-4 text-[#7a736a]"
+                  : "max-w-[11rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
+              }
+            >
+              {transferable
+                ? "O pasá directo a otra cuenta sin pasar por cartera."
+                : "Cuenta suspendida. Jalá el saldo a cartera; después sale de Pagos."}
+            </p>
+          </>
+        ) : (
+          <Button
             className={
               mobile
-                ? "text-[11px] leading-4 text-[#7a736a]"
-                : "max-w-[11rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
+                ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
+                : "font-semibold text-[#c45a18]"
             }
+            variant={mobile ? undefined : "ghost"}
+            size={mobile ? undefined : "sm"}
+            disabled={loadingAccountId === account.id}
+            onClick={() => runAllocate(account)}
           >
-            Cuenta suspendida. Jalá el saldo a cartera; después sale de Pagos.
-          </p>
-        </div>
-      );
-    }
+            {loadingAccountId === account.id
+              ? actionLoading
+              : mobile
+                ? actionLabelLong
+                : actionLabel}
+          </Button>
+        )}
 
-    return (
-      <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
-        <Button
-          className={
-            mobile
-              ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
-              : "font-semibold text-[#c45a18]"
-          }
-          variant={mobile ? undefined : "ghost"}
-          size={mobile ? undefined : "sm"}
-          disabled={loadingAccountId === account.id}
-          onClick={() => runAllocate(account)}
-        >
-          {loadingAccountId === account.id
-            ? actionLoading
-            : mobile
-              ? actionLabelLong
-              : actionLabel}
-        </Button>
         {onEditTikTokIds ? (
           <button
             type="button"

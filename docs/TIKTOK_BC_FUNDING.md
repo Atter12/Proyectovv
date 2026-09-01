@@ -104,6 +104,36 @@ API: `POST /api/payments/reclaim` `{ adAccountId, amount?, forceLedgerOnly? }`.
 
 ---
 
+## Transferir saldo entre cuentas (A → B)
+
+Caso: recargaste $30 a la campaña A y querés pasar $15 a la campaña B (activa o suspendida la origen).
+
+```
+Cuenta A (origen)  --DEDUCT/baja presupuesto-->  BC TikTok
+                                                    ↓
+                              ledger: ad_account(A) → wallet (puente)
+                                                    ↓
+                              ledger: wallet → ad_account(B)
+                                                    ↓
+Cuenta B (destino)  <--RECHARGE/sube presupuesto--  BC TikTok
+```
+
+| Paso | Qué hace Holistic |
+|------|-------------------|
+| 1 | Saca de cuenta origen (igual que Recuperar, monto parcial OK) |
+| 2 | Asigna a cuenta destino (igual que Asignar/Recargar) |
+| Neto cartera | ≈ $0 (pasa por wallet solo como puente contable) |
+
+UI: **Pagos → Transferir a otra cuenta** (cuando la fila tiene saldo > 0).  
+API: `POST /api/payments/transfer` `{ fromAdAccountId, toAdAccountId, amount }`.
+
+- Origen: activa **o** suspendida con saldo Holistic.
+- Destino: debe estar **Activa/Aprobada** (no suspendida).
+- Solo se mueve lo **sin gastar** (TikTok puede capar en BM200).
+- Requiere `TIKTOK_BC_FUNDING_ENABLED=true` + token con Finance + Create Ad Account (151).
+
+---
+
 ## Qué falta activar (ops + env)
 
 En Vercel Production:
@@ -140,7 +170,9 @@ Por cuenta ads Holistic:
 |---|---|
 | API BC | `lib/integrations/tiktok/bc-finance.server.ts` |
 | Orquestación | `lib/payments/allocate-with-tiktok.server.ts` |
+| Transfer A→B | `lib/payments/transfer-between-ad-accounts.server.ts` |
 | Endpoint | `POST /api/payments/allocations` |
+| Transfer API | `POST /api/payments/transfer` |
 | Flag | `TIKTOK_BC_FUNDING_ENABLED` |
 
 Con flag **off** (default): solo ledger (como antes).  

@@ -6,6 +6,7 @@ import { PaymentToolbar } from "./PaymentToolbar.client";
 import { AllocateBalanceModal } from "./AllocateBalanceModal.client";
 import { EditTikTokIdsModal } from "./EditTikTokIdsModal.client";
 import { ReclaimBalanceModal } from "./ReclaimBalanceModal.client";
+import { TransferBalanceModal } from "./TransferBalanceModal.client";
 import { PaymentsTable } from "./PaymentsTable";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -27,6 +28,8 @@ export function PaymentsAssignmentPanel({
     useState<PaymentAccountAllocation | null>(null);
   const [reclaimAccount, setReclaimAccount] =
     useState<PaymentAccountAllocation | null>(null);
+  const [transferAccount, setTransferAccount] =
+    useState<PaymentAccountAllocation | null>(null);
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
 
@@ -47,6 +50,7 @@ export function PaymentsAssignmentPanel({
         accounts={filteredAccounts}
         onAllocate={setSelectedAccount}
         onReclaim={setReclaimAccount}
+        onTransfer={setTransferAccount}
         onEditTikTokIds={setEditAccount}
         agencyBmFunding={agencyBmFunding}
       />
@@ -60,6 +64,14 @@ export function PaymentsAssignmentPanel({
         account={reclaimAccount}
         open={reclaimAccount !== null}
         onClose={() => setReclaimAccount(null)}
+        allowForceLedger={allowForceLedger}
+      />
+      <TransferBalanceModal
+        sourceAccount={transferAccount}
+        allAccounts={accounts}
+        open={transferAccount !== null}
+        onClose={() => setTransferAccount(null)}
+        agencyBmFunding={agencyBmFunding}
         allowForceLedger={allowForceLedger}
       />
       <EditTikTokIdsModal
