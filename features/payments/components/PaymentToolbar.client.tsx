@@ -1,12 +1,16 @@
 ﻿"use client";
 
 import { Input } from "@/components/ui/Input";
+import type { PaymentAccountSortKey } from "@/lib/sort/payment-accounts";
 
 interface PaymentToolbarProps {
   search: string;
   status: string;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  sort?: PaymentAccountSortKey;
+  onSortChange?: (value: PaymentAccountSortKey) => void;
+  agencyBmFunding?: boolean;
 }
 
 export function PaymentToolbar({
@@ -14,12 +18,18 @@ export function PaymentToolbar({
   status,
   onSearchChange,
   onStatusChange,
+  sort = "recommended",
+  onSortChange,
+  agencyBmFunding = false,
 }: PaymentToolbarProps) {
   return (
     <div className="flex flex-col gap-3 border-b border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
       <p className="w-full text-[12px] leading-5 text-[var(--auth-text-muted)] sm:hidden">
-        Tocá <span className="font-semibold text-[var(--auth-text)]">Asignar saldo</span> en
-        la cuenta que quieras recargar.
+        Tocá{" "}
+        <span className="font-semibold text-[var(--auth-text)]">
+          {agencyBmFunding ? "Recargar" : "Asignar saldo"}
+        </span>{" "}
+        en la cuenta que quieras {agencyBmFunding ? "fondear" : "recargar"}.
       </p>
       <div className="relative flex-1 sm:max-w-xs">
         <svg
@@ -52,6 +62,20 @@ export function PaymentToolbar({
         <option value="pending">Pendiente</option>
         <option value="disabled">Desactivada</option>
       </select>
+      {onSortChange ? (
+        <select
+          value={sort}
+          onChange={(e) => onSortChange(e.target.value as PaymentAccountSortKey)}
+          className="h-9 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
+          aria-label="Ordenar cuentas"
+        >
+          <option value="recommended">Orden recomendado</option>
+          <option value="bm">BM (10 → 200)</option>
+          <option value="name">Nombre / número</option>
+          <option value="ledger_desc">Ledger mayor</option>
+          <option value="ledger_asc">Ledger menor</option>
+        </select>
+      ) : null}
     </div>
   );
 }

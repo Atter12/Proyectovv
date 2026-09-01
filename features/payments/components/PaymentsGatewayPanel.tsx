@@ -11,6 +11,10 @@ import {
   buildAdvertiserEnsureList,
   enrichAllocationAccountsFromAdsOverview,
 } from "@/lib/payments/enrich-allocation-accounts";
+import {
+  sortPaymentAccounts,
+  summarizePaymentAccounts,
+} from "@/lib/sort/payment-accounts";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
@@ -352,14 +356,16 @@ export async function PaymentsGatewayPanel({
   );
 
   const seenIds = new Set(fundableAccounts.map((a) => a.id));
-  const scopedAccounts = [
+  const scopedAccounts = sortPaymentAccounts([
     ...reclaimableInTable.filter((a) => {
       if (seenIds.has(a.id)) return false;
       seenIds.add(a.id);
       return true;
     }),
     ...fundableAccounts,
-  ];
+  ]);
+
+  const allocationSummary = summarizePaymentAccounts(scopedAccounts);
 
   const scopedSummary = {
     ...core.summary,
@@ -383,6 +389,7 @@ export async function PaymentsGatewayPanel({
           activeGateway={activeGateway}
           isStaff={capabilities.isStaff}
           hecomFinance={hecomFinance}
+          allocationSummary={allocationSummary}
         />
 
         {syncNote ? (

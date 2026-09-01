@@ -6,6 +6,14 @@ import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
 
+export interface PaymentAllocationSummary {
+  totalAccounts: number;
+  activeCount: number;
+  pendingCount: number;
+  reclaimableCount: number;
+  totalLedgerUsd: number;
+}
+
 interface PaymentOverviewStatsProps {
   wallet: PaymentPageCore["wallet"];
   summary: PaymentPageCore["summary"];
@@ -13,6 +21,8 @@ interface PaymentOverviewStatsProps {
   isStaff?: boolean;
   /** CRM del cliente en alcance (saldo estimado, cobros, etc.) */
   hecomFinance?: HecomFinanceSnapshot | null;
+  /** Resumen de cuentas en tabla de asignación (modo gerente). */
+  allocationSummary?: PaymentAllocationSummary | null;
 }
 
 /**
@@ -26,6 +36,7 @@ export function PaymentOverviewStats({
   activeGateway,
   isStaff = false,
   hecomFinance = null,
+  allocationSummary = null,
 }: PaymentOverviewStatsProps) {
   const { agencyBmFunding } = usePaymentsFundingMode();
   const hecomMode = isStaff && agencyBmFunding && hecomFinance != null;
@@ -35,32 +46,41 @@ export function PaymentOverviewStats({
   const items = hecomMode
     ? [
         {
-          label: debt ? "Deuda neta Hecom" : "Saldo estimado",
-          value: formatMoney(hecomFinance.saldoEstimado, "USD"),
-          hint: "Cobros − gastos − fees (CRM)",
+          label: "Cuentas activas",
+          value: String(allocationSummary?.activeCount ?? summary.accountsReadyForAllocation),
+          hint: `${allocationSummary?.totalAccounts ?? "—"} en lista · ${allocationSummary?.pendingCount ?? 0} pend.`,
           accent: true as boolean,
-          warn: debt,
-        },
-        {
-          label: "Total cobros",
-          value: formatMoney(hecomFinance.cobroTotal, "USD"),
-          hint: "Ingresos Hecom",
-          accent: true,
           warn: false,
         },
         {
-          label: "Cuentas listas",
-          value: formatNumber(summary.accountsReadyForAllocation),
-          hint: "Para Recargar / asignar",
-          accent: true,
-          warn: false,
-        },
-        {
-          label: "Total gastos",
-          value: formatMoney(hecomFinance.gastoTotal, "USD"),
-          hint: `Fees ${formatMoney(hecomFinance.feeTotal, "USD")}`,
+          label: "Ledger en cuentas",
+          value:
+            allocationSummary != null
+              ? formatMoney(allocationSummary.totalLedgerUsd, "USD")
+              : "—",
+          hint: "Holistic asignado (no TikTok)",
           accent: false,
           warn: false,
+          muted: true,
+        },
+        {
+          label: "Por recuperar",
+          value: String(allocationSummary?.reclaimableCount ?? 0),
+          hint:
+            (allocationSummary?.reclaimableCount ?? 0) > 0
+              ? "Suspendidas con saldo"
+              : "Sin pendientes",
+          accent: false,
+          warn: (allocationSummary?.reclaimableCount ?? 0) > 0,
+        },
+        {
+          label: "Fee Hecom",
+          value: `${hecomFinance.depositFeePercent}%`,
+          hint: debt
+            ? `Deuda ${formatMoney(hecomFinance.saldoEstimado, "USD")}`
+            : `Estimado ${formatMoney(hecomFinance.saldoEstimado, "USD")}`,
+          accent: false,
+          warn: debt,
         },
       ]
     : [
@@ -102,7 +122,7 @@ export function PaymentOverviewStats({
         </p>
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
           {hecomMode
-            ? "Pulso Hecom y asignación BM"
+            ? "Estado de cuentas y asignación BM"
             : "Pulso de cartera y asignación"}
         </p>
       </div>
@@ -124,9 +144,11 @@ export function PaymentOverviewStats({
               className={`mt-1.5 truncate text-[1.15rem] font-bold tracking-[-0.03em] tabular-nums ${
                 item.warn
                   ? "text-[#b45309]"
-                  : item.accent
-                    ? "text-[#ff781f]"
-                    : "text-[#1c1917]"
+                  : "muted" in item && item.muted
+                    ? "text-[#6b645c]"
+                    : item.accent
+                      ? "text-[#ff781f]"
+                      : "text-[#1c1917]"
               }`}
             >
               {item.value}

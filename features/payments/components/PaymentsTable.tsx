@@ -15,6 +15,8 @@ import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
 import { mapAdAccountStatusLabel } from "@/lib/ui/labels";
 import { PaymentsEmptyState } from "./PaymentsEmptyState";
+import { PaymentsAccountBalanceCell } from "./PaymentsAccountBalanceCell.client";
+import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface PaymentsTableProps {
@@ -27,6 +29,8 @@ interface PaymentsTableProps {
   agencyBmFunding?: boolean;
   /** Hint de autoservicio para clientes (no gerente). */
   clientSelfService?: boolean;
+  liveMetricsByAdvertiser?: Record<string, AdAccountLiveMetricsClient>;
+  liveMetricsLoading?: boolean;
 }
 
 interface AllocationResponse {
@@ -46,6 +50,9 @@ function statusBadgeClass(status: string): string {
   if (status === "disabled") {
     return "rounded-md bg-[#fef2f2] px-1.5 py-0.5 text-[10px] font-semibold text-[#991b1b] ring-1 ring-[#fecaca]";
   }
+  if (status === "active") {
+    return "rounded-md bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40] ring-1 ring-[#b8e6cc]";
+  }
   return "rounded-md bg-[#fff7eb] px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e] ring-1 ring-[#f0d9b0]";
 }
 
@@ -57,6 +64,8 @@ export function PaymentsTable({
   onEditTikTokIds,
   agencyBmFunding = false,
   clientSelfService = false,
+  liveMetricsByAdvertiser,
+  liveMetricsLoading = false,
 }: PaymentsTableProps) {
   const router = useRouter();
   const [loadingAccountId, setLoadingAccountId] = useState<string | null>(null);
@@ -66,6 +75,23 @@ export function PaymentsTable({
   const actionLabel = agencyBmFunding ? "Recargar" : "Asignar";
   const actionLabelLong = agencyBmFunding ? "Recargar saldo" : "Asignar saldo";
   const actionLoading = agencyBmFunding ? "Recargando…" : "Asignando…";
+  const balanceColumnLabel = agencyBmFunding ? "Crédito TikTok" : "Saldo";
+
+  function renderBalanceCell(account: PaymentAccountAllocation, compact = false) {
+    const advertiserId = account.externalAccountId?.trim();
+    const metric = advertiserId ? liveMetricsByAdvertiser?.[advertiserId] : undefined;
+
+    return (
+      <PaymentsAccountBalanceCell
+        ledgerBalance={account.balance}
+        advertiserId={advertiserId}
+        metric={metric}
+        loading={liveMetricsLoading}
+        agencyBmFunding={agencyBmFunding}
+        compact={compact}
+      />
+    );
+  }
 
   async function handleAllocate(account: PaymentAccountAllocation) {
     const rawAmount = window.prompt(
@@ -250,22 +276,22 @@ export function PaymentsTable({
                     <span className={statusBadgeClass(account.status)}>
                       {mapAdAccountStatusLabel(account.status)}
                     </span>
-                    <span
-                      className={
-                        account.autoRecharge
-                          ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
-                          : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
-                      }
-                    >
-                      {account.autoRecharge ? "Auto on" : "Auto off"}
-                    </span>
+                    {!agencyBmFunding ? (
+                      <span
+                        className={
+                          account.autoRecharge
+                            ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
+                            : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
+                        }
+                      >
+                        {account.autoRecharge ? "Auto on" : "Auto off"}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-                <p className="shrink-0 text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
-                  {formatMoney(account.balance)}
-                </p>
+                <div className="shrink-0 text-right">{renderBalanceCell(account, true)}</div>
               </div>
-              {account.thresholdInfo ? (
+              {!agencyBmFunding && account.thresholdInfo ? (
                 <p className="mt-2 truncate text-[11px] text-[#9a9187]">
                   {account.thresholdInfo}
                 </p>
@@ -288,14 +314,18 @@ export function PaymentsTable({
                   Estado
                 </TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Saldo
+                  {balanceColumnLabel}
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Recarga
-                </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Umbral
-                </TableHead>
+                {!agencyBmFunding ? (
+                  <>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                      Recarga
+                    </TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
+                      Umbral
+                    </TableHead>
+                  </>
+                ) : null}
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
                   Acción
                 </TableHead>
@@ -333,25 +363,27 @@ export function PaymentsTable({
                       {mapAdAccountStatusLabel(account.status)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
-                    {formatMoney(account.balance)}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        account.autoRecharge
-                          ? "text-[12px] font-semibold text-[#1f5c40]"
-                          : "text-[12px] text-[#7a736a]"
-                      }
-                    >
-                      {account.autoRecharge ? "Activada" : "Desactivada"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
-                      {account.thresholdInfo}
-                    </span>
-                  </TableCell>
+                  <TableCell>{renderBalanceCell(account)}</TableCell>
+                  {!agencyBmFunding ? (
+                    <>
+                      <TableCell>
+                        <span
+                          className={
+                            account.autoRecharge
+                              ? "text-[12px] font-semibold text-[#1f5c40]"
+                              : "text-[12px] text-[#7a736a]"
+                          }
+                        >
+                          {account.autoRecharge ? "Activada" : "Desactivada"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
+                          {account.thresholdInfo}
+                        </span>
+                      </TableCell>
+                    </>
+                  ) : null}
                   <TableCell>{renderActions(account, false)}</TableCell>
                 </TableRow>
               ))}

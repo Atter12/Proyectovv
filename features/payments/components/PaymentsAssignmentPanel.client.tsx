@@ -2,11 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
+import {
+  sortPaymentAccounts,
+  summarizePaymentAccounts,
+  type PaymentAccountSortKey,
+} from "@/lib/sort/payment-accounts";
+import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { PaymentToolbar } from "./PaymentToolbar.client";
 import { AllocateBalanceModal } from "./AllocateBalanceModal.client";
 import { EditTikTokIdsModal } from "./EditTikTokIdsModal.client";
 import { ReclaimBalanceModal } from "./ReclaimBalanceModal.client";
 import { TransferBalanceModal } from "./TransferBalanceModal.client";
+import { PaymentsGerenteAccountsSummary } from "./PaymentsGerenteAccountsSummary.client";
 import { PaymentsTable } from "./PaymentsTable";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -24,6 +31,7 @@ export function PaymentsAssignmentPanel({
 }: PaymentsAssignmentPanelProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState<PaymentAccountSortKey>("recommended");
   const [selectedAccount, setSelectedAccount] =
     useState<PaymentAccountAllocation | null>(null);
   const [reclaimAccount, setReclaimAccount] =
@@ -33,18 +41,55 @@ export function PaymentsAssignmentPanel({
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
 
-  const filteredAccounts = useMemo(
-    () => filterPaymentAccounts(accounts, { search, status }),
-    [accounts, search, status],
+  const { metricsByAdvertiser, loading, lastUpdatedAt } = useAdAccountLiveMetrics(
+    agencyBmFunding,
   );
+
+  const accountSummary = useMemo(
+    () => summarizePaymentAccounts(accounts),
+    [accounts],
+  );
+
+  const liveCreditTotalUsd = useMemo(() => {
+    if (!agencyBmFunding) return null;
+    let total = 0;
+    let hasAny = false;
+    for (const account of accounts) {
+      const id = account.externalAccountId?.trim();
+      if (!id) continue;
+      const metric = metricsByAdvertiser[id];
+      if (metric?.balanceUsd != null) {
+        total += metric.balanceUsd;
+        hasAny = true;
+      }
+    }
+    return hasAny ? total : null;
+  }, [accounts, agencyBmFunding, metricsByAdvertiser]);
+
+  const filteredAccounts = useMemo(() => {
+    const filtered = filterPaymentAccounts(accounts, { search, status });
+    return sortPaymentAccounts(filtered, sort);
+  }, [accounts, search, status, sort]);
 
   return (
     <>
+      {agencyBmFunding ? (
+        <PaymentsGerenteAccountsSummary
+          summary={accountSummary}
+          liveCreditTotalUsd={liveCreditTotalUsd}
+          liveMetricsLoading={loading}
+          lastUpdatedAt={lastUpdatedAt}
+        />
+      ) : null}
+
       <PaymentToolbar
         search={search}
         status={status}
         onSearchChange={setSearch}
         onStatusChange={setStatus}
+        sort={sort}
+        onSortChange={setSort}
+        agencyBmFunding={agencyBmFunding}
       />
       <PaymentsTable
         accounts={filteredAccounts}
@@ -54,6 +99,8 @@ export function PaymentsAssignmentPanel({
         onEditTikTokIds={setEditAccount}
         agencyBmFunding={agencyBmFunding}
         clientSelfService={!agencyBmFunding}
+        liveMetricsByAdvertiser={agencyBmFunding ? metricsByAdvertiser : undefined}
+        liveMetricsLoading={agencyBmFunding ? loading : false}
       />
       <AllocateBalanceModal
         account={selectedAccount}

@@ -35,67 +35,67 @@ export function WalletSummaryPremium({
 
   if (showHecomLead) {
     return (
-      <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_12px_32px_-20px_rgb(28_25_23_/_0.18)]">
+      <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_8px_24px_-18px_rgb(28_25_23_/_0.14)]">
         <div
           aria-hidden
-          className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
+          className="h-0.5 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
         />
 
-        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-          <div className="min-w-0">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-              Operación Hecom
-            </p>
-            <p className="mt-1 text-[13px] font-medium text-[#5c564e]">
-              {clienteName
-                ? `Cliente operativo · ${clienteName}`
-                : "Modo gerente: recargá desde cash del BM (sin Stripe)"}
-            </p>
-            <p className="mt-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              {debt ? "Deuda neta" : "Saldo estimado"}
-            </p>
-            <p
-              className={`mt-1.5 text-[2rem] font-bold leading-none tracking-[-0.04em] tabular-nums sm:text-[2.35rem] ${
-                debt ? "text-[#b45309]" : "text-[#1c1917]"
-              }`}
-            >
-              {formatMoney(hecomFinance.saldoEstimado, "USD")}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#5c564e]">
-              <span>
-                Cobros:{" "}
-                <span className="font-semibold text-[#1c1917]">
-                  {formatMoney(hecomFinance.cobroTotal, "USD")}
-                </span>
-              </span>
-              <span>
-                Gastos:{" "}
-                <span className="font-semibold text-[#1c1917]">
-                  {formatMoney(hecomFinance.gastoTotal, "USD")}
-                </span>
-              </span>
-              <span>
-                Fees:{" "}
-                <span className="font-semibold text-[#1c1917]">
-                  {formatMoney(hecomFinance.feeTotal, "USD")}
-                </span>
-              </span>
-              <span>
-                Fee %:{" "}
-                <span className="font-semibold text-[#ff781f]">
-                  {hecomFinance.depositFeePercent}%
-                </span>
-              </span>
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
+                Operación Hecom
+              </p>
+              {clienteName ? (
+                <p className="text-[12px] font-medium text-[#5c564e]">
+                  {clienteName}
+                </p>
+              ) : null}
             </div>
-            <p className="mt-2 max-w-lg text-[12px] leading-5 text-[#8a8177]">
-              La recarga BM no baja la deuda neta: solo un cobro registrado en
-              Hecom.
+            <div className="mt-2 flex flex-wrap items-end gap-x-6 gap-y-2">
+              <div>
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[#9a9187]">
+                  {debt ? "Deuda neta" : "Saldo estimado"}
+                </p>
+                <p
+                  className={`mt-0.5 text-[1.35rem] font-bold leading-none tracking-[-0.03em] tabular-nums ${
+                    debt ? "text-[#b45309]" : "text-[#1c1917]"
+                  }`}
+                >
+                  {formatMoney(hecomFinance.saldoEstimado, "USD")}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6b645c]">
+                <span>
+                  Cobros{" "}
+                  <span className="font-semibold tabular-nums text-[#1c1917]">
+                    {formatMoney(hecomFinance.cobroTotal, "USD")}
+                  </span>
+                </span>
+                <span>
+                  Gastos{" "}
+                  <span className="font-semibold tabular-nums text-[#1c1917]">
+                    {formatMoney(hecomFinance.gastoTotal, "USD")}
+                  </span>
+                </span>
+                <span>
+                  Fee{" "}
+                  <span className="font-semibold text-[#ff781f]">
+                    {hecomFinance.depositFeePercent}%
+                  </span>
+                </span>
+              </div>
+            </div>
+            <p className="mt-2 max-w-xl text-[11px] leading-4 text-[#9a9187]">
+              Recargar BM no baja deuda Hecom. Abajo ves crédito TikTok en vivo y
+              ledger Holistic por cuenta.
             </p>
           </div>
 
           <a
             href="#asignar-saldo"
-            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
+            className="inline-flex h-9 w-full shrink-0 items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
             Ir a recargar BM
           </a>
