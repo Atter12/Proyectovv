@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 
@@ -53,9 +53,13 @@ export function PaymentsAllocateSectionCopy({
         {hasWallet ? (
           <>
             Tenés {walletBalanceLabel} en cartera Holistic. Elegí una cuenta
-            abajo y asigná el saldo. Si una cuenta se suspende con plata, queda
-            acá con Recuperar; al recuperar, vuelve a saldo disponible y sale de
-            Pagos (la ves en Cuentas ads).
+            abajo y asigná el saldo. Si ya tenés plata en una cuenta y querés
+            pasarla a otra (ej. $15 de $30), usá{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              Transferir a otra cuenta
+            </span>
+            . Si una cuenta se suspende con plata, también podés transferir o
+            recuperar a cartera.
           </>
         ) : (
           <>

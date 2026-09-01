@@ -25,6 +25,8 @@ interface PaymentsTableProps {
   onEditTikTokIds?: (account: PaymentAccountAllocation) => void;
   /** Modo gerente BM: copy “Recargar” en vez de “Asignar”. */
   agencyBmFunding?: boolean;
+  /** Hint de autoservicio para clientes (no gerente). */
+  clientSelfService?: boolean;
 }
 
 interface AllocationResponse {
@@ -54,6 +56,7 @@ export function PaymentsTable({
   onTransfer,
   onEditTikTokIds,
   agencyBmFunding = false,
+  clientSelfService = false,
 }: PaymentsTableProps) {
   const router = useRouter();
   const [loadingAccountId, setLoadingAccountId] = useState<string | null>(null);
@@ -158,7 +161,9 @@ export function PaymentsTable({
               }
             >
               {transferable
-                ? "O pasá directo a otra cuenta sin pasar por cartera."
+                ? clientSelfService
+                  ? "Pasalo a otra cuenta sin escribirnos."
+                  : "O pasá directo a otra cuenta sin pasar por cartera."
                 : "Cuenta suspendida. Jalá el saldo a cartera; después sale de Pagos."}
             </p>
           </>

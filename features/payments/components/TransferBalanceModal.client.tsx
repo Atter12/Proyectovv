@@ -16,6 +16,8 @@ interface TransferBalanceModalProps {
   onClose: () => void;
   agencyBmFunding?: boolean;
   allowForceLedger?: boolean;
+  /** Copy para cliente final (no gerente). */
+  clientSelfService?: boolean;
 }
 
 interface TransferResponse {
@@ -41,6 +43,7 @@ export function TransferBalanceModal({
   onClose,
   agencyBmFunding = false,
   allowForceLedger = false,
+  clientSelfService = false,
 }: TransferBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -160,11 +163,24 @@ export function TransferBalanceModal({
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
-          Transferir a otra cuenta
+          {clientSelfService
+            ? "Pasá saldo a otra cuenta"
+            : "Transferir a otra cuenta"}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Sacá saldo de una cuenta ads y pasalo directo a otra del mismo cliente.
-          Funciona con cuentas activas o suspendidas (solo lo no gastado).
+          {clientSelfService ? (
+            <>
+              Podés hacerlo vos desde acá, sin esperar a soporte. Elegí de qué
+              cuenta sacás y a cuál va el monto (parcial o total). Funciona aunque
+              la cuenta origen esté suspendida — solo se mueve lo no gastado.
+            </>
+          ) : (
+            <>
+              Sacá saldo de una cuenta ads y pasalo directo a otra del mismo
+              cliente. Funciona con cuentas activas o suspendidas (solo lo no
+              gastado).
+            </>
+          )}
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
@@ -244,7 +260,9 @@ export function TransferBalanceModal({
             autoFocus
           />
           <p className="mt-1.5 text-[12px] text-[#6b645c]">
-            Ejemplo: recargaste $30 y querés pasar $15 a otra campaña. Máximo:{" "}
+            {clientSelfService
+              ? "Ejemplo: recargaste $30 y querés $15 en otra campaña. Máximo transferible: "
+              : "Ejemplo: recargaste $30 y querés pasar $15 a otra campaña. Máximo: "}
             {formatMoney(maxAmount)}.
           </p>
         </div>

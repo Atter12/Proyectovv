@@ -3,8 +3,7 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Por ahora solo Stripe activo + Manual en mantenimiento.
- * Culqi / Mercado Pago / Cripto quedan ocultos.
+ * Stripe + Pago manual (BCP). Culqi / Mercado Pago / Cripto ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
@@ -15,8 +14,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "manual",
     name: "Pago manual",
-    description: "En mantenimiento — pronto transferencia bancaria / Yape",
-    maintenance: true,
+    description: "Transferencia BCP · cuenta corriente USD (soles vía tipo de cambio)",
   },
 ];
 

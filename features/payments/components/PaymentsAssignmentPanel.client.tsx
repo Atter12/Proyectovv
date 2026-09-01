@@ -53,6 +53,7 @@ export function PaymentsAssignmentPanel({
         onTransfer={setTransferAccount}
         onEditTikTokIds={setEditAccount}
         agencyBmFunding={agencyBmFunding}
+        clientSelfService={!agencyBmFunding}
       />
       <AllocateBalanceModal
         account={selectedAccount}
@@ -73,6 +74,7 @@ export function PaymentsAssignmentPanel({
         onClose={() => setTransferAccount(null)}
         agencyBmFunding={agencyBmFunding}
         allowForceLedger={allowForceLedger}
+        clientSelfService={!agencyBmFunding}
       />
       <EditTikTokIdsModal
         account={editAccount}

@@ -16,21 +16,13 @@ export type ManualBankAccount = {
 const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
   {
     id: "bcp-usd",
-    label: "BCP · Cuenta dólares",
+    label: "BCP · Cuenta corriente USD",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
-    accountNumber: "PENDIENTE — configurar en Vercel",
-    cci: "PENDIENTE",
+    accountNumber: "194737966005",
+    cci: "00219400737696600598",
     currencies: ["USD", "PEN"],
-    notes: "Configurá MANUAL_PAYMENT_BANK_ACCOUNTS en Vercel con los datos reales.",
-  },
-  {
-    id: "yape",
-    label: "Yape",
-    holder: "Holistic Marketing",
-    accountNumber: "PENDIENTE",
-    currencies: ["PEN"],
-    notes: "Número Yape / Plin — configurar en env.",
+    notes: "Depósito o transferencia interbancaria (CCI).",
   },
 ];
 
