@@ -16,10 +16,10 @@ export type ManualBankAccount = {
 const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
   {
     id: "bcp-usd",
-    label: "BCP · Cuenta corriente USD",
+    label: "BCP · Cuenta corriente soles",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
-    accountNumber: "194737966005",
+    accountNumber: "1947376966005",
     cci: "00219400737696600598",
     currencies: ["USD", "PEN"],
     notes: "Depósito o transferencia interbancaria (CCI).",

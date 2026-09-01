@@ -14,7 +14,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "manual",
     name: "Pago manual",
-    description: "Transferencia BCP · cuenta corriente USD (soles vía tipo de cambio)",
+    description: "Transferencia BCP · cuenta corriente soles (USD vía tipo de cambio)",
   },
 ];
 
