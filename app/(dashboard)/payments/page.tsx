@@ -155,10 +155,7 @@ export default async function PaymentsPage({
       />
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-        <ManualVoucherReviewHost
-          session={session}
-          staffMode={canReviewVouchers}
-        />
+        <ManualVoucherReviewHost staffMode={canReviewVouchers} />
       </Suspense>
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>

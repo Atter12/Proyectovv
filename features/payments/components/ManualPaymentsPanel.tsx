@@ -14,7 +14,6 @@ export async function ManualPaymentsPanel({
   });
   return (
     <ManualVoucherReviewHost
-      session={session}
       staffMode={caps.isStaff || caps.isSuperAdmin}
     />
   );
