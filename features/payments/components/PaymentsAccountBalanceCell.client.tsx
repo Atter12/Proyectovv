@@ -95,7 +95,9 @@ export function PaymentsAccountBalanceCell({
           </span>
         </p>
       ) : null}
-      {hasLedger && (agencyBmFunding || ledgerDiffers || creditUsd == null) ? (
+      {hasLedger &&
+      creditUsd != null &&
+      (agencyBmFunding || ledgerDiffers) ? (
         <p className="mt-1 text-[10px] tabular-nums text-[#b5aea6]">
           Holistic {formatMoney(ledger)}
         </p>

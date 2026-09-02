@@ -57,25 +57,24 @@ function todayLimaYmd(): string {
   }).format(new Date());
 }
 
-async function fetchAdvertiserBalancesForBc(input: {
+async function fetchOneAdvertiserBalance(input: {
   bcId: string;
-  advertiserIds: string[];
-}): Promise<Map<string, number>> {
-  const result = new Map<string, number>();
-  if (input.advertiserIds.length === 0) return result;
-
-  const { token } = await resolveTikTokFinanceAccessToken();
+  advertiserId: string;
+  accessToken: string;
+}): Promise<number | null> {
   const url = new URL(apiUrl("/advertiser/balance/get/"));
   url.searchParams.set("bc_id", input.bcId.trim());
   url.searchParams.set("page", "1");
-  url.searchParams.set("page_size", "50");
+  url.searchParams.set("page_size", "20");
+  // `advertiser_ids` en filtering NO filtra en BMs grandes (devuelve pág. 1
+  // genérica). `keyword` sí encuentra la cuenta por ID.
   url.searchParams.set(
     "filtering",
-    JSON.stringify({ advertiser_ids: input.advertiserIds }),
+    JSON.stringify({ keyword: input.advertiserId.trim() }),
   );
 
   const response = await fetch(url.toString(), {
-    headers: { "Access-Token": token },
+    headers: { "Access-Token": input.accessToken },
     cache: "no-store",
   });
   const json = (await response.json()) as TikTokApiResponse<{
@@ -87,19 +86,53 @@ async function fetchAdvertiserBalancesForBc(input: {
     throw new Error(json.message ?? "No se pudo leer saldo TikTok.");
   }
 
+  const want = input.advertiserId.trim();
   const rows =
-    json.data?.list ??
-    json.data?.advertiser_account_list ??
-    [];
+    json.data?.list ?? json.data?.advertiser_account_list ?? [];
+  const row = rows.find(
+    (item) => String(item.advertiser_id ?? item.advertiserId ?? "") === want,
+  );
+  if (!row) return null;
+  return pickSpendableBudgetUsd(row);
+}
 
-  for (const row of rows) {
-    const advertiserId = String(
-      row.advertiser_id ?? row.advertiserId ?? "",
-    ).trim();
-    if (!advertiserId) continue;
-    const balance = pickSpendableBudgetUsd(row);
-    if (balance != null) result.set(advertiserId, balance);
+async function fetchAdvertiserBalancesForBc(input: {
+  bcId: string;
+  advertiserIds: string[];
+}): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  const ids = [...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return result;
+
+  const { token } = await resolveTikTokFinanceAccessToken();
+  const settled = await Promise.allSettled(
+    ids.map((advertiserId) =>
+      fetchOneAdvertiserBalance({
+        bcId: input.bcId,
+        advertiserId,
+        accessToken: token,
+      }).then((balance) => ({ advertiserId, balance })),
+    ),
+  );
+
+  let firstError: Error | null = null;
+  for (const item of settled) {
+    if (item.status === "rejected") {
+      if (!firstError) {
+        firstError =
+          item.reason instanceof Error
+            ? item.reason
+            : new Error("No se pudo leer saldo TikTok.");
+      }
+      continue;
+    }
+    if (item.value.balance != null) {
+      result.set(item.value.advertiserId, item.value.balance);
+    }
   }
+
+  // Si ninguna cuenta resolvió y hubo error de API, propagar (UI: “sin datos”).
+  if (result.size === 0 && firstError) throw firstError;
 
   return result;
 }
