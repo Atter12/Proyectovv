@@ -18,6 +18,8 @@ interface TransferBalanceModalProps {
   allowForceLedger?: boolean;
   /** Copy para cliente final (no gerente). */
   clientSelfService?: boolean;
+  /** Refresca saldo TikTok en vivo (sin F5). */
+  onFundingChanged?: () => void | Promise<void>;
 }
 
 interface TransferResponse {
@@ -44,6 +46,7 @@ export function TransferBalanceModal({
   agencyBmFunding = false,
   allowForceLedger = false,
   clientSelfService = false,
+  onFundingChanged,
 }: TransferBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -136,6 +139,7 @@ export function TransferBalanceModal({
         `Listo: ${formatMoney(res.amountUsd)} pasaron de ${res.fromAccountName} a ${res.toAccountName}${partial}.`,
       );
       router.refresh();
+      await onFundingChanged?.();
     } catch (err) {
       setError(
         friendlyTransferError(

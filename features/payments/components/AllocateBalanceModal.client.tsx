@@ -15,6 +15,8 @@ interface AllocateBalanceModalProps {
   onClose: () => void;
   /** Passed explicitly from parent (context can break across RSC boundaries). */
   agencyBmFunding?: boolean;
+  /** Refresca saldo TikTok en vivo (sin F5). */
+  onFundingChanged?: () => void | Promise<void>;
 }
 
 interface AllocateResponse {
@@ -58,6 +60,7 @@ export function AllocateBalanceModal({
   open,
   onClose,
   agencyBmFunding = false,
+  onFundingChanged,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -125,6 +128,7 @@ export function AllocateBalanceModal({
           : `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
       );
       router.refresh();
+      await onFundingChanged?.();
     } catch (err) {
       const raw =
         err instanceof ApiClientError

@@ -43,7 +43,7 @@ export function PaymentsAssignmentPanel({
 
   // Siempre: el Saldo de la tabla debe alinearse con TikTok Manager (cupo
   // gastable), no solo con el ledger Holistic. Antes solo se pedía en modo gerente.
-  const { metricsByAdvertiser, loading, lastUpdatedAt } =
+  const { metricsByAdvertiser, loading, lastUpdatedAt, refreshAfterFundingChange } =
     useAdAccountLiveMetrics(true);
 
   const accountSummary = useMemo(
@@ -108,12 +108,14 @@ export function PaymentsAssignmentPanel({
         open={selectedAccount !== null}
         onClose={() => setSelectedAccount(null)}
         agencyBmFunding={agencyBmFunding}
+        onFundingChanged={refreshAfterFundingChange}
       />
       <ReclaimBalanceModal
         account={reclaimAccount}
         open={reclaimAccount !== null}
         onClose={() => setReclaimAccount(null)}
         allowForceLedger={allowForceLedger}
+        onFundingChanged={refreshAfterFundingChange}
       />
       <TransferBalanceModal
         sourceAccount={transferAccount}
@@ -123,6 +125,7 @@ export function PaymentsAssignmentPanel({
         agencyBmFunding={agencyBmFunding}
         allowForceLedger={allowForceLedger}
         clientSelfService={!agencyBmFunding}
+        onFundingChanged={refreshAfterFundingChange}
       />
       <EditTikTokIdsModal
         account={editAccount}

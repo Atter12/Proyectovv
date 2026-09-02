@@ -75,7 +75,7 @@ export function PaymentsAccountBalanceCell({
             ? formatMoney(ledger)
             : "—"}
       </p>
-      <p className="mt-0.5 text-[10px] text-[#9a9187]">
+      <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
         {creditUsd != null
           ? agencyBmFunding
             ? "Cupo TikTok"
@@ -88,7 +88,7 @@ export function PaymentsAccountBalanceCell({
         ) : null}
       </p>
       {agencyBmFunding && spendToday != null ? (
-        <p className="mt-0.5 text-[10px] text-[#9a9187]">
+        <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
           Gasto hoy{" "}
           <span className="font-medium tabular-nums text-[#c45a18]">
             {formatMoney(spendToday)}
@@ -98,12 +98,12 @@ export function PaymentsAccountBalanceCell({
       {hasLedger &&
       creditUsd != null &&
       (agencyBmFunding || ledgerDiffers) ? (
-        <p className="mt-1 text-[10px] tabular-nums text-[#b5aea6]">
+        <p className="mt-0.5 text-[10px] leading-4 tabular-nums text-[#b5aea6]">
           Holistic {formatMoney(ledger)}
         </p>
       ) : null}
       {!compact && metric?.fetchedAt ? (
-        <p className="mt-0.5 text-[10px] text-[#c8c0b8]">
+        <p className="mt-0.5 text-[10px] leading-4 text-[#c8c0b8]">
           {formatUpdatedAgo(metric.fetchedAt)}
         </p>
       ) : null}

@@ -15,6 +15,8 @@ interface ReclaimBalanceModalProps {
   onClose: () => void;
   /** Staff: permite forzar solo ledger si TikTok falla. */
   allowForceLedger?: boolean;
+  /** Refresca saldo TikTok en vivo (sin F5). */
+  onFundingChanged?: () => void | Promise<void>;
 }
 
 interface ReclaimResponse {
@@ -28,6 +30,7 @@ export function ReclaimBalanceModal({
   open,
   onClose,
   allowForceLedger = false,
+  onFundingChanged,
 }: ReclaimBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -91,6 +94,7 @@ export function ReclaimBalanceModal({
         `Se recuperaron ${formatMoney(res.amountUsd)} a la cartera Holistic (${res.path}).`,
       );
       router.refresh();
+      await onFundingChanged?.();
     } catch (err) {
       setError(
         err instanceof ApiClientError
