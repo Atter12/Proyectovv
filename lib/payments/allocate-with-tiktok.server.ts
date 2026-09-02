@@ -4,6 +4,7 @@ import {
   allocateToAdAccount,
   confirmDepositInLedger,
   getWalletLedgerBalance,
+  reverseLedgerJournal,
 } from "@/lib/ledger/ledger.server";
 import { serverEnv } from "@/lib/env/env.server";
 import {
@@ -306,35 +307,66 @@ export async function allocateWithOptionalTikTokFunding(
     });
   }
 
-  const journalId = await allocateToAdAccount({
-    organizationId: input.organizationId,
-    adAccountId: input.adAccountId,
-    amountCents: input.amountCents,
-    idempotencyKey,
-    description: agencyBmFunding
-      ? input.description ?? "Recarga gerente desde BM TikTok"
-      : input.description ?? "Asignación desde dashboard",
-    metadata: {
-      source: agencyBmFunding ? "agency_bm" : "dashboard",
-      requested_by: input.requestedBy,
-      currency,
-      agency_bm_funding: agencyBmFunding,
-      agency_bm_bridge_journal_id: bridgeJournalId,
-      tiktok_bc_funding_enabled: fundingOn,
-      tiktok_bc_transfer_attempted: canFund,
-      tiktok_bc_id: bcId || null,
-      tiktok_advertiser_id: advertiserId || null,
-      tiktok_cash_amount_usd: canFund
-        ? usdCentsToTikTokCashAmount(input.amountCents)
-        : null,
-      tiktok_funding_source: tiktokFundingSource,
-      tiktok_budget_before: tiktokBudgetBefore,
-      tiktok_budget_after: tiktokBudgetAfter,
-      tiktok_amount_cents: input.amountCents,
-      tiktok_transfer_request_id: transferRequestId,
-      tiktok_api_request_id: tiktokRequestId,
-    },
-  });
+  let journalId: string;
+  try {
+    journalId = await allocateToAdAccount({
+      organizationId: input.organizationId,
+      adAccountId: input.adAccountId,
+      amountCents: input.amountCents,
+      idempotencyKey,
+      description: agencyBmFunding
+        ? input.description ?? "Recarga gerente desde BM TikTok"
+        : input.description ?? "Asignación desde dashboard",
+      metadata: {
+        source: agencyBmFunding ? "agency_bm" : "dashboard",
+        requested_by: input.requestedBy,
+        currency,
+        agency_bm_funding: agencyBmFunding,
+        agency_bm_bridge_journal_id: bridgeJournalId,
+        tiktok_bc_funding_enabled: fundingOn,
+        tiktok_bc_transfer_attempted: canFund,
+        tiktok_bc_id: bcId || null,
+        tiktok_advertiser_id: advertiserId || null,
+        tiktok_cash_amount_usd: canFund
+          ? usdCentsToTikTokCashAmount(input.amountCents)
+          : null,
+        tiktok_funding_source: tiktokFundingSource,
+        tiktok_budget_before: tiktokBudgetBefore,
+        tiktok_budget_after: tiktokBudgetAfter,
+        tiktok_amount_cents: input.amountCents,
+        tiktok_transfer_request_id: transferRequestId,
+        tiktok_api_request_id: tiktokRequestId,
+      },
+    });
+  } catch (allocateError) {
+    if (bridgeJournalId) {
+      try {
+        await reverseLedgerJournal({
+          journalId: bridgeJournalId,
+          reason:
+            "Reverso automático: asignación falló después del puente BM gerente",
+          idempotencyKey: `rollback:agency-bm-bridge:${bridgeJournalId}`,
+        });
+        console.info("[payments/allocate] bridge_rolled_back", {
+          bridgeJournalId,
+          idempotencyKey,
+        });
+      } catch (rollbackError) {
+        console.error("[payments/allocate] bridge_rollback_failed", {
+          bridgeJournalId,
+          allocateError:
+            allocateError instanceof Error
+              ? allocateError.message
+              : "unknown",
+          rollbackError:
+            rollbackError instanceof Error
+              ? rollbackError.message
+              : "unknown",
+        });
+      }
+    }
+    throw allocateError;
+  }
 
   return {
     journalId,

@@ -68,11 +68,7 @@ export async function PaymentsGatewayPanel({
     role: session.role,
   });
 
-  if (
-    !skipOrphanCleanup &&
-    capabilities.isStaff &&
-    session.organizationId
-  ) {
+  if (!skipOrphanCleanup && session.organizationId) {
     try {
       await reverseOrphanedAgencyBmBridges({
         organizationId: session.organizationId,

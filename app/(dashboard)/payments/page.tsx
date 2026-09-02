@@ -120,7 +120,7 @@ export default async function PaymentsPage({
 
   // Si overview aún viene vacío (cold TikTok), el panel fuerza live + mirror de org.
 
-  if (capabilities.isStaff && session.organizationId) {
+  if (session.organizationId) {
     const organizationId = session.organizationId;
     after(async () => {
       try {

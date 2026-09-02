@@ -264,6 +264,22 @@ export async function refundAdAccountToWallet(input: {
   return String(data);
 }
 
+/** Revierte un journal contable ya publicado (ej. depósito erróneo o puente BM huérfano). */
+export async function reverseLedgerJournal(input: {
+  journalId: string;
+  reason: string;
+  idempotencyKey: string;
+}): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("ledger_reverse_journal", {
+    p_journal_id: input.journalId,
+    p_reason: input.reason,
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
 export async function getAdAccountLedgerBalance(
   adAccountId: string,
 ): Promise<LedgerAdAccountBalance | null> {
