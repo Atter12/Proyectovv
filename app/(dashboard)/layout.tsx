@@ -55,7 +55,8 @@ export default async function DashboardLayout({
   if (selected) {
     try {
       const shell = await getHecomClienteShell(selected.id, {
-        includeSaldo: persona !== "cliente",
+        // Sidebar: solo nombre/avatar. Saldo Hecom pesa en cada navegación.
+        includeSaldo: false,
       });
 
       if (persona === "cliente" && session.organizationId) {

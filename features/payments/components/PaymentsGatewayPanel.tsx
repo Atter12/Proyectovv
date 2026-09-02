@@ -87,8 +87,16 @@ export async function PaymentsGatewayPanel({
   const advertiserEnsureList = (ids: string[]) =>
     buildAdvertiserEnsureList(ids, adsAccounts);
 
-  if (
+  // Si Hecom ya trae IDs, no bloqueamos la UI en sync TikTok (cache/warm en background).
+  const hasHecomIds = approvedIds.length > 0;
+  const shouldSyncApproved =
     !skipApprovedSync &&
+    !hasHecomIds &&
+    Boolean(session.organizationId) &&
+    Boolean(hecomClienteId);
+
+  if (
+    shouldSyncApproved &&
     session.organizationId &&
     hecomClienteId
   ) {
@@ -170,6 +178,47 @@ export async function PaymentsGatewayPanel({
       syncNote =
         "No se pudo sincronizar cuentas aprobadas. Probá de nuevo en unos minutos.";
     }
+  } else if (
+    hasHecomIds &&
+    session.organizationId &&
+    hecomClienteId
+  ) {
+    // Fast path: Hecom IDs → ensure DB rows sin esperar TikTok.
+    const ensureIds = [
+      ...new Set([
+        ...approvedIds,
+        ...(adsAccounts ?? [])
+          .map((a) => a.externalAccountId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ]),
+    ];
+    suspendedIds = (adsAccounts ?? [])
+      .filter((a) => a.status === "disabled")
+      .map((a) => a.externalAccountId?.trim())
+      .filter((id): id is string => Boolean(id));
+    if (ensureIds.length > 0) {
+      ensured = await ensureAdvertisersInOrganizationForAllocation({
+        organizationId: session.organizationId,
+        clienteId: hecomClienteId,
+        clienteName,
+        userId: session.id,
+        advertisers: advertiserEnsureList(ensureIds).map((row) => ({
+          ...row,
+          status:
+            suspendedIds.includes(row.advertiserId) || row.status === "disabled"
+              ? "disabled"
+              : row.status,
+        })),
+      });
+    }
+    console.info("[payments] allocate_scope_fast", {
+      email: session.email,
+      org: session.organizationId,
+      clienteId: hecomClienteId,
+      hecomIds: approvedIds.length,
+      ensured,
+      skippedTikTokSync: true,
+    });
   }
 
   // Si el sync se saltó (vuelta Stripe), igual asegurá suspendidas del overview.

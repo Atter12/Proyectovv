@@ -9,6 +9,7 @@ import {
 import { advertiserMatchesCliente, normalizeAdvertiserName } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
+  listHolisticBcAdvertisersCachedFirst,
   mergeTikTokAdvertiserIntoMap,
   peekHolisticBcAdvertisersCache,
   resolveBmBucketFromBcId,
@@ -146,7 +147,7 @@ function resolveAccountBmBucket(
 
 export type HecomAdAccountsLoadSpeed = "fast" | "live";
 
-/** BM TikTok para Cuentas ads: cache si hay; si no, live (necesario para match por nombre). */
+/** BM TikTok para Cuentas ads: cache-first; en "fast" no bloquea en cold TikTok. */
 async function resolveBmAdvertisersForAdAccounts(
   speed: HecomAdAccountsLoadSpeed,
 ): Promise<{
@@ -169,23 +170,13 @@ async function resolveBmAdvertisersForAdAccounts(
     }
   }
 
-  const cached = peekHolisticBcAdvertisersCache({ allowStaleMs: 15 * 60 * 1000 });
-  if (cached && cached.length > 0) {
-    warmHolisticBcAdvertisers();
-    return { live: cached, liveSource: "cache" };
+  // fast: nunca esperar pull TikTok en cold — Hecom IDs alcanzan para pintar.
+  const live = await listHolisticBcAdvertisersCachedFirst();
+  if (live.length > 0) {
+    return { live, liveSource: "cache" };
   }
-
-  // Cache fría: sin BM no hay match por nombre (ej. Adriana 200/201/202 USD).
-  try {
-    const live = await listHolisticBcAdvertisers();
-    return { live, liveSource: live.length > 0 ? "live" : "none" };
-  } catch (error) {
-    console.warn("[ad-accounts] bc_cold_fetch_failed", {
-      error: error instanceof Error ? error.message : "unknown",
-    });
-    warmHolisticBcAdvertisers();
-    return { live: [], liveSource: "none" };
-  }
+  warmHolisticBcAdvertisers();
+  return { live: [], liveSource: "none" };
 }
 
 /**

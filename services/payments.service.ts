@@ -650,9 +650,11 @@ function getCreditUsd(metadata: unknown, amountCents: number, currency: string):
 
 async function mapManualIntentRows(
   rows: DbPaymentIntentRow[],
+  options?: { signProofs?: boolean },
 ): Promise<ManualPaymentIntentItem[]> {
   if (rows.length === 0) return [];
 
+  const signProofs = options?.signProofs !== false;
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const {
     signPaymentProofUrl,
@@ -695,7 +697,14 @@ async function mapManualIntentRows(
   return Promise.all(
     rows.map(async (row) => {
       const proof = getManualProofMeta(row.metadata);
-      const signedUrl = await signPaymentProofUrl(proof.path);
+      const reviewStatus = getManualIntentReviewStatus(row);
+      const shouldSign =
+        signProofs &&
+        Boolean(proof.path) &&
+        reviewStatus === "pending_review";
+      const signedUrl = shouldSign
+        ? await signPaymentProofUrl(proof.path)
+        : null;
       const actor = row.created_by ? profileMap.get(row.created_by) : undefined;
       return {
         id: row.id,
@@ -705,7 +714,7 @@ async function mapManualIntentRows(
         creditUsd: getCreditUsd(row.metadata, row.amount_cents, row.currency),
         status: row.status,
         provider: row.provider,
-        reviewStatus: getManualIntentReviewStatus(row),
+        reviewStatus,
         proofFileName: proof.fileName,
         proofMimeType: proof.mimeType,
         proofSignedUrl: signedUrl,
@@ -743,8 +752,7 @@ export async function getRecentManualPaymentIntents(
 }
 
 /**
- * Staff/gerente: cola global de comprobantes en revisión (+ recientes).
- * Prioriza pending_review.
+ * Staff/gerente: cola de boletas manuales (sin cripto, sin firmar 80 URLs).
  */
 export async function listManualVoucherReviewsForStaff(): Promise<{
   pending: ManualPaymentIntentItem[];
@@ -759,20 +767,35 @@ export async function listManualVoucherReviewsForStaff(): Promise<{
     .select(
       "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
     )
-    .in("provider", ["manual", "crypto"])
+    .eq("provider", "manual")
+    .in("status", ["processing", "succeeded", "failed", "requires_payment", "created"])
     .order("created_at", { ascending: false })
-    .limit(80);
+    .limit(30);
 
   if (error) {
     console.error("[payments] listManualVoucherReviewsForStaff", error.message);
     return { pending: [], recent: [], pendingCount: 0 };
   }
 
-  const items = await mapManualIntentRows((data ?? []) as DbPaymentIntentRow[]);
-  const pending = items.filter((i) => i.reviewStatus === "pending_review");
-  const recent = items
-    .filter((i) => i.reviewStatus !== "pending_review")
-    .slice(0, 12);
+  const rows = (data ?? []) as DbPaymentIntentRow[];
+  const pendingRows = rows
+    .filter((row) => {
+      const review = getManualIntentReviewStatus(row);
+      const proof = getManualProofMeta(row.metadata);
+      return review === "pending_review" && Boolean(proof.path || proof.fileName);
+    })
+    .slice(0, 15);
+  const recentRows = rows
+    .filter((row) => {
+      const review = getManualIntentReviewStatus(row);
+      return review === "approved" || review === "rejected";
+    })
+    .slice(0, 8);
+
+  const [pending, recent] = await Promise.all([
+    mapManualIntentRows(pendingRows, { signProofs: true }),
+    mapManualIntentRows(recentRows, { signProofs: false }),
+  ]);
 
   return { pending, recent, pendingCount: pending.length };
 }

@@ -674,7 +674,7 @@ async function resolveDailySpend(
 
 async function loadLiveFinance(
   clientId: string,
-  options: { includeCreativos?: boolean } = {},
+  options: { includeCreativos?: boolean; lite?: boolean } = {},
 ): Promise<{
   gastos: HecomGastoRow[];
   cobros: HecomCobroRow[];
@@ -682,6 +682,9 @@ async function loadLiveFinance(
   creativosProyectos: HecomCreativoProyecto[];
 } | null> {
   const includeCreativos = options.includeCreativos !== false;
+  const lite = options.lite === true;
+  const gastosLimit = lite ? 400 : 1500;
+  const cobrosLimit = lite ? 25 : 80;
   try {
     const hecom = createHecomAdminClient();
     const financeQueries = [
@@ -692,7 +695,7 @@ async function loadLiveFinance(
         )
         .eq("client_id", clientId)
         .order("created_at", { ascending: false })
-        .limit(1500),
+        .limit(gastosLimit),
       hecom
         .from("cobros")
         .select(
@@ -700,7 +703,7 @@ async function loadLiveFinance(
         )
         .eq("client_id", clientId)
         .order("fecha", { ascending: false })
-        .limit(80),
+        .limit(cobrosLimit),
     ] as const;
 
     const [gastosRes, cobrosRes, creativosRes] = await Promise.all([
@@ -818,7 +821,12 @@ export const getHecomClienteDashboard = cache(
       const cfg = getHecomSupabaseConfig();
 
       if (cfg.configured) {
-        const live = await loadLiveFinance(clienteId, { includeCreativos });
+        const financeLite =
+          !includeCampaignSpend && !includeCreativos && !includeDailySpend;
+        const live = await loadLiveFinance(clienteId, {
+          includeCreativos,
+          lite: financeLite,
+        });
         if (live) {
           const gastos = sortGastosByDateDesc(
             scopeGastosToAdvertisers(live.gastos, advertiserIds),
