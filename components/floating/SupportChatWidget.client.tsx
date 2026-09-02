@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { supportMock } from "@/features/support/mocks/support.mock";
@@ -14,6 +14,7 @@ import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCate
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
 import { supportChatTimestampsNow } from "@/lib/support/chat-time";
+import { playSupportNotifySound } from "@/lib/support/notify-sound.client";
 
 interface SupportChatWidgetProps {
   isOpen: boolean;
@@ -79,6 +80,9 @@ export function SupportChatWidget({
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unreadFromStaff, setUnreadFromStaff] = useState(0);
+  const lastSeenStaffMsgIdRef = useRef<string | null>(null);
+  const backgroundSeededRef = useRef(false);
 
   const selectedCategory = faqConfig.categories.find(
     (c) => c.id === selectedCategoryId,
@@ -138,8 +142,62 @@ export function SupportChatWidget({
       !loadingConversation,
     intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
-    onMessages: setMessages,
+    onMessages: (next) => {
+      setMessages(next);
+      const lastStaff = [...next].reverse().find((m) => m.role === "bot");
+      if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
+      setUnreadFromStaff(0);
+    },
   });
+
+  // Fuera del chat abierto: avisar si soporte (staff) respondió.
+  useEffect(() => {
+    let cancelled = false;
+    async function pollBackground() {
+      if (isOpen && view === "conversation") return;
+      try {
+        const ticketsData = await apiClient<TicketsResponse>(
+          "/api/support/tickets",
+        );
+        const activeTicket =
+          ticketsData.tickets.find(
+            (ticket) => !["closed", "resolved"].includes(ticket.status),
+          ) ?? ticketsData.tickets[0];
+        if (!activeTicket || cancelled) return;
+        if (!ticketId) setTicketId(activeTicket.id);
+
+        const messagesData = await apiClient<MessagesResponse>(
+          `/api/support/tickets/${activeTicket.id}/messages`,
+        );
+        const msgs = messagesData.messages ?? [];
+        const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
+        if (!lastStaff) return;
+
+        if (!backgroundSeededRef.current) {
+          backgroundSeededRef.current = true;
+          lastSeenStaffMsgIdRef.current = lastStaff.id;
+          return;
+        }
+
+        if (lastStaff.id !== lastSeenStaffMsgIdRef.current) {
+          lastSeenStaffMsgIdRef.current = lastStaff.id;
+          if (!(isOpen && view === "conversation")) {
+            setUnreadFromStaff((n) => n + 1);
+            playSupportNotifySound();
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    void pollBackground();
+    const id = window.setInterval(() => void pollBackground(), 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [isOpen, view, ticketId]);
 
   function handleClose() {
     onOpenChange(false);
@@ -154,6 +212,7 @@ export function SupportChatWidget({
     } else {
       onToggle();
       setView("home");
+      setUnreadFromStaff(0);
     }
   }
 
@@ -317,8 +376,13 @@ export function SupportChatWidget({
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? "Cerrar chat de soporte" : "Abrir chat de soporte"}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
       >
+        {unreadFromStaff > 0 && !isOpen ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-extrabold text-[var(--brand-primary)] shadow">
+            {unreadFromStaff > 9 ? "9+" : unreadFromStaff}
+          </span>
+        ) : null}
         {isOpen ? (
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

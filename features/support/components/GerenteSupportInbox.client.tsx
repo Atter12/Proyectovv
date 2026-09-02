@@ -14,6 +14,7 @@ import {
   formatInboxListTime,
   supportChatTimestampsNow,
 } from "@/lib/support/chat-time";
+import { playSupportNotifySound } from "@/lib/support/notify-sound.client";
 
 interface InboxTicket {
   id: string;
@@ -38,6 +39,8 @@ interface InboxTicket {
   avatarUrl?: string | null;
   lastMessagePreview?: string | null;
   lastMessageAt?: string | null;
+  lastMessageFromClient?: boolean;
+  requesterUserId?: string | null;
 }
 
 function clientLabel(ticket: InboxTicket) {
@@ -178,9 +181,11 @@ export function GerenteSupportInbox() {
       const meta = selectedMetaRef.current;
       const selectedNow = meta?.id ?? null;
 
-      // Badge "nuevo mensaje" si updatedAt cambió y no es el chat abierto.
+      // Badge "nuevo mensaje" solo si el ÚLTIMO mensaje lo escribió el cliente.
+      // Respuestas propias del staff no deben marcar unread.
       if (opts?.silent) {
         const fresh = new Set<string>();
+        const clearStaffReply = new Set<string>();
         for (const ticket of nextTickets) {
           if (!ticket.hasTicket || ticket.status === "none") continue;
           if (
@@ -196,26 +201,44 @@ export function GerenteSupportInbox() {
             continue;
           }
           const prev = knownUpdatedAtRef.current.get(ticket.id);
-          if (!prev || stamp !== prev) {
-            fresh.add(ticket.id);
+          const stampChanged = !prev || stamp !== prev;
+          if (ticket.lastMessageFromClient === true) {
+            if (stampChanged) fresh.add(ticket.id);
+          } else {
+            clearStaffReply.add(ticket.id);
           }
           knownUpdatedAtRef.current.set(ticket.id, stamp);
         }
-        if (fresh.size > 0) {
+        if (fresh.size > 0 || clearStaffReply.size > 0) {
           setUnreadIds((prev) => {
             const merged = new Set(prev);
+            for (const id of clearStaffReply) merged.delete(id);
             for (const id of fresh) merged.add(id);
             if (selectedNow) merged.delete(selectedNow);
             return merged;
           });
+          if (fresh.size > 0) playSupportNotifySound();
         }
       } else {
+        const clearOwn: string[] = [];
         for (const ticket of nextTickets) {
           if (!ticket.hasTicket || ticket.status === "none") continue;
-          knownUpdatedAtRef.current.set(
-            ticket.id,
-            ticket.updatedAt ?? ticket.createdAt,
-          );
+          const stamp =
+            ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt;
+          knownUpdatedAtRef.current.set(ticket.id, stamp);
+          if (ticket.lastMessageFromClient !== true) {
+            clearOwn.push(ticket.id);
+          }
+        }
+        if (clearOwn.length > 0) {
+          setUnreadIds((prev) => {
+            let changed = false;
+            const next = new Set(prev);
+            for (const id of clearOwn) {
+              if (next.delete(id)) changed = true;
+            }
+            return changed ? next : prev;
+          });
         }
       }
 

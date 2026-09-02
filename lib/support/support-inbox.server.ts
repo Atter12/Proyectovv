@@ -94,6 +94,10 @@ export interface InboxTicketItem {
   lastMessagePreview?: string | null;
   /** Fecha del último mensaje (para ordenar / lista lateral). */
   lastMessageAt?: string | null;
+  /** true si el último mensaje público lo escribió el cliente (no el staff). */
+  lastMessageFromClient?: boolean;
+  /** requester_user_id del ticket (cliente). */
+  requesterUserId?: string | null;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -161,27 +165,48 @@ async function attachLastMessagePreviews(
   if (ticketIds.length === 0) return items;
 
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("support_messages")
-    .select("ticket_id, body, created_at, attachments")
-    .in("ticket_id", ticketIds)
-    .eq("internal_note", false)
-    .order("created_at", { ascending: false })
-    .limit(Math.min(ticketIds.length * 25, 800));
+  const [{ data }, { data: ticketRows }] = await Promise.all([
+    admin
+      .from("support_messages")
+      .select("ticket_id, body, created_at, attachments, sender_user_id")
+      .in("ticket_id", ticketIds)
+      .eq("internal_note", false)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(ticketIds.length * 25, 800)),
+    admin
+      .from("support_tickets")
+      .select("id, requester_user_id")
+      .in("id", ticketIds),
+  ]);
+
+  const requesterByTicket = new Map<string, string | null>();
+  for (const row of ticketRows ?? []) {
+    requesterByTicket.set(
+      row.id as string,
+      (row.requester_user_id as string | null) ?? null,
+    );
+  }
 
   const previewByTicket = new Map<
     string,
-    { preview: string; at: string }
+    { preview: string; at: string; fromClient: boolean; senderUserId: string | null }
   >();
   for (const row of data ?? []) {
     const ticketId = row.ticket_id as string;
     if (previewByTicket.has(ticketId)) continue;
+    const senderId = (row.sender_user_id as string | null) ?? null;
+    const requesterId = requesterByTicket.get(ticketId) ?? null;
+    const fromClient = Boolean(
+      senderId && requesterId && senderId === requesterId,
+    );
     previewByTicket.set(ticketId, {
       preview: summarizeMessagePreview(
         row.body as string,
         row.attachments,
       ),
       at: row.created_at as string,
+      fromClient,
+      senderUserId: senderId,
     });
   }
 
@@ -192,6 +217,9 @@ async function attachLastMessagePreviews(
       ...item,
       lastMessagePreview: latest.preview || item.subject,
       lastMessageAt: latest.at,
+      lastMessageFromClient: latest.fromClient,
+      requesterUserId:
+        item.requesterUserId ?? requesterByTicket.get(item.id) ?? null,
     };
   });
 }
@@ -313,6 +341,7 @@ export async function listInboxTickets(filters?: {
       updatedAt: (row.updated_at as string | null) ?? null,
       organizationId: (row.organization_id as string | null) ?? null,
       organizationName,
+      requesterUserId: (row.requester_user_id as string | null) ?? null,
       requesterEmail,
       requesterName,
       requesterDisplayName: personDisplayName(
