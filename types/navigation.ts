@@ -6,6 +6,7 @@ export interface NavItem {
     | "clients"
     | "ad-accounts"
     | "payments"
+    | "payments-manual"
     | "cobros"
     | "gastos"
     | "affiliates"

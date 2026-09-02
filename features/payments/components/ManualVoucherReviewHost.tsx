@@ -6,7 +6,7 @@ interface ManualVoucherReviewHostProps {
 }
 
 /**
- * Solo gerentes/staff: cola de boletas en revisión.
+ * Solo gerentes/staff: cola de boletas en revisión (página dedicada).
  * El cliente no ve historial acá — solo sube el comprobante en Pago manual.
  */
 export async function ManualVoucherReviewHost({
@@ -16,8 +16,6 @@ export async function ManualVoucherReviewHost({
 
   const { pending, recent, pendingCount } =
     await listManualVoucherReviewsForStaff();
-
-  if (pending.length === 0 && recent.length === 0) return null;
 
   return (
     <ManualVoucherReviewSection

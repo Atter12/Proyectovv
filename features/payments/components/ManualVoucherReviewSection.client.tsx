@@ -309,7 +309,7 @@ export function ManualVoucherReviewSection({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-[var(--auth-text)]">
-              Comprobantes
+              Cola de boletas
             </h2>
             {pendingCount > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">

@@ -39,6 +39,16 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
         </svg>
       );
+    case "payments-manual":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+          />
+        </svg>
+      );
     case "cobros":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -90,6 +100,7 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   if (item.href === "/clientes") return "Clientes";
   if (item.href === "/ad-accounts") return "Cuentas ads";
   if (item.href === "/payments") return "Pagos";
+  if (item.href === "/payments/manual") return "Pagos manuales";
   if (item.href === "/cobros") return "Lo pagado";
   if (item.href === "/gastos") return "Gastos";
   if (item.href === "/overview") return "Resumen";
@@ -101,10 +112,13 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   return item.label;
 }
 
-/** Cliente final no elige entre clientes del CRM. */
+/** Cliente final no elige entre clientes del CRM ni ve cola de boletas. */
 function navItemsForPersona(persona: DashboardPersona): NavItem[] {
   if (persona === "cliente") {
-    return mainNavigation.filter((item) => item.href !== "/clientes");
+    return mainNavigation.filter(
+      (item) =>
+        item.href !== "/clientes" && item.href !== "/payments/manual",
+    );
   }
   return mainNavigation;
 }
@@ -125,7 +139,10 @@ export function DashboardNavLinks({
     <nav className="dashboard-sidebar-nav">
       {items.map((item) => {
         const isActive =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+          item.href === "/payments"
+            ? pathname === "/payments"
+            : pathname === item.href ||
+              pathname.startsWith(`${item.href}/`);
 
         return (
           <Link
