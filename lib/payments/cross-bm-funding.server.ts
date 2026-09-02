@@ -170,13 +170,22 @@ export function formatSharedBmNoCreditError(input: {
   const { spendability, amountUsd, bmBucket } = input;
   const bm = bmBucket ? `BM ${bmBucket}` : "este BM";
 
-  if (amountUsd <= spendability.budgetHeadroomUsd + 1e-9) {
+  // Asignar en SHARED = INCREMENTAL_UPDATE del presupuesto.
+  // headroom=0 es NORMAL (ya gastó el cupo): hay que SUBIR presupuesto.
+  // Bloquear solo si no hay crédito detrás (account/transferable ~0).
+  const creditBacking = Math.max(
+    spendability.accountBalanceUsd,
+    spendability.transferableUsd,
+  );
+
+  if (creditBacking + 1e-9 >= amountUsd) {
     return "";
   }
 
   return (
     `El portfolio de crédito en ${bm} no tiene cupo disponible para sumar $${amountUsd.toFixed(2)} más ` +
     `(crédito en cuenta: $${spendability.accountBalanceUsd.toFixed(2)}, ` +
+    `transferible: $${spendability.transferableUsd.toFixed(2)}, ` +
     `cupo sin gastar del presupuesto: $${spendability.budgetHeadroomUsd.toFixed(2)}). ` +
     "Subir presupuesto vía API no crea saldo gastable si el portfolio está en $0. " +
     "Opciones: (1) Pedir a TikTok/soporte recargar crédito del Payment Portfolio, " +
