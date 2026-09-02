@@ -32,7 +32,7 @@ export function PaymentsGerenteAccountsSummary({
           : liveCreditTotalUsd != null
             ? formatMoney(liveCreditTotalUsd)
             : "—",
-      hint: "Suma presupuesto en vivo",
+      hint: "Suma cupo gastable (presupuesto − gastado)",
       accent: true,
     },
     {

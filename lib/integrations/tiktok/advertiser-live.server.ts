@@ -38,6 +38,16 @@ function pickBalanceUsd(row: Record<string, unknown>): number | null {
   );
 }
 
+/** Presupuesto asignado − gastado (lo que la cuenta puede gastar hoy). */
+function pickSpendableBudgetUsd(row: Record<string, unknown>): number | null {
+  const budget = parseUsd(row.budget);
+  const cost = parseUsd(row.budget_cost);
+  if (budget != null && cost != null) {
+    return Math.max(0, Math.round((budget - cost) * 100) / 100);
+  }
+  return pickBalanceUsd(row);
+}
+
 function todayLimaYmd(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -87,7 +97,7 @@ async function fetchAdvertiserBalancesForBc(input: {
       row.advertiser_id ?? row.advertiserId ?? "",
     ).trim();
     if (!advertiserId) continue;
-    const balance = pickBalanceUsd(row);
+    const balance = pickSpendableBudgetUsd(row);
     if (balance != null) result.set(advertiserId, balance);
   }
 

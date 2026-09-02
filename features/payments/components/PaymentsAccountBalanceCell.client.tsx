@@ -72,7 +72,7 @@ export function PaymentsAccountBalanceCell({
         {creditUsd != null ? formatMoney(creditUsd) : "—"}
       </p>
       <p className="mt-0.5 text-[10px] text-[#9a9187]">
-        Crédito TikTok
+        Cupo gastable
         {metric?.error ? (
           <span className="ml-1 text-amber-700" title={metric.error}>
             · sin datos
