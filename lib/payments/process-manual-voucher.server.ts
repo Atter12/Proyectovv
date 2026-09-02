@@ -18,6 +18,7 @@ import {
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
+import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 
 export type ProcessManualVoucherResult = {
   analysis: VoucherAnalysisResult;
@@ -98,6 +99,11 @@ export async function processManualVoucherUpload(input: {
   }
   if (intent.provider !== "manual") {
     throw new Error("Solo aplica a pago manual.");
+  }
+  if (isGatewayInMaintenance("manual")) {
+    throw new Error(
+      "Pago manual deshabilitado temporalmente. Contactá soporte o usá Stripe.",
+    );
   }
   if (intent.status === "succeeded") {
     const meta = (intent.metadata ?? {}) as Record<string, unknown>;

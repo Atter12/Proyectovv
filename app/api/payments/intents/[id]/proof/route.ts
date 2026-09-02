@@ -7,6 +7,7 @@ import { getPaymentIntentById, updatePaymentIntentRecord } from "@/lib/payments/
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
 import { processManualVoucherUpload, VoucherRateLimitError } from "@/lib/payments/process-manual-voucher.server";
+import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,13 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       { error: "El voucher solo aplica para pago manual o cripto." },
       { status: 400 },
+    );
+  }
+
+  if (intent.provider === "manual" && isGatewayInMaintenance("manual")) {
+    return NextResponse.json(
+      { error: "Pago manual deshabilitado temporalmente. Usá Stripe o contactá soporte." },
+      { status: 503 },
     );
   }
 
