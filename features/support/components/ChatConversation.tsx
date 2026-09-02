@@ -192,7 +192,10 @@ export function ChatConversation({
 
   return (
     <div
-      className={cn("flex min-h-[520px] flex-col", className)}
+      className={cn(
+        "flex min-h-[520px] flex-col bg-white text-[var(--auth-text)]",
+        className,
+      )}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -251,7 +254,7 @@ export function ChatConversation({
 
       <div
         ref={messagesScrollRef}
-        className="relative flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_20%_0%,rgb(255_255_255_/_0.9),transparent_32%),#f3eee8] p-3 sm:p-5"
+        className="relative flex-1 space-y-3 overflow-y-auto bg-[#f3eee8] p-3 sm:p-5"
       >
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
@@ -302,7 +305,7 @@ export function ChatConversation({
         ) : null}
       </div>
 
-      <div className="border-t border-[var(--auth-divider)] bg-white/95 p-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.04)] backdrop-blur sm:px-5 sm:py-4">
+      <div className="border-t border-[var(--auth-divider)] bg-white p-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.04)] sm:px-5 sm:py-4">
         {composerDisabled ? (
           <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
             {composerDisabledReason ?? "No podés escribir en este chat ahora."}

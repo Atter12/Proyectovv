@@ -301,7 +301,7 @@ export function SupportChatWidget({
       {isOpen ? (
         <div
           className={cn(
-            "w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-[var(--border-subtle)]",
+            "w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/25 ring-1 ring-black/10",
           )}
         >
           <ChatConversation
@@ -317,7 +317,29 @@ export function SupportChatWidget({
             onSend={(files) => void handleSend(files)}
             onBack={handleClose}
             emptyHint="Escribí tu mensaje. Un gerente te responde acá."
-            className="h-[min(520px,70vh)]"
+            className="h-[min(520px,70vh)] max-h-[70vh]"
+            headerActions={
+              <button
+                type="button"
+                onClick={handleClose}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
+                aria-label="Cerrar chat"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            }
           />
         </div>
       ) : null}

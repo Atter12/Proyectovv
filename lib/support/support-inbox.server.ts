@@ -96,6 +96,8 @@ export interface InboxTicketItem {
   lastMessageAt?: string | null;
   /** true si el último mensaje público lo escribió el cliente (no el staff). */
   lastMessageFromClient?: boolean;
+  /** sender_user_id del último mensaje público. */
+  lastMessageSenderUserId?: string | null;
   /** requester_user_id del ticket (cliente). */
   requesterUserId?: string | null;
 }
@@ -196,6 +198,8 @@ async function attachLastMessagePreviews(
     if (previewByTicket.has(ticketId)) continue;
     const senderId = (row.sender_user_id as string | null) ?? null;
     const requesterId = requesterByTicket.get(ticketId) ?? null;
+    // Cliente = sender es el requester. Si requester quedó mal (ej. staff),
+    // el cliente UI aún usa lastMessageSenderUserId !== meId.
     const fromClient = Boolean(
       senderId && requesterId && senderId === requesterId,
     );
@@ -218,6 +222,7 @@ async function attachLastMessagePreviews(
       lastMessagePreview: latest.preview || item.subject,
       lastMessageAt: latest.at,
       lastMessageFromClient: latest.fromClient,
+      lastMessageSenderUserId: latest.senderUserId,
       requesterUserId:
         item.requesterUserId ?? requesterByTicket.get(item.id) ?? null,
     };

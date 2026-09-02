@@ -40,6 +40,7 @@ interface InboxTicket {
   lastMessagePreview?: string | null;
   lastMessageAt?: string | null;
   lastMessageFromClient?: boolean;
+  lastMessageSenderUserId?: string | null;
   requesterUserId?: string | null;
 }
 
@@ -181,6 +182,15 @@ export function GerenteSupportInbox() {
       const meta = selectedMetaRef.current;
       const selectedNow = meta?.id ?? null;
 
+      const currentMeId = data.me?.id ?? meId;
+
+      // Regla simple: "Nuevo mensaje" solo si el último sender NO soy yo.
+      const isIncomingForStaff = (ticket: InboxTicket) => {
+        const sender = ticket.lastMessageSenderUserId?.trim() || null;
+        if (!sender || !currentMeId) return false;
+        return sender !== currentMeId;
+      };
+
       // Badge "nuevo mensaje" solo si el ÚLTIMO mensaje lo escribió el cliente.
       // Respuestas propias del staff no deben marcar unread.
       if (opts?.silent) {
@@ -202,7 +212,7 @@ export function GerenteSupportInbox() {
           }
           const prev = knownUpdatedAtRef.current.get(ticket.id);
           const stampChanged = !prev || stamp !== prev;
-          if (ticket.lastMessageFromClient === true) {
+          if (isIncomingForStaff(ticket)) {
             if (stampChanged) fresh.add(ticket.id);
           } else {
             clearStaffReply.add(ticket.id);
@@ -220,26 +230,27 @@ export function GerenteSupportInbox() {
           if (fresh.size > 0) playSupportNotifySound();
         }
       } else {
-        const clearOwn: string[] = [];
+        // Carga fuerte: reseedar stamps y tirar unread de mensajes propios.
+        const keepIncoming = new Set<string>();
         for (const ticket of nextTickets) {
           if (!ticket.hasTicket || ticket.status === "none") continue;
           const stamp =
             ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt;
           knownUpdatedAtRef.current.set(ticket.id, stamp);
-          if (ticket.lastMessageFromClient !== true) {
-            clearOwn.push(ticket.id);
+          if (isIncomingForStaff(ticket) && ticket.id !== selectedNow) {
+            // No auto-marcar todo lo viejo como unread al refrescar;
+            // solo conservar si ya estaba marcado.
+            keepIncoming.add(ticket.id);
           }
         }
-        if (clearOwn.length > 0) {
-          setUnreadIds((prev) => {
-            let changed = false;
-            const next = new Set(prev);
-            for (const id of clearOwn) {
-              if (next.delete(id)) changed = true;
-            }
-            return changed ? next : prev;
-          });
-        }
+        setUnreadIds((prev) => {
+          const next = new Set<string>();
+          for (const id of prev) {
+            if (keepIncoming.has(id)) next.add(id);
+          }
+          if (selectedNow) next.delete(selectedNow);
+          return next;
+        });
       }
 
       // Si estaba en contacto Hecom sin ticket y el cliente escribió → abrir hilo real.
@@ -290,7 +301,7 @@ export function GerenteSupportInbox() {
     } finally {
       if (!opts?.silent) setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, meId]);
 
   useEffect(() => {
     void loadTickets();

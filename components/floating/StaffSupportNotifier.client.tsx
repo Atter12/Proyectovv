@@ -17,6 +17,7 @@ interface InboxTicketLite {
   updatedAt?: string | null;
   createdAt?: string;
   lastMessageFromClient?: boolean;
+  lastMessageSenderUserId?: string | null;
 }
 
 /**
@@ -31,6 +32,7 @@ export function StaffSupportNotifier() {
     Array<{ id: string; name: string; preview: string }>
   >([]);
   const [expanded, setExpanded] = useState(false);
+  const [meId, setMeId] = useState<string | null>(null);
   const knownStampRef = useRef<Map<string, string>>(new Map());
   const seededRef = useRef(false);
 
@@ -43,8 +45,11 @@ export function StaffSupportNotifier() {
       const data = (await res.json()) as {
         ok?: boolean;
         tickets?: InboxTicketLite[];
+        me?: { id: string };
       };
       if (!res.ok || !data.ok) return;
+      if (data.me?.id) setMeId(data.me.id);
+      const myId = data.me?.id ?? meId;
 
       const tickets = (data.tickets ?? []).filter(
         (t) =>
@@ -63,7 +68,10 @@ export function StaffSupportNotifier() {
 
         if (!seededRef.current) continue;
         if (!prev || prev === stamp) continue;
-        if (ticket.lastMessageFromClient !== true) continue;
+
+        const sender = ticket.lastMessageSenderUserId?.trim() || null;
+        // Solo avisar si el último mensaje NO lo escribí yo.
+        if (!sender || !myId || sender === myId) continue;
 
         fresh.push({
           id: ticket.id,
@@ -90,7 +98,7 @@ export function StaffSupportNotifier() {
     } catch {
       // ignore poll errors
     }
-  }, []);
+  }, [meId]);
 
   useEffect(() => {
     if (onSupportPage) return;
