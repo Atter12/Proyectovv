@@ -635,6 +635,31 @@ function getAnalysisReason(metadata: unknown): string | null {
   return getString(analysis.reason);
 }
 
+/** Solo boletas de clientes (Pago manual + voucher). Excluye puentes BM del gerente. */
+function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  const source = getString(metadata.source);
+  const purpose = getString(metadata.purpose);
+
+  if (source === "agency_bm_bridge") return false;
+  if (purpose === "staff_fund_from_bm") return false;
+  if (getString(metadata.bridge_for_allocation)) return false;
+
+  const proof = getManualProofMeta(row.metadata);
+  const hasProof = Boolean(proof.path || proof.fileName);
+  const review = getString(metadata.manual_review_status);
+  const inVoucherPipeline =
+    hasProof ||
+    review === "pending_review" ||
+    review === "approved" ||
+    review === "rejected" ||
+    Boolean(getString(metadata.approved_by)) ||
+    Boolean(metadata.voucher_analysis) ||
+    Boolean(metadata.reversed_by_ops);
+
+  return inVoucherPipeline;
+}
+
 function getCreditUsd(metadata: unknown, amountCents: number, currency: string): number | null {
   if (!isRecord(metadata)) {
     return currency.toUpperCase() === "USD" ? centsToAmount(amountCents) : null;
@@ -777,18 +802,31 @@ export async function listManualVoucherReviewsForStaff(): Promise<{
     return { pending: [], recent: [], pendingCount: 0 };
   }
 
-  const rows = (data ?? []) as DbPaymentIntentRow[];
+  const rows = ((data ?? []) as DbPaymentIntentRow[]).filter(
+    isClientManualVoucherIntent,
+  );
   const pendingRows = rows
     .filter((row) => {
       const review = getManualIntentReviewStatus(row);
       const proof = getManualProofMeta(row.metadata);
-      return review === "pending_review" && Boolean(proof.path || proof.fileName);
+      // Solo en cola si hay comprobante subido esperando revisión.
+      return (
+        review === "pending_review" && Boolean(proof.path || proof.fileName)
+      );
     })
     .slice(0, 15);
   const recentRows = rows
     .filter((row) => {
-      const review = getManualIntentReviewStatus(row);
-      return review === "approved" || review === "rejected";
+      const metadata = isRecord(row.metadata) ? row.metadata : {};
+      const reviewFlag = getString(metadata.manual_review_status);
+      // No usar status=succeeded solo: eso metía puentes BM y depósitos sin boleta.
+      return (
+        reviewFlag === "approved" ||
+        reviewFlag === "rejected" ||
+        Boolean(metadata.reversed_by_ops) ||
+        (row.status === "failed" &&
+          Boolean(getManualProofMeta(row.metadata).path || row.failure_reason))
+      );
     })
     .slice(0, 8);
 
