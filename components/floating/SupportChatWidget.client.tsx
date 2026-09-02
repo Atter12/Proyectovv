@@ -122,10 +122,14 @@ export function SupportChatWidget({
     enabled: isOpen && Boolean(ticketId) && !sending && !loadingConversation,
     intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
-    onMessages: (next) => {
-      setMessages(next.length > 0 ? next : [greetingMessage()]);
-      const lastStaff = [...next].reverse().find((m) => m.role === "bot");
-      if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
+    onMessages: (updater) => {
+      setMessages((prev) => {
+        const next = updater(prev);
+        const msgs = next.length > 0 ? next : [greetingMessage()];
+        const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
+        if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
+        return msgs;
+      });
       setUnreadFromStaff(0);
       setPreviewText(null);
     },
