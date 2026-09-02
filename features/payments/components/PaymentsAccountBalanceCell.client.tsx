@@ -67,7 +67,7 @@ export function PaymentsAccountBalanceCell({
   // Misma fuente que Manager: cupo gastable (presupuesto − gastado / cash).
   // El ledger Holistic es contabilidad de asignaciones, no el saldo de TikTok.
   return (
-    <div className={compact ? "min-w-0" : "min-w-[7.5rem]">
+    <div className={compact ? "min-w-0" : "min-w-[7.5rem]"}>
       <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
         {creditUsd != null
           ? formatMoney(creditUsd)
