@@ -22,6 +22,12 @@ import type {
   PaymentTabKey,
   TransactionHistoryItem,
 } from "@/types/payment";
+import {
+  isStaffBlockedAdAccount,
+  mergeStaffBlockMetadata,
+  staffBlockStatusForUpsert,
+} from "@/lib/payments/staff-block.server";
+import { isRecord } from "@/lib/records";
 
 const TRANSACTION_PAGE_SIZE = 25;
 
@@ -89,7 +95,7 @@ export async function listOrganizationAdAccountsForAllocation(
       admin
         .from("ad_accounts")
         .select(
-          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at, metadata",
         )
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false }),
@@ -102,15 +108,26 @@ export async function listOrganizationAdAccountsForAllocation(
     }
 
     const accountRows = (accountsRes.data ?? []) as DbAdAccountRow[];
-    return accountRows.map((account) => ({
-      id: account.id,
-      name: account.name,
-      status: account.status,
-      balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
-      autoRecharge: false,
-      thresholdInfo: "Sin auto-recarga configurada",
-      externalAccountId: account.external_account_id ?? null,
-    }));
+    return accountRows.map((account) => {
+      const metadata = (account as { metadata?: unknown }).metadata;
+      const blocked = isStaffBlockedAdAccount({
+        status: account.status,
+        metadata,
+        externalAccountId: account.external_account_id,
+        hecomClienteId: isRecord(metadata)
+          ? String(metadata.hecom_cliente_id ?? "")
+          : null,
+      });
+      return {
+        id: account.id,
+        name: account.name,
+        status: blocked ? "disabled" : account.status,
+        balance: centsToAmount(balanceByAccount.get(account.id) ?? 0),
+        autoRecharge: false,
+        thresholdInfo: "Sin auto-recarga configurada",
+        externalAccountId: account.external_account_id ?? null,
+      };
+    });
   } catch (error) {
     console.error("[payments] list_org_ad_accounts_fatal", {
       error: error instanceof Error ? error.message : "unknown",
@@ -169,10 +186,31 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
     const { data: globalRows } = await admin
       .from("ad_accounts")
       .select(
-        "organization_id, name, external_account_id, external_business_id, external_account_name, currency, timezone, status",
+        "organization_id, name, external_account_id, external_business_id, external_account_name, currency, timezone, status, metadata",
       )
       .eq("platform", "tiktok")
       .in("external_account_id", ids);
+
+    const existingInOrgRes = await admin
+      .from("ad_accounts")
+      .select("external_account_id, status, metadata")
+      .eq("organization_id", orgId)
+      .eq("platform", "tiktok")
+      .in("external_account_id", ids);
+    const existingInOrgById = new Map(
+      (existingInOrgRes.data ?? []).map((row) => {
+        const ext = String(
+          (row as { external_account_id?: string }).external_account_id ?? "",
+        ).trim();
+        return [
+          ext,
+          {
+            status: String((row as { status?: string }).status ?? ""),
+            metadata: (row as { metadata?: unknown }).metadata ?? null,
+          },
+        ] as const;
+      }),
+    );
 
     const templateById = new Map<
       string,
@@ -183,6 +221,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         currency: string;
         timezone: string;
         status: string;
+        metadata: unknown;
       }
     >();
     for (const row of globalRows ?? []) {
@@ -204,6 +243,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
           String((row as { timezone?: string }).timezone ?? "America/Lima") ||
           "America/Lima",
         status: String((row as { status?: string }).status ?? "active"),
+        metadata: (row as { metadata?: unknown }).metadata ?? null,
       });
     }
 
@@ -211,6 +251,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
     for (const advertiserId of ids) {
       const template = templateById.get(advertiserId);
       const preferredStatus = statusById.get(advertiserId);
+      const existingInOrg = existingInOrgById.get(advertiserId);
       const displayName =
         nameById.get(advertiserId) ||
         template?.name ||
@@ -218,10 +259,33 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
           ? `${input.clienteName} · TikTok`
           : `TikTok ${advertiserId}`);
 
-      const status =
-        preferredStatus === "disabled" || template?.status === "disabled"
+      const block = staffBlockStatusForUpsert({
+        existingMetadata: existingInOrg?.metadata ?? template?.metadata,
+        externalAccountId: advertiserId,
+        hecomClienteId: input.clienteId,
+        tiktokStatusKind:
+          preferredStatus === "disabled" || template?.status === "disabled"
+            ? "suspended"
+            : "approved",
+      });
+      const status = block.blocked
+        ? "disabled"
+        : preferredStatus === "disabled" || template?.status === "disabled"
           ? "disabled"
           : "active";
+      const metadata = block.blocked
+        ? mergeStaffBlockMetadata(
+            existingInOrg?.metadata ?? template?.metadata ?? null,
+            { reason: "emergency_staff_block" },
+          )
+        : {
+            ...(isRecord(existingInOrg?.metadata) ? existingInOrg.metadata : {}),
+            ...(isRecord(template?.metadata) ? template.metadata : {}),
+            source: "ensure_allocation_org",
+            hecom_cliente_id: input.clienteId,
+            hecom_cliente_name: input.clienteName ?? null,
+            mirrored_from_other_org: Boolean(template),
+          };
 
       const { error } = await admin.from("ad_accounts").upsert(
         {
@@ -237,12 +301,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
           timezone: template?.timezone ?? "America/Lima",
           created_by: input.userId ?? null,
           last_synced_at: new Date().toISOString(),
-          metadata: {
-            source: "ensure_allocation_org",
-            hecom_cliente_id: input.clienteId,
-            hecom_cliente_name: input.clienteName ?? null,
-            mirrored_from_other_org: Boolean(template),
-          },
+          metadata,
         },
         { onConflict: "organization_id,platform,external_account_id" },
       );

@@ -16,6 +16,12 @@ import {
 import {
   isHecomMappedAccountFundable,
 } from "@/lib/hecom/tiktok-advertiser-discovery";
+import {
+  isStaffBlockedAdAccount,
+  mergeStaffBlockMetadata,
+  staffBlockStatusForUpsert,
+} from "@/lib/payments/staff-block.server";
+import { isRecord } from "@/lib/records";
 
 function resolveHecomAccounts(cliente: HecomCliente): HecomTiktokAccount[] {
   if (cliente.tiktokAccounts.length > 0) return cliente.tiktokAccounts;
@@ -231,7 +237,56 @@ export async function syncApprovedAdAccountsForCliente(input: {
   let upserted = 0;
   let disabled = 0;
 
+  const advertiserIds = [
+    ...new Set([
+      ...approved.map((row) => row.advertiserId),
+      ...suspended.map((row) => row.advertiserId),
+    ]),
+  ];
+  const existingByAdvertiser = new Map<
+    string,
+    { metadata: unknown; status: string | null }
+  >();
+  if (advertiserIds.length > 0) {
+    const { data: existingRows } = await admin
+      .from("ad_accounts")
+      .select("external_account_id, metadata, status")
+      .eq("organization_id", input.organizationId)
+      .eq("platform", "tiktok")
+      .in("external_account_id", advertiserIds);
+    for (const existing of existingRows ?? []) {
+      const ext = String(
+        (existing as { external_account_id?: string }).external_account_id ?? "",
+      ).trim();
+      if (!ext) continue;
+      existingByAdvertiser.set(ext, {
+        metadata: (existing as { metadata?: unknown }).metadata ?? null,
+        status: String((existing as { status?: string }).status ?? "") || null,
+      });
+    }
+  }
+
   for (const row of approved) {
+    const existing = existingByAdvertiser.get(row.advertiserId);
+    const block = staffBlockStatusForUpsert({
+      existingMetadata: existing?.metadata,
+      externalAccountId: row.advertiserId,
+      hecomClienteId: input.clienteId,
+      tiktokStatusKind: row.statusKind,
+    });
+    const metadata = block.blocked
+      ? mergeStaffBlockMetadata(existing?.metadata ?? null, {
+          reason: "emergency_staff_block",
+        })
+      : {
+          ...(isRecord(existing?.metadata) ? existing.metadata : {}),
+          source: "hecom_approved_sync",
+          hecom_cliente_id: input.clienteId,
+          hecom_cliente_name: cliente.name,
+          tiktok_status: "approved",
+          from_hecom_map: row.fromHecom,
+        };
+
     const { error } = await admin.from("ad_accounts").upsert(
       {
         organization_id: input.organizationId,
@@ -240,18 +295,12 @@ export async function syncApprovedAdAccountsForCliente(input: {
         external_account_id: row.advertiserId,
         external_business_id: row.bcId,
         external_account_name: row.name,
-        status: "active",
+        status: block.status,
         currency: "USD",
         timezone: "America/Lima",
         created_by: input.userId ?? null,
         last_synced_at: new Date().toISOString(),
-        metadata: {
-          source: "hecom_approved_sync",
-          hecom_cliente_id: input.clienteId,
-          hecom_cliente_name: cliente.name,
-          tiktok_status: "approved",
-          from_hecom_map: row.fromHecom,
-        },
+        metadata,
       },
       { onConflict: "organization_id,platform,external_account_id" },
     );
@@ -312,8 +361,28 @@ export async function syncApprovedAdAccountsForCliente(input: {
     }
   }
 
-  const approvedAdvertiserIds = approved.map((row) => row.advertiserId);
-  const suspendedAdvertiserIds = suspended.map((row) => row.advertiserId);
+  const approvedAdvertiserIds = approved
+    .map((row) => row.advertiserId)
+    .filter(
+      (advertiserId) =>
+        !isStaffBlockedAdAccount({
+          externalAccountId: advertiserId,
+          hecomClienteId: input.clienteId,
+          metadata: existingByAdvertiser.get(advertiserId)?.metadata,
+        }),
+    );
+  const suspendedAdvertiserIds = [
+    ...suspended.map((row) => row.advertiserId),
+    ...approved
+      .map((row) => row.advertiserId)
+      .filter((advertiserId) =>
+        isStaffBlockedAdAccount({
+          externalAccountId: advertiserId,
+          hecomClienteId: input.clienteId,
+          metadata: existingByAdvertiser.get(advertiserId)?.metadata,
+        }),
+      ),
+  ];
 
   console.info("[hecom-sync] approved_sync", {
     clienteId: input.clienteId,

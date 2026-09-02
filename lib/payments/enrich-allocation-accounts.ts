@@ -1,6 +1,7 @@
 import type { AdAccount } from "@/types/ad-account";
 import type { PaymentAccountAllocation } from "@/types/payment";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-label";
+import { isStaffBlockedAdAccount } from "@/lib/payments/staff-block.server";
 
 /** Enriquece filas de Pagos con nombre TikTok y etiqueta BM desde Cuentas ads. */
 export function enrichAllocationAccountsFromAdsOverview(
@@ -31,13 +32,18 @@ export function enrichAllocationAccountsFromAdsOverview(
       account.bmLabel ||
       null;
 
+    const blocked = isStaffBlockedAdAccount({
+      status: account.status,
+      externalAccountId: externalId,
+    });
     return {
       ...account,
       name: displayName,
       externalAccountName: meta.externalAccountName ?? displayName,
       bmLabel,
       // Priorizar estado live de Cuentas ads (suspendida gana).
-      status: meta.status === "disabled" ? "disabled" : account.status,
+      status:
+        blocked || meta.status === "disabled" ? "disabled" : account.status,
       // Si Pagos tiene $0 pero ads overview trae balance, no inventamos;
       // el balance de Pagos viene del ledger (fuente de verdad para Recuperar).
     };

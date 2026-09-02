@@ -21,6 +21,10 @@ import {
   discoverTikTokAdvertisersForCliente,
   resolveHecomMappedStatusKind,
 } from "@/lib/hecom/tiktok-advertiser-discovery";
+import {
+  isStaffBlockedAdAccount,
+  isStaffBlockedHecomCliente,
+} from "@/lib/payments/staff-block.server";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
 
 export { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
@@ -76,18 +80,28 @@ export function mapHecomTiktokToAdAccount(
       ? resolveHecomMappedStatusKind(account, liveStatusKind)
       : liveStatusKind;
   const status =
-    account.syncEnabled === false
+    isStaffBlockedAdAccount({
+      externalAccountId: account.advertiserId,
+      hecomClienteId: cliente.id,
+    }) || isStaffBlockedHecomCliente(cliente.id)
       ? "disabled"
-      : statusKind === "suspended"
+      : account.syncEnabled === false
         ? "disabled"
-        : statusKind === "approved"
-          ? "active"
-          : account.syncEnabled
-            ? "pending"
-            : "disabled";
+        : statusKind === "suspended"
+          ? "disabled"
+          : statusKind === "approved"
+            ? "active"
+            : account.syncEnabled
+              ? "pending"
+              : "disabled";
 
   const thresholdInfo =
-    account.syncEnabled === false
+    isStaffBlockedAdAccount({
+      externalAccountId: account.advertiserId,
+      hecomClienteId: cliente.id,
+    }) || isStaffBlockedHecomCliente(cliente.id)
+      ? "Bloqueada por staff — no recargar"
+      : account.syncEnabled === false
       ? "Pausada en Hecom (sync desactivado)"
       : statusKind === "approved"
         ? account.fee != null

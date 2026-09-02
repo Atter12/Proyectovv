@@ -31,6 +31,8 @@ import {
   createPaymentIntentRecord,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
+import { isStaffBlockedAdAccount } from "@/lib/payments/staff-block.server";
+import { isRecord } from "@/lib/records";
 
 export interface AllocateWithTikTokInput {
   organizationId: string;
@@ -148,7 +150,7 @@ export async function allocateWithOptionalTikTokFunding(
   const admin = createAdminClient();
   const { data: account, error } = await admin
     .from("ad_accounts")
-    .select("id, organization_id, platform, external_account_id, external_business_id, currency")
+    .select("id, organization_id, platform, external_account_id, external_business_id, currency, status, metadata")
     .eq("id", input.adAccountId)
     .maybeSingle<{
       id: string;
@@ -157,11 +159,28 @@ export async function allocateWithOptionalTikTokFunding(
       external_account_id: string | null;
       external_business_id: string | null;
       currency: string | null;
+      status: string | null;
+      metadata: unknown;
     }>();
 
   if (error) throw new Error(error.message);
   if (!account || account.organization_id !== input.organizationId) {
     throw new Error("Cuenta publicitaria no encontrada en la organización.");
+  }
+
+  if (
+    isStaffBlockedAdAccount({
+      status: account.status,
+      metadata: account.metadata,
+      externalAccountId: account.external_account_id,
+      hecomClienteId: isRecord(account.metadata)
+        ? String(account.metadata.hecom_cliente_id ?? "")
+        : null,
+    })
+  ) {
+    throw new Error(
+      "Esta cuenta está bloqueada por staff y no se puede recargar.",
+    );
   }
 
   const idempotencyKey =
