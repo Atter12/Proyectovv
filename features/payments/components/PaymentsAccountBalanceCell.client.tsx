@@ -19,7 +19,7 @@ interface PaymentsAccountBalanceCellProps {
   advertiserId?: string | null;
   metric?: AdAccountLiveMetricsClient;
   loading?: boolean;
-  /** Gerente BM: crédito TikTok primero, ledger secundario. */
+  /** Gerente BM: muestra gasto de hoy además del cupo. */
   agencyBmFunding?: boolean;
   compact?: boolean;
 }
@@ -32,24 +32,20 @@ export function PaymentsAccountBalanceCell({
   agencyBmFunding = false,
   compact = false,
 }: PaymentsAccountBalanceCellProps) {
-  if (!agencyBmFunding) {
-    return (
-      <span className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
-        {formatMoney(ledgerBalance)}
-      </span>
-    );
-  }
-
   const ledger = Number(ledgerBalance) || 0;
   const hasLedger = ledger > 0.005;
 
+  // Sin ID TikTok: solo queda el ledger Holistic (lo asignado/contabilizado).
   if (!advertiserId) {
     return (
       <div className="min-w-[6.5rem]">
         {hasLedger ? (
-          <p className="text-[12px] tabular-nums text-[#6b645c]">
-            Ledger {formatMoney(ledger)}
-          </p>
+          <>
+            <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
+              {formatMoney(ledger)}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[#9a9187]">Asignado Holistic</p>
+          </>
         ) : (
           <span className="text-[12px] text-[#9a9187]">Sin ID TikTok</span>
         )}
@@ -65,21 +61,33 @@ export function PaymentsAccountBalanceCell({
 
   const creditUsd = metric?.balanceUsd;
   const spendToday = metric?.spendTodayUsd;
+  const ledgerDiffers =
+    creditUsd != null && Math.abs(creditUsd - ledger) > 0.5;
 
+  // Misma fuente que Manager: cupo gastable (presupuesto − gastado / cash).
+  // El ledger Holistic es contabilidad de asignaciones, no el saldo de TikTok.
   return (
-    <div className={compact ? "min-w-0" : "min-w-[7.5rem]"}>
-      <p className="text-[13px] font-medium tabular-nums text-[#1a1612]">
-        {creditUsd != null ? formatMoney(creditUsd) : "—"}
+    <div className={compact ? "min-w-0" : "min-w-[7.5rem]">
+      <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
+        {creditUsd != null
+          ? formatMoney(creditUsd)
+          : hasLedger
+            ? formatMoney(ledger)
+            : "—"}
       </p>
       <p className="mt-0.5 text-[10px] text-[#9a9187]">
-        Cupo gastable
+        {creditUsd != null
+          ? agencyBmFunding
+            ? "Cupo TikTok"
+            : "Saldo TikTok"
+          : "Asignado Holistic"}
         {metric?.error ? (
           <span className="ml-1 text-amber-700" title={metric.error}>
             · sin datos
           </span>
         ) : null}
       </p>
-      {spendToday != null ? (
+      {agencyBmFunding && spendToday != null ? (
         <p className="mt-0.5 text-[10px] text-[#9a9187]">
           Gasto hoy{" "}
           <span className="font-medium tabular-nums text-[#c45a18]">
@@ -87,9 +95,9 @@ export function PaymentsAccountBalanceCell({
           </span>
         </p>
       ) : null}
-      {hasLedger ? (
+      {hasLedger && (agencyBmFunding || ledgerDiffers || creditUsd == null) ? (
         <p className="mt-1 text-[10px] tabular-nums text-[#b5aea6]">
-          Ledger {formatMoney(ledger)}
+          Holistic {formatMoney(ledger)}
         </p>
       ) : null}
       {!compact && metric?.fetchedAt ? (

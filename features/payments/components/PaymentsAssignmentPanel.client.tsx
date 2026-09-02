@@ -41,9 +41,10 @@ export function PaymentsAssignmentPanel({
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
 
-  const { metricsByAdvertiser, loading, lastUpdatedAt } = useAdAccountLiveMetrics(
-    agencyBmFunding,
-  );
+  // Siempre: el Saldo de la tabla debe alinearse con TikTok Manager (cupo
+  // gastable), no solo con el ledger Holistic. Antes solo se pedía en modo gerente.
+  const { metricsByAdvertiser, loading, lastUpdatedAt } =
+    useAdAccountLiveMetrics(true);
 
   const accountSummary = useMemo(
     () => summarizePaymentAccounts(accounts),
@@ -99,8 +100,8 @@ export function PaymentsAssignmentPanel({
         onEditTikTokIds={setEditAccount}
         agencyBmFunding={agencyBmFunding}
         clientSelfService={!agencyBmFunding}
-        liveMetricsByAdvertiser={agencyBmFunding ? metricsByAdvertiser : undefined}
-        liveMetricsLoading={agencyBmFunding ? loading : false}
+        liveMetricsByAdvertiser={metricsByAdvertiser}
+        liveMetricsLoading={loading}
       />
       <AllocateBalanceModal
         account={selectedAccount}

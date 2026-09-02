@@ -75,7 +75,7 @@ export function PaymentsTable({
   const actionLabel = agencyBmFunding ? "Recargar" : "Asignar";
   const actionLabelLong = agencyBmFunding ? "Recargar saldo" : "Asignar saldo";
   const actionLoading = agencyBmFunding ? "Recargando…" : "Asignando…";
-  const balanceColumnLabel = agencyBmFunding ? "Crédito TikTok" : "Saldo";
+  const balanceColumnLabel = agencyBmFunding ? "Crédito TikTok" : "Saldo TikTok";
 
   function renderBalanceCell(account: PaymentAccountAllocation, compact = false) {
     const advertiserId = account.externalAccountId?.trim();
