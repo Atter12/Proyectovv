@@ -27,7 +27,6 @@ import {
   mergeStaffBlockMetadata,
   staffBlockStatusForUpsert,
 } from "@/lib/payments/staff-block.server";
-import { isRecord } from "@/lib/records";
 
 const TRANSACTION_PAGE_SIZE = 25;
 
