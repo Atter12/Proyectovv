@@ -56,10 +56,14 @@ export async function getAgencyBmFundingLandscape(
   for (const [bmBucket, bcId] of Object.entries(HECOM_BM_BUCKET_TO_BC)) {
     const hint = await getBcPortfolioHint({ bcId, organizationId });
     const portfolios = await listPaymentPortfoliosForBc({ bcId, organizationId });
+    const portfolioId = portfolios[0]?.paymentPortfolioId ?? null;
 
     const { token } = await resolveTikTokFinanceAccessToken(organizationId);
     const url = new URL(apiUrl("/bc/balance/get/"));
     url.searchParams.set("bc_id", bcId);
+    if (portfolioId) {
+      url.searchParams.set("payment_portfolio_id", portfolioId);
+    }
     const response = await fetch(url.toString(), {
       headers: { "Access-Token": token },
       cache: "no-store",

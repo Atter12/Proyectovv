@@ -124,6 +124,10 @@ function formatTransferError(input: {
     return "Este BM no tiene ad credits (cupones) disponibles para asignar. Asignar solo mueve efectivo o cupones, no la línea de crédito. Probá BM 200 o pedile a soporte que cargue cash en el BM.";
   }
 
+  if (/Can not find the paInfo|multi pa|specify paId/i.test(input.message)) {
+    return "Este BM usa Payment Portfolio (multi-PA). Holistic debe enviar payment_portfolio_id; si ves este error, pedile a soporte que revise el fondeo del BM.";
+  }
+
   if (
     input.code === 40002 ||
     /params invalid|invalid param|cash_amount|insufficient.*(cash|balance|fund)/i.test(
@@ -178,6 +182,61 @@ type ResolvedBcFunding =
   | { source: TikTokBcFundingSource; available: number }
   | { source: "blocked"; detail: BcBalanceDetail };
 
+/**
+ * BM multi-PA (ej. BM 200): `/bc/balance/get/` y `/bc/transfer/` exigen
+ * `payment_portfolio_id` como string exacto (Number() pierde precisión).
+ */
+async function resolveBcPaymentPortfolioId(input: {
+  bcId: string;
+  organizationId?: string;
+}): Promise<string | null> {
+  const { token: accessToken } = await resolveTikTokFinanceAccessToken(
+    input.organizationId,
+  );
+  const url = new URL(apiUrl("/payment_portfolio/get/"));
+  url.searchParams.set("bc_id", input.bcId.trim());
+  url.searchParams.set("page", "1");
+  url.searchParams.set("page_size", "50");
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: { "Access-Token": accessToken },
+    cache: "no-store",
+  });
+  const json = (await response.json()) as TikTokApiResponse<{
+    list?: Array<Record<string, unknown>>;
+    payment_portfolios?: Array<Record<string, unknown>>;
+  }>;
+
+  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+    console.warn("[tiktok-bc] portfolio_resolve_failed", {
+      bcId: input.bcId,
+      code: json.code ?? null,
+      message: json.message ?? null,
+    });
+    return null;
+  }
+
+  const rows = json.data?.payment_portfolios ?? json.data?.list ?? [];
+  const ids = rows
+    .map((row) => {
+      const raw = row.payment_portfolio_id;
+      return typeof raw === "string" ? raw.trim() : raw != null ? String(raw) : "";
+    })
+    .filter(Boolean);
+
+  if (ids.length === 0) return null;
+  if (ids.length === 1) return ids[0];
+
+  const nonShared = rows.find(
+    (row) => String(row.payment_portfolio_type ?? "") === "NON_SHARED",
+  );
+  const preferred = nonShared?.payment_portfolio_id;
+  if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+  if (preferred != null) return String(preferred);
+  return ids[0];
+}
+
 function resolveBcFundingSource(
   detail: BcBalanceDetail,
   amount: number,
@@ -203,6 +262,8 @@ function buildTransferBody(input: {
   amount: number;
   fundingSource: TikTokBcFundingSource;
   requestId: string;
+  /** Obligatorio en BM multi-PA (ej. BM 200). String exacto, no Number. */
+  paymentPortfolioId?: string | null;
 }): Record<string, unknown> {
   const amount = Math.round(input.amount * 100) / 100;
   const body: Record<string, unknown> = {
@@ -211,6 +272,10 @@ function buildTransferBody(input: {
     transfer_type: input.transferType,
     request_id: input.requestId.trim(),
   };
+  const portfolioId = input.paymentPortfolioId?.trim();
+  if (portfolioId) {
+    body.payment_portfolio_id = portfolioId;
+  }
   if (input.fundingSource === "grant") {
     body.grant_amount = amount;
   } else {
@@ -254,6 +319,13 @@ export async function transferBcFundsToAdvertiser(
     await resolveTikTokFinanceAccessToken(input.organizationId);
   const tokenFp = tokenFingerprint(accessToken);
 
+  // BM multi-PA (BM 200): sin payment_portfolio_id TikTok responde
+  // "Can not find the paInfo…" y el balance parece $0.
+  const paymentPortfolioId = await resolveBcPaymentPortfolioId({
+    bcId,
+    organizationId: input.organizationId,
+  });
+
   // REFUND: cash sale del advertiser → BC. No exige cash disponible en el BM.
   let fundingSource: TikTokBcFundingSource = "cash";
   let fundingAvailable: number = Infinity;
@@ -262,6 +334,7 @@ export async function transferBcFundsToAdvertiser(
     const balanceDetail = await getBcBalanceDetail({
       bcId,
       organizationId: input.organizationId,
+      paymentPortfolioId,
     });
     const funding = balanceDetail
       ? resolveBcFundingSource(balanceDetail, cashAmount)
@@ -281,6 +354,7 @@ export async function transferBcFundsToAdvertiser(
         grantAvailable,
         accountBalance,
         shared,
+        paymentPortfolioId,
         paymentPortfolioType: d.paymentPortfolioType,
         tokenSource,
         tokenFp,
@@ -306,6 +380,7 @@ export async function transferBcFundsToAdvertiser(
     amount: cashAmount,
     fundingSource,
     requestId: input.requestId,
+    paymentPortfolioId,
   });
 
   console.info("[tiktok-bc] transfer_attempt", {
@@ -314,6 +389,7 @@ export async function transferBcFundsToAdvertiser(
     amount: cashAmount,
     fundingSource,
     fundingAvailable,
+    paymentPortfolioId,
     transferType,
     requestId: input.requestId,
     tokenSource,
@@ -422,37 +498,86 @@ type BcBalanceDetail = {
 async function getBcBalanceDetail(input: {
   bcId: string;
   organizationId?: string;
+  paymentPortfolioId?: string | null;
 }): Promise<BcBalanceDetail | null> {
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
-  const url = new URL(apiUrl("/bc/balance/get/"));
-  url.searchParams.set("bc_id", input.bcId.trim());
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: { "Access-Token": accessToken },
-    cache: "no-store",
-  });
-
-  const json = (await response.json()) as TikTokApiResponse<{
-    cash_balance?: number | string;
-    valid_cash_balance?: number | string;
-    grant_balance?: number | string;
-    valid_grant_balance?: number | string;
-    account_balance?: number | string;
-    valid_account_balance?: number | string;
-    balance?: number | string;
-    payment_portfolio_type?: string;
-  }>;
-
-  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
-    console.warn("[tiktok-bc] balance_get_failed", {
+  const fetchBalance = async (
+    paymentPortfolioId: string | null,
+  ): Promise<{
+    ok: boolean;
+    code: number | null;
+    message: string | null;
+    requestId: string | null;
+    data: {
+      cash_balance?: number | string;
+      valid_cash_balance?: number | string;
+      grant_balance?: number | string;
+      valid_grant_balance?: number | string;
+      account_balance?: number | string;
+      valid_account_balance?: number | string;
+      balance?: number | string;
+      payment_portfolio_type?: string;
+    } | null;
+  }> => {
+    const url = new URL(apiUrl("/bc/balance/get/"));
+    url.searchParams.set("bc_id", input.bcId.trim());
+    if (paymentPortfolioId) {
+      url.searchParams.set("payment_portfolio_id", paymentPortfolioId);
+    }
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: { "Access-Token": accessToken },
+      cache: "no-store",
+    });
+    const json = (await response.json()) as TikTokApiResponse<{
+      cash_balance?: number | string;
+      valid_cash_balance?: number | string;
+      grant_balance?: number | string;
+      valid_grant_balance?: number | string;
+      account_balance?: number | string;
+      valid_account_balance?: number | string;
+      balance?: number | string;
+      payment_portfolio_type?: string;
+    }>;
+    const ok = response.ok && (json.code === undefined || json.code === 0);
+    return {
+      ok,
       code: json.code ?? null,
       message: json.message ?? null,
+      requestId: json.request_id ?? null,
+      data: json.data ?? null,
+    };
+  };
+
+  let portfolioId = input.paymentPortfolioId?.trim() || null;
+  let result = await fetchBalance(portfolioId);
+
+  // Multi-PA: sin portfolio_id TikTok no encuentra paInfo.
+  if (
+    !result.ok &&
+    !portfolioId &&
+    /paInfo|multi pa|specify paId/i.test(String(result.message ?? ""))
+  ) {
+    portfolioId = await resolveBcPaymentPortfolioId({
       bcId: input.bcId,
+      organizationId: input.organizationId,
+    });
+    if (portfolioId) {
+      result = await fetchBalance(portfolioId);
+    }
+  }
+
+  if (!result.ok) {
+    console.warn("[tiktok-bc] balance_get_failed", {
+      code: result.code,
+      message: result.message,
+      bcId: input.bcId,
+      paymentPortfolioId: portfolioId,
       tokenSource,
       tokenFp: tokenFingerprint(accessToken),
-      tiktokRequestId: json.request_id ?? null,
+      tiktokRequestId: result.requestId,
     });
     return null;
   }
@@ -464,14 +589,14 @@ async function getBcBalanceDetail(input: {
   };
 
   return {
-    cashBalance: num(json.data?.cash_balance ?? json.data?.balance),
-    validCashBalance: num(json.data?.valid_cash_balance),
-    grantBalance: num(json.data?.grant_balance),
-    validGrantBalance: num(json.data?.valid_grant_balance),
-    accountBalance: num(json.data?.account_balance),
-    validAccountBalance: num(json.data?.valid_account_balance),
-    paymentPortfolioType: json.data?.payment_portfolio_type
-      ? String(json.data.payment_portfolio_type)
+    cashBalance: num(result.data?.cash_balance ?? result.data?.balance),
+    validCashBalance: num(result.data?.valid_cash_balance),
+    grantBalance: num(result.data?.grant_balance),
+    validGrantBalance: num(result.data?.valid_grant_balance),
+    accountBalance: num(result.data?.account_balance),
+    validAccountBalance: num(result.data?.valid_account_balance),
+    paymentPortfolioType: result.data?.payment_portfolio_type
+      ? String(result.data.payment_portfolio_type)
       : null,
   };
 }

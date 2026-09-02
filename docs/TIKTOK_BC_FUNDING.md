@@ -48,7 +48,9 @@ Stripe **no** deposita solo en TikTok. Holistic opera con saldo en el Business C
 
 #### Cómo funciona cada uno
 
-**BM 200:** `POST /bc/transfer/` con `cash_amount` (mueve efectivo BM → advertiser).
+**BM 200:** `POST /bc/transfer/` con `cash_amount` + **`payment_portfolio_id`** (multi-PA).  
+Sin `payment_portfolio_id` TikTok responde `Can not find the paInfo…` y `/bc/balance/get/` parece vacío aunque el portfolio tenga cash.  
+El id sale de `GET /payment_portfolio/get/?bc_id=…` → `payment_portfolios[].payment_portfolio_id` (**string**; no usar `Number()`).
 
 **BM 10 / 30 (crédito compartido):** no hay cash que mover. La cuenta **ya ve** la línea de crédito; lo que limita el gasto es el **presupuesto** de la cuenta (`CUSTOM_BUDGET` / diario / ilimitado).  
 En Manager eso es “Editar presupuesto” / “Ajustar”. En API:
