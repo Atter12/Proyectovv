@@ -1,17 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
-import { supportMock } from "@/features/support/mocks/support.mock";
-import { supportFaqForPersona } from "@/features/support/lib/support-faq-for-persona";
-import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
+import type { ChatMessage } from "@/features/support/types/support.types";
 import type { DashboardPersona } from "@/types/dashboard-persona";
-import { ChatHome } from "@/features/support/components/ChatHome";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
-import { ChatFaqCategories } from "@/features/support/components/ChatFaqCategories";
-import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
-import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
 import { supportChatTimestampsNow } from "@/lib/support/chat-time";
 import { playSupportNotifySound } from "@/lib/support/notify-sound.client";
@@ -55,24 +49,20 @@ function greetingMessage(): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: "Hola, cuéntanos qué necesitas y crearemos un ticket para darle seguimiento.",
+    text: "Hola 👋 Soy soporte Holistic. Escribí tu consulta y un gerente te responde acá.",
     ...supportChatTimestampsNow(),
   };
 }
 
+/**
+ * Chat flotante del cliente: abre directo la conversación con soporte
+ * (sin FAQs). Badge + sonido + preview al llegar mensaje del gerente.
+ */
 export function SupportChatWidget({
   isOpen,
   onToggle,
   onOpenChange,
-  persona = "cliente",
 }: SupportChatWidgetProps) {
-  const faqConfig = useMemo(
-    () => supportFaqForPersona(supportMock, persona),
-    [persona],
-  );
-  const [view, setView] = useState<SupportView>("home");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
   const [inputValue, setInputValue] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -81,35 +71,30 @@ export function SupportChatWidget({
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unreadFromStaff, setUnreadFromStaff] = useState(0);
+  const [previewText, setPreviewText] = useState<string | null>(null);
   const lastSeenStaffMsgIdRef = useRef<string | null>(null);
   const backgroundSeededRef = useRef(false);
 
-  const selectedCategory = faqConfig.categories.find(
-    (c) => c.id === selectedCategoryId,
-  );
-  const categoryArticles = faqConfig.articles.filter(
-    (a) => a.categoryId === selectedCategoryId,
-  );
-  const selectedArticle = faqConfig.articles.find(
-    (a) => a.id === selectedArticleId,
-  );
-
-  const loadConversation = useCallback(async () => {
-    if (conversationLoaded || loadingConversation) return;
+  const loadConversation = useCallback(async (opts?: { force?: boolean }) => {
+    if (!opts?.force && (conversationLoaded || loadingConversation)) return;
     setLoadingConversation(true);
     setError(null);
     try {
       const ticketsData = await apiClient<TicketsResponse>("/api/support/tickets");
-      const activeTicket = ticketsData.tickets.find(
-        (ticket) => !["closed", "resolved"].includes(ticket.status),
-      ) ?? ticketsData.tickets[0];
+      const activeTicket =
+        ticketsData.tickets.find(
+          (ticket) => !["closed", "resolved"].includes(ticket.status),
+        ) ?? ticketsData.tickets[0];
 
       if (activeTicket) {
         setTicketId(activeTicket.id);
         const messagesData = await apiClient<MessagesResponse>(
           `/api/support/tickets/${activeTicket.id}/messages`,
         );
-        setMessages(messagesData.messages.length > 0 ? messagesData.messages : [greetingMessage()]);
+        const msgs = messagesData.messages ?? [];
+        setMessages(msgs.length > 0 ? msgs : [greetingMessage()]);
+        const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
+        if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
       } else {
         setMessages([greetingMessage()]);
       }
@@ -118,7 +103,7 @@ export function SupportChatWidget({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo cargar el historial de soporte.",
+          : "No se pudo cargar el chat de soporte.",
       );
     } finally {
       setLoadingConversation(false);
@@ -134,27 +119,29 @@ export function SupportChatWidget({
   }, [ticketId]);
 
   useSupportThreadPolling({
-    enabled:
-      isOpen &&
-      view === "conversation" &&
-      Boolean(ticketId) &&
-      !sending &&
-      !loadingConversation,
+    enabled: isOpen && Boolean(ticketId) && !sending && !loadingConversation,
     intervalMs: 2000,
     fetchMessages: fetchLiveMessages,
     onMessages: (next) => {
-      setMessages(next);
+      setMessages(next.length > 0 ? next : [greetingMessage()]);
       const lastStaff = [...next].reverse().find((m) => m.role === "bot");
       if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
       setUnreadFromStaff(0);
+      setPreviewText(null);
     },
   });
 
-  // Fuera del chat abierto: avisar si soporte (staff) respondió.
+  // Al abrir: ir directo al hilo (sin menú FAQ).
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadConversation({ force: !conversationLoaded });
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps -- open trigger
+
+  // Cerrado: avisar si el gerente respondió.
   useEffect(() => {
     let cancelled = false;
     async function pollBackground() {
-      if (isOpen && view === "conversation") return;
+      if (isOpen) return;
       try {
         const ticketsData = await apiClient<TicketsResponse>(
           "/api/support/tickets",
@@ -170,7 +157,9 @@ export function SupportChatWidget({
           `/api/support/tickets/${activeTicket.id}/messages`,
         );
         const msgs = messagesData.messages ?? [];
-        const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
+        const lastStaff = [...msgs]
+          .reverse()
+          .find((m) => m.role === "bot" && m.id !== "support-greeting");
         if (!lastStaff) return;
 
         if (!backgroundSeededRef.current) {
@@ -181,10 +170,11 @@ export function SupportChatWidget({
 
         if (lastStaff.id !== lastSeenStaffMsgIdRef.current) {
           lastSeenStaffMsgIdRef.current = lastStaff.id;
-          if (!(isOpen && view === "conversation")) {
-            setUnreadFromStaff((n) => n + 1);
-            playSupportNotifySound();
-          }
+          setUnreadFromStaff((n) => n + 1);
+          setPreviewText(
+            (lastStaff.text || "Nuevo mensaje de soporte").slice(0, 80),
+          );
+          playSupportNotifySound();
         }
       } catch {
         // ignore
@@ -197,28 +187,24 @@ export function SupportChatWidget({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [isOpen, view, ticketId]);
+  }, [isOpen, ticketId]);
 
   function handleClose() {
     onOpenChange(false);
-    setView("home");
-    setSelectedCategoryId(null);
-    setSelectedArticleId(null);
+  }
+
+  function openChat() {
+    setUnreadFromStaff(0);
+    setPreviewText(null);
+    onToggle();
   }
 
   function handleToggle() {
     if (isOpen) {
       handleClose();
     } else {
-      onToggle();
-      setView("home");
-      setUnreadFromStaff(0);
+      openChat();
     }
-  }
-
-  async function openConversation() {
-    setView("conversation");
-    await loadConversation();
   }
 
   async function handleSend(files: File[] = []) {
@@ -251,9 +237,11 @@ export function SupportChatWidget({
           body: formData,
           credentials: "include",
         });
-        const data = (await res.json()) as CreateTicketResponse & { error?: string };
+        const data = (await res.json()) as CreateTicketResponse & {
+          error?: string;
+        };
         if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? "No se pudo crear el ticket.");
+          throw new Error(data.error ?? "No se pudo crear el chat.");
         }
         setTicketId(data.ticketId);
         setConversationLoaded(true);
@@ -266,7 +254,9 @@ export function SupportChatWidget({
           body: formData,
           credentials: "include",
         });
-        const data = (await res.json()) as PostMessageResponse & { error?: string };
+        const data = (await res.json()) as PostMessageResponse & {
+          error?: string;
+        };
         if (!res.ok || !data.ok) {
           throw new Error(data.error ?? "No se pudo enviar el mensaje.");
         }
@@ -287,90 +277,46 @@ export function SupportChatWidget({
     }
   }
 
-  function renderContent() {
-    switch (view) {
-      case "conversation":
-        return (
+  return (
+    <div className="relative flex flex-col items-end gap-2">
+      {!isOpen && unreadFromStaff > 0 && previewText ? (
+        <button
+          type="button"
+          onClick={openChat}
+          className="max-w-[min(280px,calc(100vw-5rem))] rounded-2xl border border-[var(--border-subtle)] bg-white px-3 py-2.5 text-left shadow-xl shadow-black/15 ring-1 ring-black/5 transition hover:bg-[rgb(255_120_31_/_0.04)]"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--brand-primary)]">
+            Nuevo mensaje · Soporte
+          </p>
+          <p className="mt-0.5 line-clamp-2 text-[13px] font-medium text-[var(--auth-text)]">
+            {previewText}
+          </p>
+        </button>
+      ) : null}
+
+      {isOpen ? (
+        <div
+          className={cn(
+            "w-[min(360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-[var(--border-subtle)]",
+          )}
+        >
           <ChatConversation
             messages={messages}
             inputValue={inputValue}
             sending={sending}
             loading={loadingConversation}
             error={error}
+            showBack={false}
+            title="Soporte Holistic"
+            subtitle="Chat directo con un gerente"
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
-            onBack={() => setView("home")}
+            onBack={handleClose}
+            emptyHint="Escribí tu mensaje. Un gerente te responde acá."
+            className="h-[min(520px,70vh)]"
           />
-        );
-      case "faqCategories":
-        return (
-          <ChatFaqCategories
-            brandName={faqConfig.brandName}
-            categories={faqConfig.categories}
-            onSelectCategory={(id) => {
-              setSelectedCategoryId(id);
-              setView("faqCategoryDetail");
-            }}
-            onBack={() => setView("home")}
-          />
-        );
-      case "faqCategoryDetail":
-        return selectedCategory ? (
-          <ChatFaqCategoryDetail
-            categoryTitle={selectedCategory.title}
-            articles={categoryArticles}
-            onSelectArticle={(id) => {
-              setSelectedArticleId(id);
-              setView("faqArticleDetail");
-            }}
-            onBack={() => setView("faqCategories")}
-          />
-        ) : null;
-      case "faqArticleDetail":
-        return selectedArticle ? (
-          <ChatFaqArticleDetail
-            article={selectedArticle}
-            onBack={() => setView("faqCategoryDetail")}
-          />
-        ) : null;
-      default:
-        return (
-          <ChatHome
-            brandName={faqConfig.brandName}
-            poweredByLabel={faqConfig.poweredByLabel}
-            categories={faqConfig.categories}
-            onOpenConversation={openConversation}
-            onOpenFaqCategories={() => setView("faqCategories")}
-            onSelectCategory={(id) => {
-              setSelectedCategoryId(id);
-              setView("faqCategoryDetail");
-            }}
-          />
-        );
-    }
-  }
-
-  return (
-    <div className="relative">
-      {isOpen && (
-        <div
-          className={cn(
-            "absolute bottom-[calc(100%+10px)] right-0 w-[min(340px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-[var(--border-subtle)] transition-all duration-200 ease-out sm:bottom-[calc(100%+12px)]",
-          )}
-        >
-          <button
-            type="button"
-            onClick={handleClose}
-            className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white transition-colors hover:bg-black/40"
-            aria-label="Cerrar soporte"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          {renderContent()}
         </div>
-      )}
+      ) : null}
 
       <button
         type="button"
@@ -384,11 +330,27 @@ export function SupportChatWidget({
           </span>
         ) : null}
         {isOpen ? (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         ) : (
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
