@@ -26,8 +26,10 @@ export default async function ManualPaymentsReviewPage() {
           Pagos manuales
         </h1>
         <p className="max-w-2xl text-sm text-[var(--auth-muted)]">
-          Acá llegan las boletas BCP. Aceptá para acreditar cartera o rechazá
-          con motivo. Stripe y asignación TikTok siguen en{" "}
+          Solo boletas de <strong className="font-semibold text-[var(--auth-text)]">Pago manual</strong>{" "}
+          (transferencia BCP + voucher). No aparecen recargas del gerente desde BM
+          ni Stripe. Aceptá para acreditar cartera o rechazá con motivo. El resto
+          sigue en{" "}
           <a
             href={routes.payments}
             className="font-semibold text-[var(--brand-primary)] underline-offset-2 hover:underline"

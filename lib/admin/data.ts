@@ -805,7 +805,28 @@ export async function listManualPayments(filters: { status?: string; q?: string 
     query = query.eq("status", filters.status);
   }
   const { data } = await query;
-  let payments = rows(data as PaymentIntentRow[] | null);
+  let payments = rows(data as PaymentIntentRow[] | null).filter((payment) => {
+    const metadata = isRecord(payment.metadata) ? payment.metadata : {};
+    const source =
+      typeof metadata.source === "string" ? metadata.source.trim() : "";
+    const purpose =
+      typeof metadata.purpose === "string" ? metadata.purpose.trim() : "";
+    if (source === "agency_bm_bridge") return false;
+    if (purpose === "staff_fund_from_bm") return false;
+    if (
+      typeof metadata.bridge_for_allocation === "string" &&
+      metadata.bridge_for_allocation.trim()
+    ) {
+      return false;
+    }
+    if (
+      typeof metadata.agency_bm_bridge_journal_id === "string" &&
+      metadata.agency_bm_bridge_journal_id.trim()
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   if (filters.status === "pending_review") {
     payments = payments.filter((payment) => {

@@ -592,21 +592,6 @@ export interface ManualPaymentIntentItem {
   actorName: string | null;
 }
 
-function getManualIntentReviewStatus(
-  row: DbPaymentIntentRow,
-): ManualPaymentIntentItem["reviewStatus"] {
-  if (row.status === "succeeded") return "approved";
-  if (row.status === "failed") return "rejected";
-  if (row.status === "cancelled") return "cancelled";
-  const metadata = isRecord(row.metadata) ? row.metadata : {};
-  const reviewStatus = getString(metadata.manual_review_status);
-  if (reviewStatus === "pending_review") return "pending_review";
-  if (reviewStatus === "approved") return "approved";
-  if (reviewStatus === "rejected") return "rejected";
-  if (row.status === "processing") return "pending_review";
-  return "awaiting_proof";
-}
-
 function getManualProofMeta(metadata: unknown): {
   fileName: string | null;
   mimeType: string | null;
@@ -635,29 +620,76 @@ function getAnalysisReason(metadata: unknown): string | null {
   return getString(analysis.reason);
 }
 
-/** Solo boletas de clientes (Pago manual + voucher). Excluye puentes BM del gerente. */
-function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
-  const metadata = isRecord(row.metadata) ? row.metadata : {};
+function isAgencyBmBridgeIntent(metadata: Record<string, unknown>): boolean {
   const source = getString(metadata.source);
   const purpose = getString(metadata.purpose);
+  return (
+    source === "agency_bm_bridge" ||
+    purpose === "staff_fund_from_bm" ||
+    Boolean(getString(metadata.bridge_for_allocation)) ||
+    Boolean(getString(metadata.agency_bm_bridge_journal_id))
+  );
+}
 
-  if (source === "agency_bm_bridge") return false;
-  if (purpose === "staff_fund_from_bm") return false;
-  if (getString(metadata.bridge_for_allocation)) return false;
+/**
+ * Solo boletas reales de “Pago manual” (cliente subió voucher / revisión).
+ * Excluye puentes contables del gerente (agency_bm_bridge) y drafts sin voucher.
+ */
+function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  if (isAgencyBmBridgeIntent(metadata)) return false;
 
   const proof = getManualProofMeta(row.metadata);
   const hasProof = Boolean(proof.path || proof.fileName);
   const review = getString(metadata.manual_review_status);
-  const inVoucherPipeline =
+  const hasVoucherTrail =
     hasProof ||
     review === "pending_review" ||
     review === "approved" ||
     review === "rejected" ||
-    Boolean(getString(metadata.approved_by)) ||
     Boolean(metadata.voucher_analysis) ||
     Boolean(metadata.reversed_by_ops);
 
-  return inVoucherPipeline;
+  if (!hasVoucherTrail) return false;
+
+  const source = getString(metadata.source);
+  // Permitir source null solo en legados revertidos con rastro de voucher.
+  if (
+    source != null &&
+    source !== "dashboard" &&
+    source !== "manual" &&
+    source !== "manual_voucher"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function getManualIntentReviewStatus(
+  row: DbPaymentIntentRow,
+): ManualPaymentIntentItem["reviewStatus"] {
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  if (isAgencyBmBridgeIntent(metadata)) return "cancelled";
+
+  const reviewStatus = getString(metadata.manual_review_status);
+  if (reviewStatus === "pending_review") return "pending_review";
+  if (reviewStatus === "approved") return "approved";
+  if (reviewStatus === "rejected") return "rejected";
+  if (row.status === "cancelled") return "cancelled";
+  if (row.status === "failed" || Boolean(metadata.reversed_by_ops)) {
+    return "rejected";
+  }
+  if (row.status === "succeeded") {
+    // No marcar “Aprobado” solo por succeeded: eso pintaba puentes BM.
+    const proof = getManualProofMeta(row.metadata);
+    if (proof.path || proof.fileName || getString(metadata.approved_by)) {
+      return "approved";
+    }
+    return "cancelled";
+  }
+  if (row.status === "processing") return "pending_review";
+  return "awaiting_proof";
 }
 
 function getCreditUsd(metadata: unknown, amountCents: number, currency: string): number | null {
@@ -795,7 +827,7 @@ export async function listManualVoucherReviewsForStaff(): Promise<{
     .eq("provider", "manual")
     .in("status", ["processing", "succeeded", "failed", "requires_payment", "created"])
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(120);
 
   if (error) {
     console.error("[payments] listManualVoucherReviewsForStaff", error.message);
@@ -814,21 +846,25 @@ export async function listManualVoucherReviewsForStaff(): Promise<{
         review === "pending_review" && Boolean(proof.path || proof.fileName)
       );
     })
-    .slice(0, 15);
+    .slice(0, 20);
   const recentRows = rows
     .filter((row) => {
       const metadata = isRecord(row.metadata) ? row.metadata : {};
       const reviewFlag = getString(metadata.manual_review_status);
-      // No usar status=succeeded solo: eso metía puentes BM y depósitos sin boleta.
+      // Solo historial de boletas (nunca succeeded “pelado” = puente BM).
       return (
         reviewFlag === "approved" ||
         reviewFlag === "rejected" ||
         Boolean(metadata.reversed_by_ops) ||
         (row.status === "failed" &&
-          Boolean(getManualProofMeta(row.metadata).path || row.failure_reason))
+          Boolean(
+            getManualProofMeta(row.metadata).path ||
+              metadata.voucher_analysis ||
+              row.failure_reason,
+          ))
       );
     })
-    .slice(0, 8);
+    .slice(0, 12);
 
   const [pending, recent] = await Promise.all([
     mapManualIntentRows(pendingRows, { signProofs: true }),
