@@ -4,8 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin/auth";
+import {
+  approveManualVoucherPayment,
+  rejectManualVoucherPayment,
+} from "@/lib/payments/review-manual-payment.server";
 import { mergeJsonMetadata } from "@/lib/types/json";
-import { isVoucherPaymentProvider } from "@/types/payment";
 
 type ActionScope = {
   organizationId?: string | null;
@@ -52,149 +55,28 @@ export async function approveManualPaymentAction(formData: FormData) {
   const notes = getOptionalString(formData, "notes");
   if (!id) throw new Error("Falta el ID del pago.");
 
-  const admin = createAdminClient();
-  const { data: intent, error: intentError } = await admin
-    .from("payment_intents")
-    .select("id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, metadata, created_by")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      organization_id: string;
-      wallet_id: string;
-      amount_cents: number;
-      currency: string;
-      provider: string;
-      provider_reference: string | null;
-      status: string;
-      metadata: Record<string, unknown> | null;
-      created_by: string | null;
-    }>();
-  if (intentError) throw new Error(intentError.message);
-  if (!intent || !isVoucherPaymentProvider(intent.provider)) {
-    throw new Error("Pago con comprobante no encontrado.");
-  }
-  if (intent.status === "succeeded") return;
-
-  const providerReference =
-    intent.provider_reference ?? `${intent.provider}:${intent.id}`;
-  const { data: journalId, error: ledgerError } = await admin.rpc("ledger_confirm_deposit", {
-    p_payment_intent_id: intent.id,
-    p_provider_reference: providerReference,
-    p_idempotency_key: `admin:voucher-payment-approval:${intent.id}`,
-    p_metadata: {
-      approved_from: "admin_panel",
-      approved_by: actor.id,
-      approved_by_email: actor.email,
-      provider: intent.provider,
-      notes,
-    },
+  await approveManualVoucherPayment({
+    paymentIntentId: id,
+    actor: { id: actor.id, email: actor.email },
+    notes,
+    approvedFrom: "admin_panel",
   });
-  if (ledgerError) throw new Error(ledgerError.message);
-
-  await admin
-    .from("payment_intents")
-    .update({
-      status: "succeeded",
-      provider_reference: providerReference,
-      succeeded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      metadata: mergeJsonMetadata(intent.metadata, {
-        manual_review_status: "approved",
-        approved_by: actor.id,
-        approved_by_email: actor.email,
-        approved_at: new Date().toISOString(),
-        approval_notes: notes,
-        ledger_journal_id: String(journalId),
-      }),
-    })
-    .eq("id", intent.id);
-
-  const isCrypto = intent.provider === "crypto";
-  await notify({
-    organizationId: intent.organization_id,
-    userId: intent.created_by,
-    title: isCrypto ? "Pago cripto aprobado" : "Pago manual aprobado",
-    body: "Tu comprobante fue aprobado y el saldo ya fue acreditado.",
-    type: "payment_approved",
-    data: { payment_intent_id: intent.id, ledger_journal_id: String(journalId), url: "/payments" },
-  });
-
-  await insertAudit({ organizationId: intent.organization_id, actorUserId: actor.id }, {
-    action: "admin.manual_payment.approved",
-    entityType: "payment_intent",
-    entityId: intent.id,
-    metadata: {
-      amount_cents: intent.amount_cents,
-      currency: intent.currency,
-      provider: intent.provider,
-      ledger_journal_id: String(journalId),
-      notes,
-    },
-  });
-
-  revalidatePath("/admin/payments");
-  revalidatePath(`/admin/payments/${intent.id}`);
-  revalidatePath("/admin/overview");
 }
 
 export async function rejectManualPaymentAction(formData: FormData) {
   const actor = await requireAdmin();
   const id = getString(formData, "id");
-  const reason = getOptionalString(formData, "reason") ?? "Comprobante rechazado por revisión administrativa.";
+  const reason =
+    getOptionalString(formData, "reason") ??
+    "Comprobante rechazado por revisión administrativa.";
   if (!id) throw new Error("Falta el ID del pago.");
 
-  const admin = createAdminClient();
-  const { data: intent, error } = await admin
-    .from("payment_intents")
-    .select("id, organization_id, amount_cents, currency, provider, status, metadata, created_by")
-    .eq("id", id)
-    .maybeSingle<{ id: string; organization_id: string; amount_cents: number; currency: string; provider: string; status: string; metadata: Record<string, unknown> | null; created_by: string | null }>();
-  if (error) throw new Error(error.message);
-  if (!intent || !isVoucherPaymentProvider(intent.provider)) {
-    throw new Error("Pago con comprobante no encontrado.");
-  }
-  if (intent.status === "succeeded") throw new Error("No se puede rechazar un pago ya aprobado.");
-
-  const { error: updateError } = await admin
-    .from("payment_intents")
-    .update({
-      status: "failed",
-      failure_reason: reason,
-      updated_at: new Date().toISOString(),
-      metadata: mergeJsonMetadata(intent.metadata, {
-        manual_review_status: "rejected",
-        rejected_by: actor.id,
-        rejected_by_email: actor.email,
-        rejected_at: new Date().toISOString(),
-        rejection_reason: reason,
-      }),
-    })
-    .eq("id", intent.id);
-  if (updateError) throw new Error(updateError.message);
-
-  await notify({
-    organizationId: intent.organization_id,
-    userId: intent.created_by,
-    title:
-      intent.provider === "crypto"
-        ? "Pago cripto rechazado"
-        : "Pago manual rechazado",
-    body: reason,
-    type: "payment_rejected",
-    data: { payment_intent_id: intent.id, url: "/payments" },
+  await rejectManualVoucherPayment({
+    paymentIntentId: id,
+    actor: { id: actor.id, email: actor.email },
+    reason,
+    rejectedFrom: "admin_panel",
   });
-
-  await insertAudit({ organizationId: intent.organization_id, actorUserId: actor.id }, {
-    action: "admin.manual_payment.rejected",
-    entityType: "payment_intent",
-    entityId: intent.id,
-    severity: "warning",
-    metadata: { reason, amount_cents: intent.amount_cents, currency: intent.currency },
-  });
-
-  revalidatePath("/admin/payments");
-  revalidatePath(`/admin/payments/${intent.id}`);
-  revalidatePath("/admin/overview");
 }
 
 export async function approveRefundAction(formData: FormData) {

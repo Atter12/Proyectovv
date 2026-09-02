@@ -571,11 +571,25 @@ export interface ManualPaymentIntentItem {
   createdAt: string;
   amount: number;
   currency: string;
+  /** Crédito USD que se acreditará a cartera (si aplica). */
+  creditUsd: number | null;
   status: string;
   provider: string;
-  reviewStatus: "awaiting_proof" | "pending_review" | "approved" | "rejected" | "cancelled";
+  reviewStatus:
+    | "awaiting_proof"
+    | "pending_review"
+    | "approved"
+    | "rejected"
+    | "cancelled";
   proofFileName: string | null;
+  proofMimeType: string | null;
+  proofSignedUrl: string | null;
   failureReason: string | null;
+  analysisReason: string | null;
+  organizationId: string;
+  organizationName: string | null;
+  actorEmail: string | null;
+  actorName: string | null;
 }
 
 function getManualIntentReviewStatus(
@@ -587,17 +601,126 @@ function getManualIntentReviewStatus(
   const metadata = isRecord(row.metadata) ? row.metadata : {};
   const reviewStatus = getString(metadata.manual_review_status);
   if (reviewStatus === "pending_review") return "pending_review";
+  if (reviewStatus === "approved") return "approved";
+  if (reviewStatus === "rejected") return "rejected";
   if (row.status === "processing") return "pending_review";
   return "awaiting_proof";
 }
 
-function getManualProofFileName(metadata: unknown): string | null {
-  if (!isRecord(metadata)) return null;
+function getManualProofMeta(metadata: unknown): {
+  fileName: string | null;
+  mimeType: string | null;
+  path: string | null;
+} {
+  if (!isRecord(metadata)) {
+    return { fileName: null, mimeType: null, path: null };
+  }
   const proof = metadata.manual_proof;
-  if (!isRecord(proof)) return null;
-  return getString(proof.file_name);
+  if (!isRecord(proof)) {
+    return { fileName: null, mimeType: null, path: null };
+  }
+  const path =
+    getString(proof.path) ?? getString(proof.storage_path) ?? null;
+  return {
+    fileName: getString(proof.file_name),
+    mimeType: getString(proof.mime_type),
+    path,
+  };
 }
 
+function getAnalysisReason(metadata: unknown): string | null {
+  if (!isRecord(metadata)) return null;
+  const analysis = metadata.voucher_analysis;
+  if (!isRecord(analysis)) return null;
+  return getString(analysis.reason);
+}
+
+function getCreditUsd(metadata: unknown, amountCents: number, currency: string): number | null {
+  if (!isRecord(metadata)) {
+    return currency.toUpperCase() === "USD" ? centsToAmount(amountCents) : null;
+  }
+  const credit =
+    Number(metadata.credit_usd_cents) ||
+    Number(metadata.desired_credit_cents) ||
+    Number(metadata.credit_amount_cents);
+  if (Number.isFinite(credit) && credit > 0) return centsToAmount(credit);
+  if (currency.toUpperCase() === "USD") return centsToAmount(amountCents);
+  return null;
+}
+
+async function mapManualIntentRows(
+  rows: DbPaymentIntentRow[],
+): Promise<ManualPaymentIntentItem[]> {
+  if (rows.length === 0) return [];
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const {
+    signPaymentProofUrl,
+  } = await import("@/lib/payments/review-manual-payment.server");
+  const admin = createAdminClient();
+
+  const orgIds = [...new Set(rows.map((r) => r.organization_id))];
+  const actorIds = [
+    ...new Set(
+      rows.map((r) => r.created_by).filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const [{ data: orgs }, { data: profiles }] = await Promise.all([
+    admin.from("organizations").select("id, name").in("id", orgIds),
+    actorIds.length > 0
+      ? admin
+          .from("profiles")
+          .select("id, email, full_name")
+          .in("id", actorIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; email: string; full_name: string | null }> }),
+  ]);
+
+  const orgMap = new Map(
+    ((orgs ?? []) as Array<{ id: string; name: string }>).map((o) => [
+      o.id,
+      o.name,
+    ]),
+  );
+  const profileMap = new Map(
+    (
+      (profiles ?? []) as Array<{
+        id: string;
+        email: string;
+        full_name: string | null;
+      }>
+    ).map((p) => [p.id, p]),
+  );
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const proof = getManualProofMeta(row.metadata);
+      const signedUrl = await signPaymentProofUrl(proof.path);
+      const actor = row.created_by ? profileMap.get(row.created_by) : undefined;
+      return {
+        id: row.id,
+        createdAt: row.created_at,
+        amount: centsToAmount(row.amount_cents),
+        currency: row.currency,
+        creditUsd: getCreditUsd(row.metadata, row.amount_cents, row.currency),
+        status: row.status,
+        provider: row.provider,
+        reviewStatus: getManualIntentReviewStatus(row),
+        proofFileName: proof.fileName,
+        proofMimeType: proof.mimeType,
+        proofSignedUrl: signedUrl,
+        failureReason: row.failure_reason ?? null,
+        analysisReason: getAnalysisReason(row.metadata),
+        organizationId: row.organization_id,
+        organizationName: orgMap.get(row.organization_id) ?? null,
+        actorEmail: actor?.email ?? null,
+        actorName: actor?.full_name ?? null,
+      };
+    }),
+  );
+}
+
+/** Cliente: sus propios vouchers de la org. */
 export async function getRecentManualPaymentIntents(
   session: SessionUser,
 ): Promise<ManualPaymentIntentItem[]> {
@@ -607,25 +730,51 @@ export async function getRecentManualPaymentIntents(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("payment_intents")
-    .select("id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at")
+    .select(
+      "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
+    )
     .eq("organization_id", organizationId)
     .in("provider", ["manual", "crypto"])
     .order("created_at", { ascending: false })
     .limit(10);
 
   if (error) return [];
+  return mapManualIntentRows((data ?? []) as DbPaymentIntentRow[]);
+}
 
-  return ((data ?? []) as DbPaymentIntentRow[]).map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    amount: centsToAmount(row.amount_cents),
-    currency: row.currency,
-    status: row.status,
-    provider: row.provider,
-    reviewStatus: getManualIntentReviewStatus(row),
-    proofFileName: getManualProofFileName(row.metadata),
-    failureReason: row.failure_reason ?? null,
-  }));
+/**
+ * Staff/gerente: cola global de comprobantes en revisión (+ recientes).
+ * Prioriza pending_review.
+ */
+export async function listManualVoucherReviewsForStaff(): Promise<{
+  pending: ManualPaymentIntentItem[];
+  recent: ManualPaymentIntentItem[];
+  pendingCount: number;
+}> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select(
+      "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
+    )
+    .in("provider", ["manual", "crypto"])
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (error) {
+    console.error("[payments] listManualVoucherReviewsForStaff", error.message);
+    return { pending: [], recent: [], pendingCount: 0 };
+  }
+
+  const items = await mapManualIntentRows((data ?? []) as DbPaymentIntentRow[]);
+  const pending = items.filter((i) => i.reviewStatus === "pending_review");
+  const recent = items
+    .filter((i) => i.reviewStatus !== "pending_review")
+    .slice(0, 12);
+
+  return { pending, recent, pendingCount: pending.length };
 }
 
 /** @deprecated Usar getPaymentPageCore + getPaymentTransactions */

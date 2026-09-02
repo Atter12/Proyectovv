@@ -358,17 +358,37 @@ function containsText(values: Array<string | null | undefined>, q: string): bool
   return values.some((value) => (value ?? "").toLowerCase().includes(needle));
 }
 
-export function getManualProof(metadata: unknown): { storagePath?: string; fileName?: string; publicUrl?: string; signedUrl?: string; uploadedAt?: string; notes?: string } | null {
+export function getManualProof(metadata: unknown): {
+  storagePath?: string;
+  fileName?: string;
+  publicUrl?: string;
+  signedUrl?: string;
+  uploadedAt?: string;
+  notes?: string;
+  mimeType?: string;
+} | null {
   if (!isRecord(metadata)) return null;
   const proof = metadata.manual_proof;
   if (!isRecord(proof)) return null;
+  const storagePath =
+    typeof proof.path === "string"
+      ? proof.path
+      : typeof proof.storage_path === "string"
+        ? proof.storage_path
+        : undefined;
   return {
-    storagePath: typeof proof.storage_path === "string" ? proof.storage_path : undefined,
+    storagePath,
     fileName: typeof proof.file_name === "string" ? proof.file_name : undefined,
     publicUrl: typeof proof.public_url === "string" ? proof.public_url : undefined,
     signedUrl: typeof proof.signed_url === "string" ? proof.signed_url : undefined,
-    uploadedAt: typeof proof.uploaded_at === "string" ? proof.uploaded_at : undefined,
+    uploadedAt:
+      typeof proof.submitted_at === "string"
+        ? proof.submitted_at
+        : typeof proof.uploaded_at === "string"
+          ? proof.uploaded_at
+          : undefined,
     notes: typeof proof.notes === "string" ? proof.notes : undefined,
+    mimeType: typeof proof.mime_type === "string" ? proof.mime_type : undefined,
   };
 }
 
@@ -781,9 +801,28 @@ export async function listManualPayments(filters: { status?: string; q?: string 
     .in("provider", [...VOUCHER_PAYMENT_PROVIDERS])
     .order("created_at", { ascending: false })
     .limit(120);
-  if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
+  if (filters.status && filters.status !== "all" && filters.status !== "pending_review") {
+    query = query.eq("status", filters.status);
+  }
   const { data } = await query;
   let payments = rows(data as PaymentIntentRow[] | null);
+
+  if (filters.status === "pending_review") {
+    payments = payments.filter((payment) => {
+      if (payment.status === "succeeded" || payment.status === "failed" || payment.status === "cancelled") {
+        return false;
+      }
+      const proof = getManualProof(payment.metadata);
+      const review = isRecord(payment.metadata)
+        ? payment.metadata.manual_review_status
+        : null;
+      return (
+        review === "pending_review" ||
+        (payment.status === "processing" && Boolean(proof))
+      );
+    });
+  }
+
   const orgMap = await getOrganizationMap(unique(payments.map((row) => row.organization_id)));
   const profileMap = await getProfileMap(unique(payments.map((row) => row.created_by)));
   const walletMap = await getWalletMap(unique(payments.map((row) => row.wallet_id)));
@@ -797,13 +836,43 @@ export async function listManualPayments(filters: { status?: string; q?: string 
     });
   }
 
-  return payments.map((row) => ({
-    row,
-    organization: orgMap.get(row.organization_id),
-    actor: row.created_by ? profileMap.get(row.created_by) : undefined,
-    wallet: walletMap.get(row.wallet_id),
-    proof: getManualProof(row.metadata),
-  }));
+  // En revisión primero cuando se listan todos
+  if (!filters.status || filters.status === "all") {
+    payments = [...payments].sort((a, b) => {
+      const aPending =
+        a.status === "processing" ||
+        (isRecord(a.metadata) && a.metadata.manual_review_status === "pending_review");
+      const bPending =
+        b.status === "processing" ||
+        (isRecord(b.metadata) && b.metadata.manual_review_status === "pending_review");
+      if (aPending === bPending) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return aPending ? -1 : 1;
+    });
+  }
+
+  const { signPaymentProofUrl } = await import(
+    "@/lib/payments/review-manual-payment.server"
+  );
+
+  return Promise.all(
+    payments.map(async (row) => {
+      const proof = getManualProof(row.metadata);
+      const signedUrl = proof?.storagePath
+        ? await signPaymentProofUrl(proof.storagePath)
+        : proof?.signedUrl ?? null;
+      return {
+        row,
+        organization: orgMap.get(row.organization_id),
+        actor: row.created_by ? profileMap.get(row.created_by) : undefined,
+        wallet: walletMap.get(row.wallet_id),
+        proof: proof
+          ? { ...proof, signedUrl: signedUrl ?? proof.signedUrl }
+          : null,
+      };
+    }),
+  );
 }
 
 export async function getManualPaymentDetail(id: string) {
@@ -831,12 +900,23 @@ export async function getManualPaymentDetail(id: string) {
     .eq("entity_id", id)
     .order("created_at", { ascending: false })
     .limit(20);
+
+  const proof = getManualProof(data.metadata);
+  const { signPaymentProofUrl } = await import(
+    "@/lib/payments/review-manual-payment.server"
+  );
+  const signedUrl = proof?.storagePath
+    ? await signPaymentProofUrl(proof.storagePath)
+    : proof?.signedUrl ?? null;
+
   return {
     row: data,
     organization: orgMap.get(data.organization_id),
     actor: data.created_by ? profileMap.get(data.created_by) : undefined,
     wallet: walletMap.get(data.wallet_id),
-    proof: getManualProof(data.metadata),
+    proof: proof
+      ? { ...proof, signedUrl: signedUrl ?? proof.signedUrl }
+      : null,
     journals: rows(journals as LedgerJournalRow[] | null),
     audit: rows(audit as AuditLogRow[] | null),
   };

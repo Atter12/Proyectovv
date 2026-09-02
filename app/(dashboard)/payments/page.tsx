@@ -7,6 +7,7 @@ import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGat
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
+import { ManualVoucherReviewHost } from "@/features/payments/components/ManualVoucherReviewHost";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
@@ -134,10 +135,13 @@ export default async function PaymentsPage({
   }
 
   const introCopy = capabilities.canSwitchFundingModes
-    ? `Super admin: operá como Cliente (Stripe) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
+    ? `Super admin: operá como Cliente (Stripe / pago manual) o Gerente (cash BM) para ${cliente.name}. Abajo: historial Hecom.`
     : capabilities.canAgencyBmFund
-      ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM (sin Stripe). Saldo estimado Hecom arriba y en el historial.`
-      : `Recargá con Stripe y asigná saldo a las cuentas de ${cliente.name}.`;
+      ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM. Revisá comprobantes pendientes arriba si hay cola.`
+      : `Recargá con Stripe o transferencia BCP y asigná saldo a las cuentas de ${cliente.name}.`;
+
+  const canReviewVouchers =
+    capabilities.isStaff || capabilities.isSuperAdmin;
 
   return (
     <div className={dashboardClasses.page}>
@@ -149,6 +153,13 @@ export default async function PaymentsPage({
         introCopy={introCopy}
         hecomFinance={hecomFinance}
       />
+
+      <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
+        <ManualVoucherReviewHost
+          session={session}
+          staffMode={canReviewVouchers}
+        />
+      </Suspense>
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
         <PaymentsWalletSection

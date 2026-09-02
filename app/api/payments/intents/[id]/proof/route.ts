@@ -177,7 +177,7 @@ export async function POST(request: Request, context: RouteContext) {
       organizationId: session.organizationId,
       userId: session.id,
       title: "Comprobante enviado",
-      body: "Tu pago manual quedó pendiente de revisión.",
+      body: "Comprobante en revisión. Te avisamos cuando se acredite.",
       type: "payment_proof_uploaded",
       data: { payment_intent_id: intent.id, url: "/payments" },
     });

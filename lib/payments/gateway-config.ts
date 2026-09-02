@@ -14,8 +14,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "manual",
     name: "Pago manual",
-    description: "Transferencia BCP · temporalmente deshabilitado",
-    maintenance: true,
+    description: "Transferencia BCP · comprobante en revisión",
   },
 ];
 

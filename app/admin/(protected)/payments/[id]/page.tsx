@@ -49,13 +49,37 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
           <Card className="p-5">
             <h2 className="text-lg font-semibold text-[var(--admin-text)]">Voucher/comprobante</h2>
             {proof ? (
-              <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                <p className="font-semibold text-emerald-800">{proof.fileName ?? "Comprobante cargado"}</p>
-                <p className="mt-1 text-sm text-emerald-700">{proof.storagePath ?? proof.publicUrl ?? "Sin path visible"}</p>
-                <p className="mt-1 text-xs font-bold text-emerald-600">Subido: {proof.uploadedAt ? formatDateTime(proof.uploadedAt) : "—"}</p>
-                {proof.publicUrl || proof.signedUrl ? <a href={proof.publicUrl ?? proof.signedUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">Abrir archivo ↗</a> : null}
+              <div className="mt-4 space-y-4">
+                {(proof.signedUrl || proof.publicUrl) &&
+                (proof.mimeType?.startsWith("image/") ||
+                  /\.(png|jpe?g|webp|gif)$/i.test(proof.fileName ?? "")) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={proof.signedUrl ?? proof.publicUrl}
+                    alt={proof.fileName ?? "Comprobante"}
+                    className="max-h-[420px] w-full rounded-2xl border border-[var(--admin-border)] object-contain bg-[var(--admin-surface-soft)] p-3"
+                  />
+                ) : null}
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                  <p className="font-semibold text-emerald-800">{proof.fileName ?? "Comprobante cargado"}</p>
+                  <p className="mt-1 text-xs font-bold text-emerald-600">Subido: {proof.uploadedAt ? formatDateTime(proof.uploadedAt) : "—"}</p>
+                  {proof.signedUrl || proof.publicUrl ? (
+                    <a
+                      href={proof.signedUrl ?? proof.publicUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]"
+                    >
+                      Abrir archivo ↗
+                    </a>
+                  ) : null}
+                </div>
               </div>
-            ) : <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">El cliente todavía no adjuntó voucher.</p>}
+            ) : (
+              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
+                El cliente todavía no adjuntó voucher.
+              </p>
+            )}
           </Card>
 
           <Card className="p-5">
@@ -82,10 +106,13 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
           {row.status !== "succeeded" && row.status !== "failed" ? (
             <Card className="p-5">
               <h2 className="text-lg font-semibold text-[var(--admin-text)]">Decisión administrativa</h2>
+              <p className="mt-2 text-sm text-[var(--admin-text-muted)]">
+                Aprobar acredita <strong>saldo disponible</strong> en cartera. No asigna a TikTok.
+              </p>
               <form action={approveManualPaymentAction} className="mt-4 space-y-3">
                 <input type="hidden" name="id" value={row.id} />
                 <Textarea name="notes" placeholder="Notas internas de aprobación…" />
-                <Button type="submit" variant="success" className="w-full">Aprobar y acreditar ledger</Button>
+                <Button type="submit" variant="success" className="w-full">Aprobar · acreditar cartera</Button>
               </form>
               <form action={rejectManualPaymentAction} className="mt-4 space-y-3 border-t border-[#e4eef3] pt-4">
                 <input type="hidden" name="id" value={row.id} />

@@ -257,7 +257,7 @@ export function ManualPaymentModal({
       } else {
         setPendingMessage(
           data.paymentIntent.analysis?.reason ??
-            "Comprobante recibido. Te avisamos cuando se acredite.",
+            "Comprobante en revisión. Te avisamos cuando se acredite.",
         );
         setStep("pending");
       }
