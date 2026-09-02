@@ -217,6 +217,14 @@ export const serverEnv = {
    */
   tiktokBcFundingEnabled: parseBoolean(process.env.TIKTOK_BC_FUNDING_ENABLED, false),
   /**
+   * Si true, intenta POST /bc/transfer/ con child_bc_id (Multi-tier BC).
+   * TikTok lo habilita solo por allowlist — sin eso responde 40000.
+   */
+  tiktokMultiTierBcEnabled: parseBoolean(
+    process.env.TIKTOK_MULTI_TIER_BC_ENABLED,
+    false,
+  ),
+  /**
    * Si true, al aprobar un draft Agent Pro se publica en TikTok
    * (upload video/image + campaign/adgroup/ad en PAUSED).
    */

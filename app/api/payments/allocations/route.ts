@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     idempotencyKey?: string;
     description?: string;
     agencyBmFunding?: boolean;
+    crossBmFunding?: boolean;
+    crossBmSourceBcId?: string;
   };
 
   try {
@@ -82,6 +84,8 @@ export async function POST(request: Request) {
       requestedBy: session.id,
       currency: body.currency ?? "USD",
       agencyBmFunding: wantsAgencyBm,
+      crossBmFunding: wantsAgencyBm ? Boolean(body.crossBmFunding) : false,
+      crossBmSourceBcId: body.crossBmSourceBcId,
       idempotencyKey:
         body.idempotencyKey ??
         `allocation:${session.organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,

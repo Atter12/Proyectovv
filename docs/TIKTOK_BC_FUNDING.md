@@ -90,7 +90,7 @@ Advertiser (cash sin gastar)  --DEDUCT-->  BC TikTok
 
 | BM | Qué hace Holistic |
 |----|-------------------|
-| **200** | `POST /bc/transfer/` `transfer_type=DEDUCT` (cash advertiser → BC), luego `ledger_refund_from_ad_account_to_wallet` |
+| **200** | `POST /bc/transfer/` `transfer_type=REFUND` (cash advertiser → BC), luego `ledger_refund_from_ad_account_to_wallet` |
 | **10 / 30** | Baja presupuesto (`UPDATE`) best-effort + refund ledger a cartera |
 
 UI: **Pagos → misma tabla de Recargar/Asignar**.  
@@ -109,7 +109,7 @@ API: `POST /api/payments/reclaim` `{ adAccountId, amount?, forceLedgerOnly? }`.
 Caso: recargaste $30 a la campaña A y querés pasar $15 a la campaña B (activa o suspendida la origen).
 
 ```
-Cuenta A (origen)  --DEDUCT/baja presupuesto-->  BC TikTok
+Cuenta A (origen)  --REFUND/baja presupuesto-->  BC TikTok
                                                     ↓
                               ledger: ad_account(A) → wallet (puente)
                                                     ↓
@@ -131,6 +131,67 @@ API: `POST /api/payments/transfer` `{ fromAdAccountId, toAdAccountId, amount }`.
 - Destino: debe estar **Activa/Aprobada** (no suspendida).
 - Solo se mueve lo **sin gastar** (TikTok puede capar en BM200).
 - Requiere `TIKTOK_BC_FUNDING_ENABLED=true` + token con Finance + Create Ad Account (151).
+
+---
+
+## Cross-BM: jalar crédito de otro BM (misma agencia Holistic)
+
+**Contexto ops:** Holistic opera BM 10 (PANAMERICANA CO), BM 30 (HOLISTIC PE) y BM 200 (PROALBA PE).  
+En Hecom son “la misma agencia”, pero en TikTok son **clientes legales distintos** con Payment Portfolios separados.
+
+### Qué probamos (API v1.3, mar 2026)
+
+| Intento | Resultado |
+|---------|-----------|
+| `bc/transfer` cash BM200 → cuenta en BM10 | Cuenta no pertenece a ese BC |
+| `bc/transfer` grant BM30 → cuenta BM10 | Cuenta no pertenece a ese BC |
+| `bc/transfer` `child_bc_id` BM30→BM10 (`transfer_level=BC`) | **40000 Multi-tier BC allowlist-only** |
+| `amount_info.credit_amount` → advertiser | Params invalid / requiere Balance Sharing + portfolio con crédito |
+| `advertiser/update` INCREMENTAL en BM10 | OK en API, pero **no gastable** si portfolio `available_amount = 0` |
+| `bc/transfer` REFUND/RECHARGE cash en BM200 | OK (mín ~$10) para cuentas del mismo BM |
+
+**Conclusión:** no hay API pública hoy para “prestar” crédito BM30→BM10 sin **allowlist Multi-tier BC** de TikTok, o recargar el portfolio BM10 manualmente.
+
+### Caminos viables
+
+1. **Ops / Annie:** Finance → Payment management → recargar crédito portfolio **PANAMERICANA** (BM10) hasta `available_amount ≥ monto`.
+2. **TikTok rep:** pedir allowlist **Multi-tier BC** (padre BM30 → hijo BM10). Luego en Vercel: `TIKTOK_MULTI_TIER_BC_ENABLED=true`.
+3. **Nueva cuenta** en BM30 (crédito ~$98k) o BM200 (cash ~$37k) si el cliente puede migrar.
+4. **Holistic gerente:** `crossBmFunding: true` en allocate intenta pull BM30→BM10 antes de subir presupuesto (solo si allowlist activo).
+
+### Preflight Holistic (BM SHARED)
+
+Antes de asignar/recargar en BM 10/30, Holistic valida:
+
+- `account_balance` (crédito visible en la cuenta)
+- cupo sin gastar del presupuesto (`budget − budget_cost`)
+
+Si pedís más de lo que el portfolio permite, **bloqueamos** la operación (evita saldo Holistic/TikTok no gastable).
+
+### API diagnóstico (gerente)
+
+```http
+GET /api/payments/cross-bm-status?advertiserId=7660…&bcId=765245…&amount=300
+```
+
+Devuelve panorama BM 10/30/200, si el target puede fondearse y recomendaciones.
+
+### Env extra
+
+```env
+TIKTOK_MULTI_TIER_BC_ENABLED=false   # true solo cuando TikTok habilite allowlist
+```
+
+### Código
+
+| Pieza | Archivo |
+|-------|---------|
+| Orquestador cross-BM | `lib/payments/cross-bm-funding.server.ts` |
+| Payment Portfolios | `lib/integrations/tiktok/payment-portfolio.server.ts` |
+| Preflight en allocate | `lib/payments/allocate-with-tiktok.server.ts` |
+| Diagnóstico API | `GET /api/payments/cross-bm-status` |
+
+**Nota API:** TikTok usa `transfer_type: REFUND` (no `DEDUCT`) para sacar cash del advertiser → BC.
 
 ---
 

@@ -49,7 +49,7 @@ export interface ReclaimFromAdAccountResult {
  * Recupera saldo de una cuenta ads → cartera Holistic.
  * Caso típico: cuenta BM200 baneada con cash sin gastar.
  *
- * BM 200: DEDUCT cash advertiser → BC, luego ledger refund.
+ * BM 200: REFUND cash advertiser → BC, luego ledger refund.
  * BM 10/30: baja presupuesto (best-effort) + ledger refund.
  */
 export async function reclaimFromAdAccountWithTikTok(
@@ -148,7 +148,7 @@ export async function reclaimFromAdAccountWithTikTok(
         tiktokRequestId = decreased.tiktokRequestId;
         path = "budget_decrease";
       } else {
-        // BM 200 (cash): DEDUCT lo que quede en TikTok (cap).
+        // BM 200 (cash): REFUND lo que quede en TikTok (cap).
         const snapshot = await getAdvertiserBudgetSnapshot({
           bcId,
           advertiserId,
@@ -178,7 +178,7 @@ export async function reclaimFromAdAccountWithTikTok(
           advertiserId,
           cashAmount,
           requestId: `bc:reclaim:${idempotencyKey}`,
-          transferType: "DEDUCT",
+          transferType: "REFUND",
         });
         tiktokRequestId = transfer.tiktokRequestId;
         path = "cash_deduct";

@@ -10,6 +10,12 @@ const AddBalanceModal = dynamic(
   { ssr: false },
 );
 
+const ManualPaymentModal = dynamic(
+  () =>
+    import("./ManualPaymentModal.client").then((m) => m.ManualPaymentModal),
+  { ssr: false },
+);
+
 interface PaymentsAddBalanceModalHostProps {
   selectedGateway: PaymentGatewayId;
   depositFeePercent?: number;
@@ -35,9 +41,14 @@ export function PaymentsAddBalanceModalHost({
 
   if (!modalOpen) return null;
 
-  // Pago manual en mantenimiento: no abrir modal.
   if (selectedGateway === "manual") {
-    return null;
+    return (
+      <ManualPaymentModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        feePercent={depositFeePercent}
+      />
+    );
   }
 
   return (

@@ -9,7 +9,8 @@ interface TikTokApiResponse<T> {
   request_id?: string;
 }
 
-export type TikTokBcTransferType = "RECHARGE" | "DEDUCT";
+/** TikTok API usa RECHARGE | REFUND (REFUND = sacar cash/crédito del advertiser). */
+export type TikTokBcTransferType = "RECHARGE" | "REFUND";
 
 /** Fuente de fondos en `/bc/transfer/` — no incluye línea de crédito SHARED. */
 export type TikTokBcFundingSource = "cash" | "grant";
@@ -219,7 +220,7 @@ function buildTransferBody(input: {
 }
 
 /**
- * Mueve cash del Business Center → advertiser (o al revés con DEDUCT).
+ * Mueve cash del Business Center → advertiser (o al revés con REFUND).
  * @see https://business-api.tiktok.com/portal/docs?id=1739939095321601
  */
 export async function transferBcFundsToAdvertiser(
@@ -253,11 +254,11 @@ export async function transferBcFundsToAdvertiser(
     await resolveTikTokFinanceAccessToken(input.organizationId);
   const tokenFp = tokenFingerprint(accessToken);
 
-  // DEDUCT: cash sale del advertiser → BC. No exige cash disponible en el BM.
+  // REFUND: cash sale del advertiser → BC. No exige cash disponible en el BM.
   let fundingSource: TikTokBcFundingSource = "cash";
   let fundingAvailable: number = Infinity;
 
-  if (transferType !== "DEDUCT") {
+  if (transferType !== "REFUND") {
     const balanceDetail = await getBcBalanceDetail({
       bcId,
       organizationId: input.organizationId,

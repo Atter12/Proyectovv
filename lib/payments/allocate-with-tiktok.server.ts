@@ -10,6 +10,7 @@ import {
   isSharedCreditBmBucket,
   resolveBmBucketFromBcId,
   SYSTEM_ALLOCATABLE_BM_BUCKETS,
+  HECOM_BM_BUCKET_TO_BC,
 } from "@/lib/hecom/bm-bucket.shared";
 import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
@@ -17,6 +18,10 @@ import {
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
+import {
+  assertSharedBmSpendableBeforeAllocate,
+  attemptCrossBmCreditPull,
+} from "@/lib/payments/cross-bm-funding.server";
 import {
   assertTikTokCashMatchesCents,
   usdCentsToTikTokCashAmount,
@@ -39,6 +44,13 @@ export interface AllocateWithTikTokInput {
    * haya recargado cartera. Acredita un puente contable en Holistic.
    */
   agencyBmFunding?: boolean;
+  /**
+   * Gerente: intenta jalar crédito de otro BM (ej. BM30 → BM10) vía Multi-tier BC
+   * antes de subir presupuesto. Requiere TIKTOK_MULTI_TIER_BC_ENABLED + allowlist TikTok.
+   */
+  crossBmFunding?: boolean;
+  /** BC origen para crossBmFunding. Default: BM 30 (Holistic PE). */
+  crossBmSourceBcId?: string;
 }
 
 export interface AllocateWithTikTokResult {
@@ -235,6 +247,26 @@ export async function allocateWithOptionalTikTokFunding(
     assertTikTokCashMatchesCents(cashAmount, input.amountCents);
 
     if (useSharedBudgetPath) {
+      if (agencyBmFunding && input.crossBmFunding && bmBucket === "10") {
+        const sourceBcId =
+          input.crossBmSourceBcId?.trim() ||
+          HECOM_BM_BUCKET_TO_BC["30"];
+        await attemptCrossBmCreditPull({
+          sourceBcId,
+          targetBcId: bcId,
+          amountUsd: cashAmount,
+          organizationId: input.organizationId,
+          requestId: `cross-bm:${idempotencyKey}`.padEnd(32, "0").slice(0, 32),
+        });
+      }
+
+      await assertSharedBmSpendableBeforeAllocate({
+        bcId,
+        advertiserId,
+        amountUsd: cashAmount,
+        organizationId: input.organizationId,
+      });
+
       const budgetResult = await increaseSharedBmAdvertiserBudget({
         organizationId: input.organizationId,
         bcId,

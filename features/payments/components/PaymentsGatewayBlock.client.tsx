@@ -12,6 +12,12 @@ const AddBalanceModal = dynamic(
   { ssr: false },
 );
 
+const ManualPaymentModal = dynamic(
+  () =>
+    import("./ManualPaymentModal.client").then((m) => m.ManualPaymentModal),
+  { ssr: false },
+);
+
 const AutoRechargeSchedule = dynamic(
   () =>
     import("./AutoRechargeSchedule.client").then((m) => m.AutoRechargeSchedule),
@@ -81,6 +87,14 @@ export function PaymentsGatewayBlockClient({
         canSwitchFundingModes={canSwitchFundingModes}
         depositFeePercent={depositFeePercent}
       />
+
+      {canClientStripeFund && modalOpen && selectedGateway === "manual" ? (
+        <ManualPaymentModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          feePercent={depositFeePercent}
+        />
+      ) : null}
 
       {canClientStripeFund && modalOpen && selectedGateway !== "manual" ? (
         <AddBalanceModal
