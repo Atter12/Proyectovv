@@ -809,13 +809,20 @@ export async function getRecentManualPaymentIntents(
 }
 
 /**
- * Staff/gerente: cola de boletas manuales (sin cripto, sin firmar 80 URLs).
+ * Staff/gerente: cola de boletas manuales del cliente Hecom seleccionado.
  */
-export async function listManualVoucherReviewsForStaff(): Promise<{
+export async function listManualVoucherReviewsForStaff(options?: {
+  hecomClienteId?: string | null;
+}): Promise<{
   pending: ManualPaymentIntentItem[];
   recent: ManualPaymentIntentItem[];
   pendingCount: number;
 }> {
+  const hecomClienteId = options?.hecomClienteId?.trim() || null;
+  if (!hecomClienteId) {
+    return { pending: [], recent: [], pendingCount: 0 };
+  }
+
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
 
@@ -826,8 +833,9 @@ export async function listManualVoucherReviewsForStaff(): Promise<{
     )
     .eq("provider", "manual")
     .in("status", ["processing", "succeeded", "failed", "requires_payment", "created"])
+    .filter("metadata->>hecom_cliente_id", "eq", hecomClienteId)
     .order("created_at", { ascending: false })
-    .limit(120);
+    .limit(80);
 
   if (error) {
     console.error("[payments] listManualVoucherReviewsForStaff", error.message);
