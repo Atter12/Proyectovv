@@ -2,7 +2,7 @@ import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ManualVoucherReviewHost } from "@/features/payments/components/ManualVoucherReviewHost";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { getActingAsCliente, getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
@@ -15,6 +15,10 @@ export default async function ManualPaymentsReviewPage() {
   });
 
   if (!capabilities.isStaff && !capabilities.isSuperAdmin) {
+    redirect(routes.payments);
+  }
+
+  if (await getActingAsCliente(session.id)) {
     redirect(routes.payments);
   }
 

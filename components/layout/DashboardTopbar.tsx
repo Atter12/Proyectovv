@@ -16,6 +16,7 @@ interface DashboardTopbarProps {
   onMenuClick?: () => void;
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
+  actingAsCliente?: boolean;
 }
 
 export function DashboardTopbar({
@@ -24,6 +25,7 @@ export function DashboardTopbar({
   onMenuClick,
   selectedCliente = null,
   persona = "cliente",
+  actingAsCliente = false,
 }: DashboardTopbarProps) {
   const pathname = usePathname();
   const currentPage = mainNavigation.find(
@@ -52,7 +54,7 @@ export function DashboardTopbar({
                     : "Inbox Soporte"
                   : (currentPage?.label ?? "Panel");
 
-  const canPickClients = persona !== "cliente";
+  const canPickClients = persona !== "cliente" || actingAsCliente;
 
   return (
     <header className="app-topbar sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 px-3.5 sm:h-16 sm:min-h-[64px] sm:gap-3 sm:px-5 lg:px-6">

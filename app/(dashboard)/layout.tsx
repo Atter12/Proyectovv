@@ -2,7 +2,10 @@ import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
@@ -28,6 +31,7 @@ export default async function DashboardLayout({
       : "cliente";
 
   let selected = await getSelectedHecomCliente(session.id);
+  let actingAsCliente = await getActingAsCliente(session.id);
 
   if (
     selected &&
@@ -37,6 +41,13 @@ export default async function DashboardLayout({
   ) {
     selected = null;
   }
+
+  if (actingAsCliente && (!selected || (!funding.isStaff && !funding.isSuperAdmin))) {
+    actingAsCliente = false;
+  }
+
+  const chromePersona: DashboardPersona =
+    actingAsCliente && selected ? "cliente" : persona;
 
   // Precalienta cache TikTok BC en background (Cuentas ads / Pagos más rápidos).
   warmHolisticBcAdvertisers({
@@ -59,7 +70,7 @@ export default async function DashboardLayout({
         includeSaldo: false,
       });
 
-      if (persona === "cliente" && session.organizationId) {
+      if (chromePersona === "cliente" && session.organizationId) {
         const wallet = await getWalletLedgerBalance(session.organizationId);
         selectedCliente = {
           id: shell?.id ?? selected.id,
@@ -87,7 +98,7 @@ export default async function DashboardLayout({
       selectedCliente = {
         id: selected.id,
         name: selected.name,
-        ...(persona === "cliente"
+        ...(chromePersona === "cliente"
           ? { walletBalanceCents: 0, walletCurrency: "USD" }
           : { saldoEstimado: null }),
         avatarUrl: null,
@@ -106,6 +117,8 @@ export default async function DashboardLayout({
     console.info("[dashboard-layout]", {
       ms: Date.now() - started,
       persona,
+      chromePersona,
+      actingAsCliente,
       hasCliente: Boolean(selectedCliente),
     });
   }
@@ -116,7 +129,8 @@ export default async function DashboardLayout({
         <DashboardSidebar
           className="h-full w-full"
           selectedCliente={selectedCliente}
-          persona={persona}
+          persona={chromePersona}
+          actingAsCliente={actingAsCliente && Boolean(selected)}
         />
       </aside>
 
@@ -124,7 +138,8 @@ export default async function DashboardLayout({
         <DashboardLayoutChrome
           user={user}
           selectedCliente={selectedCliente}
-          persona={persona}
+          persona={chromePersona}
+          actingAsCliente={actingAsCliente && Boolean(selected)}
         >
           {children}
         </DashboardLayoutChrome>

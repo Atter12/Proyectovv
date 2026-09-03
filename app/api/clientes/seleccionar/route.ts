@@ -10,7 +10,9 @@ import {
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import {
   clearSelectedHecomCliente,
+  getActingAsCliente,
   getSelectedHecomCliente,
+  setActingAsCliente,
   setSelectedHecomCliente,
 } from "@/lib/hecom/selected-cliente.server";
 
@@ -23,7 +25,8 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "No autenticado" }, { status: 401 });
   }
   const selected = await getSelectedHecomCliente(session.id);
-  return NextResponse.json({ ok: true, selected });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  return NextResponse.json({ ok: true, selected, actingAsCliente });
 }
 
 /** POST { clienteId, name? } — persist selection for dashboard scoping. */
@@ -33,19 +36,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "No autenticado" }, { status: 401 });
   }
 
-  let body: { clienteId?: string; name?: string } = {};
+  let body: { clienteId?: string; name?: string; actAsCliente?: boolean } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ ok: false, error: "JSON inválido" }, { status: 400 });
-  }
-
-  const clienteId = String(body.clienteId ?? "").trim();
-  if (!clienteId) {
-    return NextResponse.json(
-      { ok: false, error: "Falta clienteId" },
-      { status: 400 },
-    );
   }
 
   const isAdmin = userIsAllowedAdmin({
@@ -53,6 +48,30 @@ export async function POST(request: Request) {
     email: session.email,
   });
   const isStaff = isHecomOtpStaffEmail(session.email);
+
+  const clienteId = String(body.clienteId ?? "").trim();
+  if (!clienteId && typeof body.actAsCliente === "boolean") {
+    if (!isAdmin && !isStaff) {
+      return NextResponse.json(
+        { ok: false, error: "Solo staff puede cambiar esta vista." },
+        { status: 403 },
+      );
+    }
+    await setActingAsCliente(body.actAsCliente);
+    const selected = await getSelectedHecomCliente(session.id);
+    return NextResponse.json({
+      ok: true,
+      selected,
+      actingAsCliente: body.actAsCliente,
+    });
+  }
+
+  if (!clienteId) {
+    return NextResponse.json(
+      { ok: false, error: "Falta clienteId" },
+      { status: 400 },
+    );
+  }
 
   if (isHecomOtpLoginEnabled() && !isAdmin && !isStaff) {
     const allowed = await resolveHecomClientesForEmail(session.email);
@@ -94,9 +113,20 @@ export async function POST(request: Request) {
     name,
     userId: session.id,
   });
+  if (typeof body.actAsCliente === "boolean") {
+    if (body.actAsCliente && !isAdmin && !isStaff) {
+      return NextResponse.json(
+        { ok: false, error: "Solo staff puede entrar como cliente." },
+        { status: 403 },
+      );
+    }
+    await setActingAsCliente(body.actAsCliente);
+  }
+  const actingAsCliente = await getActingAsCliente(session.id);
   return NextResponse.json({
     ok: true,
     selected: { id: clienteId, name },
+    actingAsCliente,
   });
 }
 

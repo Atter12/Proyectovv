@@ -14,12 +14,14 @@ interface DashboardSidebarProps {
   className?: string;
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
+  actingAsCliente?: boolean;
 }
 
 export function DashboardSidebar({
   className,
   selectedCliente = null,
   persona = "cliente",
+  actingAsCliente = false,
 }: DashboardSidebarProps) {
   return (
     <aside
@@ -41,12 +43,13 @@ export function DashboardSidebar({
         <SidebarWalletCard
           selectedCliente={selectedCliente}
           persona={persona}
+          actingAsCliente={actingAsCliente}
         />
       </div>
 
       <p className="dashboard-sidebar-menu-label">Menú</p>
 
-      <DashboardNavLinks persona={persona} />
+      <DashboardNavLinks persona={persona} actingAsCliente={actingAsCliente} />
     </aside>
   );
 }

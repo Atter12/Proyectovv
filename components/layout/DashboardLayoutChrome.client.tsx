@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import type { User } from "@/types/user";
 import type { SidebarSelectedCliente } from "./SidebarWalletCard.client";
 import type { DashboardPersona } from "@/types/dashboard-persona";
+import { ActingAsClienteBanner } from "./ActingAsClienteBanner.client";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -22,6 +23,7 @@ interface DashboardLayoutChromeProps {
   user: User;
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
+  actingAsCliente?: boolean;
 }
 
 export function DashboardLayoutChrome({
@@ -29,6 +31,7 @@ export function DashboardLayoutChrome({
   user,
   selectedCliente = null,
   persona = "cliente",
+  actingAsCliente = false,
 }: DashboardLayoutChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -85,6 +88,7 @@ export function DashboardLayoutChrome({
             className="h-full w-full"
             selectedCliente={selectedCliente}
             persona={persona}
+            actingAsCliente={actingAsCliente}
           />
         </div>
       </div>
@@ -96,8 +100,12 @@ export function DashboardLayoutChrome({
           onMenuClick={() => setSidebarOpen(true)}
           selectedCliente={selectedCliente}
           persona={persona}
+          actingAsCliente={actingAsCliente}
         />
         <main className="app-content mx-auto min-w-0 w-full max-w-[1280px] flex-1 px-4 py-5 pb-20 sm:px-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8">
+          {actingAsCliente && selectedCliente ? (
+            <ActingAsClienteBanner clienteName={selectedCliente.name} />
+          ) : null}
           {children}
         </main>
       </div>

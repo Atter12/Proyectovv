@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 export const HECOM_CLIENTE_COOKIE_ID = "vv_hecom_cliente_id";
 export const HECOM_CLIENTE_COOKIE_NAME = "vv_hecom_cliente_name";
 export const HECOM_CLIENTE_COOKIE_OWNER = "vv_hecom_cliente_owner";
+export const HECOM_ACT_AS_CLIENTE_COOKIE = "vv_hecom_act_as_cliente";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
@@ -58,9 +59,37 @@ export async function setSelectedHecomCliente(input: {
   }
 }
 
+export async function getActingAsCliente(
+  userId?: string | null,
+): Promise<boolean> {
+  const store = await cookies();
+  const flag = store.get(HECOM_ACT_AS_CLIENTE_COOKIE)?.value?.trim();
+  if (flag !== "1") return false;
+  const owner = store.get(HECOM_CLIENTE_COOKIE_OWNER)?.value?.trim() ?? "";
+  if (userId && owner && owner !== userId) return false;
+  const id = store.get(HECOM_CLIENTE_COOKIE_ID)?.value?.trim() ?? "";
+  return Boolean(id);
+}
+
+export async function setActingAsCliente(enabled: boolean): Promise<void> {
+  const store = await cookies();
+  const common = {
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: "lax" as const,
+    httpOnly: true,
+  };
+  if (enabled) {
+    store.set(HECOM_ACT_AS_CLIENTE_COOKIE, "1", common);
+    return;
+  }
+  store.delete(HECOM_ACT_AS_CLIENTE_COOKIE);
+}
+
 export async function clearSelectedHecomCliente(): Promise<void> {
   const store = await cookies();
   store.delete(HECOM_CLIENTE_COOKIE_ID);
   store.delete(HECOM_CLIENTE_COOKIE_NAME);
   store.delete(HECOM_CLIENTE_COOKIE_OWNER);
+  store.delete(HECOM_ACT_AS_CLIENTE_COOKIE);
 }

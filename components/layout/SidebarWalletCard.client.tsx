@@ -23,6 +23,7 @@ interface SidebarWalletCardProps {
   className?: string;
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
+  actingAsCliente?: boolean;
 }
 
 export function SidebarWalletCard({
@@ -30,8 +31,10 @@ export function SidebarWalletCard({
   className,
   selectedCliente = null,
   persona = "cliente",
+  actingAsCliente = false,
 }: SidebarWalletCardProps) {
-  const canPickClients = persona !== "cliente";
+  const canPickClients = persona !== "cliente" || actingAsCliente;
+  const showClientWallet = persona === "cliente";
 
   if (!selectedCliente) {
     if (!canPickClients) {
@@ -86,7 +89,7 @@ export function SidebarWalletCard({
         />
         <div className="min-w-0">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
-            {canPickClients ? "Operando" : "Tu cuenta"}
+            {actingAsCliente ? "Viendo como" : canPickClients ? "Operando" : "Tu cuenta"}
           </p>
           <p className="mt-1 truncate text-[14px] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)]">
             {selectedCliente.name}
@@ -94,21 +97,7 @@ export function SidebarWalletCard({
         </div>
       </div>
 
-      {canPickClients ? (
-        <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
-          <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-            {selectedCliente.saldoEstimado != null &&
-            selectedCliente.saldoEstimado < 0
-              ? "Deuda neta Hecom"
-              : "Saldo estimado Hecom"}
-          </p>
-          <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
-            {selectedCliente.saldoEstimado == null
-              ? "…"
-              : formatMoney(selectedCliente.saldoEstimado, "USD")}
-          </p>
-        </div>
-      ) : (
+      {showClientWallet ? (
         <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
           <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
             Saldo en cartera
@@ -125,6 +114,20 @@ export function SidebarWalletCard({
             Disponible para asignar a tus cuentas ads.
           </p>
         </div>
+      ) : (
+        <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
+          <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
+            {selectedCliente.saldoEstimado != null &&
+            selectedCliente.saldoEstimado < 0
+              ? "Deuda neta Hecom"
+              : "Saldo estimado Hecom"}
+          </p>
+          <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
+            {selectedCliente.saldoEstimado == null
+              ? "…"
+              : formatMoney(selectedCliente.saldoEstimado, "USD")}
+          </p>
+        </div>
       )}
 
       <div
@@ -139,7 +142,7 @@ export function SidebarWalletCard({
           onClick={onNavigate}
           className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
-          {canPickClients ? "Recargar" : "Pagos"}
+          {showClientWallet ? "Pagos" : "Recargar"}
         </Link>
         {canPickClients ? (
           <Link

@@ -103,3 +103,22 @@ export function resolvePaymentsFundingCapabilities(input: {
     defaultFundingMode,
   };
 }
+
+/**
+ * Staff/super admin “entra como cliente”: misma UI y recarga Stripe/cartera,
+ * sin switch BM ni cola de pagos manuales.
+ */
+export function withActAsClienteView(
+  caps: PaymentsFundingCapabilities,
+  actingAsCliente: boolean,
+): PaymentsFundingCapabilities {
+  if (!actingAsCliente) return caps;
+  return {
+    isStaff: false,
+    isSuperAdmin: false,
+    canAgencyBmFund: false,
+    canClientStripeFund: true,
+    canSwitchFundingModes: false,
+    defaultFundingMode: "client",
+  };
+}

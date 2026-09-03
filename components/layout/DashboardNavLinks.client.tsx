@@ -113,12 +113,16 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
 }
 
 /** Cliente final no elige entre clientes del CRM ni ve cola de boletas. */
-function navItemsForPersona(persona: DashboardPersona): NavItem[] {
+function navItemsForPersona(
+  persona: DashboardPersona,
+  actingAsCliente = false,
+): NavItem[] {
   if (persona === "cliente") {
-    return mainNavigation.filter(
-      (item) =>
-        item.href !== "/clientes" && item.href !== "/payments/manual",
-    );
+    return mainNavigation.filter((item) => {
+      if (item.href === "/payments/manual") return false;
+      if (item.href === "/clientes") return actingAsCliente;
+      return true;
+    });
   }
   return mainNavigation;
 }
@@ -126,14 +130,16 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
 interface DashboardNavLinksProps {
   onNavigate?: () => void;
   persona?: DashboardPersona;
+  actingAsCliente?: boolean;
 }
 
 export function DashboardNavLinks({
   onNavigate,
   persona = "cliente",
+  actingAsCliente = false,
 }: DashboardNavLinksProps) {
   const pathname = usePathname();
-  const items = navItemsForPersona(persona);
+  const items = navItemsForPersona(persona, actingAsCliente);
 
   return (
     <nav className="dashboard-sidebar-nav">

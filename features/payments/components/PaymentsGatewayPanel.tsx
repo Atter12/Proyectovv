@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { resolvePaymentsFundingCapabilities, withActAsClienteView } from "@/lib/payments/funding-roles.server";
 import {
   buildAdvertiserEnsureList,
   enrichAllocationAccountsFromAdsOverview,
@@ -15,6 +15,7 @@ import {
   sortPaymentAccounts,
   summarizePaymentAccounts,
 } from "@/lib/sort/payment-accounts";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
@@ -63,10 +64,14 @@ export async function PaymentsGatewayPanel({
   skipOrphanCleanup = false,
   skipApprovedSync = false,
 }: PaymentsGatewayPanelProps) {
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
 
   if (!skipOrphanCleanup && session.organizationId) {
     try {

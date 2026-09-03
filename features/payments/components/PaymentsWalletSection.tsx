@@ -1,5 +1,9 @@
 import { getPaymentPageCore } from "@/services/payments.service";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import type { SessionUser } from "@/types/auth";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import { WalletSummaryPremium } from "./WalletSummaryPremium";
@@ -21,16 +25,20 @@ export async function PaymentsWalletSection({
   const preferredGateway =
     core.gateways.find((g) => g.id === core.wallet.preferredGateway) ??
     core.gateways[0]!;
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
 
   return (
     <WalletSummaryPremium
       wallet={core.wallet}
       preferredGateway={preferredGateway}
-      staffMode={staffMode || capabilities.isStaff}
+      staffMode={(staffMode && !actingAsCliente) || capabilities.isStaff}
       canClientStripeFund={capabilities.canClientStripeFund}
       hecomFinance={hecomFinance}
       clienteName={clienteName}

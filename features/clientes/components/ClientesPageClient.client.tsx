@@ -126,7 +126,7 @@ export function ClientesPageClient({
     });
   }, [payload?.clients, q]);
 
-  function elegirCliente(client: ClientRow) {
+  function elegirCliente(client: ClientRow, actAsCliente = false) {
     const contactName =
       client.contactName?.trim() || client.contactEmail || client.name;
     setSelectError(null);
@@ -140,6 +140,7 @@ export function ClientesPageClient({
           body: JSON.stringify({
             clienteId: client.id,
             name: contactName,
+            actAsCliente,
           }),
         });
         const json = (await res.json()) as { ok?: boolean; error?: string };
@@ -149,7 +150,7 @@ export function ClientesPageClient({
           return;
         }
         // Gerente va directo a Pagos (fondear BM); scoped sigue a overview.
-        router.push(mode === "staff" ? routes.payments : routes.overview);
+        router.push(actAsCliente ? routes.overview : mode === "staff" ? routes.payments : routes.overview);
         router.refresh();
       } catch (err) {
         setSelectError(
@@ -171,11 +172,11 @@ export function ClientesPageClient({
           {isStaffPicker ? "CRM Hecom" : "Tu cuenta"}
         </p>
         <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
-          {isStaffPicker ? "Elegí a quién recargar" : "Elegir cliente"}
+          {isStaffPicker ? "Elegí un cliente" : "Elegir cliente"}
         </h1>
         <p className="mt-1 text-[13px] text-[var(--auth-text-muted)]">
           {isStaffPicker
-            ? "Lista del CRM · al seleccionar vas a Pagos para asignar."
+            ? "Recargar como gerente (BM) o entrar al panel como esa persona: gastos, cuentas y recarga Stripe."
             : "Solo ves los clientes de tu cuenta."}
         </p>
         {!loading && payload?.ok ? (
@@ -297,14 +298,35 @@ export function ClientesPageClient({
               </div>
 
               <div className="mt-4 flex flex-col gap-2">
-                <button
-                  type="button"
-                  disabled={busy || pending}
-                  onClick={() => elegirCliente(client)}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
-                >
-                  {busy ? "Eligiendo…" : isStaffPicker ? "Recargar este cliente" : "Operar este cliente"}
-                </button>
+                {isStaffPicker ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy || pending}
+                      onClick={() => elegirCliente(client, true)}
+                      className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
+                    >
+                      {busy ? "Entrando…" : "Entrar como este cliente"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || pending}
+                      onClick={() => elegirCliente(client, false)}
+                      className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)] disabled:opacity-55"
+                    >
+                      Operar como gerente
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy || pending}
+                    onClick={() => elegirCliente(client)}
+                    className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
+                  >
+                    {busy ? "Eligiendo…" : "Operar este cliente"}
+                  </button>
+                )}
                 <Link
                   href={`/clientes/${client.id}`}
                   className="text-center text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)]"

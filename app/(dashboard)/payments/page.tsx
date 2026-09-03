@@ -9,9 +9,12 @@ import { PaymentsSectionSkeleton } from "@/features/payments/components/Payments
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
 function StripeReturnBanner({ status }: { status?: string }) {
@@ -57,12 +60,18 @@ export default async function PaymentsPage({
   const status = typeof params.status === "string" ? params.status : undefined;
   const isStripeReturn = status === "success" || status === "cancelled";
   const selected = await getSelectedHecomCliente(session.id);
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   const canChangeCliente =
-    capabilities.isStaff || capabilities.isSuperAdmin;
+    capabilities.isStaff ||
+    capabilities.isSuperAdmin ||
+    actingAsCliente;
 
   if (!selected) {
     return (
@@ -133,7 +142,9 @@ export default async function PaymentsPage({
     });
   }
 
-  const introCopy = capabilities.canSwitchFundingModes
+  const introCopy = actingAsCliente
+    ? `Estás en el panel de ${cliente.name}: recargá con Stripe o BCP y asigná a sus cuentas, como lo haría el cliente.`
+    : capabilities.canSwitchFundingModes
     ? `Super admin: operá como Cliente (Stripe / pago manual) o Gerente (cash BM) para ${cliente.name}.`
     : capabilities.canAgencyBmFund
       ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM. Las boletas BCP se revisan en Pagos manuales.`
