@@ -93,7 +93,9 @@ export async function POST(request: Request) {
       lower.includes("no tiene saldo") ||
       lower.includes("solo hay") ||
       lower.includes("elegí") ||
-      lower.includes("suspendida")
+      lower.includes("suspendida") ||
+      lower.includes("no tiene saldo gastable") ||
+      lower.includes("ya no tiene saldo")
         ? 409
         : lower.includes("tiktok") || lower.includes("cartera holistic")
           ? 502

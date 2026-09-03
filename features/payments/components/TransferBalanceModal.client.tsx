@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatMoney } from "@/lib/format-money";
+import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface TransferBalanceModalProps {
@@ -20,6 +21,7 @@ interface TransferBalanceModalProps {
   clientSelfService?: boolean;
   /** Refresca saldo TikTok en vivo (sin F5). */
   onFundingChanged?: () => void | Promise<void>;
+  liveMetricsByAdvertiser?: Record<string, AdAccountLiveMetricsClient>;
 }
 
 interface TransferResponse {
@@ -47,6 +49,7 @@ export function TransferBalanceModal({
   allowForceLedger = false,
   clientSelfService = false,
   onFundingChanged,
+  liveMetricsByAdvertiser,
 }: TransferBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -72,18 +75,26 @@ export function TransferBalanceModal({
     setMounted(true);
   }, []);
 
+  const sourceLiveUsd = sourceAccount
+    ? liveMetricsByAdvertiser?.[
+        sourceAccount.externalAccountId?.trim() ?? ""
+      ]?.balanceUsd
+    : undefined;
+  const maxAmount = Math.max(
+    0,
+    sourceLiveUsd != null && Number.isFinite(sourceLiveUsd)
+      ? sourceLiveUsd
+      : Number(sourceAccount?.balance) || 0,
+  );
+
   useEffect(() => {
     if (!open || !sourceAccount) return;
-    setAmount(sourceAccount.balance > 0 ? String(sourceAccount.balance) : "");
+    setAmount(maxAmount > 0 ? String(maxAmount) : "");
     setToAccountId(destinationOptions[0]?.id ?? "");
     setForceLedgerOnly(false);
     setError(null);
     setSuccess(null);
-  }, [open, sourceAccount, destinationOptions]);
-
-  if (!open || !sourceAccount || !mounted) return null;
-
-  const maxAmount = sourceAccount.balance;
+  }, [open, sourceAccount, destinationOptions, maxAmount]);
   const parsed = Number.parseFloat(amount);
   const isValid =
     Boolean(toAccountId) &&
@@ -111,7 +122,7 @@ export function TransferBalanceModal({
     if (!isValid) {
       setError(
         maxAmount <= 0
-          ? "No hay saldo transferible en esta cuenta."
+          ? "No hay saldo TikTok transferible en esta cuenta."
           : `Ingresá un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
       );
       return;
@@ -153,6 +164,8 @@ export function TransferBalanceModal({
     }
   }
 
+  if (!open || !sourceAccount || !mounted) return null;
+
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
@@ -174,15 +187,16 @@ export function TransferBalanceModal({
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {clientSelfService ? (
             <>
-              Podés hacerlo vos desde acá, sin esperar a soporte. Elegí de qué
-              cuenta sacás y a cuál va el monto (parcial o total). Funciona aunque
-              la cuenta origen esté suspendida — solo se mueve lo no gastado.
+              Podés hacerlo vos desde acá, sin esperar a soporte. Se mueve el
+              saldo real de TikTok (aunque Holistic figure en $0). Elegí de qué
+              cuenta sacás y a cuál va el monto. Funciona aunque la origen esté
+              suspendida — solo lo no gastado.
             </>
           ) : (
             <>
-              Sacá saldo de una cuenta ads y pasalo directo a otra del mismo
-              cliente. Funciona con cuentas activas o suspendidas (solo lo no
-              gastado).
+              Sacá el saldo TikTok de una cuenta ads y pasalo a otra del mismo
+              cliente, aunque el ledger Holistic esté en $0. Funciona con
+              cuentas activas o suspendidas (solo lo no gastado).
             </>
           )}
         </p>
@@ -200,8 +214,14 @@ export function TransferBalanceModal({
             </span>
           ) : null}
           <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            Saldo disponible: {formatMoney(sourceAccount.balance)}
+            Transferible TikTok: {formatMoney(maxAmount)}
           </p>
+          {sourceLiveUsd != null &&
+          Math.abs(sourceLiveUsd - Number(sourceAccount.balance)) > 0.5 ? (
+            <p className="mt-0.5 text-[11px] text-[#9a9187]">
+              Asignado Holistic: {formatMoney(sourceAccount.balance)}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-amber-800">
             Estado:{" "}
             {sourceAccount.status === "disabled"
@@ -229,14 +249,22 @@ export function TransferBalanceModal({
               value={toAccountId}
               onChange={(e) => setToAccountId(e.target.value)}
             >
-              {destinationOptions.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                  {account.bmLabel ? ` · ${account.bmLabel}` : ""}
-                  {" · "}
-                  {formatMoney(account.balance)}
-                </option>
-              ))}
+              {destinationOptions.map((account) => {
+                const destLive =
+                  liveMetricsByAdvertiser?.[
+                    account.externalAccountId?.trim() ?? ""
+                  ]?.balanceUsd;
+                return (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                    {account.bmLabel ? ` · ${account.bmLabel}` : ""}
+                    {" · "}
+                    {formatMoney(
+                      destLive != null ? destLive : account.balance,
+                    )}
+                  </option>
+                );
+              })}
             </select>
           )}
           {destAccount ? (
@@ -265,8 +293,8 @@ export function TransferBalanceModal({
           />
           <p className="mt-1.5 text-[12px] text-[#6b645c]">
             {clientSelfService
-              ? "Ejemplo: recargaste $30 y querés $15 en otra campaña. Máximo transferible: "
-              : "Ejemplo: recargaste $30 y querés pasar $15 a otra campaña. Máximo: "}
+              ? "Máximo = saldo TikTok en vivo de la origen (no solo Holistic): "
+              : "Máximo = cupo TikTok en vivo de la origen (no solo Holistic): "}
             {formatMoney(maxAmount)}.
           </p>
         </div>

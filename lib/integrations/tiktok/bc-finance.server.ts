@@ -623,6 +623,7 @@ export interface TikTokAdvertiserBudgetSnapshot {
   budgetMode: string;
   accountBalance: number | null;
   cashBalance: number | null;
+  validCashBalance: number | null;
   paymentPortfolioType: string | null;
 }
 
@@ -648,13 +649,26 @@ export async function getAdvertiserBudgetSnapshot(input: {
     cache: "no-store",
   });
   const json = (await response.json()) as TikTokApiResponse<{
-    advertiser_account_list?: Array<{
+    list?: Array<{
       advertiser_id?: string | number;
+      advertiserId?: string | number;
       budget?: number | string;
       budget_cost?: number | string;
       budget_mode?: string;
       account_balance?: number | string;
       cash_balance?: number | string;
+      valid_cash_balance?: number | string;
+      payment_portfolio_type?: string;
+    }>;
+    advertiser_account_list?: Array<{
+      advertiser_id?: string | number;
+      advertiserId?: string | number;
+      budget?: number | string;
+      budget_cost?: number | string;
+      budget_mode?: string;
+      account_balance?: number | string;
+      cash_balance?: number | string;
+      valid_cash_balance?: number | string;
       payment_portfolio_type?: string;
     }>;
   }>;
@@ -672,8 +686,12 @@ export async function getAdvertiserBudgetSnapshot(input: {
   }
 
   const want = input.advertiserId.trim();
-  const row = (json.data?.advertiser_account_list ?? []).find(
-    (item) => String(item.advertiser_id ?? "") === want,
+  const rows = [
+    ...(json.data?.advertiser_account_list ?? []),
+    ...(json.data?.list ?? []),
+  ];
+  const row = rows.find(
+    (item) => String(item.advertiser_id ?? item.advertiserId ?? "") === want,
   );
   if (!row) return null;
 
@@ -681,19 +699,21 @@ export async function getAdvertiserBudgetSnapshot(input: {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+  const numOrNull = (
+    v: number | string | null | undefined,
+  ): number | null => {
+    if (v === undefined || v === null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return {
     budget: num(row.budget),
     budgetCost: num(row.budget_cost),
     budgetMode: String(row.budget_mode ?? "CUSTOM_BUDGET"),
-    accountBalance:
-      row.account_balance === undefined || row.account_balance === null
-        ? null
-        : num(row.account_balance),
-    cashBalance:
-      row.cash_balance === undefined || row.cash_balance === null
-        ? null
-        : num(row.cash_balance),
+    accountBalance: numOrNull(row.account_balance),
+    cashBalance: numOrNull(row.cash_balance),
+    validCashBalance: numOrNull(row.valid_cash_balance),
     paymentPortfolioType: row.payment_portfolio_type
       ? String(row.payment_portfolio_type)
       : null,

@@ -130,6 +130,7 @@ export function PaymentsAssignmentPanel({
         allowForceLedger={allowForceLedger}
         clientSelfService={!agencyBmFunding}
         onFundingChanged={refreshAfterFundingChange}
+        liveMetricsByAdvertiser={metricsByAdvertiser}
       />
       <EditTikTokIdsModal
         account={editAccount}

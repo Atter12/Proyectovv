@@ -812,7 +812,9 @@ export async function listManualPayments(filters: { status?: string; q?: string 
     const purpose =
       typeof metadata.purpose === "string" ? metadata.purpose.trim() : "";
     if (source === "agency_bm_bridge") return false;
+    if (source === "tiktok_balance_import") return false;
     if (purpose === "staff_fund_from_bm") return false;
+    if (purpose === "transfer_existing_tiktok_balance") return false;
     if (
       typeof metadata.bridge_for_allocation === "string" &&
       metadata.bridge_for_allocation.trim()

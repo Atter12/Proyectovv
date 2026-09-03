@@ -29,7 +29,8 @@ export interface TransferBetweenAdAccountsResult {
 /**
  * Mueve saldo de cuenta ads A → cuenta ads B en un solo paso.
  * TikTok: DEDUCT/baja presupuesto en origen → RECHARGE/sube presupuesto en destino.
- * Ledger: refund origen → cartera → allocate destino (neto cartera ≈ 0).
+ * El tope es el cupo gastable de TikTok (cash BM200 o headroom SHARED), no solo el ledger.
+ * Ledger: refund origen (si hay) + import del gap TikTok → cartera → allocate destino.
  */
 export async function transferBetweenAdAccountsWithTikTok(
   input: TransferBetweenAdAccountsInput,
@@ -83,17 +84,19 @@ export async function transferBetweenAdAccountsWithTikTok(
     );
   }
 
-  const fromLedger = await getAdAccountLedgerBalance(fromAccount.id);
-  const fromAvailable = fromLedger?.availableBalanceCents ?? 0;
-  if (fromAvailable <= 0) {
-    throw new Error(
-      "La cuenta origen no tiene saldo Holistic para transferir.",
-    );
-  }
-  if (requested > fromAvailable) {
-    throw new Error(
-      `Solo hay ${(fromAvailable / 100).toFixed(2)} USD disponibles en la cuenta origen.`,
-    );
+  if (input.forceLedgerOnly) {
+    const fromLedger = await getAdAccountLedgerBalance(fromAccount.id);
+    const fromAvailable = fromLedger?.availableBalanceCents ?? 0;
+    if (fromAvailable <= 0) {
+      throw new Error(
+        "La cuenta origen no tiene saldo Holistic para transferir.",
+      );
+    }
+    if (requested > fromAvailable) {
+      throw new Error(
+        `Solo hay ${(fromAvailable / 100).toFixed(2)} USD disponibles en la cuenta origen.`,
+      );
+    }
   }
 
   if (!toAccount.external_account_id?.trim()) {
@@ -124,6 +127,7 @@ export async function transferBetweenAdAccountsWithTikTok(
       amountCents: requested,
       requestedBy: input.requestedBy,
       forceLedgerOnly: Boolean(input.forceLedgerOnly),
+      allowTikTokOverLedger: !input.forceLedgerOnly,
       idempotencyKey: `transfer-reclaim:${transferId}`,
     });
   } catch (err) {

@@ -1,6 +1,7 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
+import { pickSpendableBudgetUsd } from "@/lib/integrations/tiktok/spendable-budget.shared";
 
 interface TikTokApiResponse<T> {
   code?: number;
@@ -20,61 +21,6 @@ export type AdvertiserLiveMetrics = {
 function apiUrl(path: string): string {
   const base = serverEnv.tiktokApiBaseUrl.replace(/\/$/, "");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function parseUsd(value: unknown): number | null {
-  if (value === null || value === undefined || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
-}
-
-function pickBalanceUsd(row: Record<string, unknown>): number | null {
-  return (
-    parseUsd(row.valid_cash_balance) ??
-    parseUsd(row.cash_balance) ??
-    parseUsd(row.valid_account_balance) ??
-    parseUsd(row.account_balance) ??
-    parseUsd(row.balance) ??
-    parseUsd(row.available_balance)
-  );
-}
-
-/**
- * Saldo gastable alineado a TikTok Manager:
- * - NON_SHARED (BM200): cash real de la cuenta.
- * - SHARED (BM10/30): cupo = presupuesto − gastado (NO usar account_balance:
- *   eso es la línea de crédito del BM, no plata del cliente).
- */
-function pickSpendableBudgetUsd(row: Record<string, unknown>): number | null {
-  const portfolio = String(row.payment_portfolio_type ?? "")
-    .trim()
-    .toUpperCase();
-  const cash =
-    parseUsd(row.valid_cash_balance) ?? parseUsd(row.cash_balance);
-  const budget = parseUsd(row.budget);
-  const cost = parseUsd(row.budget_cost);
-
-  if (portfolio === "NON_SHARED") {
-    if (cash != null) return cash;
-    return (
-      parseUsd(row.valid_account_balance) ??
-      parseUsd(row.account_balance) ??
-      null
-    );
-  }
-
-  if (budget != null && cost != null) {
-    const headroom = Math.max(0, Math.round((budget - cost) * 100) / 100);
-    // Si no hay tope de presupuesto pero sí cash (casos raros), preferir cash.
-    if (headroom <= 0 && cash != null && cash > 0 && budget === 0) {
-      return cash;
-    }
-    return headroom;
-  }
-
-  if (cash != null && cash > 0) return cash;
-  if (portfolio === "SHARED") return null;
-  return pickBalanceUsd(row);
 }
 
 function todayLimaYmd(): string {

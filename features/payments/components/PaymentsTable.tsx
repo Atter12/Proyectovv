@@ -42,7 +42,11 @@ function isReclaimableSuspended(account: PaymentAccountAllocation): boolean {
   return account.status === "disabled" && Number(account.balance) > 0;
 }
 
-function hasTransferableBalance(account: PaymentAccountAllocation): boolean {
+function hasTransferableBalance(
+  account: PaymentAccountAllocation,
+  liveUsd: number | null | undefined,
+): boolean {
+  if (liveUsd != null) return liveUsd > 0.005;
   return Number(account.balance) > 0;
 }
 
@@ -146,7 +150,11 @@ export function PaymentsTable({
 
   function renderActions(account: PaymentAccountAllocation, mobile: boolean) {
     const reclaimable = isReclaimableSuspended(account);
-    const transferable = hasTransferableBalance(account);
+    const advertiserId = account.externalAccountId?.trim();
+    const liveUsd = advertiserId
+      ? liveMetricsByAdvertiser?.[advertiserId]?.balanceUsd
+      : undefined;
+    const transferable = hasTransferableBalance(account, liveUsd);
 
     return (
       <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>

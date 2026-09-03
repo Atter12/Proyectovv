@@ -625,7 +625,9 @@ function isAgencyBmBridgeIntent(metadata: Record<string, unknown>): boolean {
   const purpose = getString(metadata.purpose);
   return (
     source === "agency_bm_bridge" ||
+    source === "tiktok_balance_import" ||
     purpose === "staff_fund_from_bm" ||
+    purpose === "transfer_existing_tiktok_balance" ||
     Boolean(getString(metadata.bridge_for_allocation)) ||
     Boolean(getString(metadata.agency_bm_bridge_journal_id))
   );
