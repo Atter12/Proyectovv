@@ -171,6 +171,17 @@ export function PaymentsTable({
           >
             Transferir a otra cuenta
           </Button>
+        ) : onTransfer && !reclaimable ? (
+          <p
+            className={
+              mobile
+                ? "text-[11px] leading-4 text-[#7a736a]"
+                : "max-w-[12rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
+            }
+          >
+            Sin cupo para sacar. Para meter saldo: Transferí desde otra cuenta
+            con disponible (elegí esta como destino) o Asigná desde cartera.
+          </p>
         ) : null}
 
         {reclaimable ? (
