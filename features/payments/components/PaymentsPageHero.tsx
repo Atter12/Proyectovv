@@ -1,7 +1,5 @@
 ﻿import { routes } from "@/config/routes";
-import { formatMoney } from "@/lib/format-money";
 import {
-  CrmAsideStat,
   CrmHeroButton,
   CrmScopeHero,
 } from "@/components/dashboard/crm-ui";
@@ -54,8 +52,6 @@ export function PaymentsPageHero({
         ? "Stripe o BM → ads"
         : "Stripe → cartera → ads";
 
-  const debt = hecomFinance != null && hecomFinance.saldoEstimado < 0;
-
   return (
     <div className="space-y-4 sm:space-y-5">
       <CrmScopeHero
@@ -83,32 +79,16 @@ export function PaymentsPageHero({
           </>
         }
         aside={
-          <div className="space-y-4">
-            {hecomFinance != null ? (
-              <CrmAsideStat
-                label={debt ? "Deuda neta Hecom" : "Saldo estimado Hecom"}
-                value={formatMoney(hecomFinance.saldoEstimado, "USD")}
-                valueClassName={debt ? "text-[#b45309]" : "text-[var(--auth-text)]"}
-                detail={
-                  <>
-                    {formatMoney(hecomFinance.cobroTotal, "USD")} cobros ·{" "}
-                    {formatMoney(hecomFinance.gastoTotal, "USD")} gastos · Fee{" "}
-                    {hecomFinance.depositFeePercent}%
-                  </>
-                }
-              />
-            ) : null}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-                Flujo activo
-              </p>
-              <p className="mt-1 text-[14px] font-semibold text-[var(--auth-text)]">
-                {flowLabel}
-              </p>
-              <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-                {introCopy}
-              </p>
-            </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+              Flujo activo
+            </p>
+            <p className="mt-1 text-[14px] font-semibold text-[var(--auth-text)]">
+              {flowLabel}
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+              {introCopy}
+            </p>
           </div>
         }
       />
