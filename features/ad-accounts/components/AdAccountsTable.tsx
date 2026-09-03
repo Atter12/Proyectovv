@@ -164,7 +164,8 @@ export function AdAccountsTable({
   readOnly = false,
 }: AdAccountsTableProps) {
   const router = useRouter();
-  const live = useAdAccountLiveMetrics(readOnly);
+  // Siempre: saldo TikTok en vivo (cliente y gerente). Antes solo readOnly.
+  const live = useAdAccountLiveMetrics(true);
   const [selectedAccount, setSelectedAccount] = useState<AdAccount | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
