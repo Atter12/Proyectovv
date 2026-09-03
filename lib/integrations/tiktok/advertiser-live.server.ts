@@ -1,7 +1,11 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
-import { pickSpendableBudgetUsd } from "@/lib/integrations/tiktok/spendable-budget.shared";
+import {
+  pickBudgetLimitSnapshot,
+  pickSpendableBudgetUsd,
+  type AdvertiserBudgetLimitSnapshot,
+} from "@/lib/integrations/tiktok/spendable-budget.shared";
 
 interface TikTokApiResponse<T> {
   code?: number;
@@ -16,7 +20,29 @@ export type AdvertiserLiveMetrics = {
   spendTodayUsd: number | null;
   fetchedAt: string;
   error?: string;
+  paymentPortfolioType: string | null;
+  budgetMode: string | null;
+  budgetUsd: number | null;
+  budgetCostUsd: number | null;
+  showBudgetLimit: boolean;
+  isUnlimitedBudget: boolean;
 };
+
+type AdvertiserBalanceRow = {
+  balanceUsd: number | null;
+  limit: AdvertiserBudgetLimitSnapshot;
+};
+
+function emptyLimit(): AdvertiserBudgetLimitSnapshot {
+  return {
+    paymentPortfolioType: null,
+    budgetMode: null,
+    budgetUsd: null,
+    budgetCostUsd: null,
+    showBudgetLimit: false,
+    isUnlimited: false,
+  };
+}
 
 function apiUrl(path: string): string {
   const base = serverEnv.tiktokApiBaseUrl.replace(/\/$/, "");
@@ -36,7 +62,7 @@ async function fetchOneAdvertiserBalance(input: {
   bcId: string;
   advertiserId: string;
   accessToken: string;
-}): Promise<number | null> {
+}): Promise<AdvertiserBalanceRow> {
   const url = new URL(apiUrl("/advertiser/balance/get/"));
   url.searchParams.set("bc_id", input.bcId.trim());
   url.searchParams.set("page", "1");
@@ -67,15 +93,20 @@ async function fetchOneAdvertiserBalance(input: {
   const row = rows.find(
     (item) => String(item.advertiser_id ?? item.advertiserId ?? "") === want,
   );
-  if (!row) return null;
-  return pickSpendableBudgetUsd(row);
+  if (!row) {
+    return { balanceUsd: null, limit: emptyLimit() };
+  }
+  return {
+    balanceUsd: pickSpendableBudgetUsd(row),
+    limit: pickBudgetLimitSnapshot(row),
+  };
 }
 
 async function fetchAdvertiserBalancesForBc(input: {
   bcId: string;
   advertiserIds: string[];
-}): Promise<Map<string, number>> {
-  const result = new Map<string, number>();
+}): Promise<Map<string, AdvertiserBalanceRow>> {
+  const result = new Map<string, AdvertiserBalanceRow>();
   const ids = [...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean))];
   if (ids.length === 0) return result;
 
@@ -86,7 +117,7 @@ async function fetchAdvertiserBalancesForBc(input: {
         bcId: input.bcId,
         advertiserId,
         accessToken: token,
-      }).then((balance) => ({ advertiserId, balance })),
+      }).then((row) => ({ advertiserId, row })),
     ),
   );
 
@@ -101,9 +132,7 @@ async function fetchAdvertiserBalancesForBc(input: {
       }
       continue;
     }
-    if (item.value.balance != null) {
-      result.set(item.value.advertiserId, item.value.balance);
-    }
+    result.set(item.value.advertiserId, item.value.row);
   }
 
   // Si ninguna cuenta resolvió y hubo error de API, propagar (UI: “sin datos”).
@@ -150,6 +179,29 @@ async function fetchAdvertiserSpendForDate(input: {
   return Number.isFinite(spend) ? Math.round(spend * 100) / 100 : 0;
 }
 
+function toLiveMetrics(
+  advertiserId: string,
+  fetchedAt: string,
+  balance: AdvertiserBalanceRow | undefined,
+  spendTodayUsd: number | null,
+  error?: string,
+): AdvertiserLiveMetrics {
+  const limit = balance?.limit ?? emptyLimit();
+  return {
+    advertiserId,
+    balanceUsd: balance?.balanceUsd ?? null,
+    spendTodayUsd,
+    fetchedAt,
+    error,
+    paymentPortfolioType: limit.paymentPortfolioType,
+    budgetMode: limit.budgetMode,
+    budgetUsd: limit.budgetUsd,
+    budgetCostUsd: limit.budgetCostUsd,
+    showBudgetLimit: limit.showBudgetLimit,
+    isUnlimitedBudget: limit.isUnlimited,
+  };
+}
+
 export async function fetchAdvertiserLiveMetrics(input: {
   bcId: string;
   advertiserIds: string[];
@@ -160,7 +212,7 @@ export async function fetchAdvertiserLiveMetrics(input: {
 
   if (ids.length === 0) return [];
 
-  let balances = new Map<string, number>();
+  let balances = new Map<string, AdvertiserBalanceRow>();
   try {
     balances = await fetchAdvertiserBalancesForBc({
       bcId: input.bcId,
@@ -168,13 +220,9 @@ export async function fetchAdvertiserLiveMetrics(input: {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error de saldo";
-    return ids.map((advertiserId) => ({
-      advertiserId,
-      balanceUsd: null,
-      spendTodayUsd: null,
-      fetchedAt,
-      error: message,
-    }));
+    return ids.map((advertiserId) =>
+      toLiveMetrics(advertiserId, fetchedAt, undefined, null, message),
+    );
   }
 
   const spendResults = await Promise.all(
@@ -195,10 +243,12 @@ export async function fetchAdvertiserLiveMetrics(input: {
     spendResults.map((row) => [row.advertiserId, row.spend]),
   );
 
-  return ids.map((advertiserId) => ({
-    advertiserId,
-    balanceUsd: balances.get(advertiserId) ?? null,
-    spendTodayUsd: spendById.get(advertiserId) ?? null,
-    fetchedAt,
-  }));
+  return ids.map((advertiserId) =>
+    toLiveMetrics(
+      advertiserId,
+      fetchedAt,
+      balances.get(advertiserId),
+      spendById.get(advertiserId) ?? null,
+    ),
+  );
 }

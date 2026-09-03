@@ -2,6 +2,7 @@
 
 import { formatMoney } from "@/lib/format-money";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import { formatTikTokBudgetLimitLine } from "@/features/ad-accounts/lib/format-tiktok-budget-limit";
 
 function formatUpdatedAgo(fetchedAt: string | null | undefined): string {
   if (!fetchedAt) return "actualizando…";
@@ -47,11 +48,19 @@ export function AdAccountLiveBalanceCell({
     return <span className="text-[12px] text-[#9a9187]">—</span>;
   }
 
+  const budgetLimitLine = formatTikTokBudgetLimitLine(metric);
+
   return (
     <div className="min-w-[7rem]">
       <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
         {metric?.balanceUsd != null ? formatMoney(metric.balanceUsd) : "—"}
       </p>
+      <p className="mt-0.5 text-[10px] text-[#9a9187]">Saldo TikTok</p>
+      {budgetLimitLine ? (
+        <p className="mt-0.5 text-[10px] leading-4 tabular-nums text-[#6b645c]">
+          {budgetLimitLine}
+        </p>
+      ) : null}
       <p className="mt-0.5 text-[10px] text-[#9a9187]">
         Gasto hoy{" "}
         <span className="font-semibold tabular-nums text-[#c45a18]">

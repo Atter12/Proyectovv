@@ -11,6 +11,12 @@ export type AdAccountLiveMetricsClient = {
   spendTodayUsd: number | null;
   fetchedAt: string;
   error?: string;
+  paymentPortfolioType?: string | null;
+  budgetMode?: string | null;
+  budgetUsd?: number | null;
+  budgetCostUsd?: number | null;
+  showBudgetLimit?: boolean;
+  isUnlimitedBudget?: boolean;
 };
 
 const POLL_MS = 45_000;

@@ -55,6 +55,43 @@ export function pickSpendableBudgetUsd(
   return pickBalanceUsd(row);
 }
 
+/** Detalle de tope de gasto (Manager: presupuesto de cuenta SHARED). */
+export type AdvertiserBudgetLimitSnapshot = {
+  paymentPortfolioType: string | null;
+  budgetMode: string | null;
+  budgetUsd: number | null;
+  budgetCostUsd: number | null;
+  /** BM SHARED / presupuesto: mostrar “Límite · usado”. BM200 cash: no. */
+  showBudgetLimit: boolean;
+  isUnlimited: boolean;
+};
+
+export function pickBudgetLimitSnapshot(
+  row: Record<string, unknown>,
+): AdvertiserBudgetLimitSnapshot {
+  const portfolioRaw = String(row.payment_portfolio_type ?? "")
+    .trim()
+    .toUpperCase();
+  const portfolio = portfolioRaw || null;
+  const budgetModeRaw = String(row.budget_mode ?? "").trim().toUpperCase();
+  const budgetMode = budgetModeRaw || null;
+  const budgetUsd = parseUsd(row.budget);
+  const budgetCostUsd = parseUsd(row.budget_cost);
+  const isUnlimited = budgetMode === "UNLIMITED";
+  // Solo BM SHARED (10/30): el tope es el presupuesto de cuenta.
+  // BM200 (NON_SHARED): el cash ya es el tope; no mostrar “Límite”.
+  const showBudgetLimit = portfolio === "SHARED";
+
+  return {
+    paymentPortfolioType: portfolio,
+    budgetMode,
+    budgetUsd,
+    budgetCostUsd,
+    showBudgetLimit,
+    isUnlimited,
+  };
+}
+
 export function spendableUsdFromFinanceSnapshot(input: {
   paymentPortfolioType: string | null;
   cashBalance: number | null;

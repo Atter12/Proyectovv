@@ -2,6 +2,7 @@
 
 import { formatMoney } from "@/lib/format-money";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import { formatTikTokBudgetLimitLine } from "@/features/ad-accounts/lib/format-tiktok-budget-limit";
 
 function formatUpdatedAgo(fetchedAt: string | null | undefined): string {
   if (!fetchedAt) return "actualizando…";
@@ -61,6 +62,7 @@ export function PaymentsAccountBalanceCell({
 
   const creditUsd = metric?.balanceUsd;
   const spendToday = metric?.spendTodayUsd;
+  const budgetLimitLine = formatTikTokBudgetLimitLine(metric);
   const ledgerDiffers =
     creditUsd != null && Math.abs(creditUsd - ledger) > 0.5;
 
@@ -87,6 +89,11 @@ export function PaymentsAccountBalanceCell({
           </span>
         ) : null}
       </p>
+      {budgetLimitLine ? (
+        <p className="mt-0.5 text-[10px] leading-4 tabular-nums text-[#6b645c]">
+          {budgetLimitLine}
+        </p>
+      ) : null}
       {agencyBmFunding && spendToday != null ? (
         <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
           Gasto hoy{" "}
