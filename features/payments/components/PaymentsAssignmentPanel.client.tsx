@@ -22,12 +22,15 @@ interface PaymentsAssignmentPanelProps {
   /** Explicit prop — avoid relying on context inside portaled modal. */
   agencyBmFunding?: boolean;
   allowForceLedger?: boolean;
+  /** Cartera Holistic disponible para Asignar (modo cliente). */
+  walletBalance?: number;
 }
 
 export function PaymentsAssignmentPanel({
   accounts,
   agencyBmFunding = false,
   allowForceLedger = false,
+  walletBalance = 0,
 }: PaymentsAssignmentPanelProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -109,6 +112,7 @@ export function PaymentsAssignmentPanel({
         onClose={() => setSelectedAccount(null)}
         agencyBmFunding={agencyBmFunding}
         onFundingChanged={refreshAfterFundingChange}
+        walletBalance={walletBalance}
       />
       <ReclaimBalanceModal
         account={reclaimAccount}

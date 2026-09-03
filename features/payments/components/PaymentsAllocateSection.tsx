@@ -40,6 +40,7 @@ export function PaymentsAllocateSection({
         accounts={accounts}
         agencyBmFunding={agencyBmFunding}
         allowForceLedger={allowForceLedger}
+        walletBalance={walletBalance}
       />
     </section>
   );
