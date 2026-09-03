@@ -24,6 +24,13 @@ export type HecomCliente = {
   tiktokAdvertiserName: string | null;
   tiktokSyncEnabled: boolean | null;
   tiktokDefaultFee: number | null;
+  /**
+   * Hecom Club: slug del formulario de crédito.
+   * Si existe → cliente en modalidad crédito (paga según cobranza / fin de ciclo).
+   * Si no → prepago / sin ficha crédito.
+   */
+  creditoFormSlug: string | null;
+  cobranzaRango: string | null;
   tiktokAccounts: HecomTiktokAccount[];
 };
 
@@ -61,8 +68,20 @@ export function buildOtpTestHecomCliente(id: string): HecomCliente {
     tiktokAdvertiserName: null,
     tiktokSyncEnabled: null,
     tiktokDefaultFee: null,
+    creditoFormSlug: null,
+    cobranzaRango: null,
     tiktokAccounts: [],
   };
+}
+
+const HECOM_CLIENTE_SELECT =
+  "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee,credito_form_slug,cobranza_rango";
+
+/** Modalidad de cobro según ficha Hecom Club. */
+export function resolveHecomBillingModality(
+  cliente: Pick<HecomCliente, "creditoFormSlug">,
+): "credito" | "prepago" {
+  return cliente.creditoFormSlug?.trim() ? "credito" : "prepago";
 }
 
 function asStringArray(value: unknown): string[] {
@@ -99,6 +118,12 @@ function mapClienteRow(
       row.tiktok_default_fee != null && Number.isFinite(Number(row.tiktok_default_fee))
         ? Number(row.tiktok_default_fee)
         : null,
+    creditoFormSlug: row.credito_form_slug
+      ? String(row.credito_form_slug).trim() || null
+      : null,
+    cobranzaRango: row.cobranza_rango
+      ? String(row.cobranza_rango).trim() || null
+      : null,
     tiktokAccounts: accounts,
   };
 }
@@ -132,7 +157,7 @@ export async function listHecomClientes(): Promise<{
   const full = await hecom
     .from("clientes")
     .select(
-      "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+      HECOM_CLIENTE_SELECT,
     )
     .order("name", { ascending: true })
     .limit(500);
@@ -231,7 +256,7 @@ export async function findHecomClientesByEmail(
   const containsQuery = await hecom
     .from("clientes")
     .select(
-      "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+      HECOM_CLIENTE_SELECT,
     )
     .contains("emails", [needle])
     .limit(50);
@@ -271,7 +296,7 @@ export const getHecomCliente = cache(
       const full = await hecom
         .from("clientes")
         .select(
-          "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee",
+          HECOM_CLIENTE_SELECT,
         )
         .eq("id", clienteId)
         .maybeSingle();

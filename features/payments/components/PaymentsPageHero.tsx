@@ -60,12 +60,23 @@ export function PaymentsPageHero({
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl }}
         meta={modeLabel}
         badge={
-          <span className="dashboard-role-badge" data-role={persona}>
-            {persona === "super_admin"
-              ? "Super admin"
-              : persona === "gerente"
-                ? "Gerente"
-                : "Cliente"}
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="dashboard-role-badge" data-role={persona}>
+              {persona === "super_admin"
+                ? "Super admin"
+                : persona === "gerente"
+                  ? "Gerente"
+                  : "Cliente"}
+            </span>
+            {hecomFinance?.billingModality === "credito" ? (
+              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 ring-1 ring-amber-200">
+                Crédito · paga a fin de ciclo
+              </span>
+            ) : hecomFinance?.billingModality === "prepago" ? (
+              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 ring-1 ring-emerald-200">
+                Prepago
+              </span>
+            ) : null}
           </span>
         }
         actions={

@@ -7,7 +7,10 @@ import {
   resolveHecomClientesForEmail,
 } from "@/lib/auth/hecom-otp.server";
 import { getHecomSupabaseConfig } from "@/lib/hecom/supabase.server";
-import { listHecomClientes } from "@/lib/hecom/clientes.server";
+import {
+  listHecomClientes,
+  resolveHecomBillingModality,
+} from "@/lib/hecom/clientes.server";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +103,7 @@ export async function GET() {
         activeMemberCount: c.emails.length || 1,
         tiktokAdvertiserId: c.tiktokAdvertiserId,
         tiktokAccounts: c.tiktokAccounts,
+        billingModality: resolveHecomBillingModality(c),
       };
     });
 

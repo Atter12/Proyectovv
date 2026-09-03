@@ -52,19 +52,26 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
-            Tenés {walletBalanceLabel} en cartera Holistic. Elegí una cuenta
-            abajo y asigná el saldo. Si ya tenés plata en una cuenta y querés
-            pasarla a otra (ej. $15 de $30), usá{" "}
+            Cartera Holistic: {walletBalanceLabel} (para asignar). El número
+            grande en cada fila es el{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              disponible TikTok
+            </span>{" "}
+            (Manager). Si ves presupuesto/gastado/queda, no es gasto de más: es
+            el tope de la cuenta. Para pasar plata entre cuentas usá{" "}
             <span className="font-semibold text-[var(--auth-text)]">
               Transferir a otra cuenta
             </span>
-            . Si una cuenta se suspende con plata, también podés transferir o
-            recuperar a cartera.
+            .
           </>
         ) : (
           <>
-            Cartera en {walletBalanceLabel}. Primero recargá arriba (Stripe /
-            manual). Luego asigná a una cuenta abajo.
+            Cartera Holistic en {walletBalanceLabel}. Primero recargá arriba
+            (Stripe / manual) si querés asignar. Abajo ves el{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              disponible TikTok
+            </span>{" "}
+            y el presupuesto (tope · gastado · queda).
           </>
         )}
       </p>

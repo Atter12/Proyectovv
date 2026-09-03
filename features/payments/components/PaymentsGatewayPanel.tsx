@@ -440,6 +440,7 @@ export async function PaymentsGatewayPanel({
           isStaff={capabilities.isStaff}
           hecomFinance={hecomFinance}
           allocationSummary={allocationSummary}
+          advertiserIds={clienteAdvIds}
         />
 
         {syncNote ? (

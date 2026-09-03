@@ -31,6 +31,7 @@ type ClientRow = {
   activeMemberCount: number;
   tiktokAdvertiserId?: string | null;
   tiktokAccounts?: TiktokAccount[];
+  billingModality?: "credito" | "prepago";
 };
 
 type ApiPayload = {
@@ -290,6 +291,15 @@ export function ClientesPageClient({
                 <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
                   Hecom
                 </span>
+                {client.billingModality === "credito" ? (
+                  <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-amber-900">
+                    Crédito
+                  </span>
+                ) : client.billingModality === "prepago" ? (
+                  <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
+                    Prepago
+                  </span>
+                ) : null}
                 {hasTikTok ? (
                   <span className="rounded-full border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-accent)]">
                     TikTok

@@ -59,6 +59,12 @@ function mapBackupRow(row: Record<string, unknown>): HecomCliente {
       Number.isFinite(Number(row.tiktok_default_fee))
         ? Number(row.tiktok_default_fee)
         : null,
+    creditoFormSlug: row.credito_form_slug
+      ? String(row.credito_form_slug).trim() || null
+      : null,
+    cobranzaRango: row.cobranza_rango
+      ? String(row.cobranza_rango).trim() || null
+      : null,
     tiktokAccounts: accounts,
   };
 }

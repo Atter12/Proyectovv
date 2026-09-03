@@ -15,6 +15,7 @@ import {
   resolvePaymentsFundingCapabilities,
   withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
+import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
 function StripeReturnBanner({ status }: { status?: string }) {
@@ -125,6 +126,8 @@ export default async function PaymentsPage({
     gastoTotal: data.summary.gastoTotal,
     feeTotal: data.summary.feeTotal,
     depositFeePercent: data.summary.depositFeePercent,
+    billingModality: resolveHecomBillingModality(cliente),
+    cobranzaRango: cliente.cobranzaRango,
   };
 
   // Si overview aún viene vacío (cold TikTok), el panel fuerza live + mirror de org.
@@ -143,12 +146,16 @@ export default async function PaymentsPage({
   }
 
   const introCopy = actingAsCliente
-    ? `Estás en el panel de ${cliente.name}: recargá con Stripe o BCP y asigná a sus cuentas, como lo haría el cliente.`
+    ? hecomFinance.billingModality === "credito"
+      ? `Estás en el panel de ${cliente.name} (crédito Hecom). Recargá con Stripe/BCP si querés sumar cartera, o mirá el cupo TikTok abajo.`
+      : `Estás en el panel de ${cliente.name}: recargá con Stripe o BCP y asigná a sus cuentas, como lo haría el cliente.`
     : capabilities.canSwitchFundingModes
     ? `Super admin: operá como Cliente (Stripe / pago manual) o Gerente (cash BM) para ${cliente.name}.`
     : capabilities.canAgencyBmFund
       ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM. Las boletas BCP se revisan en Pagos manuales.`
-      : `Recargá con Stripe o transferencia BCP y asigná saldo a las cuentas de ${cliente.name}.`;
+      : hecomFinance.billingModality === "credito"
+        ? `${cliente.name} es crédito Hecom (paga según cobranza). La cartera Holistic es opcional; el cupo TikTok está en cada cuenta.`
+        : `Recargá con Stripe o transferencia BCP y asigná saldo a las cuentas de ${cliente.name}.`;
 
   return (
     <div className={dashboardClasses.page}>

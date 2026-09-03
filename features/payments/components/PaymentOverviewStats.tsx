@@ -2,6 +2,8 @@
 
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
+import { useMemo } from "react";
+import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
@@ -23,12 +25,14 @@ interface PaymentOverviewStatsProps {
   hecomFinance?: HecomFinanceSnapshot | null;
   /** Resumen de cuentas en tabla de asignación (modo gerente). */
   allocationSummary?: PaymentAllocationSummary | null;
+  /** Advertisers del cliente: suma saldo TikTok en vivo. */
+  advertiserIds?: string[];
 }
 
 /**
  * Resumen de pagos — grilla clara.
- * Gerente/modo BM: KPIs Hecom del cliente (igual pulso que super admin).
- * Cliente: cartera Holistic + pasarela.
+ * Cliente: cartera Holistic + disponible TikTok + modalidad.
+ * Gerente BM: KPIs de cuentas.
  */
 export function PaymentOverviewStats({
   wallet,
@@ -37,17 +41,49 @@ export function PaymentOverviewStats({
   isStaff = false,
   hecomFinance = null,
   allocationSummary = null,
+  advertiserIds = [],
 }: PaymentOverviewStatsProps) {
   const { agencyBmFunding } = usePaymentsFundingMode();
   const hecomMode = isStaff && agencyBmFunding && hecomFinance != null;
-  const debt =
-    hecomFinance != null && hecomFinance.saldoEstimado < 0;
+  const liveEnabled = !hecomMode && advertiserIds.length > 0;
+  const live = useAdAccountLiveMetrics(liveEnabled);
+
+  const tiktokAvailableUsd = useMemo(() => {
+    if (!liveEnabled) return null;
+    let total = 0;
+    let any = false;
+    for (const id of advertiserIds) {
+      const metric = live.metricsByAdvertiser[id];
+      if (metric?.balanceUsd != null) {
+        total += metric.balanceUsd;
+        any = true;
+      }
+    }
+    return any ? Math.round(total * 100) / 100 : null;
+  }, [advertiserIds, live.metricsByAdvertiser, liveEnabled]);
+
+  const modality = hecomFinance?.billingModality ?? null;
+  const modalityLabel =
+    modality === "credito"
+      ? "Crédito"
+      : modality === "prepago"
+        ? "Prepago"
+        : null;
+  const modalityHint =
+    modality === "credito"
+      ? "Hecom Club · paga según cobranza / fin de ciclo"
+      : modality === "prepago"
+        ? "Recarga antes de gastar (Stripe / manual)"
+        : "Sin dato Hecom";
 
   const items = hecomMode
     ? [
         {
           label: "Cuentas activas",
-          value: String(allocationSummary?.activeCount ?? summary.accountsReadyForAllocation),
+          value: String(
+            allocationSummary?.activeCount ??
+              summary.accountsReadyForAllocation,
+          ),
           hint: `${allocationSummary?.totalAccounts ?? "—"} en lista · ${allocationSummary?.pendingCount ?? 0} pend.`,
           accent: true as boolean,
           warn: false,
@@ -74,41 +110,50 @@ export function PaymentOverviewStats({
           warn: (allocationSummary?.reclaimableCount ?? 0) > 0,
         },
         {
-          label: "Fee Hecom",
-          value: `${hecomFinance.depositFeePercent}%`,
-          hint: debt
-            ? `Deuda ${formatMoney(hecomFinance.saldoEstimado, "USD")}`
-            : `Estimado ${formatMoney(hecomFinance.saldoEstimado, "USD")}`,
+          label: "Modalidad",
+          value: modalityLabel ?? "—",
+          hint:
+            modality === "credito"
+              ? `Fee ${hecomFinance?.depositFeePercent ?? 10}% · cobranza`
+              : `Fee ${hecomFinance?.depositFeePercent ?? 10}%`,
           accent: false,
-          warn: debt,
+          warn: false,
         },
       ]
     : [
         {
-          label: "Saldo disponible",
+          label: "Cartera Holistic",
           value: formatMoney(wallet.balance, wallet.currency),
-          hint: "Cartera de la organización",
+          hint: "Disponible para asignar a ads",
           accent: true as boolean,
           warn: false,
         },
         {
-          label: "Pasarela activa",
-          value: activeGateway.name,
-          hint: "Método seleccionado",
-          accent: false,
-          warn: false,
-        },
-        {
-          label: "Cuentas listas",
-          value: formatNumber(summary.accountsReadyForAllocation),
-          hint: "Para asignación",
+          label: "Disponible TikTok",
+          value:
+            tiktokAvailableUsd != null
+              ? formatMoney(tiktokAvailableUsd, "USD")
+              : live.loading
+                ? "…"
+                : "—",
+          hint:
+            tiktokAvailableUsd != null
+              ? "Suma cupo gastable en Manager"
+              : "Saldo en vivo de las cuentas",
           accent: true,
           warn: false,
         },
         {
-          label: "Reembolsos",
-          value: formatNumber(summary.pendingRefunds),
-          hint: "Pendientes",
+          label: "Modalidad",
+          value: modalityLabel ?? "—",
+          hint: modalityHint,
+          accent: false,
+          warn: modality === "credito",
+        },
+        {
+          label: "Pasarela",
+          value: activeGateway.name,
+          hint: `${formatNumber(summary.accountsReadyForAllocation)} cuentas listas`,
           accent: false,
           warn: false,
         },
@@ -123,7 +168,7 @@ export function PaymentOverviewStats({
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
           {hecomMode
             ? "Estado de cuentas y asignación BM"
-            : "Pulso de cartera y asignación"}
+            : "Cartera Holistic vs saldo TikTok (Manager)"}
         </p>
       </div>
 
