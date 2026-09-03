@@ -232,4 +232,15 @@ export const serverEnv = {
     process.env.TIKTOK_CREATIVE_PUBLISH_ENABLED,
     false,
   ),
+  /**
+   * Bridge Ads Holistic cartera → cobros Hecom.
+   * URL tipica: https://www.hecom.club/api/credito-cobros-holistic-wallet
+   */
+  hecomCobrosBridgeUrl: process.env.HECOM_COBROS_BRIDGE_URL?.trim() ?? "",
+  hecomCobrosBridgeSecret:
+    process.env.HECOM_COBROS_BRIDGE_SECRET?.trim() ?? "",
+  hecomCobrosBridgeEnabled: parseBoolean(
+    process.env.HECOM_COBROS_BRIDGE_ENABLED,
+    false,
+  ),
 } as const;

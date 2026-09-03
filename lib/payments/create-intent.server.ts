@@ -26,6 +26,7 @@ import {
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
+import { syncWalletDepositCobroBestEffort } from "@/lib/hecom/wallet-cobro-bridge.server";
 
 export interface CreatePaymentIntentRequest {
   /** Monto que el cliente quiere acreditar en cartera (neto USD). Se cobra bruto + fee. */
@@ -403,6 +404,37 @@ export async function processSuccessfulPaymentIntent(input: {
     currency: intent.currency,
   });
 
+  const meta = intent.metadata ?? {};
+  const creditCents =
+    typeof meta.credit_amount_cents === "number"
+      ? meta.credit_amount_cents
+      : typeof meta.credit_amount_cents === "string"
+        ? Number(meta.credit_amount_cents)
+        : null;
+  const feeCents =
+    typeof meta.fee_amount_cents === "number"
+      ? meta.fee_amount_cents
+      : typeof meta.fee_amount_cents === "string"
+        ? Number(meta.fee_amount_cents)
+        : null;
+  const hecomClienteId =
+    typeof meta.hecom_cliente_id === "string"
+      ? meta.hecom_cliente_id
+      : null;
+
+  const cobroSync = await syncWalletDepositCobroBestEffort({
+    hecomClienteId,
+    paymentIntentId: intent.id,
+    amountCents: intent.amountCents,
+    creditCents: Number.isFinite(creditCents as number)
+      ? (creditCents as number)
+      : null,
+    feeCents: Number.isFinite(feeCents as number) ? (feeCents as number) : null,
+    currency: intent.currency,
+    paidAt: new Date().toISOString(),
+    provider: intent.provider,
+  });
+
   await updatePaymentIntentRecord(intent.id, {
     status: "succeeded",
     succeededAt: new Date().toISOString(),
@@ -410,6 +442,17 @@ export async function processSuccessfulPaymentIntent(input: {
       ...intent.metadata,
       ledger_journal_id: ledgerJournalId,
       provider_reference: input.providerReference ?? intent.providerReference,
+      hecom_cobro_sync: cobroSync
+        ? {
+            ok: cobroSync.ok,
+            skipped: cobroSync.skipped ?? false,
+            reason: cobroSync.reason ?? null,
+            cobro_id: cobroSync.cobroId ?? null,
+            codigo: cobroSync.codigo ?? null,
+            periodo_resumen: cobroSync.periodoResumen ?? null,
+            at: new Date().toISOString(),
+          }
+        : null,
     },
   });
 }
