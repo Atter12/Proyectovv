@@ -61,13 +61,17 @@ function initials(name: string) {
 
 /**
  * Overview del cliente — consola operativa Ads Holistic.
+ * Deuda neta Hecom solo para staff en modo gerente (no cliente ni “viendo como”).
  */
 export function ClienteScopedOverview({
   data,
   canChangeCliente = false,
+  showHecomDebt = false,
 }: {
   data: HecomClienteDashboard;
   canChangeCliente?: boolean;
+  /** Solo gerente/super en vista ops. Cliente y act-as-cliente: oculto. */
+  showHecomDebt?: boolean;
 }) {
   const { cliente, summary, accounts, gastos } = data;
   const recentGastos = gastos.slice(0, 8);
@@ -100,17 +104,32 @@ export function ClienteScopedOverview({
           </>
         }
         aside={
-          <CrmAsideStat
-            label={debt ? "Deuda neta" : "Saldo estimado"}
-            value={moneyUsd(summary.saldoEstimado)}
-            valueClassName={debt ? "text-[#b45309]" : "text-[var(--auth-text)]"}
-            detail={
-              <>
-                {moneyUsd(summary.cobroTotal)} cobros · {moneyUsd(summary.gastoTotal)} gastos ·{" "}
-                {moneyUsd(summary.feeTotal)} fees
-              </>
-            }
-          />
+          showHecomDebt ? (
+            <CrmAsideStat
+              label={debt ? "Deuda neta" : "Saldo estimado"}
+              value={moneyUsd(summary.saldoEstimado)}
+              valueClassName={debt ? "text-[#b45309]" : "text-[var(--auth-text)]"}
+              detail={
+                <>
+                  {moneyUsd(summary.cobroTotal)} cobros · {moneyUsd(summary.gastoTotal)}{" "}
+                  gastos · {moneyUsd(summary.feeTotal)} fees
+                </>
+              }
+            />
+          ) : (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
+                Gasto de hoy
+              </p>
+              <p className="mt-1 text-[1.65rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.85rem]">
+                {moneyUsd(summary.gastoHoy)}
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+                Últimos 7 días · {moneyUsd(summary.gasto7d)} · Fee{" "}
+                {summary.depositFeePercent}%
+              </p>
+            </div>
+          )
         }
       />
 

@@ -38,11 +38,15 @@ export function ClienteScopedPayments({
       value: moneyUsd(summary.gastoTotal),
       hint: "Ver detalle en Gastos",
     },
-    {
-      label: summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado",
-      value: moneyUsd(summary.saldoEstimado),
-      accent: summary.saldoEstimado < 0,
-    },
+    ...(staffMode
+      ? [
+          {
+            label: summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado",
+            value: moneyUsd(summary.saldoEstimado),
+            accent: summary.saldoEstimado < 0,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -77,7 +81,11 @@ export function ClienteScopedPayments({
       </header>
 
       <CrmMetricsStrip>
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-4">
+        <div
+          className={`grid grid-cols-2 gap-px bg-[var(--auth-divider)] ${
+            staffMode ? "sm:grid-cols-4" : "sm:grid-cols-3"
+          }`}
+        >
           {kpis.map((kpi) => (
             <div key={kpi.label} className="bg-white">
               <CrmMetricCell

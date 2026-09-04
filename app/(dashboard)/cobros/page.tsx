@@ -2,19 +2,29 @@ import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedCobros } from "@/features/clientes/components/ClienteScopedCobros";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
 export default async function CobrosPage() {
   const session = await requirePermission("payments:read");
   const selected = await getSelectedHecomCliente(session.id);
-  const capabilities = resolvePaymentsFundingCapabilities({
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const raw = resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
+  const capabilities = withActAsClienteView(raw, actingAsCliente);
   const canChangeCliente =
-    capabilities.isStaff || capabilities.isSuperAdmin;
+    capabilities.isStaff || capabilities.isSuperAdmin || actingAsCliente;
+  const showHecomDebt =
+    (raw.isStaff || raw.isSuperAdmin) && !actingAsCliente;
 
   if (!selected) {
     return (
@@ -46,7 +56,7 @@ export default async function CobrosPage() {
 
   return (
     <div className={dashboardClasses.page}>
-      <ClienteScopedCobros data={data} />
+      <ClienteScopedCobros data={data} showHecomDebt={showHecomDebt} />
     </div>
   );
 }

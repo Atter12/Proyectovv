@@ -62,8 +62,11 @@ function maskEmail(email: string | null): string {
 
 export function ClienteScopedCobros({
   data,
+  showHecomDebt = false,
 }: {
   data: HecomClienteDashboard;
+  /** Solo staff en vista ops. Cliente / “viendo como”: no mostrar deuda. */
+  showHecomDebt?: boolean;
 }) {
   const { cliente, summary, cobros } = data;
 
@@ -91,7 +94,11 @@ export function ClienteScopedCobros({
       </header>
 
       <CrmMetricsStrip>
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-3">
+        <div
+          className={`grid grid-cols-2 gap-px bg-[var(--auth-divider)] ${
+            showHecomDebt ? "sm:grid-cols-3" : "sm:grid-cols-2"
+          }`}
+        >
           <div className="bg-white">
             <CrmMetricCell
               label="Total pagado"
@@ -105,14 +112,18 @@ export function ClienteScopedCobros({
               value={String(cobros.length)}
             />
           </div>
-          <div className="bg-white">
-            <CrmMetricCell
-              label="Saldo estimado"
-              value={moneyUsd(summary.saldoEstimado)}
-              hint="Pagos − (gastos + fees)"
-              emphasis={summary.saldoEstimado < 0 ? "primary" : "default"}
-            />
-          </div>
+          {showHecomDebt ? (
+            <div className="bg-white">
+              <CrmMetricCell
+                label={
+                  summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado"
+                }
+                value={moneyUsd(summary.saldoEstimado)}
+                hint="Pagos − (gastos + fees)"
+                emphasis={summary.saldoEstimado < 0 ? "primary" : "default"}
+              />
+            </div>
+          ) : null}
         </div>
       </CrmMetricsStrip>
 

@@ -2,26 +2,39 @@ import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedOverview } from "@/features/clientes/components/ClienteScopedOverview";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { requireSession } from "@/lib/auth/guards.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 
 export default async function OverviewPage() {
   const session = await requireSession();
-  const funding = resolvePaymentsFundingCapabilities({
+  const rawFunding = resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const funding = withActAsClienteView(rawFunding, actingAsCliente);
   const canChangeCliente =
-    funding.isStaff || funding.isSuperAdmin || funding.canAgencyBmFund;
+    funding.isStaff ||
+    funding.isSuperAdmin ||
+    actingAsCliente;
+  /** Deuda Hecom solo en vista gerente/ops — no cliente ni “viendo como”. */
+  const showHecomDebt =
+    (rawFunding.isStaff || rawFunding.isSuperAdmin) && !actingAsCliente;
 
   let selected = await getSelectedHecomCliente(session.id);
   if (
     selected &&
-    funding.isStaff &&
+    rawFunding.isStaff &&
     isOtpTestClienteId(selected.id) &&
-    !funding.isSuperAdmin
+    !rawFunding.isSuperAdmin
   ) {
     selected = null;
   }
@@ -65,6 +78,7 @@ export default async function OverviewPage() {
       <ClienteScopedOverview
         data={data}
         canChangeCliente={canChangeCliente}
+        showHecomDebt={showHecomDebt}
       />
     </div>
   );
