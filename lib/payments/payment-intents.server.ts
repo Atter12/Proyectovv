@@ -147,6 +147,40 @@ export async function updatePaymentIntentRecord(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Marca succeeded solo si aún no lo estaba. Evita que 2 webhooks Stripe
+ * (checkout + payment_intent) corran el bridge Hecom en paralelo.
+ * @returns true si este caller ganó el claim.
+ */
+export async function claimPaymentIntentSucceeded(
+  id: string,
+  patch: {
+    providerReference?: string | null;
+    metadata?: Record<string, unknown>;
+    succeededAt: string;
+  },
+): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("payment_intents")
+    .update({
+      status: "succeeded",
+      succeeded_at: patch.succeededAt,
+      ...(patch.providerReference !== undefined
+        ? { provider_reference: patch.providerReference }
+        : {}),
+      ...(patch.metadata ? { metadata: patch.metadata } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .neq("status", "succeeded")
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Boolean(data?.id);
+}
+
 export async function getPaymentIntentByIdInternal(
   id: string,
 ): Promise<PaymentIntentRecord | null> {

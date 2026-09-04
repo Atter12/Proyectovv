@@ -8,6 +8,7 @@ import {
   createPaymentIntentRecord,
   getPaymentIntentByIdInternal,
   getPaymentIntentByProviderReference,
+  claimPaymentIntentSucceeded,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
 import { confirmDepositInLedger } from "@/lib/ledger/ledger.server";
@@ -422,6 +423,31 @@ export async function processSuccessfulPaymentIntent(input: {
       ? meta.hecom_cliente_id
       : null;
 
+  const succeededAt = new Date().toISOString();
+  // Claim atómico: solo el primer webhook sigue al bridge Hecom.
+  const claimed = await claimPaymentIntentSucceeded(intent.id, {
+    succeededAt,
+    providerReference: input.providerReference ?? intent.providerReference,
+    metadata: {
+      ...intent.metadata,
+      ledger_journal_id: ledgerJournalId,
+      provider_reference: input.providerReference ?? intent.providerReference,
+      hecom_cobro_sync_claim: input.webhookEventId ?? succeededAt,
+    },
+  });
+
+  if (!claimed) {
+    // Otro webhook ya marcó succeeded (y probablemente ya sincronizó Hecom).
+    return;
+  }
+
+  const alreadySynced =
+    meta.hecom_cobro_sync &&
+    typeof meta.hecom_cobro_sync === "object" &&
+    (meta.hecom_cobro_sync as { ok?: boolean }).ok === true;
+
+  if (alreadySynced) return;
+
   const cobroSync = await syncWalletDepositCobroBestEffort({
     hecomClienteId,
     paymentIntentId: intent.id,
@@ -431,17 +457,16 @@ export async function processSuccessfulPaymentIntent(input: {
       : null,
     feeCents: Number.isFinite(feeCents as number) ? (feeCents as number) : null,
     currency: intent.currency,
-    paidAt: new Date().toISOString(),
+    paidAt: succeededAt,
     provider: intent.provider,
   });
 
   await updatePaymentIntentRecord(intent.id, {
-    status: "succeeded",
-    succeededAt: new Date().toISOString(),
     metadata: {
       ...intent.metadata,
       ledger_journal_id: ledgerJournalId,
       provider_reference: input.providerReference ?? intent.providerReference,
+      hecom_cobro_sync_claim: input.webhookEventId ?? succeededAt,
       hecom_cobro_sync: cobroSync
         ? {
             ok: cobroSync.ok,
