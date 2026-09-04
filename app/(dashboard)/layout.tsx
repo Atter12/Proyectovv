@@ -70,37 +70,24 @@ export default async function DashboardLayout({
         includeSaldo: false,
       });
 
-      if (chromePersona === "cliente" && session.organizationId) {
-        const wallet = await getWalletLedgerBalance(session.organizationId);
-        selectedCliente = {
-          id: shell?.id ?? selected.id,
-          name: shell?.name ?? selected.name,
-          walletBalanceCents: wallet?.availableBalanceCents ?? 0,
-          walletCurrency: wallet?.currency ?? "USD",
-          avatarUrl: shell?.avatarUrl ?? null,
-        };
-      } else {
-        selectedCliente = shell
-          ? {
-              id: shell.id,
-              name: shell.name,
-              saldoEstimado: shell.saldoEstimado,
-              avatarUrl: shell.avatarUrl,
-            }
-          : {
-              id: selected.id,
-              name: selected.name,
-              saldoEstimado: null,
-              avatarUrl: null,
-            };
-      }
+      // Cartera Holistic de la org en sesión (cliente o gerente operando).
+      const wallet = session.organizationId
+        ? await getWalletLedgerBalance(session.organizationId)
+        : null;
+
+      selectedCliente = {
+        id: shell?.id ?? selected.id,
+        name: shell?.name ?? selected.name,
+        walletBalanceCents: wallet?.availableBalanceCents ?? 0,
+        walletCurrency: wallet?.currency ?? "USD",
+        avatarUrl: shell?.avatarUrl ?? null,
+      };
     } catch {
       selectedCliente = {
         id: selected.id,
         name: selected.name,
-        ...(chromePersona === "cliente"
-          ? { walletBalanceCents: 0, walletCurrency: "USD" }
-          : { saldoEstimado: null }),
+        walletBalanceCents: 0,
+        walletCurrency: "USD",
         avatarUrl: null,
       };
     }

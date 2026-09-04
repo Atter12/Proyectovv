@@ -79,25 +79,21 @@ export function PaymentOverviewStats({
   const items = hecomMode
     ? [
         {
+          label: "Cartera Holistic",
+          value: formatMoney(wallet.balance, wallet.currency),
+          hint: "Disponible para asignar (no es TikTok)",
+          accent: true as boolean,
+          warn: false,
+        },
+        {
           label: "Cuentas activas",
           value: String(
             allocationSummary?.activeCount ??
               summary.accountsReadyForAllocation,
           ),
           hint: `${allocationSummary?.totalAccounts ?? "—"} en lista · ${allocationSummary?.pendingCount ?? 0} pend.`,
-          accent: true as boolean,
-          warn: false,
-        },
-        {
-          label: "Ledger en cuentas",
-          value:
-            allocationSummary != null
-              ? formatMoney(allocationSummary.totalLedgerUsd, "USD")
-              : "—",
-          hint: "Holistic asignado (no TikTok)",
           accent: false,
           warn: false,
-          muted: true,
         },
         {
           label: "Por recuperar",
@@ -167,7 +163,7 @@ export function PaymentOverviewStats({
         </p>
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
           {hecomMode
-            ? "Estado de cuentas y asignación BM"
+            ? "Cartera Holistic + cuentas BM (crédito TikTok abajo)"
             : "Cartera Holistic vs saldo TikTok (Manager)"}
         </p>
       </div>

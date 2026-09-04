@@ -34,7 +34,10 @@ export function SidebarWalletCard({
   actingAsCliente = false,
 }: SidebarWalletCardProps) {
   const canPickClients = persona !== "cliente" || actingAsCliente;
-  const showClientWallet = persona === "cliente";
+  // Cliente y staff: mostrar cartera Holistic (no el estimado Hecom con “…”).
+  const showClientWallet =
+    persona === "cliente" ||
+    selectedCliente?.walletBalanceCents != null;
 
   if (!selectedCliente) {
     if (!canPickClients) {

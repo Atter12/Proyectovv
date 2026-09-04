@@ -27,7 +27,10 @@ export function PaymentsAllocateSectionCopy({
         </h2>
         <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
           Fondeás la cuenta ads de{who} desde el Business Center (BM 200 = cash;
-          BM 10/30 = presupuesto de crédito). No exige cartera Holistic.{" "}
+          BM 10/30 = presupuesto de crédito). No exige cartera Holistic
+          {hasWallet
+            ? ` (ahora hay ${walletBalanceLabel} disponible para asignar si querés).`
+            : ` (cartera Holistic: ${walletBalanceLabel}).`}{" "}
           <span className="font-semibold text-[var(--auth-text)]">
             No baja la deuda neta Hecom
           </span>{" "}
