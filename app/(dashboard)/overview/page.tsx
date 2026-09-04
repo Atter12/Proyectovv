@@ -13,6 +13,8 @@ import {
   withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
 
+export const dynamic = "force-dynamic";
+
 export default async function OverviewPage() {
   const session = await requireSession();
   const rawFunding = resolvePaymentsFundingCapabilities({
@@ -22,12 +24,7 @@ export default async function OverviewPage() {
   const actingAsCliente = await getActingAsCliente(session.id);
   const funding = withActAsClienteView(rawFunding, actingAsCliente);
   const canChangeCliente =
-    funding.isStaff ||
-    funding.isSuperAdmin ||
-    actingAsCliente;
-  /** Deuda Hecom solo en vista gerente/ops — no cliente ni “viendo como”. */
-  const showHecomDebt =
-    (rawFunding.isStaff || rawFunding.isSuperAdmin) && !actingAsCliente;
+    funding.isStaff || funding.isSuperAdmin || actingAsCliente;
 
   let selected = await getSelectedHecomCliente(session.id);
   if (
@@ -78,7 +75,6 @@ export default async function OverviewPage() {
       <ClienteScopedOverview
         data={data}
         canChangeCliente={canChangeCliente}
-        showHecomDebt={showHecomDebt}
       />
     </div>
   );
