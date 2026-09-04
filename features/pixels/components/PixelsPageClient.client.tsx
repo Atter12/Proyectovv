@@ -121,6 +121,13 @@ function snippetFor(pixelCode: string) {
 <!-- End TikTok Pixel Code -->`;
 }
 
+function eventNamesFromJson(eventsJson: unknown): string[] {
+  if (Array.isArray(eventsJson)) {
+    return eventsJson.map((x) => String(x)).filter(Boolean);
+  }
+  return [];
+}
+
 export function PixelsPageClient({
   clienteName,
 }: {
@@ -128,6 +135,7 @@ export function PixelsPageClient({
 }) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
@@ -137,11 +145,28 @@ export function PixelsPageClient({
   const [selectedPixelId, setSelectedPixelId] = useState<string | null>(null);
   const [testLog, setTestLog] = useState<string[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
+  const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
 
-  const selectedPixel = useMemo(
-    () => pixels.find((p) => p.id === selectedPixelId) ?? pixels[0] ?? null,
-    [pixels, selectedPixelId],
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.advertiserId === advertiserId) ?? null,
+    [accounts, advertiserId],
   );
+
+  const pixelsForAccount = useMemo(
+    () =>
+      advertiserId
+        ? pixels.filter((p) => p.advertiserId === advertiserId)
+        : pixels,
+    [pixels, advertiserId],
+  );
+
+  const selectedPixel = useMemo(() => {
+    if (selectedPixelId) {
+      const hit = pixelsForAccount.find((p) => p.id === selectedPixelId);
+      if (hit) return hit;
+    }
+    return pixelsForAccount[0] ?? null;
+  }, [pixelsForAccount, selectedPixelId]);
 
   const pixelCode =
     selectedPixel?.pixelCode?.trim() || selectedPixel?.pixelId || "";
@@ -178,8 +203,17 @@ export function PixelsPageClient({
   }, []);
 
   useEffect(() => {
-    if (!selectedPixel && pixels[0]) setSelectedPixelId(pixels[0].id);
-  }, [pixels, selectedPixel]);
+    setSdkReady(false);
+    setTestLog([]);
+    if (
+      selectedPixelId &&
+      !pixelsForAccount.some((p) => p.id === selectedPixelId)
+    ) {
+      setSelectedPixelId(pixelsForAccount[0]?.id ?? null);
+    } else if (!selectedPixelId && pixelsForAccount[0]) {
+      setSelectedPixelId(pixelsForAccount[0].id);
+    }
+  }, [advertiserId, pixelsForAccount, selectedPixelId]);
 
   async function handleCreate() {
     if (!advertiserId) {
@@ -197,10 +231,7 @@ export function PixelsPageClient({
           advertiserId,
           pixelName:
             pixelName.trim() ||
-            `${clienteName} · ${
-              accounts.find((a) => a.advertiserId === advertiserId)?.name ??
-              advertiserId
-            }`,
+            `${clienteName} · ${selectedAccount?.name ?? advertiserId}`,
           setupCodEvents: true,
         }),
       });
@@ -214,12 +245,13 @@ export function PixelsPageClient({
         throw new Error(json.error || "No se pudo crear el píxel.");
       }
       const skipped = json.events?.skipped?.length
-        ? ` Eventos omitidos: ${json.events.skipped.join(", ")}.`
+        ? ` Omitidos: ${json.events.skipped.join(", ")}.`
         : "";
       setNotice(
-        `Píxel creado (${json.pixel?.pixelId}). Eventos COD: ${json.events?.applied ?? 0}.${skipped}`,
+        `Píxel creado · ${json.pixel?.pixelId}. Eventos COD: ${json.events?.applied ?? 0}.${skipped}`,
       );
       setPixelName("");
+      setLastSyncCount(null);
       await refresh();
       if (json.pixel?.id) setSelectedPixelId(json.pixel.id);
     } catch (e) {
@@ -249,7 +281,7 @@ export function PixelsPageClient({
         throw new Error(json.error || "No se pudieron crear eventos.");
       }
       setNotice(
-        `Eventos: ${json.applied ?? 0} OK` +
+        `Eventos COD: ${json.applied ?? 0} OK` +
           (json.skipped?.length
             ? ` · omitidos ${json.skipped.join(", ")}`
             : ""),
@@ -262,6 +294,7 @@ export function PixelsPageClient({
 
   async function handleSync() {
     if (!advertiserId) return;
+    setSyncing(true);
     setError(null);
     setNotice(null);
     try {
@@ -273,14 +306,27 @@ export function PixelsPageClient({
         ok?: boolean;
         error?: string;
         remoteCount?: number;
+        pixels?: PixelRow[];
       };
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "Sync falló.");
+        throw new Error(json.error || "No se pudo consultar TikTok.");
       }
-      setNotice(`Sincronizados ${json.remoteCount ?? 0} píxeles desde TikTok.`);
+      const n = json.remoteCount ?? 0;
+      setLastSyncCount(n);
       await refresh();
+      if (n === 0) {
+        setNotice(
+          "Esta cuenta ads no tiene píxeles en TikTok. Podés crear uno acá abajo.",
+        );
+      } else {
+        setNotice(
+          `TikTok tiene ${n} píxel${n === 1 ? "" : "es"} en esta cuenta. Ya los ves en la lista.`,
+        );
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error sync");
+      setError(e instanceof Error ? e.message : "Error al consultar TikTok");
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -300,10 +346,12 @@ export function PixelsPageClient({
         value: 1,
         currency: "USD",
       });
-      setTestLog((prev) => [
-        `${new Date().toLocaleTimeString("es-PE")} · ${eventName}`,
-        ...prev,
-      ].slice(0, 20));
+      setTestLog((prev) =>
+        [
+          `${new Date().toLocaleTimeString("es-PE")} · ${eventName}`,
+          ...prev,
+        ].slice(0, 20),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se disparó el evento");
     }
@@ -312,43 +360,37 @@ export function PixelsPageClient({
   async function copySnippet() {
     if (!pixelCode) return;
     await navigator.clipboard.writeText(snippetFor(pixelCode));
-    setNotice("Snippet copiado al portapapeles.");
+    setNotice("Snippet copiado.");
   }
 
+  const codEvents = eventNamesFromJson(selectedPixel?.eventsJson);
+
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_12px_32px_-20px_rgb(28_25_23_/_0.18)]">
+    <div className="mx-auto max-w-5xl space-y-5">
+      <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
         <div
           aria-hidden
-          className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
         />
-        <div className="p-5 sm:p-6">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-            Píxeles TikTok
-          </p>
-          <h1 className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] text-[#1c1917]">
-            Crear y probar eventos · {clienteName}
-          </h1>
-          <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-[#5c564e]">
-            Creá el píxel en la cuenta ads del cliente, registrá eventos COD y
-            dispará pruebas con el SDK. Después instalá el snippet en la web /
-            landing. Abrí{" "}
-            <a
-              href="https://ads.tiktok.com/i18n/events_manager"
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-[#ff781f] underline underline-offset-2"
-            >
-              Events Manager → Test Events
-            </a>{" "}
-            para verificar.
-          </p>
-        </div>
-      </section>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 left-10 h-40 w-40 rounded-full bg-[#ffa12c]/[0.1] blur-3xl"
+        />
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
+          Píxeles TikTok
+        </p>
+        <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
+          {clienteName}
+        </h1>
+        <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+          Dos caminos: crear un píxel nuevo con eventos COD, o preguntarle a
+          TikTok si esta cuenta ya tiene alguno y verlo acá.
+        </p>
+      </header>
 
       {error ? (
         <div
-          className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
+          className="rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
           role="alert"
         >
           {error}
@@ -356,163 +398,271 @@ export function PixelsPageClient({
       ) : null}
       {notice ? (
         <div
-          className="rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
+          className="rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
           role="status"
         >
           {notice}
         </div>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[1rem] border border-[#ece7e0] bg-white p-5">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-            Crear píxel
+      <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
+        <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
+          Cuenta ads
+          <select
+            className="mt-2 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none ring-[#ff781f]/30 focus:bg-white focus:ring-2"
+            value={advertiserId}
+            onChange={(e) => {
+              setAdvertiserId(e.target.value);
+              setLastSyncCount(null);
+              setSdkReady(false);
+            }}
+            disabled={loading || accounts.length === 0}
+          >
+            {accounts.length === 0 ? (
+              <option value="">Sin cuentas en este cliente</option>
+            ) : (
+              accounts.map((a) => (
+                <option key={a.advertiserId} value={a.advertiserId}>
+                  {a.name} · {a.advertiserId}
+                </option>
+              ))
+            )}
+          </select>
+        </label>
+        {selectedAccount ? (
+          <p className="mt-2 font-mono text-[11px] text-[#8a8177]">
+            Advertiser {selectedAccount.advertiserId}
+            {lastSyncCount !== null
+              ? ` · última consulta TikTok: ${lastSyncCount} píxel${lastSyncCount === 1 ? "" : "es"}`
+              : ""}
           </p>
-          <label className="mt-3 block text-[12px] font-medium text-[#5c564e]">
-            Cuenta ads (advertiser)
-            <select
-              className="mt-1 w-full rounded-lg border border-[#e7e0d8] bg-white px-3 py-2 text-[13px] text-[#1c1917]"
-              value={advertiserId}
-              onChange={(e) => setAdvertiserId(e.target.value)}
-              disabled={loading || accounts.length === 0}
-            >
-              {accounts.length === 0 ? (
-                <option value="">Sin cuentas en este cliente</option>
-              ) : (
-                accounts.map((a) => (
-                  <option key={a.advertiserId} value={a.advertiserId}>
-                    {a.name} · {a.advertiserId}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-          <label className="mt-3 block text-[12px] font-medium text-[#5c564e]">
+        ) : null}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+                Opción A
+              </p>
+              <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+                Crear píxel nuevo
+              </h2>
+            </div>
+            <span className="rounded-full bg-[#fff1e8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#c2410c]">
+              Recomendado
+            </span>
+          </div>
+          <p className="mt-2 text-[12.5px] leading-5 text-[#5c564e]">
+            Crea el píxel en TikTok y deja listos los eventos COD (ViewContent,
+            AddToCart, CompletePayment, etc.).
+          </p>
+          <label className="mt-4 block text-[12px] font-medium text-[#5c564e]">
             Nombre (opcional)
             <input
-              className="mt-1 w-full rounded-lg border border-[#e7e0d8] px-3 py-2 text-[13px]"
+              className="mt-1.5 w-full rounded-xl border border-[#e7e0d8] px-3.5 py-2.5 text-[13px] outline-none ring-[#ff781f]/30 focus:ring-2"
               value={pixelName}
               onChange={(e) => setPixelName(e.target.value)}
               placeholder={`${clienteName} · Pixel`}
             />
           </label>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void handleCreate()}
-              disabled={creating || !advertiserId}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
-            >
-              {creating ? "Creando…" : "Crear píxel + eventos COD"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSync()}
-              disabled={!advertiserId || loading}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917]"
-            >
-              Sync desde TikTok
-            </button>
+          <button
+            type="button"
+            onClick={() => void handleCreate()}
+            disabled={creating || !advertiserId}
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
+          >
+            {creating ? "Creando…" : "Crear píxel + eventos COD"}
+          </button>
+        </article>
+
+        <article className="flex flex-col rounded-2xl border border-dashed border-[#ddd5cb] bg-[#faf8f5] p-5">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            Opción B
+          </p>
+          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+            ¿Ya tiene en TikTok?
+          </h2>
+          <p className="mt-2 flex-1 text-[12.5px] leading-5 text-[#5c564e]">
+            No crea nada. Solo pregunta a TikTok si esta cuenta ads ya tiene
+            píxeles activos y los muestra en la lista de abajo.
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleSync()}
+            disabled={!advertiserId || loading || syncing}
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl border border-[#d6cec4] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f] hover:text-[#c2410c] disabled:opacity-50"
+          >
+            {syncing ? "Consultando TikTok…" : "Ver píxeles en TikTok"}
+          </button>
+          {lastSyncCount === 0 ? (
+            <p className="mt-3 text-[12px] font-medium text-[#8a8177]">
+              Resultado: no hay píxeles en esa cuenta.
+            </p>
+          ) : null}
+          {lastSyncCount !== null && lastSyncCount > 0 ? (
+            <p className="mt-3 text-[12px] font-medium text-emerald-800">
+              Resultado: {lastSyncCount} encontrado
+              {lastSyncCount === 1 ? "" : "s"} · ya visibles abajo.
+            </p>
+          ) : null}
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-[#ece7e0] bg-white p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+              Píxeles acá
+            </p>
+            <h2 className="mt-1 text-[1.05rem] font-bold text-[#1c1917]">
+              {advertiserId
+                ? `De esta cuenta (${pixelsForAccount.length})`
+                : `Todos (${pixels.length})`}
+            </h2>
           </div>
+          <a
+            href="https://ads.tiktok.com/i18n/events_manager"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[12px] font-semibold text-[#ff781f] underline-offset-2 hover:underline"
+          >
+            Events Manager →
+          </a>
         </div>
 
-        <div className="rounded-[1rem] border border-[#ece7e0] bg-white p-5">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-            Píxeles del cliente
-          </p>
-          {loading ? (
-            <p className="mt-3 text-[13px] text-[#8a8177]">Cargando…</p>
-          ) : pixels.length === 0 ? (
-            <p className="mt-3 text-[13px] text-[#8a8177]">
-              Todavía no hay píxeles guardados. Creá uno o sincronizá.
+        {loading ? (
+          <p className="mt-4 text-[13px] text-[#8a8177]">Cargando…</p>
+        ) : pixelsForAccount.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
+            <p className="text-[14px] font-semibold text-[#1c1917]">
+              Todavía no hay píxeles en esta cuenta
             </p>
-          ) : (
-            <ul className="mt-3 max-h-64 space-y-2 overflow-auto">
-              {pixels.map((p) => (
+            <p className="mx-auto mt-1 max-w-sm text-[12.5px] leading-5 text-[#5c564e]">
+              Creá uno con la opción A, o tocá “Ver píxeles en TikTok” por si ya
+              existen allá y aún no los trajimos.
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {pixelsForAccount.map((p) => {
+              const active = selectedPixel?.id === p.id;
+              const code = p.pixelCode || p.pixelId;
+              return (
                 <li key={p.id}>
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedPixelId(p.id);
                       setSdkReady(false);
+                      setTestLog([]);
                     }}
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-[13px] ${
-                      selectedPixel?.id === p.id
-                        ? "border-[#ff781f] bg-[#fff1e8]"
-                        : "border-[#ece7e0] bg-white"
+                    className={`w-full rounded-xl border px-3.5 py-3 text-left transition ${
+                      active
+                        ? "border-[#ff781f] bg-[#fff7f0] shadow-[0_0_0_1px_#ff781f33]"
+                        : "border-[#ece7e0] bg-white hover:border-[#d6cec4]"
                     }`}
                   >
-                    <span className="font-semibold text-[#1c1917]">{p.name}</span>
-                    <span className="mt-0.5 block font-mono text-[11px] text-[#6b645c]">
-                      {p.pixelCode || p.pixelId} · adv {p.advertiserId}
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[13px] font-semibold text-[#1c1917]">
+                        {p.name}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-[#f3efe9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6b645c]">
+                        {p.status || "activo"}
+                      </span>
+                    </span>
+                    <span className="mt-1 block truncate font-mono text-[11px] text-[#6b645c]">
+                      {code}
                     </span>
                   </button>
                 </li>
-              ))}
-            </ul>
-          )}
-        </div>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       {selectedPixel ? (
         <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-[1rem] border border-[#ece7e0] bg-white p-5">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
+          <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
               Instalación
             </p>
-            <p className="mt-2 font-mono text-[13px] text-[#1c1917]">
-              Pixel: {pixelCode}
+            <p className="mt-2 font-mono text-[13px] font-semibold text-[#1c1917]">
+              {pixelCode}
             </p>
+            {codEvents.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {codEvents.map((ev) => (
+                  <span
+                    key={ev}
+                    className="rounded-full bg-[#fff1e8] px-2 py-0.5 text-[10px] font-semibold text-[#c2410c]"
+                  >
+                    {ev}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-[12px] text-[#8a8177]">
+                Sin eventos COD guardados · podés reaplicarlos.
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => void copySnippet()}
-                className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] px-3 text-[12px] font-semibold"
+                className="inline-flex h-9 items-center rounded-lg bg-[#1c1917] px-3 text-[12px] font-semibold text-white"
               >
                 Copiar snippet
               </button>
               <button
                 type="button"
                 onClick={() => void handleSetupEvents()}
-                className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] px-3 text-[12px] font-semibold"
+                className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] px-3 text-[12px] font-semibold text-[#1c1917]"
               >
                 Reaplicar eventos COD
               </button>
             </div>
-            <pre className="mt-3 max-h-48 overflow-auto rounded-lg bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
+            <pre className="mt-3 max-h-44 overflow-auto rounded-xl bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
               {snippetFor(pixelCode)}
             </pre>
           </div>
 
-          <div className="rounded-[1rem] border border-[#ece7e0] bg-white p-5">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              Probar eventos (ttq)
+          <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+              Probar acá
             </p>
-            <p className="mt-1 text-[12px] text-[#5c564e]">
-              Dispará acá y mirá Test Events en TikTok. No reemplaza la
-              instalación en tu sitio.
+            <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
+              Dispará eventos con el SDK y mirá{" "}
+              <span className="font-semibold">Test Events</span> en TikTok. No
+              reemplaza instalar el snippet en la web.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => void ensureSdk().catch((e) => setError(String(e.message || e)))}
+                onClick={() =>
+                  void ensureSdk().catch((e) =>
+                    setError(String(e.message || e)),
+                  )
+                }
                 className="inline-flex h-9 items-center rounded-lg bg-[#ff781f] px-3 text-[12px] font-semibold text-white"
               >
-                {sdkReady ? "SDK listo" : "Cargar SDK"}
+                {sdkReady ? "SDK listo ✓" : "Cargar SDK"}
               </button>
               {TIKTOK_BROWSER_TEST_EVENTS.slice(0, 8).map((ev) => (
                 <button
                   key={ev}
                   type="button"
                   onClick={() => void fireEvent(ev)}
-                  className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] px-3 text-[11px] font-semibold"
+                  className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 text-[11px] font-semibold text-[#1c1917] hover:border-[#ff781f]"
                 >
                   {ev}
                 </button>
               ))}
             </div>
             {testLog.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-[11px] text-[#6b645c]">
+              <ul className="mt-3 space-y-1 border-t border-[#f0ebe4] pt-3 font-mono text-[11px] text-[#6b645c]">
                 {testLog.map((line) => (
                   <li key={line}>{line}</li>
                 ))}

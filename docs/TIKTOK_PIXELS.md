@@ -5,11 +5,10 @@
 En **Píxeles** (`/pixels`) el cliente (o gerente con cliente seleccionado) puede:
 
 1. Elegir una cuenta ads (advertiser) del cliente Hecom.
-2. **Crear** un Pixel vía TikTok Open API (`POST /open_api/v1.3/pixel/create/`).
-3. Registrar **eventos COD** (`POST /pixel/event/create/`).
-4. **Listar / sync** desde TikTok (`GET /pixel/list/`).
-5. **Probar** eventos en el browser (`ttq.track`) y copiar el snippet de instalación.
-6. Verificar en [Events Manager → Test Events](https://ads.tiktok.com/i18n/events_manager).
+2. **Crear** un Pixel + eventos COD (`POST /pixel/create/` + `/pixel/event/create/`) — camino normal si no hay píxel.
+3. **Ver píxeles en TikTok** (antes “Sync”): solo consulta `GET /pixel/list/` y muestra en la misma lista si esa cuenta ya tiene píxeles activos. No crea nada.
+4. **Probar** eventos en el browser (`ttq.track`) y copiar el snippet de instalación.
+5. Verificar en [Events Manager → Test Events](https://ads.tiktok.com/i18n/events_manager).
 
 Fuera de alcance (por ahora): Meta Pixel, CAPI server-side, pre-landing builder.
 
