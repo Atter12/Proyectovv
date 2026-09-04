@@ -81,6 +81,16 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
         </svg>
       );
+    case "pixels":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"
+          />
+        </svg>
+      );
     case "support":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -106,6 +116,7 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   if (item.href === "/overview") return "Resumen";
   if (item.href === "/affiliates") return "Afiliados";
   if (item.href === "/creative-analyzer") return "Creativos";
+  if (item.href === "/pixels") return "Píxeles";
   if (item.href === "/support") {
     return persona === "cliente" ? "Soporte" : "Inbox Soporte";
   }

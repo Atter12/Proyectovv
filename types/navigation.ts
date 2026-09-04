@@ -11,5 +11,6 @@ export interface NavItem {
     | "gastos"
     | "affiliates"
     | "creative-analyzer"
+    | "pixels"
     | "support";
 }
