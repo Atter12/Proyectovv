@@ -19,6 +19,7 @@ export const routes = {
   affiliates: "/affiliates",
   creativeAnalyzer: "/creative-analyzer",
   pixels: "/pixels",
+  profit: "/profit",
   support: "/support",
   adminLogin: "/admin/login",
   adminOverview: "/admin/overview",

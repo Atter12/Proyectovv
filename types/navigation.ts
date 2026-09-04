@@ -12,5 +12,6 @@ export interface NavItem {
     | "affiliates"
     | "creative-analyzer"
     | "pixels"
+    | "profit"
     | "support";
 }

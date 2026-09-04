@@ -16,6 +16,7 @@ export const mainNavigation: NavItem[] = [
   { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
   { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },
   { label: "Píxeles", href: routes.pixels, icon: "pixels" },
+  { label: "Profit / ROAS", href: routes.profit, icon: "profit" },
   { label: "Soporte", href: routes.support, icon: "support" },
 ];
 

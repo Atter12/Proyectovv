@@ -11,6 +11,7 @@ export const protectedRoutes = [
   routes.affiliates,
   routes.creativeAnalyzer,
   routes.pixels,
+  routes.profit,
 ] as const;
 
 /** Rutas de auth pre-dashboard. */
