@@ -7,7 +7,7 @@ import { listActiveRpStores } from "@/lib/realprofit/profit-snapshot.server";
 
 export const runtime = "nodejs";
 
-/** Lista tiendas RP activas (picker staff). */
+/** Lista tiendas RP para vincular (activas e inactivas). */
 export async function GET() {
   const session = await requirePermission("adAccounts:read");
   const funding = resolvePaymentsFundingCapabilities({

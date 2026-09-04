@@ -8,6 +8,7 @@ type StoreSummary = {
   name: string;
   shopDomain: string | null;
   currency: string;
+  isActive?: boolean;
 };
 
 type CampaignRow = {
@@ -31,6 +32,40 @@ type Snapshot = {
   campaigns: CampaignRow[];
 };
 
+function Kpi({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border px-3.5 py-3.5 ${
+        accent
+          ? "border-[#ffd7b8] bg-[#fff7f0]"
+          : "border-[#ece7e0] bg-white"
+      }`}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a9187]">
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] ${
+          accent ? "text-[#c2410c]" : "text-[#1c1917]"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-[11px] text-[#8a8177]">{hint}</p>
+    </div>
+  );
+}
+
 export function ProfitPageClient({
   clienteName,
   isStaff,
@@ -47,6 +82,7 @@ export function ProfitPageClient({
   const [linkedStores, setLinkedStores] = useState<StoreSummary[]>([]);
   const [allStores, setAllStores] = useState<StoreSummary[]>([]);
   const [pickStoreId, setPickStoreId] = useState("");
+  const [linking, setLinking] = useState(false);
   const [realProfitUrl, setRealProfitUrl] = useState(
     "https://www.realprofitcod.com",
   );
@@ -83,10 +119,13 @@ export function ProfitPageClient({
         const sJson = (await sRes.json()) as {
           ok?: boolean;
           stores?: StoreSummary[];
+          error?: string;
         };
         if (sRes.ok && sJson.ok) {
           setAllStores(sJson.stores ?? []);
           setPickStoreId((prev) => prev || sJson.stores?.[0]?.id || "");
+        } else if (!sRes.ok) {
+          setError(sJson.error || "No se pudieron listar tiendas RP.");
         }
       }
     } catch (e) {
@@ -103,6 +142,7 @@ export function ProfitPageClient({
 
   async function handleLink() {
     if (!pickStoreId) return;
+    setLinking(true);
     setError(null);
     setNotice(null);
     try {
@@ -113,10 +153,12 @@ export function ProfitPageClient({
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) throw new Error(json.error || "No se vinculó.");
-      setNotice("Tienda vinculada al cliente.");
+      setNotice("Tienda vinculada. Ya ves cobrado / gasto / ROAS abajo.");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al vincular");
+    } finally {
+      setLinking(false);
     }
   }
 
@@ -138,25 +180,28 @@ export function ProfitPageClient({
     }
   }
 
+  const linkedIds = new Set(linkedStores.map((s) => s.id));
+  const availableStores = allStores.filter((s) => !linkedIds.has(s.id));
+
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_12px_32px_-20px_rgb(28_25_23_/_0.18)]">
+    <div className="mx-auto max-w-5xl space-y-5">
+      <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
         <div
           aria-hidden
-          className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
         />
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
               Vista previa · Real Profit COD
             </p>
-            <h1 className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] text-[#1c1917]">
+            <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
               Profit / ROAS · {clienteName}
             </h1>
-            <p className="mt-2 max-w-2xl text-[13px] font-medium leading-5 text-[#5c564e]">
-              Cobrado vs gasto ads (ROAS cobrado) por tienda. En campañas el
-              cobrado es <span className="font-semibold">estimado</span>{" "}
-              proporcional al gasto. El producto completo de Real Profit COD se
+            <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+              Cobrado vs gasto ads por tienda. En campañas el cobrado es{" "}
+              <span className="font-semibold text-[#1c1917]">estimado</span>{" "}
+              (proporcional al gasto). El producto completo de Real Profit se
               cobra aparte.
             </p>
           </div>
@@ -164,16 +209,16 @@ export function ProfitPageClient({
             href={realProfitUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917]"
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-[#d6cec4] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f]"
           >
-            Abrir Real Profit
+            Abrir Real Profit →
           </a>
         </div>
-      </section>
+      </header>
 
       {error ? (
         <div
-          className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
+          className="rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
           role="alert"
         >
           {error}
@@ -181,28 +226,28 @@ export function ProfitPageClient({
       ) : null}
       {notice ? (
         <div
-          className="rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
+          className="rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
           role="status"
         >
           {notice}
         </div>
       ) : null}
 
-      <section className="flex flex-wrap items-end gap-3 rounded-[1rem] border border-[#ece7e0] bg-white p-4">
-        <label className="text-[12px] font-medium text-[#5c564e]">
+      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
+        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
           Desde
           <input
             type="date"
-            className="mt-1 block rounded-lg border border-[#e7e0d8] px-3 py-2 text-[13px]"
+            className="mt-1.5 block rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none ring-[#ff781f]/30 focus:bg-white focus:ring-2"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
           />
         </label>
-        <label className="text-[12px] font-medium text-[#5c564e]">
+        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
           Hasta
           <input
             type="date"
-            className="mt-1 block rounded-lg border border-[#e7e0d8] px-3 py-2 text-[13px]"
+            className="mt-1.5 block rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none ring-[#ff781f]/30 focus:bg-white focus:ring-2"
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
@@ -210,30 +255,43 @@ export function ProfitPageClient({
         <button
           type="button"
           onClick={() => void refresh()}
-          className="inline-flex h-10 items-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white"
+          disabled={loading}
+          className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
         >
-          Actualizar
+          {loading ? "Cargando…" : "Actualizar"}
         </button>
       </section>
 
       {isStaff ? (
-        <section className="rounded-[1rem] border border-[#ece7e0] bg-white p-5">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-            Vincular tienda Real Profit
+        <section className="rounded-2xl border border-dashed border-[#ddd5cb] bg-[#faf8f5] p-5">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            Staff · Vincular tienda
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+            Conectar Real Profit a este cliente
+          </h2>
+          <p className="mt-1.5 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
+            Elegí la tienda Shopify de Real Profit. Incluye tiendas inactivas de
+            prueba (ej. wazapp-dev-test).
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
             <select
-              className="min-w-[240px] rounded-lg border border-[#e7e0d8] px-3 py-2 text-[13px]"
+              className="min-w-[260px] flex-1 rounded-xl border border-[#e7e0d8] bg-white px-3.5 py-2.5 text-[13px] outline-none ring-[#ff781f]/30 focus:ring-2"
               value={pickStoreId}
               onChange={(e) => setPickStoreId(e.target.value)}
             >
-              {allStores.length === 0 ? (
-                <option value="">Sin tiendas RP</option>
+              {availableStores.length === 0 ? (
+                <option value="">
+                  {allStores.length === 0
+                    ? "Sin tiendas RP en la DB"
+                    : "Todas las tiendas ya están vinculadas"}
+                </option>
               ) : (
-                allStores.map((s) => (
+                availableStores.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                     {s.shopDomain ? ` · ${s.shopDomain}` : ""}
+                    {s.isActive === false ? " · inactiva" : ""}
                   </option>
                 ))
               )}
@@ -241,23 +299,30 @@ export function ProfitPageClient({
             <button
               type="button"
               onClick={() => void handleLink()}
-              disabled={!pickStoreId}
-              className="inline-flex h-10 items-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
+              disabled={!pickStoreId || linking || availableStores.length === 0}
+              className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
             >
-              Vincular al cliente
+              {linking ? "Vinculando…" : "Vincular al cliente"}
             </button>
           </div>
           {linkedStores.length > 0 ? (
-            <ul className="mt-3 space-y-1 text-[12px] text-[#5c564e]">
+            <ul className="mt-4 space-y-2">
               {linkedStores.map((s) => (
-                <li key={s.id} className="flex items-center gap-2">
-                  <span>
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#ece7e0] bg-white px-3.5 py-2.5 text-[13px]"
+                >
+                  <span className="font-medium text-[#1c1917]">
                     {s.name}
-                    {s.shopDomain ? ` · ${s.shopDomain}` : ""}
+                    {s.shopDomain ? (
+                      <span className="ml-2 font-mono text-[11px] text-[#8a8177]">
+                        {s.shopDomain}
+                      </span>
+                    ) : null}
                   </span>
                   <button
                     type="button"
-                    className="text-[#b45309] underline"
+                    className="text-[12px] font-semibold text-[#b45309] underline-offset-2 hover:underline"
                     onClick={() => void handleUnlink(s.id)}
                   >
                     Quitar
@@ -269,99 +334,108 @@ export function ProfitPageClient({
         </section>
       ) : null}
 
-      {loading ? (
-        <p className="text-[13px] text-[#8a8177]">Cargando…</p>
+      {loading && snapshots.length === 0 ? (
+        <p className="text-[13px] text-[#8a8177]">Cargando Profit…</p>
       ) : snapshots.length === 0 ? (
-        <section className="rounded-[1rem] border border-dashed border-[#e7e0d8] bg-[#faf8f5] px-5 py-8 text-center">
+        <section className="rounded-2xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-5 py-10 text-center">
           <p className="text-[15px] font-semibold text-[#1c1917]">
             Sin tienda vinculada
           </p>
-          <p className="mt-2 text-[13px] text-[#5c564e]">
+          <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[#5c564e]">
             {isStaff
-              ? "Vinculá una tienda Real Profit arriba para ver ROAS cobrado."
-              : "Pedí a tu gerente que vincule la tienda Shopify de Real Profit."}
+              ? "Vinculá una tienda Real Profit arriba para ver cobrado, gasto y ROAS."
+              : "Pedí a tu gerente que vincule la tienda Shopify de Real Profit a tu cuenta."}
           </p>
         </section>
       ) : (
         snapshots.map((snap) => (
           <section
             key={snap.store.id}
-            className="space-y-4 rounded-[1rem] border border-[#ece7e0] bg-white p-5"
+            className="space-y-5 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6"
           >
-            <div>
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-                Tienda
-              </p>
-              <p className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
-                {snap.store.name}
-              </p>
-              <p className="text-[12px] text-[#8a8177]">
-                {snap.from} → {snap.to}
-                {snap.store.shopDomain ? ` · ${snap.store.shopDomain}` : ""}
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                  Tienda
+                </p>
+                <h2 className="mt-1 text-[1.2rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+                  {snap.store.name}
+                </h2>
+                <p className="mt-0.5 text-[12px] text-[#8a8177]">
+                  {snap.from} → {snap.to}
+                  {snap.store.shopDomain ? ` · ${snap.store.shopDomain}` : ""}
+                </p>
+              </div>
+              {snap.adSpend === 0 ? (
+                <span className="rounded-full bg-[#f3efe9] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#6b645c]">
+                  Sin gasto ads aún
+                </span>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {[
-                {
-                  label: "Cobrado",
-                  value: formatMoney(snap.collectedRevenue, snap.store.currency),
-                  hint: `${snap.ordersCollected} órdenes collected`,
-                },
-                {
-                  label: "Gasto ads",
-                  value: formatMoney(snap.adSpend, snap.store.currency),
-                  hint: "Meta / TikTok / Google / manual",
-                },
-                {
-                  label: "ROAS cobrado",
-                  value:
-                    snap.roasCollected != null
-                      ? `${snap.roasCollected.toFixed(2)}x`
-                      : "—",
-                  hint: "Cobrado ÷ gasto",
-                },
-                {
-                  label: "Campañas",
-                  value: String(snap.campaigns.length),
-                  hint: "Con gasto en el período",
-                },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-xl border border-[#ece7e0] px-3 py-3"
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
-                    {card.label}
-                  </p>
-                  <p className="mt-1 text-[1.15rem] font-bold tabular-nums text-[#1c1917]">
-                    {card.value}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-[#8a8177]">{card.hint}</p>
-                </div>
-              ))}
+              <Kpi
+                label="Cobrado"
+                value={formatMoney(snap.collectedRevenue, snap.store.currency)}
+                hint={`${snap.ordersCollected} órdenes collected`}
+              />
+              <Kpi
+                label="Gasto ads"
+                value={formatMoney(snap.adSpend, snap.store.currency)}
+                hint="Meta / TikTok / Google / manual"
+              />
+              <Kpi
+                label="ROAS cobrado"
+                value={
+                  snap.roasCollected != null
+                    ? `${snap.roasCollected.toFixed(2)}x`
+                    : "—"
+                }
+                hint="Cobrado ÷ gasto"
+                accent
+              />
+              <Kpi
+                label="Campañas"
+                value={String(snap.campaigns.length)}
+                hint="Con gasto en el período"
+              />
             </div>
 
             <div>
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-                Campañas
-              </p>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                    Campañas
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                    Cobrado y ROAS por campaña = estimado (reparto por % de
+                    gasto)
+                  </p>
+                </div>
+              </div>
+
               {snap.campaigns.length === 0 ? (
-                <p className="mt-2 text-[13px] text-[#8a8177]">
-                  Sin gasto de ads en este período (sync Meta/manual en Real
-                  Profit).
-                </p>
+                <div className="mt-3 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-6 text-center">
+                  <p className="text-[13px] font-semibold text-[#1c1917]">
+                    Sin filas de gasto en este período
+                  </p>
+                  <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
+                    El cobrado de la tienda sí puede verse arriba. El gasto por
+                    campaña aparece cuando Real Profit sincroniza Meta/TikTok o
+                    carga gasto manual.
+                  </p>
+                </div>
               ) : (
-                <div className="mt-2 overflow-x-auto">
+                <div className="mt-3 overflow-x-auto rounded-xl border border-[#ece7e0]">
                   <table className="min-w-full text-left text-[12px]">
-                    <thead className="text-[10px] uppercase tracking-[0.08em] text-[#9a9187]">
+                    <thead className="bg-[#faf8f5] text-[10px] uppercase tracking-[0.08em] text-[#9a9187]">
                       <tr>
-                        <th className="py-2 pr-3">Campaña</th>
-                        <th className="py-2 pr-3">Plat.</th>
-                        <th className="py-2 pr-3">Gasto</th>
-                        <th className="py-2 pr-3">% gasto</th>
-                        <th className="py-2 pr-3">Cobrado est.</th>
-                        <th className="py-2">ROAS est.</th>
+                        <th className="px-3 py-2.5">Campaña</th>
+                        <th className="px-3 py-2.5">Plat.</th>
+                        <th className="px-3 py-2.5">Gasto</th>
+                        <th className="px-3 py-2.5">% gasto</th>
+                        <th className="px-3 py-2.5">Cobrado est.</th>
+                        <th className="px-3 py-2.5">ROAS est.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -370,25 +444,25 @@ export function ProfitPageClient({
                           key={`${c.platform}-${c.campaignExternalId}`}
                           className="border-t border-[#f0ebe4]"
                         >
-                          <td className="py-2 pr-3 font-medium text-[#1c1917]">
+                          <td className="px-3 py-2.5 font-medium text-[#1c1917]">
                             {c.campaignName}
                           </td>
-                          <td className="py-2 pr-3 text-[#6b645c]">
+                          <td className="px-3 py-2.5 text-[#6b645c]">
                             {c.platform}
                           </td>
-                          <td className="py-2 pr-3 tabular-nums">
+                          <td className="px-3 py-2.5 tabular-nums">
                             {formatMoney(c.spend, snap.store.currency)}
                           </td>
-                          <td className="py-2 pr-3 tabular-nums">
+                          <td className="px-3 py-2.5 tabular-nums">
                             {(c.spendShare * 100).toFixed(1)}%
                           </td>
-                          <td className="py-2 pr-3 tabular-nums">
+                          <td className="px-3 py-2.5 tabular-nums">
                             {formatMoney(
                               c.collectedEstimated,
                               snap.store.currency,
                             )}
                           </td>
-                          <td className="py-2 tabular-nums">
+                          <td className="px-3 py-2.5 font-semibold tabular-nums text-[#c2410c]">
                             {c.roasEstimated != null
                               ? `${c.roasEstimated.toFixed(2)}x`
                               : "—"}

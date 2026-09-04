@@ -39,10 +39,12 @@ function num(v: unknown): number {
 
 export async function listActiveRpStores(): Promise<RpStoreSummary[]> {
   const admin = getRealProfitAdmin();
+  // Incluye inactivas: la tienda de prueba RP puede estar is_active=false
+  // y igual hace falta vincularla en la promo Holistic.
   const { data, error } = await admin
     .from("rp_stores")
     .select("id, name, shop_domain, currency, is_active")
-    .eq("is_active", true)
+    .order("is_active", { ascending: false })
     .order("name", { ascending: true });
 
   if (error) throw new Error(error.message);

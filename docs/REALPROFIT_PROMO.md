@@ -24,7 +24,7 @@ Tabla `hecom_cliente_rp_stores`:
 | `hecom_cliente_id` | Cliente Hecom seleccionado |
 | `rp_store_id` | FK a `rp_stores` |
 
-Staff vincula desde la UI (picker de tiendas activas).
+Staff vincula desde la UI (picker de tiendas RP, **incluye inactivas** de prueba).
 
 ## APIs
 
