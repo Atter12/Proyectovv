@@ -36,9 +36,9 @@ export function PaymentsGerenteAccountsSummary({
       accent: true,
     },
     {
-      label: "Ledger Holistic",
+      label: "Asignado en cuentas",
       value: formatMoney(summary.totalLedgerUsd),
-      hint: "Saldo asignado en cuentas",
+      hint: "Ledger Holistic en ads (≠ cartera)",
       muted: true,
     },
     {
