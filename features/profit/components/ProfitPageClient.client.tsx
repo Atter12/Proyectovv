@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
-import { ProfitDateField } from "@/features/profit/components/ProfitDateField.client";
+import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 
@@ -517,27 +517,22 @@ export function ProfitPageClient({
             </button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ProfitDateField
-              label="Desde"
-              value={from}
-              max={to || limaTodayYmd()}
-              onChange={setFrom}
-            />
-            <ProfitDateField
-              label="Hasta"
-              value={to}
-              min={from || undefined}
+          <div className="flex flex-wrap items-end gap-3">
+            <ProfitDateRangeField
+              from={from}
+              to={to}
               max={limaTodayYmd()}
-              onChange={setTo}
+              onChange={({ from: nextFrom, to: nextTo }) => {
+                setFrom(nextFrom);
+                setTo(nextTo);
+              }}
             />
+            {loading ? (
+              <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
+                Cargando…
+              </p>
+            ) : null}
           </div>
-
-          {loading ? (
-            <p className="text-[11px] font-semibold text-[#c2410c]">
-              Cargando…
-            </p>
-          ) : null}
         </div>
       </section>
 
