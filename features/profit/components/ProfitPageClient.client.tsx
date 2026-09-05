@@ -505,15 +505,7 @@ export function ProfitPageClient({
       ) : null}
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <p className="text-[12px] text-[#5c564e]">
-            Al elegir fechas se filtra solo · America/Lima
-            {loading ? (
-              <span className="ml-1.5 font-semibold text-[#c2410c]">
-                · cargando…
-              </span>
-            ) : null}
-          </p>
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <button
             type="button"
             onClick={openShopifyModal}
@@ -557,6 +549,11 @@ export function ProfitPageClient({
               </button>
             );
           })}
+          {loading ? (
+            <span className="self-center text-[11px] font-semibold text-[#c2410c]">
+              Cargando…
+            </span>
+          ) : null}
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
