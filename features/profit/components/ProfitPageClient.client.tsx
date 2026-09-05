@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatMoney } from "@/lib/format-money";
+import { moneyUsd } from "@/lib/format/money-usd";
 
 type StoreSummary = {
   id: string;
@@ -19,6 +20,25 @@ type CampaignRow = {
   spendShare: number;
   collectedEstimated: number;
   roasEstimated: number | null;
+  bm: string | null;
+  advertiserId: string | null;
+};
+
+type DailyPoint = { date: string; spend: number };
+
+type Analysis = {
+  from: string;
+  to: string;
+  spendToday: number;
+  spend7d: number;
+  spend30d: number;
+  spendInRange: number;
+  daysWithActivity: number;
+  dailySeries: DailyPoint[];
+  campaigns: CampaignRow[];
+  collectedRevenue: number;
+  roasCollected: number | null;
+  hasCodLink: boolean;
 };
 
 type Snapshot = {
@@ -29,10 +49,10 @@ type Snapshot = {
   adSpend: number;
   roasCollected: number | null;
   ordersCollected: number;
-  campaigns: CampaignRow[];
   spendSource?: "realprofit" | "holistic_tiktok" | "none";
-  spendSourceLabel?: string;
 };
+
+type SortKey = "spend" | "share" | "name" | "roas";
 
 function Kpi({
   label,
@@ -68,6 +88,71 @@ function Kpi({
   );
 }
 
+function DailyBars({ series }: { series: DailyPoint[] }) {
+  const max = Math.max(...series.map((p) => p.spend), 0);
+  const peak = max > 0 ? max : 1;
+  const hasAny = series.some((p) => p.spend > 0);
+  const mobile = series.slice(-7);
+
+  if (!hasAny) {
+    return (
+      <p className="px-1 py-6 text-[13px] text-[#8a8177]">
+        Sin gasto diario en este período. Cuando haya snapshots TikTok o filas
+        de gasto con fecha, aparecen acá.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div className="sm:hidden">
+        <div className="flex h-28 items-end gap-1">
+          {mobile.map((p) => (
+            <div
+              key={p.date}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1"
+              title={`${p.date}: ${moneyUsd(p.spend)}`}
+            >
+              <div
+                className="w-full rounded-t-md bg-[#ff781f]/85"
+                style={{
+                  height: `${Math.max(4, (p.spend / peak) * 100)}%`,
+                }}
+              />
+              <span className="text-[9px] tabular-nums text-[#9a9187]">
+                {p.date.slice(8)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-[#8a8177]">Últimos 7 días del rango</p>
+      </div>
+      <div className="hidden sm:block">
+        <div className="flex h-32 items-end gap-0.5">
+          {series.map((p) => (
+            <div
+              key={p.date}
+              className="flex min-w-0 flex-1 flex-col items-center"
+              title={`${p.date}: ${moneyUsd(p.spend)}`}
+            >
+              <div
+                className="w-full max-w-[14px] rounded-t bg-[#ff781f]/80 transition hover:bg-[#ff781f]"
+                style={{
+                  height: `${Math.max(3, (p.spend / peak) * 100)}%`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex justify-between text-[10px] tabular-nums text-[#9a9187]">
+          <span>{series[0]?.date}</span>
+          <span>{series.at(-1)?.date}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ProfitPageClient({
   clienteName,
   isStaff,
@@ -80,6 +165,7 @@ export function ProfitPageClient({
   const [notice, setNotice] = useState<string | null>(null);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [linkedStores, setLinkedStores] = useState<StoreSummary[]>([]);
   const [allStores, setAllStores] = useState<StoreSummary[]>([]);
@@ -88,6 +174,9 @@ export function ProfitPageClient({
   const [realProfitUrl, setRealProfitUrl] = useState(
     "https://www.realprofitcod.com",
   );
+  const [sortKey, setSortKey] = useState<SortKey>("spend");
+  const [sortAsc, setSortAsc] = useState(false);
+  const [bmFilter, setBmFilter] = useState<string>("all");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -105,12 +194,16 @@ export function ProfitPageClient({
         to?: string;
         linkedStores?: StoreSummary[];
         snapshots?: Snapshot[];
+        analysis?: Analysis;
         realProfitUrl?: string;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo cargar Profit.");
       }
-      setSnapshots(json.snapshots ?? []);
+      setAnalysis(json.analysis ?? null);
+      setSnapshots(
+        (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
+      );
       setLinkedStores(json.linkedStores ?? []);
       if (!from && json.from) setFrom(json.from);
       if (!to && json.to) setTo(json.to);
@@ -155,7 +248,7 @@ export function ProfitPageClient({
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) throw new Error(json.error || "No se vinculó.");
-      setNotice("Tienda vinculada. Ya ves cobrado / gasto / ROAS abajo.");
+      setNotice("Tienda vinculada. Cobrado COD entra al análisis.");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al vincular");
@@ -185,6 +278,44 @@ export function ProfitPageClient({
   const linkedIds = new Set(linkedStores.map((s) => s.id));
   const availableStores = allStores.filter((s) => !linkedIds.has(s.id));
 
+  const bmOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of analysis?.campaigns ?? []) {
+      if (c.bm?.trim()) set.add(c.bm.trim());
+    }
+    return [...set].sort();
+  }, [analysis]);
+
+  const sortedCampaigns = useMemo(() => {
+    let rows = analysis?.campaigns ?? [];
+    if (bmFilter !== "all") {
+      rows = rows.filter((c) => (c.bm ?? "") === bmFilter);
+    }
+    const mul = sortAsc ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      if (sortKey === "name") {
+        return mul * a.campaignName.localeCompare(b.campaignName);
+      }
+      if (sortKey === "share") return mul * (a.spendShare - b.spendShare);
+      if (sortKey === "roas") {
+        const ar = a.roasEstimated ?? -1;
+        const br = b.roasEstimated ?? -1;
+        return mul * (ar - br);
+      }
+      return mul * (a.spend - b.spend);
+    });
+  }, [analysis, bmFilter, sortKey, sortAsc]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortAsc((v) => !v);
+    else {
+      setSortKey(key);
+      setSortAsc(key === "name");
+    }
+  }
+
+  const topShare = sortedCampaigns[0]?.spendShare ?? 0;
+
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
@@ -195,17 +326,15 @@ export function ProfitPageClient({
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
-              Vista previa · Real Profit COD
+              Análisis de campañas
             </p>
             <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
-              Profit / ROAS · {clienteName}
+              Profit · {clienteName}
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-              Cobrado COD (Real Profit) vs gasto ads. Si la tienda no tiene sync
-              de ads en RP, usamos el gasto TikTok de Holistic. En campañas el
-              cobrado es{" "}
-              <span className="font-semibold text-[#1c1917]">estimado</span>{" "}
-              (proporcional al gasto).
+              Gasto TikTok, ranking de campañas y señales para decidir dónde
+              poner o cortar plata. Cobrado COD es opcional si tenés Real Profit
+              vinculado.
             </p>
           </div>
           <a
@@ -214,7 +343,7 @@ export function ProfitPageClient({
             rel="noreferrer"
             className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-[#d6cec4] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f]"
           >
-            Abrir Real Profit →
+            Real Profit COD →
           </a>
         </div>
       </header>
@@ -265,17 +394,241 @@ export function ProfitPageClient({
         </button>
       </section>
 
+      {loading && !analysis ? (
+        <p className="text-[13px] text-[#8a8177]">Cargando análisis…</p>
+      ) : analysis ? (
+        <>
+          <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                  Consumo TikTok
+                </p>
+                <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+                  Gasto · Holistic
+                </h2>
+                <p className="mt-0.5 text-[12px] text-[#8a8177]">
+                  America/Lima · {analysis.from} → {analysis.to} ·{" "}
+                  {analysis.daysWithActivity} días con actividad
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Kpi
+                label="Hoy"
+                value={moneyUsd(analysis.spendToday)}
+                hint="Día actual (Lima)"
+              />
+              <Kpi
+                label="7 días"
+                value={moneyUsd(analysis.spend7d)}
+                hint="Incluye hoy"
+              />
+              <Kpi
+                label="30 días"
+                value={moneyUsd(analysis.spend30d)}
+                hint="Ventana corta"
+              />
+              <Kpi
+                label="En el rango"
+                value={moneyUsd(analysis.spendInRange)}
+                hint={`${analysis.campaigns.length} campañas`}
+                accent
+              />
+            </div>
+
+            <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
+              <p className="mb-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                Serie diaria
+              </p>
+              <DailyBars series={analysis.dailySeries} />
+            </div>
+
+            {topShare >= 0.4 && sortedCampaigns[0] ? (
+              <div className="rounded-xl border border-[#ffd7b8] bg-[#fff7f0] px-4 py-3 text-[13px] text-[#9a3412]">
+                <span className="font-semibold">
+                  {sortedCampaigns[0].campaignName}
+                </span>{" "}
+                se lleva el {(topShare * 100).toFixed(0)}% del gasto del período.
+                Revisá si el ROAS / resultado lo justifica.
+              </div>
+            ) : null}
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                  Campañas
+                </p>
+                <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
+                  Ranking por gasto
+                </h2>
+                <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                  Cobrado / ROAS por campaña = estimado si hay COD vinculado
+                  (reparto por % de gasto).
+                </p>
+              </div>
+              {bmOptions.length > 0 ? (
+                <label className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a8177]">
+                  BM
+                  <select
+                    className="mt-1 block min-w-[140px] rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2 text-[13px] font-medium text-[#1c1917]"
+                    value={bmFilter}
+                    onChange={(e) => setBmFilter(e.target.value)}
+                  >
+                    <option value="all">Todas</option>
+                    {bmOptions.map((bm) => (
+                      <option key={bm} value={bm}>
+                        {bm}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+
+            {analysis.hasCodLink ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Kpi
+                  label="Cobrado COD"
+                  value={formatMoney(analysis.collectedRevenue, "PEN")}
+                  hint="Órdenes collected (tiendas vinculadas)"
+                />
+                <Kpi
+                  label="ROAS cobrado"
+                  value={
+                    analysis.roasCollected != null
+                      ? `${analysis.roasCollected.toFixed(2)}x`
+                      : "—"
+                  }
+                  hint="Cobrado ÷ gasto Holistic"
+                  accent
+                />
+                <Kpi
+                  label="Campañas"
+                  value={String(sortedCampaigns.length)}
+                  hint={bmFilter === "all" ? "En el período" : `BM ${bmFilter}`}
+                />
+              </div>
+            ) : null}
+
+            {sortedCampaigns.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
+                <p className="text-[13px] font-semibold text-[#1c1917]">
+                  Sin campañas con gasto en este período
+                </p>
+                <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
+                  Probá otro rango o esperá a que sync TikTok escriba snapshots.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-[#ece7e0]">
+                <table className="min-w-full text-left text-[12px]">
+                  <thead className="bg-[#faf8f5] text-[10px] uppercase tracking-[0.08em] text-[#9a9187]">
+                    <tr>
+                      <th className="px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="font-bold uppercase tracking-[0.08em]"
+                          onClick={() => toggleSort("name")}
+                        >
+                          Campaña
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5">BM</th>
+                      <th className="px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="font-bold uppercase tracking-[0.08em]"
+                          onClick={() => toggleSort("spend")}
+                        >
+                          Gasto
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="font-bold uppercase tracking-[0.08em]"
+                          onClick={() => toggleSort("share")}
+                        >
+                          % gasto
+                        </button>
+                      </th>
+                      {analysis.hasCodLink ? (
+                        <>
+                          <th className="px-3 py-2.5">Cobrado est.</th>
+                          <th className="px-3 py-2.5">
+                            <button
+                              type="button"
+                              className="font-bold uppercase tracking-[0.08em]"
+                              onClick={() => toggleSort("roas")}
+                            >
+                              ROAS est.
+                            </button>
+                          </th>
+                        </>
+                      ) : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCampaigns.map((c) => (
+                      <tr
+                        key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
+                        className="border-t border-[#f0ebe4]"
+                      >
+                        <td className="px-3 py-2.5 font-medium text-[#1c1917]">
+                          {c.campaignName}
+                          {c.advertiserId ? (
+                            <span className="mt-0.5 block font-mono text-[10px] font-normal text-[#9a9187]">
+                              {c.advertiserId}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-2.5 text-[#6b645c]">
+                          {c.bm ?? "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {moneyUsd(c.spend)}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {(c.spendShare * 100).toFixed(1)}%
+                        </td>
+                        {analysis.hasCodLink ? (
+                          <>
+                            <td className="px-3 py-2.5 tabular-nums">
+                              {formatMoney(c.collectedEstimated, "PEN")}
+                            </td>
+                            <td className="px-3 py-2.5 font-semibold tabular-nums text-[#c2410c]">
+                              {c.roasEstimated != null
+                                ? `${c.roasEstimated.toFixed(2)}x`
+                                : "—"}
+                            </td>
+                          </>
+                        ) : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
+
       {isStaff ? (
         <section className="rounded-2xl border border-dashed border-[#ddd5cb] bg-[#faf8f5] p-5">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Staff · Vincular tienda
+            Opcional · Cobrado COD
           </p>
           <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            Conectar Real Profit a este cliente
+            Vincular tienda Real Profit
           </h2>
           <p className="mt-1.5 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-            Solo la tienda Real Profit COD de <span className="font-semibold text-[#1c1917]">este</span> cliente
-            (donde llegan sus órdenes cobradas). No uses tiendas de otros.
+            Solo la tienda COD de{" "}
+            <span className="font-semibold text-[#1c1917]">este</span> cliente.
+            Suma cobrado real al ROAS; el análisis de campañas no lo necesita.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <select
@@ -305,7 +658,7 @@ export function ProfitPageClient({
               disabled={!pickStoreId || linking || availableStores.length === 0}
               className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
             >
-              {linking ? "Vinculando…" : "Vincular al cliente"}
+              {linking ? "Vinculando…" : "Vincular"}
             </button>
           </div>
           {linkedStores.length > 0 ? (
@@ -337,191 +690,52 @@ export function ProfitPageClient({
         </section>
       ) : null}
 
-      {loading && snapshots.length === 0 ? (
-        <p className="text-[13px] text-[#8a8177]">Cargando Profit…</p>
-      ) : snapshots.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-5 py-10 text-center">
-          <p className="text-[15px] font-semibold text-[#1c1917]">
-            Sin datos en el período
+      {snapshots.length > 0 ? (
+        <section className="space-y-3">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            Tiendas COD vinculadas
           </p>
-          <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[#5c564e]">
-            No hay gasto TikTok Holistic ni tienda vinculada con cobrado.
-          </p>
-        </section>
-      ) : (
-        snapshots.map((snap) => {
-          const isHolisticOnly = snap.store.id === "__holistic_tiktok__";
-          const spendBadge =
-            snap.spendSource === "holistic_tiktok"
-              ? "Gasto · TikTok Holistic"
-              : snap.spendSource === "realprofit"
-                ? "Gasto · Real Profit"
-                : snap.adSpend === 0
-                  ? "Sin gasto ads aún"
-                  : null;
-
-          return (
-          <section
-            key={snap.store.id}
-            className="space-y-5 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  {isHolisticOnly ? "Sin tienda RP · preview gasto" : "Tienda"}
-                </p>
-                <h2 className="mt-1 text-[1.2rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+          {snapshots.map((snap) => (
+            <div
+              key={snap.store.id}
+              className="grid grid-cols-2 gap-3 rounded-2xl border border-[#ece7e0] bg-white p-4 sm:grid-cols-4"
+            >
+              <div className="col-span-2 sm:col-span-4">
+                <p className="text-[14px] font-bold text-[#1c1917]">
                   {snap.store.name}
-                </h2>
-                <p className="mt-0.5 text-[12px] text-[#8a8177]">
-                  {snap.from} → {snap.to}
-                  {snap.store.shopDomain ? ` · ${snap.store.shopDomain}` : ""}
                 </p>
-                {isHolisticOnly ? (
-                  <p className="mt-2 max-w-lg text-[12px] leading-5 text-[#5c564e]">
-                    {isStaff
-                      ? "Vinculá una tienda Real Profit arriba para sumar cobrado COD y ROAS híbrido."
-                      : "Pedí a tu gerente que vincule la tienda Shopify de Real Profit para ver cobrado y ROAS."}
-                  </p>
-                ) : null}
+                <p className="text-[11px] text-[#8a8177]">
+                  {snap.spendSource === "realprofit"
+                    ? "Gasto sync Real Profit"
+                    : snap.spendSource === "holistic_tiktok"
+                      ? "ROAS con gasto Holistic"
+                      : "Sin gasto ads"}
+                </p>
               </div>
-              {spendBadge ? (
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                    snap.spendSource === "holistic_tiktok"
-                      ? "bg-[#fff7f0] text-[#c2410c]"
-                      : snap.spendSource === "realprofit"
-                        ? "bg-emerald-50 text-emerald-800"
-                        : "bg-[#f3efe9] text-[#6b645c]"
-                  }`}
-                >
-                  {spendBadge}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
                 label="Cobrado"
                 value={formatMoney(snap.collectedRevenue, snap.store.currency)}
-                hint={
-                  isHolisticOnly
-                    ? "Vinculá tienda RP para cobrado COD"
-                    : `${snap.ordersCollected} órdenes collected`
-                }
+                hint={`${snap.ordersCollected} órdenes`}
               />
               <Kpi
-                label="Gasto ads"
+                label="Gasto"
                 value={formatMoney(snap.adSpend, snap.store.currency)}
-                hint={
-                  snap.spendSource === "holistic_tiktok"
-                    ? "TikTok Holistic (USD)"
-                    : snap.spendSource === "realprofit"
-                      ? "Meta / TikTok / Google / manual"
-                      : "Sin filas de gasto"
-                }
+                hint="Ads del período"
               />
               <Kpi
-                label="ROAS cobrado"
+                label="ROAS"
                 value={
                   snap.roasCollected != null
                     ? `${snap.roasCollected.toFixed(2)}x`
                     : "—"
                 }
-                hint={
-                  snap.spendSource === "holistic_tiktok" && !isHolisticOnly
-                    ? "Cobrado RP ÷ gasto Holistic"
-                    : "Cobrado ÷ gasto"
-                }
+                hint="Cobrado ÷ gasto"
                 accent
               />
-              <Kpi
-                label="Campañas"
-                value={String(snap.campaigns.length)}
-                hint="Con gasto en el período"
-              />
             </div>
-
-            <div>
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                    Campañas
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                    Cobrado y ROAS por campaña = estimado (reparto por % de
-                    gasto)
-                    {snap.spendSource === "holistic_tiktok"
-                      ? " · fuente TikTok Holistic"
-                      : ""}
-                  </p>
-                </div>
-              </div>
-
-              {snap.campaigns.length === 0 ? (
-                <div className="mt-3 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-6 text-center">
-                  <p className="text-[13px] font-semibold text-[#1c1917]">
-                    Sin filas de gasto en este período
-                  </p>
-                  <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
-                    El cobrado de la tienda sí puede verse arriba. El gasto por
-                    campaña aparece con sync RP o con snapshots/gastos TikTok
-                    de Holistic.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-3 overflow-x-auto rounded-xl border border-[#ece7e0]">
-                  <table className="min-w-full text-left text-[12px]">
-                    <thead className="bg-[#faf8f5] text-[10px] uppercase tracking-[0.08em] text-[#9a9187]">
-                      <tr>
-                        <th className="px-3 py-2.5">Campaña</th>
-                        <th className="px-3 py-2.5">Plat.</th>
-                        <th className="px-3 py-2.5">Gasto</th>
-                        <th className="px-3 py-2.5">% gasto</th>
-                        <th className="px-3 py-2.5">Cobrado est.</th>
-                        <th className="px-3 py-2.5">ROAS est.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {snap.campaigns.map((c) => (
-                        <tr
-                          key={`${c.platform}-${c.campaignExternalId}`}
-                          className="border-t border-[#f0ebe4]"
-                        >
-                          <td className="px-3 py-2.5 font-medium text-[#1c1917]">
-                            {c.campaignName}
-                          </td>
-                          <td className="px-3 py-2.5 text-[#6b645c]">
-                            {c.platform}
-                          </td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            {formatMoney(c.spend, snap.store.currency)}
-                          </td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            {(c.spendShare * 100).toFixed(1)}%
-                          </td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            {formatMoney(
-                              c.collectedEstimated,
-                              snap.store.currency,
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 font-semibold tabular-nums text-[#c2410c]">
-                            {c.roasEstimated != null
-                              ? `${c.roasEstimated.toFixed(2)}x`
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </section>
-          );
-        })
-      )}
+          ))}
+        </section>
+      ) : null}
     </div>
   );
 }

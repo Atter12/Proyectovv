@@ -18,7 +18,7 @@ export default async function ProfitPage() {
   if (!selected) {
     return (
       <div className={dashboardClasses.page}>
-        <PickClienteEmpty section="Profit / ROAS" mode={mode} />
+        <PickClienteEmpty section="Profit" mode={mode} />
       </div>
     );
   }

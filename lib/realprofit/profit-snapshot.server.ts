@@ -1,8 +1,13 @@
+import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import {
   defaultProfitDateRange,
   getRealProfitAdmin,
 } from "@/lib/realprofit/db.server";
-import { loadHolisticTikTokSpendForCliente } from "@/lib/realprofit/holistic-spend.server";
+import {
+  loadHolisticTikTokSpendForCliente,
+  sliceHolisticSpend,
+  type HolisticDailyPoint,
+} from "@/lib/realprofit/holistic-spend.server";
 
 export type RpStoreSummary = {
   id: string;
@@ -12,10 +17,7 @@ export type RpStoreSummary = {
   isActive: boolean;
 };
 
-export type ProfitSpendSource =
-  | "realprofit"
-  | "holistic_tiktok"
-  | "none";
+export type ProfitSpendSource = "realprofit" | "holistic_tiktok" | "none";
 
 export type ProfitCampaignRow = {
   campaignExternalId: string;
@@ -25,6 +27,8 @@ export type ProfitCampaignRow = {
   spendShare: number;
   collectedEstimated: number;
   roasEstimated: number | null;
+  bm: string | null;
+  advertiserId: string | null;
 };
 
 export type StoreProfitPromo = {
@@ -36,9 +40,24 @@ export type StoreProfitPromo = {
   roasCollected: number | null;
   ordersCollected: number;
   campaigns: ProfitCampaignRow[];
-  /** De dónde sale el gasto ads (RP sync vs TikTok Holistic). */
   spendSource: ProfitSpendSource;
   spendSourceLabel: string;
+};
+
+/** Centro de análisis Holistic (reemplaza el job de Gastos en Profit). */
+export type ProfitAnalysis = {
+  from: string;
+  to: string;
+  spendToday: number;
+  spend7d: number;
+  spend30d: number;
+  spendInRange: number;
+  daysWithActivity: number;
+  dailySeries: HolisticDailyPoint[];
+  campaigns: ProfitCampaignRow[];
+  collectedRevenue: number;
+  roasCollected: number | null;
+  hasCodLink: boolean;
 };
 
 function num(v: unknown): number {
@@ -48,6 +67,14 @@ function num(v: unknown): number {
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
+}
+
+function minYmd(a: string, b: string) {
+  return a <= b ? a : b;
+}
+
+function maxYmd(a: string, b: string) {
+  return a >= b ? a : b;
 }
 
 function spendSourceLabel(source: ProfitSpendSource): string {
@@ -65,6 +92,8 @@ function buildCampaignsFromSpend(input: {
     campaignName: string;
     platform: string;
     spend: number;
+    bm?: string | null;
+    advertiserId?: string | null;
   }>;
 }): ProfitCampaignRow[] {
   const adSpend = input.adSpend;
@@ -83,14 +112,14 @@ function buildCampaignsFromSpend(input: {
         collectedEstimated: round2(collectedEstimated),
         roasEstimated:
           c.spend > 0 ? round2(collectedEstimated / c.spend) : null,
+        bm: c.bm ?? null,
+        advertiserId: c.advertiserId ?? null,
       };
     });
 }
 
 export async function listActiveRpStores(): Promise<RpStoreSummary[]> {
   const admin = getRealProfitAdmin();
-  // Incluye inactivas: la tienda de prueba RP puede estar is_active=false
-  // y igual hace falta vincularla en la promo Holistic.
   const { data, error } = await admin
     .from("rp_stores")
     .select("id, name, shop_domain, currency, is_active")
@@ -185,7 +214,6 @@ export async function loadStoreProfitPromo(input: {
   storeId: string;
   from?: string;
   to?: string;
-  /** Fallback Holistic cuando RP no tiene spend sync. */
   holisticFallback?: {
     adSpend: number;
     byCampaign: Array<{
@@ -193,6 +221,8 @@ export async function loadStoreProfitPromo(input: {
       campaignName: string;
       platform: string;
       spend: number;
+      bm?: string | null;
+      advertiserId?: string | null;
     }>;
   } | null;
 }): Promise<StoreProfitPromo> {
@@ -254,6 +284,8 @@ export async function loadStoreProfitPromo(input: {
       campaignName: string;
       platform: string;
       spend: number;
+      bm: string | null;
+      advertiserId: string | null;
     }
   >();
 
@@ -261,7 +293,6 @@ export async function loadStoreProfitPromo(input: {
     const spend = num(row.spend_amount);
     adSpend += spend;
     const cid = String(row.campaign_external_id ?? "").trim();
-    // Filas de total plataforma (manual) tienen campaign_external_id ''
     const key = cid
       ? `${row.platform}:${cid}`
       : `${row.platform}:__platform_total__`;
@@ -278,6 +309,8 @@ export async function loadStoreProfitPromo(input: {
         campaignName: name,
         platform: String(row.platform ?? ""),
         spend,
+        bm: null,
+        advertiserId: null,
       });
     }
   }
@@ -285,9 +318,17 @@ export async function loadStoreProfitPromo(input: {
   let spendSource: ProfitSpendSource = "realprofit";
   let campaignRows = [...byCampaign.values()];
 
-  if (adSpend <= 0 && input.holisticFallback && input.holisticFallback.adSpend > 0) {
+  if (
+    adSpend <= 0 &&
+    input.holisticFallback &&
+    input.holisticFallback.adSpend > 0
+  ) {
     adSpend = input.holisticFallback.adSpend;
-    campaignRows = input.holisticFallback.byCampaign;
+    campaignRows = input.holisticFallback.byCampaign.map((c) => ({
+      ...c,
+      bm: c.bm ?? null,
+      advertiserId: c.advertiserId ?? null,
+    }));
     spendSource = "holistic_tiktok";
   } else if (adSpend <= 0) {
     spendSource = "none";
@@ -313,38 +354,6 @@ export async function loadStoreProfitPromo(input: {
   };
 }
 
-function holisticOnlySnapshot(input: {
-  from: string;
-  to: string;
-  holistic: Awaited<ReturnType<typeof loadHolisticTikTokSpendForCliente>>;
-}): StoreProfitPromo {
-  const adSpend = input.holistic.adSpend;
-  const spendSource: ProfitSpendSource =
-    adSpend > 0 ? "holistic_tiktok" : "none";
-  return {
-    store: {
-      id: "__holistic_tiktok__",
-      name: "Cuentas TikTok (Holistic)",
-      shopDomain: null,
-      currency: "USD",
-      isActive: true,
-    },
-    from: input.from,
-    to: input.to,
-    collectedRevenue: 0,
-    adSpend: round2(adSpend),
-    roasCollected: null,
-    ordersCollected: 0,
-    campaigns: buildCampaignsFromSpend({
-      collectedRevenue: 0,
-      adSpend,
-      rows: input.holistic.byCampaign,
-    }),
-    spendSource,
-    spendSourceLabel: spendSourceLabel(spendSource),
-  };
-}
-
 export async function loadClienteProfitPromo(input: {
   hecomClienteId: string;
   from?: string;
@@ -352,36 +361,38 @@ export async function loadClienteProfitPromo(input: {
 }): Promise<{
   linkedStores: RpStoreSummary[];
   snapshots: StoreProfitPromo[];
-  holisticSpend: {
-    adSpend: number;
-    from: string;
-    to: string;
-  };
+  analysis: ProfitAnalysis;
 }> {
   const range = {
     from: input.from?.trim() || defaultProfitDateRange().from,
     to: input.to?.trim() || defaultProfitDateRange().to,
   };
 
-  const [linkedStores, holistic] = await Promise.all([
+  const today = todayYmdInTz();
+  const from7 = shiftYmd(today, -6);
+  const from30 = shiftYmd(today, -29);
+  const loadFrom = minYmd(range.from, from30);
+  const loadTo = maxYmd(range.to, today);
+
+  const [linkedStores, wide] = await Promise.all([
     getLinkedStoresForCliente(input.hecomClienteId),
     loadHolisticTikTokSpendForCliente({
       hecomClienteId: input.hecomClienteId,
-      from: range.from,
-      to: range.to,
+      from: loadFrom,
+      to: loadTo,
     }),
   ]);
 
+  const inRange = sliceHolisticSpend(wide, range.from, range.to);
+  const spendToday = sliceHolisticSpend(wide, today, today).adSpend;
+  const spend7d = sliceHolisticSpend(wide, from7, today).adSpend;
+  const spend30d = sliceHolisticSpend(wide, from30, today).adSpend;
+
   const holisticFallback =
-    holistic.adSpend > 0
+    inRange.adSpend > 0
       ? {
-          adSpend: holistic.adSpend,
-          byCampaign: holistic.byCampaign.map((c) => ({
-            campaignExternalId: c.campaignExternalId,
-            campaignName: c.campaignName,
-            platform: c.platform,
-            spend: c.spend,
-          })),
+          adSpend: inRange.adSpend,
+          byCampaign: inRange.byCampaign,
         }
       : null;
 
@@ -397,24 +408,37 @@ export async function loadClienteProfitPromo(input: {
     );
   }
 
-  // Sin tienda vinculada: igual mostramos gasto/campañas TikTok Holistic.
-  if (snapshots.length === 0) {
-    snapshots.push(
-      holisticOnlySnapshot({
-        from: range.from,
-        to: range.to,
-        holistic,
-      }),
-    );
-  }
+  const collectedRevenue = round2(
+    snapshots.reduce((s, snap) => s + snap.collectedRevenue, 0),
+  );
+  const spendInRange = round2(inRange.adSpend);
+  const campaigns = buildCampaignsFromSpend({
+    collectedRevenue,
+    adSpend: spendInRange,
+    rows: inRange.byCampaign,
+  });
+
+  const analysis: ProfitAnalysis = {
+    from: range.from,
+    to: range.to,
+    spendToday: round2(spendToday),
+    spend7d: round2(spend7d),
+    spend30d: round2(spend30d),
+    spendInRange,
+    daysWithActivity: inRange.daysWithActivity,
+    dailySeries: inRange.dailySeries,
+    campaigns,
+    collectedRevenue,
+    roasCollected:
+      spendInRange > 0 && collectedRevenue > 0
+        ? round2(collectedRevenue / spendInRange)
+        : null,
+    hasCodLink: linkedStores.length > 0,
+  };
 
   return {
     linkedStores,
     snapshots,
-    holisticSpend: {
-      adSpend: round2(holistic.adSpend),
-      from: range.from,
-      to: range.to,
-    },
+    analysis,
   };
 }
