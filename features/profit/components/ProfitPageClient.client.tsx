@@ -495,14 +495,9 @@ export function ProfitPageClient({
         <button
           type="button"
           onClick={openShopifyModal}
-          className="group inline-flex h-11 max-w-full items-center gap-2 rounded-xl border-2 border-[#ff781f] bg-[#fff7f0] px-3.5 text-left text-[12.5px] font-bold leading-tight text-[#c2410c] shadow-[0_0_0_3px_rgb(255_120_31_/_0.12)] transition hover:-translate-y-0.5 hover:bg-[#ff781f] hover:text-white hover:shadow-[0_8px_20px_-8px_rgb(255_120_31_/_0.7)] active:translate-y-0 sm:px-4"
+          className="inline-flex h-11 items-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f]/50 hover:bg-[#fff7f0] hover:text-[#c2410c]"
         >
-          <span className="min-w-0">
-            Conectar Shopify · pedidos y ventas
-          </span>
-          <span className="shrink-0 rounded-md bg-[#ff781f] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white transition group-hover:bg-white group-hover:text-[#c2410c]">
-            Promo
-          </span>
+          Conectar Shopify
         </button>
       </section>
 
@@ -902,26 +897,24 @@ export function ProfitPageClient({
 
       <section
         id="profit-shopify-connect"
-        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[#ece7e0] bg-white shadow-[0_12px_32px_-24px_rgb(28_25_23_/_0.4)]"
+        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[#ece7e0] bg-white"
       >
-        <div className="relative px-5 py-6 sm:px-7 sm:py-8">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[#ff781f]/[0.08] blur-3xl"
-          />
-          <p className="relative text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+        <div className="border-b border-[#f0ebe4] px-5 py-5 sm:px-7 sm:py-6">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
             Pedidos y ventas
           </p>
-          <h2 className="relative mt-1.5 max-w-lg text-[1.25rem] font-bold tracking-[-0.03em] text-[#1c1917] sm:text-[1.4rem]">
+          <h2 className="mt-1.5 max-w-lg text-[1.2rem] font-bold tracking-[-0.03em] text-[#1c1917] sm:text-[1.35rem]">
             Conectá tu tienda Shopify
           </h2>
-          <p className="relative mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
             Jalá pedidos y ventas reales para ver cuánto estás ganando neto —
             no solo cuánto gastás en ads.
           </p>
-          <label className="relative mt-5 block max-w-md text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+        </div>
+        <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-end sm:px-7">
+          <label className="block min-w-0 flex-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
             Dominio de tu tienda
-            <div className="mt-1.5 flex overflow-hidden rounded-xl border border-[#e7e0d8] bg-[#faf8f5] focus-within:border-[#ff781f] focus-within:ring-2 focus-within:ring-[#ff781f]/25">
+            <div className="mt-1.5 flex overflow-hidden rounded-xl border border-[#e7e0d8] bg-[#faf8f5] transition focus-within:border-[#cfc6bb] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#1c1917]/8">
               <span className="flex items-center border-r border-[#e7e0d8] bg-[#f3efe9] px-3 text-[12px] font-medium normal-case tracking-normal text-[#8a8177]">
                 https://
               </span>
@@ -932,23 +925,23 @@ export function ProfitPageClient({
                 placeholder="mitienda.myshopify.com"
                 value={shopDomain}
                 onChange={(e) => setShopDomain(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    openShopifyModal();
+                  }
+                }}
                 className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none placeholder:text-[#b0a89e]"
               />
             </div>
           </label>
-          <div className="relative mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={openShopifyModal}
-              className="inline-flex h-11 items-center rounded-xl border-2 border-[#ff781f] bg-[#fff7f0] px-5 text-[13px] font-bold text-[#c2410c] transition hover:bg-[#ff781f] hover:text-white"
-            >
-              Ver promo Holistic · $40 → $20
-            </button>
-            <p className="text-[12px] font-medium text-[#8a8177]">
-              Solo clientes Holistic pagan{" "}
-              <span className="font-bold text-[#c2410c]">$20</span>
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={openShopifyModal}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#1c1917] px-6 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
+          >
+            Conectar
+          </button>
         </div>
       </section>
 
@@ -1047,20 +1040,20 @@ function ShopifyConnectModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1917]/60 p-3 sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1917]/55 p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="shopify-connect-title"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white shadow-[0_24px_64px_-28px_rgb(28_25_23_/_0.55)]"
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
           <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-              Antes de conectar
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+              Gratuito vs Real Profit COD
             </p>
             <h3
               id="shopify-connect-title"
@@ -1069,7 +1062,7 @@ function ShopifyConnectModal({
               Qué tenés hoy vs qué desbloqueás
             </h3>
             {domain ? (
-              <p className="mt-1 font-mono text-[12px] text-[#8a8177]">
+              <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
                 {domain}
               </p>
             ) : null}
@@ -1077,7 +1070,7 @@ function ShopifyConnectModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#8a8177] hover:bg-[#faf8f5] hover:text-[#1c1917]"
+            className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
           >
             Cerrar
           </button>
@@ -1086,93 +1079,97 @@ function ShopifyConnectModal({
         <div className="grid gap-0 sm:grid-cols-2">
           <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              Ya incluido · Holistic
+              Incluido · Holistic
             </p>
             <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
               Análisis de campañas
             </p>
             <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
               <li className="flex gap-2">
-                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                <span className="mt-0.5 text-[#a8a29e]">✓</span>
                 Gasto TikTok (hoy, 7d, rango) + serie diaria
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                <span className="mt-0.5 text-[#a8a29e]">✓</span>
                 Ranking, BM, CTR / CPC / CPM
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                <span className="mt-0.5 text-[#a8a29e]">✓</span>
                 Spend hoy live + pacing y señales
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                <span className="mt-0.5 text-[#a8a29e]">✓</span>
                 Fee Holistic y BE ROAS estimado
               </li>
             </ul>
-            <p className="mt-4 text-[11px] font-medium text-[#9a9187]">
+            <p className="mt-4 text-[11px] leading-4 text-[#9a9187]">
               Sabés cuánto gastás. Todavía no cuánto cobrás de verdad.
             </p>
-            <p className="mt-3 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
-              $0{" "}
-              <span className="text-[12px] font-semibold text-[#6b645c]">
-                · gratis
-              </span>
-            </p>
+            <div className="mt-4 border-t border-[#f0ebe4] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
+                Precio
+              </p>
+              <p className="mt-1 text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
+                $0{" "}
+                <span className="text-[12px] font-medium text-[#6b645c]">
+                  · gratis
+                </span>
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-col bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%)] px-5 py-5 sm:px-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
-              Al conectar Shopify
+          <div className="flex flex-col px-5 py-5 sm:px-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
+              Con Shopify · Real Profit COD
             </p>
             <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
               Ventas reales y ganancia neta
             </p>
             <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
               <li className="flex gap-2">
-                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
                 Pedidos y ventas desde tu tienda
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
                 Cobrado COD · plata que sí llegó
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
                 ROAS / CPA sobre lo cobrado (no solo ads)
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
                 Saber cuánto verdaderamente neto ganás
               </li>
               <li className="flex gap-2">
-                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
                 Camino a TikTok Shop y más canales
               </li>
             </ul>
-            <p className="mt-4 text-[12px] font-semibold leading-5 text-[#1c1917]">
+            <p className="mt-4 text-[12px] leading-5 text-[#5c564e]">
               Ahí ves si de verdad estás ganando — no solo gastando.
             </p>
-
-            <div className="mt-4 rounded-xl border border-[#ffd7b8] bg-white px-3.5 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
-                Promo cliente Holistic
+            <div className="mt-4 border-t border-[#f0ebe4] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
+                Precio cliente Holistic
               </p>
-              <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-                <span className="text-[1.05rem] font-bold tabular-nums text-[#b0a89e] line-through">
+              <p className="mt-1 flex flex-wrap items-baseline gap-2">
+                <span className="text-[14px] font-medium tabular-nums text-[#b0a89e] line-through">
                   $40
                 </span>
-                <span className="text-[1.35rem] font-bold tabular-nums text-[#c2410c]">
+                <span className="text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
                   $20
                 </span>
-                <span className="text-[11px] font-semibold text-[#9a3412]">
-                  · solo por ser cliente Holistic
+                <span className="text-[11px] font-medium text-[#6b645c]">
+                  / mes
                 </span>
-              </div>
+              </p>
               <a
                 href={REAL_PROFIT_WHATSAPP_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] hover:shadow-[0_10px_22px_-10px_rgb(255_120_31_/_0.85)]"
+                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
               >
                 Pagar por ahora
               </a>
