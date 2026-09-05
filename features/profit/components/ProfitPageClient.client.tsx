@@ -272,9 +272,6 @@ export function ProfitPageClient({
   const [to, setTo] = useState(initialTo ?? "");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [realProfitUrl, setRealProfitUrl] = useState(
-    "https://www.realprofitcod.com",
-  );
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
@@ -322,7 +319,6 @@ export function ProfitPageClient({
         to?: string;
         snapshots?: Snapshot[];
         analysis?: Analysis;
-        realProfitUrl?: string;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo cargar Profit.");
@@ -333,7 +329,6 @@ export function ProfitPageClient({
       );
       if (!from && json.from) setFrom(json.from);
       if (!to && json.to) setTo(json.to);
-      if (json.realProfitUrl) setRealProfitUrl(json.realProfitUrl);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
@@ -447,26 +442,17 @@ export function ProfitPageClient({
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
         />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
-              Análisis de campañas
-            </p>
-            <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
-              Profit · {clienteName}
-            </h1>
-            <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-              Gasto TikTok, ranking de campañas, CTR/CPC, pacing y señales —
-              incluido en Holistic.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={openShopifyModal}
-            className="inline-flex h-auto max-w-[16rem] shrink-0 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 py-2.5 text-left text-[12.5px] font-semibold leading-snug text-[#c2410c] transition hover:border-[#ff781f] hover:bg-[#fff7f0] sm:max-w-[18rem]"
-          >
-            Conectar tienda de Shopify para jalar pedidos y ventas →
-          </button>
+        <div className="relative">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
+            Análisis de campañas
+          </p>
+          <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
+            Profit · {clienteName}
+          </h1>
+          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+            Gasto TikTok, ranking de campañas, CTR/CPC, pacing y señales —
+            incluido en Holistic.
+          </p>
         </div>
       </header>
 
@@ -505,6 +491,18 @@ export function ProfitPageClient({
           className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
         >
           {loading ? "Cargando…" : "Actualizar"}
+        </button>
+        <button
+          type="button"
+          onClick={openShopifyModal}
+          className="group inline-flex h-11 max-w-full items-center gap-2 rounded-xl border-2 border-[#ff781f] bg-[#fff7f0] px-3.5 text-left text-[12.5px] font-bold leading-tight text-[#c2410c] shadow-[0_0_0_3px_rgb(255_120_31_/_0.12)] transition hover:-translate-y-0.5 hover:bg-[#ff781f] hover:text-white hover:shadow-[0_8px_20px_-8px_rgb(255_120_31_/_0.7)] active:translate-y-0 sm:px-4"
+        >
+          <span className="min-w-0">
+            Conectar Shopify · pedidos y ventas
+          </span>
+          <span className="shrink-0 rounded-md bg-[#ff781f] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white transition group-hover:bg-white group-hover:text-[#c2410c]">
+            Promo
+          </span>
         </button>
       </section>
 
@@ -938,13 +936,19 @@ export function ProfitPageClient({
               />
             </div>
           </label>
-          <button
-            type="button"
-            onClick={openShopifyModal}
-            className="relative mt-4 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
-          >
-            Conectar Shopify
-          </button>
+          <div className="relative mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={openShopifyModal}
+              className="inline-flex h-11 items-center rounded-xl border-2 border-[#ff781f] bg-[#fff7f0] px-5 text-[13px] font-bold text-[#c2410c] transition hover:bg-[#ff781f] hover:text-white"
+            >
+              Ver promo Holistic · $40 → $20
+            </button>
+            <p className="text-[12px] font-medium text-[#8a8177]">
+              Solo clientes Holistic pagan{" "}
+              <span className="font-bold text-[#c2410c]">$20</span>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -993,7 +997,6 @@ export function ProfitPageClient({
 
       {shopifyModalOpen ? (
         <ShopifyConnectModal
-          realProfitUrl={realProfitUrl}
           shopDomain={shopDomain}
           onClose={() => setShopifyModalOpen(false)}
         />
@@ -1010,12 +1013,16 @@ function normalizeShopDomain(raw: string): string {
     .toLowerCase();
 }
 
+const REAL_PROFIT_WHATSAPP_URL =
+  "https://wa.me/51933484150?text=" +
+  encodeURIComponent(
+    "hola necesito real profit cod vengo de parte de holistic",
+  );
+
 function ShopifyConnectModal({
-  realProfitUrl,
   shopDomain,
   onClose,
 }: {
-  realProfitUrl: string;
   shopDomain: string;
   onClose: () => void;
 }) {
@@ -1035,16 +1042,6 @@ function ShopifyConnectModal({
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
-
-  const continueUrl = (() => {
-    try {
-      const u = new URL(realProfitUrl);
-      if (domain) u.searchParams.set("shop", domain);
-      return u.toString();
-    } catch {
-      return realProfitUrl;
-    }
-  })();
 
   if (!mounted) return null;
 
@@ -1155,24 +1152,32 @@ function ShopifyConnectModal({
             <p className="mt-4 text-[12px] font-semibold leading-5 text-[#1c1917]">
               Ahí ves si de verdad estás ganando — no solo gastando.
             </p>
-            <p className="mt-3 text-[1.05rem] font-bold tabular-nums text-[#c2410c]">
-              +$20{" "}
-              <span className="text-[12px] font-semibold text-[#9a3412]">
-                · Real Profit COD
-              </span>
-            </p>
-          </div>
-        </div>
 
-        <div className="border-t border-[#f0ebe4] bg-[#faf8f5] px-5 py-4 sm:px-6">
-          <a
-            href={continueUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] sm:w-auto"
-          >
-            Continuar en Real Profit →
-          </a>
+            <div className="mt-4 rounded-xl border border-[#ffd7b8] bg-white px-3.5 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
+                Promo cliente Holistic
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+                <span className="text-[1.05rem] font-bold tabular-nums text-[#b0a89e] line-through">
+                  $40
+                </span>
+                <span className="text-[1.35rem] font-bold tabular-nums text-[#c2410c]">
+                  $20
+                </span>
+                <span className="text-[11px] font-semibold text-[#9a3412]">
+                  · solo por ser cliente Holistic
+                </span>
+              </div>
+              <a
+                href={REAL_PROFIT_WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] hover:shadow-[0_10px_22px_-10px_rgb(255_120_31_/_0.85)]"
+              >
+                Pagar por ahora
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>,
