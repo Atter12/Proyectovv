@@ -16,17 +16,6 @@ function limaTodayYmd(): string {
   }).format(new Date());
 }
 
-function addDaysYmd(ymd: string, delta: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + delta);
-  return dt.toISOString().slice(0, 10);
-}
-
-function startOfMonthYmd(ymd: string): string {
-  return `${ymd.slice(0, 7)}-01`;
-}
-
 type StoreSummary = {
   id: string;
   name: string;
@@ -369,17 +358,6 @@ export function ProfitPageClient({
     return () => window.clearTimeout(timer);
   }, [from, to, refresh]);
 
-  function applyRangePreset(days: number | "month") {
-    const end = limaTodayYmd();
-    if (days === "month") {
-      setFrom(startOfMonthYmd(end));
-      setTo(end);
-      return;
-    }
-    setFrom(addDaysYmd(end, -(days - 1)));
-    setTo(end);
-  }
-
   const bmOptions = useMemo(() => {
     const set = new Set<string>();
     for (const c of analysis?.campaigns ?? []) {
@@ -505,64 +483,45 @@ export function ProfitPageClient({
       ) : null}
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={openShopifyModal}
-            className="inline-flex h-10 items-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white"
-          >
-            Conectar Shopify
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {(
-            [
-              { key: "7", label: "7 días", run: () => applyRangePreset(7) },
-              { key: "30", label: "30 días", run: () => applyRangePreset(30) },
-              { key: "month", label: "Este mes", run: () => applyRangePreset("month") },
-            ] as const
-          ).map((preset) => {
-            const end = to;
-            const start = from;
-            const today = limaTodayYmd();
-            let active = false;
-            if (preset.key === "7") {
-              active = start === addDaysYmd(today, -6) && end === today;
-            } else if (preset.key === "30") {
-              active = start === addDaysYmd(today, -29) && end === today;
-            } else {
-              active = start === startOfMonthYmd(today) && end === today;
-            }
-            return (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={preset.run}
-                className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
-                  active
-                    ? "border-[#1c1917] bg-[#1c1917] text-white"
-                    : "border-[#e7e0d8] bg-[#faf8f5] text-[#5c564e] hover:border-[#1c1917]/25 hover:bg-white hover:text-[#1c1917]"
-                }`}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-          {loading ? (
-            <span className="self-center text-[11px] font-semibold text-[#c2410c]">
-              Cargando…
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
           <ProfitDateField
             label="Desde"
             value={from}
             max={to || limaTodayYmd()}
             onChange={setFrom}
           />
+          <div className="order-first flex justify-center sm:order-none sm:flex-col sm:items-center sm:justify-end sm:pb-0.5">
+            <span
+              className="mb-1.5 hidden h-[14px] text-[10px] font-bold uppercase tracking-[0.1em] sm:block"
+              aria-hidden
+            >
+              {loading ? (
+                <span className="text-[#c2410c]">Cargando…</span>
+              ) : (
+                <span className="text-transparent">·</span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={openShopifyModal}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#008060] px-5 text-[13px] font-semibold tracking-[-0.01em] text-white shadow-[0_12px_28px_-14px_rgb(0_100_80_/_0.95)] transition hover:bg-[#006e52] active:translate-y-px"
+            >
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 8h12l-1 12H7L6 8Z" />
+                <path d="M9 8V7a3 3 0 0 1 6 0v1" />
+              </svg>
+              Conectar Shopify
+            </button>
+          </div>
           <ProfitDateField
             label="Hasta"
             value={to}
