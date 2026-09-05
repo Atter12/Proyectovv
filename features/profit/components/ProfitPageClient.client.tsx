@@ -483,28 +483,12 @@ export function ProfitPageClient({
       ) : null}
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-          <ProfitDateField
-            label="Desde"
-            value={from}
-            max={to || limaTodayYmd()}
-            onChange={setFrom}
-          />
-          <div className="order-first flex justify-center sm:order-none sm:flex-col sm:items-center sm:justify-end sm:pb-0.5">
-            <span
-              className="mb-1.5 hidden h-[14px] text-[10px] font-bold uppercase tracking-[0.1em] sm:block"
-              aria-hidden
-            >
-              {loading ? (
-                <span className="text-[#c2410c]">Cargando…</span>
-              ) : (
-                <span className="text-transparent">·</span>
-              )}
-            </span>
+        <div className="flex flex-col items-stretch gap-4">
+          <div className="flex justify-center sm:justify-start">
             <button
               type="button"
               onClick={openShopifyModal}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#008060] px-5 text-[13px] font-semibold tracking-[-0.01em] text-white shadow-[0_12px_28px_-14px_rgb(0_100_80_/_0.95)] transition hover:bg-[#006e52] active:translate-y-px"
+              className="inline-flex h-10 w-full max-w-xs items-center justify-center gap-2 rounded-[10px] bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
             >
               <svg
                 aria-hidden
@@ -522,13 +506,28 @@ export function ProfitPageClient({
               Conectar Shopify
             </button>
           </div>
-          <ProfitDateField
-            label="Hasta"
-            value={to}
-            min={from || undefined}
-            max={limaTodayYmd()}
-            onChange={setTo}
-          />
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ProfitDateField
+              label="Desde"
+              value={from}
+              max={to || limaTodayYmd()}
+              onChange={setFrom}
+            />
+            <ProfitDateField
+              label="Hasta"
+              value={to}
+              min={from || undefined}
+              max={limaTodayYmd()}
+              onChange={setTo}
+            />
+          </div>
+
+          {loading ? (
+            <p className="text-center text-[11px] font-semibold text-[#c2410c] sm:text-left">
+              Cargando…
+            </p>
+          ) : null}
         </div>
       </section>
 
