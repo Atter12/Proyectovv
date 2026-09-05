@@ -57,8 +57,8 @@ const syncResultCache = new Map<
 >();
 
 /**
- * Asegura que Holistic tenga filas fondeables = advertisers Aprobados
- * del cliente (mapeo Hecom + match por nombre en BM).
+ * Asegura que Holistic tenga filas fondeables = advertisers del mapa Hecom
+ * (y match por nombre en BM solo si el cliente no tiene IDs mapeados).
  * Oculta/desactiva suspendidas.
  * Cache 5 min por cliente; fallos/vacíos se cachean poco (gerente no se queda
  * sin “Asignar” por un cold miss de TikTok).
@@ -186,7 +186,8 @@ export async function syncApprovedAdAccountsForCliente(input: {
     });
   }
 
-  // BM por nombre (aprobadas + suspendidas). ID Hecom ya entró arriba.
+  // BM por nombre: actualizar estado de IDs Hecom; extras nuevas solo si no hay mapa.
+  // Con mapa Hecom, no fondear/upsert hermanas solo por nombre (evita 2↔N en Pagos).
   for (const live of bcAdvertisers) {
     if (live.statusKind !== "approved" && live.statusKind !== "suspended") {
       continue;
@@ -199,12 +200,13 @@ export async function syncApprovedAdAccountsForCliente(input: {
       existing.bcId = live.bcId || existing.bcId;
       continue;
     }
+    if (hecomIds.size > 0) continue;
     candidates.set(live.advertiserId, {
       advertiserId: live.advertiserId,
       name: live.advertiserName || `${cliente.name} · TikTok`,
       bcId: live.bcId,
       statusKind: live.statusKind,
-      fromHecom: hecomIds.has(live.advertiserId),
+      fromHecom: false,
     });
   }
 

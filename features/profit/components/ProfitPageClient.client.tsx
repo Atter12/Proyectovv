@@ -6,6 +6,26 @@ import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccou
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 
+function limaTodayYmd(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function addDaysYmd(ymd: string, delta: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return dt.toISOString().slice(0, 10);
+}
+
+function startOfMonthYmd(ymd: string): string {
+  return `${ymd.slice(0, 7)}-01`;
+}
+
 type StoreSummary = {
   id: string;
   name: string;
@@ -337,9 +357,27 @@ export function ProfitPageClient({
   }, [from, to]);
 
   useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (from && to && from > to) {
+      setError("La fecha Desde no puede ser después de Hasta.");
+      return;
+    }
+    const delay = from && to ? 280 : 0;
+    const timer = window.setTimeout(() => {
+      void refresh();
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [from, to, refresh]);
+
+  function applyRangePreset(days: number | "month") {
+    const end = limaTodayYmd();
+    if (days === "month") {
+      setFrom(startOfMonthYmd(end));
+      setTo(end);
+      return;
+    }
+    setFrom(addDaysYmd(end, -(days - 1)));
+    setTo(end);
+  }
 
   const bmOptions = useMemo(() => {
     const set = new Set<string>();
@@ -465,40 +503,96 @@ export function ProfitPageClient({
         </div>
       ) : null}
 
-      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-          Desde
-          <input
-            type="date"
-            className="mt-1.5 block rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none ring-[#ff781f]/30 focus:bg-white focus:ring-2"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </label>
-        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-          Hasta
-          <input
-            type="date"
-            className="mt-1.5 block rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none ring-[#ff781f]/30 focus:bg-white focus:ring-2"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          disabled={loading}
-          className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
-        >
-          {loading ? "Cargando…" : "Actualizar"}
-        </button>
-        <button
-          type="button"
-          onClick={openShopifyModal}
-          className="inline-flex h-11 items-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f]/50 hover:bg-[#fff7f0] hover:text-[#c2410c]"
-        >
-          Conectar Shopify
-        </button>
+      <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
+              Período
+            </p>
+            <p className="mt-0.5 text-[12px] text-[#5c564e]">
+              Al elegir fechas se filtra solo · America/Lima
+              {loading ? (
+                <span className="ml-1.5 font-semibold text-[#c2410c]">
+                  · cargando…
+                </span>
+              ) : null}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openShopifyModal}
+            className="inline-flex h-10 items-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white"
+          >
+            Conectar Shopify
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {(
+            [
+              { key: "7", label: "7 días", run: () => applyRangePreset(7) },
+              { key: "30", label: "30 días", run: () => applyRangePreset(30) },
+              { key: "month", label: "Este mes", run: () => applyRangePreset("month") },
+            ] as const
+          ).map((preset) => (
+            <button
+              key={preset.key}
+              type="button"
+              onClick={preset.run}
+              className="rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-2.5 py-1.5 text-[11px] font-semibold text-[#5c564e] transition hover:border-[#1c1917]/25 hover:bg-white hover:text-[#1c1917]"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+              Desde
+            </span>
+            <span className="relative mt-1.5 block">
+              <input
+                type="date"
+                className="profit-date-input h-11 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 text-[13px] font-medium tabular-nums text-[#1c1917] outline-none transition focus:border-[#cfc6bb] focus:bg-white focus:ring-2 focus:ring-[#1c1917]/10"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </span>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+              Hasta
+            </span>
+            <span className="relative mt-1.5 block">
+              <input
+                type="date"
+                className="profit-date-input h-11 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 text-[13px] font-medium tabular-nums text-[#1c1917] outline-none transition focus:border-[#cfc6bb] focus:bg-white focus:ring-2 focus:ring-[#1c1917]/10"
+                value={to}
+                min={from || undefined}
+                max={limaTodayYmd()}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </span>
+          </label>
+        </div>
+        <style>{`
+          .profit-date-input {
+            accent-color: #ff781f;
+            color-scheme: light;
+          }
+          .profit-date-input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.55;
+            padding: 0.15rem;
+            border-radius: 0.35rem;
+          }
+          .profit-date-input:hover::-webkit-calendar-picker-indicator,
+          .profit-date-input:focus::-webkit-calendar-picker-indicator {
+            opacity: 0.9;
+          }
+        `}</style>
       </section>
 
       {loading && !analysis ? (

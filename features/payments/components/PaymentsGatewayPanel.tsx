@@ -188,19 +188,14 @@ export async function PaymentsGatewayPanel({
     session.organizationId &&
     hecomClienteId
   ) {
-    // Fast path: Hecom IDs → ensure DB rows sin esperar TikTok.
-    const ensureIds = [
-      ...new Set([
-        ...approvedIds,
-        ...(adsAccounts ?? [])
-          .map((a) => a.externalAccountId?.trim())
-          .filter((id): id is string => Boolean(id)),
-      ]),
-    ];
+    // Fast path: solo IDs del scope (mapa Hecom). No ensure extras del overview
+    // que entraron por match de nombre (contaminaban la tabla Asignar).
+    const hecomIdSet = new Set(approvedIds.map((id) => id.trim()).filter(Boolean));
+    const ensureIds = [...hecomIdSet];
     suspendedIds = (adsAccounts ?? [])
       .filter((a) => a.status === "disabled")
       .map((a) => a.externalAccountId?.trim())
-      .filter((id): id is string => Boolean(id));
+      .filter((id): id is string => Boolean(id && hecomIdSet.has(id)));
     if (ensureIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
         organizationId: session.organizationId,

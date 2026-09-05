@@ -324,22 +324,27 @@ async function getHecomClienteAdAccountsOverviewImpl(
     })
     .filter((account) => Boolean(account.externalAccountId?.trim()));
 
-  // B) Extras solo por nombre cuando no hay ID Hecom.
-  const extras = nameMatchedExtras.map((row) =>
-    mapHecomTiktokToAdAccount(
-      cliente,
-      {
-        advertiserId: row.advertiserId,
-        advertiserName: row.advertiserName,
-        bmBucket: resolveBmBucketFromBcId(row.bcId),
-        fee: cliente.tiktokDefaultFee,
-        syncEnabled: true,
-      },
-      row.statusKind,
-      row.advertiserName,
-      row.bcId,
-    ),
-  );
+  // B) Extras por nombre SOLO si Hecom no tiene IDs mapeados.
+  // Si ya hay mapa (ej. Williams 30/32), no listar hermanas del BM (31/202)
+  // solo porque el nombre coincide — eso parpadeaba 2↔4 cuentas en Pagos.
+  const allowNameExtras = hecomIds.size === 0;
+  const extras = allowNameExtras
+    ? nameMatchedExtras.map((row) =>
+        mapHecomTiktokToAdAccount(
+          cliente,
+          {
+            advertiserId: row.advertiserId,
+            advertiserName: row.advertiserName,
+            bmBucket: resolveBmBucketFromBcId(row.bcId),
+            fee: cliente.tiktokDefaultFee,
+            syncEnabled: true,
+          },
+          row.statusKind,
+          row.advertiserName,
+          row.bcId,
+        ),
+      )
+    : [];
 
   const byExternalId = new Map<string, AdAccount>();
   for (const account of [...mapped, ...extras]) {
@@ -373,6 +378,8 @@ async function getHecomClienteAdAccountsOverviewImpl(
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
     bmNameMatches: nameMatchedExtras.length,
+    nameExtrasShown: allowNameExtras ? extras.length : 0,
+    nameExtrasSuppressed: allowNameExtras ? 0 : nameMatchedExtras.length,
     keywordBackfill: keywordHitCount,
     bmNameMatchesSuspended: nameMatchedExtras.filter(
       (r) => r.statusKind === "suspended",
