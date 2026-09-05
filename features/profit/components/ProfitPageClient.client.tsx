@@ -483,12 +483,22 @@ export function ProfitPageClient({
       ) : null}
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="flex flex-col items-stretch gap-4">
-          <div className="flex justify-center sm:justify-start">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3 rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5">
+            <div className="min-w-0 max-w-xl">
+              <p className="text-[13px] font-semibold tracking-[-0.01em] text-[#1c1917]">
+                Conectar Shopify
+              </p>
+              <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+                Vinculá tu tienda para jalar pedidos y ventas reales (COD). Así
+                Profit cruza el gasto TikTok con lo cobrado y el ROAS deja de
+                ser solo estimado.
+              </p>
+            </div>
             <button
               type="button"
               onClick={openShopifyModal}
-              className="inline-flex h-10 w-full max-w-xs items-center justify-center gap-2 rounded-[10px] bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
+              className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
             >
               <svg
                 aria-hidden
@@ -503,7 +513,7 @@ export function ProfitPageClient({
                 <path d="M6 8h12l-1 12H7L6 8Z" />
                 <path d="M9 8V7a3 3 0 0 1 6 0v1" />
               </svg>
-              Conectar Shopify
+              Conectar
             </button>
           </div>
 
@@ -524,7 +534,7 @@ export function ProfitPageClient({
           </div>
 
           {loading ? (
-            <p className="text-center text-[11px] font-semibold text-[#c2410c] sm:text-left">
+            <p className="text-[11px] font-semibold text-[#c2410c]">
               Cargando…
             </p>
           ) : null}
