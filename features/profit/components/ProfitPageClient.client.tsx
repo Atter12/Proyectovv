@@ -63,6 +63,14 @@ type Analysis = {
   collectedRevenue: number;
   roasCollected: number | null;
   hasCodLink: boolean;
+  ordersCollected?: number;
+  cpaCollected?: number | null;
+  avgOrderCollected?: number | null;
+  feePercent?: number;
+  effectiveAdSpend?: number;
+  roasEffective?: number | null;
+  breakEvenRoas?: number;
+  aboveBreakEven?: boolean | null;
   dataThroughDate: string | null;
   signals: ProfitSignal[];
   perf?: {
@@ -249,15 +257,19 @@ function DailyBars({ series }: { series: DailyPoint[] }) {
 export function ProfitPageClient({
   clienteName,
   isStaff,
+  initialFrom,
+  initialTo,
 }: {
   clienteName: string;
   isStaff: boolean;
+  initialFrom?: string;
+  initialTo?: string;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(initialFrom ?? "");
+  const [to, setTo] = useState(initialTo ?? "");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [linkedStores, setLinkedStores] = useState<StoreSummary[]>([]);
@@ -772,11 +784,20 @@ export function ProfitPageClient({
             ) : null}
 
             {analysis.hasCodLink ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Kpi
                   label="Cobrado COD"
                   value={formatMoney(analysis.collectedRevenue, "PEN")}
-                  hint="Órdenes collected (tiendas vinculadas)"
+                  hint={`${analysis.ordersCollected ?? 0} órdenes collected`}
+                />
+                <Kpi
+                  label="CPA cobrado"
+                  value={
+                    analysis.cpaCollected != null
+                      ? moneyUsd(analysis.cpaCollected)
+                      : "—"
+                  }
+                  hint="Gasto ÷ órdenes collected"
                 />
                 <Kpi
                   label="ROAS cobrado"
@@ -789,10 +810,32 @@ export function ProfitPageClient({
                   accent
                 />
                 <Kpi
-                  label="Campañas"
-                  value={String(sortedCampaigns.length)}
-                  hint={bmFilter === "all" ? "En el período" : `BM ${bmFilter}`}
+                  label="ROAS efectivo"
+                  value={
+                    analysis.roasEffective != null
+                      ? `${analysis.roasEffective.toFixed(2)}x`
+                      : "—"
+                  }
+                  hint={
+                    analysis.aboveBreakEven == null
+                      ? `BE ${analysis.breakEvenRoas?.toFixed(2) ?? "—"}x · fee ${analysis.feePercent ?? "—"}%`
+                      : analysis.aboveBreakEven
+                        ? `Sobre BE ${analysis.breakEvenRoas?.toFixed(2)}x · fee ${analysis.feePercent}%`
+                        : `Bajo BE ${analysis.breakEvenRoas?.toFixed(2)}x · fee ${analysis.feePercent}%`
+                  }
                 />
+              </div>
+            ) : analysis.feePercent != null ? (
+              <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3 text-[12px] text-[#5c564e]">
+                Fee Holistic {analysis.feePercent}% · coste efectivo del rango{" "}
+                <span className="font-semibold text-[#1c1917]">
+                  {moneyUsd(analysis.effectiveAdSpend ?? analysis.spendInRange)}
+                </span>{" "}
+                · BE ROAS (solo ads+fee){" "}
+                <span className="font-semibold text-[#1c1917]">
+                  {analysis.breakEvenRoas?.toFixed(2)}x
+                </span>
+                . Vinculá COD para CPA / ROAS cobrado.
               </div>
             ) : null}
 

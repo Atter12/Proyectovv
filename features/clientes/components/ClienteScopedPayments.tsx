@@ -72,10 +72,10 @@ export function ClienteScopedPayments({
             Ver lo pagado →
           </Link>
           <Link
-            href={routes.gastos}
+            href={routes.profit}
             className="text-[var(--auth-accent)] hover:underline"
           >
-            Ver gastos ads →
+            Ver Profit →
           </Link>
         </div>
       </header>

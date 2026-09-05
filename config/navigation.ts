@@ -12,7 +12,6 @@ export const mainNavigation: NavItem[] = [
     icon: "payments-manual",
   },
   { label: "Lo pagado", href: routes.cobros, icon: "cobros" },
-  { label: "Gastos", href: routes.gastos, icon: "gastos" },
   { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
   { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },
   { label: "Píxeles", href: routes.pixels, icon: "pixels" },

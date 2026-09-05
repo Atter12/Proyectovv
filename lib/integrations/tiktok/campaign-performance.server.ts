@@ -194,13 +194,21 @@ function parseCampaignList(
 /**
  * Performance BASIC a nivel campaña para varios advertisers.
  * Best-effort: errores parciales no tumban el bundle.
+ * Cache en memoria del proceso · 5 min.
  */
+const perfCache = new Map<
+  string,
+  { at: number; value: TikTokCampaignPerfBundle }
+>();
+const PERF_TTL_MS = 5 * 60 * 1000;
+
 export async function fetchCampaignPerformanceForAdvertisers(input: {
   advertiserIds: string[];
   from: string;
   to: string;
   /** Cap para no saturar TikTok (default 12). */
   maxAdvertisers?: number;
+  bypassCache?: boolean;
 }): Promise<TikTokCampaignPerfBundle> {
   const fetchedAt = new Date().toISOString();
   const ids = [
@@ -215,6 +223,14 @@ export async function fetchCampaignPerformanceForAdvertisers(input: {
       advertisersOk: 0,
       error: null,
     };
+  }
+
+  const cacheKey = `${ids.slice().sort().join(",")}|${input.from}|${input.to}`;
+  if (!input.bypassCache) {
+    const hit = perfCache.get(cacheKey);
+    if (hit && Date.now() - hit.at < PERF_TTL_MS) {
+      return hit.value;
+    }
   }
 
   let token: string;
@@ -267,7 +283,7 @@ export async function fetchCampaignPerformanceForAdvertisers(input: {
 
   rows.sort((a, b) => b.spend - a.spend);
 
-  return {
+  const bundle: TikTokCampaignPerfBundle = {
     rows,
     fetchedAt,
     advertisersQueried: ids.length,
@@ -277,4 +293,14 @@ export async function fetchCampaignPerformanceForAdvertisers(input: {
         ? errors[0] ?? "Sin datos de performance TikTok."
         : null,
   };
+
+  if (advertisersOk > 0) {
+    perfCache.set(cacheKey, { at: Date.now(), value: bundle });
+    if (perfCache.size > 80) {
+      const oldest = [...perfCache.entries()].sort((a, b) => a[1].at - b[1].at);
+      for (const [key] of oldest.slice(0, 20)) perfCache.delete(key);
+    }
+  }
+
+  return bundle;
 }

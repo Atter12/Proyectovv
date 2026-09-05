@@ -136,7 +136,7 @@ export function ClienteScopedOverview({
         links={[
           { href: routes.adAccounts, label: "Cuentas ads" },
           { href: routes.payments, label: "Pagos" },
-          { href: routes.gastos, label: "Gastos" },
+          { href: routes.profit, label: "Profit" },
           { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
         ]}
       />
@@ -604,10 +604,10 @@ function GastosPanel({
             {sourceLabel(source)}
           </span>
           <Link
-            href={routes.gastos}
+            href={routes.profit}
             className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
           >
-            Ver gastos
+            Ver Profit
           </Link>
         </div>
       }

@@ -5,7 +5,11 @@ import { requirePermission } from "@/lib/auth/guards.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
-export default async function ProfitPage() {
+export default async function ProfitPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ from?: string; to?: string }>;
+}) {
   const session = await requirePermission("adAccounts:read");
   const funding = resolvePaymentsFundingCapabilities({
     email: session.email,
@@ -14,6 +18,9 @@ export default async function ProfitPage() {
   const mode =
     funding.isStaff || funding.isSuperAdmin ? "staff" : "cliente";
   const selected = await getSelectedHecomCliente(session.id);
+  const params = (await searchParams) ?? {};
+  const initialFrom = params.from?.trim() || undefined;
+  const initialTo = params.to?.trim() || undefined;
 
   if (!selected) {
     return (
@@ -28,6 +35,8 @@ export default async function ProfitPage() {
       <ProfitPageClient
         clienteName={selected.name}
         isStaff={funding.isStaff || funding.isSuperAdmin}
+        initialFrom={initialFrom}
+        initialTo={initialTo}
       />
     </div>
   );

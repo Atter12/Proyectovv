@@ -1,6 +1,8 @@
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
+import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { fetchCampaignPerformanceForAdvertisers } from "@/lib/integrations/tiktok/campaign-performance.server";
+import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
   defaultProfitDateRange,
   getRealProfitAdmin,
@@ -96,6 +98,22 @@ export type ProfitAnalysis = {
   collectedRevenue: number;
   roasCollected: number | null;
   hasCodLink: boolean;
+  /** Órdenes collected en tiendas vinculadas (rango). */
+  ordersCollected: number;
+  /** Gasto ÷ órdenes collected. */
+  cpaCollected: number | null;
+  /** Cobrado ÷ órdenes. */
+  avgOrderCollected: number | null;
+  /** Fee Holistic % (depósito). */
+  feePercent: number;
+  /** Gasto × (1 + fee/100) — cash aproximado para fondear ese spend. */
+  effectiveAdSpend: number;
+  /** Cobrado ÷ effectiveAdSpend. */
+  roasEffective: number | null;
+  /** 1 + fee/100 — ROAS mínimo solo para cubrir ads+fee (sin COGS producto). */
+  breakEvenRoas: number;
+  /** true si roasEffective >= breakEvenRoas */
+  aboveBreakEven: boolean | null;
   /** Último día con gasto en snapshots/gastos (YYYY-MM-DD). */
   dataThroughDate: string | null;
   signals: ProfitSignal[];
@@ -716,7 +734,7 @@ export async function loadClienteProfitPromo(input: {
   );
   const loadTo = maxYmd(range.to, today);
 
-  const [linkedStores, wide, overview] = await Promise.all([
+  const [linkedStores, wide, overview, hecomCliente] = await Promise.all([
     getLinkedStoresForCliente(input.hecomClienteId),
     loadHolisticTikTokSpendForCliente({
       hecomClienteId: input.hecomClienteId,
@@ -726,7 +744,14 @@ export async function loadClienteProfitPromo(input: {
     getHecomClienteAdAccountsOverview(input.hecomClienteId, "fast").catch(
       () => null,
     ),
+    getHecomCliente(input.hecomClienteId).catch(() => null),
   ]);
+
+  const feeResolved = resolveFeePercentFromHecomCliente({
+    tiktokDefaultFee: hecomCliente?.tiktokDefaultFee ?? null,
+    accountFees: (hecomCliente?.tiktokAccounts ?? []).map((a) => a.fee),
+  });
+  const feePercent = feeResolved.feePercent;
 
   const advertiserIds = (overview?.accounts ?? [])
     .map((a) => (a.externalAccountId ?? "").trim())
@@ -793,6 +818,10 @@ export async function loadClienteProfitPromo(input: {
   const collectedRevenue = round2(
     snapshots.reduce((s, snap) => s + snap.collectedRevenue, 0),
   );
+  const ordersCollected = snapshots.reduce(
+    (s, snap) => s + snap.ordersCollected,
+    0,
+  );
 
   const mergedRows = mergeCampaignsWithTikTokPerf({
     holisticCampaigns: inRange.byCampaign,
@@ -820,6 +849,23 @@ export async function loadClienteProfitPromo(input: {
     }
   }
 
+  const effectiveAdSpend = round2(spendInRange * (1 + feePercent / 100));
+  const breakEvenRoas = round2(1 + feePercent / 100);
+  const cpaCollected =
+    ordersCollected > 0 && spendInRange > 0
+      ? round2(spendInRange / ordersCollected)
+      : null;
+  const avgOrderCollected =
+    ordersCollected > 0 && collectedRevenue > 0
+      ? round2(collectedRevenue / ordersCollected)
+      : null;
+  const roasEffective =
+    effectiveAdSpend > 0 && collectedRevenue > 0
+      ? round2(collectedRevenue / effectiveAdSpend)
+      : null;
+  const aboveBreakEven =
+    roasEffective != null ? roasEffective >= breakEvenRoas : null;
+
   const analysis: ProfitAnalysis = {
     from: range.from,
     to: range.to,
@@ -844,6 +890,14 @@ export async function loadClienteProfitPromo(input: {
         ? round2(collectedRevenue / spendInRange)
         : null,
     hasCodLink: linkedStores.length > 0,
+    ordersCollected,
+    cpaCollected,
+    avgOrderCollected,
+    feePercent,
+    effectiveAdSpend,
+    roasEffective,
+    breakEvenRoas,
+    aboveBreakEven,
     dataThroughDate,
     signals: buildSignals({
       campaigns,

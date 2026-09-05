@@ -229,7 +229,7 @@ export function AdAccountsTable({
             : "inline-flex h-8 items-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
         }
       >
-        Ver gastos
+        Ver Profit
       </Link>
     );
   }
