@@ -812,21 +812,25 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       : "CUSTOM_BUDGET";
 
   if (snapshot.budgetMode === "UNLIMITED") {
-    console.info("[tiktok-bc] budget_already_unlimited", {
+    // Salir de ilimitado (tope = ya gastado) y después sumar el allocate.
+    await setSharedBmAdvertiserBudgetAbsolute({
       bcId,
       advertiserId,
-      increase,
+      budgetUsd: snapshot.budgetCost,
+      organizationId: input.organizationId,
+      preferBudgetMode: "CUSTOM_BUDGET",
     });
-    return {
-      ok: true,
-      previousBudget: snapshot.budget,
-      newBudget: snapshot.budget,
-      budgetMode: "UNLIMITED",
-      tiktokRequestId: null,
-    };
   }
 
-  const newBudget = Math.round((previousBudget + increase) * 100) / 100;
+  const baseBudget =
+    snapshot.budgetMode === "UNLIMITED" ? snapshot.budgetCost : previousBudget;
+  const resolvedMode =
+    snapshot.budgetMode === "UNLIMITED"
+      ? "CUSTOM_BUDGET"
+      : budgetMode === "UNLIMITED"
+        ? "CUSTOM_BUDGET"
+        : budgetMode;
+  const newBudget = Math.round((baseBudget + increase) * 100) / 100;
 
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
@@ -841,7 +845,7 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       {
         advertiser_id: advertiserId,
         budget: increase,
-        budget_mode: budgetMode,
+        budget_mode: resolvedMode,
       },
     ],
   };
@@ -849,10 +853,10 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   console.info("[tiktok-bc] budget_increase_attempt", {
     bcId,
     advertiserId,
-    previousBudget,
+    previousBudget: baseBudget,
     newBudget,
     increase,
-    budgetMode,
+    budgetMode: resolvedMode,
     tokenSource,
     tokenFp,
   });
@@ -908,17 +912,17 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   console.info("[tiktok-bc] budget_increase_ok", {
     bcId,
     advertiserId,
-    previousBudget,
+    previousBudget: baseBudget,
     newBudget,
-    budgetMode,
+    budgetMode: resolvedMode,
     tiktokRequestId: json.request_id ?? null,
   });
 
   return {
     ok: true,
-    previousBudget,
+    previousBudget: baseBudget,
     newBudget,
-    budgetMode,
+    budgetMode: resolvedMode,
     tiktokRequestId: json.request_id ?? null,
   };
 }
@@ -959,12 +963,20 @@ export async function decreaseSharedBmAdvertiserBudget(input: {
     );
   }
   if (snapshot.budgetMode === "UNLIMITED") {
-    // Sin tope: no hay “saldo de presupuesto” que bajar.
+    // Ilimitado → tope finito = gastado + (queda 0 tras la baja pedida).
+    // Primero fijar a gastado, luego el reclaim ya no tiene headroom.
+    const locked = await setSharedBmAdvertiserBudgetAbsolute({
+      bcId,
+      advertiserId,
+      budgetUsd: snapshot.budgetCost,
+      organizationId: input.organizationId,
+      preferBudgetMode: "CUSTOM_BUDGET",
+    });
     return {
       ok: true,
-      previousBudget: snapshot.budget,
-      newBudget: snapshot.budget,
-      tiktokRequestId: null,
+      previousBudget: locked.previousBudget,
+      newBudget: locked.newBudget,
+      tiktokRequestId: locked.tiktokRequestId,
     };
   }
 
@@ -1046,3 +1058,139 @@ export async function decreaseSharedBmAdvertiserBudget(input: {
     tiktokRequestId: json.request_id ?? null,
   };
 }
+
+/**
+ * BM SHARED: setear presupuesto absoluto (y modo finito).
+ * Sirve para bajar cupo sobrante y para salir de UNLIMITED.
+ */
+export async function setSharedBmAdvertiserBudgetAbsolute(input: {
+  bcId: string;
+  advertiserId: string;
+  /** Tope absoluto USD (TikTok no debería quedar por debajo de lo ya gastado). */
+  budgetUsd: number;
+  organizationId?: string;
+  /** Preferir el modo actual si es finito; si venía UNLIMITED → CUSTOM_BUDGET. */
+  preferBudgetMode?: "DAILY_BUDGET" | "MONTHLY_BUDGET" | "CUSTOM_BUDGET";
+}): Promise<{
+  ok: true;
+  previousBudget: number;
+  previousMode: string;
+  newBudget: number;
+  newMode: string;
+  tiktokRequestId: string | null;
+  skipped: boolean;
+}> {
+  const advertiserId = input.advertiserId.trim();
+  const target = Math.max(0, Math.round(input.budgetUsd * 100) / 100);
+
+  if (!input.bcId.trim() || !advertiserId) {
+    throw new Error("Falta bc_id o advertiser_id para fijar presupuesto.");
+  }
+  if (!Number.isFinite(target) || target > 50_000) {
+    throw new Error("Presupuesto absoluto fuera de rango seguro.");
+  }
+
+  const { bcId, snapshot } = await resolveSharedBudgetSnapshot({
+    bcId: input.bcId,
+    advertiserId,
+    organizationId: input.organizationId,
+  });
+
+  const previousBudget = snapshot.budget;
+  const previousMode = snapshot.budgetMode;
+  const floor = Math.max(0, Math.round(snapshot.budgetCost * 100) / 100);
+  const newBudget = Math.max(floor, target);
+
+  let newMode: "DAILY_BUDGET" | "MONTHLY_BUDGET" | "CUSTOM_BUDGET" =
+    input.preferBudgetMode ?? "CUSTOM_BUDGET";
+  if (
+    previousMode === "DAILY_BUDGET" ||
+    previousMode === "MONTHLY_BUDGET" ||
+    previousMode === "CUSTOM_BUDGET"
+  ) {
+    newMode = previousMode;
+  }
+
+  const alreadyFinite =
+    previousMode === "DAILY_BUDGET" ||
+    previousMode === "MONTHLY_BUDGET" ||
+    previousMode === "CUSTOM_BUDGET";
+  if (
+    alreadyFinite &&
+    Math.abs(previousBudget - newBudget) < 0.02
+  ) {
+    return {
+      ok: true,
+      previousBudget,
+      previousMode,
+      newBudget: previousBudget,
+      newMode: previousMode,
+      tiktokRequestId: null,
+      skipped: true,
+    };
+  }
+
+  const { token: accessToken, source: tokenSource } =
+    await resolveTikTokFinanceAccessToken(input.organizationId);
+
+  const body = {
+    bc_id: bcId,
+    budget_update_type: "UPDATE",
+    advertiser_budgets: [
+      {
+        advertiser_id: advertiserId,
+        budget: newBudget,
+        budget_mode: newMode,
+      },
+    ],
+  };
+
+  console.info("[tiktok-bc] budget_absolute_set_attempt", {
+    bcId,
+    advertiserId,
+    previousBudget,
+    previousMode,
+    newBudget,
+    newMode,
+    tokenSource,
+  });
+
+  const response = await fetch(apiUrl("/advertiser/update/"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Token": accessToken,
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>> & {
+    log_id?: string;
+  };
+
+  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+    const detail = json.message ?? `HTTP ${response.status}`;
+    console.error("[tiktok-bc] budget_absolute_set_failed", {
+      code: json.code ?? null,
+      message: detail,
+      bcId,
+      advertiserId,
+      tiktokRequestId: json.request_id ?? json.log_id ?? null,
+    });
+    throw new Error(
+      "No se pudo ajustar el presupuesto en TikTok al tope Holistic.",
+    );
+  }
+
+  return {
+    ok: true,
+    previousBudget,
+    previousMode,
+    newBudget,
+    newMode,
+    tiktokRequestId: json.request_id ?? null,
+    skipped: false,
+  };
+}
+
