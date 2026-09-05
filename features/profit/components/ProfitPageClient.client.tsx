@@ -392,6 +392,54 @@ export function ProfitPageClient({
     }
   }
 
+  const useLiveForToday = Boolean(live.lastUpdatedAt) && !live.error;
+  const spendTodayDisplay = analysis
+    ? useLiveForToday
+      ? liveSpendTotal
+      : analysis.spendToday
+    : 0;
+  const hoyHint = analysis
+    ? useLiveForToday
+      ? `Live TikTok${
+          liveBalanceTotal > 0
+            ? ` · saldo ${moneyUsd(liveBalanceTotal)}`
+            : ""
+        }${formatSyncTime(live.lastUpdatedAt) ? ` · ${formatSyncTime(live.lastUpdatedAt)}` : ""}`
+      : `vs ayer ${formatDelta(analysis.spendTodayDeltaPct)} · ${moneyUsd(analysis.spendYesterday)}`
+    : "";
+
+  const displayPacing = useMemo(() => {
+    if (!analysis) {
+      return { pacingRatio: null as number | null, pacingLabel: "sin_base" as const };
+    }
+    const spendToday = useLiveForToday ? liveSpendTotal : analysis.spendToday;
+    const spend7d = analysis.spend7d;
+    if (spendToday <= 0 && spend7d <= 0) {
+      return { pacingRatio: null, pacingLabel: "sin_base" as const };
+    }
+    if (spendToday <= 0) {
+      return { pacingRatio: 0, pacingLabel: "parado" as const };
+    }
+    const avg = spend7d / 7;
+    if (avg <= 0) {
+      return { pacingRatio: null, pacingLabel: "sin_base" as const };
+    }
+    const ratio = Math.round((spendToday / avg) * 100) / 100;
+    if (ratio >= 1.35) return { pacingRatio: ratio, pacingLabel: "acelerando" as const };
+    if (ratio <= 0.5) return { pacingRatio: ratio, pacingLabel: "bajo" as const };
+    return { pacingRatio: ratio, pacingLabel: "normal" as const };
+  }, [analysis, useLiveForToday, liveSpendTotal]);
+
+  const visibleSignals = useMemo(() => {
+    const list = analysis?.signals ?? [];
+    if (spendTodayDisplay > 0) {
+      return list.filter(
+        (s) => s.kind !== "silent" && !(s.kind === "pacing" && s.title.includes("parado")),
+      );
+    }
+    return list;
+  }, [analysis?.signals, spendTodayDisplay]);
+
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
@@ -482,20 +530,25 @@ export function ProfitPageClient({
                 </p>
               </div>
               <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(analysis.pacingLabel).className}`}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(displayPacing.pacingLabel).className}`}
               >
-                {pacingBadge(analysis.pacingLabel).text}
-                {analysis.pacingRatio != null
-                  ? ` · ${analysis.pacingRatio.toFixed(2)}×`
+                {pacingBadge(displayPacing.pacingLabel).text}
+                {displayPacing.pacingRatio != null
+                  ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
                   : ""}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
-                label="Hoy"
-                value={moneyUsd(analysis.spendToday)}
-                hint={`vs ayer ${formatDelta(analysis.spendTodayDeltaPct)} · ${moneyUsd(analysis.spendYesterday)}`}
+                label={useLiveForToday ? "Hoy · live" : "Hoy"}
+                value={
+                  live.loading && !live.lastUpdatedAt
+                    ? "…"
+                    : moneyUsd(spendTodayDisplay)
+                }
+                hint={hoyHint}
+                accent={useLiveForToday && spendTodayDisplay > 0}
               />
               <Kpi
                 label="7 días"
@@ -511,93 +564,29 @@ export function ProfitPageClient({
                 label="En el rango"
                 value={moneyUsd(analysis.spendInRange)}
                 hint={`vs período anterior ${formatDelta(analysis.spendRangeDeltaPct)} · ${analysis.campaigns.length} campañas`}
-                accent
+                accent={!useLiveForToday || spendTodayDisplay <= 0}
               />
             </div>
 
-            <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                    Live TikTok
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                    Saldo y spend hoy por cuenta · poll ~{live.pollSeconds}s
-                    {formatSyncTime(live.lastUpdatedAt)
-                      ? ` · ${formatSyncTime(live.lastUpdatedAt)}`
-                      : ""}
-                  </p>
-                </div>
+            {useLiveForToday && liveAccounts.length > 0 ? (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#8a8177]">
+                <span>
+                  {liveAccounts.length === 1
+                    ? liveAccounts[0]!.accountName
+                    : `${liveAccounts.length} cuentas`}
+                  {liveBalanceTotal > 0
+                    ? ` · saldo ${moneyUsd(liveBalanceTotal)}`
+                    : ""}
+                </span>
                 <button
                   type="button"
                   onClick={() => void live.refresh({ force: true })}
-                  className="text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline"
+                  className="font-semibold text-[#c2410c] underline-offset-2 hover:underline"
                 >
-                  Refrescar live
+                  Actualizar live
                 </button>
-              </div>
-              {live.error ? (
-                <p className="mt-2 text-[12px] text-amber-900">{live.error}</p>
-              ) : null}
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
-                    Saldo total
-                  </p>
-                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
-                    {live.loading && liveAccounts.length === 0
-                      ? "…"
-                      : moneyUsd(liveBalanceTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
-                    Spend hoy (live)
-                  </p>
-                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#c2410c]">
-                    {live.loading && liveAccounts.length === 0
-                      ? "…"
-                      : moneyUsd(liveSpendTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
-                    Cuentas activas
-                  </p>
-                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
-                    {liveAccounts.length}
-                  </p>
-                </div>
-              </div>
-              {liveAccounts.length > 0 ? (
-                <ul className="mt-3 divide-y divide-[#ece7e0] rounded-xl border border-[#ece7e0] bg-white">
-                  {liveAccounts.slice(0, 6).map((a) => (
-                    <li
-                      key={a.advertiserId}
-                      className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[12px]"
-                    >
-                      <span className="min-w-0 font-medium text-[#1c1917]">
-                        {a.accountName}
-                        {a.bmBucket ? (
-                          <span className="ml-2 text-[10px] font-normal text-[#8a8177]">
-                            BM {a.bmBucket}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="tabular-nums text-[#5c564e]">
-                        hoy {moneyUsd(a.spendTodayUsd ?? 0)}
-                        <span className="mx-1.5 text-[#d6cec4]">·</span>
-                        saldo {moneyUsd(a.balanceUsd ?? 0)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : !live.loading ? (
-                <p className="mt-2 text-[12px] text-[#8a8177]">
-                  Sin saldo ni spend live en cuentas mapeadas.
-                </p>
-              ) : null}
-            </div>
+              </p>
+            ) : null}
 
             <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
               <p className="mb-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
@@ -606,12 +595,12 @@ export function ProfitPageClient({
               <DailyBars series={analysis.dailySeries} />
             </div>
 
-            {(analysis.signals?.length ?? 0) > 0 ? (
+            {visibleSignals.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
                   Señales
                 </p>
-                {analysis.signals.map((sig, i) => (
+                {visibleSignals.map((sig, i) => (
                   <div
                     key={`${sig.kind}-${i}`}
                     className={`rounded-xl border px-4 py-3 text-[13px] ${
