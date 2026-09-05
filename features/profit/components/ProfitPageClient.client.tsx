@@ -967,7 +967,6 @@ export function ProfitPageClient({
                 availableStores.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
-                    {s.shopDomain ? ` · ${s.shopDomain}` : ""}
                     {s.isActive === false ? " · inactiva" : ""}
                   </option>
                 ))
@@ -991,9 +990,9 @@ export function ProfitPageClient({
                 >
                   <span className="font-medium text-[#1c1917]">
                     {s.name}
-                    {s.shopDomain ? (
-                      <span className="ml-2 font-mono text-[11px] text-[#8a8177]">
-                        {s.shopDomain}
+                    {s.isActive === false ? (
+                      <span className="ml-2 text-[11px] font-normal text-[#8a8177]">
+                        inactiva
                       </span>
                     ) : null}
                   </span>
