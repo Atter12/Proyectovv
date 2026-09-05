@@ -124,16 +124,25 @@ function VoucherCard({
 
         <div className="flex flex-col gap-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-muted)]">
                 {intent.provider === "crypto" ? "Cripto" : "Transferencia BCP"}
               </p>
-              <h3 className="mt-0.5 text-base font-semibold text-[var(--auth-text)]">
-                {intent.organizationName ?? "Cliente"}
+              <h3 className="mt-0.5 truncate text-base font-semibold text-[var(--auth-text)]">
+                {intent.hecomClienteName?.trim() ||
+                  intent.organizationName ||
+                  "Cliente"}
               </h3>
               <p className="text-xs text-[var(--auth-muted)]">
                 {intent.actorEmail ?? intent.actorName ?? "—"}
               </p>
+              {intent.hecomClienteName &&
+              intent.organizationName &&
+              intent.hecomClienteName.trim() !== intent.organizationName.trim() ? (
+                <p className="mt-0.5 text-[11px] text-[var(--auth-muted)]">
+                  Org: {intent.organizationName}
+                </p>
+              ) : null}
             </div>
             <Badge variant={reviewVariants[intent.reviewStatus]}>
               {reviewLabels[intent.reviewStatus]}
@@ -145,19 +154,33 @@ function VoucherCard({
             <p className="text-lg font-bold tabular-nums text-[var(--auth-text)]">
               {formatMoney(intent.amount, intent.currency)}
             </p>
-            {intent.creditUsd != null ? (
-              <p className="mt-0.5 text-xs text-[var(--auth-muted)]">
-                Acredita a cartera:{" "}
-                <span className="font-semibold text-[var(--auth-text)]">
-                  {formatMoney(intent.creditUsd, "USD")}
-                </span>
-              </p>
-            ) : null}
+            <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-muted)]">
+              {intent.creditUsd != null ? (
+                <p>
+                  Acredita a cartera:{" "}
+                  <span className="font-semibold text-[var(--auth-text)]">
+                    {formatMoney(intent.creditUsd, "USD")}
+                  </span>
+                </p>
+              ) : null}
+              {intent.feePercent != null ? (
+                <p>
+                  Fee:{" "}
+                  <span className="font-semibold text-[var(--auth-text)]">
+                    {intent.feePercent}%
+                  </span>
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <p className="text-xs text-[var(--auth-muted)]">
             {new Date(intent.createdAt).toLocaleString("es-PE")}
             {intent.proofFileName ? ` · ${intent.proofFileName}` : ""}
+            {" · "}
+            <span className="font-mono text-[11px]">
+              {intent.id.slice(0, 8)}
+            </span>
           </p>
 
           {intent.analysisReason ? (
@@ -260,6 +283,8 @@ interface ManualVoucherReviewSectionProps {
   /** Cliente: solo sus vouchers (lista plana). */
   clientItems?: ManualPaymentIntentItem[];
   mode: "staff" | "client";
+  /** Cola de todos los clientes (copy de gerente). */
+  globalQueue?: boolean;
 }
 
 export function ManualVoucherReviewSection({
@@ -269,6 +294,7 @@ export function ManualVoucherReviewSection({
   canReview,
   clientItems,
   mode,
+  globalQueue = false,
 }: ManualVoucherReviewSectionProps) {
   if (mode === "client") {
     const items = clientItems ?? [];
@@ -309,7 +335,7 @@ export function ManualVoucherReviewSection({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-[var(--auth-text)]">
-              Cola de boletas
+              {globalQueue ? "Cola global de boletas" : "Cola de boletas"}
             </h2>
             {pendingCount > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">
@@ -318,7 +344,9 @@ export function ManualVoucherReviewSection({
             ) : null}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
-            Revisá boletas en cola. Al aceptar se acredita{" "}
+            {globalQueue
+              ? "Todos los clientes · pendientes más viejos primero. Al aceptar se acredita "
+              : "Revisá boletas en cola. Al aceptar se acredita "}
             <strong className="font-semibold text-[var(--auth-text)]">
               saldo disponible
             </strong>{" "}

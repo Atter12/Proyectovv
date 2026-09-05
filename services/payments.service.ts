@@ -573,6 +573,8 @@ export interface ManualPaymentIntentItem {
   currency: string;
   /** Crédito USD que se acreditará a cartera (si aplica). */
   creditUsd: number | null;
+  /** Fee % aplicado al depósito (si viene en metadata). */
+  feePercent: number | null;
   status: string;
   provider: string;
   reviewStatus:
@@ -588,6 +590,8 @@ export interface ManualPaymentIntentItem {
   analysisReason: string | null;
   organizationId: string;
   organizationName: string | null;
+  hecomClienteId: string | null;
+  hecomClienteName: string | null;
   actorEmail: string | null;
   actorName: string | null;
 }
@@ -765,12 +769,16 @@ async function mapManualIntentRows(
         ? await signPaymentProofUrl(proof.path)
         : null;
       const actor = row.created_by ? profileMap.get(row.created_by) : undefined;
+      const metadata = isRecord(row.metadata) ? row.metadata : {};
+      const feeRaw = Number(metadata.fee_percent);
       return {
         id: row.id,
         createdAt: row.created_at,
         amount: centsToAmount(row.amount_cents),
         currency: row.currency,
         creditUsd: getCreditUsd(row.metadata, row.amount_cents, row.currency),
+        feePercent:
+          Number.isFinite(feeRaw) && feeRaw >= 0 ? feeRaw : null,
         status: row.status,
         provider: row.provider,
         reviewStatus,
@@ -781,6 +789,8 @@ async function mapManualIntentRows(
         analysisReason: getAnalysisReason(row.metadata),
         organizationId: row.organization_id,
         organizationName: orgMap.get(row.organization_id) ?? null,
+        hecomClienteId: getString(metadata.hecom_cliente_id),
+        hecomClienteName: getString(metadata.hecom_cliente_name),
         actorEmail: actor?.email ?? null,
         actorName: actor?.full_name ?? null,
       };
@@ -811,7 +821,8 @@ export async function getRecentManualPaymentIntents(
 }
 
 /**
- * Staff/gerente: cola de boletas manuales del cliente Hecom seleccionado.
+ * Staff/gerente: cola de boletas manuales de todos los clientes.
+ * Pasá `hecomClienteId` solo si querés filtrar a uno.
  */
 export async function listManualVoucherReviewsForStaff(options?: {
   hecomClienteId?: string | null;
@@ -819,29 +830,43 @@ export async function listManualVoucherReviewsForStaff(options?: {
   pending: ManualPaymentIntentItem[];
   recent: ManualPaymentIntentItem[];
   pendingCount: number;
+  scope: "all" | "cliente";
 }> {
   const hecomClienteId = options?.hecomClienteId?.trim() || null;
-  if (!hecomClienteId) {
-    return { pending: [], recent: [], pendingCount: 0 };
-  }
+  const scope: "all" | "cliente" = hecomClienteId ? "cliente" : "all";
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
 
-  const { data, error } = await admin
+  let query = admin
     .from("payment_intents")
     .select(
       "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
     )
     .eq("provider", "manual")
-    .in("status", ["processing", "succeeded", "failed", "requires_payment", "created"])
-    .filter("metadata->>hecom_cliente_id", "eq", hecomClienteId)
+    .in("status", [
+      "processing",
+      "succeeded",
+      "failed",
+      "requires_payment",
+      "created",
+    ])
     .order("created_at", { ascending: false })
-    .limit(80);
+    .limit(hecomClienteId ? 80 : 200);
+
+  if (hecomClienteId) {
+    query = query.filter(
+      "metadata->>hecom_cliente_id",
+      "eq",
+      hecomClienteId,
+    );
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[payments] listManualVoucherReviewsForStaff", error.message);
-    return { pending: [], recent: [], pendingCount: 0 };
+    return { pending: [], recent: [], pendingCount: 0, scope };
   }
 
   const rows = ((data ?? []) as DbPaymentIntentRow[]).filter(
@@ -856,7 +881,12 @@ export async function listManualVoucherReviewsForStaff(options?: {
         review === "pending_review" && Boolean(proof.path || proof.fileName)
       );
     })
-    .slice(0, 20);
+    // FIFO: los más viejos primero para no perder boletas.
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
+    .slice(0, hecomClienteId ? 20 : 60);
   const recentRows = rows
     .filter((row) => {
       const metadata = isRecord(row.metadata) ? row.metadata : {};
@@ -874,14 +904,14 @@ export async function listManualVoucherReviewsForStaff(options?: {
           ))
       );
     })
-    .slice(0, 12);
+    .slice(0, hecomClienteId ? 12 : 40);
 
   const [pending, recent] = await Promise.all([
     mapManualIntentRows(pendingRows, { signProofs: true }),
     mapManualIntentRows(recentRows, { signProofs: false }),
   ]);
 
-  return { pending, recent, pendingCount: pending.length };
+  return { pending, recent, pendingCount: pending.length, scope };
 }
 
 /** @deprecated Usar getPaymentPageCore + getPaymentTransactions */
