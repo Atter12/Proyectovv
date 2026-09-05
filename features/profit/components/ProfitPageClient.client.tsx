@@ -23,6 +23,14 @@ type CampaignRow = {
   roasEstimated: number | null;
   bm: string | null;
   advertiserId: string | null;
+  impressions: number | null;
+  clicks: number | null;
+  ctr: number | null;
+  cpc: number | null;
+  cpm: number | null;
+  conversions: number | null;
+  costPerConversion: number | null;
+  hasTikTokPerf: boolean;
 };
 
 type DailyPoint = { date: string; spend: number };
@@ -57,6 +65,19 @@ type Analysis = {
   hasCodLink: boolean;
   dataThroughDate: string | null;
   signals: ProfitSignal[];
+  perf?: {
+    available: boolean;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    avgCtr: number | null;
+    avgCpc: number | null;
+    avgCpm: number | null;
+    advertisersQueried: number;
+    advertisersOk: number;
+    fetchedAt: string | null;
+    error: string | null;
+  };
 };
 
 type Snapshot = {
@@ -124,7 +145,7 @@ function formatSyncTime(iso: string | null): string | null {
   }
 }
 
-type SortKey = "spend" | "share" | "name" | "roas";
+type SortKey = "spend" | "share" | "name" | "roas" | "ctr" | "cpc";
 
 function Kpi({
   label,
@@ -395,6 +416,16 @@ export function ProfitPageClient({
         const br = b.roasEstimated ?? -1;
         return mul * (ar - br);
       }
+      if (sortKey === "ctr") {
+        const ar = a.ctr ?? -1;
+        const br = b.ctr ?? -1;
+        return mul * (ar - br);
+      }
+      if (sortKey === "cpc") {
+        const ar = a.cpc ?? Number.POSITIVE_INFINITY;
+        const br = b.cpc ?? Number.POSITIVE_INFINITY;
+        return mul * (ar - br);
+      }
       return mul * (a.spend - b.spend);
     });
   }, [analysis, bmFilter, sortKey, sortAsc]);
@@ -660,11 +691,11 @@ export function ProfitPageClient({
                   Campañas
                 </p>
                 <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
-                  Ranking por gasto
+                  Ranking + performance TikTok
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                  Cobrado / ROAS por campaña = estimado si hay COD vinculado
-                  (reparto por % de gasto).
+                  Impresiones / CTR / CPC desde report live. Cobrado COD por
+                  campaña = estimado si hay tienda vinculada.
                 </p>
               </div>
               {bmOptions.length > 0 ? (
@@ -685,6 +716,60 @@ export function ProfitPageClient({
                 </label>
               ) : null}
             </div>
+
+            {analysis.perf ? (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Kpi
+                  label="Impresiones"
+                  value={
+                    analysis.perf.available
+                      ? analysis.perf.impressions.toLocaleString("en-US")
+                      : "—"
+                  }
+                  hint={
+                    analysis.perf.error
+                      ? analysis.perf.error
+                      : `${analysis.perf.advertisersOk}/${analysis.perf.advertisersQueried} cuentas OK`
+                  }
+                />
+                <Kpi
+                  label="Clicks"
+                  value={
+                    analysis.perf.available
+                      ? analysis.perf.clicks.toLocaleString("en-US")
+                      : "—"
+                  }
+                  hint={
+                    analysis.perf.conversions > 0
+                      ? `${analysis.perf.conversions.toLocaleString("en-US")} conv.`
+                      : "Report TikTok"
+                  }
+                />
+                <Kpi
+                  label="CTR medio"
+                  value={
+                    analysis.perf.avgCtr != null
+                      ? `${analysis.perf.avgCtr.toFixed(2)}%`
+                      : "—"
+                  }
+                  hint="Clicks ÷ impresiones"
+                />
+                <Kpi
+                  label="CPC medio"
+                  value={
+                    analysis.perf.avgCpc != null
+                      ? moneyUsd(analysis.perf.avgCpc)
+                      : "—"
+                  }
+                  hint={
+                    analysis.perf.avgCpm != null
+                      ? `CPM ${moneyUsd(analysis.perf.avgCpm)}`
+                      : "Gasto ÷ clicks"
+                  }
+                  accent
+                />
+              </div>
+            ) : null}
 
             {analysis.hasCodLink ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -750,9 +835,30 @@ export function ProfitPageClient({
                           className="font-bold uppercase tracking-[0.08em]"
                           onClick={() => toggleSort("share")}
                         >
-                          % gasto
+                          %
                         </button>
                       </th>
+                      <th className="px-3 py-2.5">Imp.</th>
+                      <th className="px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="font-bold uppercase tracking-[0.08em]"
+                          onClick={() => toggleSort("ctr")}
+                        >
+                          CTR
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5">
+                        <button
+                          type="button"
+                          className="font-bold uppercase tracking-[0.08em]"
+                          onClick={() => toggleSort("cpc")}
+                        >
+                          CPC
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5">CPM</th>
+                      <th className="px-3 py-2.5">Conv.</th>
                       {analysis.hasCodLink ? (
                         <>
                           <th className="px-3 py-2.5">Cobrado est.</th>
@@ -777,11 +883,10 @@ export function ProfitPageClient({
                       >
                         <td className="px-3 py-2.5 font-medium text-[#1c1917]">
                           {c.campaignName}
-                          {c.advertiserId ? (
-                            <span className="mt-0.5 block font-mono text-[10px] font-normal text-[#9a9187]">
-                              {c.advertiserId}
-                            </span>
-                          ) : null}
+                          <span className="mt-0.5 block text-[10px] font-normal text-[#9a9187]">
+                            {c.hasTikTokPerf ? "perf TikTok" : "solo Holistic"}
+                            {c.advertiserId ? ` · ${c.advertiserId}` : ""}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 text-[#6b645c]">
                           {c.bm ?? "—"}
@@ -791,6 +896,25 @@ export function ProfitPageClient({
                         </td>
                         <td className="px-3 py-2.5 tabular-nums">
                           {(c.spendShare * 100).toFixed(1)}%
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {c.impressions != null
+                            ? c.impressions.toLocaleString("en-US")
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {c.ctr != null ? `${c.ctr.toFixed(2)}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {c.cpc != null ? moneyUsd(c.cpc) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {c.cpm != null ? moneyUsd(c.cpm) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {c.conversions != null
+                            ? c.conversions.toLocaleString("en-US")
+                            : "—"}
                         </td>
                         {analysis.hasCodLink ? (
                           <>

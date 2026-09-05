@@ -1,4 +1,6 @@
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
+import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
+import { fetchCampaignPerformanceForAdvertisers } from "@/lib/integrations/tiktok/campaign-performance.server";
 import {
   defaultProfitDateRange,
   getRealProfitAdmin,
@@ -29,6 +31,16 @@ export type ProfitCampaignRow = {
   roasEstimated: number | null;
   bm: string | null;
   advertiserId: string | null;
+  impressions: number | null;
+  clicks: number | null;
+  /** CTR % */
+  ctr: number | null;
+  cpc: number | null;
+  cpm: number | null;
+  conversions: number | null;
+  costPerConversion: number | null;
+  /** true si vino overlay del report TikTok live */
+  hasTikTokPerf: boolean;
 };
 
 export type StoreProfitPromo = {
@@ -53,7 +65,7 @@ export type ProfitPacingLabel =
   | "sin_base";
 
 export type ProfitSignal = {
-  kind: "concentration" | "pacing" | "silent" | "weak_roas";
+  kind: "concentration" | "pacing" | "silent" | "weak_roas" | "low_ctr";
   severity: "info" | "warn";
   title: string;
   detail: string;
@@ -87,6 +99,19 @@ export type ProfitAnalysis = {
   /** Último día con gasto en snapshots/gastos (YYYY-MM-DD). */
   dataThroughDate: string | null;
   signals: ProfitSignal[];
+  perf: {
+    available: boolean;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    avgCtr: number | null;
+    avgCpc: number | null;
+    avgCpm: number | null;
+    advertisersQueried: number;
+    advertisersOk: number;
+    fetchedAt: string | null;
+    error: string | null;
+  };
 };
 
 function num(v: unknown): number {
@@ -214,7 +239,158 @@ function buildSignals(input: {
     }
   }
 
-  return signals.slice(0, 6);
+  const lowCtr = [...input.campaigns]
+    .filter((c) => c.hasTikTokPerf && c.ctr != null && c.spendShare >= 0.05)
+    .filter((c) => (c.ctr ?? 0) < 0.5)
+    .slice(0, 2);
+    for (const c of lowCtr) {
+    signals.push({
+      kind: "low_ctr",
+      severity: "warn",
+      title: `${c.campaignName}: CTR bajo`,
+      detail: `CTR ${c.ctr!.toFixed(2)}% · CPC ${c.cpc != null ? `$${c.cpc.toFixed(2)}` : "—"} — revisá creativo/oferta.`,
+    });
+  }
+
+  return signals.slice(0, 8);
+}
+
+type PerfMergeRow = {
+  campaignExternalId: string;
+  campaignName: string;
+  platform: string;
+  spend: number;
+  bm: string | null;
+  advertiserId: string | null;
+  impressions: number | null;
+  clicks: number | null;
+  ctr: number | null;
+  cpc: number | null;
+  cpm: number | null;
+  conversions: number | null;
+  costPerConversion: number | null;
+  hasTikTokPerf: boolean;
+};
+
+function mergeCampaignsWithTikTokPerf(input: {
+  holisticCampaigns: Array<{
+    campaignExternalId: string;
+    campaignName: string;
+    platform: string;
+    spend: number;
+    bm: string | null;
+    advertiserId: string | null;
+  }>;
+  perfRows: Awaited<
+    ReturnType<typeof fetchCampaignPerformanceForAdvertisers>
+  >["rows"];
+}): PerfMergeRow[] {
+  const perfById = new Map<
+    string,
+    Awaited<
+      ReturnType<typeof fetchCampaignPerformanceForAdvertisers>
+    >["rows"][number]
+  >();
+  for (const row of input.perfRows) {
+    const prev = perfById.get(row.campaignId);
+    if (!prev) {
+      perfById.set(row.campaignId, { ...row });
+      continue;
+    }
+    // Misma campaña en 2 advertisers (raro): sumar delivery.
+    prev.spend = round2(prev.spend + row.spend);
+    prev.impressions += row.impressions;
+    prev.clicks += row.clicks;
+    if (row.conversions != null) {
+      prev.conversions = (prev.conversions ?? 0) + row.conversions;
+    }
+    prev.ctr =
+      prev.impressions > 0
+        ? round2((prev.clicks / prev.impressions) * 100)
+        : prev.ctr;
+    prev.cpc = prev.clicks > 0 ? round2(prev.spend / prev.clicks) : prev.cpc;
+    prev.cpm =
+      prev.impressions > 0
+        ? round2((prev.spend / prev.impressions) * 1000)
+        : prev.cpm;
+  }
+
+  const used = new Set<string>();
+  const merged: PerfMergeRow[] = input.holisticCampaigns.map((c) => {
+    const cid = c.campaignExternalId.startsWith("name:")
+      ? ""
+      : c.campaignExternalId;
+    const perf = cid ? perfById.get(cid) : undefined;
+    if (perf) used.add(perf.campaignId);
+    return {
+      campaignExternalId: c.campaignExternalId,
+      campaignName: perf?.campaignName || c.campaignName,
+      platform: c.platform,
+      spend: c.spend,
+      bm: c.bm,
+      advertiserId: c.advertiserId ?? perf?.advertiserId ?? null,
+      impressions: perf?.impressions ?? null,
+      clicks: perf?.clicks ?? null,
+      ctr: perf?.ctr ?? null,
+      cpc: perf?.cpc ?? null,
+      cpm: perf?.cpm ?? null,
+      conversions: perf?.conversions ?? null,
+      costPerConversion: perf?.costPerConversion ?? null,
+      hasTikTokPerf: Boolean(perf),
+    };
+  });
+
+  // Campañas TikTok con spend que no estaban en Holistic snapshots.
+  for (const perf of perfById.values()) {
+    if (used.has(perf.campaignId) || perf.spend <= 0) continue;
+    merged.push({
+      campaignExternalId: perf.campaignId,
+      campaignName: perf.campaignName,
+      platform: "tiktok",
+      spend: perf.spend,
+      bm: null,
+      advertiserId: perf.advertiserId,
+      impressions: perf.impressions,
+      clicks: perf.clicks,
+      ctr: perf.ctr,
+      cpc: perf.cpc,
+      cpm: perf.cpm,
+      conversions: perf.conversions,
+      costPerConversion: perf.costPerConversion,
+      hasTikTokPerf: true,
+    });
+  }
+
+  return merged;
+}
+
+function summarizePerf(
+  campaigns: ProfitCampaignRow[],
+  meta: {
+    advertisersQueried: number;
+    advertisersOk: number;
+    fetchedAt: string | null;
+    error: string | null;
+  },
+): ProfitAnalysis["perf"] {
+  const withPerf = campaigns.filter((c) => c.hasTikTokPerf);
+  const impressions = withPerf.reduce((s, c) => s + (c.impressions ?? 0), 0);
+  const clicks = withPerf.reduce((s, c) => s + (c.clicks ?? 0), 0);
+  const conversions = withPerf.reduce((s, c) => s + (c.conversions ?? 0), 0);
+  const spend = withPerf.reduce((s, c) => s + c.spend, 0);
+  return {
+    available: withPerf.length > 0,
+    impressions,
+    clicks,
+    conversions,
+    avgCtr: impressions > 0 ? round2((clicks / impressions) * 100) : null,
+    avgCpc: clicks > 0 ? round2(spend / clicks) : null,
+    avgCpm: impressions > 0 ? round2((spend / impressions) * 1000) : null,
+    advertisersQueried: meta.advertisersQueried,
+    advertisersOk: meta.advertisersOk,
+    fetchedAt: meta.fetchedAt,
+    error: meta.error,
+  };
 }
 
 function spendSourceLabel(source: ProfitSpendSource): string {
@@ -234,6 +410,14 @@ function buildCampaignsFromSpend(input: {
     spend: number;
     bm?: string | null;
     advertiserId?: string | null;
+    impressions?: number | null;
+    clicks?: number | null;
+    ctr?: number | null;
+    cpc?: number | null;
+    cpm?: number | null;
+    conversions?: number | null;
+    costPerConversion?: number | null;
+    hasTikTokPerf?: boolean;
   }>;
 }): ProfitCampaignRow[] {
   const adSpend = input.adSpend;
@@ -254,6 +438,14 @@ function buildCampaignsFromSpend(input: {
           c.spend > 0 ? round2(collectedEstimated / c.spend) : null,
         bm: c.bm ?? null,
         advertiserId: c.advertiserId ?? null,
+        impressions: c.impressions ?? null,
+        clicks: c.clicks ?? null,
+        ctr: c.ctr ?? null,
+        cpc: c.cpc ?? null,
+        cpm: c.cpm ?? null,
+        conversions: c.conversions ?? null,
+        costPerConversion: c.costPerConversion ?? null,
+        hasTikTokPerf: Boolean(c.hasTikTokPerf),
       };
     });
 }
@@ -524,13 +716,46 @@ export async function loadClienteProfitPromo(input: {
   );
   const loadTo = maxYmd(range.to, today);
 
-  const [linkedStores, wide] = await Promise.all([
+  const [linkedStores, wide, overview] = await Promise.all([
     getLinkedStoresForCliente(input.hecomClienteId),
     loadHolisticTikTokSpendForCliente({
       hecomClienteId: input.hecomClienteId,
       from: loadFrom,
       to: loadTo,
     }),
+    getHecomClienteAdAccountsOverview(input.hecomClienteId, "fast").catch(
+      () => null,
+    ),
+  ]);
+
+  const advertiserIds = (overview?.accounts ?? [])
+    .map((a) => (a.externalAccountId ?? "").trim())
+    .filter(Boolean);
+
+  const perfPromise = fetchCampaignPerformanceForAdvertisers({
+    advertiserIds,
+    from: range.from,
+    to: range.to,
+    maxAdvertisers: 12,
+  });
+
+  // No bloquear Profit más de ~14s por reportes TikTok.
+  const perf = await Promise.race([
+    perfPromise,
+    new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
+      (resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              rows: [],
+              fetchedAt: new Date().toISOString(),
+              advertisersQueried: advertiserIds.length,
+              advertisersOk: 0,
+              error: "Timeout consultando performance TikTok.",
+            }),
+          14_000,
+        ),
+    ),
   ]);
 
   const inRange = sliceHolisticSpend(wide, range.from, range.to);
@@ -568,11 +793,21 @@ export async function loadClienteProfitPromo(input: {
   const collectedRevenue = round2(
     snapshots.reduce((s, snap) => s + snap.collectedRevenue, 0),
   );
+
+  const mergedRows = mergeCampaignsWithTikTokPerf({
+    holisticCampaigns: inRange.byCampaign,
+    perfRows: perf.rows,
+  });
+
+  // Si Holistic no tenía campañas pero TikTok sí, el spend del ranking
+  // usa TikTok; los KPIs de consumo siguen siendo Holistic.
+  const spendForShare =
+    mergedRows.reduce((s, r) => s + r.spend, 0) || round2(inRange.adSpend);
   const spendInRange = round2(inRange.adSpend);
   const campaigns = buildCampaignsFromSpend({
     collectedRevenue,
-    adSpend: spendInRange,
-    rows: inRange.byCampaign,
+    adSpend: spendForShare,
+    rows: mergedRows,
   });
 
   const { pacingRatio, pacingLabel } = resolvePacing(spendToday, spend7d);
@@ -616,6 +851,12 @@ export async function loadClienteProfitPromo(input: {
       pacingRatio,
       spendToday,
       hasCodLink: linkedStores.length > 0,
+    }),
+    perf: summarizePerf(campaigns, {
+      advertisersQueried: perf.advertisersQueried,
+      advertisersOk: perf.advertisersOk,
+      fetchedAt: perf.fetchedAt,
+      error: perf.error,
     }),
   };
 
