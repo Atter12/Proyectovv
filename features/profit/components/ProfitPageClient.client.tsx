@@ -274,8 +274,8 @@ export function ProfitPageClient({
             Conectar Real Profit a este cliente
           </h2>
           <p className="mt-1.5 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-            Elegí la tienda Shopify de Real Profit. Incluye tiendas inactivas de
-            prueba (ej. wazapp-dev-test).
+            Solo la tienda Real Profit COD de <span className="font-semibold text-[#1c1917]">este</span> cliente
+            (donde llegan sus órdenes cobradas). No uses tiendas de otros.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <select
