@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
@@ -278,11 +279,10 @@ export function ProfitPageClient({
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
   const [shopifyModalOpen, setShopifyModalOpen] = useState(false);
+  const [shopDomain, setShopDomain] = useState("");
 
-  function scrollToShopifyConnect() {
-    document
-      .getElementById("profit-shopify-connect")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function openShopifyModal() {
+    setShopifyModalOpen(true);
   }
 
   const live = useAdAccountLiveMetrics(true);
@@ -462,7 +462,7 @@ export function ProfitPageClient({
           </div>
           <button
             type="button"
-            onClick={scrollToShopifyConnect}
+            onClick={openShopifyModal}
             className="inline-flex h-auto max-w-[16rem] shrink-0 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 py-2.5 text-left text-[12.5px] font-semibold leading-snug text-[#c2410c] transition hover:border-[#ff781f] hover:bg-[#fff7f0] sm:max-w-[18rem]"
           >
             Conectar tienda de Shopify para jalar pedidos y ventas →
@@ -921,10 +921,27 @@ export function ProfitPageClient({
             Jalá pedidos y ventas reales para ver cuánto estás ganando neto —
             no solo cuánto gastás en ads.
           </p>
+          <label className="relative mt-5 block max-w-md text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+            Dominio de tu tienda
+            <div className="mt-1.5 flex overflow-hidden rounded-xl border border-[#e7e0d8] bg-[#faf8f5] focus-within:border-[#ff781f] focus-within:ring-2 focus-within:ring-[#ff781f]/25">
+              <span className="flex items-center border-r border-[#e7e0d8] bg-[#f3efe9] px-3 text-[12px] font-medium normal-case tracking-normal text-[#8a8177]">
+                https://
+              </span>
+              <input
+                type="text"
+                inputMode="url"
+                autoComplete="off"
+                placeholder="mitienda.myshopify.com"
+                value={shopDomain}
+                onChange={(e) => setShopDomain(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none placeholder:text-[#b0a89e]"
+              />
+            </div>
+          </label>
           <button
             type="button"
-            onClick={() => setShopifyModalOpen(true)}
-            className="relative mt-5 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+            onClick={openShopifyModal}
+            className="relative mt-4 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
           >
             Conectar Shopify
           </button>
@@ -977,6 +994,7 @@ export function ProfitPageClient({
       {shopifyModalOpen ? (
         <ShopifyConnectModal
           realProfitUrl={realProfitUrl}
+          shopDomain={shopDomain}
           onClose={() => setShopifyModalOpen(false)}
         />
       ) : null}
@@ -984,31 +1002,62 @@ export function ProfitPageClient({
   );
 }
 
+function normalizeShopDomain(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/$/, "")
+    .toLowerCase();
+}
+
 function ShopifyConnectModal({
   realProfitUrl,
+  shopDomain,
   onClose,
 }: {
   realProfitUrl: string;
+  shopDomain: string;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+  const domain = normalizeShopDomain(shopDomain);
+
   useEffect(() => {
+    setMounted(true);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [onClose]);
 
-  return (
+  const continueUrl = (() => {
+    try {
+      const u = new URL(realProfitUrl);
+      if (domain) u.searchParams.set("shop", domain);
+      return u.toString();
+    } catch {
+      return realProfitUrl;
+    }
+  })();
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1c1917]/55 p-3 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1917]/60 p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="shopify-connect-title"
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white shadow-[0_24px_64px_-28px_rgb(28_25_23_/_0.55)]"
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white shadow-[0_24px_64px_-28px_rgb(28_25_23_/_0.55)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
@@ -1022,6 +1071,11 @@ function ShopifyConnectModal({
             >
               Qué tenés hoy vs qué desbloqueás
             </h3>
+            {domain ? (
+              <p className="mt-1 font-mono text-[12px] text-[#8a8177]">
+                {domain}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -1033,14 +1087,14 @@ function ShopifyConnectModal({
         </div>
 
         <div className="grid gap-0 sm:grid-cols-2">
-          <div className="border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
+          <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               Ya incluido · Holistic
             </p>
             <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
               Análisis de campañas
             </p>
-            <ul className="mt-3 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+            <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
               <li className="flex gap-2">
                 <span className="mt-0.5 text-[#c4bdb4]">✓</span>
                 Gasto TikTok (hoy, 7d, rango) + serie diaria
@@ -1051,26 +1105,32 @@ function ShopifyConnectModal({
               </li>
               <li className="flex gap-2">
                 <span className="mt-0.5 text-[#c4bdb4]">✓</span>
-                Live saldo y spend por cuenta
+                Spend hoy live + pacing y señales
               </li>
               <li className="flex gap-2">
                 <span className="mt-0.5 text-[#c4bdb4]">✓</span>
-                Pacing y señales de alerta
+                Fee Holistic y BE ROAS estimado
               </li>
             </ul>
             <p className="mt-4 text-[11px] font-medium text-[#9a9187]">
               Sabés cuánto gastás. Todavía no cuánto cobrás de verdad.
             </p>
+            <p className="mt-3 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
+              $0{" "}
+              <span className="text-[12px] font-semibold text-[#6b645c]">
+                · gratis
+              </span>
+            </p>
           </div>
 
-          <div className="bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%)] px-5 py-5 sm:px-6">
+          <div className="flex flex-col bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%)] px-5 py-5 sm:px-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
               Al conectar Shopify
             </p>
             <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
               Ventas reales y ganancia neta
             </p>
-            <ul className="mt-3 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+            <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
               <li className="flex gap-2">
                 <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
                 Pedidos y ventas desde tu tienda
@@ -1085,38 +1145,37 @@ function ShopifyConnectModal({
               </li>
               <li className="flex gap-2">
                 <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                Saber cuánto verdaderamente neto ganás
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
                 Camino a TikTok Shop y más canales
               </li>
             </ul>
             <p className="mt-4 text-[12px] font-semibold leading-5 text-[#1c1917]">
               Ahí ves si de verdad estás ganando — no solo gastando.
             </p>
+            <p className="mt-3 text-[1.05rem] font-bold tabular-nums text-[#c2410c]">
+              +$20{" "}
+              <span className="text-[12px] font-semibold text-[#9a3412]">
+                · Real Profit COD
+              </span>
+            </p>
           </div>
         </div>
 
         <div className="border-t border-[#f0ebe4] bg-[#faf8f5] px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                Real Profit COD
-              </p>
-              <p className="mt-0.5 text-[13px] text-[#5c564e]">
-                Extra{" "}
-                <span className="font-bold text-[#1c1917]">+$20</span> ·
-                conexión de tienda y cobrado real
-              </p>
-            </div>
-            <a
-              href={realProfitUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
-            >
-              Continuar en Real Profit →
-            </a>
-          </div>
+          <a
+            href={continueUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] sm:w-auto"
+          >
+            Continuar en Real Profit →
+          </a>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
