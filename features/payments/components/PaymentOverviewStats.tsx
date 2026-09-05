@@ -4,6 +4,9 @@ import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
 import { useMemo } from "react";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import {
+  isTikTokBudgetCupoBalance,
+} from "@/features/ad-accounts/lib/classify-tiktok-live-balance";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import type { PaymentGateway, PaymentPageCore } from "@/types/payment";
@@ -50,25 +53,44 @@ export function PaymentOverviewStats({
 
   const tiktokCoverage = useMemo(() => {
     if (!liveEnabled) {
-      return { total: null as number | null, withBalance: 0, expected: 0 };
+      return {
+        cashTotal: null as number | null,
+        cupoTotal: null as number | null,
+        cashCount: 0,
+        cupoCount: 0,
+        withBalance: 0,
+        expected: 0,
+      };
     }
-    let total = 0;
+    let cashTotal = 0;
+    let cupoTotal = 0;
+    let cashCount = 0;
+    let cupoCount = 0;
     let withBalance = 0;
     for (const id of advertiserIds) {
       const metric = live.metricsByAdvertiser[id];
-      if (metric?.balanceUsd != null) {
-        total += metric.balanceUsd;
-        withBalance += 1;
+      if (metric?.balanceUsd == null) continue;
+      withBalance += 1;
+      if (isTikTokBudgetCupoBalance(metric)) {
+        cupoTotal += metric.balanceUsd;
+        cupoCount += 1;
+      } else {
+        // cash (NON_SHARED) o unknown: no ocultar BM200 si falta portfolio
+        cashTotal += metric.balanceUsd;
+        cashCount += 1;
       }
     }
     return {
-      total: withBalance > 0 ? Math.round(total * 100) / 100 : null,
+      cashTotal: cashCount > 0 ? Math.round(cashTotal * 100) / 100 : null,
+      cupoTotal: cupoCount > 0 ? Math.round(cupoTotal * 100) / 100 : null,
+      cashCount,
+      cupoCount,
       withBalance,
       expected: advertiserIds.length,
     };
   }, [advertiserIds, live.metricsByAdvertiser, liveEnabled]);
 
-  const tiktokAvailableUsd = tiktokCoverage.total;
+  const tiktokAvailableUsd = tiktokCoverage.cashTotal;
   const tiktokPartial =
     tiktokCoverage.expected > 0 &&
     tiktokCoverage.withBalance > 0 &&
@@ -140,23 +162,33 @@ export function PaymentOverviewStats({
           warn: false,
         },
         {
-          label: "Disponible TikTok",
+          label: "Saldo TikTok",
           value:
             tiktokAvailableUsd != null
               ? formatMoney(tiktokAvailableUsd, "USD")
               : live.loading
                 ? "…"
-                : "—",
+                : tiktokCoverage.cupoTotal != null
+                  ? "$0"
+                  : "—",
           hint:
             tiktokAvailableUsd != null
-              ? tiktokPartial
-                ? `Parcial · ${tiktokCoverage.withBalance}/${tiktokCoverage.expected} cuentas`
-                : tiktokStale
-                  ? "Suma cupo gastable · algún valor reciente"
-                  : "Suma cupo gastable en Manager"
-              : "Saldo en vivo de las cuentas",
+              ? [
+                  tiktokPartial
+                    ? `Parcial · ${tiktokCoverage.withBalance}/${tiktokCoverage.expected} cuentas`
+                    : "Cash real en Manager (BM 200)",
+                  tiktokCoverage.cupoTotal != null
+                    ? `Cupo presupuesto ${formatMoney(tiktokCoverage.cupoTotal, "USD")} (no es cash)`
+                    : null,
+                  tiktokStale ? "algún valor reciente" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : tiktokCoverage.cupoTotal != null
+                ? `Sin cash · cupo presupuesto ${formatMoney(tiktokCoverage.cupoTotal, "USD")} (no asignable)`
+                : "Cash real de las cuentas",
           accent: true,
-          warn: tiktokPartial,
+          warn: tiktokPartial || tiktokCoverage.cupoTotal != null,
         },
         {
           label: "Modalidad",

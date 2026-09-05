@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { formatMoney } from "@/lib/format-money";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { formatTikTokBudgetLimitLine } from "@/features/ad-accounts/lib/format-tiktok-budget-limit";
+import { tikTokLiveBalanceLabel } from "@/features/ad-accounts/lib/classify-tiktok-live-balance";
 
 function formatUpdatedAgo(fetchedAt: string | null | undefined): string {
   if (!fetchedAt) return "actualizando…";
@@ -20,7 +21,6 @@ interface PaymentsAccountBalanceCellProps {
   advertiserId?: string | null;
   metric?: AdAccountLiveMetricsClient;
   loading?: boolean;
-  /** Gerente BM: muestra gasto de hoy además del cupo. */
   agencyBmFunding?: boolean;
   compact?: boolean;
 }
@@ -36,7 +36,6 @@ export function PaymentsAccountBalanceCell({
   const ledger = Number(ledgerBalance) || 0;
   const hasLedger = ledger > 0.005;
 
-  // Sin ID TikTok: solo queda el ledger Holistic (lo asignado/contabilizado).
   if (!advertiserId) {
     return (
       <div className="min-w-[6.5rem]">
@@ -63,11 +62,10 @@ export function PaymentsAccountBalanceCell({
   const creditUsd = metric?.balanceUsd;
   const spendToday = metric?.spendTodayUsd;
   const budgetLimitLine = formatTikTokBudgetLimitLine(metric);
+  const balanceLabel = tikTokLiveBalanceLabel(metric, { agencyBmFunding });
   const ledgerDiffers =
     creditUsd != null && Math.abs(creditUsd - ledger) > 0.5;
 
-  // Misma fuente que Manager: cupo gastable (presupuesto − gastado / cash).
-  // El ledger Holistic es contabilidad de asignaciones, no el saldo de TikTok.
   return (
     <div className={compact ? "min-w-0" : "min-w-[7.5rem]"}>
       <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
@@ -78,11 +76,7 @@ export function PaymentsAccountBalanceCell({
             : "—"}
       </p>
       <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
-        {creditUsd != null
-          ? agencyBmFunding
-            ? "Cupo TikTok"
-            : "Saldo TikTok"
-          : "Asignado Holistic"}
+        {creditUsd != null ? balanceLabel : "Asignado Holistic"}
         {metric?.error ? (
           <span className="ml-1 text-amber-700" title={metric.error}>
             · sin datos

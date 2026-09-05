@@ -55,13 +55,16 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
         {hasWallet ? (
           <>
-            Cartera Holistic: {walletBalanceLabel} (para asignar). El número
-            grande en cada fila es el{" "}
+            Cartera Holistic: {walletBalanceLabel} (para asignar). En cada fila:{" "}
             <span className="font-semibold text-[var(--auth-text)]">
-              disponible TikTok
+              Saldo TikTok
             </span>{" "}
-            (Manager). Si ves presupuesto/gastado/queda, no es gasto de más: es
-            el tope de la cuenta. Para pasar plata entre cuentas usá{" "}
+            = cash real (BM 200);{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              Cupo presupuesto
+            </span>{" "}
+            = tope BM 10/30 (no es plata para “tener”). El resumen de arriba solo
+            suma cash. Para pasar plata entre cuentas usá{" "}
             <span className="font-semibold text-[var(--auth-text)]">
               Transferir a otra cuenta
             </span>
@@ -70,11 +73,15 @@ export function PaymentsAllocateSectionCopy({
         ) : (
           <>
             Cartera Holistic en {walletBalanceLabel}. Primero recargá arriba
-            (Stripe / manual) si querés asignar. Abajo ves el{" "}
+            (Stripe / manual) si querés asignar. Abajo:{" "}
             <span className="font-semibold text-[var(--auth-text)]">
-              disponible TikTok
+              Saldo TikTok
             </span>{" "}
-            y el presupuesto (tope · gastado · queda).
+            (cash) vs{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              Cupo presupuesto
+            </span>{" "}
+            (BM 10/30 · no es cash).
           </>
         )}
       </p>

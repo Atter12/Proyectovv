@@ -8,6 +8,7 @@ import {
   type PaymentAccountSortKey,
 } from "@/lib/sort/payment-accounts";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import { isTikTokBudgetCupoBalance } from "@/features/ad-accounts/lib/classify-tiktok-live-balance";
 import { PaymentToolbar } from "./PaymentToolbar.client";
 import { AllocateBalanceModal } from "./AllocateBalanceModal.client";
 import { EditTikTokIdsModal } from "./EditTikTokIdsModal.client";
@@ -54,21 +55,37 @@ export function PaymentsAssignmentPanel({
     [accounts],
   );
 
-  const liveCreditTotalUsd = useMemo(() => {
-    if (!agencyBmFunding) return null;
-    let total = 0;
-    let hasAny = false;
+  const liveCreditTotals = useMemo(() => {
+    if (!agencyBmFunding) {
+      return { cash: null as number | null, cupo: null as number | null };
+    }
+    let cash = 0;
+    let cupo = 0;
+    let hasCash = false;
+    let hasCupo = false;
     for (const account of accounts) {
       const id = account.externalAccountId?.trim();
       if (!id) continue;
       const metric = metricsByAdvertiser[id];
-      if (metric?.balanceUsd != null) {
-        total += metric.balanceUsd;
-        hasAny = true;
+      if (metric?.balanceUsd == null) continue;
+      if (isTikTokBudgetCupoBalance(metric)) {
+        cupo += metric.balanceUsd;
+        hasCupo = true;
+      } else {
+        cash += metric.balanceUsd;
+        hasCash = true;
       }
     }
-    return hasAny ? total : null;
+    return {
+      cash: hasCash ? cash : null,
+      cupo: hasCupo ? cupo : null,
+    };
   }, [accounts, agencyBmFunding, metricsByAdvertiser]);
+
+  const liveCreditTotalUsd =
+    liveCreditTotals.cash != null || liveCreditTotals.cupo != null
+      ? (liveCreditTotals.cash ?? 0) + (liveCreditTotals.cupo ?? 0)
+      : null;
 
   const filteredAccounts = useMemo(() => {
     const filtered = filterPaymentAccounts(accounts, { search, status });
@@ -81,6 +98,8 @@ export function PaymentsAssignmentPanel({
         <PaymentsGerenteAccountsSummary
           summary={accountSummary}
           liveCreditTotalUsd={liveCreditTotalUsd}
+          liveCashTotalUsd={liveCreditTotals.cash}
+          liveCupoTotalUsd={liveCreditTotals.cupo}
           liveMetricsLoading={loading}
           lastUpdatedAt={lastUpdatedAt}
         />

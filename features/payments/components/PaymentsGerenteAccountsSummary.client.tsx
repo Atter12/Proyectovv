@@ -8,6 +8,8 @@ type Summary = ReturnType<typeof summarizePaymentAccounts>;
 interface PaymentsGerenteAccountsSummaryProps {
   summary: Summary;
   liveCreditTotalUsd: number | null;
+  liveCashTotalUsd?: number | null;
+  liveCupoTotalUsd?: number | null;
   liveMetricsLoading?: boolean;
   lastUpdatedAt?: string | null;
 }
@@ -15,9 +17,25 @@ interface PaymentsGerenteAccountsSummaryProps {
 export function PaymentsGerenteAccountsSummary({
   summary,
   liveCreditTotalUsd,
+  liveCashTotalUsd = null,
+  liveCupoTotalUsd = null,
   liveMetricsLoading = false,
   lastUpdatedAt,
 }: PaymentsGerenteAccountsSummaryProps) {
+  const creditHint = (() => {
+    const parts: string[] = [];
+    if (liveCashTotalUsd != null) {
+      parts.push(`Cash ${formatMoney(liveCashTotalUsd)}`);
+    }
+    if (liveCupoTotalUsd != null) {
+      parts.push(`Cupo presup. ${formatMoney(liveCupoTotalUsd)}`);
+    }
+    if (parts.length === 0) {
+      return "Cash + cupo presupuesto (separados abajo)";
+    }
+    return parts.join(" · ");
+  })();
+
   const items = [
     {
       label: "Cuentas",
@@ -25,14 +43,14 @@ export function PaymentsGerenteAccountsSummary({
       hint: `${summary.activeCount} activas · ${summary.pendingCount} pend.`,
     },
     {
-      label: "Crédito TikTok",
+      label: "TikTok en vivo",
       value:
         liveMetricsLoading && liveCreditTotalUsd == null
           ? "…"
           : liveCreditTotalUsd != null
             ? formatMoney(liveCreditTotalUsd)
             : "—",
-      hint: "Suma cupo gastable (presupuesto − gastado)",
+      hint: creditHint,
       accent: true,
     },
     {
