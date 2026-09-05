@@ -68,7 +68,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 /**
- * Permissions for Holistic staff (OTP gerentes) always include allocate/fund.
+ * Permissions for Holistic staff (OTP gerentes) always include allocate/fund
+ * and self-serve ops on the selected cliente (ads accounts, pixels, etc.).
  * Org role can be viewer while the persona is gerente.
  */
 export function getPermissionsForRole(
@@ -83,6 +84,7 @@ export function getPermissionsForRole(
     "wallet:read",
     "wallet:deposit",
     "adAccounts:read",
+    "adAccounts:create",
   ];
   return [...new Set([...base, ...extra])];
 }

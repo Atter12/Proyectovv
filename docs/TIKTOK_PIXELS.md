@@ -25,6 +25,17 @@ Fuera de alcance (por ahora): Meta Pixel, CAPI server-side, pre-landing builder.
 
 Token: mismo que finance BC — `TIKTOK_ACCESS_TOKEN` (agencia), vía `resolveTikTokFinanceAccessToken`.
 
+## Quién puede usarlo
+
+| Rol | Ver `/pixels` + sync | Crear píxel / eventos COD |
+|-----|----------------------|---------------------------|
+| Cliente (`advertiser`) | Sí (su cliente) | Sí |
+| Gerente OTP (staff) | Sí (cliente seleccionado / “ver como”) | Sí (`adAccounts:create` vía staff) |
+| Super admin / owner / admin | Sí | Sí |
+| Viewer / finance puro (sin OTP staff) | Solo lectura si tiene `adAccounts:read` | No |
+
+Scope: siempre el **cliente Hecom seleccionado**; el advertiser debe pertenecer a ese cliente.
+
 ## Permisos TikTok (importante)
 
 Si la API responde `40001` / “No permission to operate advertiser”:
