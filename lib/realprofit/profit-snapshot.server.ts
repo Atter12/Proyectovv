@@ -2,6 +2,7 @@ import {
   defaultProfitDateRange,
   getRealProfitAdmin,
 } from "@/lib/realprofit/db.server";
+import { loadHolisticTikTokSpendForCliente } from "@/lib/realprofit/holistic-spend.server";
 
 export type RpStoreSummary = {
   id: string;
@@ -10,6 +11,11 @@ export type RpStoreSummary = {
   currency: string;
   isActive: boolean;
 };
+
+export type ProfitSpendSource =
+  | "realprofit"
+  | "holistic_tiktok"
+  | "none";
 
 export type ProfitCampaignRow = {
   campaignExternalId: string;
@@ -30,11 +36,55 @@ export type StoreProfitPromo = {
   roasCollected: number | null;
   ordersCollected: number;
   campaigns: ProfitCampaignRow[];
+  /** De dónde sale el gasto ads (RP sync vs TikTok Holistic). */
+  spendSource: ProfitSpendSource;
+  spendSourceLabel: string;
 };
 
 function num(v: unknown): number {
   const n = typeof v === "number" ? v : Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+function spendSourceLabel(source: ProfitSpendSource): string {
+  if (source === "realprofit") return "Gasto Real Profit (rp_ad_spend_daily)";
+  if (source === "holistic_tiktok")
+    return "Gasto TikTok Holistic (snapshots / gastos)";
+  return "Sin gasto ads en el período";
+}
+
+function buildCampaignsFromSpend(input: {
+  collectedRevenue: number;
+  adSpend: number;
+  rows: Array<{
+    campaignExternalId: string;
+    campaignName: string;
+    platform: string;
+    spend: number;
+  }>;
+}): ProfitCampaignRow[] {
+  const adSpend = input.adSpend;
+  return input.rows
+    .filter((c) => c.spend > 0)
+    .sort((a, b) => b.spend - a.spend)
+    .map((c) => {
+      const spendShare = adSpend > 0 ? c.spend / adSpend : 0;
+      const collectedEstimated = input.collectedRevenue * spendShare;
+      return {
+        campaignExternalId: c.campaignExternalId,
+        campaignName: c.campaignName,
+        platform: c.platform,
+        spend: round2(c.spend),
+        spendShare,
+        collectedEstimated: round2(collectedEstimated),
+        roasEstimated:
+          c.spend > 0 ? round2(collectedEstimated / c.spend) : null,
+      };
+    });
 }
 
 export async function listActiveRpStores(): Promise<RpStoreSummary[]> {
@@ -129,11 +179,22 @@ export async function unlinkStoreFromCliente(input: {
 /**
  * Promo snapshot: ROAS cobrado real a nivel tienda;
  * cobrado por campaña = estimado proporcional al gasto.
+ * Si `rp_ad_spend_daily` está vacío, usa gasto TikTok Holistic (fallback).
  */
 export async function loadStoreProfitPromo(input: {
   storeId: string;
   from?: string;
   to?: string;
+  /** Fallback Holistic cuando RP no tiene spend sync. */
+  holisticFallback?: {
+    adSpend: number;
+    byCampaign: Array<{
+      campaignExternalId: string;
+      campaignName: string;
+      platform: string;
+      spend: number;
+    }>;
+  } | null;
 }): Promise<StoreProfitPromo> {
   const range = {
     from: input.from?.trim() || defaultProfitDateRange().from,
@@ -204,11 +265,11 @@ export async function loadStoreProfitPromo(input: {
     const key = cid
       ? `${row.platform}:${cid}`
       : `${row.platform}:__platform_total__`;
-    const prev = byCampaign.get(key);
     const name =
       cid === ""
         ? `Total ${String(row.platform)} (manual)`
         : String(row.campaign_name ?? cid);
+    const prev = byCampaign.get(key);
     if (prev) {
       prev.spend += spend;
     } else {
@@ -221,38 +282,66 @@ export async function loadStoreProfitPromo(input: {
     }
   }
 
-  const campaigns: ProfitCampaignRow[] = [...byCampaign.values()]
-    .filter((c) => c.spend > 0)
-    .sort((a, b) => b.spend - a.spend)
-    .map((c) => {
-      const spendShare = adSpend > 0 ? c.spend / adSpend : 0;
-      const collectedEstimated = collectedRevenue * spendShare;
-      return {
-        campaignExternalId: c.campaignExternalId,
-        campaignName: c.campaignName,
-        platform: c.platform,
-        spend: Math.round(c.spend * 100) / 100,
-        spendShare,
-        collectedEstimated: Math.round(collectedEstimated * 100) / 100,
-        roasEstimated:
-          c.spend > 0
-            ? Math.round((collectedEstimated / c.spend) * 100) / 100
-            : null,
-      };
-    });
+  let spendSource: ProfitSpendSource = "realprofit";
+  let campaignRows = [...byCampaign.values()];
+
+  if (adSpend <= 0 && input.holisticFallback && input.holisticFallback.adSpend > 0) {
+    adSpend = input.holisticFallback.adSpend;
+    campaignRows = input.holisticFallback.byCampaign;
+    spendSource = "holistic_tiktok";
+  } else if (adSpend <= 0) {
+    spendSource = "none";
+  }
+
+  const campaigns = buildCampaignsFromSpend({
+    collectedRevenue,
+    adSpend,
+    rows: campaignRows,
+  });
 
   return {
     store,
     from: range.from,
     to: range.to,
-    collectedRevenue: Math.round(collectedRevenue * 100) / 100,
-    adSpend: Math.round(adSpend * 100) / 100,
-    roasCollected:
-      adSpend > 0
-        ? Math.round((collectedRevenue / adSpend) * 100) / 100
-        : null,
+    collectedRevenue: round2(collectedRevenue),
+    adSpend: round2(adSpend),
+    roasCollected: adSpend > 0 ? round2(collectedRevenue / adSpend) : null,
     ordersCollected,
     campaigns,
+    spendSource,
+    spendSourceLabel: spendSourceLabel(spendSource),
+  };
+}
+
+function holisticOnlySnapshot(input: {
+  from: string;
+  to: string;
+  holistic: Awaited<ReturnType<typeof loadHolisticTikTokSpendForCliente>>;
+}): StoreProfitPromo {
+  const adSpend = input.holistic.adSpend;
+  const spendSource: ProfitSpendSource =
+    adSpend > 0 ? "holistic_tiktok" : "none";
+  return {
+    store: {
+      id: "__holistic_tiktok__",
+      name: "Cuentas TikTok (Holistic)",
+      shopDomain: null,
+      currency: "USD",
+      isActive: true,
+    },
+    from: input.from,
+    to: input.to,
+    collectedRevenue: 0,
+    adSpend: round2(adSpend),
+    roasCollected: null,
+    ordersCollected: 0,
+    campaigns: buildCampaignsFromSpend({
+      collectedRevenue: 0,
+      adSpend,
+      rows: input.holistic.byCampaign,
+    }),
+    spendSource,
+    spendSourceLabel: spendSourceLabel(spendSource),
   };
 }
 
@@ -263,17 +352,69 @@ export async function loadClienteProfitPromo(input: {
 }): Promise<{
   linkedStores: RpStoreSummary[];
   snapshots: StoreProfitPromo[];
+  holisticSpend: {
+    adSpend: number;
+    from: string;
+    to: string;
+  };
 }> {
-  const linkedStores = await getLinkedStoresForCliente(input.hecomClienteId);
+  const range = {
+    from: input.from?.trim() || defaultProfitDateRange().from,
+    to: input.to?.trim() || defaultProfitDateRange().to,
+  };
+
+  const [linkedStores, holistic] = await Promise.all([
+    getLinkedStoresForCliente(input.hecomClienteId),
+    loadHolisticTikTokSpendForCliente({
+      hecomClienteId: input.hecomClienteId,
+      from: range.from,
+      to: range.to,
+    }),
+  ]);
+
+  const holisticFallback =
+    holistic.adSpend > 0
+      ? {
+          adSpend: holistic.adSpend,
+          byCampaign: holistic.byCampaign.map((c) => ({
+            campaignExternalId: c.campaignExternalId,
+            campaignName: c.campaignName,
+            platform: c.platform,
+            spend: c.spend,
+          })),
+        }
+      : null;
+
   const snapshots: StoreProfitPromo[] = [];
   for (const store of linkedStores) {
     snapshots.push(
       await loadStoreProfitPromo({
         storeId: store.id,
-        from: input.from,
-        to: input.to,
+        from: range.from,
+        to: range.to,
+        holisticFallback,
       }),
     );
   }
-  return { linkedStores, snapshots };
+
+  // Sin tienda vinculada: igual mostramos gasto/campañas TikTok Holistic.
+  if (snapshots.length === 0) {
+    snapshots.push(
+      holisticOnlySnapshot({
+        from: range.from,
+        to: range.to,
+        holistic,
+      }),
+    );
+  }
+
+  return {
+    linkedStores,
+    snapshots,
+    holisticSpend: {
+      adSpend: round2(holistic.adSpend),
+      from: range.from,
+      to: range.to,
+    },
+  };
 }

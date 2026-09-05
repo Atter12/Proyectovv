@@ -30,6 +30,8 @@ type Snapshot = {
   roasCollected: number | null;
   ordersCollected: number;
   campaigns: CampaignRow[];
+  spendSource?: "realprofit" | "holistic_tiktok" | "none";
+  spendSourceLabel?: string;
 };
 
 function Kpi({
@@ -199,10 +201,11 @@ export function ProfitPageClient({
               Profit / ROAS · {clienteName}
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-              Cobrado vs gasto ads por tienda. En campañas el cobrado es{" "}
+              Cobrado COD (Real Profit) vs gasto ads. Si la tienda no tiene sync
+              de ads en RP, usamos el gasto TikTok de Holistic. En campañas el
+              cobrado es{" "}
               <span className="font-semibold text-[#1c1917]">estimado</span>{" "}
-              (proporcional al gasto). El producto completo de Real Profit se
-              cobra aparte.
+              (proporcional al gasto).
             </p>
           </div>
           <a
@@ -339,16 +342,25 @@ export function ProfitPageClient({
       ) : snapshots.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-5 py-10 text-center">
           <p className="text-[15px] font-semibold text-[#1c1917]">
-            Sin tienda vinculada
+            Sin datos en el período
           </p>
           <p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[#5c564e]">
-            {isStaff
-              ? "Vinculá una tienda Real Profit arriba para ver cobrado, gasto y ROAS."
-              : "Pedí a tu gerente que vincule la tienda Shopify de Real Profit a tu cuenta."}
+            No hay gasto TikTok Holistic ni tienda vinculada con cobrado.
           </p>
         </section>
       ) : (
-        snapshots.map((snap) => (
+        snapshots.map((snap) => {
+          const isHolisticOnly = snap.store.id === "__holistic_tiktok__";
+          const spendBadge =
+            snap.spendSource === "holistic_tiktok"
+              ? "Gasto · TikTok Holistic"
+              : snap.spendSource === "realprofit"
+                ? "Gasto · Real Profit"
+                : snap.adSpend === 0
+                  ? "Sin gasto ads aún"
+                  : null;
+
+          return (
           <section
             key={snap.store.id}
             className="space-y-5 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6"
@@ -356,7 +368,7 @@ export function ProfitPageClient({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  Tienda
+                  {isHolisticOnly ? "Sin tienda RP · preview gasto" : "Tienda"}
                 </p>
                 <h2 className="mt-1 text-[1.2rem] font-bold tracking-[-0.02em] text-[#1c1917]">
                   {snap.store.name}
@@ -365,10 +377,25 @@ export function ProfitPageClient({
                   {snap.from} → {snap.to}
                   {snap.store.shopDomain ? ` · ${snap.store.shopDomain}` : ""}
                 </p>
+                {isHolisticOnly ? (
+                  <p className="mt-2 max-w-lg text-[12px] leading-5 text-[#5c564e]">
+                    {isStaff
+                      ? "Vinculá una tienda Real Profit arriba para sumar cobrado COD y ROAS híbrido."
+                      : "Pedí a tu gerente que vincule la tienda Shopify de Real Profit para ver cobrado y ROAS."}
+                  </p>
+                ) : null}
               </div>
-              {snap.adSpend === 0 ? (
-                <span className="rounded-full bg-[#f3efe9] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#6b645c]">
-                  Sin gasto ads aún
+              {spendBadge ? (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                    snap.spendSource === "holistic_tiktok"
+                      ? "bg-[#fff7f0] text-[#c2410c]"
+                      : snap.spendSource === "realprofit"
+                        ? "bg-emerald-50 text-emerald-800"
+                        : "bg-[#f3efe9] text-[#6b645c]"
+                  }`}
+                >
+                  {spendBadge}
                 </span>
               ) : null}
             </div>
@@ -377,12 +404,22 @@ export function ProfitPageClient({
               <Kpi
                 label="Cobrado"
                 value={formatMoney(snap.collectedRevenue, snap.store.currency)}
-                hint={`${snap.ordersCollected} órdenes collected`}
+                hint={
+                  isHolisticOnly
+                    ? "Vinculá tienda RP para cobrado COD"
+                    : `${snap.ordersCollected} órdenes collected`
+                }
               />
               <Kpi
                 label="Gasto ads"
                 value={formatMoney(snap.adSpend, snap.store.currency)}
-                hint="Meta / TikTok / Google / manual"
+                hint={
+                  snap.spendSource === "holistic_tiktok"
+                    ? "TikTok Holistic (USD)"
+                    : snap.spendSource === "realprofit"
+                      ? "Meta / TikTok / Google / manual"
+                      : "Sin filas de gasto"
+                }
               />
               <Kpi
                 label="ROAS cobrado"
@@ -391,7 +428,11 @@ export function ProfitPageClient({
                     ? `${snap.roasCollected.toFixed(2)}x`
                     : "—"
                 }
-                hint="Cobrado ÷ gasto"
+                hint={
+                  snap.spendSource === "holistic_tiktok" && !isHolisticOnly
+                    ? "Cobrado RP ÷ gasto Holistic"
+                    : "Cobrado ÷ gasto"
+                }
                 accent
               />
               <Kpi
@@ -410,6 +451,9 @@ export function ProfitPageClient({
                   <p className="mt-0.5 text-[12px] text-[#5c564e]">
                     Cobrado y ROAS por campaña = estimado (reparto por % de
                     gasto)
+                    {snap.spendSource === "holistic_tiktok"
+                      ? " · fuente TikTok Holistic"
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -421,8 +465,8 @@ export function ProfitPageClient({
                   </p>
                   <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
                     El cobrado de la tienda sí puede verse arriba. El gasto por
-                    campaña aparece cuando Real Profit sincroniza Meta/TikTok o
-                    carga gasto manual.
+                    campaña aparece con sync RP o con snapshots/gastos TikTok
+                    de Holistic.
                   </p>
                 </div>
               ) : (
@@ -475,7 +519,8 @@ export function ProfitPageClient({
               )}
             </div>
           </section>
-        ))
+          );
+        })
       )}
     </div>
   );
