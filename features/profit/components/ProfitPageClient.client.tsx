@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 
@@ -26,19 +27,36 @@ type CampaignRow = {
 
 type DailyPoint = { date: string; spend: number };
 
+type ProfitSignal = {
+  kind: string;
+  severity: "info" | "warn";
+  title: string;
+  detail: string;
+};
+
 type Analysis = {
   from: string;
   to: string;
   spendToday: number;
+  spendYesterday: number;
+  spendTodayDeltaPct: number | null;
   spend7d: number;
+  spendPrev7d: number;
+  spend7dDeltaPct: number | null;
   spend30d: number;
   spendInRange: number;
+  spendPrevRange: number;
+  spendRangeDeltaPct: number | null;
+  pacingRatio: number | null;
+  pacingLabel: "acelerando" | "normal" | "bajo" | "parado" | "sin_base";
   daysWithActivity: number;
   dailySeries: DailyPoint[];
   campaigns: CampaignRow[];
   collectedRevenue: number;
   roasCollected: number | null;
   hasCodLink: boolean;
+  dataThroughDate: string | null;
+  signals: ProfitSignal[];
 };
 
 type Snapshot = {
@@ -51,6 +69,60 @@ type Snapshot = {
   ordersCollected: number;
   spendSource?: "realprofit" | "holistic_tiktok" | "none";
 };
+
+function formatDelta(pct: number | null): string {
+  if (pct == null) return "sin base";
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(0)}%`;
+}
+
+function pacingBadge(label: Analysis["pacingLabel"]): {
+  text: string;
+  className: string;
+} {
+  switch (label) {
+    case "acelerando":
+      return {
+        text: "Pacing · acelerando",
+        className: "bg-[#fff7f0] text-[#c2410c]",
+      };
+    case "bajo":
+      return {
+        text: "Pacing · bajo",
+        className: "bg-amber-50 text-amber-900",
+      };
+    case "parado":
+      return {
+        text: "Pacing · parado",
+        className: "bg-[#f3efe9] text-[#6b645c]",
+      };
+    case "normal":
+      return {
+        text: "Pacing · normal",
+        className: "bg-emerald-50 text-emerald-800",
+      };
+    default:
+      return {
+        text: "Pacing · sin base",
+        className: "bg-[#f3efe9] text-[#6b645c]",
+      };
+  }
+}
+
+function formatSyncTime(iso: string | null): string | null {
+  if (!iso) return null;
+  try {
+    return new Intl.DateTimeFormat("es-PE", {
+      timeZone: "America/Lima",
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
 
 type SortKey = "spend" | "share" | "name" | "roas";
 
@@ -177,6 +249,27 @@ export function ProfitPageClient({
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
+
+  const live = useAdAccountLiveMetrics(true);
+  const liveAccounts = useMemo(() => {
+    return Object.values(live.metricsByAdvertiser)
+      .filter(
+        (a) =>
+          (a.balanceUsd != null && a.balanceUsd > 0) ||
+          (a.spendTodayUsd != null && a.spendTodayUsd > 0),
+      )
+      .sort(
+        (a, b) => (b.spendTodayUsd ?? 0) - (a.spendTodayUsd ?? 0),
+      );
+  }, [live.metricsByAdvertiser]);
+  const liveBalanceTotal = liveAccounts.reduce(
+    (s, a) => s + (a.balanceUsd ?? 0),
+    0,
+  );
+  const liveSpendTotal = liveAccounts.reduce(
+    (s, a) => s + (a.spendTodayUsd ?? 0),
+    0,
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -314,8 +407,6 @@ export function ProfitPageClient({
     }
   }
 
-  const topShare = sortedCampaigns[0]?.spendShare ?? 0;
-
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
@@ -410,20 +501,31 @@ export function ProfitPageClient({
                 <p className="mt-0.5 text-[12px] text-[#8a8177]">
                   America/Lima · {analysis.from} → {analysis.to} ·{" "}
                   {analysis.daysWithActivity} días con actividad
+                  {analysis.dataThroughDate
+                    ? ` · datos hasta ${analysis.dataThroughDate}`
+                    : ""}
                 </p>
               </div>
+              <span
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(analysis.pacingLabel).className}`}
+              >
+                {pacingBadge(analysis.pacingLabel).text}
+                {analysis.pacingRatio != null
+                  ? ` · ${analysis.pacingRatio.toFixed(2)}×`
+                  : ""}
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi
                 label="Hoy"
                 value={moneyUsd(analysis.spendToday)}
-                hint="Día actual (Lima)"
+                hint={`vs ayer ${formatDelta(analysis.spendTodayDeltaPct)} · ${moneyUsd(analysis.spendYesterday)}`}
               />
               <Kpi
                 label="7 días"
                 value={moneyUsd(analysis.spend7d)}
-                hint="Incluye hoy"
+                hint={`vs 7d previos ${formatDelta(analysis.spend7dDeltaPct)}`}
               />
               <Kpi
                 label="30 días"
@@ -433,9 +535,93 @@ export function ProfitPageClient({
               <Kpi
                 label="En el rango"
                 value={moneyUsd(analysis.spendInRange)}
-                hint={`${analysis.campaigns.length} campañas`}
+                hint={`vs período anterior ${formatDelta(analysis.spendRangeDeltaPct)} · ${analysis.campaigns.length} campañas`}
                 accent
               />
+            </div>
+
+            <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                    Live TikTok
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                    Saldo y spend hoy por cuenta · poll ~{live.pollSeconds}s
+                    {formatSyncTime(live.lastUpdatedAt)
+                      ? ` · ${formatSyncTime(live.lastUpdatedAt)}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void live.refresh({ force: true })}
+                  className="text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline"
+                >
+                  Refrescar live
+                </button>
+              </div>
+              {live.error ? (
+                <p className="mt-2 text-[12px] text-amber-900">{live.error}</p>
+              ) : null}
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
+                    Saldo total
+                  </p>
+                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
+                    {live.loading && liveAccounts.length === 0
+                      ? "…"
+                      : moneyUsd(liveBalanceTotal)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
+                    Spend hoy (live)
+                  </p>
+                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#c2410c]">
+                    {live.loading && liveAccounts.length === 0
+                      ? "…"
+                      : moneyUsd(liveSpendTotal)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a9187]">
+                    Cuentas activas
+                  </p>
+                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
+                    {liveAccounts.length}
+                  </p>
+                </div>
+              </div>
+              {liveAccounts.length > 0 ? (
+                <ul className="mt-3 divide-y divide-[#ece7e0] rounded-xl border border-[#ece7e0] bg-white">
+                  {liveAccounts.slice(0, 6).map((a) => (
+                    <li
+                      key={a.advertiserId}
+                      className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[12px]"
+                    >
+                      <span className="min-w-0 font-medium text-[#1c1917]">
+                        {a.accountName}
+                        {a.bmBucket ? (
+                          <span className="ml-2 text-[10px] font-normal text-[#8a8177]">
+                            BM {a.bmBucket}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="tabular-nums text-[#5c564e]">
+                        hoy {moneyUsd(a.spendTodayUsd ?? 0)}
+                        <span className="mx-1.5 text-[#d6cec4]">·</span>
+                        saldo {moneyUsd(a.balanceUsd ?? 0)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : !live.loading ? (
+                <p className="mt-2 text-[12px] text-[#8a8177]">
+                  Sin saldo ni spend live en cuentas mapeadas.
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
@@ -445,13 +631,24 @@ export function ProfitPageClient({
               <DailyBars series={analysis.dailySeries} />
             </div>
 
-            {topShare >= 0.4 && sortedCampaigns[0] ? (
-              <div className="rounded-xl border border-[#ffd7b8] bg-[#fff7f0] px-4 py-3 text-[13px] text-[#9a3412]">
-                <span className="font-semibold">
-                  {sortedCampaigns[0].campaignName}
-                </span>{" "}
-                se lleva el {(topShare * 100).toFixed(0)}% del gasto del período.
-                Revisá si el ROAS / resultado lo justifica.
+            {(analysis.signals?.length ?? 0) > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                  Señales
+                </p>
+                {analysis.signals.map((sig, i) => (
+                  <div
+                    key={`${sig.kind}-${i}`}
+                    className={`rounded-xl border px-4 py-3 text-[13px] ${
+                      sig.severity === "warn"
+                        ? "border-[#ffd7b8] bg-[#fff7f0] text-[#9a3412]"
+                        : "border-[#ece7e0] bg-[#faf8f5] text-[#5c564e]"
+                    }`}
+                  >
+                    <p className="font-semibold text-[#1c1917]">{sig.title}</p>
+                    <p className="mt-0.5 text-[12px]">{sig.detail}</p>
+                  </div>
+                ))}
               </div>
             ) : null}
           </section>

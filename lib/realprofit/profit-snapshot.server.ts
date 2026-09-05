@@ -45,19 +45,48 @@ export type StoreProfitPromo = {
 };
 
 /** Centro de análisis Holistic (reemplaza el job de Gastos en Profit). */
+export type ProfitPacingLabel =
+  | "acelerando"
+  | "normal"
+  | "bajo"
+  | "parado"
+  | "sin_base";
+
+export type ProfitSignal = {
+  kind: "concentration" | "pacing" | "silent" | "weak_roas";
+  severity: "info" | "warn";
+  title: string;
+  detail: string;
+};
+
 export type ProfitAnalysis = {
   from: string;
   to: string;
   spendToday: number;
+  spendYesterday: number;
+  /** (hoy − ayer) / ayer · 100; null si ayer = 0 */
+  spendTodayDeltaPct: number | null;
   spend7d: number;
+  /** Ventana de 7 días previa a la actual (D-13…D-7). */
+  spendPrev7d: number;
+  spend7dDeltaPct: number | null;
   spend30d: number;
   spendInRange: number;
+  /** Gasto del período anterior de igual duración. */
+  spendPrevRange: number;
+  spendRangeDeltaPct: number | null;
+  /** spendHoy ÷ (promedio diario 7d). */
+  pacingRatio: number | null;
+  pacingLabel: ProfitPacingLabel;
   daysWithActivity: number;
   dailySeries: HolisticDailyPoint[];
   campaigns: ProfitCampaignRow[];
   collectedRevenue: number;
   roasCollected: number | null;
   hasCodLink: boolean;
+  /** Último día con gasto en snapshots/gastos (YYYY-MM-DD). */
+  dataThroughDate: string | null;
+  signals: ProfitSignal[];
 };
 
 function num(v: unknown): number {
@@ -75,6 +104,117 @@ function minYmd(a: string, b: string) {
 
 function maxYmd(a: string, b: string) {
   return a >= b ? a : b;
+}
+
+function daysInclusive(from: string, to: string): number {
+  if (!from || !to || from > to) return 0;
+  const a = new Date(`${from}T12:00:00.000Z`);
+  const b = new Date(`${to}T12:00:00.000Z`);
+  return Math.floor((b.getTime() - a.getTime()) / 86_400_000) + 1;
+}
+
+function pctDelta(current: number, previous: number): number | null {
+  if (previous <= 0) return current > 0 ? 100 : null;
+  return round2(((current - previous) / previous) * 100);
+}
+
+function resolvePacing(spendToday: number, spend7d: number): {
+  pacingRatio: number | null;
+  pacingLabel: ProfitPacingLabel;
+} {
+  if (spendToday <= 0 && spend7d <= 0) {
+    return { pacingRatio: null, pacingLabel: "sin_base" };
+  }
+  if (spendToday <= 0) {
+    return { pacingRatio: 0, pacingLabel: "parado" };
+  }
+  const avg = spend7d / 7;
+  if (avg <= 0) {
+    return { pacingRatio: null, pacingLabel: "sin_base" };
+  }
+  const ratio = round2(spendToday / avg);
+  if (ratio >= 1.35) return { pacingRatio: ratio, pacingLabel: "acelerando" };
+  if (ratio <= 0.5) return { pacingRatio: ratio, pacingLabel: "bajo" };
+  return { pacingRatio: ratio, pacingLabel: "normal" };
+}
+
+function buildSignals(input: {
+  campaigns: ProfitCampaignRow[];
+  pacingLabel: ProfitPacingLabel;
+  pacingRatio: number | null;
+  spendToday: number;
+  hasCodLink: boolean;
+}): ProfitSignal[] {
+  const signals: ProfitSignal[] = [];
+  const top = input.campaigns[0];
+  if (top && top.spendShare >= 0.4) {
+    signals.push({
+      kind: "concentration",
+      severity: "warn",
+      title: `${top.campaignName} concentra ${(top.spendShare * 100).toFixed(0)}%`,
+      detail: "Revisá si el resultado justifica ese share del budget.",
+    });
+  }
+
+  if (input.pacingLabel === "acelerando" && input.pacingRatio != null) {
+    signals.push({
+      kind: "pacing",
+      severity: "warn",
+      title: `Pacing alto (${input.pacingRatio.toFixed(2)}× promedio 7d)`,
+      detail: "El gasto de hoy va más rápido que la media de la semana.",
+    });
+  } else if (input.pacingLabel === "parado" && input.spendToday <= 0) {
+    signals.push({
+      kind: "silent",
+      severity: "info",
+      title: "Sin gasto hoy",
+      detail: "Ninguna campaña registró spend en el día (Lima).",
+    });
+  } else if (input.pacingLabel === "bajo" && input.pacingRatio != null) {
+    signals.push({
+      kind: "pacing",
+      severity: "info",
+      title: `Pacing bajo (${input.pacingRatio.toFixed(2)}× promedio 7d)`,
+      detail: "Hoy gastás menos de la mitad del promedio diario 7d.",
+    });
+  }
+
+  if (input.hasCodLink) {
+    const weak = [...input.campaigns]
+      .filter((c) => c.spendShare >= 0.08)
+      .filter(
+        (c) =>
+          c.roasEstimated == null ||
+          c.roasEstimated < 1 ||
+          c.collectedEstimated <= 0,
+      )
+      .slice(0, 3);
+    for (const c of weak) {
+      signals.push({
+        kind: "weak_roas",
+        severity: "warn",
+        title: `${c.campaignName}: ROAS est. débil`,
+        detail:
+          c.roasEstimated != null
+            ? `ROAS est. ${c.roasEstimated.toFixed(2)}x · ${(c.spendShare * 100).toFixed(0)}% del gasto`
+            : `Sin cobrado estimado · ${(c.spendShare * 100).toFixed(0)}% del gasto`,
+      });
+    }
+  } else {
+    const heavy = input.campaigns.filter((c) => c.spendShare >= 0.15).slice(0, 3);
+    if (heavy.length >= 2) {
+      signals.push({
+        kind: "concentration",
+        severity: "info",
+        title: `${heavy.length} campañas se llevan el budget grande`,
+        detail: heavy
+          .map((c) => `${c.campaignName} (${(c.spendShare * 100).toFixed(0)}%)`)
+          .join(" · "),
+      });
+    }
+  }
+
+  return signals.slice(0, 6);
 }
 
 function spendSourceLabel(source: ProfitSpendSource): string {
@@ -369,9 +509,19 @@ export async function loadClienteProfitPromo(input: {
   };
 
   const today = todayYmdInTz();
+  const yesterday = shiftYmd(today, -1);
   const from7 = shiftYmd(today, -6);
   const from30 = shiftYmd(today, -29);
-  const loadFrom = minYmd(range.from, from30);
+  const prev7From = shiftYmd(today, -13);
+  const prev7To = shiftYmd(today, -7);
+  const rangeLen = Math.max(1, daysInclusive(range.from, range.to));
+  const prevRangeTo = shiftYmd(range.from, -1);
+  const prevRangeFrom = shiftYmd(prevRangeTo, -(rangeLen - 1));
+
+  const loadFrom = minYmd(
+    minYmd(range.from, from30),
+    minYmd(prev7From, prevRangeFrom),
+  );
   const loadTo = maxYmd(range.to, today);
 
   const [linkedStores, wide] = await Promise.all([
@@ -385,8 +535,15 @@ export async function loadClienteProfitPromo(input: {
 
   const inRange = sliceHolisticSpend(wide, range.from, range.to);
   const spendToday = sliceHolisticSpend(wide, today, today).adSpend;
+  const spendYesterday = sliceHolisticSpend(wide, yesterday, yesterday).adSpend;
   const spend7d = sliceHolisticSpend(wide, from7, today).adSpend;
+  const spendPrev7d = sliceHolisticSpend(wide, prev7From, prev7To).adSpend;
   const spend30d = sliceHolisticSpend(wide, from30, today).adSpend;
+  const spendPrevRange = sliceHolisticSpend(
+    wide,
+    prevRangeFrom,
+    prevRangeTo,
+  ).adSpend;
 
   const holisticFallback =
     inRange.adSpend > 0
@@ -418,13 +575,31 @@ export async function loadClienteProfitPromo(input: {
     rows: inRange.byCampaign,
   });
 
+  const { pacingRatio, pacingLabel } = resolvePacing(spendToday, spend7d);
+
+  let dataThroughDate: string | null = null;
+  for (const row of wide.rows) {
+    if (row.spend <= 0) continue;
+    if (!dataThroughDate || row.date > dataThroughDate) {
+      dataThroughDate = row.date;
+    }
+  }
+
   const analysis: ProfitAnalysis = {
     from: range.from,
     to: range.to,
     spendToday: round2(spendToday),
+    spendYesterday: round2(spendYesterday),
+    spendTodayDeltaPct: pctDelta(spendToday, spendYesterday),
     spend7d: round2(spend7d),
+    spendPrev7d: round2(spendPrev7d),
+    spend7dDeltaPct: pctDelta(spend7d, spendPrev7d),
     spend30d: round2(spend30d),
     spendInRange,
+    spendPrevRange: round2(spendPrevRange),
+    spendRangeDeltaPct: pctDelta(spendInRange, spendPrevRange),
+    pacingRatio,
+    pacingLabel,
     daysWithActivity: inRange.daysWithActivity,
     dailySeries: inRange.dailySeries,
     campaigns,
@@ -434,6 +609,14 @@ export async function loadClienteProfitPromo(input: {
         ? round2(collectedRevenue / spendInRange)
         : null,
     hasCodLink: linkedStores.length > 0,
+    dataThroughDate,
+    signals: buildSignals({
+      campaigns,
+      pacingLabel,
+      pacingRatio,
+      spendToday,
+      hasCodLink: linkedStores.length > 0,
+    }),
   };
 
   return {
