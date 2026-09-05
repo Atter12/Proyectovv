@@ -41,9 +41,99 @@ function mapStored(row: Record<string, unknown>): StoredTikTokPixel {
   };
 }
 
+/**
+ * Garantiza un organization_id que exista en `organizations` (FK de tiktok_pixels).
+ * Si la membresía apunta a un id huérfano o inválido, recupera otra org del usuario
+ * o crea una mínima.
+ */
+export async function resolveWritableOrganizationId(input: {
+  preferredOrganizationId: string;
+  userId: string;
+}): Promise<string> {
+  const admin = createAdminClient();
+  const preferred = input.preferredOrganizationId.trim();
+
+  async function orgExists(id: string): Promise<boolean> {
+    if (!id) return false;
+    const { data } = await admin
+      .from("organizations")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle<{ id: string }>();
+    return Boolean(data?.id);
+  }
+
+  if (await orgExists(preferred)) return preferred;
+
+  const { data: memberships } = await admin
+    .from("organization_memberships")
+    .select("organization_id")
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+
+  for (const row of memberships ?? []) {
+    const id = String(
+      (row as { organization_id?: string }).organization_id ?? "",
+    ).trim();
+    if (id && id !== preferred && (await orgExists(id))) return id;
+  }
+
+  const slug = `holistic-pixels-${input.userId.replace(/-/g, "").slice(0, 10)}-${Date.now().toString(36)}`;
+  const { data: created, error: createErr } = await admin
+    .from("organizations")
+    .insert({
+      name: "Holistic · Píxeles",
+      slug,
+      created_by: input.userId,
+      status: "active",
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (createErr || !created?.id) {
+    const fallback = await admin
+      .from("organizations")
+      .insert({ name: "Holistic · Píxeles", slug: `${slug}-b` })
+      .select("id")
+      .single<{ id: string }>();
+    if (fallback.error || !fallback.data?.id) {
+      throw new Error(
+        createErr?.message ??
+          fallback.error?.message ??
+          "No hay organización válida para guardar el píxel.",
+      );
+    }
+    await admin.from("organization_memberships").upsert(
+      {
+        organization_id: fallback.data.id,
+        user_id: input.userId,
+        role: "owner",
+        status: "active",
+      },
+      { onConflict: "organization_id,user_id" },
+    );
+    return fallback.data.id;
+  }
+
+  await admin.from("organization_memberships").upsert(
+    {
+      organization_id: created.id,
+      user_id: input.userId,
+      role: "owner",
+      status: "active",
+    },
+    { onConflict: "organization_id,user_id" },
+  );
+
+  return created.id;
+}
+
 export async function assertAdvertiserBelongsToCliente(input: {
   hecomClienteId: string;
   advertiserId: string;
+  /** Solo cuentas activas / en uso (en campaña). */
+  requireActive?: boolean;
 }): Promise<{ advertiserId: string; accountName: string | null }> {
   const advertiserId = input.advertiserId.trim();
   const overview = await getHecomClienteAdAccountsOverview(
@@ -58,6 +148,11 @@ export async function assertAdvertiserBelongsToCliente(input: {
       "Esa cuenta ads no pertenece al cliente seleccionado.",
     );
   }
+  if (input.requireActive && match.status !== "active") {
+    throw new Error(
+      "Solo se pueden operar cuentas en uso (activas / en campaña).",
+    );
+  }
   return { advertiserId, accountName: match.name ?? null };
 }
 
@@ -66,10 +161,10 @@ export async function listStoredPixelsForCliente(input: {
   hecomClienteId: string;
 }): Promise<StoredTikTokPixel[]> {
   const admin = createAdminClient();
+  // Scope principal: cliente Hecom. organization_id puede variar si se sanó la FK.
   const { data, error } = await admin
     .from("tiktok_pixels")
     .select("*")
-    .eq("organization_id", input.organizationId)
     .eq("hecom_cliente_id", input.hecomClienteId)
     .neq("status", "archived")
     .order("created_at", { ascending: false });
@@ -88,12 +183,16 @@ export async function upsertStoredPixel(input: {
   metadata?: Record<string, unknown>;
 }): Promise<StoredTikTokPixel> {
   const admin = createAdminClient();
+  const organizationId = await resolveWritableOrganizationId({
+    preferredOrganizationId: input.organizationId,
+    userId: input.createdBy,
+  });
   const now = new Date().toISOString();
   const { data, error } = await admin
     .from("tiktok_pixels")
     .upsert(
       {
-        organization_id: input.organizationId,
+        organization_id: organizationId,
         hecom_cliente_id: input.hecomClienteId,
         advertiser_id: input.advertiserId,
         pixel_id: input.pixel.pixelId,
@@ -129,18 +228,24 @@ export async function syncPixelsFromTikTok(input: {
   await assertAdvertiserBelongsToCliente({
     hecomClienteId: input.hecomClienteId,
     advertiserId: input.advertiserId,
+    requireActive: true,
+  });
+
+  const organizationId = await resolveWritableOrganizationId({
+    preferredOrganizationId: input.organizationId,
+    userId: input.userId,
   });
 
   const { pixels } = await listTikTokPixels({
     advertiserId: input.advertiserId,
-    organizationId: input.organizationId,
+    organizationId,
   });
 
   const stored: StoredTikTokPixel[] = [];
   for (const pixel of pixels) {
     stored.push(
       await upsertStoredPixel({
-        organizationId: input.organizationId,
+        organizationId,
         hecomClienteId: input.hecomClienteId,
         advertiserId: input.advertiserId,
         pixel,
@@ -168,6 +273,12 @@ export async function createPixelForCliente(input: {
   const { advertiserId, accountName } = await assertAdvertiserBelongsToCliente({
     hecomClienteId: input.hecomClienteId,
     advertiserId: input.advertiserId,
+    requireActive: true,
+  });
+
+  const organizationId = await resolveWritableOrganizationId({
+    preferredOrganizationId: input.organizationId,
+    userId: input.userId,
   });
 
   const name =
@@ -178,7 +289,7 @@ export async function createPixelForCliente(input: {
     advertiserId,
     pixelName: name,
     pixelCategory: input.pixelCategory ?? "ONLINE_STORE",
-    organizationId: input.organizationId,
+    organizationId,
   });
 
   let eventsResult: { applied: number; skipped: string[] } | null = null;
@@ -189,7 +300,7 @@ export async function createPixelForCliente(input: {
       const ev = await createTikTokPixelEvents({
         advertiserId,
         pixelId: created.pixelId,
-        organizationId: input.organizationId,
+        organizationId,
       });
       eventsResult = { applied: ev.applied, skipped: ev.skipped };
       eventsJson = COD_PIXEL_EVENT_DEFS.map((d) => d.name).filter(
@@ -207,7 +318,7 @@ export async function createPixelForCliente(input: {
   }
 
   const pixel = await upsertStoredPixel({
-    organizationId: input.organizationId,
+    organizationId,
     hecomClienteId: input.hecomClienteId,
     advertiserId,
     pixel: created,
@@ -226,13 +337,18 @@ export async function setupCodEventsForStoredPixel(input: {
   organizationId: string;
   hecomClienteId: string;
   pixelRowId: string;
+  userId: string;
 }): Promise<{ applied: number; skipped: string[]; pixel: StoredTikTokPixel }> {
   const admin = createAdminClient();
+  const organizationId = await resolveWritableOrganizationId({
+    preferredOrganizationId: input.organizationId,
+    userId: input.userId,
+  });
+
   const { data, error } = await admin
     .from("tiktok_pixels")
     .select("*")
     .eq("id", input.pixelRowId)
-    .eq("organization_id", input.organizationId)
     .eq("hecom_cliente_id", input.hecomClienteId)
     .maybeSingle();
 
@@ -244,12 +360,13 @@ export async function setupCodEventsForStoredPixel(input: {
   await assertAdvertiserBelongsToCliente({
     hecomClienteId: input.hecomClienteId,
     advertiserId: stored.advertiserId,
+    requireActive: true,
   });
 
   const ev = await createTikTokPixelEvents({
     advertiserId: stored.advertiserId,
     pixelId: stored.pixelId,
-    organizationId: input.organizationId,
+    organizationId,
   });
 
   const eventsJson = COD_PIXEL_EVENT_DEFS.map((d) => d.name).filter(

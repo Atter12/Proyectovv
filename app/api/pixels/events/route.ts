@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       organizationId: session.organizationId,
       hecomClienteId: selected.id,
       pixelRowId,
+      userId: session.id,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

@@ -55,7 +55,11 @@ export async function GET(request: Request) {
       ok: true,
       pixels,
       accounts: overview.accounts
-        .filter((a) => a.externalAccountId?.trim())
+        .filter(
+          (a) =>
+            a.externalAccountId?.trim() &&
+            a.status === "active",
+        )
         .map((a) => ({
           id: a.id,
           name: a.name,

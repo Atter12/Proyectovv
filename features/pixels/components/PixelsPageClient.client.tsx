@@ -186,16 +186,20 @@ export function PixelsPageClient({
         throw new Error(json.error || "No se pudo cargar píxeles.");
       }
       setPixels(json.pixels ?? []);
-      setAccounts(json.accounts ?? []);
-      if (!advertiserId && (json.accounts?.length ?? 0) > 0) {
-        setAdvertiserId(json.accounts![0]!.advertiserId);
-      }
+      const nextAccounts = json.accounts ?? [];
+      setAccounts(nextAccounts);
+      setAdvertiserId((prev) => {
+        if (prev && nextAccounts.some((a) => a.advertiserId === prev)) {
+          return prev;
+        }
+        return nextAccounts[0]?.advertiserId ?? "";
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error de carga");
     } finally {
       setLoading(false);
     }
-  }, [advertiserId]);
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -419,7 +423,7 @@ export function PixelsPageClient({
             disabled={loading || accounts.length === 0}
           >
             {accounts.length === 0 ? (
-              <option value="">Sin cuentas en este cliente</option>
+              <option value="">Sin cuentas en uso</option>
             ) : (
               accounts.map((a) => (
                 <option key={a.advertiserId} value={a.advertiserId}>
@@ -429,14 +433,21 @@ export function PixelsPageClient({
             )}
           </select>
         </label>
-        {selectedAccount ? (
-          <p className="mt-2 font-mono text-[11px] text-[#8a8177]">
-            Advertiser {selectedAccount.advertiserId}
-            {lastSyncCount !== null
-              ? ` · última consulta TikTok: ${lastSyncCount} píxel${lastSyncCount === 1 ? "" : "es"}`
-              : ""}
-          </p>
-        ) : null}
+        <p className="mt-2 text-[11px] text-[#8a8177]">
+          Solo cuentas activas / en campaña
+          {selectedAccount ? (
+            <>
+              {" "}
+              · Advertiser{" "}
+              <span className="font-mono text-[10px]">
+                {selectedAccount.advertiserId}
+              </span>
+              {lastSyncCount !== null
+                ? ` · última consulta TikTok: ${lastSyncCount} píxel${lastSyncCount === 1 ? "" : "es"}`
+                : ""}
+            </>
+          ) : null}
+        </p>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
