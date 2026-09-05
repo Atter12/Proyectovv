@@ -6,7 +6,7 @@ import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await requirePermission("adAccounts:read");
   const selected = await getSelectedHecomCliente(session.id);
 
@@ -19,10 +19,16 @@ export async function GET() {
 
   try {
     await assertHecomClienteAccess(session, selected.id);
-    const result = await getHecomAdAccountsLiveMetrics(selected.id, "fast");
+    const fresh =
+      new URL(request.url).searchParams.get("fresh") === "1" ||
+      new URL(request.url).searchParams.get("fresh") === "true";
+    const result = await getHecomAdAccountsLiveMetrics(selected.id, "fast", {
+      bypassCache: fresh,
+    });
     return NextResponse.json({
       ok: true,
       clienteId: selected.id,
+      cached: !fresh,
       ...result,
     });
   } catch (error) {

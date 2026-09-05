@@ -14,6 +14,18 @@ export type AdAccountLiveMetricsRow = AdvertiserLiveMetrics & {
   bmBucket: string | null;
 };
 
+type LiveMetricsResult = {
+  accounts: AdAccountLiveMetricsRow[];
+  updatedAt: string;
+  tiktokConfigured: boolean;
+};
+
+const LIVE_METRICS_TTL_MS = 20_000;
+const liveMetricsCache = new Map<
+  string,
+  { at: number; value: LiveMetricsResult }
+>();
+
 function resolveBcIdForBucket(bmBucket: string | null | undefined): string | null {
   const bucket = String(bmBucket ?? "").trim();
   if (!bucket) return null;
@@ -23,16 +35,23 @@ function resolveBcIdForBucket(bmBucket: string | null | undefined): string | nul
 export async function getHecomAdAccountsLiveMetrics(
   clienteId: string,
   speed: HecomAdAccountsLoadSpeed = "fast",
-): Promise<{
-  accounts: AdAccountLiveMetricsRow[];
-  updatedAt: string;
-  tiktokConfigured: boolean;
-}> {
+  opts?: { bypassCache?: boolean },
+): Promise<LiveMetricsResult> {
+  const cacheKey = `${clienteId}:${speed}`;
+  if (!opts?.bypassCache) {
+    const hit = liveMetricsCache.get(cacheKey);
+    if (hit && Date.now() - hit.at < LIVE_METRICS_TTL_MS) {
+      return hit.value;
+    }
+  }
+
   const overview = await getHecomClienteAdAccountsOverview(clienteId, speed);
   const updatedAt = new Date().toISOString();
 
   if (!overview.cliente || overview.accounts.length === 0) {
-    return { accounts: [], updatedAt, tiktokConfigured: true };
+    const empty = { accounts: [], updatedAt, tiktokConfigured: true };
+    liveMetricsCache.set(cacheKey, { at: Date.now(), value: empty });
+    return empty;
   }
 
   const byBc = new Map<
@@ -58,27 +77,29 @@ export async function getHecomAdAccountsLiveMetrics(
     byBc.set(bcId, list);
   }
 
-  const rows: AdAccountLiveMetricsRow[] = [];
-
-  for (const [bcId, items] of byBc.entries()) {
-    const metrics = await fetchAdvertiserLiveMetrics({
-      bcId,
-      advertiserIds: items.map((item) => item.advertiserId),
-    });
-    const metaById = new Map(items.map((item) => [item.advertiserId, item]));
-    for (const metric of metrics) {
-      const meta = metaById.get(metric.advertiserId);
-      rows.push({
-        ...metric,
-        accountName: meta?.name ?? metric.advertiserId,
-        bmBucket: meta?.bmBucket ?? null,
+  const bcBatches = await Promise.all(
+    [...byBc.entries()].map(async ([bcId, items]) => {
+      const metrics = await fetchAdvertiserLiveMetrics({
+        bcId,
+        advertiserIds: items.map((item) => item.advertiserId),
       });
-    }
-  }
+      const metaById = new Map(items.map((item) => [item.advertiserId, item]));
+      return metrics.map((metric) => {
+        const meta = metaById.get(metric.advertiserId);
+        return {
+          ...metric,
+          accountName: meta?.name ?? metric.advertiserId,
+          bmBucket: meta?.bmBucket ?? null,
+        } satisfies AdAccountLiveMetricsRow;
+      });
+    }),
+  );
 
-  return {
-    accounts: rows,
+  const result: LiveMetricsResult = {
+    accounts: bcBatches.flat(),
     updatedAt,
     tiktokConfigured: byBc.size > 0,
   };
+  liveMetricsCache.set(cacheKey, { at: Date.now(), value: result });
+  return result;
 }

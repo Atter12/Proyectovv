@@ -11,6 +11,8 @@ export type AdAccountLiveMetricsClient = {
   spendTodayUsd: number | null;
   fetchedAt: string;
   error?: string;
+  /** true cuando el valor viene del poll anterior porque TikTok no respondió. */
+  stale?: boolean;
   paymentPortfolioType?: string | null;
   budgetMode?: string | null;
   budgetUsd?: number | null;
@@ -20,6 +22,79 @@ export type AdAccountLiveMetricsClient = {
 };
 
 const POLL_MS = 45_000;
+
+type LiveMetricsApiPayload = {
+  ok: boolean;
+  accounts: AdAccountLiveMetricsClient[];
+  updatedAt: string;
+  tiktokConfigured: boolean;
+};
+
+/** Deduplica polls concurrentes de varios componentes en la misma página. */
+let sharedInFlight: Promise<LiveMetricsApiPayload> | null = null;
+let sharedInFlightFresh = false;
+
+async function fetchLiveMetricsPayload(
+  fresh: boolean,
+): Promise<LiveMetricsApiPayload> {
+  if (sharedInFlight && (!fresh || sharedInFlightFresh)) {
+    return sharedInFlight;
+  }
+
+  const path = fresh
+    ? "/api/ad-accounts/live-metrics?fresh=1"
+    : "/api/ad-accounts/live-metrics";
+
+  const promise = apiClient<LiveMetricsApiPayload>(path).finally(() => {
+    if (sharedInFlight === promise) {
+      sharedInFlight = null;
+      sharedInFlightFresh = false;
+    }
+  });
+
+  sharedInFlight = promise;
+  sharedInFlightFresh = fresh;
+  return promise;
+}
+
+function mergeLiveMetrics(
+  prev: Record<string, AdAccountLiveMetricsClient>,
+  accounts: AdAccountLiveMetricsClient[],
+): Record<string, AdAccountLiveMetricsClient> {
+  const next: Record<string, AdAccountLiveMetricsClient> = { ...prev };
+
+  for (const row of accounts) {
+    const prior = prev[row.advertiserId];
+    const balanceMissing = row.balanceUsd == null;
+    const keepPriorBalance =
+      balanceMissing && prior?.balanceUsd != null && Number.isFinite(prior.balanceUsd);
+
+    if (keepPriorBalance && prior) {
+      next[row.advertiserId] = {
+        ...row,
+        balanceUsd: prior.balanceUsd,
+        paymentPortfolioType:
+          row.paymentPortfolioType ?? prior.paymentPortfolioType,
+        budgetMode: row.budgetMode ?? prior.budgetMode,
+        budgetUsd: row.budgetUsd ?? prior.budgetUsd,
+        budgetCostUsd: row.budgetCostUsd ?? prior.budgetCostUsd,
+        showBudgetLimit: row.showBudgetLimit ?? prior.showBudgetLimit,
+        isUnlimitedBudget: row.isUnlimitedBudget ?? prior.isUnlimitedBudget,
+        spendTodayUsd:
+          row.spendTodayUsd != null ? row.spendTodayUsd : prior.spendTodayUsd,
+        stale: true,
+        error:
+          row.error ??
+          "TikTok no devolvió este saldo; mostrando el último valor conocido.",
+      };
+      continue;
+    }
+
+    next[row.advertiserId] = { ...row, stale: false };
+  }
+
+  return next;
+}
 
 export type LiveMetricsRefreshOpts = {
   /** Ignora el poll en curso / encola otra pasada al terminar. */
@@ -54,18 +129,10 @@ export function useAdAccountLiveMetrics(enabled = true) {
       inFlight.current = true;
       setError(null);
       try {
-        const data = await apiClient<{
-          ok: boolean;
-          accounts: AdAccountLiveMetricsClient[];
-          updatedAt: string;
-          tiktokConfigured: boolean;
-        }>("/api/ad-accounts/live-metrics");
-
-        const next: Record<string, AdAccountLiveMetricsClient> = {};
-        for (const row of data.accounts ?? []) {
-          next[row.advertiserId] = row;
-        }
-        setMetricsByAdvertiser(next);
+        const data = await fetchLiveMetricsPayload(Boolean(opts?.force));
+        setMetricsByAdvertiser((prev) =>
+          mergeLiveMetrics(prev, data.accounts ?? []),
+        );
         setLastUpdatedAt(data.updatedAt ?? new Date().toISOString());
       } catch (err) {
         setError(

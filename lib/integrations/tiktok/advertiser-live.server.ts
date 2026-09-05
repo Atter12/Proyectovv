@@ -58,7 +58,11 @@ function todayLimaYmd(): string {
   }).format(new Date());
 }
 
-async function fetchOneAdvertiserBalance(input: {
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchOneAdvertiserBalanceOnce(input: {
   bcId: string;
   advertiserId: string;
   accessToken: string;
@@ -100,6 +104,27 @@ async function fetchOneAdvertiserBalance(input: {
     balanceUsd: pickSpendableBudgetUsd(row),
     limit: pickBudgetLimitSnapshot(row),
   };
+}
+
+async function fetchOneAdvertiserBalance(input: {
+  bcId: string;
+  advertiserId: string;
+  accessToken: string;
+}): Promise<AdvertiserBalanceRow> {
+  try {
+    const first = await fetchOneAdvertiserBalanceOnce(input);
+    if (first.balanceUsd != null) return first;
+    // Keyword miss / página vacía: un reintento corto suele recuperar la fila.
+    await sleep(250);
+    return await fetchOneAdvertiserBalanceOnce(input);
+  } catch (error) {
+    await sleep(350);
+    try {
+      return await fetchOneAdvertiserBalanceOnce(input);
+    } catch {
+      throw error;
+    }
+  }
 }
 
 async function fetchAdvertiserBalancesForBc(input: {
@@ -212,42 +237,54 @@ export async function fetchAdvertiserLiveMetrics(input: {
 
   if (ids.length === 0) return [];
 
-  let balances = new Map<string, AdvertiserBalanceRow>();
-  try {
-    balances = await fetchAdvertiserBalancesForBc({
+  const [balanceOutcome, spendResults] = await Promise.all([
+    fetchAdvertiserBalancesForBc({
       bcId: input.bcId,
       advertiserIds: ids,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Error de saldo";
-    return ids.map((advertiserId) =>
-      toLiveMetrics(advertiserId, fetchedAt, undefined, null, message),
-    );
-  }
-
-  const spendResults = await Promise.all(
-    ids.map(async (advertiserId) => {
-      try {
-        const spend = await fetchAdvertiserSpendForDate({
-          advertiserId,
-          date: today,
-        });
-        return { advertiserId, spend };
-      } catch {
-        return { advertiserId, spend: null as number | null };
-      }
-    }),
-  );
+    }).then(
+      (map) => ({ ok: true as const, map }),
+      (error: unknown) => ({
+        ok: false as const,
+        error:
+          error instanceof Error ? error.message : "Error de saldo",
+      }),
+    ),
+    Promise.all(
+      ids.map(async (advertiserId) => {
+        try {
+          const spend = await fetchAdvertiserSpendForDate({
+            advertiserId,
+            date: today,
+          });
+          return { advertiserId, spend };
+        } catch {
+          return { advertiserId, spend: null as number | null };
+        }
+      }),
+    ),
+  ]);
 
   const spendById = new Map(
     spendResults.map((row) => [row.advertiserId, row.spend]),
   );
 
+  if (!balanceOutcome.ok) {
+    return ids.map((advertiserId) =>
+      toLiveMetrics(
+        advertiserId,
+        fetchedAt,
+        undefined,
+        spendById.get(advertiserId) ?? null,
+        balanceOutcome.error,
+      ),
+    );
+  }
+
   return ids.map((advertiserId) =>
     toLiveMetrics(
       advertiserId,
       fetchedAt,
-      balances.get(advertiserId),
+      balanceOutcome.map.get(advertiserId),
       spendById.get(advertiserId) ?? null,
     ),
   );

@@ -48,19 +48,34 @@ export function PaymentOverviewStats({
   const liveEnabled = !hecomMode && advertiserIds.length > 0;
   const live = useAdAccountLiveMetrics(liveEnabled);
 
-  const tiktokAvailableUsd = useMemo(() => {
-    if (!liveEnabled) return null;
+  const tiktokCoverage = useMemo(() => {
+    if (!liveEnabled) {
+      return { total: null as number | null, withBalance: 0, expected: 0 };
+    }
     let total = 0;
-    let any = false;
+    let withBalance = 0;
     for (const id of advertiserIds) {
       const metric = live.metricsByAdvertiser[id];
       if (metric?.balanceUsd != null) {
         total += metric.balanceUsd;
-        any = true;
+        withBalance += 1;
       }
     }
-    return any ? Math.round(total * 100) / 100 : null;
+    return {
+      total: withBalance > 0 ? Math.round(total * 100) / 100 : null,
+      withBalance,
+      expected: advertiserIds.length,
+    };
   }, [advertiserIds, live.metricsByAdvertiser, liveEnabled]);
+
+  const tiktokAvailableUsd = tiktokCoverage.total;
+  const tiktokPartial =
+    tiktokCoverage.expected > 0 &&
+    tiktokCoverage.withBalance > 0 &&
+    tiktokCoverage.withBalance < tiktokCoverage.expected;
+  const tiktokStale = advertiserIds.some(
+    (id) => live.metricsByAdvertiser[id]?.stale,
+  );
 
   const modality = hecomFinance?.billingModality ?? null;
   const modalityLabel =
@@ -134,10 +149,14 @@ export function PaymentOverviewStats({
                 : "—",
           hint:
             tiktokAvailableUsd != null
-              ? "Suma cupo gastable en Manager"
+              ? tiktokPartial
+                ? `Parcial · ${tiktokCoverage.withBalance}/${tiktokCoverage.expected} cuentas`
+                : tiktokStale
+                  ? "Suma cupo gastable · algún valor reciente"
+                  : "Suma cupo gastable en Manager"
               : "Saldo en vivo de las cuentas",
           accent: true,
-          warn: false,
+          warn: tiktokPartial,
         },
         {
           label: "Modalidad",
