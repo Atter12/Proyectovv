@@ -85,7 +85,7 @@ async function tiktokJson<T>(input: {
       `TikTok pixel API error (HTTP ${response.status}, code=${json.code ?? "?"}).`;
     const hint =
       json.code === 40001 || /permission/i.test(baseMsg)
-        ? " En Business Center: Members → app/usuario Holistic → Manage permissions → habilitar Pixels en esa cuenta ads."
+        ? " Tip: si 'Ver píxeles' falla pero el token es nuevo, probá 'Crear píxel' (a veces TikTok deja crear/actualizar y no listar). Si crear también falla, en BC → Members → Manage permissions → Pixels."
         : "";
     throw new TikTokPixelApiError(`${baseMsg}${hint}`, {
       code: json.code ?? null,

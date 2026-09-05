@@ -27,20 +27,15 @@ Token: mismo que finance BC — `TIKTOK_ACCESS_TOKEN` (agencia), vía `resolveTi
 
 ## Permisos TikTok (importante)
 
-Si la API responde:
+Si la API responde `40001` / “No permission to operate advertiser”:
 
-`advertiser does not grant you /pixel/list/:GET permission` (code **40001**)
+1. Correr (staff) el grant masivo:
+   `node scripts/grant-tiktok-pixel-access.mjs`
+   → asigna rol **ADMIN** del advertiser al usuario del `TIKTOK_ACCESS_TOKEN` en cada BC.
+2. Después, **Crear píxel** suele funcionar aunque **Ver píxeles** (`/pixel/list`) siga en 40001 (quirk de TikTok: create/update OK, list no).
+3. Si crear también falla: en Business Center → Members → Manage permissions → Pixels en esa cuenta ads.
 
-el token de la app **sí** llega al advertiser, pero **no tiene el recurso Pixels**.
-
-En Business Center:
-
-1. Settings → Members (o Partners) → usuario/app Holistic.
-2. Cuenta ads afectada → **Manage permissions**.
-3. Habilitar **Pixels** (y Measurement si aparece).
-4. Reintentar Sync / Crear en Ads Holistic.
-
-Sin ese grant, create/list fallan aunque funding BC funcione.
+Script: `scripts/grant-tiktok-pixel-access.mjs` (reintentable; salta advertisers donde `pixel/list` ya responde OK).
 
 ## Plantilla eventos COD
 
