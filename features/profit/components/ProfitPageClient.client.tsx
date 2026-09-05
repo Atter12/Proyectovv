@@ -277,6 +277,13 @@ export function ProfitPageClient({
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
+  const [shopifyModalOpen, setShopifyModalOpen] = useState(false);
+
+  function scrollToShopifyConnect() {
+    document
+      .getElementById("profit-shopify-connect")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const live = useAdAccountLiveMetrics(true);
   const liveAccounts = useMemo(() => {
@@ -401,18 +408,17 @@ export function ProfitPageClient({
               Profit · {clienteName}
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-              Gasto TikTok, ranking, CTR/CPC y señales — gratis en Holistic.
-              Pedidos cobrados y ROAS COD vienen con Real Profit (+$20).
+              Gasto TikTok, ranking de campañas, CTR/CPC, pacing y señales —
+              incluido en Holistic.
             </p>
           </div>
-          <a
-            href={realProfitUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+          <button
+            type="button"
+            onClick={scrollToShopifyConnect}
+            className="inline-flex h-auto max-w-[16rem] shrink-0 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 py-2.5 text-left text-[12.5px] font-semibold leading-snug text-[#c2410c] transition hover:border-[#ff781f] hover:bg-[#fff7f0] sm:max-w-[18rem]"
           >
-            Real Profit COD · +$20 →
-          </a>
+            Conectar tienda de Shopify para jalar pedidos y ventas →
+          </button>
         </div>
       </header>
 
@@ -761,7 +767,7 @@ export function ProfitPageClient({
                 <span className="font-semibold text-[#1c1917]">
                   {analysis.breakEvenRoas?.toFixed(2)}x
                 </span>
-                . Vinculá Real Profit COD (+$20) para CPA / ROAS cobrado.
+                . Conectá tu tienda abajo para CPA / ganancia neta.
               </div>
             ) : null}
 
@@ -907,32 +913,33 @@ export function ProfitPageClient({
         </>
       ) : null}
 
-      <section className="rounded-2xl border border-dashed border-[#ffd7b8] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_60%)] p-5 sm:p-6">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-          Extra · Real Profit COD · +$20
-        </p>
-        <h2 className="mt-1 text-[1.1rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-          Cobrado real desde tu tienda
-        </h2>
-        <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-          Holistic ya te da gasto y performance de campañas. Para jalar{" "}
-          <span className="font-semibold text-[#1c1917]">pedidos cobrados</span>{" "}
-          (Shopify u otra tienda), ROAS COD y operación completa, activá Real
-          Profit COD. Ahí se conecta la tienda — no desde este panel gratis.
-        </p>
-        <ul className="mt-3 space-y-1 text-[12.5px] text-[#5c564e]">
-          <li>· Pedidos / cobrado COD sincronizados</li>
-          <li>· ROAS y CPA sobre plata que sí llegó</li>
-          <li>· Conexión a tienda (Shopify y más canales vía RP)</li>
-        </ul>
-        <a
-          href={realProfitUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
-        >
-          Abrir Real Profit COD →
-        </a>
+      <section
+        id="profit-shopify-connect"
+        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[#ece7e0] bg-white shadow-[0_12px_32px_-24px_rgb(28_25_23_/_0.4)]"
+      >
+        <div className="relative px-5 py-6 sm:px-7 sm:py-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[#ff781f]/[0.08] blur-3xl"
+          />
+          <p className="relative text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            Pedidos y ventas
+          </p>
+          <h2 className="relative mt-1.5 max-w-lg text-[1.25rem] font-bold tracking-[-0.03em] text-[#1c1917] sm:text-[1.4rem]">
+            Conectá tu tienda Shopify
+          </h2>
+          <p className="relative mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+            Jalá pedidos y ventas reales para ver cuánto estás ganando neto —
+            no solo cuánto gastás en ads.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShopifyModalOpen(true)}
+            className="relative mt-5 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+          >
+            Conectar Shopify
+          </button>
+        </div>
       </section>
 
       {snapshots.length > 0 ? (
@@ -950,7 +957,7 @@ export function ProfitPageClient({
                   {snap.store.name}
                 </p>
                 <p className="text-[11px] text-[#8a8177]">
-                  Datos Real Profit · cobrado del período
+                  Pedidos sincronizados · cobrado del período
                 </p>
               </div>
               <Kpi
@@ -977,6 +984,150 @@ export function ProfitPageClient({
           ))}
         </section>
       ) : null}
+
+      {shopifyModalOpen ? (
+        <ShopifyConnectModal
+          realProfitUrl={realProfitUrl}
+          onClose={() => setShopifyModalOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ShopifyConnectModal({
+  realProfitUrl,
+  onClose,
+}: {
+  realProfitUrl: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1c1917]/55 p-3 sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shopify-connect-title"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white shadow-[0_24px_64px_-28px_rgb(28_25_23_/_0.55)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+              Antes de conectar
+            </p>
+            <h3
+              id="shopify-connect-title"
+              className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]"
+            >
+              Qué tenés hoy vs qué desbloqueás
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#8a8177] hover:bg-[#faf8f5] hover:text-[#1c1917]"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <div className="grid gap-0 sm:grid-cols-2">
+          <div className="border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
+              Ya incluido · Holistic
+            </p>
+            <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
+              Análisis de campañas
+            </p>
+            <ul className="mt-3 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+              <li className="flex gap-2">
+                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                Gasto TikTok (hoy, 7d, rango) + serie diaria
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                Ranking, BM, CTR / CPC / CPM
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                Live saldo y spend por cuenta
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 text-[#c4bdb4]">✓</span>
+                Pacing y señales de alerta
+              </li>
+            </ul>
+            <p className="mt-4 text-[11px] font-medium text-[#9a9187]">
+              Sabés cuánto gastás. Todavía no cuánto cobrás de verdad.
+            </p>
+          </div>
+
+          <div className="bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%)] px-5 py-5 sm:px-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
+              Al conectar Shopify
+            </p>
+            <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
+              Ventas reales y ganancia neta
+            </p>
+            <ul className="mt-3 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+              <li className="flex gap-2">
+                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                Pedidos y ventas desde tu tienda
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                Cobrado COD · plata que sí llegó
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                ROAS / CPA sobre lo cobrado (no solo ads)
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5 font-bold text-[#ff781f]">→</span>
+                Camino a TikTok Shop y más canales
+              </li>
+            </ul>
+            <p className="mt-4 text-[12px] font-semibold leading-5 text-[#1c1917]">
+              Ahí ves si de verdad estás ganando — no solo gastando.
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-[#f0ebe4] bg-[#faf8f5] px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                Real Profit COD
+              </p>
+              <p className="mt-0.5 text-[13px] text-[#5c564e]">
+                Extra{" "}
+                <span className="font-bold text-[#1c1917]">+$20</span> ·
+                conexión de tienda y cobrado real
+              </p>
+            </div>
+            <a
+              href={realProfitUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+            >
+              Continuar en Real Profit →
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
