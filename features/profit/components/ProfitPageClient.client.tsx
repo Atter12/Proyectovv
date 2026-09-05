@@ -256,7 +256,7 @@ function DailyBars({ series }: { series: DailyPoint[] }) {
 
 export function ProfitPageClient({
   clienteName,
-  isStaff,
+  isStaff: _isStaff,
   initialFrom,
   initialTo,
 }: {
@@ -267,15 +267,10 @@ export function ProfitPageClient({
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [linkedStores, setLinkedStores] = useState<StoreSummary[]>([]);
-  const [allStores, setAllStores] = useState<StoreSummary[]>([]);
-  const [pickStoreId, setPickStoreId] = useState("");
-  const [linking, setLinking] = useState(false);
   const [realProfitUrl, setRealProfitUrl] = useState(
     "https://www.realprofitcod.com",
   );
@@ -318,7 +313,6 @@ export function ProfitPageClient({
         error?: string;
         from?: string;
         to?: string;
-        linkedStores?: StoreSummary[];
         snapshots?: Snapshot[];
         analysis?: Analysis;
         realProfitUrl?: string;
@@ -330,79 +324,20 @@ export function ProfitPageClient({
       setSnapshots(
         (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
       );
-      setLinkedStores(json.linkedStores ?? []);
       if (!from && json.from) setFrom(json.from);
       if (!to && json.to) setTo(json.to);
       if (json.realProfitUrl) setRealProfitUrl(json.realProfitUrl);
-
-      if (isStaff) {
-        const sRes = await fetch("/api/profit/stores", { cache: "no-store" });
-        const sJson = (await sRes.json()) as {
-          ok?: boolean;
-          stores?: StoreSummary[];
-          error?: string;
-        };
-        if (sRes.ok && sJson.ok) {
-          setAllStores(sJson.stores ?? []);
-          setPickStoreId((prev) => prev || sJson.stores?.[0]?.id || "");
-        } else if (!sRes.ok) {
-          setError(sJson.error || "No se pudieron listar tiendas RP.");
-        }
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
-  }, [from, to, isStaff]);
+  }, [from, to]);
 
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function handleLink() {
-    if (!pickStoreId) return;
-    setLinking(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const res = await fetch("/api/profit/link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId: pickStoreId, action: "link" }),
-      });
-      const json = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !json.ok) throw new Error(json.error || "No se vinculó.");
-      setNotice("Tienda vinculada. Cobrado COD entra al análisis.");
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al vincular");
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  async function handleUnlink(storeId: string) {
-    setError(null);
-    setNotice(null);
-    try {
-      const res = await fetch("/api/profit/link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, action: "unlink" }),
-      });
-      const json = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !json.ok) throw new Error(json.error || "No se desvinculó.");
-      setNotice("Tienda desvinculada.");
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    }
-  }
-
-  const linkedIds = new Set(linkedStores.map((s) => s.id));
-  const availableStores = allStores.filter((s) => !linkedIds.has(s.id));
 
   const bmOptions = useMemo(() => {
     const set = new Set<string>();
@@ -466,18 +401,17 @@ export function ProfitPageClient({
               Profit · {clienteName}
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-              Gasto TikTok, ranking de campañas y señales para decidir dónde
-              poner o cortar plata. Cobrado COD es opcional si tenés Real Profit
-              vinculado.
+              Gasto TikTok, ranking, CTR/CPC y señales — gratis en Holistic.
+              Pedidos cobrados y ROAS COD vienen con Real Profit (+$20).
             </p>
           </div>
           <a
             href={realProfitUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-[#d6cec4] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#ff781f]"
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
           >
-            Real Profit COD →
+            Real Profit COD · +$20 →
           </a>
         </div>
       </header>
@@ -488,14 +422,6 @@ export function ProfitPageClient({
           role="alert"
         >
           {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div
-          className="rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
-          role="status"
-        >
-          {notice}
         </div>
       ) : null}
 
@@ -835,7 +761,7 @@ export function ProfitPageClient({
                 <span className="font-semibold text-[#1c1917]">
                   {analysis.breakEvenRoas?.toFixed(2)}x
                 </span>
-                . Vinculá COD para CPA / ROAS cobrado.
+                . Vinculá Real Profit COD (+$20) para CPA / ROAS cobrado.
               </div>
             ) : null}
 
@@ -981,82 +907,38 @@ export function ProfitPageClient({
         </>
       ) : null}
 
-      {isStaff ? (
-        <section className="rounded-2xl border border-dashed border-[#ddd5cb] bg-[#faf8f5] p-5">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Opcional · Cobrado COD
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            Vincular tienda Real Profit
-          </h2>
-          <p className="mt-1.5 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-            Solo la tienda COD de{" "}
-            <span className="font-semibold text-[#1c1917]">este</span> cliente.
-            Suma cobrado real al ROAS; el análisis de campañas no lo necesita.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <select
-              className="min-w-[260px] flex-1 rounded-xl border border-[#e7e0d8] bg-white px-3.5 py-2.5 text-[13px] outline-none ring-[#ff781f]/30 focus:ring-2"
-              value={pickStoreId}
-              onChange={(e) => setPickStoreId(e.target.value)}
-            >
-              {availableStores.length === 0 ? (
-                <option value="">
-                  {allStores.length === 0
-                    ? "Sin tiendas RP en la DB"
-                    : "Todas las tiendas ya están vinculadas"}
-                </option>
-              ) : (
-                availableStores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                    {s.isActive === false ? " · inactiva" : ""}
-                  </option>
-                ))
-              )}
-            </select>
-            <button
-              type="button"
-              onClick={() => void handleLink()}
-              disabled={!pickStoreId || linking || availableStores.length === 0}
-              className="inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white disabled:opacity-50"
-            >
-              {linking ? "Vinculando…" : "Vincular"}
-            </button>
-          </div>
-          {linkedStores.length > 0 ? (
-            <ul className="mt-4 space-y-2">
-              {linkedStores.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#ece7e0] bg-white px-3.5 py-2.5 text-[13px]"
-                >
-                  <span className="font-medium text-[#1c1917]">
-                    {s.name}
-                    {s.isActive === false ? (
-                      <span className="ml-2 text-[11px] font-normal text-[#8a8177]">
-                        inactiva
-                      </span>
-                    ) : null}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-[12px] font-semibold text-[#b45309] underline-offset-2 hover:underline"
-                    onClick={() => void handleUnlink(s.id)}
-                  >
-                    Quitar
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
-      ) : null}
+      <section className="rounded-2xl border border-dashed border-[#ffd7b8] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_60%)] p-5 sm:p-6">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+          Extra · Real Profit COD · +$20
+        </p>
+        <h2 className="mt-1 text-[1.1rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+          Cobrado real desde tu tienda
+        </h2>
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
+          Holistic ya te da gasto y performance de campañas. Para jalar{" "}
+          <span className="font-semibold text-[#1c1917]">pedidos cobrados</span>{" "}
+          (Shopify u otra tienda), ROAS COD y operación completa, activá Real
+          Profit COD. Ahí se conecta la tienda — no desde este panel gratis.
+        </p>
+        <ul className="mt-3 space-y-1 text-[12.5px] text-[#5c564e]">
+          <li>· Pedidos / cobrado COD sincronizados</li>
+          <li>· ROAS y CPA sobre plata que sí llegó</li>
+          <li>· Conexión a tienda (Shopify y más canales vía RP)</li>
+        </ul>
+        <a
+          href={realProfitUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex h-11 items-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+        >
+          Abrir Real Profit COD →
+        </a>
+      </section>
 
       {snapshots.length > 0 ? (
         <section className="space-y-3">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Tiendas COD vinculadas
+            Cobrado COD activo
           </p>
           {snapshots.map((snap) => (
             <div
@@ -1068,11 +950,7 @@ export function ProfitPageClient({
                   {snap.store.name}
                 </p>
                 <p className="text-[11px] text-[#8a8177]">
-                  {snap.spendSource === "realprofit"
-                    ? "Gasto sync Real Profit"
-                    : snap.spendSource === "holistic_tiktok"
-                      ? "ROAS con gasto Holistic"
-                      : "Sin gasto ads"}
+                  Datos Real Profit · cobrado del período
                 </p>
               </div>
               <Kpi
