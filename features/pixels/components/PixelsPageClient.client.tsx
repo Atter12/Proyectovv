@@ -669,9 +669,11 @@ export function PixelsPageClient({
               IDs + snippet
             </h2>
             <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              Copiá el <strong>Pixel ID</strong> (o el snippet) e instalalo en
-              Shopify / landing. Hasta que esté en la web, TikTok no recibe
-              ventas reales.
+              Copiá el <strong>Pixel code</strong> (tipo{" "}
+              <span className="font-mono text-[11px]">DAE…</span>, lo que
+              Shopify suele pedir como “Pixel ID”) o el snippet, e instalalo en
+              la tienda / landing. El ID numérico es el de TikTok API. Hasta que
+              esté en la web, TikTok no recibe ventas reales.
             </p>
 
             <div className="mt-4 space-y-2">

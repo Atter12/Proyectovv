@@ -11,7 +11,8 @@ export const COD_PIXEL_EVENT_DEFS = [
     statisticType: "ONCE",
   },
   { name: "SubmitForm", eventType: "FORM", statisticType: "EVERY_TIME" },
-  { name: "Contact", eventType: "CONTACT", statisticType: "EVERY_TIME" },
+  // TikTok API no acepta CONTACT; CONSULT es el equivalente en Measurement.
+  { name: "Contact", eventType: "CONSULT", statisticType: "EVERY_TIME" },
   { name: "ClickButton", eventType: "BUTTON", statisticType: "EVERY_TIME" },
 ] as const;
 

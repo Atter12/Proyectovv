@@ -263,6 +263,9 @@ export async function createTikTokPixelEvents(input: {
           statisticType: d.statisticType,
         }));
 
+  // Schema TikTok Measurement (pixel/event/create):
+  // variable=PAGE_URL|…, operator=OPERATORTYPE_*, trigger=TRIGGERTYPE_*, value=string
+  // (no "URL"/"CONTAINS"/"values[]" — eso falla con 40002).
   const pixelEvents = defs.map((d) => ({
     name: d.name,
     event_type: d.eventType,
@@ -270,9 +273,10 @@ export async function createTikTokPixelEvents(input: {
     currency_value: "-1",
     rules: [
       {
-        variable: "URL",
-        operator: "CONTAINS",
-        values: ["/"],
+        variable: "PAGE_URL",
+        operator: "OPERATORTYPE_CONTAINS",
+        trigger: "TRIGGERTYPE_PAGEVIEW",
+        value: "/",
       },
     ],
   }));
@@ -318,11 +322,15 @@ export async function createTikTokPixelEvents(input: {
       applied += 1;
       rawParts.push({ event: ev.name, raw });
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      // Ya existe en Events Manager → contar como OK (reintento del botón 2).
+      if (/duplicated event_type/i.test(msg)) {
+        applied += 1;
+        rawParts.push({ event: ev.name, alreadyExists: true });
+        continue;
+      }
       skipped.push(ev.name);
-      rawParts.push({
-        event: ev.name,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      rawParts.push({ event: ev.name, error: msg });
     }
   }
 

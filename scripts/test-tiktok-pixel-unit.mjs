@@ -27,6 +27,13 @@ assert.ok(
   COD_PIXEL_EVENT_DEFS.some((e) => e.name === "CompletePayment"),
   "CompletePayment in COD",
 );
+const contact = COD_PIXEL_EVENT_DEFS.find((e) => e.name === "Contact");
+assert.ok(contact, "Contact in COD");
+assert.equal(
+  contact.eventType,
+  "CONSULT",
+  "Contact maps to CONSULT (TikTok rejects CONTACT)",
+);
 assert.ok(
   TIKTOK_BROWSER_TEST_EVENTS.includes("ViewContent"),
   "browser test events",

@@ -10,9 +10,17 @@ En **Píxeles** (`/pixels`) el cliente (o gerente con cliente seleccionado) pued
 4. **Traer de TikTok** (opcional): `GET /pixel/list/` si el píxel ya existía.
 5. **Probar** eventos en el browser (`ttq.track`) y copiar el snippet.
 
-IDs que se muestran / se pueden copiar: **Advertiser ID**, **Pixel ID**, **Pixel code** (si TikTok lo distingue del ID).
+IDs que se muestran / se pueden copiar:
 
-Fuera de alcance (por ahora): Meta Pixel, CAPI server-side, pre-landing builder.
+| Campo en Holistic | Ejemplo | Uso típico |
+|-------------------|---------|------------|
+| **Pixel ID** | `7682458193691197448` | ID numérico TikTok API / Ads Manager |
+| **Pixel code** | `DAEPA3BC77U96JCOSFLG` | Lo que muchas tiendas/Shopify llaman “Pixel ID” al pegar el snippet |
+| **Advertiser ID** | `7670389863890468871` | Cuenta ads del cliente (ya está en un BM) |
+
+El “token” de Events API / CAPI (hex ~40 chars) **no** se genera acá: sale de Events Manager → Generate Access Token, o del app de TikTok en Shopify. Holistic usa el token de agencia (`TIKTOK_ACCESS_TOKEN`) solo server-side.
+
+Fuera de alcance (por ahora): Meta Pixel, CAPI server-side del cliente, pre-landing builder.
 
 ## Stack
 
@@ -61,9 +69,11 @@ Script: `scripts/grant-tiktok-pixel-access.mjs` (reintentable; salta advertisers
 
 ## Plantilla eventos COD
 
-Definida en `COD_PIXEL_EVENT_DEFS`: ViewContent, AddToCart, InitiateCheckout, CompletePayment, CompleteRegistration, SubmitForm, Contact, ClickButton.
+Definida en `COD_PIXEL_EVENT_DEFS`: ViewContent (`ON_WEB_DETAIL`), AddToCart (`ON_WEB_CART`), InitiateCheckout (`ON_WEB_ORDER`), CompletePayment (`SHOPPING`), CompleteRegistration (`ON_WEB_REGISTER`), SubmitForm (`FORM`), Contact (`CONSULT` — TikTok no acepta `CONTACT`), ClickButton (`BUTTON`).
 
-Si TikTok rechaza un `event_type`, el cliente intenta evento a evento y reporta `skipped`.
+Reglas Measurement: `PAGE_URL` + `OPERATORTYPE_CONTAINS` + `TRIGGERTYPE_PAGEVIEW` + `value` string (no `URL`/`CONTAINS`/`values[]`).
+
+Si TikTok rechaza un `event_type`, el cliente intenta evento a evento y reporta `skipped`. `Duplicated event_type` se trata como OK.
 
 ## Tests
 
