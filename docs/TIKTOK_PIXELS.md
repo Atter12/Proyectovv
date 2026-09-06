@@ -5,10 +5,12 @@
 En **Píxeles** (`/pixels`) el cliente (o gerente con cliente seleccionado) puede:
 
 1. Elegir una cuenta ads (advertiser) del cliente Hecom.
-2. **Crear** un Pixel + eventos COD (`POST /pixel/create/` + `/pixel/event/create/`) — camino normal si no hay píxel.
-3. **Ver píxeles en TikTok** (antes “Sync”): solo consulta `GET /pixel/list/` y muestra en la misma lista si esa cuenta ya tiene píxeles activos. No crea nada.
-4. **Probar** eventos en el browser (`ttq.track`) y copiar el snippet de instalación.
-5. Verificar en [Events Manager → Test Events](https://ads.tiktok.com/i18n/events_manager).
+2. **Crear píxel** (`POST /pixel/create/`) — **solo el píxel**, sin eventos. El cliente recibe **Pixel ID** / snippet y lo conecta a su tienda.
+3. **Activar eventos** (`POST /pixel/event/create/`) — botón aparte, **después** de instalar el píxel en la tienda. Deja visibles ViewContent, AddToCart, CompletePayment, etc. en Events Manager.
+4. **Traer de TikTok** (opcional): `GET /pixel/list/` si el píxel ya existía.
+5. **Probar** eventos en el browser (`ttq.track`) y copiar el snippet.
+
+IDs que se muestran / se pueden copiar: **Advertiser ID**, **Pixel ID**, **Pixel code** (si TikTok lo distingue del ID).
 
 Fuera de alcance (por ahora): Meta Pixel, CAPI server-side, pre-landing builder.
 
@@ -24,6 +26,15 @@ Fuera de alcance (por ahora): Meta Pixel, CAPI server-side, pre-landing builder.
 | Migración | `supabase/migrations/021_tiktok_pixels.sql` |
 
 Token: mismo que finance BC — `TIKTOK_ACCESS_TOKEN` (agencia), vía `resolveTikTokFinanceAccessToken`.
+
+## Flujo recomendado (cliente)
+
+1. Crear píxel → copiar Pixel ID / snippet.
+2. Instalar en Shopify / landing (conectar tienda).
+3. Activar eventos COD.
+4. Probar en Events Manager → Test Events.
+
+`POST /api/pixels` usa `setupCodEvents: false` por defecto (solo crea píxel). Los eventos van a `POST /api/pixels/events`.
 
 ## Quién puede usarlo
 
@@ -71,11 +82,12 @@ node --env-file=.env.local scripts/test-tiktok-pixel.mjs <advertiser_id> --creat
 
 1. Seleccionar cliente con cuentas ads.
 2. Ir a **Píxeles**.
-3. Sync (si hay permiso) o Crear píxel + eventos COD.
-4. Copiar snippet / Pixel ID.
-5. Cargar SDK → disparar ViewContent / CompletePayment.
-6. En Events Manager → Test Events: deben aparecer.
-7. Cliente A no puede operar advertiser de cliente B (API 400).
+3. **Crear píxel** (sin eventos) → ver Pixel ID.
+4. Instalar snippet / conectar tienda.
+5. **Activar eventos**.
+6. Cargar SDK → disparar ViewContent / CompletePayment.
+7. En Events Manager → Test Events: deben aparecer.
+8. Cliente A no puede operar advertiser de cliente B (API 400).
 
 ## Legacy
 

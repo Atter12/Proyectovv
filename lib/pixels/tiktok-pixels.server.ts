@@ -295,7 +295,7 @@ export async function createPixelForCliente(input: {
   let eventsResult: { applied: number; skipped: string[] } | null = null;
   let eventsJson: unknown = [];
 
-  if (input.setupCodEvents !== false) {
+  if (input.setupCodEvents === true) {
     try {
       const ev = await createTikTokPixelEvents({
         advertiserId,

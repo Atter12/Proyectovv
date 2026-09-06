@@ -117,7 +117,9 @@ export async function POST(request: Request) {
       pixelName:
         typeof body.pixelName === "string" ? body.pixelName : "",
       userId: session.id,
-      setupCodEvents: body.setupCodEvents !== false,
+      // Eventos COD van por separado (POST /api/pixels/events) después
+      // de que el cliente conecte el píxel a su tienda.
+      setupCodEvents: body.setupCodEvents === true,
     });
 
     return NextResponse.json({

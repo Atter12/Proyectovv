@@ -128,6 +128,11 @@ function eventNamesFromJson(eventsJson: unknown): string[] {
   return [];
 }
 
+async function copyText(label: string, value: string) {
+  await navigator.clipboard.writeText(value);
+  return `${label} copiado.`;
+}
+
 export function PixelsPageClient({
   clienteName,
 }: {
@@ -135,6 +140,7 @@ export function PixelsPageClient({
 }) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [activatingEvents, setActivatingEvents] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -170,6 +176,10 @@ export function PixelsPageClient({
 
   const pixelCode =
     selectedPixel?.pixelCode?.trim() || selectedPixel?.pixelId || "";
+  const pixelIdDisplay = selectedPixel?.pixelId?.trim() || "";
+  const codEvents = eventNamesFromJson(selectedPixel?.eventsJson);
+  const hasCodEvents = codEvents.length > 0;
+  const hasPixels = pixelsForAccount.length > 0;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -219,7 +229,7 @@ export function PixelsPageClient({
     }
   }, [advertiserId, pixelsForAccount, selectedPixelId]);
 
-  async function handleCreate() {
+  async function handleCreatePixelOnly() {
     if (!advertiserId) {
       setError("Elegí una cuenta ads.");
       return;
@@ -236,23 +246,20 @@ export function PixelsPageClient({
           pixelName:
             pixelName.trim() ||
             `${clienteName} · ${selectedAccount?.name ?? advertiserId}`,
-          setupCodEvents: true,
+          setupCodEvents: false,
         }),
       });
       const json = (await res.json()) as {
         ok?: boolean;
         error?: string;
         pixel?: PixelRow;
-        events?: { applied: number; skipped: string[] } | null;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo crear el píxel.");
       }
-      const skipped = json.events?.skipped?.length
-        ? ` Omitidos: ${json.events.skipped.join(", ")}.`
-        : "";
+      const id = json.pixel?.pixelId ?? "";
       setNotice(
-        `Píxel creado · ${json.pixel?.pixelId}. Eventos COD: ${json.events?.applied ?? 0}.${skipped}`,
+        `Píxel creado. ID: ${id}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
       );
       setPixelName("");
       setLastSyncCount(null);
@@ -265,8 +272,12 @@ export function PixelsPageClient({
     }
   }
 
-  async function handleSetupEvents() {
-    if (!selectedPixel) return;
+  async function handleActivateEvents() {
+    if (!selectedPixel) {
+      setError("Elegí un píxel primero.");
+      return;
+    }
+    setActivatingEvents(true);
     setError(null);
     setNotice(null);
     try {
@@ -282,17 +293,20 @@ export function PixelsPageClient({
         skipped?: string[];
       };
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudieron crear eventos.");
+        throw new Error(json.error || "No se pudieron activar eventos.");
       }
       setNotice(
-        `Eventos COD: ${json.applied ?? 0} OK` +
+        `Eventos COD activados: ${json.applied ?? 0}` +
           (json.skipped?.length
             ? ` · omitidos ${json.skipped.join(", ")}`
-            : ""),
+            : "") +
+          ". Ya deberían verse en Events Manager.",
       );
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error eventos");
+    } finally {
+      setActivatingEvents(false);
     }
   }
 
@@ -320,11 +334,11 @@ export function PixelsPageClient({
       await refresh();
       if (n === 0) {
         setNotice(
-          "Esta cuenta ads no tiene píxeles en TikTok. Podés crear uno acá abajo.",
+          "Esta cuenta ads no tiene píxeles en TikTok. Creá uno con el botón 1.",
         );
       } else {
         setNotice(
-          `TikTok tiene ${n} píxel${n === 1 ? "" : "es"} en esta cuenta. Ya los ves en la lista.`,
+          `TikTok tiene ${n} píxel${n === 1 ? "" : "es"} en esta cuenta. Seleccionalo abajo y activá eventos cuando ya esté en la tienda.`,
         );
       }
     } catch (e) {
@@ -361,15 +375,6 @@ export function PixelsPageClient({
     }
   }
 
-  async function copySnippet() {
-    if (!pixelCode) return;
-    await navigator.clipboard.writeText(snippetFor(pixelCode));
-    setNotice("Snippet copiado.");
-  }
-
-  const codEvents = eventNamesFromJson(selectedPixel?.eventsJson);
-  const hasPixels = pixelsForAccount.length > 0;
-
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <header className="rounded-2xl border border-[#ece7e0] bg-white px-5 py-6 sm:px-7">
@@ -380,16 +385,19 @@ export function PixelsPageClient({
           {clienteName}
         </h1>
         <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-          El <span className="font-semibold text-[#1c1917]">píxel</span> es el
-          código que va en la web / landing para que TikTok vea visitas y
-          compras (COD). Sin píxel, los ads no saben qué convirtió.
+          Primero <span className="font-semibold text-[#1c1917]">creá el píxel</span>{" "}
+          y conectalo a tu tienda. Después{" "}
+          <span className="font-semibold text-[#1c1917]">activá los eventos COD</span>{" "}
+          para que TikTok los vea en Events Manager. Son dos pasos separados a
+          propósito.
         </p>
-        <ol className="mt-4 grid gap-2 sm:grid-cols-4">
+        <ol className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            { n: "1", t: "Elegí cuenta ads" },
-            { n: "2", t: "Creá o traé el píxel" },
-            { n: "3", t: "Copiá e instalá" },
-            { n: "4", t: "Probá eventos" },
+            { n: "1", t: "Cuenta ads" },
+            { n: "2", t: "Crear píxel" },
+            { n: "3", t: "Conectar a tienda" },
+            { n: "4", t: "Activar eventos" },
+            { n: "5", t: "Probar" },
           ].map((step) => (
             <li
               key={step.n}
@@ -433,9 +441,6 @@ export function PixelsPageClient({
               Cuenta ads
             </h2>
           </div>
-          <p className="text-[11px] text-[#8a8177]">
-            Solo cuentas activas / en campaña
-          </p>
         </div>
         <label className="mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
           Advertiser
@@ -461,26 +466,42 @@ export function PixelsPageClient({
           </select>
         </label>
         {selectedAccount ? (
-          <p className="mt-2 font-mono text-[11px] text-[#8a8177]">
-            ID {selectedAccount.advertiserId}
-            {lastSyncCount !== null
-              ? ` · última consulta: ${lastSyncCount} píxel${lastSyncCount === 1 ? "" : "es"}`
-              : ""}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-[#faf8f5] px-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                Advertiser ID
+              </p>
+              <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
+                {selectedAccount.advertiserId}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#1c1917]"
+              onClick={() =>
+                void copyText("Advertiser ID", selectedAccount.advertiserId).then(
+                  setNotice,
+                )
+              }
+            >
+              Copiar ID
+            </button>
+          </div>
         ) : null}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-            Paso 2 · Crear
+            Botón 1 · Paso 2
           </p>
           <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            Píxel nuevo + eventos COD
+            Creación de píxel
           </h2>
           <p className="mt-2 text-[12.5px] leading-5 text-[#5c564e]">
-            Ideal si todavía no hay píxel. Lo crea en TikTok y deja listos
-            ViewContent, AddToCart, CompletePayment, etc.
+            Crea el píxel en TikTok y te da el <strong>Pixel ID</strong> para
+            instalarlo / conectarlo a tu tienda (Shopify, landing, etc.).{" "}
+            <strong>No activa eventos todavía</strong>.
           </p>
           <label className="mt-4 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
             Nombre (opcional)
@@ -493,44 +514,64 @@ export function PixelsPageClient({
           </label>
           <button
             type="button"
-            onClick={() => void handleCreate()}
+            onClick={() => void handleCreatePixelOnly()}
             disabled={creating || !advertiserId}
             className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
           >
-            {creating ? "Creando…" : "Crear píxel + eventos COD"}
+            {creating ? "Creando píxel…" : "1 · Crear píxel"}
           </button>
-        </article>
-
-        <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-            Paso 2 · Traer
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            ¿Ya existe en TikTok?
-          </h2>
-          <p className="mt-2 flex-1 text-[12.5px] leading-5 text-[#5c564e]">
-            No crea nada. Solo consulta si esta cuenta ya tiene píxeles activos
-            y los lista abajo.
-          </p>
           <button
             type="button"
             onClick={() => void handleSync()}
             disabled={!advertiserId || loading || syncing}
-            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white disabled:opacity-50"
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[12px] font-semibold text-[#1c1917] transition hover:bg-white disabled:opacity-50"
           >
-            {syncing ? "Consultando TikTok…" : "Ver píxeles en TikTok"}
+            {syncing ? "Consultando…" : "Ya tengo píxel · traer de TikTok"}
           </button>
           {lastSyncCount === 0 ? (
-            <p className="mt-3 text-[12px] font-medium text-[#8a8177]">
-              No hay píxeles en esa cuenta.
+            <p className="mt-2 text-[12px] text-[#8a8177]">
+              No hay píxeles en esa cuenta en TikTok.
             </p>
           ) : null}
-          {lastSyncCount !== null && lastSyncCount > 0 ? (
-            <p className="mt-3 text-[12px] font-medium text-emerald-800">
-              {lastSyncCount} encontrado{lastSyncCount === 1 ? "" : "s"} · ya
-              abajo.
+        </article>
+
+        <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f766e]">
+            Botón 2 · Paso 4
+          </p>
+          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+            Activar eventos
+          </h2>
+          <p className="mt-2 flex-1 text-[12.5px] leading-5 text-[#5c564e]">
+            Usalo <strong>después</strong> de conectar el píxel a la tienda
+            (paso 3). Registra en TikTok los eventos COD (ViewContent, AddToCart,
+            CompletePayment, etc.) para que queden visibles en Events Manager.
+          </p>
+          {!selectedPixel ? (
+            <p className="mt-4 text-[12px] font-medium text-[#8a8177]">
+              Primero creá o seleccioná un píxel.
             </p>
-          ) : null}
+          ) : hasCodEvents ? (
+            <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-900">
+              Este píxel ya tiene {codEvents.length} eventos COD activos.
+            </p>
+          ) : (
+            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-950">
+              Píxel listo · eventos COD todavía no activados.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleActivateEvents()}
+            disabled={!selectedPixel || activatingEvents}
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e] disabled:opacity-50"
+          >
+            {activatingEvents
+              ? "Activando eventos…"
+              : hasCodEvents
+                ? "2 · Reaplicar eventos COD"
+                : "2 · Activar eventos"}
+          </button>
         </article>
       </section>
 
@@ -561,11 +602,10 @@ export function PixelsPageClient({
         ) : !hasPixels ? (
           <div className="mt-4 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
             <p className="text-[14px] font-semibold text-[#1c1917]">
-              Todavía no hay píxeles acá
+              Todavía no hay píxeles
             </p>
             <p className="mx-auto mt-1 max-w-sm text-[12.5px] leading-5 text-[#5c564e]">
-              Creá uno arriba, o tocá “Ver píxeles en TikTok” si ya existía en
-              Ads Manager.
+              Usá el botón 1 para crear uno, o “traer de TikTok” si ya existía.
             </p>
           </div>
         ) : (
@@ -573,6 +613,7 @@ export function PixelsPageClient({
             {pixelsForAccount.map((p) => {
               const active = selectedPixel?.id === p.id;
               const code = p.pixelCode || p.pixelId;
+              const eventsOn = eventNamesFromJson(p.eventsJson).length > 0;
               return (
                 <li key={p.id}>
                   <button
@@ -592,13 +633,24 @@ export function PixelsPageClient({
                       <span className="truncate text-[13px] font-semibold text-[#1c1917]">
                         {p.name}
                       </span>
-                      <span className="shrink-0 rounded-md bg-[#f3efe9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6b645c]">
-                        {p.status || "activo"}
+                      <span
+                        className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                          eventsOn
+                            ? "bg-emerald-100 text-emerald-900"
+                            : "bg-amber-100 text-amber-950"
+                        }`}
+                      >
+                        {eventsOn ? "Eventos ON" : "Sin eventos"}
                       </span>
                     </span>
                     <span className="mt-1 block truncate font-mono text-[11px] text-[#6b645c]">
-                      {code}
+                      ID {p.pixelId}
                     </span>
+                    {p.pixelCode && p.pixelCode !== p.pixelId ? (
+                      <span className="mt-0.5 block truncate font-mono text-[10px] text-[#8a8177]">
+                        Code {code}
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               );
@@ -611,19 +663,87 @@ export function PixelsPageClient({
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              Paso 3 · Instalar en la web
+              Paso 3 · Conectar a tu tienda
             </p>
             <h2 className="mt-1 text-[1.05rem] font-bold text-[#1c1917]">
-              Snippet
+              IDs + snippet
             </h2>
             <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              Pegalo en el &lt;head&gt; de la landing / tienda. Sin esto TikTok
-              no recibe eventos reales.
+              Copiá el <strong>Pixel ID</strong> (o el snippet) e instalalo en
+              Shopify / landing. Hasta que esté en la web, TikTok no recibe
+              ventas reales.
             </p>
-            <p className="mt-3 font-mono text-[12px] font-semibold text-[#1c1917]">
-              {pixelCode}
-            </p>
-            {codEvents.length > 0 ? (
+
+            <div className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                    Pixel ID (TikTok)
+                  </p>
+                  <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
+                    {pixelIdDisplay}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                  onClick={() =>
+                    void copyText("Pixel ID", pixelIdDisplay).then(setNotice)
+                  }
+                >
+                  Copiar
+                </button>
+              </div>
+              {selectedPixel.pixelCode &&
+              selectedPixel.pixelCode !== selectedPixel.pixelId ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                      Pixel code (snippet)
+                    </p>
+                    <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
+                      {selectedPixel.pixelCode}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                    onClick={() =>
+                      void copyText(
+                        "Pixel code",
+                        selectedPixel.pixelCode!,
+                      ).then(setNotice)
+                    }
+                  >
+                    Copiar
+                  </button>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                    Advertiser ID
+                  </p>
+                  <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
+                    {selectedPixel.advertiserId}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                  onClick={() =>
+                    void copyText(
+                      "Advertiser ID",
+                      selectedPixel.advertiserId,
+                    ).then(setNotice)
+                  }
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            {hasCodEvents ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {codEvents.map((ev) => (
                   <span
@@ -635,34 +755,29 @@ export function PixelsPageClient({
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-[12px] text-[#8a8177]">
-                Sin eventos COD guardados · podés reaplicarlos.
+              <p className="mt-3 text-[12px] text-amber-800">
+                Eventos COD pendientes · usá el botón 2 cuando la tienda ya tenga
+                el píxel.
               </p>
             )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void copySnippet()}
-                className="inline-flex h-9 items-center rounded-lg bg-[#1c1917] px-3 text-[12px] font-semibold text-white transition hover:bg-[#3a342e]"
-              >
-                Copiar snippet
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSetupEvents()}
-                className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] px-3 text-[12px] font-semibold text-[#1c1917] transition hover:bg-[#faf8f5]"
-              >
-                Reaplicar eventos COD
-              </button>
-            </div>
-            <pre className="mt-3 max-h-44 overflow-auto rounded-xl border border-[#2a2520] bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
+
+            <button
+              type="button"
+              onClick={() =>
+                void copyText("Snippet", snippetFor(pixelCode)).then(setNotice)
+              }
+              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#1c1917] px-3 text-[12px] font-semibold text-white transition hover:bg-[#3a342e]"
+            >
+              Copiar snippet completo
+            </button>
+            <pre className="mt-3 max-h-40 overflow-auto rounded-xl border border-[#2a2520] bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
               {snippetFor(pixelCode)}
             </pre>
           </div>
 
           <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              Paso 4 · Probar
+              Paso 5 · Probar
             </p>
             <h2 className="mt-1 text-[1.05rem] font-bold text-[#1c1917]">
               Eventos de prueba
@@ -670,7 +785,7 @@ export function PixelsPageClient({
             <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
               Dispará acá y mirá{" "}
               <span className="font-semibold text-[#1c1917]">Test Events</span>{" "}
-              en TikTok. No reemplaza instalar el snippet en la web.
+              en TikTok. No reemplaza instalar el snippet en la tienda.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
