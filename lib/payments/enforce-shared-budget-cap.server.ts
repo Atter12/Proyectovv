@@ -34,14 +34,43 @@ async function resolveAdAccountId(input: {
   advertiserId: string;
 }): Promise<string | null> {
   const admin = createAdminClient();
-  const { data } = await admin
+
+  const { data: rows } = await admin
     .from("ad_accounts")
-    .select("id")
-    .eq("organization_id", input.organizationId)
+    .select("id, organization_id")
     .eq("platform", "tiktok")
     .eq("external_account_id", input.advertiserId)
-    .maybeSingle<{ id: string }>();
-  return data?.id ?? null;
+    .limit(30);
+
+  const candidates = (rows ?? []) as Array<{
+    id: string;
+    organization_id: string;
+  }>;
+  if (candidates.length === 0) return null;
+
+  // Preferir la org de sesión si tiene ledger > 0; si no, la de mayor saldo
+  // (evita mirrors de staff con $0 que reseteaban TikTok al abrir Pagos).
+  let bestId: string | null = null;
+  let bestCents = -1;
+  let sessionId: string | null = null;
+  let sessionCents = -1;
+
+  for (const row of candidates) {
+    const ledger = await getAdAccountLedgerBalance(row.id);
+    const cents = ledger?.availableBalanceCents ?? 0;
+    if (row.organization_id === input.organizationId) {
+      sessionId = row.id;
+      sessionCents = cents;
+    }
+    if (cents > bestCents) {
+      bestCents = cents;
+      bestId = row.id;
+    }
+  }
+
+  if (sessionId && sessionCents > 0) return sessionId;
+  if (bestId && bestCents > 0) return bestId;
+  return sessionId ?? bestId ?? candidates[0]!.id;
 }
 
 /**
@@ -86,12 +115,41 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
     organizationId: input.organizationId,
     advertiserId,
   });
-  const ledger = adAccountId
-    ? await getAdAccountLedgerBalance(adAccountId)
-    : null;
+  // Sin cuenta Holistic con ledger → NO tocar TikTok (antes: ledger=0 y
+  // bajaba el cupo a $0 al abrir Pagos como staff/super admin).
+  if (!adAccountId) {
+    lastEnforceAt.set(cooldownKey, now);
+    return {
+      advertiserId,
+      enforced: false,
+      skipped: true,
+      previousBudget: input.currentBudgetUsd ?? null,
+      previousMode: input.currentBudgetMode ?? null,
+      newBudget: null,
+      newHeadroomUsd: null,
+      ledgerUsd: 0,
+      reason: "no_ad_account_ledger",
+    };
+  }
+
+  const ledger = await getAdAccountLedgerBalance(adAccountId);
+  if (!ledger) {
+    lastEnforceAt.set(cooldownKey, now);
+    return {
+      advertiserId,
+      enforced: false,
+      skipped: true,
+      previousBudget: input.currentBudgetUsd ?? null,
+      previousMode: input.currentBudgetMode ?? null,
+      newBudget: null,
+      newHeadroomUsd: null,
+      ledgerUsd: 0,
+      reason: "ledger_unavailable",
+    };
+  }
   const ledgerUsd = Math.max(
     0,
-    Math.round(((ledger?.availableBalanceCents ?? 0) / 100) * 100) / 100,
+    Math.round((ledger.availableBalanceCents / 100) * 100) / 100,
   );
 
   const cost = Math.max(0, Number(input.currentBudgetCostUsd ?? 0) || 0);
@@ -103,8 +161,10 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
     ? Number.POSITIVE_INFINITY
     : Math.max(0, Math.round((budget - cost) * 100) / 100);
 
-  // Solo bajar / salir de ilimitado. Nunca subir cupo acá (eso es Asignar).
-  if (!unlimited && headroom <= ledgerUsd + 0.05) {
+  // Solo bajar / salir de ilimitado. Nunca inventar cupo sin ledger.
+  // Si TikTok quedó por debajo del ledger Holistic (p.ej. cap staff con org
+  // equivocada), REPARAR subiendo al tope ledger — no es un allocate nuevo.
+  if (!unlimited && headroom <= ledgerUsd + 0.05 && headroom + 0.05 >= ledgerUsd) {
     lastEnforceAt.set(cooldownKey, now);
     return {
       advertiserId,
@@ -116,6 +176,30 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
       newHeadroomUsd: headroom,
       ledgerUsd,
       reason: "already_capped",
+    };
+  }
+
+  // Si el ledger dice $0 pero TikTok tiene cupo, no bajar (mirrors staff).
+  if (ledgerUsd <= 0 && headroom > 0.05 && !unlimited) {
+    lastEnforceAt.set(cooldownKey, now);
+    console.warn("[shared-budget-cap] skip_zero_ledger_with_tiktok_headroom", {
+      advertiserId,
+      organizationId: input.organizationId,
+      adAccountId,
+      headroom,
+      budget,
+      cost,
+    });
+    return {
+      advertiserId,
+      enforced: false,
+      skipped: true,
+      previousBudget: Number.isFinite(budget) ? budget : null,
+      previousMode: mode || null,
+      newBudget: null,
+      newHeadroomUsd: headroom,
+      ledgerUsd,
+      reason: "skip_zero_ledger_preserve_tiktok",
     };
   }
 
