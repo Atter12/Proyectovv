@@ -56,20 +56,11 @@ export default async function ManualPaymentsReviewPage({
           Pagos manuales
         </h1>
         <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
-          Cola global de boletas{" "}
+          Solo pagos{" "}
           <strong className="font-semibold text-[var(--auth-text)]">
-            Pago manual (BCP)
-          </strong>
-          : ves <strong className="font-semibold text-[var(--auth-text)]">todos</strong> los
-          clientes en orden (pendientes más viejos primero). Aceptá para acreditar
-          cartera o rechazá con motivo. Recargas BM no aparecen acá — eso va en{" "}
-          <Link
-            href={routes.payments}
-            className="font-semibold text-[var(--brand-primary)] underline-offset-2 hover:underline"
-          >
-            Pagos
-          </Link>
-          .
+            manuales (BCP)
+          </strong>{" "}
+          pendientes de todos los clientes. Aceptá o rechazá acá.
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -869,14 +869,13 @@ export async function listManualVoucherReviewsForStaff(options?: {
     return { pending: [], recent: [], pendingCount: 0, scope };
   }
 
-  const rows = ((data ?? []) as DbPaymentIntentRow[]).filter(
-    isClientManualVoucherIntent,
-  );
-  const pendingRows = rows
+  // Solo pagos manuales con voucher subido esperando Aceptar/Rechazar.
+  // No historial (aprobados/rechazados) ni puentes BM.
+  const pendingRows = ((data ?? []) as DbPaymentIntentRow[])
+    .filter(isClientManualVoucherIntent)
     .filter((row) => {
       const review = getManualIntentReviewStatus(row);
       const proof = getManualProofMeta(row.metadata);
-      // Solo en cola si hay comprobante subido esperando revisión.
       return (
         review === "pending_review" && Boolean(proof.path || proof.fileName)
       );
@@ -887,31 +886,10 @@ export async function listManualVoucherReviewsForStaff(options?: {
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     )
     .slice(0, hecomClienteId ? 20 : 60);
-  const recentRows = rows
-    .filter((row) => {
-      const metadata = isRecord(row.metadata) ? row.metadata : {};
-      const reviewFlag = getString(metadata.manual_review_status);
-      // Solo historial de boletas (nunca succeeded “pelado” = puente BM).
-      return (
-        reviewFlag === "approved" ||
-        reviewFlag === "rejected" ||
-        Boolean(metadata.reversed_by_ops) ||
-        (row.status === "failed" &&
-          Boolean(
-            getManualProofMeta(row.metadata).path ||
-              metadata.voucher_analysis ||
-              row.failure_reason,
-          ))
-      );
-    })
-    .slice(0, hecomClienteId ? 12 : 40);
 
-  const [pending, recent] = await Promise.all([
-    mapManualIntentRows(pendingRows, { signProofs: true }),
-    mapManualIntentRows(recentRows, { signProofs: false }),
-  ]);
+  const pending = await mapManualIntentRows(pendingRows, { signProofs: true });
 
-  return { pending, recent, pendingCount: pending.length, scope };
+  return { pending, recent: [], pendingCount: pending.length, scope };
 }
 
 /** @deprecated Usar getPaymentPageCore + getPaymentTransactions */

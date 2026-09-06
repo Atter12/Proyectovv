@@ -323,7 +323,7 @@ export function ManualVoucherReviewSection({
     );
   }
 
-  if (pending.length === 0 && recent.length === 0) return null;
+  if (pending.length === 0) return null;
 
   return (
     <section
@@ -335,7 +335,7 @@ export function ManualVoucherReviewSection({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-[var(--auth-text)]">
-              {globalQueue ? "Cola global de boletas" : "Cola de boletas"}
+              {globalQueue ? "Pagos manuales pendientes" : "Pendientes"}
             </h2>
             {pendingCount > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">
@@ -344,50 +344,18 @@ export function ManualVoucherReviewSection({
             ) : null}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
-            {globalQueue
-              ? "Todos los clientes · pendientes más viejos primero. Al aceptar se acredita "
-              : "Revisá boletas en cola. Al aceptar se acredita "}
-            <strong className="font-semibold text-[var(--auth-text)]">
-              saldo disponible
-            </strong>{" "}
-            — el cliente asigna a su cuenta después.
+            Solo boletas BCP por aceptar o rechazar
+            {globalQueue ? " · todos los clientes · más viejos primero" : ""}.
+            Al aceptar se acredita saldo disponible.
           </p>
         </div>
       </div>
 
-      {pending.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-            En revisión
-          </h3>
-          <div className="space-y-4">
-            {pending.map((intent) => (
-              <VoucherCard
-                key={intent.id}
-                intent={intent}
-                canReview={canReview}
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-[var(--auth-divider)] px-4 py-8 text-center text-sm text-[var(--auth-muted)]">
-          No hay comprobantes pendientes.
-        </div>
-      )}
-
-      {recent.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
-            Recientes
-          </h3>
-          <div className="space-y-4">
-            {recent.map((intent) => (
-              <VoucherCard key={intent.id} intent={intent} canReview={false} />
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <div className="space-y-4">
+        {pending.map((intent) => (
+          <VoucherCard key={intent.id} intent={intent} canReview={canReview} />
+        ))}
+      </div>
     </section>
   );
 }

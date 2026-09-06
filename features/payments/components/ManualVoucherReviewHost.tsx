@@ -21,12 +21,12 @@ export async function ManualVoucherReviewHost({
 }: ManualVoucherReviewHostProps) {
   if (!staffMode) return null;
 
-  const { pending, recent, pendingCount, scope } =
+  const { pending, pendingCount, scope } =
     await listManualVoucherReviewsForStaff({
       hecomClienteId: hecomClienteId ?? null,
     });
 
-  if (pending.length === 0 && recent.length === 0) {
+  if (pending.length === 0) {
     return (
       <section
         id="comprobantes"
@@ -35,13 +35,11 @@ export async function ManualVoucherReviewHost({
       >
         <p className="text-sm font-medium text-[var(--auth-text)]">
           {scope === "cliente"
-            ? `Sin pagos manuales de ${clienteName?.trim() || "este cliente"}`
-            : "Sin pagos manuales en cola"}
+            ? `Sin pagos manuales pendientes de ${clienteName?.trim() || "este cliente"}`
+            : "Sin pagos manuales pendientes"}
         </p>
         <p className="mt-1 text-sm text-[var(--auth-muted)]">
-          {scope === "cliente"
-            ? "Acá solo aparecen boletas BCP de este cliente. Quitá el filtro para ver todos."
-            : "Cuando un cliente suba una boleta BCP, aparece acá para aceptar o rechazar."}
+          Solo aparecen boletas BCP nuevas por aceptar o rechazar.
         </p>
       </section>
     );
@@ -51,7 +49,7 @@ export async function ManualVoucherReviewHost({
     <ManualVoucherReviewSection
       mode="staff"
       pending={pending}
-      recent={recent}
+      recent={[]}
       pendingCount={pendingCount}
       canReview
       globalQueue={scope === "all"}

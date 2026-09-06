@@ -918,10 +918,40 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     tiktokRequestId: json.request_id ?? null,
   });
 
+  // Verificar en TikTok: a veces el API responde SUCCESS pero el budget no queda.
+  let verified: TikTokAdvertiserBudgetSnapshot | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 800 * attempt));
+    }
+    verified = await getAdvertiserBudgetSnapshot({
+      bcId,
+      advertiserId,
+      organizationId: input.organizationId,
+    });
+    if (verified && verified.budget + 1e-6 >= newBudget - 0.01) {
+      break;
+    }
+  }
+
+  if (!verified || verified.budget + 1e-6 < newBudget - 0.01) {
+    console.error("[tiktok-bc] budget_increase_not_persisted", {
+      bcId,
+      advertiserId,
+      expected: newBudget,
+      live: verified?.budget ?? null,
+      mode: verified?.budgetMode ?? null,
+      tiktokRequestId: json.request_id ?? null,
+    });
+    throw new Error(
+      "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
+    );
+  }
+
   return {
     ok: true,
     previousBudget: baseBudget,
-    newBudget,
+    newBudget: verified.budget,
     budgetMode: resolvedMode,
     tiktokRequestId: json.request_id ?? null,
   };
