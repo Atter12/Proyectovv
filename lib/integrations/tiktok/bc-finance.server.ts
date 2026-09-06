@@ -803,34 +803,68 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   });
 
   const previousBudget = snapshot.budget;
-  const budgetMode =
+  const baseBudget =
+    snapshot.budgetMode === "UNLIMITED" ? snapshot.budgetCost : previousBudget;
+  const newBudget = Math.round((baseBudget + increase) * 100) / 100;
+
+  // DAILY/MONTHLY no dejan el cupo de allocate estable (vuelve a $0).
+  // Pasamos a CUSTOM absoluto = gastable total (1:1 con lo asignado).
+  if (
     snapshot.budgetMode === "DAILY_BUDGET" ||
     snapshot.budgetMode === "MONTHLY_BUDGET" ||
-    snapshot.budgetMode === "CUSTOM_BUDGET" ||
     snapshot.budgetMode === "UNLIMITED"
-      ? snapshot.budgetMode
-      : "CUSTOM_BUDGET";
-
-  if (snapshot.budgetMode === "UNLIMITED") {
-    // Salir de ilimitado (tope = ya gastado) y después sumar el allocate.
-    await setSharedBmAdvertiserBudgetAbsolute({
+  ) {
+    console.info("[tiktok-bc] budget_increase_via_custom_absolute", {
       bcId,
       advertiserId,
-      budgetUsd: snapshot.budgetCost,
+      previousMode: snapshot.budgetMode,
+      previousBudget: baseBudget,
+      newBudget,
+    });
+    const absolute = await setSharedBmAdvertiserBudgetAbsolute({
+      bcId,
+      advertiserId,
+      budgetUsd: newBudget,
       organizationId: input.organizationId,
       preferBudgetMode: "CUSTOM_BUDGET",
     });
+
+    let verified: TikTokAdvertiserBudgetSnapshot | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 800 * attempt));
+      }
+      verified = await getAdvertiserBudgetSnapshot({
+        bcId,
+        advertiserId,
+        organizationId: input.organizationId,
+      });
+      if (verified && verified.budget + 1e-6 >= newBudget - 0.01) {
+        break;
+      }
+    }
+    if (!verified || verified.budget + 1e-6 < newBudget - 0.01) {
+      console.error("[tiktok-bc] budget_custom_absolute_not_persisted", {
+        bcId,
+        advertiserId,
+        expected: newBudget,
+        live: verified?.budget ?? null,
+      });
+      throw new Error(
+        "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
+      );
+    }
+
+    return {
+      ok: true,
+      previousBudget: absolute.previousBudget,
+      newBudget: verified.budget,
+      budgetMode: "CUSTOM_BUDGET",
+      tiktokRequestId: absolute.tiktokRequestId,
+    };
   }
 
-  const baseBudget =
-    snapshot.budgetMode === "UNLIMITED" ? snapshot.budgetCost : previousBudget;
-  const resolvedMode =
-    snapshot.budgetMode === "UNLIMITED"
-      ? "CUSTOM_BUDGET"
-      : budgetMode === "UNLIMITED"
-        ? "CUSTOM_BUDGET"
-        : budgetMode;
-  const newBudget = Math.round((baseBudget + increase) * 100) / 100;
+  const resolvedMode = "CUSTOM_BUDGET";
 
   const { token: accessToken, source: tokenSource } =
     await resolveTikTokFinanceAccessToken(input.organizationId);
