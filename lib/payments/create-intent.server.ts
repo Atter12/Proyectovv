@@ -323,9 +323,9 @@ export async function createPaymentIntentForSession(
 }
 
 async function resolveWalletId(organizationId: string): Promise<string> {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  // Admin: staff “viendo como” cliente no pasa RLS de wallets de otra org.
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("wallets")
     .select("id")
     .eq("organization_id", organizationId)
@@ -334,10 +334,47 @@ async function resolveWalletId(organizationId: string): Promise<string> {
     .maybeSingle<{ id: string }>();
 
   if (error) throw new Error(error.message);
-  if (!data?.id) {
+  if (data?.id) return data.id;
+
+  const { data: anyWallet } = await admin
+    .from("wallets")
+    .select("id, status")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle<{ id: string; status: string }>();
+
+  if (anyWallet?.id) {
+    if (anyWallet.status !== "active") {
+      const { error: reactivateErr } = await admin
+        .from("wallets")
+        .update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("id", anyWallet.id);
+      if (reactivateErr) throw new Error(reactivateErr.message);
+    }
+    return anyWallet.id;
+  }
+
+  const { data: created, error: createErr } = await admin
+    .from("wallets")
+    .insert({
+      organization_id: organizationId,
+      name: "Cartera Default",
+      balance_cents: 0,
+      currency: "USD",
+      status: "active",
+    })
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (createErr) {
+    throw new Error(
+      createErr.message || "No se encontró cartera activa para la organización.",
+    );
+  }
+  if (!created?.id) {
     throw new Error("No se encontró cartera activa para la organización.");
   }
-  return data.id;
+  return created.id;
 }
 
 async function getUserEmail(userId: string | null): Promise<string | null> {
