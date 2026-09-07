@@ -9,6 +9,8 @@ export type HolisticWalletCobroPayload = {
   montoNeto?: number;
   feeHolistic?: number;
   currency?: string;
+  /** Canal Holistic: stripe | manual (BCP) | cobrana (Yape) | crypto */
+  provider?: string;
   paidAt?: string | null;
   receiptUrl?: string | null;
   dryRun?: boolean;
@@ -35,9 +37,10 @@ function bridgeConfigured(): boolean {
 }
 
 /**
- * POST cobro a Hecom (Ads Holistic · Stripe).
- * Idempotente por codigo AH-STRIPE-{paymentIntentId}.
- * Soft-fail: no tumba el webhook de Stripe si Hecom cae.
+ * POST cobro a Hecom (Ads Holistic → Lo pagado).
+ * Idempotente por codigo según canal:
+ *   stripe → AH-STRIPE-{pi} · manual → AH-BCP-{pi} · cobrana → AH-YAPE-{pi}
+ * Soft-fail: no tumba el webhook / aprobación si Hecom cae.
  */
 export async function postHolisticWalletCobroToHecom(
   input: HolisticWalletCobroPayload,
@@ -79,6 +82,7 @@ export async function postHolisticWalletCobroToHecom(
     };
   }
 
+  const provider = String(input.provider || "stripe").trim().toLowerCase();
   const url = serverEnv.hecomCobrosBridgeUrl.replace(/\/$/, "");
   const body = {
     client_id: clientId,
@@ -93,6 +97,7 @@ export async function postHolisticWalletCobroToHecom(
         ? Math.round(input.feeHolistic * 100) / 100
         : undefined,
     currency: (input.currency || "USD").toUpperCase(),
+    provider,
     paid_at: input.paidAt || new Date().toISOString(),
     receipt_url: input.receiptUrl || undefined,
     dry_run: Boolean(input.dryRun),
@@ -189,6 +194,7 @@ export async function syncWalletDepositCobroBestEffort(input: {
     montoNeto: neto,
     feeHolistic: fee,
     currency: (input.currency || "USD").toUpperCase(),
+    provider,
     paidAt: input.paidAt,
   });
 
