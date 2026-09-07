@@ -60,3 +60,4 @@ node_modules/
 
 # Estado local del agente de correo (hasta que UID leimos)
 scripts/yape-agent/.state.json
+.vercel-cron-secret

@@ -7,6 +7,7 @@ import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGat
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
+import { RechargeHistorySection } from "@/features/payments/components/RechargeHistorySection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
@@ -214,6 +215,14 @@ export default async function PaymentsPage({
           data={data}
           staffMode={capabilities.isStaff || capabilities.canAgencyBmFund}
         />
+
+        {/* Historial propio de la cartera Holistic. El de arriba es el CRM de
+            Hecom, que es otra cosa: pagos del cliente a la agencia. */}
+        {session.organizationId ? (
+          <Suspense fallback={<PaymentsSectionSkeleton rows={3} />}>
+            <RechargeHistorySection organizationId={session.organizationId} />
+          </Suspense>
+        ) : null}
       </div>
     </div>
   );
