@@ -1,17 +1,21 @@
 /**
- * Backfill bridge: dry-run o commit.
+ * Backfill bridge Hecom "Lo pagado" for Stripe wallet deposits.
+ *
+ * Default: only rows missing hecom_cobro_sync.ok (or failed).
+ * Updates payment_intents.metadata after each successful bridge call.
+ *
  * Usage:
- *   node scripts/backfill-hecom-wallet-cobros.mjs --dry-run --only=jesus
- *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --only=jesus
  *   node scripts/backfill-hecom-wallet-cobros.mjs --dry-run
  *   node scripts/backfill-hecom-wallet-cobros.mjs --commit
+ *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --only=jesus
+ *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --all
  */
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const args = new Set(process.argv.slice(2));
 const doCommit = args.has("--commit");
-const dryRun = args.has("--dry-run") || !doCommit;
+const includeAlreadyOk = args.has("--all");
 const onlyArg = process.argv.find((a) => a.startsWith("--only="));
 const only = onlyArg ? onlyArg.slice("--only=".length).toLowerCase() : null;
 
@@ -47,6 +51,7 @@ const NAME_FILTERS = {
   adrian: /adrian|adrián/i,
   boris: /boris/i,
   ximena: /ximena/i,
+  williams: /williams|andrade/i,
 };
 
 const vv = createClient(
@@ -54,6 +59,11 @@ const vv = createClient(
   env.SUPABASE_SERVICE_ROLE_KEY,
   { auth: { persistSession: false } },
 );
+
+function syncOk(meta) {
+  const s = meta?.hecom_cobro_sync;
+  return Boolean(s && typeof s === "object" && s.ok === true);
+}
 
 const { data: pis, error } = await vv
   .from("payment_intents")
@@ -75,6 +85,8 @@ for (const pi of pis ?? []) {
     const re = NAME_FILTERS[only];
     if (!re || !re.test(hecomName)) continue;
   }
+  if (!includeAlreadyOk && syncOk(m)) continue;
+
   const credit =
     m.credit_amount_cents != null
       ? Number(m.credit_amount_cents)
@@ -93,23 +105,25 @@ for (const pi of pis ?? []) {
     fee_holistic: fee / 100,
     currency: pi.currency || "USD",
     paid_at: pi.succeeded_at || pi.created_at,
+    metadata: m,
   });
 }
 
 console.log(
-  `Mode: ${doCommit && !dryRun ? "COMMIT (escribe cobros)" : "DRY-RUN"} | rows=${rows.length}` +
-    (only ? ` | only=${only}` : ""),
+  `Mode: ${doCommit ? "COMMIT" : "DRY-RUN"} | missing/failed rows=${rows.length}` +
+    (only ? ` | only=${only}` : "") +
+    (includeAlreadyOk ? " | --all" : ""),
 );
 console.log(`URL: ${bridgeUrl}\n`);
 
 if (!rows.length) {
-  console.error("Sin filas.");
-  process.exit(1);
+  console.log("Nada pendiente.");
+  process.exit(0);
 }
 
 let ok = 0;
 let fail = 0;
-const results = [];
+const byClient = new Map();
 
 for (const r of rows) {
   const payload = {
@@ -120,14 +134,8 @@ for (const r of rows) {
     fee_holistic: r.fee_holistic,
     currency: r.currency,
     paid_at: r.paid_at,
-    dry_run: !(doCommit && !dryRun) ? true : false,
+    dry_run: !doCommit,
   };
-  // if --commit without --dry-run, dry_run false
-  if (doCommit && !args.has("--dry-run")) {
-    payload.dry_run = false;
-  } else {
-    payload.dry_run = true;
-  }
 
   const res = await fetch(bridgeUrl, {
     method: "POST",
@@ -139,29 +147,52 @@ for (const r of rows) {
     body: JSON.stringify(payload),
   });
   const json = await res.json().catch(() => ({}));
-  const line = {
-    name: r.client_name,
-    pi: r.payment_intent_id.slice(0, 8),
-    bruto: r.monto_bruto,
-    status: res.status,
-    ok: Boolean(json.ok),
-    dry_run: json.dry_run,
-    idempotent: json.idempotent,
-    created: json.created,
-    periodo:
-      json.periodo_resumen ||
-      json.would_insert?.periodo_resumen ||
-      null,
-    fecha: json.fecha || json.would_insert?.fecha || null,
-    cobro_id: json.cobro_id || null,
-    error: json.error || null,
-  };
-  results.push(line);
-  if (line.ok) ok += 1;
+  const lineOk = Boolean(json.ok);
+  if (lineOk) ok += 1;
   else fail += 1;
+
+  const prev = byClient.get(r.client_name) || { n: 0, sum: 0, ok: 0 };
+  prev.n += 1;
+  prev.sum += r.monto_bruto;
+  if (lineOk) prev.ok += 1;
+  byClient.set(r.client_name, prev);
+
   console.log(
-    `${line.ok ? "OK" : "FAIL"} | ${line.name} | $${line.bruto} | ${line.fecha || "-"} | periodo=${line.periodo || "-"} | ${line.dry_run ? "dry" : line.created ? "created" : line.idempotent ? "idempotent" : "?"} | ${line.error || ""}`,
+    `${lineOk ? "OK" : "FAIL"} | ${r.client_name} | $${r.monto_bruto} | ${r.paid_at?.slice?.(0, 10) || "-"} | ${json.dry_run ? "dry" : json.created ? "created" : json.idempotent ? "idempotent" : "?"} | ${json.error || json.codigo || ""}`,
   );
+
+  if (doCommit && lineOk) {
+    const syncMeta = {
+      ok: true,
+      skipped: false,
+      reason: null,
+      cobro_id: json.cobro_id ?? null,
+      codigo: json.codigo ?? null,
+      periodo_resumen: json.periodo_resumen ?? null,
+      at: new Date().toISOString(),
+      backfill: true,
+      idempotent: Boolean(json.idempotent),
+      created: Boolean(json.created),
+    };
+    const { error: upErr } = await vv
+      .from("payment_intents")
+      .update({
+        metadata: {
+          ...r.metadata,
+          hecom_cobro_sync: syncMeta,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", r.payment_intent_id);
+    if (upErr) {
+      console.warn("  metadata update failed:", upErr.message);
+    }
+  }
+}
+
+console.log("\n=== Por cliente ===");
+for (const [name, v] of [...byClient.entries()].sort((a, b) => b[1].n - a[1].n)) {
+  console.log(`${name}: ${v.ok}/${v.n} ok · $${v.sum.toFixed(2)}`);
 }
 
 console.log(`\nDone: ok=${ok} fail=${fail}`);

@@ -9,6 +9,7 @@ import {
   getPaymentIntentByIdInternal,
   getPaymentIntentByProviderReference,
   claimPaymentIntentSucceeded,
+  mergePaymentIntentMetadata,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
 import { confirmDepositInLedger } from "@/lib/ledger/ledger.server";
@@ -367,8 +368,6 @@ export async function processSuccessfulPaymentIntent(input: {
     throw new Error("El provider del webhook no coincide con la intención.");
   }
 
-  if (intent.status === "succeeded") return;
-
   if (
     input.amountCents !== undefined &&
     input.amountCents !== intent.amountCents
@@ -381,6 +380,16 @@ export async function processSuccessfulPaymentIntent(input: {
     input.currency.toUpperCase() !== intent.currency.toUpperCase()
   ) {
     throw new Error("La moneda del webhook no coincide con la intención.");
+  }
+
+  // Ya succeeded (2º webhook Stripe): no re-acreditar; sí curar cobro Hecom si faltó.
+  if (intent.status === "succeeded") {
+    await ensureHecomWalletCobroSynced({
+      intent,
+      webhookEventId: input.webhookEventId,
+      providerReference: input.providerReference ?? intent.providerReference,
+    });
+    return;
   }
 
   const ledgerJournalId = await confirmDepositInLedger({
@@ -405,26 +414,8 @@ export async function processSuccessfulPaymentIntent(input: {
     currency: intent.currency,
   });
 
-  const meta = intent.metadata ?? {};
-  const creditCents =
-    typeof meta.credit_amount_cents === "number"
-      ? meta.credit_amount_cents
-      : typeof meta.credit_amount_cents === "string"
-        ? Number(meta.credit_amount_cents)
-        : null;
-  const feeCents =
-    typeof meta.fee_amount_cents === "number"
-      ? meta.fee_amount_cents
-      : typeof meta.fee_amount_cents === "string"
-        ? Number(meta.fee_amount_cents)
-        : null;
-  const hecomClienteId =
-    typeof meta.hecom_cliente_id === "string"
-      ? meta.hecom_cliente_id
-      : null;
-
   const succeededAt = new Date().toISOString();
-  // Claim atómico: solo el primer webhook sigue al bridge Hecom.
+  // Claim atómico: evita doble depósito / doble email; el cobro Hecom es idempotente.
   const claimed = await claimPaymentIntentSucceeded(intent.id, {
     succeededAt,
     providerReference: input.providerReference ?? intent.providerReference,
@@ -436,48 +427,112 @@ export async function processSuccessfulPaymentIntent(input: {
     },
   });
 
-  if (!claimed) {
-    // Otro webhook ya marcó succeeded (y probablemente ya sincronizó Hecom).
-    return;
-  }
+  // Ganador o perdedor del claim: ambos intentan sync (Hecom AH-STRIPE-{id} es idempotente).
+  // Antes el perdedor hacía return y si el ganador moría mid-bridge el cobro nunca aparecía en Lo pagado.
+  await ensureHecomWalletCobroSynced({
+    intent: {
+      ...intent,
+      metadata: {
+        ...intent.metadata,
+        ledger_journal_id: ledgerJournalId,
+        provider_reference:
+          input.providerReference ?? intent.providerReference,
+      },
+    },
+    webhookEventId: input.webhookEventId,
+    providerReference: input.providerReference ?? intent.providerReference,
+    ledgerJournalId,
+    succeededAt,
+    claimed,
+  });
+}
 
-  const alreadySynced =
-    meta.hecom_cobro_sync &&
-    typeof meta.hecom_cobro_sync === "object" &&
-    (meta.hecom_cobro_sync as { ok?: boolean }).ok === true;
+function hecomCobroAlreadyOk(meta: Record<string, unknown> | null | undefined): boolean {
+  const sync = meta?.hecom_cobro_sync;
+  return Boolean(
+    sync &&
+      typeof sync === "object" &&
+      (sync as { ok?: boolean }).ok === true,
+  );
+}
 
-  if (alreadySynced) return;
+/** Bridge Hecom Lo pagado — reintentable; no lanza. */
+async function ensureHecomWalletCobroSynced(input: {
+  intent: {
+    id: string;
+    amountCents: number;
+    currency: string;
+    provider: string;
+    metadata: Record<string, unknown> | null;
+    providerReference?: string | null;
+  };
+  webhookEventId?: string;
+  providerReference?: string | null;
+  ledgerJournalId?: string;
+  succeededAt?: string;
+  claimed?: boolean;
+}): Promise<void> {
+  const fresh = await getPaymentIntentByIdInternal(input.intent.id);
+  const meta = {
+    ...(fresh?.metadata ?? input.intent.metadata ?? {}),
+  } as Record<string, unknown>;
+
+  if (hecomCobroAlreadyOk(meta)) return;
+
+  const creditRaw = meta.credit_amount_cents;
+  const feeRaw = meta.fee_amount_cents;
+  const creditCents =
+    typeof creditRaw === "number"
+      ? creditRaw
+      : typeof creditRaw === "string"
+        ? Number(creditRaw)
+        : null;
+  const feeCents =
+    typeof feeRaw === "number"
+      ? feeRaw
+      : typeof feeRaw === "string"
+        ? Number(feeRaw)
+        : null;
+  const hecomClienteId =
+    typeof meta.hecom_cliente_id === "string" ? meta.hecom_cliente_id : null;
+
+  const paidAt = input.succeededAt ?? new Date().toISOString();
 
   const cobroSync = await syncWalletDepositCobroBestEffort({
     hecomClienteId,
-    paymentIntentId: intent.id,
-    amountCents: intent.amountCents,
+    paymentIntentId: input.intent.id,
+    amountCents: fresh?.amountCents ?? input.intent.amountCents,
     creditCents: Number.isFinite(creditCents as number)
       ? (creditCents as number)
       : null,
     feeCents: Number.isFinite(feeCents as number) ? (feeCents as number) : null,
-    currency: intent.currency,
-    paidAt: succeededAt,
-    provider: intent.provider,
+    currency: fresh?.currency ?? input.intent.currency,
+    paidAt,
+    provider: fresh?.provider ?? input.intent.provider,
   });
 
-  await updatePaymentIntentRecord(intent.id, {
-    metadata: {
-      ...intent.metadata,
-      ledger_journal_id: ledgerJournalId,
-      provider_reference: input.providerReference ?? intent.providerReference,
-      hecom_cobro_sync_claim: input.webhookEventId ?? succeededAt,
-      hecom_cobro_sync: cobroSync
-        ? {
-            ok: cobroSync.ok,
-            skipped: cobroSync.skipped ?? false,
-            reason: cobroSync.reason ?? null,
-            cobro_id: cobroSync.cobroId ?? null,
-            codigo: cobroSync.codigo ?? null,
-            periodo_resumen: cobroSync.periodoResumen ?? null,
-            at: new Date().toISOString(),
-          }
-        : null,
-    },
+  await mergePaymentIntentMetadata(input.intent.id, {
+    ...(input.ledgerJournalId
+      ? { ledger_journal_id: input.ledgerJournalId }
+      : {}),
+    ...(input.providerReference
+      ? { provider_reference: input.providerReference }
+      : {}),
+    hecom_cobro_sync_claim:
+      input.webhookEventId ??
+      meta.hecom_cobro_sync_claim ??
+      paidAt,
+    hecom_cobro_sync: cobroSync
+      ? {
+          ok: cobroSync.ok,
+          skipped: cobroSync.skipped ?? false,
+          reason: cobroSync.reason ?? null,
+          cobro_id: cobroSync.cobroId ?? null,
+          codigo: cobroSync.codigo ?? null,
+          periodo_resumen: cobroSync.periodoResumen ?? null,
+          at: new Date().toISOString(),
+          healed: input.claimed === false || input.claimed == null,
+        }
+      : null,
   });
 }

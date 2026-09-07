@@ -181,6 +181,34 @@ export async function claimPaymentIntentSucceeded(
   return Boolean(data?.id);
 }
 
+/**
+ * Merge keys into payment_intents.metadata (read-modify-write).
+ * Evita que un update parcial pise hecom_cobro_sync / fee / cliente.
+ */
+export async function mergePaymentIntentMetadata(
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select("metadata")
+    .eq("id", id)
+    .maybeSingle<{ metadata: Record<string, unknown> | null }>();
+  if (error) throw new Error(error.message);
+
+  const current =
+    data?.metadata && typeof data.metadata === "object" ? data.metadata : {};
+  const { error: upErr } = await admin
+    .from("payment_intents")
+    .update({
+      metadata: { ...current, ...patch },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (upErr) throw new Error(upErr.message);
+}
+
 export async function getPaymentIntentByIdInternal(
   id: string,
 ): Promise<PaymentIntentRecord | null> {
