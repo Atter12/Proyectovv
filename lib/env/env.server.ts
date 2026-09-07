@@ -161,6 +161,21 @@ export const serverEnv = {
    * un saldo que no va a llegar solo.
    */
   yapeMinNotifiablePen: parseDecimalEnv(process.env.YAPE_MIN_NOTIFIABLE_PEN, 10),
+  // --- Casilla del banco (la lee el cron, no una PC de la oficina) ----------
+  yapeMailUser: process.env.YAPE_MAIL_USER ?? "",
+  yapeMailPassword: process.env.YAPE_MAIL_PASSWORD ?? "",
+  yapeMailHost: process.env.YAPE_MAIL_HOST ?? "imap.gmail.com",
+  yapeMailPort: parseInteger(process.env.YAPE_MAIL_PORT, 993),
+  yapeMailMailbox: process.env.YAPE_MAIL_MAILBOX ?? "INBOX",
+  yapeMailFromFilter: splitCsv(process.env.YAPE_MAIL_FROM_FILTER).map((value) =>
+    value.toLowerCase(),
+  ),
+  /**
+   * Ventana que mira cada corrida. Tiene que superar holgadamente el intervalo
+   * del cron: si el cron corre cada 2 minutos y la ventana es de 30, una
+   * corrida que falle no pierde correos porque la siguiente los vuelve a ver.
+   */
+  yapeMailLookbackMinutes: parseInteger(process.env.YAPE_MAIL_LOOKBACK_MIN, 30),
   /** Minutos que un monto en soles queda reservado y es cruzable. */
   yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
   /**

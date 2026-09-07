@@ -8,7 +8,10 @@
     {
       "path": "/api/jobs/creative-analysis",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/jobs/yape-mailbox",
+      "schedule": "*/2 * * * *"
     }
   ]
 }
-
