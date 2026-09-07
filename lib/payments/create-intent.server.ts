@@ -39,6 +39,8 @@ export interface CreatePaymentIntentRequest {
   provider: PaymentGatewayId;
   idempotencyKey?: string;
   hecomClienteId?: string | null;
+  /** Org de la cartera destino (cliente OTP al “ver como”); default = sesión. */
+  organizationId?: string | null;
 }
 
 export interface CreatePaymentIntentResponse {
@@ -62,7 +64,9 @@ export async function createPaymentIntentForSession(
   session: SessionUser,
   input: CreatePaymentIntentRequest,
 ): Promise<CreatePaymentIntentResponse> {
-  if (!session.organizationId) {
+  const organizationId =
+    input.organizationId?.trim() || session.organizationId || null;
+  if (!organizationId) {
     throw new Error("Organización no disponible en la sesión.");
   }
 
@@ -134,11 +138,11 @@ export async function createPaymentIntentForSession(
     throw new Error("El monto a cobrar debe ser mayor a cero.");
   }
 
-  const walletId = await resolveWalletId(session.organizationId);
+  const walletId = await resolveWalletId(organizationId);
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
 
   const intent = await createPaymentIntentRecord({
-    organizationId: session.organizationId,
+    organizationId,
     walletId,
     amountCents,
     currency: input.provider === "manual" ? intentCurrency : currency,
@@ -164,7 +168,7 @@ export async function createPaymentIntentForSession(
   const checkoutResult = await providerImpl.createCheckout({
     amountCents,
     currency: input.provider === "manual" ? intentCurrency : currency,
-    organizationId: session.organizationId,
+    organizationId,
     walletId,
     paymentIntentId: intent.id,
     idempotencyKey,
@@ -205,7 +209,7 @@ export async function createPaymentIntentForSession(
     await sendManualPaymentEmailBestEffort({
       to: session.email,
       userId: session.id,
-      organizationId: session.organizationId,
+      organizationId,
       paymentIntentId: intent.id,
       amountCents,
       currency,

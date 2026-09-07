@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 import { startBillingSetupSession } from "@/lib/payments/auto-recharge/auto-recharge.server";
 import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 
 export async function POST() {
   const session = await getSession();
@@ -11,10 +19,14 @@ export async function POST() {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   if (!capabilities.canClientStripeFund) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
@@ -25,9 +37,19 @@ export async function POST() {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
+  const selected = await getSelectedHecomCliente(session.id);
+  const hecomClienteId = selected?.id ?? null;
+  const clienteOrgId = hecomClienteId
+    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
+    : null;
+  const organizationId =
+    (actingAsCliente || Boolean(hecomClienteId)) && clienteOrgId
+      ? clienteOrgId
+      : session.organizationId;
+
   try {
     const result = await startBillingSetupSession({
-      organizationId: session.organizationId,
+      organizationId,
       userId: session.id,
       email: session.email,
     });

@@ -4,6 +4,7 @@ import {
   withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import type { SessionUser } from "@/types/auth";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
 import { WalletSummaryPremium } from "./WalletSummaryPremium";
@@ -13,6 +14,7 @@ interface PaymentsWalletSectionProps {
   staffMode?: boolean;
   hecomFinance?: HecomFinanceSnapshot | null;
   clienteName?: string;
+  hecomClienteId?: string;
 }
 
 export async function PaymentsWalletSection({
@@ -20,11 +22,8 @@ export async function PaymentsWalletSection({
   staffMode = false,
   hecomFinance = null,
   clienteName,
+  hecomClienteId,
 }: PaymentsWalletSectionProps) {
-  const core = await getPaymentPageCore(session);
-  const preferredGateway =
-    core.gateways.find((g) => g.id === core.wallet.preferredGateway) ??
-    core.gateways[0]!;
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
     resolvePaymentsFundingCapabilities({
@@ -33,6 +32,19 @@ export async function PaymentsWalletSection({
     }),
     actingAsCliente,
   );
+
+  const clienteOrgId = hecomClienteId
+    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
+    : null;
+  // Con cliente Hecom seleccionado: siempre su cartera (no la del staff).
+  const walletOrgId = clienteOrgId ?? session.organizationId;
+
+  const core = await getPaymentPageCore(session, {
+    organizationId: walletOrgId,
+  });
+  const preferredGateway =
+    core.gateways.find((g) => g.id === core.wallet.preferredGateway) ??
+    core.gateways[0]!;
 
   return (
     <WalletSummaryPremium

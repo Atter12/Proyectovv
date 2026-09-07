@@ -189,6 +189,7 @@ export default async function PaymentsPage({
           staffMode={capabilities.isStaff}
           hecomFinance={hecomFinance}
           clienteName={cliente.name}
+          hecomClienteId={cliente.id}
         />
       </Suspense>
 

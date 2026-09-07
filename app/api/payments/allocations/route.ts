@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -46,12 +51,16 @@ export async function POST(request: Request) {
   }
 
   const amountCents = Math.round(amount * 100);
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
 
-  // Gerente → siempre BM. Super admin → según flag. Cliente → cartera Holistic.
+  // Gerente → siempre BM. Super admin → según flag. Cliente / “ver como” → cartera Holistic.
   let wantsAgencyBm = false;
   if (capabilities.canAgencyBmFund) {
     wantsAgencyBm = capabilities.canSwitchFundingModes
@@ -66,19 +75,42 @@ export async function POST(request: Request) {
     );
   }
 
+  // Org de la cuenta ads (cartera del cliente OTP), no la org del staff al “ver como”.
+  const admin = createAdminClient();
+  const { data: accountRow, error: accountError } = await admin
+    .from("ad_accounts")
+    .select("id, organization_id")
+    .eq("id", body.adAccountId)
+    .maybeSingle<{ id: string; organization_id: string }>();
+
+  if (accountError) {
+    return NextResponse.json({ error: accountError.message }, { status: 500 });
+  }
+  if (!accountRow?.organization_id) {
+    return NextResponse.json(
+      { error: "Cuenta publicitaria no encontrada." },
+      { status: 404 },
+    );
+  }
+
+  const organizationId = accountRow.organization_id;
+
   console.info("[payments/allocations]", {
     email: session.email,
     isStaff: capabilities.isStaff,
     isSuperAdmin: capabilities.isSuperAdmin,
+    actingAsCliente,
     wantsAgencyBm,
     amountCents,
     adAccountId: body.adAccountId,
+    organizationId,
+    sessionOrg: session.organizationId,
     bodyFlag: body.agencyBmFunding ?? null,
   });
 
   try {
     const result = await allocateWithOptionalTikTokFunding({
-      organizationId: session.organizationId,
+      organizationId,
       adAccountId: body.adAccountId,
       amountCents,
       requestedBy: session.id,
@@ -88,7 +120,7 @@ export async function POST(request: Request) {
       crossBmSourceBcId: body.crossBmSourceBcId,
       idempotencyKey:
         body.idempotencyKey ??
-        `allocation:${session.organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,
+        `allocation:${organizationId}:${body.adAccountId}:${amountCents}:${randomUUID()}`,
       description: wantsAgencyBm
         ? body.description ?? "Recarga gerente desde BM TikTok"
         : body.description ?? "Asignación desde dashboard",

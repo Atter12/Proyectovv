@@ -5,7 +5,15 @@ import {
 import { ProviderNotConfiguredError } from "@/lib/payments/providers";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { isPaymentGatewayId } from "@/types/payment";
 import type { PaymentGatewayId } from "@/types/payment";
 import { getDefaultGatewayId } from "@/lib/payments/gateway-config";
@@ -23,10 +31,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   if (!capabilities.canClientStripeFund) {
     return NextResponse.json(
       {
@@ -62,6 +74,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Proveedor inválido." }, { status: 400 });
   }
 
+  const selected = await getSelectedHecomCliente(session.id);
+  const hecomClienteId = selected?.id ?? null;
+  const clienteOrgId = hecomClienteId
+    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
+    : null;
+  // “Ver como” / cliente seleccionado → acreditar su cartera OTP, no la del staff.
+  const organizationId =
+    (actingAsCliente || Boolean(hecomClienteId)) && clienteOrgId
+      ? clienteOrgId
+      : session.organizationId;
+
   try {
     const result = await createPaymentIntentForSession(session, {
       amount,
@@ -69,6 +92,8 @@ export async function POST(request: Request) {
       chargeCurrency: body.chargeCurrency,
       provider: providerCandidate,
       idempotencyKey: body.idempotencyKey,
+      hecomClienteId,
+      organizationId,
     });
 
     return NextResponse.json({

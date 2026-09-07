@@ -252,16 +252,16 @@ export async function findHecomClientesByEmail(
   }
 
   const hecom = createHecomAdminClient();
-  // Prefer Postgres contains on text[]; fall back to filtered list.
+  // Prefer Postgres contains on text[]/jsonb; fall back to filtered list.
+  // jsonb necesita el filtro como JSON string; pasar JS array crudo falla con
+  // "invalid input syntax for type json" y forzaba el scan limitado.
   const containsQuery = await hecom
     .from("clientes")
-    .select(
-      HECOM_CLIENTE_SELECT,
-    )
-    .contains("emails", [needle])
+    .select(HECOM_CLIENTE_SELECT)
+    .filter("emails", "cs", JSON.stringify([needle]))
     .limit(50);
 
-  if (!containsQuery.error && containsQuery.data) {
+  if (!containsQuery.error && containsQuery.data?.length) {
     const ids = containsQuery.data.map((row) => String((row as { id: string }).id));
     const accountsByClient = await loadTiktokAccountsByClient(ids);
     return (containsQuery.data as Record<string, unknown>[]).map((row) =>

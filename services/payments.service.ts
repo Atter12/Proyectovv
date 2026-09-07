@@ -410,8 +410,10 @@ async function getWalletLedgerBalance(organizationId: string): Promise<{
 
 export const getPaymentPageCore = cache(async (
   session: SessionUser,
+  options?: { organizationId?: string | null },
 ): Promise<PaymentPageCore> => {
-  const organizationId = session.organizationId;
+  const organizationId =
+    options?.organizationId?.trim() || session.organizationId;
   if (!organizationId) {
     return emptyPaymentPageCore();
   }

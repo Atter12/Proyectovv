@@ -17,6 +17,7 @@ import {
 } from "@/lib/sort/payment-accounts";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
@@ -73,6 +74,20 @@ export async function PaymentsGatewayPanel({
     actingAsCliente,
   );
 
+  const clienteOrgId = hecomClienteId
+    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
+    : null;
+  // Cartera + filas ad_accounts del cliente (OTP), no org staff al “ver como”.
+  const useClientOrgForWallet =
+    Boolean(clienteOrgId) &&
+    (actingAsCliente ||
+      capabilities.canClientStripeFund ||
+      Boolean(hecomClienteId));
+  const opsOrganizationId =
+    useClientOrgForWallet && clienteOrgId
+      ? clienteOrgId
+      : session.organizationId;
+
   if (!skipOrphanCleanup && session.organizationId) {
     try {
       await reverseOrphanedAgencyBmBridges({
@@ -97,19 +112,19 @@ export async function PaymentsGatewayPanel({
   const shouldSyncApproved =
     !skipApprovedSync &&
     !hasHecomIds &&
-    Boolean(session.organizationId) &&
+    Boolean(opsOrganizationId) &&
     Boolean(hecomClienteId);
 
   if (
     shouldSyncApproved &&
-    session.organizationId &&
+    opsOrganizationId &&
     hecomClienteId
   ) {
     try {
       // Cache-first (también gerente BM): el forceRefresh en cada visita
       // duplicaba el pull completo de TikTok y frenaba Pagos al entrar.
       const sync = await syncApprovedAdAccountsForCliente({
-        organizationId: session.organizationId,
+        organizationId: opsOrganizationId,
         clienteId: hecomClienteId,
         userId: session.id,
         forceRefresh: false,
@@ -148,7 +163,7 @@ export async function PaymentsGatewayPanel({
       ];
       if (ensureIds.length > 0) {
         ensured = await ensureAdvertisersInOrganizationForAllocation({
-          organizationId: session.organizationId,
+          organizationId: opsOrganizationId,
           clienteId: hecomClienteId,
           clienteName,
           userId: session.id,
@@ -167,7 +182,8 @@ export async function PaymentsGatewayPanel({
         email: session.email,
         isStaff: capabilities.isStaff,
         isSuperAdmin: capabilities.isSuperAdmin,
-        org: session.organizationId,
+        org: opsOrganizationId,
+        sessionOrg: session.organizationId,
         clienteId: hecomClienteId,
         hecomIds: hecomAdvertiserIds?.length ?? 0,
         approvedIds: approvedIds.length,
@@ -185,7 +201,7 @@ export async function PaymentsGatewayPanel({
     }
   } else if (
     hasHecomIds &&
-    session.organizationId &&
+    opsOrganizationId &&
     hecomClienteId
   ) {
     // Fast path: solo IDs del scope (mapa Hecom). No ensure extras del overview
@@ -198,7 +214,7 @@ export async function PaymentsGatewayPanel({
       .filter((id): id is string => Boolean(id && hecomIdSet.has(id)));
     if (ensureIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
-        organizationId: session.organizationId,
+        organizationId: opsOrganizationId,
         clienteId: hecomClienteId,
         clienteName,
         userId: session.id,
@@ -213,7 +229,8 @@ export async function PaymentsGatewayPanel({
     }
     console.info("[payments] allocate_scope_fast", {
       email: session.email,
-      org: session.organizationId,
+      org: opsOrganizationId,
+      sessionOrg: session.organizationId,
       clienteId: hecomClienteId,
       hecomIds: approvedIds.length,
       ensured,
@@ -224,7 +241,7 @@ export async function PaymentsGatewayPanel({
   // Si el sync se saltó (vuelta Stripe), igual asegurá suspendidas del overview.
   if (
     skipApprovedSync &&
-    session.organizationId &&
+    opsOrganizationId &&
     hecomClienteId
   ) {
     const disabledEnsureIds = [
@@ -237,7 +254,7 @@ export async function PaymentsGatewayPanel({
     ];
     if (disabledEnsureIds.length > 0) {
       await ensureAdvertisersInOrganizationForAllocation({
-        organizationId: session.organizationId,
+        organizationId: opsOrganizationId,
         clienteId: hecomClienteId,
         clienteName,
         userId: session.id,
@@ -249,7 +266,9 @@ export async function PaymentsGatewayPanel({
     }
   }
 
-  const core = await getPaymentPageCore(session);
+  const core = await getPaymentPageCore(session, {
+    organizationId: opsOrganizationId,
+  });
   const activeGateway =
     core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
     core.gateways[0]!;
@@ -271,10 +290,10 @@ export async function PaymentsGatewayPanel({
 
   // Con cliente Hecom: leer con service role y scopear (evita pool vacío por RLS/viewer).
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
-  if (session.organizationId && hecomClienteId) {
+  if (opsOrganizationId && hecomClienteId) {
     if (pool.length === 0 && approvedIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
-        organizationId: session.organizationId,
+        organizationId: opsOrganizationId,
         clienteId: hecomClienteId,
         clienteName,
         userId: session.id,
@@ -283,25 +302,25 @@ export async function PaymentsGatewayPanel({
     }
 
     const adminPool = await listOrganizationAdAccountsForAllocation(
-      session.organizationId,
+      opsOrganizationId,
     );
     if (adminPool.length > 0) {
       pool = adminPool;
     }
-  } else if (capabilities.canAgencyBmFund && session.organizationId) {
+  } else if (capabilities.canAgencyBmFund && opsOrganizationId) {
     const adminPool = await listOrganizationAdAccountsForAllocation(
-      session.organizationId,
+      opsOrganizationId,
     );
     if (adminPool.length > 0) {
       pool = adminPool;
     }
   }
 
-  // Fallback: si en la org del super admin (u otra) hay filas con el mismo
-  // hecom_cliente_id en metadata, tomar sus external ids y crearlas acá.
+  // Fallback: si en otra org hay filas con el mismo hecom_cliente_id,
+  // tomar sus external ids y crearlas en la org del cliente (cartera).
   if (
     capabilities.canAgencyBmFund &&
-    session.organizationId &&
+    opsOrganizationId &&
     hecomClienteId &&
     approvedIds.length === 0
   ) {
@@ -328,19 +347,21 @@ export async function PaymentsGatewayPanel({
       if (fromMeta.length > 0) {
         approvedIds = [...new Set(fromMeta.map((r) => r.advertiserId))];
         ensured = await ensureAdvertisersInOrganizationForAllocation({
-          organizationId: session.organizationId,
+          organizationId: opsOrganizationId,
           clienteId: hecomClienteId,
           clienteName,
           userId: session.id,
           advertisers: fromMeta,
         });
         const adminPool = await listOrganizationAdAccountsForAllocation(
-          session.organizationId,
+          opsOrganizationId,
         );
         if (adminPool.length > 0) pool = adminPool;
         syncNote = null;
         console.info("[payments] allocate_from_meta_mirror", {
           email: session.email,
+          org: opsOrganizationId,
+          sessionOrg: session.organizationId,
           clienteId: hecomClienteId,
           approvedIds: approvedIds.length,
           ensured,

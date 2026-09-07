@@ -1,12 +1,36 @@
 import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 import {
   getAutoRechargeState,
   saveAutoRechargeSchedule,
 } from "@/lib/payments/auto-recharge/auto-recharge.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
+
+async function resolveClientWalletOrg(session: {
+  id: string;
+  organizationId: string | null;
+}): Promise<{ organizationId: string | null; hecomClienteId: string | null }> {
+  const selected = await getSelectedHecomCliente(session.id);
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const hecomClienteId = selected?.id ?? null;
+  if (!hecomClienteId) {
+    return { organizationId: session.organizationId, hecomClienteId: null };
+  }
+  const clienteOrgId = await resolveOrganizationIdForHecomCliente(hecomClienteId);
+  if ((actingAsCliente || hecomClienteId) && clienteOrgId) {
+    return { organizationId: clienteOrgId, hecomClienteId };
+  }
+  return { organizationId: session.organizationId, hecomClienteId };
+}
 
 export async function GET() {
   const session = await getSession();
@@ -14,16 +38,24 @@ export async function GET() {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   if (!capabilities.canClientStripeFund) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
   try {
-    const state = await getAutoRechargeState(session.organizationId);
+    const { organizationId } = await resolveClientWalletOrg(session);
+    if (!organizationId) {
+      return NextResponse.json({ error: "Organización no disponible." }, { status: 400 });
+    }
+    const state = await getAutoRechargeState(organizationId);
     return NextResponse.json({ ok: true, ...state });
   } catch (error) {
     const message =
@@ -38,10 +70,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   if (!capabilities.canClientStripeFund) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
@@ -57,13 +93,15 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const selected = await getSelectedHecomCliente(session.id);
-
   try {
+    const { organizationId, hecomClienteId } = await resolveClientWalletOrg(session);
+    if (!organizationId) {
+      return NextResponse.json({ error: "Organización no disponible." }, { status: 400 });
+    }
     const rule = await saveAutoRechargeSchedule({
-      organizationId: session.organizationId,
+      organizationId,
       userId: session.id,
-      hecomClienteId: selected?.id ?? null,
+      hecomClienteId,
       enabled: Boolean(body.enabled),
       intervalDays: Number(body.intervalDays ?? 20),
       creditAmountUsd: Number(body.creditAmount ?? 0),

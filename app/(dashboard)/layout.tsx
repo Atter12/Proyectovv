@@ -70,9 +70,15 @@ export default async function DashboardLayout({
         includeSaldo: false,
       });
 
-      // Cartera Holistic de la org en sesión (cliente o gerente operando).
-      const wallet = session.organizationId
-        ? await getWalletLedgerBalance(session.organizationId)
+      // Cartera Holistic del cliente seleccionado (no la org del staff al “ver como”).
+      const { resolveOrganizationIdForHecomCliente } = await import(
+        "@/lib/hecom/resolve-cliente-organization.server"
+      );
+      const clienteOrgId =
+        (await resolveOrganizationIdForHecomCliente(selected.id)) ??
+        session.organizationId;
+      const wallet = clienteOrgId
+        ? await getWalletLedgerBalance(clienteOrgId)
         : null;
 
       selectedCliente = {
