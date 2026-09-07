@@ -57,3 +57,6 @@ node_modules/
 .vercel-preview-secret
 .vercel-bypass
 .vercel-preview-url
+
+# Estado local del agente de correo (hasta que UID leimos)
+scripts/yape-agent/.state.json
