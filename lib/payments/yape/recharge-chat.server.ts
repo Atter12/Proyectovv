@@ -112,7 +112,8 @@ export async function handleRechargeMessage(input: {
   if (active && (wantsRecharge || input.clientState === "awaiting_payment")) {
     return reply("awaiting_payment", [
       `Ya tenés una recarga en curso: yapea **${formatPenAmount(active.grossPenCents)}** al ${await getYapeNumber()}.`,
-      "El monto tiene que ser exacto, con los céntimos: así identifico tu pago.",
+      breakdownMessage(active),
+      "El monto tiene que ser **exacto**, con los céntimos: así identifico tu pago.",
       "Cuando lo hagas, adjuntá la captura acá mismo con el clip 📎.",
     ]);
   }
@@ -165,8 +166,10 @@ async function startRecharge(
         `Listo. Yapeá **${monto}** al **${numero}**${
           getYapeAccount()?.holder ? ` (${getYapeAccount()?.holder})` : ""
         }.`,
-        "Tiene que ser el monto exacto, céntimos incluidos: esos céntimos son los que me dicen que el pago es tuyo.",
-        `Se acreditan **${formatUsd(amountUsd)}** en tu cartera (el resto es la comisión Holistic).`,
+        intent
+          ? breakdownMessage(intent)
+          : `Se acreditan ${formatUsd(amountUsd)} en tu cartera.`,
+        "Tiene que ser el monto **exacto**, céntimos incluidos: esos céntimos son los que me dicen que el pago es tuyo.",
         "Cuando hayas yapeado, adjuntá la captura acá con el clip 📎 y el saldo entra solo.",
       ]),
     };
@@ -200,9 +203,22 @@ async function getYapeNumber(): Promise<string> {
 }
 
 /** Recarga manual en soles todavía esperando pago. */
+interface ActiveRecharge {
+  id: string;
+  /** Lo que el cliente yapea: saldo + comisión. */
+  grossPenCents: number;
+  /** La parte que se convierte en saldo. */
+  creditPenCents: number;
+  /** La comisión Holistic, en soles. */
+  feePenCents: number;
+  feePercent: number;
+  /** Lo que entra a la cartera, en dólares. */
+  creditUsdCents: number;
+}
+
 async function findActiveManualPenIntent(
   organizationId: string | null | undefined,
-): Promise<{ id: string; grossPenCents: number } | null> {
+): Promise<ActiveRecharge | null> {
   if (!organizationId) return null;
 
   const admin = createAdminClient();
@@ -229,11 +245,51 @@ async function findActiveManualPenIntent(
 
   if (!data) return null;
 
-  const metadata = data.metadata;
-  const fromMeta = isRecord(metadata) ? getNumber(metadata.gross_pen_cents) : null;
-  const grossPenCents = fromMeta && fromMeta > 0 ? fromMeta : data.amount_cents;
+  const metadata = isRecord(data.metadata) ? data.metadata : {};
+  const num = (key: string, fallback: number): number => {
+    const value = getNumber(metadata[key]);
+    return value !== null && value > 0 ? Math.round(value) : fallback;
+  };
 
-  return { id: data.id, grossPenCents: Math.round(grossPenCents) };
+  const grossPenCents = num("gross_pen_cents", data.amount_cents);
+  const creditPenCents = num("credit_pen_cents", grossPenCents);
+
+  return {
+    id: data.id,
+    grossPenCents,
+    creditPenCents,
+    feePenCents: num("fee_pen_cents", Math.max(0, grossPenCents - creditPenCents)),
+    feePercent: getNumber(metadata.fee_percent) ?? 10,
+    creditUsdCents: num("credit_amount_cents", 0),
+  };
+}
+
+/**
+ * Desglose de lo que el cliente yapea.
+ *
+ * Lo pedimos explícito: el monto a enviar incluye la comisión Holistic, pero
+ * el saldo que recibe es sin ella. Si el bot solo dijera el total, el cliente
+ * vería que le acreditan menos de lo que pagó y pensaría que falta plata.
+ */
+function buildBreakdown(active: ActiveRecharge): string[] {
+  const lineas = [
+    `• ${formatPenAmount(active.creditPenCents)} → tu saldo${
+      active.creditUsdCents > 0 ? ` (${formatUsd(active.creditUsdCents / 100)})` : ""
+    }`,
+  ];
+
+  if (active.feePenCents > 0) {
+    lineas.push(
+      `• ${formatPenAmount(active.feePenCents)} → comisión Holistic (${active.feePercent}%)`,
+    );
+  }
+
+  return lineas;
+}
+
+/** El desglose como un solo mensaje del bot, una línea por concepto. */
+function breakdownMessage(active: ActiveRecharge): string {
+  return ["Ese monto se compone así:", ...buildBreakdown(active)].join("\n");
 }
 
 /** Estado del bot al abrir el chat, para retomar una recarga en curso. */
