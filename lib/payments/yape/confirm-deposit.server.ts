@@ -29,11 +29,45 @@ export type BankConfirmedOutcome =
   | { completed: true; journalId: string }
   | { completed: false; reason: string };
 
-/** Un pago manual solo se acredita si el análisis del comprobante dio positivo. */
+/**
+ * ¿El comprobante respalda esta recarga?
+ *
+ * El camino normal es que el análisis lo confirme. Pero hay un caso donde
+ * `confirmed` viene en false y aun así hay que acreditar: cuando lo unico que
+ * lo tumbó fue el límite de subidas por hora.
+ *
+ * Ese límite se diseñó cuando el comprobante era la ÚNICA prueba, para que
+ * nadie pudiera spamear capturas falsas buscando uno que colara. Acá ya
+ * tenemos la confirmación del banco por el monto exacto, o sea que la plata
+ * entró de verdad: retenerle el saldo a alguien que pagó, por haber subido
+ * capturas seguido, es castigar al cliente por una defensa que ya no aplica.
+ *
+ * Lo que NO se relaja: si el análisis fallo por comprobante duplicado, codigo
+ * de operacion repetido o porque el monto no cuadra, no se acredita. Esos si
+ * son señales de fraude y siguen yendo a revision manual.
+ */
 function hasConfirmedVoucher(metadata: unknown): boolean {
   if (!isRecord(metadata)) return false;
+
   const analysis = metadata.voucher_analysis;
-  return isRecord(analysis) && analysis.confirmed === true;
+  if (!isRecord(analysis)) return false;
+  if (analysis.confirmed === true) return true;
+
+  const security = metadata.voucher_security;
+  if (!isRecord(security)) return false;
+
+  const soloLimitePorHora =
+    security.rateLimitBlocksAutoApprove === true &&
+    security.duplicateContentHash !== true &&
+    security.duplicateOperationCode !== true;
+
+  // El comprobante ademas tiene que ser coherente por si mismo.
+  const analisisSano =
+    analysis.beneficiaryMatch === true &&
+    typeof analysis.detectedAmount === "number" &&
+    analysis.detectedAmount > 0;
+
+  return soloLimitePorHora && analisisSano;
 }
 
 export function readBankConfirmedAt(metadata: unknown): string | null {

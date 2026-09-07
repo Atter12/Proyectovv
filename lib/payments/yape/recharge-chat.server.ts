@@ -9,6 +9,7 @@ import {
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
 import { mergeMetadata } from "@/lib/records";
+import { completeBankConfirmedDeposit } from "./confirm-deposit.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 import { isRecord, getNumber, getString } from "@/lib/records";
@@ -349,7 +350,40 @@ export async function getPendingRecharge(
 ): Promise<PendingRechargeInfo | null> {
   const active = await findActiveManualPenIntent(session.organizationId);
   if (!active) return null;
+
+  // El aviso del banco puede haber llegado ANTES de que el comprobante
+  // estuviera listo, y ese aviso ya se consumio: nada lo volveria a intentar.
+  // Reintentamos mientras el cliente espera, que es justo cuando importa.
+  await retryIfBankAlreadyConfirmed(active.id);
+
   return { paymentIntentId: active.id, grossPenCents: active.grossPenCents };
+}
+
+/**
+ * Vuelve a intentar cerrar una recarga cuyo cobro ya confirmo el banco.
+ *
+ * Sin esto, una recarga que quedo esperando el comprobante (o que fallo por un
+ * motivo transitorio) se queda colgada para siempre aunque la plata este: el
+ * aviso solo se procesa una vez.
+ */
+async function retryIfBankAlreadyConfirmed(intentId: string): Promise<void> {
+  try {
+    const intent = await getPaymentIntentByIdInternal(intentId);
+    if (!intent || intent.status === "succeeded") return;
+
+    const metadata = isRecord(intent.metadata) ? intent.metadata : {};
+    const notificationId = getString(metadata.bank_confirmation_notification_id);
+    if (!getString(metadata.bank_confirmed_at) || !notificationId) return;
+
+    await completeBankConfirmedDeposit({
+      intentId,
+      notificationId,
+      operationNumber: getString(metadata.bank_confirmation_operation_number),
+    });
+  } catch (error) {
+    // Nunca debe romper la consulta del chat.
+    console.warn("[recharge-chat] reintento de acreditacion fallo", error);
+  }
 }
 
 /** Estado del bot al abrir el chat, para retomar una recarga en curso. */
