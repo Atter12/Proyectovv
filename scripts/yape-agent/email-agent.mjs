@@ -81,10 +81,17 @@ function assertConfigured() {
   }
 }
 
-// --- Parser -----------------------------------------------------------------
-// Mismos patrones que lib/payments/yape/parse-notification.ts. El servidor
-// vuelve a parsear igual, así que si acá sale mal el aviso queda sin cruzar y
-// nunca acredita de más: esto es para ver e informar, no la fuente de verdad.
+// --- Parser (SOLO para mostrar y para decidir si vale la pena reportar) ------
+//
+// La fuente de verdad es el parser del servidor
+// (lib/payments/yape/parse-notification.ts). Acá NO extraemos el N° de
+// operación para mandarlo: mantener dos parsers en sincronía ya falló una vez
+// — este archivo capturaba "Fecha" de "Datos de la operación / Fecha y hora" y
+// lo habría reportado como N° de operación, chocando con el índice UNIQUE y
+// descartando el segundo pago real como duplicado.
+//
+// El agente solo decide "¿esto parece un cobro?" y le manda el texto crudo al
+// servidor, que parsea una sola vez y de forma autoritativa.
 
 const AMOUNT_PATTERNS = [
   /(?:S\/\.?|PEN|SOLES)\s*([0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]+)[.,]([0-9]{2})\b/i,
@@ -107,10 +114,11 @@ function extractAmountCents(text) {
   return null;
 }
 
+/** Un N° de operación real es numérico; sin esto se cuelan palabras sueltas. */
 function extractOperationNumber(text) {
   for (const pattern of OPERATION_PATTERNS) {
     const value = pattern.exec(text)?.[1]?.trim();
-    if (value) return value;
+    if (value && /\d{4,}/.test(value)) return value;
   }
   return null;
 }
@@ -298,11 +306,9 @@ async function processMessage(message, { announce }) {
     operationNumber,
     payload: {
       source: "email",
-      // Mandamos el texto completo: el servidor vuelve a parsear y así puede
-      // mejorar el parser más adelante sin tocar el agente.
+      // Solo el texto crudo. El servidor extrae monto, remitente y N° de
+      // operación: un único parser, una única verdad.
       rawText: searchable,
-      amountCents,
-      operationNumber,
       receivedAt: (parsed.date ?? message.internalDate ?? new Date()).toISOString(),
       metadata: { from: fromText, subject, uid: message.uid },
     },
