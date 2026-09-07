@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
+import { pollYapeMailboxThrottled } from "@/lib/payments/yape/poll-mailbox.server";
 import {
   getPendingRecharge,
   getRechargeChatSnapshot,
@@ -46,6 +47,14 @@ export async function GET() {
       getRechargeChatSnapshot(auth.session),
       getPendingRecharge(auth.session),
     ]);
+
+    // Con una recarga esperando, revisamos la casilla en el momento en vez de
+    // dejar al cliente esperando al cron. El throttle evita abrir IMAP en cada
+    // consulta cuando el chat pregunta cada pocos segundos.
+    if (pending) {
+      await pollYapeMailboxThrottled();
+    }
+
     return NextResponse.json({ ok: true, ...snapshot, pending });
   } catch (error) {
     // El bot nunca debe romper el chat de soporte: si falla, no se hace cargo

@@ -105,6 +105,11 @@ function watchRechargeUntilCredited(
     if (cancelado) return;
     intentos += 1;
     try {
+      // Este GET tambien hace que el servidor revise la casilla del banco, con
+      // su propio throttle. Asi el cliente que esta esperando dispara la
+      // validacion en el momento, en vez de aguardar al cron.
+      void fetch("/api/payments/recharge-chat", { credentials: "include" });
+
       const res = await fetch(`/api/payments/intents/${paymentIntentId}`, {
         credentials: "include",
       });

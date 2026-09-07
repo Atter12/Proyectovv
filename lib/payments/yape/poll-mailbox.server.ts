@@ -79,6 +79,41 @@ function senderAllowed(fromText: string): boolean {
   return filters.some((allowed) => normalized.includes(allowed));
 }
 
+/**
+ * Última vez que se abrió la casilla, para no golpear IMAP en cada consulta.
+ *
+ * Vive en memoria del proceso, así que con varias instancias en paralelo el
+ * limite es por instancia y no global. Alcanza: el costo de una conexion de
+ * mas es despreciable, y lo que queremos evitar es que el chat de un cliente
+ * abra IMAP cada cuatro segundos durante diez minutos.
+ */
+let ultimaCorrida = 0;
+const THROTTLE_MS = 12_000;
+
+/**
+ * Revisa la casilla solo si pasó el intervalo mínimo.
+ *
+ * La dispara el cliente que está esperando su recarga: sin esto tendría que
+ * aguardar al cron, hasta dos minutos mirando "validando" con la plata ya
+ * depositada. El cron queda como red por si cierra el navegador.
+ */
+export async function pollYapeMailboxThrottled(): Promise<
+  MailboxPollResult | { skipped: true }
+> {
+  const ahora = Date.now();
+  if (ahora - ultimaCorrida < THROTTLE_MS) return { skipped: true };
+  ultimaCorrida = ahora;
+
+  try {
+    return await pollYapeMailbox();
+  } catch (error) {
+    // Nunca debe romper la consulta del cliente: si la casilla falla, el cron
+    // reintenta y el cliente sigue viendo su estado.
+    console.warn("[yape-mailbox] revision a demanda fallo", error);
+    return { skipped: true };
+  }
+}
+
 export async function pollYapeMailbox(): Promise<MailboxPollResult> {
   const result: MailboxPollResult = {
     enabled: false,
