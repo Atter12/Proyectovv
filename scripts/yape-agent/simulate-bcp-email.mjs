@@ -77,6 +77,9 @@ const response = await fetch(url, {
   headers: {
     "Content-Type": "application/json",
     Authorization: `Bearer ${secret}`,
+    ...(process.env.YAPE_AGENT_BYPASS_TOKEN
+      ? { "x-vercel-protection-bypass": process.env.YAPE_AGENT_BYPASS_TOKEN }
+      : {}),
   },
   body: JSON.stringify({
     source: "email",

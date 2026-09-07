@@ -51,3 +51,9 @@ node_modules/
 .env
 .env.local
 .env.production
+
+# Token de Vercel para configurar variables (nunca se commitea)
+.vercel-token
+.vercel-preview-secret
+.vercel-bypass
+.vercel-preview-url

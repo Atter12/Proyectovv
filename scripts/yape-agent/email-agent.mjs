@@ -65,6 +65,9 @@ const config = {
   agentUrl:
     process.env.YAPE_AGENT_URL ?? "http://localhost:3000/api/webhooks/yape/inbound",
   ingestSecret: process.env.YAPE_INGEST_SECRET,
+  // Los preview de Vercel estan detras de SSO. Sin este token el POST del
+  // agente se va a la pantalla de login en vez de llegar al endpoint.
+  bypassToken: process.env.YAPE_AGENT_BYPASS_TOKEN ?? "",
 };
 
 function assertConfigured() {
@@ -221,6 +224,9 @@ async function report(payload) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.ingestSecret}`,
+      ...(config.bypassToken
+        ? { "x-vercel-protection-bypass": config.bypassToken }
+        : {}),
     },
     body: JSON.stringify(payload),
   });
