@@ -177,9 +177,8 @@ async function resolveBmAdvertisersForAdAccounts(
 
 /**
  * Cuentas ads del cliente.
- * - Prioridad: mapeo Hecom por advertiser_id (activo o suspendido).
- * - Fallback: BM TikTok match por nombre (aprobadas + suspendidas).
- * - Nombres: preferir nombre exacto de TikTok cuando hay ID en live.
+ * - Prioridad: mapeo Hecom por advertiser_id.
+ * - Fallback seguro: filas Holistic con metadata.hecom_cliente_id (nunca por nombre).
  */
 export const getHecomClienteAdAccountsOverview = cache(
   async function getHecomClienteAdAccountsOverview(
@@ -189,6 +188,77 @@ export const getHecomClienteAdAccountsOverview = cache(
     return getHecomClienteAdAccountsOverviewImpl(clienteId, speed);
   },
 );
+
+/** Advertisers ya vinculados en Holistic al cliente (por UUID), sin match de nombre. */
+async function listHolisticLinkedAdAccountsForCliente(
+  clienteId: string,
+  clienteName: string,
+): Promise<AdAccount[]> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("ad_accounts")
+    .select("id, name, external_account_id, status, metadata")
+    .eq("metadata->>hecom_cliente_id", clienteId)
+    .not("external_account_id", "is", null)
+    .limit(150);
+
+  if (error) {
+    console.warn("[ad-accounts] holistic_link_fallback_failed", {
+      clienteId,
+      error: error.message,
+    });
+    return [];
+  }
+
+  const byExt = new Map<string, AdAccount>();
+  for (const row of data ?? []) {
+    const ext = String(row.external_account_id ?? "").trim();
+    if (!ext) continue;
+    if (
+      isStaffBlockedAdAccount({
+        externalAccountId: ext,
+        hecomClienteId: clienteId,
+      })
+    ) {
+      continue;
+    }
+
+    const statusRaw = String(row.status ?? "active").toLowerCase();
+    const status: AdAccount["status"] =
+      statusRaw === "disabled" || statusRaw === "suspended"
+        ? "disabled"
+        : statusRaw === "pending"
+          ? "pending"
+          : "active";
+
+    const prev = byExt.get(ext);
+    if (prev && prev.status === "disabled") continue;
+
+    byExt.set(ext, {
+      id: String(row.id),
+      name: String(row.name ?? "").trim() || `${clienteName} · TikTok`,
+      platform: "tiktok",
+      bcId: ext,
+      externalAccountId: ext,
+      externalBusinessId: null,
+      externalAccountName: String(row.name ?? "").trim() || null,
+      status,
+      cost: 0,
+      dailyBudget: 0,
+      monthlyLimit: 0,
+      balance: 0,
+      autoRecharge: false,
+      rechargeThreshold: 0,
+      thresholdInfo: "Vinculada en Holistic · TikTok Ads",
+      timezone: "America/Lima",
+      connectionLabel: "Holistic · TikTok Ads",
+      isArchived: false,
+    });
+  }
+
+  return [...byExt.values()];
+}
 
 async function getHecomClienteAdAccountsOverviewImpl(
   clienteId: string,
@@ -272,6 +342,19 @@ async function getHecomClienteAdAccountsOverviewImpl(
     }
   }
 
+  // Fallback ID-only: cuentas Holistic ya etiquetadas con este hecom_cliente_id
+  // (ej. Carla tiene advertisers en Holistic pero sin fila en cliente_tiktok_cuentas).
+  if (byExternalId.size === 0) {
+    const linked = await listHolisticLinkedAdAccountsForCliente(
+      clienteId,
+      cliente.name,
+    );
+    for (const account of linked) {
+      const key = account.externalAccountId?.trim() || account.id;
+      if (!byExternalId.has(key)) byExternalId.set(key, account);
+    }
+  }
+
   // Mostrar activas, suspendidas (disabled) y pendientes. No ocultar baneadas.
   const accounts = [...byExternalId.values()].sort((a, b) => {
     const order = (s: AdAccount["status"]) =>
@@ -289,6 +372,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
     hecomMapped: hecomAccounts.length,
     liveSource,
     shown: accounts.length,
+    holisticFallback: hecomAccounts.length === 0 ? accounts.length : 0,
     active: accounts.filter((a) => a.status === "active").length,
     suspended: accounts.filter((a) => a.status === "disabled").length,
   });

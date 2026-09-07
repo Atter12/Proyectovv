@@ -108,7 +108,7 @@ export default async function PaymentsPage({
   }
 
   const cliente = data.cliente;
-  // Fuente de verdad para recarga: SOLO IDs mapeados en Hecom (nunca por nombre BM).
+  // Hecom map primero; si vacío, overview (Hecom IDs o Holistic por hecom_cliente_id — nunca por nombre).
   const mappedHecomIds = (
     cliente.tiktokAccounts.length > 0
       ? cliente.tiktokAccounts.filter((a) => a.syncEnabled !== false)
@@ -118,7 +118,12 @@ export default async function PaymentsPage({
   )
     .map((a) => a.advertiserId.trim())
     .filter(Boolean);
-  const hecomAdvertiserIds = mappedHecomIds;
+  const overviewActiveIds = adsOverview.accounts
+    .filter((account) => account.status !== "disabled")
+    .map((account) => account.externalAccountId?.trim())
+    .filter((id): id is string => Boolean(id));
+  const hecomAdvertiserIds =
+    mappedHecomIds.length > 0 ? mappedHecomIds : overviewActiveIds;
 
   console.info("[payments] page_load", {
     clienteId: cliente.id,
