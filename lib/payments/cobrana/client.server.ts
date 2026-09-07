@@ -27,6 +27,7 @@ export type CreateCobranaChargeInput = {
   amountPen: number;
   concept: string;
   documentNumber: string;
+  documentType?: "DNI" | "RUC";
   name?: string;
   lastname?: string;
   email?: string;
@@ -80,7 +81,7 @@ async function cobranaFetch<T>(
     const err = (raw as CobranaErrorBody | null)?.error;
     const message =
       err?.message ||
-      `Cobrana HTTP ${res.status}${err?.code ? ` (${err.code})` : ""}`;
+      `Yape HTTP ${res.status}${err?.code ? ` (${err.code})` : ""}`;
     throw new Error(message);
   }
   return raw as T;
@@ -103,6 +104,7 @@ export async function createCobranaCharge(
     dueDate: input.dueDate,
     customer: {
       documentNumber: input.documentNumber.trim(),
+      ...(input.documentType ? { documentType: input.documentType } : {}),
       ...(input.name ? { name: input.name } : {}),
       ...(input.lastname ? { lastname: input.lastname } : {}),
       ...(input.email ? { email: input.email } : {}),

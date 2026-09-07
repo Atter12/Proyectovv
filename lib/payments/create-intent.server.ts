@@ -119,6 +119,7 @@ export async function createPaymentIntentForSession(
   let manualQuoteMeta: Record<string, unknown> = {};
   let cobranaCustomer: {
     documentNumber: string;
+    documentType: "DNI" | "RUC";
     name?: string;
     lastname?: string;
     phone?: string | null;
@@ -150,24 +151,24 @@ export async function createPaymentIntentForSession(
 
   if (isCobrana) {
     if (!fee.hecomClienteId) {
-      throw new Error(
-        "Seleccioná un cliente Hecom para pagar con Yape / Cobrana.",
-      );
+      throw new Error("Seleccioná un cliente Hecom para pagar con Yape.");
     }
     const { getHecomCliente } = await import("@/lib/hecom/clientes.server");
+    const { normalizeYapeDocument } = await import(
+      "@/lib/payments/cobrana/document.server"
+    );
     const hecomCliente = await getHecomCliente(fee.hecomClienteId);
-    const dni = hecomCliente?.dni?.trim() || null;
-    if (!dni) {
-      throw new Error(
-        "Completá el DNI/RUC del cliente en Hecom CRM para pagar con Yape / Cobrana.",
-      );
+    const doc = normalizeYapeDocument(hecomCliente?.dni);
+    if (!doc.ok) {
+      throw new Error(doc.message);
     }
     const nameParts = String(hecomCliente?.name ?? "")
       .trim()
       .split(/\s+/)
       .filter(Boolean);
     cobranaCustomer = {
-      documentNumber: dni,
+      documentNumber: doc.value.documentNumber,
+      documentType: doc.value.documentType,
       name: nameParts[0],
       lastname: nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined,
       phone: hecomCliente?.phones?.[0] ?? null,
@@ -175,7 +176,7 @@ export async function createPaymentIntentForSession(
     };
     if (amountCents < 1000) {
       throw new Error(
-        "Con el tipo de cambio actual el cargo en soles queda bajo el mínimo de Cobrana (S/ 10). Subí el monto en USD.",
+        "Con el tipo de cambio actual el cargo en soles queda bajo el mínimo de Yape (S/ 10). Subí el monto en USD.",
       );
     }
   }
@@ -211,6 +212,7 @@ export async function createPaymentIntentForSession(
       ...(cobranaCustomer
         ? {
             customer_document_number: cobranaCustomer.documentNumber,
+            customer_document_type: cobranaCustomer.documentType,
             customer_full_name: cobranaCustomer.fullName,
             customer_phone: cobranaCustomer.phone,
           }
@@ -229,6 +231,7 @@ export async function createPaymentIntentForSession(
     idempotencyKey,
     customerEmail: session.email,
     customerDocumentNumber: cobranaCustomer?.documentNumber,
+    customerDocumentType: cobranaCustomer?.documentType,
     customerName: cobranaCustomer?.name,
     customerLastname: cobranaCustomer?.lastname,
     customerPhone: cobranaCustomer?.phone ?? undefined,

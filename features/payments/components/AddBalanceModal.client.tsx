@@ -79,7 +79,7 @@ const gatewayLabels: Record<PaymentGatewayId, string> = {
   mercadopago: "Mercado Pago",
   crypto: "Cripto (USDT)",
   manual: "Pago manual",
-  cobrana: "Yape / Cobrana",
+  cobrana: "Yape",
 };
 
 const MIN_AMOUNT = 1;
@@ -369,7 +369,7 @@ export function AddBalanceModal({
               Indicá cuánto querés en cartera. El fee Holistic (
               {formatFeePercentLabel(feePercent)}) se suma
               {isCobrana
-                ? " y se cobra en soles vía Yape / Cobrana."
+                ? " y se cobra en soles vía Yape."
                 : " y eso es lo que se cobra."}
             </p>
 
@@ -451,7 +451,7 @@ export function AddBalanceModal({
                   <>
                     <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
                       Abrís Yape u otra app bancaria con el código. El saldo USD
-                      se acredita cuando Cobrana confirma el pago.
+                      se acredita cuando se confirma el pago.
                     </p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       {(
@@ -619,7 +619,7 @@ export function AddBalanceModal({
                 ID: <span className="font-mono">{paymentIntentId}</span>
               </p>
               <p className="text-xs font-medium text-[#5F0B72]">
-                Esperando confirmación de Cobrana…
+                Esperando confirmación del pago…
               </p>
             </div>
 

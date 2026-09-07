@@ -14,8 +14,8 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   },
   {
     id: "cobrana",
-    name: "Yape / Cobrana",
-    description: "Yape, BCP y apps bancarias en soles",
+    name: "Yape",
+    description: "Yape, BCP, Plin y apps bancarias en soles",
   },
   {
     id: "manual",

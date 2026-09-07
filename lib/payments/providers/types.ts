@@ -8,8 +8,9 @@ export interface CreateCheckoutInput {
   paymentIntentId: string;
   idempotencyKey: string;
   customerEmail?: string;
-  /** DNI/RUC — requerido por Cobrana services. */
+  /** DNI/RUC — requerido por Yape (services). */
   customerDocumentNumber?: string;
+  customerDocumentType?: "DNI" | "RUC";
   customerName?: string;
   customerLastname?: string;
   customerPhone?: string;

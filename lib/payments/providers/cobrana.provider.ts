@@ -47,20 +47,28 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
       throw new ProviderNotConfiguredError("cobrana");
     }
 
-    const doc = input.customerDocumentNumber?.trim();
-    if (!doc) {
+    const docRaw = input.customerDocumentNumber?.trim();
+    if (!docRaw) {
       throw new Error(
-        "Falta el DNI/RUC del cliente en Hecom para pagar con Yape / Cobrana.",
+        "Falta el DNI/RUC del cliente en Hecom para pagar con Yape.",
       );
     }
 
+    const { normalizeYapeDocument } = await import(
+      "@/lib/payments/cobrana/document.server"
+    );
+    const doc = normalizeYapeDocument(docRaw);
+    if (!doc.ok) {
+      throw new Error(doc.message);
+    }
+
     if (input.currency.toUpperCase() !== "PEN") {
-      throw new Error("Cobrana solo acepta cargos en PEN.");
+      throw new Error("Yape solo acepta cargos en PEN.");
     }
 
     const amountPen = input.amountCents / 100;
     if (!(amountPen >= 10)) {
-      throw new Error("El monto mínimo en Cobrana es S/ 10.");
+      throw new Error("El monto mínimo en Yape es S/ 10.");
     }
 
     const fromInput = {
@@ -81,7 +89,9 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
       concept:
         input.concept?.trim() ||
         `Recarga cartera Holistic ${input.paymentIntentId.slice(0, 8)}`,
-      documentNumber: doc,
+      documentNumber: doc.value.documentNumber,
+      documentType:
+        input.customerDocumentType ?? doc.value.documentType,
       name: fromInput.name ?? fromEmailName.name,
       lastname: fromInput.lastname ?? fromEmailName.lastname,
       email: input.customerEmail,
@@ -104,9 +114,9 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
     const messageParts = [
       code
         ? `Pagá con Yape / bancos usando el código ${code}.`
-        : "Orden Cobrana creada. Completá el pago en la app del banco.",
+        : "Orden creada. Completá el pago en Yape o tu app bancaria.",
       yape ? "Podés abrir Yape con el botón de pago directo." : null,
-      "Cuando Cobrana confirme el pago, el saldo USD se acredita solo.",
+      "Cuando se confirme el pago, el saldo USD se acredita solo.",
     ].filter(Boolean);
 
     return {
