@@ -44,6 +44,50 @@ const SENDER_PATTERNS: RegExp[] = [
   /(?:recibiste|te\s+yape[oó]|te\s+envi[oó]).{0,40}?\bde\s+([A-Za-zÁÉÍÓÚÑáéíóúñ.\s]{3,60})/i,
 ];
 
+/**
+ * ¿El aviso dice que ENTRÓ plata, o que SALIÓ?
+ *
+ * El filtro por remitente no alcanza: el banco manda por el mismo remitente los
+ * cobros recibidos y los consumos con tarjeta. En la casilla de prueba
+ * convivían "Constancia de recepción de Yapeo" (entra) con "Realizaste un
+ * consumo de S/ 395.00 con tu Tarjeta de Débito BCP" (sale).
+ *
+ * Sin este control, una compra en una tienda por un monto que coincidiera con
+ * una recarga abierta le habría acreditado saldo a un cliente. Plata que salió
+ * de la cuenta, contada como plata que entró.
+ */
+export type NotificationDirection = "inbound" | "outbound" | "unknown";
+
+/** Plata que sale. Si aparece cualquiera de estas, el aviso se descarta. */
+const OUTBOUND_PATTERNS: RegExp[] = [
+  /realizaste\s+un\s+consumo/i,
+  /realizaste\s+una\s+(?:transferencia|compra|operaci[oó]n\s+de\s+pago)/i,
+  /total\s+del\s+consumo/i,
+  /\byapeaste\b/i,
+  /\benviaste\b/i,
+  /tu\s+recarga\s+en\s+yape/i,
+  /pago\s+de\s+servicio/i,
+  /retiro\s+sin\s+tarjeta/i,
+  /\bcargo\s+en\s+tu\s+cuenta/i,
+];
+
+/** Plata que entra. Hace falta al menos una para aceptar el aviso. */
+const INBOUND_PATTERNS: RegExp[] = [
+  /recibiste\s+un\s+yape/i,
+  /constancia\s+de\s+recepci[oó]n/i,
+  /monto\s+recibido/i,
+  /te\s+(?:envi[oó]|yape[oó])\b/i,
+  /\brecibiste\b/i,
+  /abono\s+en\s+tu\s+cuenta/i,
+];
+
+export function classifyDirection(text: string): NotificationDirection {
+  // Primero lo saliente: ante un texto ambiguo preferimos NO acreditar.
+  if (OUTBOUND_PATTERNS.some((pattern) => pattern.test(text))) return "outbound";
+  if (INBOUND_PATTERNS.some((pattern) => pattern.test(text))) return "inbound";
+  return "unknown";
+}
+
 export function parseYapeNotificationText(text: string): ParsedYapeNotification {
   const normalized = text.replace(/\s+/g, " ").trim();
 

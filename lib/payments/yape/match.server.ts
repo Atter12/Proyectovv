@@ -9,7 +9,11 @@ import { normalizeOperationCode } from "@/lib/payments/voucher-security.server";
 import { readGrossPenCents } from "./reserve-amount.server";
 import { completeBankConfirmedDeposit } from "./confirm-deposit.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
-import { buildFingerprint, parseYapeNotificationText } from "./parse-notification";
+import {
+  buildFingerprint,
+  classifyDirection,
+  parseYapeNotificationText,
+} from "./parse-notification";
 
 export type YapeNotificationSource = "android_push" | "email" | "manual" | "test";
 
@@ -28,6 +32,7 @@ export interface IngestYapeNotificationInput {
 
 export type YapeIngestOutcome =
   | { result: "duplicate"; notificationId: string | null }
+  | { result: "ignored"; reason: string }
   | { result: "unparsable"; reason: string }
   | { result: "matched"; notificationId: string; paymentIntentId: string }
   | { result: "unmatched"; notificationId: string; reason: string };
@@ -56,6 +61,35 @@ export async function ingestYapeNotification(
       result: "unparsable",
       reason: "No se pudo determinar el monto del aviso.",
     };
+  }
+
+  // Solo acreditamos plata que ENTRÓ. Por el mismo remitente llegan tanto los
+  // cobros recibidos como los consumos con tarjeta, y un consumo cuyo monto
+  // coincidiera con una recarga abierta le habría dado saldo a un cliente por
+  // una compra que hizo el titular. La carga manual de un admin sí puede
+  // saltear el control: ahí hay una persona afirmándolo.
+  const direction = input.source === "manual" ? "inbound" : classifyDirection(
+    `${input.rawText ?? ""}`,
+  );
+
+  if (direction !== "inbound") {
+    const reason =
+      direction === "outbound"
+        ? "El aviso es de plata que salió de la cuenta, no de un cobro recibido."
+        : "El aviso no dice claramente que se haya recibido un cobro.";
+
+    await recordIgnoredNotification({
+      source: input.source,
+      amountCents,
+      operationNumber,
+      senderName,
+      receivedAt,
+      rawText: input.rawText ?? null,
+      metadata: input.metadata,
+      reason,
+    });
+
+    return { result: "ignored", reason };
   }
 
   const fingerprint = buildFingerprint({
@@ -107,6 +141,50 @@ export async function ingestYapeNotification(
     senderName,
     receivedAt,
   });
+}
+
+/**
+ * Guarda un aviso descartado en vez de tirarlo.
+ *
+ * Deja rastro para cuando alguien pregunte "pagué y no me acreditó": se ve el
+ * aviso, el motivo y el texto crudo. Se guarda como best-effort porque
+ * descartar nunca debe romper la ingesta.
+ */
+async function recordIgnoredNotification(input: {
+  source: YapeNotificationSource;
+  amountCents: number;
+  operationNumber: string | null;
+  senderName: string | null;
+  receivedAt: string;
+  rawText: string | null;
+  metadata?: Record<string, unknown>;
+  reason: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.from("yape_inbound_notifications").insert({
+      source: input.source,
+      fingerprint: buildFingerprint({
+        source: input.source,
+        operationNumber: input.operationNumber,
+        amountCents: input.amountCents,
+        senderName: input.senderName,
+        receivedAt: input.receivedAt,
+        rawText: input.rawText,
+      }),
+      operation_number: input.operationNumber,
+      amount_cents: input.amountCents,
+      currency: "PEN",
+      sender_name: input.senderName,
+      raw_text: input.rawText,
+      received_at: input.receivedAt,
+      status: "ignored",
+      match_note: input.reason,
+      metadata: input.metadata ?? {},
+    });
+  } catch (error) {
+    console.warn("[yape] no se pudo registrar el aviso descartado", error);
+  }
 }
 
 async function findExistingNotificationId(
