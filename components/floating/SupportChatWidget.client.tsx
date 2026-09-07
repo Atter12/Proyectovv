@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { ChatMessage } from "@/features/support/types/support.types";
@@ -83,6 +84,63 @@ async function uploadVoucherFromChat(
   }
 }
 
+/**
+ * Espera a que la recarga se acredite y avisa.
+ *
+ * El cobro lo confirma un agente que corre fuera de la app, asi que el chat no
+ * tiene forma de enterarse solo: sin esto el cliente se queda mirando
+ * "validando..." para siempre, incluso despues de que el saldo ya entro.
+ */
+function watchRechargeUntilCredited(
+  paymentIntentId: string,
+  onResolved: (text: string) => void,
+): () => void {
+  const INTERVALO_MS = 4000;
+  const MAX_INTENTOS = 150; // ~10 minutos
+  let intentos = 0;
+  let cancelado = false;
+  let timer: ReturnType<typeof setTimeout>;
+
+  const revisar = async () => {
+    if (cancelado) return;
+    intentos += 1;
+    try {
+      const res = await fetch(`/api/payments/intents/${paymentIntentId}`, {
+        credentials: "include",
+      });
+      const data = (await res.json()) as { paymentIntent?: { status?: string } };
+      const estado = data.paymentIntent?.status;
+
+      if (estado === "succeeded") {
+        onResolved("🎉 ¡Listo! Confirmé tu pago y el saldo ya está en tu cartera.");
+        return;
+      }
+      if (estado === "cancelled" || estado === "failed") {
+        onResolved(
+          "Esa recarga se cerró sin acreditarse. Si ya pagaste, escribime y un gerente la revisa.",
+        );
+        return;
+      }
+    } catch {
+      // Un fallo de red puntual no corta la espera.
+    }
+
+    if (intentos >= MAX_INTENTOS) {
+      onResolved(
+        "Todavía no me llega la confirmación del banco. Escribime *ya pagué* en un rato y vuelvo a revisar.",
+      );
+      return;
+    }
+    timer = setTimeout(() => void revisar(), INTERVALO_MS);
+  };
+
+  timer = setTimeout(() => void revisar(), INTERVALO_MS);
+  return () => {
+    cancelado = true;
+    clearTimeout(timer);
+  };
+}
+
 /** Consulta si hay una recarga esperando pago. */
 async function fetchPendingRecharge(): Promise<
   { paymentIntentId: string; grossPenCents: number } | null
@@ -155,6 +213,11 @@ export function SupportChatWidget({
   const [previewText, setPreviewText] = useState<string | null>(null);
   const lastSeenStaffMsgIdRef = useRef<string | null>(null);
   const backgroundSeededRef = useRef(false);
+  const router = useRouter();
+  /** Corta la espera de acreditacion al desmontar o al empezar otra. */
+  const stopWatchRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => stopWatchRef.current?.(), []);
 
   const loadConversation = useCallback(async (opts?: { force?: boolean }) => {
     if (!opts?.force && (conversationLoaded || loadingConversation)) return;
@@ -320,6 +383,25 @@ export function SupportChatWidget({
         const pending = await fetchPendingRecharge();
         if (pending) {
           const subida = await uploadVoucherFromChat(pending.paymentIntentId, imagen);
+          if (subida.ok) {
+            // Queda esperando el aviso del banco y avisa cuando entre el saldo.
+            stopWatchRef.current?.();
+            stopWatchRef.current = watchRechargeUntilCredited(
+              pending.paymentIntentId,
+              (texto) => {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `bot-credited-${Date.now()}`,
+                    role: "bot" as const,
+                    text: texto,
+                    ...supportChatTimestampsNow(),
+                  },
+                ]);
+                router.refresh();
+              },
+            );
+          }
           setMessages((prev) => [
             ...prev,
             {
