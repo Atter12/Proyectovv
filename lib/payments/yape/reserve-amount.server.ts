@@ -4,18 +4,21 @@ import { serverEnv } from "@/lib/env/env.server";
 import { getNumber, isRecord } from "@/lib/records";
 
 /**
- * Céntimos únicos: lo que permite cruzar un cobro sin leer la captura.
+ * Céntimos únicos en el monto a pagar. APAGADO por defecto.
  *
- * `buildManualDepositQuote` puede devolver el mismo bruto en soles para dos
- * clientes distintos — dos personas que piden $30 reciben las dos S/ 114.84 —
- * y con montos iguales el cruce contra el aviso del banco es ambiguo.
+ * El identificador natural de un pago es el N° de operación, y lo tenemos de
+ * los dos lados: el análisis del comprobante lo guarda en
+ * `voucher_operation_code` y el aviso del banco lo trae en el texto. Mientras
+ * el canal de avisos incluya ese número, el cruce es exacto y no hace falta
+ * tocar el monto.
  *
- * Acá le sumamos céntimos hasta que el monto sea único entre los pagos
- * manuales en PEN todavía abiertos. Al segundo cliente le toca S/ 114.85. Esos
- * céntimos son el identificador del pago: cuando llega "te yapearon S/ 114.85"
- * sabemos exactamente de quién es, sin OCR y sin comparar nombres.
+ * Esto es el respaldo para cuando el aviso NO trae N° de operación — el caso
+ * típico de una notificación push de Android, que solo dice quién y cuánto.
+ * Ahí el monto es lo único que separa una recarga de otra, y dos clientes que
+ * piden $30 recibirían los dos S/ 114.84.
  *
- * El cliente paga como mucho S/ 0.99 de más, y el crédito en cartera no cambia.
+ * Se enciende con `YAPE_UNIQUE_PEN_CENTS=true`. El costo es que el cliente
+ * paga hasta S/ 0.99 de más; el crédito en cartera no cambia.
  */
 
 /** Cuántos ajustes probamos antes de rendirnos. */
@@ -40,6 +43,10 @@ export class AmountReservationError extends Error {
 export async function reserveUniquePenAmount(
   grossPenCents: number,
 ): Promise<{ amountCents: number; discriminatorCents: number }> {
+  if (!serverEnv.yapeUniquePenCents) {
+    return { amountCents: grossPenCents, discriminatorCents: 0 };
+  }
+
   const taken = await getOpenPenAmounts();
 
   let discriminatorCents = 0;

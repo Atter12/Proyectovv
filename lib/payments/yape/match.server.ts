@@ -5,6 +5,7 @@ import {
   getPaymentIntentByIdInternal,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
+import { normalizeOperationCode } from "@/lib/payments/voucher-security.server";
 import { readGrossPenCents } from "./reserve-amount.server";
 import { completeBankConfirmedDeposit } from "./confirm-deposit.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
@@ -138,6 +139,48 @@ async function matchNotification(input: {
   senderName: string | null;
   receivedAt: string;
 }): Promise<YapeIngestOutcome> {
+  // --- Camino 1: el N° de operación -----------------------------------------
+  // Es el identificador natural del pago, y ya lo tenemos de los dos lados: el
+  // análisis del comprobante lo guarda en voucher_operation_code, y el aviso
+  // del banco lo trae en el texto. Cuando existe, no hace falta nada más.
+  const operationCode = normalizeOperationCode(input.operationNumber);
+
+  if (operationCode) {
+    const byOperation = await findIntentsByOperationCode(operationCode);
+
+    if (byOperation.length === 1) {
+      const intent = await getPaymentIntentByIdInternal(byOperation[0].id);
+      if (!intent) {
+        const reason = "La recarga candidata ya no existe.";
+        await markUnmatched(input.notificationId, reason);
+        return { result: "unmatched", notificationId: input.notificationId, reason };
+      }
+
+      // El monto del aviso tiene que coincidir con el de la recarga. Si el
+      // comprobante declara una operación real pero por otro monto, el
+      // comprobante fue alterado: eso no se auto-aprueba nunca.
+      const expected = byOperation[0].grossPenCents;
+      if (expected !== null && expected !== input.amountCents) {
+        const reason = `El N° de operación coincide pero el monto no: aviso S/ ${(input.amountCents / 100).toFixed(2)}, recarga S/ ${(expected / 100).toFixed(2)}.`;
+        await markUnmatched(input.notificationId, reason);
+        return { result: "unmatched", notificationId: input.notificationId, reason };
+      }
+
+      return confirmMatch(intent, input, operationCode);
+    }
+
+    if (byOperation.length > 1) {
+      const reason = `N° de operación ambiguo: ${byOperation.length} recargas lo declaran.`;
+      await markUnmatched(input.notificationId, reason);
+      return { result: "unmatched", notificationId: input.notificationId, reason };
+    }
+    // Sin coincidencia por operación seguimos por monto: el cliente puede no
+    // haber subido el comprobante todavía.
+  }
+
+  // --- Camino 2: el monto exacto --------------------------------------------
+  // Respaldo para cuando el aviso no trae N° de operación (típico de las
+  // notificaciones push) o el comprobante aún no llegó.
   const candidates = await findCandidateIntents(input.amountCents, input.receivedAt);
 
   if (candidates.length === 0) {
@@ -147,8 +190,8 @@ async function matchNotification(input: {
   }
 
   if (candidates.length > 1) {
-    // No debería pasar: el discriminador de céntimos existe justamente para
-    // evitarlo. Si pasa, no adivinamos — que lo resuelva un humano.
+    // Varias recargas abiertas por el mismo monto. No adivinamos: lo resuelve
+    // un humano. Si esto pasa seguido, YAPE_UNIQUE_PEN_CENTS lo elimina.
     const reason = `Monto ambiguo: ${candidates.length} recargas abiertas coinciden.`;
     await markUnmatched(input.notificationId, reason);
     return { result: "unmatched", notificationId: input.notificationId, reason };
@@ -161,13 +204,56 @@ async function matchNotification(input: {
     return { result: "unmatched", notificationId: input.notificationId, reason };
   }
 
+  return confirmMatch(intent, input, operationCode);
+}
+
+/**
+ * Recargas abiertas cuyo comprobante declara este N° de operación.
+ *
+ * `voucher_operation_code` lo escribe el análisis del comprobante, y ya se usa
+ * para detectar comprobantes repetidos. Acá lo reusamos como identificador del
+ * pago, que es para lo que sirve.
+ */
+async function findIntentsByOperationCode(
+  operationCode: string,
+): Promise<Array<{ id: string; grossPenCents: number | null }>> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select("id, amount_cents, metadata")
+    .eq("provider", "manual")
+    .in("status", ["created", "requires_payment", "processing"])
+    .contains("metadata", { voucher_operation_code: operationCode });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    id: (row as { id: string }).id,
+    grossPenCents: readGrossPenCents(
+      row as { amount_cents?: number; metadata?: unknown },
+    ),
+  }));
+}
+
+async function confirmMatch(
+  intent: NonNullable<Awaited<ReturnType<typeof getPaymentIntentByIdInternal>>>,
+  input: {
+    notificationId: string;
+    amountCents: number;
+    operationNumber: string | null;
+    senderName: string | null;
+    receivedAt: string;
+  },
+  operationCode: string | null,
+): Promise<YapeIngestOutcome> {
+
   // Dejamos escrito en la recarga que la plata llegó de verdad. Esta marca es
   // la condición que le falta al candado de auto-aprobación del comprobante.
   await updatePaymentIntentRecord(intent.id, {
     metadata: mergeMetadata(intent.metadata, {
       bank_confirmed_at: new Date().toISOString(),
       bank_confirmation_notification_id: input.notificationId,
-      bank_confirmation_operation_number: input.operationNumber,
+      bank_confirmation_operation_number: operationCode ?? input.operationNumber,
       bank_confirmation_sender_name: input.senderName,
       bank_confirmation_received_at: input.receivedAt,
       bank_confirmed_amount_pen_cents: input.amountCents,
