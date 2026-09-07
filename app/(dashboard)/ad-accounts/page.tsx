@@ -99,13 +99,12 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               {clienteName} no tiene cuentas TikTok para operar
             </p>
             <p className="mx-auto mt-2 max-w-lg text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              Buscamos primero por{" "}
+              Solo mostramos advertisers con{" "}
               <code className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[12px] text-[var(--auth-accent)]">
                 advertiser_id
               </code>{" "}
-              en Hecom (activas y suspendidas) y, si falta el ID, por nombre en el
-              BM. Si no aparece nada, no hay mapeo en Hecom ni coincidencia de
-              nombre con “{clienteName}”.
+              mapeado en Hecom para “{clienteName}”. Si no aparece nada, falta
+              vincular la cuenta TikTok en el CRM (no se busca por nombre).
             </p>
             <Link
               href={routes.payments}

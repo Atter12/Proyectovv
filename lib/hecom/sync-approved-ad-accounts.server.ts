@@ -6,7 +6,6 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
-import { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
@@ -138,24 +137,6 @@ export async function syncApprovedAdAccountsForCliente(input: {
     hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
   );
 
-  // Match por nombre desde el snapshot BM (sin keyword TikTok en el request crítico).
-  const nameMatchedExtras: TikTokBcAdvertiser[] = [];
-  if (statusAvailable) {
-    for (const row of bcAdvertisers) {
-      if (hecomIds.has(row.advertiserId)) continue;
-      if (
-        row.statusKind !== "approved" &&
-        row.statusKind !== "suspended" &&
-        row.statusKind !== "unknown"
-      ) {
-        continue;
-      }
-      if (advertiserMatchesCliente(row.advertiserName, cliente.name)) {
-        nameMatchedExtras.push(row);
-      }
-    }
-  }
-
   const candidates = new Map<
     string,
     {
@@ -167,6 +148,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
     }
   >();
 
+  // Solo advertisers mapeados en Hecom. Nunca por nombre (fuga entre clientes).
   for (const account of hecomAccounts) {
     const id = account.advertiserId.trim();
     const live = byId.get(id);
@@ -183,30 +165,6 @@ export async function syncApprovedAdAccountsForCliente(input: {
       ),
       statusKind,
       fromHecom: true,
-    });
-  }
-
-  // BM por nombre: actualizar estado de IDs Hecom; extras nuevas solo si no hay mapa.
-  // Con mapa Hecom, no fondear/upsert hermanas solo por nombre (evita 2↔N en Pagos).
-  for (const live of bcAdvertisers) {
-    if (live.statusKind !== "approved" && live.statusKind !== "suspended") {
-      continue;
-    }
-    if (!advertiserMatchesCliente(live.advertiserName, cliente.name)) continue;
-    const existing = candidates.get(live.advertiserId);
-    if (existing) {
-      existing.statusKind = live.statusKind;
-      existing.name = live.advertiserName || existing.name;
-      existing.bcId = live.bcId || existing.bcId;
-      continue;
-    }
-    if (hecomIds.size > 0) continue;
-    candidates.set(live.advertiserId, {
-      advertiserId: live.advertiserId,
-      name: live.advertiserName || `${cliente.name} · TikTok`,
-      bcId: live.bcId,
-      statusKind: live.statusKind,
-      fromHecom: false,
     });
   }
 

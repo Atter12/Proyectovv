@@ -6,20 +6,16 @@ import {
   type HecomCliente,
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
-import { advertiserMatchesCliente, normalizeAdvertiserName } from "@/lib/hecom/advertiser-match";
 import {
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
-  mergeTikTokAdvertiserIntoMap,
   peekHolisticBcAdvertisersCache,
   resolveBmBucketFromBcId,
-  searchHolisticBcAdvertisers,
   warmHolisticBcAdvertisers,
   type TikTokBcAdvertiser,
   type TikTokBcAdvertiserStatusKind,
 } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
-  discoverTikTokAdvertisersForCliente,
   resolveHecomMappedStatusKind,
 } from "@/lib/hecom/tiktok-advertiser-discovery";
 import {
@@ -219,83 +215,19 @@ async function getHecomClienteAdAccountsOverviewImpl(
 
   const allHecomAccounts = resolveHecomAccounts(cliente);
   const hecomAccounts = allHecomAccounts;
-  const hecomIds = new Set(
-    hecomAccounts.map((a) => a.advertiserId.trim()).filter(Boolean),
-  );
 
   let liveById = new Map<string, TikTokBcAdvertiser>();
-  let nameMatchedExtras: TikTokBcAdvertiser[] = [];
   let liveSource: "cache" | "live" | "none" = "none";
-  let keywordHitCount = 0;
 
   try {
     const bm = await resolveBmAdvertisersForAdAccounts(speed);
-    let live = bm.live;
+    const live = bm.live;
     liveSource = bm.liveSource;
 
+    // Solo enriquecemos por advertiser_id. NUNCA por nombre (fuga entre clientes
+    // con el mismo nombre de pila, ej. "Sebastian" → Cruz/Reategui).
     if (live.length > 0) {
       liveById = new Map(live.map((row) => [row.advertiserId, row]));
-
-      // Fallback nombre: aprobadas + suspendidas (no solo activas).
-      nameMatchedExtras = live.filter((row) => {
-        if (hecomIds.has(row.advertiserId)) return false;
-        if (
-          row.statusKind !== "approved" &&
-          row.statusKind !== "suspended" &&
-          row.statusKind !== "unknown"
-        ) {
-          return false;
-        }
-        return advertiserMatchesCliente(row.advertiserName, cliente.name);
-      });
-    }
-
-    // Keyword TikTok: solo en "live". En "fast" alcanza el snapshot BM + match nombre
-    // (evita 6+ roundtrips lentos al entrar a Cuentas ads / Pagos).
-    if (speed === "live") {
-      keywordHitCount = await discoverTikTokAdvertisersForCliente({
-        cliente,
-        hecomIds,
-        hecomAccounts,
-        liveById,
-        nameMatchedExtras,
-      });
-
-      if (live.length > 0) {
-        const keywords = [
-          ...new Set(
-            [
-              cliente.name.trim(),
-              ...normalizeAdvertiserName(cliente.name)
-                .split(" ")
-                .filter((t) => t.length >= 5),
-            ].filter(Boolean),
-          ),
-        ].slice(0, 3);
-
-        const keywordSuspended = (
-          await Promise.all(
-            keywords.map((keyword) =>
-              searchHolisticBcAdvertisers({ keyword }).catch(() => []),
-            ),
-          )
-        ).flat();
-
-        for (const row of keywordSuspended) {
-          const belongs =
-            hecomIds.has(row.advertiserId) ||
-            advertiserMatchesCliente(row.advertiserName, cliente.name);
-          if (!belongs) continue;
-
-          mergeTikTokAdvertiserIntoMap(liveById, row);
-          if (hecomIds.has(row.advertiserId)) continue;
-          if (
-            !nameMatchedExtras.some((x) => x.advertiserId === row.advertiserId)
-          ) {
-            nameMatchedExtras.push(row);
-          }
-        }
-      }
     }
   } catch (error) {
     console.warn("[ad-accounts] bc_status_skip", {
@@ -304,7 +236,7 @@ async function getHecomClienteAdAccountsOverviewImpl(
     });
   }
 
-  // A) ID-first: filas Hecom. No ocultar mapeos explícitos aunque falten en el snapshot BM.
+  // Solo IDs mapeados en Hecom (cliente_tiktok_cuentas / tiktok_advertiser_id).
   const mapped = hecomAccounts
     .map((account) => {
       const live = liveById.get(account.advertiserId.trim());
@@ -324,30 +256,8 @@ async function getHecomClienteAdAccountsOverviewImpl(
     })
     .filter((account) => Boolean(account.externalAccountId?.trim()));
 
-  // B) Extras por nombre SOLO si Hecom no tiene IDs mapeados.
-  // Si ya hay mapa (ej. Williams 30/32), no listar hermanas del BM (31/202)
-  // solo porque el nombre coincide — eso parpadeaba 2↔4 cuentas en Pagos.
-  const allowNameExtras = hecomIds.size === 0;
-  const extras = allowNameExtras
-    ? nameMatchedExtras.map((row) =>
-        mapHecomTiktokToAdAccount(
-          cliente,
-          {
-            advertiserId: row.advertiserId,
-            advertiserName: row.advertiserName,
-            bmBucket: resolveBmBucketFromBcId(row.bcId),
-            fee: cliente.tiktokDefaultFee,
-            syncEnabled: true,
-          },
-          row.statusKind,
-          row.advertiserName,
-          row.bcId,
-        ),
-      )
-    : [];
-
   const byExternalId = new Map<string, AdAccount>();
-  for (const account of [...mapped, ...extras]) {
+  for (const account of mapped) {
     const key = account.externalAccountId?.trim() || account.id;
     const prev = byExternalId.get(key);
     if (!prev) {
@@ -377,32 +287,6 @@ async function getHecomClienteAdAccountsOverviewImpl(
     speed,
     ms: Date.now() - started,
     hecomMapped: hecomAccounts.length,
-    bmNameMatches: nameMatchedExtras.length,
-    nameExtrasShown: allowNameExtras ? extras.length : 0,
-    nameExtrasSuppressed: allowNameExtras ? 0 : nameMatchedExtras.length,
-    keywordBackfill: keywordHitCount,
-    bmNameMatchesSuspended: nameMatchedExtras.filter(
-      (r) => r.statusKind === "suspended",
-    ).length,
-    bmSuspendedNameHits: liveById.size
-      ? [...liveById.values()].filter(
-          (r) =>
-            r.statusKind === "suspended" &&
-            advertiserMatchesCliente(r.advertiserName, cliente.name),
-        ).length
-      : 0,
-    sampleSuspendedHits: [...liveById.values()]
-      .filter(
-        (r) =>
-          r.statusKind === "suspended" &&
-          advertiserMatchesCliente(r.advertiserName, cliente.name),
-      )
-      .slice(0, 5)
-      .map((r) => ({
-        id: r.advertiserId,
-        name: r.advertiserName,
-        status: r.statusRaw,
-      })),
     liveSource,
     shown: accounts.length,
     active: accounts.filter((a) => a.status === "active").length,
