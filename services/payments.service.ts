@@ -381,14 +381,19 @@ async function getAdAccountBalanceMapAdmin(
   }
 }
 
-async function getWalletLedgerBalance(organizationId: string): Promise<{
+/**
+ * Saldo cartera con service role. Obligatorio al “ver como”: el createClient()
+ * del staff no pasa RLS sobre la org OTP del cliente (sidebar sí vía ledger.admin).
+ */
+async function getWalletLedgerBalanceAdmin(organizationId: string): Promise<{
   walletId: string;
   currency: string;
   balanceCents: number;
   reservedBalanceCents: number;
 } | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("v_wallet_ledger_balances")
     .select("wallet_id, currency, available_balance_cents, reserved_balance_cents")
     .eq("organization_id", organizationId)
@@ -418,30 +423,32 @@ export const getPaymentPageCore = cache(async (
     return emptyPaymentPageCore();
   }
 
-  const supabase = await createClient();
+  // Siempre admin: staff “viendo como” lee org del cliente; el user client da $0 por RLS.
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
   const [pageSummaryRes, adAccounts, balanceByAccount, gateways, preferredGateway, walletLedger] =
     await Promise.all([
-      supabase
+      admin
         .from("v_payments_page_summary")
         .select("*")
         .eq("organization_id", organizationId)
         .maybeSingle<DbPaymentsPageSummaryRow>(),
-      supabase
+      admin
         .from("ad_accounts")
         .select(
           "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
         )
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false }),
-      getAdAccountBalanceMap(organizationId),
+      getAdAccountBalanceMapAdmin(organizationId),
       getCachedPaymentGateways(),
       getCachedDefaultGatewayId(),
-      getWalletLedgerBalance(organizationId),
+      getWalletLedgerBalanceAdmin(organizationId),
     ]);
 
   let pageSummary = pageSummaryRes.data;
   if (pageSummaryRes.error || !pageSummary) {
-    const { data: fallbackWallet } = await supabase
+    const { data: fallbackWallet } = await admin
       .from("wallets")
       .select("id, organization_id, name, currency, balance_cents, reserved_balance_cents, status")
       .eq("organization_id", organizationId)
