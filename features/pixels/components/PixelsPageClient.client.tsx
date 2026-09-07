@@ -146,25 +146,29 @@ export function PixelsPageClient({
   const [notice, setNotice] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [pixels, setPixels] = useState<PixelRow[]>([]);
-  const [advertiserId, setAdvertiserId] = useState("");
+  const [selectedAdvertiserIds, setSelectedAdvertiserIds] = useState<string[]>(
+    [],
+  );
   const [pixelName, setPixelName] = useState("");
   const [selectedPixelId, setSelectedPixelId] = useState<string | null>(null);
   const [testLog, setTestLog] = useState<string[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
   const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
 
-  const selectedAccount = useMemo(
-    () => accounts.find((a) => a.advertiserId === advertiserId) ?? null,
-    [accounts, advertiserId],
+  const selectedAccounts = useMemo(
+    () =>
+      accounts.filter((a) => selectedAdvertiserIds.includes(a.advertiserId)),
+    [accounts, selectedAdvertiserIds],
   );
 
-  const pixelsForAccount = useMemo(
-    () =>
-      advertiserId
-        ? pixels.filter((p) => p.advertiserId === advertiserId)
-        : pixels,
-    [pixels, advertiserId],
-  );
+  const allSelected =
+    accounts.length > 0 && selectedAdvertiserIds.length === accounts.length;
+
+  const pixelsForAccount = useMemo(() => {
+    if (selectedAdvertiserIds.length === 0) return pixels;
+    const set = new Set(selectedAdvertiserIds);
+    return pixels.filter((p) => set.has(p.advertiserId));
+  }, [pixels, selectedAdvertiserIds]);
 
   const selectedPixel = useMemo(() => {
     if (selectedPixelId) {
@@ -198,11 +202,12 @@ export function PixelsPageClient({
       setPixels(json.pixels ?? []);
       const nextAccounts = json.accounts ?? [];
       setAccounts(nextAccounts);
-      setAdvertiserId((prev) => {
-        if (prev && nextAccounts.some((a) => a.advertiserId === prev)) {
-          return prev;
-        }
-        return nextAccounts[0]?.advertiserId ?? "";
+      setSelectedAdvertiserIds((prev) => {
+        const valid = prev.filter((id) =>
+          nextAccounts.some((a) => a.advertiserId === id),
+        );
+        if (valid.length > 0) return valid;
+        return nextAccounts[0] ? [nextAccounts[0].advertiserId] : [];
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error de carga");
@@ -227,11 +232,31 @@ export function PixelsPageClient({
     } else if (!selectedPixelId && pixelsForAccount[0]) {
       setSelectedPixelId(pixelsForAccount[0].id);
     }
-  }, [advertiserId, pixelsForAccount, selectedPixelId]);
+  }, [selectedAdvertiserIds, pixelsForAccount, selectedPixelId]);
+
+  function toggleAdvertiser(id: string) {
+    setLastSyncCount(null);
+    setSdkReady(false);
+    setSelectedAdvertiserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function selectAllAdvertisers() {
+    setLastSyncCount(null);
+    setSdkReady(false);
+    setSelectedAdvertiserIds(accounts.map((a) => a.advertiserId));
+  }
+
+  function clearAdvertisers() {
+    setLastSyncCount(null);
+    setSdkReady(false);
+    setSelectedAdvertiserIds([]);
+  }
 
   async function handleCreatePixelOnly() {
-    if (!advertiserId) {
-      setError("Elegí una cuenta ads.");
+    if (selectedAdvertiserIds.length === 0) {
+      setError("Elegí al menos una cuenta ads.");
       return;
     }
     setCreating(true);
@@ -242,10 +267,8 @@ export function PixelsPageClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          advertiserId,
-          pixelName:
-            pixelName.trim() ||
-            `${clienteName} · ${selectedAccount?.name ?? advertiserId}`,
+          advertiserIds: selectedAdvertiserIds,
+          pixelName: pixelName.trim() || undefined,
           setupCodEvents: false,
         }),
       });
@@ -253,18 +276,36 @@ export function PixelsPageClient({
         ok?: boolean;
         error?: string;
         pixel?: PixelRow;
+        pixels?: PixelRow[];
+        createdCount?: number;
+        requestedCount?: number;
+        failures?: { advertiserId: string; error: string }[];
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo crear el píxel.");
       }
-      const id = json.pixel?.pixelId ?? "";
+      const created = json.createdCount ?? json.pixels?.length ?? 1;
+      const requested = json.requestedCount ?? selectedAdvertiserIds.length;
+      const failN = json.failures?.length ?? 0;
+      const ids = (json.pixels ?? (json.pixel ? [json.pixel] : []))
+        .map((p) => p.pixelId)
+        .filter(Boolean)
+        .join(", ");
       setNotice(
-        `Píxel creado. ID: ${id}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
+        failN > 0
+          ? `Creados ${created}/${requested}. Fallaron ${failN}. IDs: ${ids || "—"}. Revisá el error e intentá de nuevo en las cuentas fallidas.`
+          : created > 1
+            ? `Píxeles creados en ${created} cuentas. IDs: ${ids}. Ahora instalalos / conectalos a tu tienda (paso 3).`
+            : `Píxel creado. ID: ${ids}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
       );
+      if (failN > 0 && json.failures?.[0]?.error) {
+        setError(json.failures.map((f) => `${f.advertiserId}: ${f.error}`).join(" · "));
+      }
       setPixelName("");
       setLastSyncCount(null);
       await refresh();
       if (json.pixel?.id) setSelectedPixelId(json.pixel.id);
+      else if (json.pixels?.[0]?.id) setSelectedPixelId(json.pixels[0].id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al crear");
     } finally {
@@ -311,34 +352,39 @@ export function PixelsPageClient({
   }
 
   async function handleSync() {
-    if (!advertiserId) return;
+    if (selectedAdvertiserIds.length === 0) return;
     setSyncing(true);
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch(
-        `/api/pixels?syncAdvertiser=${encodeURIComponent(advertiserId)}`,
-        { cache: "no-store" },
-      );
-      const json = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        remoteCount?: number;
-        pixels?: PixelRow[];
-      };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudo consultar TikTok.");
+      let totalRemote = 0;
+      for (const advertiserId of selectedAdvertiserIds) {
+        const res = await fetch(
+          `/api/pixels?syncAdvertiser=${encodeURIComponent(advertiserId)}`,
+          { cache: "no-store" },
+        );
+        const json = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          remoteCount?: number;
+        };
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || "No se pudo consultar TikTok.");
+        }
+        totalRemote += json.remoteCount ?? 0;
       }
-      const n = json.remoteCount ?? 0;
-      setLastSyncCount(n);
+      setLastSyncCount(totalRemote);
       await refresh();
-      if (n === 0) {
+      const nAcc = selectedAdvertiserIds.length;
+      if (totalRemote === 0) {
         setNotice(
-          "Esta cuenta ads no tiene píxeles en TikTok. Creá uno con el botón 1.",
+          nAcc > 1
+            ? "Las cuentas seleccionadas no tienen píxeles en TikTok. Creá con el botón 1."
+            : "Esta cuenta ads no tiene píxeles en TikTok. Creá uno con el botón 1.",
         );
       } else {
         setNotice(
-          `TikTok tiene ${n} píxel${n === 1 ? "" : "es"} en esta cuenta. Seleccionalo abajo y activá eventos cuando ya esté en la tienda.`,
+          `TikTok tiene ${totalRemote} píxel${totalRemote === 1 ? "" : "es"} en ${nAcc} cuenta${nAcc === 1 ? "" : "s"}. Seleccionalo abajo y activá eventos cuando ya esté en la tienda.`,
         );
       }
     } catch (e) {
@@ -438,50 +484,95 @@ export function PixelsPageClient({
               Paso 1
             </p>
             <h2 className="mt-0.5 text-[15px] font-bold text-[#1c1917]">
-              Cuenta ads
+              Cuentas ads
             </h2>
+            <p className="mt-1 text-[12px] text-[#5c564e]">
+              Podés marcar una, varias o todas para crear píxel en cada una.
+            </p>
           </div>
+          {accounts.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={selectAllAdvertisers}
+                disabled={loading || allSelected}
+                className="rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-2.5 py-1.5 text-[11px] font-semibold text-[#1c1917] disabled:opacity-40"
+              >
+                Seleccionar todas
+              </button>
+              <button
+                type="button"
+                onClick={clearAdvertisers}
+                disabled={loading || selectedAdvertiserIds.length === 0}
+                className="rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5c564e] disabled:opacity-40"
+              >
+                Limpiar
+              </button>
+            </div>
+          ) : null}
         </div>
-        <label className="mt-3 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-          Advertiser
-          <select
-            className="mt-1.5 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 py-2.5 text-[13px] font-medium text-[#1c1917] outline-none transition focus:border-[#cfc6bb] focus:bg-white focus:ring-2 focus:ring-[#1c1917]/8"
-            value={advertiserId}
-            onChange={(e) => {
-              setAdvertiserId(e.target.value);
-              setLastSyncCount(null);
-              setSdkReady(false);
-            }}
-            disabled={loading || accounts.length === 0}
-          >
-            {accounts.length === 0 ? (
-              <option value="">Sin cuentas en uso</option>
-            ) : (
-              accounts.map((a) => (
-                <option key={a.advertiserId} value={a.advertiserId}>
-                  {a.name} · {a.advertiserId}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-        {selectedAccount ? (
+
+        {accounts.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-3 py-4 text-[13px] text-[#8a8177]">
+            Sin cuentas en uso
+          </p>
+        ) : (
+          <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-2">
+            {accounts.map((a) => {
+              const checked = selectedAdvertiserIds.includes(a.advertiserId);
+              return (
+                <li key={a.advertiserId}>
+                  <label
+                    className={`flex cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 transition ${
+                      checked ? "bg-white shadow-sm ring-1 ring-[#ff781f]/35" : "hover:bg-white/70"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 accent-[#ff781f]"
+                      checked={checked}
+                      onChange={() => toggleAdvertiser(a.advertiserId)}
+                      disabled={loading}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-[#1c1917]">
+                        {a.name}
+                      </span>
+                      <span className="block truncate font-mono text-[11px] text-[#8a8177]">
+                        {a.advertiserId}
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <p className="mt-2 text-[12px] font-medium text-[#5c564e]">
+          {selectedAdvertiserIds.length === 0
+            ? "Ninguna cuenta seleccionada"
+            : `${selectedAdvertiserIds.length} de ${accounts.length} seleccionada${selectedAdvertiserIds.length === 1 ? "" : "s"}`}
+        </p>
+
+        {selectedAccounts.length === 1 ? (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-[#faf8f5] px-3 py-2.5">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
                 Advertiser ID
               </p>
               <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
-                {selectedAccount.advertiserId}
+                {selectedAccounts[0]!.advertiserId}
               </p>
             </div>
             <button
               type="button"
               className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#1c1917]"
               onClick={() =>
-                void copyText("Advertiser ID", selectedAccount.advertiserId).then(
-                  setNotice,
-                )
+                void copyText(
+                  "Advertiser ID",
+                  selectedAccounts[0]!.advertiserId,
+                ).then(setNotice)
               }
             >
               Copiar ID
@@ -515,15 +606,21 @@ export function PixelsPageClient({
           <button
             type="button"
             onClick={() => void handleCreatePixelOnly()}
-            disabled={creating || !advertiserId}
+            disabled={creating || selectedAdvertiserIds.length === 0}
             className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
           >
-            {creating ? "Creando píxel…" : "1 · Crear píxel"}
+            {creating
+              ? "Creando píxeles…"
+              : selectedAdvertiserIds.length > 1
+                ? `1 · Crear píxel en ${selectedAdvertiserIds.length} cuentas`
+                : "1 · Crear píxel"}
           </button>
           <button
             type="button"
             onClick={() => void handleSync()}
-            disabled={!advertiserId || loading || syncing}
+            disabled={
+              selectedAdvertiserIds.length === 0 || loading || syncing
+            }
             className="mt-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[12px] font-semibold text-[#1c1917] transition hover:bg-white disabled:opacity-50"
           >
             {syncing ? "Consultando…" : "Ya tengo píxel · traer de TikTok"}
@@ -582,8 +679,8 @@ export function PixelsPageClient({
               Tus píxeles
             </p>
             <h2 className="mt-0.5 text-[1.05rem] font-bold text-[#1c1917]">
-              {advertiserId
-                ? `${pixelsForAccount.length} en esta cuenta`
+              {selectedAdvertiserIds.length > 0
+                ? `${pixelsForAccount.length} en ${selectedAdvertiserIds.length === 1 ? "esta cuenta" : `${selectedAdvertiserIds.length} cuentas`}`
                 : `${pixels.length} en total`}
             </h2>
           </div>

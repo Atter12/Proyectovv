@@ -91,6 +91,7 @@ export async function POST(request: Request) {
 
   let body: {
     advertiserId?: string;
+    advertiserIds?: string[];
     pixelName?: string;
     setupCodEvents?: boolean;
   };
@@ -100,32 +101,74 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const advertiserId =
+  const fromArray = Array.isArray(body.advertiserIds)
+    ? body.advertiserIds
+        .map((id) => (typeof id === "string" ? id.trim() : ""))
+        .filter(Boolean)
+    : [];
+  const single =
     typeof body.advertiserId === "string" ? body.advertiserId.trim() : "";
-  if (!advertiserId) {
+  const advertiserIds = [...new Set(fromArray.length > 0 ? fromArray : single ? [single] : [])];
+
+  if (advertiserIds.length === 0) {
     return NextResponse.json(
-      { error: "advertiserId requerido." },
+      { error: "Seleccioná al menos una cuenta ads." },
       { status: 400 },
     );
   }
 
   try {
-    const result = await createPixelForCliente({
-      organizationId: session.organizationId,
-      hecomClienteId: selected.id,
-      advertiserId,
-      pixelName:
-        typeof body.pixelName === "string" ? body.pixelName : "",
-      userId: session.id,
-      // Eventos COD van por separado (POST /api/pixels/events) después
-      // de que el cliente conecte el píxel a su tienda.
-      setupCodEvents: body.setupCodEvents === true,
-    });
+    const created: Awaited<
+      ReturnType<typeof createPixelForCliente>
+    >["pixel"][] = [];
+    const failures: { advertiserId: string; error: string }[] = [];
+    const baseName =
+      typeof body.pixelName === "string" ? body.pixelName.trim() : "";
+    const setupCodEvents = body.setupCodEvents === true;
+
+    for (const advertiserId of advertiserIds) {
+      try {
+        const result = await createPixelForCliente({
+          organizationId: session.organizationId,
+          hecomClienteId: selected.id,
+          advertiserId,
+          pixelName:
+            advertiserIds.length > 1 && baseName
+              ? `${baseName} · ${advertiserId.slice(-6)}`
+              : baseName,
+          userId: session.id,
+          setupCodEvents,
+        });
+        created.push(result.pixel);
+      } catch (error) {
+        failures.push({
+          advertiserId,
+          error:
+            error instanceof Error ? error.message : "No se pudo crear el píxel.",
+        });
+      }
+    }
+
+    if (created.length === 0) {
+      const first = failures[0];
+      return NextResponse.json(
+        {
+          error:
+            first?.error ||
+            "No se pudo crear el píxel en ninguna cuenta seleccionada.",
+          failures,
+        },
+        { status: 400 },
+      );
+    }
 
     return NextResponse.json({
       ok: true,
-      pixel: result.pixel,
-      events: result.events,
+      pixel: created[0],
+      pixels: created,
+      createdCount: created.length,
+      requestedCount: advertiserIds.length,
+      failures,
     });
   } catch (error) {
     const message =
