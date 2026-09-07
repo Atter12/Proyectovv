@@ -110,10 +110,26 @@ export async function handleRechargeMessage(input: {
   if (!text) return notHandled();
 
   const active = await findActiveManualPenIntent(input.session.organizationId);
+
+  // Cualquier mensaje sirve de disparador. Si el cobro ya lo confirmo el banco
+  // pero la recarga quedo sin cerrar, se cierra aca: el cliente que escribe
+  // "cancelar" o "ya pague" en realidad esta pidiendo que la miremos.
+  if (active) {
+    await retryIfBankAlreadyConfirmed(active.id);
+  }
+
   const wantsRecharge = matchesAny(text, RECHARGE_PATTERNS);
   const amountUsd = extractAmountUsd(text);
 
   if (matchesAny(text, CANCEL_PATTERNS) && active) {
+    // El reintento de arriba pudo haberla acreditado recien.
+    const fresco = await getPaymentIntentByIdInternal(active.id);
+    if (fresco?.status === "succeeded") {
+      return reply("idle", [
+        "🎉 Justo se acreditó: tu pago ya estaba confirmado por el banco.",
+        "El saldo está en tu cartera, no hay nada que cancelar.",
+      ]);
+    }
     return cancelRecharge(active);
   }
 
