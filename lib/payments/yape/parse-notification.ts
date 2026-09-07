@@ -36,7 +36,10 @@ const OPERATION_PATTERNS: RegExp[] = [
 ];
 
 const SENDER_PATTERNS: RegExp[] = [
+  // BCP: "Enviado por  Sebastian Jeremy Yparraguirre Ocaña"
   /(?:enviado\s+por)\s*[:]?\s*([A-Za-zÁÉÍÓÚÑáéíóúñ.\s]{3,60})/i,
+  // BCP: "Recibiste un yapeo de S/ 9.00 de Sebastian Jeremy Yparraguirre Ocaña."
+  /recibiste\s+un\s+yapeo\s+de\s+(?:S\/\.?\s*)?[0-9.,]+\s+de\s+([A-Za-zÁÉÍÓÚÑáéíóúñ.\s]{3,60})/i,
   /^\s*(?:yape!?\s*)?([A-Za-zÁÉÍÓÚÑáéíóúñ.\s]{3,60}?)\s+te\s+(?:envi[oó]|yape[oó])/i,
   /(?:recibiste|te\s+yape[oó]|te\s+envi[oó]).{0,40}?\bde\s+([A-Za-zÁÉÍÓÚÑáéíóúñ.\s]{3,60})/i,
 ];
@@ -65,11 +68,23 @@ function extractAmountCents(text: string): number | null {
   return null;
 }
 
+/**
+ * Un N° de operación real es numérico.
+ *
+ * Sin esta validación el regex se come palabras sueltas del cuerpo: en el
+ * correo del BCP, "Datos de la operación / Operación realizada" hacía que
+ * capturara "Operaci". Y como la columna es UNIQUE, el segundo correo habría
+ * parseado exactamente lo mismo, chocado con el índice y sido descartado como
+ * duplicado — o sea, el segundo pago real jamás se acreditaba.
+ */
+function looksLikeOperationNumber(value: string): boolean {
+  return /\d{4,}/.test(value);
+}
+
 function extractOperationNumber(text: string): string | null {
   for (const pattern of OPERATION_PATTERNS) {
-    const match = pattern.exec(text);
-    const value = match?.[1]?.trim();
-    if (value) return value;
+    const value = pattern.exec(text)?.[1]?.trim();
+    if (value && looksLikeOperationNumber(value)) return value;
   }
   return null;
 }
@@ -151,12 +166,17 @@ export function buildFingerprint(input: {
     return `op:${input.operationNumber.toLowerCase()}`;
   }
 
-  const minuteBucket = input.receivedAt.slice(0, 16); // YYYY-MM-DDTHH:mm
+  // Al segundo, no al minuto: el correo del BCP no trae N° de operación, así
+  // que dos cobros iguales del mismo remitente en el mismo minuto colapsarían
+  // en la misma huella y el segundo se perdería como falso duplicado. El mismo
+  // correo reprocesado sí mantiene su fecha exacta, que es lo que queremos
+  // deduplicar.
+  const secondBucket = input.receivedAt.slice(0, 19); // YYYY-MM-DDTHH:mm:ss
   const payload = [
     input.source,
     String(input.amountCents),
     (input.senderName ?? "").toLowerCase(),
-    minuteBucket,
+    secondBucket,
     input.rawText ?? "",
   ].join("|");
 

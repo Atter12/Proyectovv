@@ -132,13 +132,17 @@ export const serverEnv = {
   /**
    * Céntimos únicos en el monto a pagar (S/ 114.84 vs S/ 114.85).
    *
-   * APAGADO por defecto: el N° de operación ya identifica el pago, y viene en
-   * el comprobante y en el aviso del banco. Los céntimos solo hacen falta si el
-   * canal de avisos NO trae N° de operación — por ejemplo una notificación push
-   * de Android — y entonces el monto es lo único que distingue una recarga de
-   * otra. Encenderlo hace que el cliente pague hasta S/ 0.99 de más.
+   * ENCENDIDO por defecto, y es imprescindible con BCP. Verificado contra un
+   * correo real de "Constancia de recepción de Yapeo a celular BCP": trae
+   * monto, remitente y fecha, pero NO trae N° de operación. La notificación
+   * push del celular tampoco. Sin un identificador propio, el monto es lo
+   * único que distingue una recarga de otra, y dos clientes que piden lo mismo
+   * pagarían lo mismo.
+   *
+   * Cuesta hasta S/ 0.99 al cliente. Apagarlo solo tiene sentido si algún día
+   * el canal de avisos empieza a traer N° de operación.
    */
-  yapeUniquePenCents: parseBoolean(process.env.YAPE_UNIQUE_PEN_CENTS, false),
+  yapeUniquePenCents: parseBoolean(process.env.YAPE_UNIQUE_PEN_CENTS, true),
   /** Minutos que un monto en soles queda reservado y es cruzable. */
   yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
   /**

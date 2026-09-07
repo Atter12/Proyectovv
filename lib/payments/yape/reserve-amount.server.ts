@@ -4,21 +4,19 @@ import { serverEnv } from "@/lib/env/env.server";
 import { getNumber, isRecord } from "@/lib/records";
 
 /**
- * Céntimos únicos en el monto a pagar. APAGADO por defecto.
+ * Céntimos únicos en el monto a pagar. ENCENDIDO por defecto.
  *
- * El identificador natural de un pago es el N° de operación, y lo tenemos de
- * los dos lados: el análisis del comprobante lo guarda en
- * `voucher_operation_code` y el aviso del banco lo trae en el texto. Mientras
- * el canal de avisos incluya ese número, el cruce es exacto y no hace falta
- * tocar el monto.
+ * Lo natural sería cruzar por N° de operación, pero el canal de avisos no lo
+ * trae. Verificado contra un correo real del BCP ("Constancia de recepción de
+ * Yapeo a celular"): informa monto, remitente y fecha, y nada más. La
+ * notificación push del celular tampoco lo incluye.
  *
- * Esto es el respaldo para cuando el aviso NO trae N° de operación — el caso
- * típico de una notificación push de Android, que solo dice quién y cuánto.
- * Ahí el monto es lo único que separa una recarga de otra, y dos clientes que
- * piden $30 recibirían los dos S/ 114.84.
+ * Entonces el monto queda como único identificador, y dos clientes que piden
+ * $30 pagarían los dos S/ 114.84. Acá le sumamos céntimos hasta que sea único
+ * entre las recargas abiertas: al segundo le toca S/ 114.85, y cuando llega
+ * "recibiste un yapeo de S/ 114.85" sabemos exactamente de quién es.
  *
- * Se enciende con `YAPE_UNIQUE_PEN_CENTS=true`. El costo es que el cliente
- * paga hasta S/ 0.99 de más; el crédito en cartera no cambia.
+ * Cuesta hasta S/ 0.99 al cliente. El crédito en cartera no cambia.
  */
 
 /** Cuántos ajustes probamos antes de rendirnos. */
