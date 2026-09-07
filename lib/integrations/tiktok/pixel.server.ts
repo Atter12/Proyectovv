@@ -342,3 +342,65 @@ export async function createTikTokPixelEvents(input: {
 
   return { ok: true, applied, skipped, raw: rawParts };
 }
+
+/** Transfiere un píxel del advertiser al Business Center (requisito para vincular). */
+export async function transferTikTokPixelToBc(input: {
+  bcId: string;
+  pixelCode: string;
+  organizationId?: string;
+}): Promise<{ assetId: string | null }> {
+  const bcId = input.bcId.trim();
+  const pixelCode = input.pixelCode.trim();
+  if (!bcId || !pixelCode) {
+    throw new TikTokPixelApiError("bc_id y pixel_code requeridos para transferir.");
+  }
+  const accessToken = await resolveAccessToken(input.organizationId);
+  const data = await tiktokJson<{ asset_id?: string | number }>({
+    path: "/bc/pixel/transfer/",
+    method: "POST",
+    accessToken,
+    body: {
+      bc_id: bcId,
+      pixel_code: pixelCode,
+    },
+  });
+  return {
+    assetId: data.asset_id != null ? String(data.asset_id) : null,
+  };
+}
+
+/**
+ * Vincula (o desvincula) un píxel BC a una o más cuentas ads.
+ * Docs: POST /bc/pixel/link/update/ · relation_status LINK | UNLINK
+ */
+export async function linkTikTokPixelToAdvertisers(input: {
+  bcId: string;
+  pixelCode: string;
+  advertiserIds: string[];
+  relationStatus?: "LINK" | "UNLINK";
+  organizationId?: string;
+}): Promise<void> {
+  const bcId = input.bcId.trim();
+  const pixelCode = input.pixelCode.trim();
+  const advertiserIds = [
+    ...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean)),
+  ];
+  if (!bcId || !pixelCode) {
+    throw new TikTokPixelApiError("bc_id y pixel_code requeridos para vincular.");
+  }
+  if (advertiserIds.length === 0) {
+    throw new TikTokPixelApiError("advertiser_ids requerido para vincular.");
+  }
+  const accessToken = await resolveAccessToken(input.organizationId);
+  await tiktokJson<unknown>({
+    path: "/bc/pixel/link/update/",
+    method: "POST",
+    accessToken,
+    body: {
+      bc_id: bcId,
+      pixel_code: pixelCode,
+      advertiser_ids: advertiserIds,
+      relation_status: input.relationStatus ?? "LINK",
+    },
+  });
+}

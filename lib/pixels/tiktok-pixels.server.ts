@@ -4,10 +4,14 @@ import {
   COD_PIXEL_EVENT_DEFS,
   createTikTokPixel,
   createTikTokPixelEvents,
+  linkTikTokPixelToAdvertisers,
   listTikTokPixels,
+  transferTikTokPixelToBc,
   type TikTokPixelCategory,
   type TikTokPixelRecord,
 } from "@/lib/integrations/tiktok/pixel.server";
+import { listHolisticBcAdvertisersCachedFirst, resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
+import { serverEnv } from "@/lib/env/env.server";
 
 export type StoredTikTokPixel = {
   id: string;
@@ -331,6 +335,211 @@ export async function createPixelForCliente(input: {
   });
 
   return { pixel, events: eventsResult };
+}
+
+async function resolveBcIdForAdvertiser(
+  advertiserId: string,
+): Promise<string> {
+  const live = await listHolisticBcAdvertisersCachedFirst().catch(() => []);
+  const hit = live.find((row) => row.advertiserId === advertiserId);
+  if (hit?.bcId?.trim()) return hit.bcId.trim();
+  return (
+    serverEnv.tiktokDefaultBcId.trim() ||
+    resolveBcIdForHecomBucket("200")
+  );
+}
+
+/**
+ * Crea UN píxel en la cuenta owner y lo vincula (BC pixel link) a las demás.
+ * Flujo TikTok: create → transfer a BC → link/update LINK.
+ */
+export async function createSharedPixelForCliente(input: {
+  organizationId: string;
+  hecomClienteId: string;
+  advertiserIds: string[];
+  pixelName: string;
+  userId: string;
+  pixelCategory?: TikTokPixelCategory;
+  setupCodEvents?: boolean;
+}): Promise<{
+  pixel: StoredTikTokPixel;
+  linkedAdvertiserIds: string[];
+  linkFailures: { advertiserId: string; error: string }[];
+  transferredToBc: boolean;
+  events: { applied: number; skipped: string[] } | null;
+}> {
+  const advertiserIds = [
+    ...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean)),
+  ];
+  if (advertiserIds.length === 0) {
+    throw new Error("Seleccioná al menos una cuenta ads.");
+  }
+
+  for (const advertiserId of advertiserIds) {
+    await assertAdvertiserBelongsToCliente({
+      hecomClienteId: input.hecomClienteId,
+      advertiserId,
+      requireActive: true,
+    });
+  }
+
+  const ownerAdvertiserId = advertiserIds[0]!;
+  const linkTargets = advertiserIds.slice(1);
+
+  const organizationId = await resolveWritableOrganizationId({
+    preferredOrganizationId: input.organizationId,
+    userId: input.userId,
+  });
+
+  const overview = await getHecomClienteAdAccountsOverview(
+    input.hecomClienteId,
+    "fast",
+  );
+  const ownerAccount = overview.accounts.find(
+    (a) => (a.externalAccountId ?? "").trim() === ownerAdvertiserId,
+  );
+  const name =
+    input.pixelName.trim() ||
+    `Holistic · ${ownerAccount?.name || ownerAdvertiserId}`.slice(0, 80);
+
+  const created = await createTikTokPixel({
+    advertiserId: ownerAdvertiserId,
+    pixelName: name,
+    pixelCategory: input.pixelCategory ?? "ONLINE_STORE",
+    organizationId,
+  });
+
+  if (!created.pixelCode?.trim()) {
+    throw new Error(
+      "TikTok creó el píxel pero no devolvió pixel_code (necesario para vincular a otras cuentas).",
+    );
+  }
+
+  const bcId = await resolveBcIdForAdvertiser(ownerAdvertiserId);
+  let transferredToBc = false;
+  try {
+    await transferTikTokPixelToBc({
+      bcId,
+      pixelCode: created.pixelCode,
+      organizationId,
+    });
+    transferredToBc = true;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    // Si ya está en el BC, seguimos con el link.
+    if (!/already|exist|transferred|duplicate/i.test(msg)) {
+      console.warn("[pixels] transfer_to_bc_warn", { bcId, msg });
+    } else {
+      transferredToBc = true;
+    }
+    // Si falló por otro motivo, igual intentamos link (a veces el píxel ya es asset BC).
+  }
+
+  const linkedAdvertiserIds = [ownerAdvertiserId];
+  const linkFailures: { advertiserId: string; error: string }[] = [];
+
+  if (linkTargets.length > 0) {
+    // Preferir un solo batch; si falla, intentar uno a uno.
+    try {
+      await linkTikTokPixelToAdvertisers({
+        bcId,
+        pixelCode: created.pixelCode,
+        advertiserIds: linkTargets,
+        relationStatus: "LINK",
+        organizationId,
+      });
+      linkedAdvertiserIds.push(...linkTargets);
+    } catch (batchError) {
+      const batchMsg =
+        batchError instanceof Error ? batchError.message : String(batchError);
+      for (const advertiserId of linkTargets) {
+        try {
+          await linkTikTokPixelToAdvertisers({
+            bcId,
+            pixelCode: created.pixelCode!,
+            advertiserIds: [advertiserId],
+            relationStatus: "LINK",
+            organizationId,
+          });
+          linkedAdvertiserIds.push(advertiserId);
+        } catch (error) {
+          linkFailures.push({
+            advertiserId,
+            error: error instanceof Error ? error.message : batchMsg,
+          });
+        }
+      }
+    }
+  }
+
+  let eventsResult: { applied: number; skipped: string[] } | null = null;
+  let eventsJson: unknown = [];
+
+  if (input.setupCodEvents === true) {
+    try {
+      const ev = await createTikTokPixelEvents({
+        advertiserId: ownerAdvertiserId,
+        pixelId: created.pixelId,
+        organizationId,
+      });
+      eventsResult = { applied: ev.applied, skipped: ev.skipped };
+      eventsJson = COD_PIXEL_EVENT_DEFS.map((d) => d.name).filter(
+        (n) => !ev.skipped.includes(n),
+      );
+    } catch (error) {
+      eventsResult = {
+        applied: 0,
+        skipped: COD_PIXEL_EVENT_DEFS.map((d) => d.name),
+      };
+      eventsJson = {
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  const sharedMeta = {
+    created_via: "ads_holistic_shared",
+    owner_advertiser_id: ownerAdvertiserId,
+    linked_advertiser_ids: linkedAdvertiserIds,
+    link_failures: linkFailures,
+    bc_id: bcId,
+    transferred_to_bc: transferredToBc,
+    events_setup: eventsResult,
+  };
+
+  // Guardar fila por cada cuenta vinculada (mismo pixel_id / pixel_code).
+  let ownerRow: StoredTikTokPixel | null = null;
+  for (const advertiserId of linkedAdvertiserIds) {
+    const row = await upsertStoredPixel({
+      organizationId,
+      hecomClienteId: input.hecomClienteId,
+      advertiserId,
+      pixel: {
+        ...created,
+        advertiserId,
+        pixelName:
+          linkedAdvertiserIds.length > 1
+            ? `${created.pixelName || name}`
+            : created.pixelName || name,
+      },
+      createdBy: input.userId,
+      eventsJson,
+      metadata: sharedMeta,
+    });
+    if (advertiserId === ownerAdvertiserId) ownerRow = row;
+  }
+
+  if (!ownerRow) {
+    throw new Error("No se pudo guardar el píxel compartido.");
+  }
+
+  return {
+    pixel: ownerRow,
+    linkedAdvertiserIds,
+    linkFailures,
+    transferredToBc,
+    events: eventsResult,
+  };
 }
 
 export async function setupCodEventsForStoredPixel(input: {

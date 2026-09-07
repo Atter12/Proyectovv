@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/auth/guards.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   createPixelForCliente,
+  createSharedPixelForCliente,
   listStoredPixelsForCliente,
   syncPixelsFromTikTok,
 } from "@/lib/pixels/tiktok-pixels.server";
@@ -118,57 +119,51 @@ export async function POST(request: Request) {
   }
 
   try {
-    const created: Awaited<
-      ReturnType<typeof createPixelForCliente>
-    >["pixel"][] = [];
-    const failures: { advertiserId: string; error: string }[] = [];
     const baseName =
       typeof body.pixelName === "string" ? body.pixelName.trim() : "";
     const setupCodEvents = body.setupCodEvents === true;
 
-    for (const advertiserId of advertiserIds) {
-      try {
-        const result = await createPixelForCliente({
-          organizationId: session.organizationId,
-          hecomClienteId: selected.id,
-          advertiserId,
-          pixelName:
-            advertiserIds.length > 1 && baseName
-              ? `${baseName} · ${advertiserId.slice(-6)}`
-              : baseName,
-          userId: session.id,
-          setupCodEvents,
-        });
-        created.push(result.pixel);
-      } catch (error) {
-        failures.push({
-          advertiserId,
-          error:
-            error instanceof Error ? error.message : "No se pudo crear el píxel.",
-        });
-      }
+    // 1 cuenta → create simple. 2+ → un solo píxel + link BC a las demás.
+    if (advertiserIds.length === 1) {
+      const result = await createPixelForCliente({
+        organizationId: session.organizationId,
+        hecomClienteId: selected.id,
+        advertiserId: advertiserIds[0]!,
+        pixelName: baseName,
+        userId: session.id,
+        setupCodEvents,
+      });
+      return NextResponse.json({
+        ok: true,
+        mode: "single",
+        pixel: result.pixel,
+        pixels: [result.pixel],
+        createdCount: 1,
+        requestedCount: 1,
+        linkedAdvertiserIds: [advertiserIds[0]!],
+        failures: [],
+      });
     }
 
-    if (created.length === 0) {
-      const first = failures[0];
-      return NextResponse.json(
-        {
-          error:
-            first?.error ||
-            "No se pudo crear el píxel en ninguna cuenta seleccionada.",
-          failures,
-        },
-        { status: 400 },
-      );
-    }
+    const shared = await createSharedPixelForCliente({
+      organizationId: session.organizationId,
+      hecomClienteId: selected.id,
+      advertiserIds,
+      pixelName: baseName,
+      userId: session.id,
+      setupCodEvents,
+    });
 
     return NextResponse.json({
       ok: true,
-      pixel: created[0],
-      pixels: created,
-      createdCount: created.length,
+      mode: "shared",
+      pixel: shared.pixel,
+      pixels: [shared.pixel],
+      createdCount: 1,
       requestedCount: advertiserIds.length,
-      failures,
+      linkedAdvertiserIds: shared.linkedAdvertiserIds,
+      transferredToBc: shared.transferredToBc,
+      failures: shared.linkFailures,
     });
   } catch (error) {
     const message =

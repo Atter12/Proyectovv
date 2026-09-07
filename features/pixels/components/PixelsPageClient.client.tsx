@@ -275,31 +275,36 @@ export function PixelsPageClient({
       const json = (await res.json()) as {
         ok?: boolean;
         error?: string;
+        mode?: "single" | "shared";
         pixel?: PixelRow;
         pixels?: PixelRow[];
         createdCount?: number;
         requestedCount?: number;
+        linkedAdvertiserIds?: string[];
         failures?: { advertiserId: string; error: string }[];
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo crear el píxel.");
       }
-      const created = json.createdCount ?? json.pixels?.length ?? 1;
-      const requested = json.requestedCount ?? selectedAdvertiserIds.length;
+      const linked = json.linkedAdvertiserIds?.length ?? selectedAdvertiserIds.length;
       const failN = json.failures?.length ?? 0;
-      const ids = (json.pixels ?? (json.pixel ? [json.pixel] : []))
-        .map((p) => p.pixelId)
-        .filter(Boolean)
-        .join(", ");
-      setNotice(
-        failN > 0
-          ? `Creados ${created}/${requested}. Fallaron ${failN}. IDs: ${ids || "—"}. Revisá el error e intentá de nuevo en las cuentas fallidas.`
-          : created > 1
-            ? `Píxeles creados en ${created} cuentas. IDs: ${ids}. Ahora instalalos / conectalos a tu tienda (paso 3).`
-            : `Píxel creado. ID: ${ids}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
-      );
+      const id = json.pixel?.pixelId ?? "";
+      const code = json.pixel?.pixelCode ?? "";
+      if (json.mode === "shared" || selectedAdvertiserIds.length > 1) {
+        setNotice(
+          failN > 0
+            ? `Píxel creado (ID ${id}). Vinculado a ${linked} cuenta(s); ${failN} no se pudieron vincular. Code: ${code || "—"}.`
+            : `Píxel único creado y vinculado a ${linked} cuentas. ID: ${id}${code ? ` · Code: ${code}` : ""}. Ahora instalalo en la tienda (paso 3).`,
+        );
+      } else {
+        setNotice(
+          `Píxel creado. ID: ${id}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
+        );
+      }
       if (failN > 0 && json.failures?.[0]?.error) {
-        setError(json.failures.map((f) => `${f.advertiserId}: ${f.error}`).join(" · "));
+        setError(
+          json.failures.map((f) => `${f.advertiserId}: ${f.error}`).join(" · "),
+        );
       }
       setPixelName("");
       setLastSyncCount(null);
@@ -487,7 +492,8 @@ export function PixelsPageClient({
               Cuentas ads
             </h2>
             <p className="mt-1 text-[12px] text-[#5c564e]">
-              Podés marcar una, varias o todas para crear píxel en cada una.
+              Seleccioná una, varias o todas. Se crea <strong>un solo píxel</strong>{" "}
+              y se vincula a las cuentas marcadas.
             </p>
           </div>
           {accounts.length > 0 ? (
@@ -590,9 +596,9 @@ export function PixelsPageClient({
             Creación de píxel
           </h2>
           <p className="mt-2 text-[12.5px] leading-5 text-[#5c564e]">
-            Crea el píxel en TikTok y te da el <strong>Pixel ID</strong> para
-            instalarlo / conectarlo a tu tienda (Shopify, landing, etc.).{" "}
-            <strong>No activa eventos todavía</strong>.
+            Crea <strong>un píxel</strong> en TikTok. Si marcaste varias cuentas,
+            se <strong>vincula el mismo</strong> a todas (Pixel ID único para la
+            tienda). <strong>No activa eventos todavía</strong>.
           </p>
           <label className="mt-4 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
             Nombre (opcional)
@@ -610,9 +616,9 @@ export function PixelsPageClient({
             className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
           >
             {creating
-              ? "Creando píxeles…"
+              ? "Creando y vinculando…"
               : selectedAdvertiserIds.length > 1
-                ? `1 · Crear píxel en ${selectedAdvertiserIds.length} cuentas`
+                ? `1 · Crear 1 píxel y vincular a ${selectedAdvertiserIds.length} cuentas`
                 : "1 · Crear píxel"}
           </button>
           <button
