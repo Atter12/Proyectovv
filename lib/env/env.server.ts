@@ -174,7 +174,7 @@ export const serverEnv = {
     process.env.COBRANA_API_BASE_URL?.trim() ||
     "https://api.cert.cobrana.pe/v1",
   cobranaServicesOption:
-    process.env.COBRANA_SERVICES_OPTION?.trim().toLowerCase() || "cobrana",
+    process.env.COBRANA_SERVICES_OPTION?.trim().toLowerCase() || "360pay",
   cobranaFeeMode:
     process.env.COBRANA_FEE_MODE?.trim().toLowerCase() === "customer"
       ? "customer"

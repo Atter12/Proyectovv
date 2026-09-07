@@ -84,7 +84,7 @@ async function ensureEnum() {
 async function createTestCharge() {
   const secretKey = env("COBRANA_SECRET_KEY");
   const base = env("COBRANA_API_BASE_URL", "https://api.cert.cobrana.pe/v1").replace(/\/$/, "");
-  const option = env("COBRANA_SERVICES_OPTION", "cobrana");
+  const option = env("COBRANA_SERVICES_OPTION", "360pay");
   const feeMode = env("COBRANA_FEE_MODE", "merchant");
   const dni = env("COBRANA_SMOKE_DNI");
   const name = env("COBRANA_SMOKE_NAME", "Smoke");
