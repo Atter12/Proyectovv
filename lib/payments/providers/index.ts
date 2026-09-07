@@ -1,4 +1,5 @@
 import type { PaymentGatewayId } from "@/types/payment";
+import { CobranaPaymentProvider } from "./cobrana.provider";
 import { CryptoPaymentProvider } from "./crypto.provider";
 import { CulqiPaymentProvider } from "./culqi.provider";
 import { ManualPaymentProvider } from "./manual.provider";
@@ -12,6 +13,7 @@ const providers: Record<PaymentGatewayId, PaymentProviderAdapter> = {
   mercadopago: new MercadoPagoPaymentProvider(),
   manual: new ManualPaymentProvider(),
   crypto: new CryptoPaymentProvider(),
+  cobrana: new CobranaPaymentProvider(),
 };
 
 export function getPaymentProvider(provider: PaymentGatewayId): PaymentProviderAdapter {

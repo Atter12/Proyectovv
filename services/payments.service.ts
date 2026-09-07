@@ -487,6 +487,14 @@ export const getPaymentPageCore = cache(async (
   const walletBalanceCents = walletLedger?.balanceCents ?? pageSummary?.balance_cents ?? 0;
   const walletReservedCents = walletLedger?.reservedBalanceCents ?? 0;
 
+  const { isProviderConfigured } = await import("@/lib/payments/providers");
+  const visibleGateways = gateways.filter(
+    (g) => g.id !== "cobrana" || isProviderConfigured("cobrana"),
+  );
+  const selectedGateway = visibleGateways.some((g) => g.id === preferredGateway)
+    ? preferredGateway
+    : (visibleGateways[0]?.id ?? preferredGateway);
+
   return {
     wallet: {
       name: pageSummary?.name ?? siteConfig.walletName,
@@ -494,14 +502,14 @@ export const getPaymentPageCore = cache(async (
       reservedBalance: centsToAmount(walletReservedCents),
       currency: walletLedger?.currency ?? pageSummary?.currency ?? "USD",
       lastTopUp: pageSummary?.last_deposit_at ?? null,
-      preferredGateway,
+      preferredGateway: selectedGateway,
     },
     summary: {
       pendingRefunds: pageSummary?.pending_refunds ?? 0,
       accountsReadyForAllocation: pageSummary?.accounts_ready_for_allocation ?? 0,
     },
-    selectedGateway: preferredGateway,
-    gateways,
+    selectedGateway,
+    gateways: visibleGateways,
     adAccountsForAllocation,
   };
 });

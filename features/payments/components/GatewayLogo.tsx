@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import type { PaymentGatewayId } from "@/types/payment";
+import { YapeBrandMark } from "./PaymentAppIcon";
 
 interface GatewayLogoProps {
   gatewayId: PaymentGatewayId;
@@ -40,6 +41,8 @@ function shellClass(id: PaymentGatewayId) {
       return "bg-[#26A17B]";
     case "manual":
       return "bg-[#1f1c19]";
+    case "cobrana":
+      return "bg-[#5F0B72]";
     default:
       return "bg-white";
   }
@@ -57,6 +60,8 @@ function GatewayMark({ id }: { id: PaymentGatewayId }) {
       return <UsdtMark />;
     case "manual":
       return <ManualMark />;
+    case "cobrana":
+      return <YapeBrandMark />;
   }
 }
 

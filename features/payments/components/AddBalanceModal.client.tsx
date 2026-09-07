@@ -11,8 +11,17 @@ import {
   formatFeePercentLabel,
   depositFromDesiredCredit,
 } from "@/lib/payments/deposit-fee";
+import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isVoucherPaymentProvider } from "@/types/payment";
+import {
+  PaymentAppIcon,
+  paymentAppButtonClass,
+  paymentAppLabel,
+  resolvePaymentAppKey,
+} from "./PaymentAppIcon";
+import { cn } from "@/lib/cn";
+import { GatewayLogo } from "./GatewayLogo";
 
 interface AddBalanceModalProps {
   open: boolean;
@@ -21,6 +30,8 @@ interface AddBalanceModalProps {
   /** Fee % Hecom (tiktok_default_fee / cuenta). */
   feePercent?: number;
 }
+
+type CobranaDeeplink = { key: string; label: string; url: string };
 
 interface CreateIntentResponse {
   ok: boolean;
@@ -34,6 +45,10 @@ interface CreateIntentResponse {
     feeCents?: number;
     creditCents?: number;
     grossCents?: number;
+    grossPenCents?: number | null;
+    fxRateUsdPen?: number;
+    cobranaCode?: string | null;
+    cobranaDeeplinks?: CobranaDeeplink[];
   };
 }
 
@@ -48,16 +63,30 @@ interface ProofUploadResponse {
   };
 }
 
+interface IntentPollResponse {
+  ok: boolean;
+  paymentIntent: {
+    id: string;
+    status: string;
+    cobranaCode?: string | null;
+    cobranaDeeplinks?: CobranaDeeplink[];
+  };
+}
+
 const gatewayLabels: Record<PaymentGatewayId, string> = {
   stripe: "Stripe",
   culqi: "Culqi",
   mercadopago: "Mercado Pago",
   crypto: "Cripto (USDT)",
   manual: "Pago manual",
+  cobrana: "Yape / Cobrana",
 };
 
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 100_000;
+const DEFAULT_FX = 3.48;
+
+type Step = "form" | "confirm" | "proof" | "yape" | "result";
 
 export function AddBalanceModal({
   open,
@@ -68,13 +97,21 @@ export function AddBalanceModal({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
-  const [step, setStep] = useState<"form" | "confirm" | "proof" | "result">("form");
+  const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [fxRate, setFxRate] = useState(DEFAULT_FX);
+  const [cobranaCode, setCobranaCode] = useState<string | null>(null);
+  const [cobranaDeeplinks, setCobranaDeeplinks] = useState<CobranaDeeplink[]>(
+    [],
+  );
+  const [paidConfirmed, setPaidConfirmed] = useState(false);
+
+  const isCobrana = selectedGateway === "cobrana";
 
   useEffect(() => {
     setMounted(true);
@@ -94,6 +131,62 @@ export function AddBalanceModal({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !isCobrana) return;
+    void apiClient<{ fxRateUsdPen: number }>("/api/payments/manual/config")
+      .then((cfg) => {
+        if (Number.isFinite(cfg.fxRateUsdPen) && cfg.fxRateUsdPen > 0) {
+          setFxRate(cfg.fxRateUsdPen);
+        }
+      })
+      .catch(() => {
+        /* keep default FX */
+      });
+  }, [open, isCobrana]);
+
+  useEffect(() => {
+    if (!open || step !== "yape" || !paymentIntentId || paidConfirmed) return;
+
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const data = await apiClient<IntentPollResponse>(
+          `/api/payments/intents/${paymentIntentId}`,
+        );
+        if (cancelled) return;
+        if (data.paymentIntent.cobranaCode) {
+          setCobranaCode(data.paymentIntent.cobranaCode);
+        }
+        if (data.paymentIntent.cobranaDeeplinks?.length) {
+          setCobranaDeeplinks(data.paymentIntent.cobranaDeeplinks);
+        }
+        if (data.paymentIntent.status === "succeeded") {
+          setPaidConfirmed(true);
+          setResultMessage(
+            `Pago confirmado. Se acreditaron ${formatMoney(parsedAmount)} en tu cartera.`,
+          );
+          setStep("result");
+          router.refresh();
+        }
+      } catch {
+        /* keep waiting — webhook is source of truth */
+      }
+    }
+
+    void poll();
+    const timer = window.setInterval(() => {
+      void poll();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+    // parsedAmount is stable while on yape step
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, step, paymentIntentId, paidConfirmed, router]);
+
   const parsedAmount = Number.parseFloat(amount);
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
@@ -106,6 +199,17 @@ export function AddBalanceModal({
     return depositFromDesiredCredit(Math.round(parsedAmount * 100), feePercent);
   }, [feePercent, isValidAmount, parsedAmount]);
 
+  const penPreview = useMemo(() => {
+    if (!isCobrana || !isValidAmount) return null;
+    const creditPenCents = Math.round(parsedAmount * fxRate * 100);
+    const grossPenCents = Math.round(creditPenCents * (1 + feePercent / 100));
+    return {
+      creditPenCents,
+      feePenCents: grossPenCents - creditPenCents,
+      grossPenCents,
+    };
+  }, [feePercent, fxRate, isCobrana, isValidAmount, parsedAmount]);
+
   function handleClose() {
     setStep("form");
     setAmount("");
@@ -115,6 +219,9 @@ export function AddBalanceModal({
     setProofFile(null);
     setLoading(false);
     setUploadingProof(false);
+    setCobranaCode(null);
+    setCobranaDeeplinks([]);
+    setPaidConfirmed(false);
     onClose();
   }
 
@@ -140,6 +247,7 @@ export function AddBalanceModal({
           amount: parsedAmount,
           currency: "USD",
           provider: selectedGateway,
+          ...(isCobrana ? { chargeCurrency: "PEN" } : {}),
         }),
       });
 
@@ -149,6 +257,16 @@ export function AddBalanceModal({
       }
 
       setPaymentIntentId(data.paymentIntent.paymentIntentId);
+
+      if (isCobrana) {
+        setCobranaCode(data.paymentIntent.cobranaCode ?? null);
+        setCobranaDeeplinks(data.paymentIntent.cobranaDeeplinks ?? []);
+        setResultMessage(data.paymentIntent.message ?? null);
+        setStep("yape");
+        router.refresh();
+        return;
+      }
+
       const chargeLabel =
         data.paymentIntent.grossCents != null
           ? formatMoney(data.paymentIntent.grossCents / 100)
@@ -213,6 +331,16 @@ export function AddBalanceModal({
     }
   }
 
+  const yapeLink =
+    cobranaDeeplinks.find((d) => d.key.toLowerCase() === "yape") ?? null;
+  const otherLinks = cobranaDeeplinks.filter(
+    (d) => d.key.toLowerCase() !== "yape",
+  );
+  const orderedLinks = [
+    ...(yapeLink ? [yapeLink] : []),
+    ...otherLinks,
+  ];
+
   if (!open || !mounted) return null;
 
   return createPortal(
@@ -239,8 +367,10 @@ export function AddBalanceModal({
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               Indicá cuánto querés en cartera. El fee Holistic (
-              {formatFeePercentLabel(feePercent)}) se suma y eso es lo que se
-              cobra.
+              {formatFeePercentLabel(feePercent)}) se suma
+              {isCobrana
+                ? " y se cobra en soles vía Yape / Cobrana."
+                : " y eso es lo que se cobra."}
             </p>
 
             <div className="mt-5 space-y-4">
@@ -284,7 +414,9 @@ export function AddBalanceModal({
                       Fee Holistic ({formatFeePercentLabel(feePercent)})
                     </span>
                     <span className="font-medium text-[var(--foreground)]">
-                      {formatMoney(feePreview.feeCents / 100)}
+                      {isCobrana && penPreview
+                        ? formatPenAmount(penPreview.feePenCents)
+                        : formatMoney(feePreview.feeCents / 100)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-2">
@@ -292,11 +424,15 @@ export function AddBalanceModal({
                       Se cobra
                     </span>
                     <span className="text-base font-bold text-[var(--brand-primary,#ff781f)]">
-                      {formatMoney(feePreview.grossCents / 100)}
+                      {isCobrana && penPreview
+                        ? formatPenAmount(penPreview.grossPenCents)
+                        : formatMoney(feePreview.grossCents / 100)}
                     </span>
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
-                    Ej.: querés $100 con fee 10% → se cobran $110.
+                    {isCobrana
+                      ? `TC referencial ${fxRate.toFixed(2)} · necesitás DNI en Hecom CRM.`
+                      : "Ej.: querés $100 con fee 10% → se cobran $110."}
                   </p>
                 </div>
               ) : null}
@@ -305,10 +441,27 @@ export function AddBalanceModal({
                 <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
                   Método seleccionado
                 </p>
-                <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
-                  {gatewayLabels[selectedGateway]}
-                </p>
-                {isVoucher ? (
+                <div className="mt-1.5 flex items-center gap-2.5">
+                  <GatewayLogo gatewayId={selectedGateway} size="sm" />
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    {gatewayLabels[selectedGateway]}
+                  </p>
+                </div>
+                {isCobrana ? (
+                  <>
+                    <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
+                      Abrís Yape u otra app bancaria con el código. El saldo USD
+                      se acredita cuando Cobrana confirma el pago.
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      {(
+                        ["yape", "bcp", "plin", "interbank"] as const
+                      ).map((app) => (
+                        <PaymentAppIcon key={app} app={app} size="sm" />
+                      ))}
+                    </div>
+                  </>
+                ) : isVoucher ? (
                   <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
                     {selectedGateway === "crypto"
                       ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, enviás USDT y subís captura / TxID."
@@ -343,7 +496,9 @@ export function AddBalanceModal({
               Confirmar depósito
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Se acredita el monto pedido; Stripe cobra ese monto + fee Hecom.
+              {isCobrana
+                ? "Se acredita el monto en USD; cobrás el equivalente en soles por Yape."
+                : "Se acredita el monto pedido; Stripe cobra ese monto + fee Hecom."}
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <div>
@@ -359,9 +514,11 @@ export function AddBalanceModal({
                   Fee ({formatFeePercentLabel(feePercent)})
                 </dt>
                 <dd className="font-medium text-[var(--foreground)]">
-                  {feePreview
-                    ? formatMoney(feePreview.feeCents / 100)
-                    : "—"}
+                  {isCobrana && penPreview
+                    ? formatPenAmount(penPreview.feePenCents)
+                    : feePreview
+                      ? formatMoney(feePreview.feeCents / 100)
+                      : "—"}
                 </dd>
               </div>
               <div>
@@ -369,9 +526,11 @@ export function AddBalanceModal({
                   Se cobra
                 </dt>
                 <dd className="text-lg font-bold text-[var(--foreground)]">
-                  {feePreview
-                    ? formatMoney(feePreview.grossCents / 100)
-                    : formatMoney(parsedAmount)}
+                  {isCobrana && penPreview
+                    ? formatPenAmount(penPreview.grossPenCents)
+                    : feePreview
+                      ? formatMoney(feePreview.grossCents / 100)
+                      : formatMoney(parsedAmount)}
                 </dd>
               </div>
               <div>
@@ -401,7 +560,107 @@ export function AddBalanceModal({
                 disabled={loading}
                 className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
               >
-                {loading ? "Procesando…" : "Confirmar depósito"}
+                {loading
+                  ? "Procesando…"
+                  : isCobrana
+                    ? "Generar código Yape"
+                    : "Confirmar depósito"}
+              </Button>
+            </div>
+          </>
+        ) : step === "yape" ? (
+          <>
+            <div className="flex items-start gap-3">
+              <PaymentAppIcon app="yape" size="lg" />
+              <div className="min-w-0">
+                <h2
+                  id="add-balance-title"
+                  className="text-lg font-semibold text-[var(--foreground)]"
+                >
+                  Pagá con Yape u otra app
+                </h2>
+                <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
+                  {resultMessage ??
+                    "Usá el código o abrí tu billetera. Esperamos la confirmación automática."}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+              {cobranaCode ? (
+                <div>
+                  <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                    Código de pago
+                  </p>
+                  <p className="mt-1 font-mono text-2xl font-bold tracking-wide text-[var(--foreground)]">
+                    {cobranaCode}
+                  </p>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-[var(--admin-text-muted,#64748b)]">
+                  Acredita
+                </span>
+                <span className="font-semibold text-[var(--foreground)]">
+                  {formatMoney(parsedAmount)}
+                </span>
+              </div>
+              {penPreview ? (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[var(--admin-text-muted,#64748b)]">
+                    Cobro PEN
+                  </span>
+                  <span className="font-semibold text-[var(--foreground)]">
+                    {formatPenAmount(penPreview.grossPenCents)}
+                  </span>
+                </div>
+              ) : null}
+              <p className="text-[11px] text-[var(--admin-text-muted,#64748b)]">
+                ID: <span className="font-mono">{paymentIntentId}</span>
+              </p>
+              <p className="text-xs font-medium text-[#5F0B72]">
+                Esperando confirmación de Cobrana…
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {orderedLinks.length > 0 ? (
+                orderedLinks.map((link) => {
+                  const app = resolvePaymentAppKey(link.key, link.label);
+                  return (
+                    <button
+                      key={`${link.key}-${link.url}`}
+                      type="button"
+                      className={cn(
+                        "inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-semibold transition-colors",
+                        paymentAppButtonClass(app),
+                      )}
+                      onClick={() => {
+                        window.open(link.url, "_blank", "noopener,noreferrer");
+                      }}
+                    >
+                      <PaymentAppIcon app={app} size="sm" />
+                      Abrir {paymentAppLabel(app, link.label)}
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-3 text-center text-xs text-[var(--admin-text-muted,#64748b)]">
+                  No hay deeplinks en esta orden. Pagá con el código en Yape /
+                  banca.
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <p className="mt-3 text-xs text-red-600" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <Button variant="outline" onClick={handleClose}>
+                Cerrar y esperar
               </Button>
             </div>
           </>
@@ -479,7 +738,7 @@ export function AddBalanceModal({
               id="add-balance-title"
               className="text-lg font-semibold text-[var(--foreground)]"
             >
-              Intención registrada
+              {paidConfirmed ? "Pago acreditado" : "Intención registrada"}
             </h2>
             <p className="mt-3 text-sm text-[var(--admin-text-muted,#64748b)]">
               {resultMessage}

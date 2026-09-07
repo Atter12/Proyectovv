@@ -8,6 +8,13 @@ export interface CreateCheckoutInput {
   paymentIntentId: string;
   idempotencyKey: string;
   customerEmail?: string;
+  /** DNI/RUC — requerido por Cobrana services. */
+  customerDocumentNumber?: string;
+  customerName?: string;
+  customerLastname?: string;
+  customerPhone?: string;
+  /** Concepto visible al deudor. */
+  concept?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -16,6 +23,8 @@ export interface CreateCheckoutResult {
   checkoutUrl: string | null;
   status: "created" | "requires_payment" | "processing";
   message?: string;
+  /** Extra metadata to merge into payment_intents (ej. cobrana code/deeplinks). */
+  resultMetadata?: Record<string, unknown>;
 }
 
 export interface VerifyWebhookInput {

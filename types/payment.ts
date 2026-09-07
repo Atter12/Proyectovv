@@ -4,7 +4,8 @@ export type PaymentGatewayId =
   | "culqi"
   | "mercadopago"
   | "manual"
-  | "crypto";
+  | "crypto"
+  | "cobrana";
 
 export type PaymentTabKey =
   | "assignment"
@@ -76,6 +77,7 @@ export const PAYMENT_GATEWAY_IDS: PaymentGatewayId[] = [
   "mercadopago",
   "manual",
   "crypto",
+  "cobrana",
 ];
 
 export function isPaymentGatewayId(value: string): value is PaymentGatewayId {

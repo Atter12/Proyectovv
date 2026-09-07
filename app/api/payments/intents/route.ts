@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Los gerentes recargan desde el BM. Solo el super admin o el cliente pueden usar Stripe.",
+          "Los gerentes recargan desde el BM. Solo el super admin o el cliente pueden fondear la cartera (Stripe / Yape).",
       },
       { status: 403 },
     );

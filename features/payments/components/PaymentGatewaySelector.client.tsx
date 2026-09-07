@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import { GatewayLogo } from "./GatewayLogo";
+import { PaymentAppIcon } from "./PaymentAppIcon";
 import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 
 interface PaymentGatewaySelectorProps {
@@ -72,6 +73,15 @@ export function PaymentGatewaySelector({
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
                 {gateway.description}
               </p>
+              {gateway.id === "cobrana" ? (
+                <div className="mt-2 flex items-center gap-1">
+                  {(
+                    ["yape", "bcp", "plin", "interbank"] as const
+                  ).map((app) => (
+                    <PaymentAppIcon key={app} app={app} size="sm" />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </button>
         );

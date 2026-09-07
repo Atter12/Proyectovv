@@ -3,13 +3,19 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Stripe + Pago manual (BCP). Culqi / Mercado Pago / Cripto ocultos.
+ * Stripe + Pago manual (BCP) + Cobrana (Yape) cuando está configurado.
+ * Culqi / Mercado Pago / Cripto ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "stripe",
     name: "Stripe",
     description: "Tarjetas y pagos globales",
+  },
+  {
+    id: "cobrana",
+    name: "Yape / Cobrana",
+    description: "Yape, BCP y apps bancarias en soles",
   },
   {
     id: "manual",

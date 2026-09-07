@@ -58,6 +58,8 @@ export interface CreatePaymentIntentResponse {
   grossChargeCents?: number;
   grossPenCents?: number | null;
   fxRateUsdPen?: number;
+  cobranaCode?: string | null;
+  cobranaDeeplinks?: Array<{ key: string; label: string; url: string }>;
 }
 
 export async function createPaymentIntentForSession(
@@ -104,14 +106,26 @@ export async function createPaymentIntentForSession(
     hecomClienteId: input.hecomClienteId,
   });
 
+  const isCobrana = provider === "cobrana";
   const chargeCurrency: ManualChargeCurrency =
-    input.provider === "manual" && input.chargeCurrency === "PEN" ? "PEN" : "USD";
+    input.provider === "manual" && input.chargeCurrency === "PEN"
+      ? "PEN"
+      : isCobrana
+        ? "PEN"
+        : "USD";
 
   let amountCents = fee.grossCents;
   let intentCurrency = (input.currency ?? "USD").toUpperCase();
   let manualQuoteMeta: Record<string, unknown> = {};
+  let cobranaCustomer: {
+    documentNumber: string;
+    name?: string;
+    lastname?: string;
+    phone?: string | null;
+    fullName?: string | null;
+  } | null = null;
 
-  if (input.provider === "manual" && chargeCurrency === "PEN") {
+  if (isCobrana || (input.provider === "manual" && chargeCurrency === "PEN")) {
     const quote = buildManualDepositQuote({
       creditUsd: input.amount,
       feePercent: fee.feePercent,
@@ -134,6 +148,38 @@ export async function createPaymentIntentForSession(
     };
   }
 
+  if (isCobrana) {
+    if (!fee.hecomClienteId) {
+      throw new Error(
+        "Seleccioná un cliente Hecom para pagar con Yape / Cobrana.",
+      );
+    }
+    const { getHecomCliente } = await import("@/lib/hecom/clientes.server");
+    const hecomCliente = await getHecomCliente(fee.hecomClienteId);
+    const dni = hecomCliente?.dni?.trim() || null;
+    if (!dni) {
+      throw new Error(
+        "Completá el DNI/RUC del cliente en Hecom CRM para pagar con Yape / Cobrana.",
+      );
+    }
+    const nameParts = String(hecomCliente?.name ?? "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    cobranaCustomer = {
+      documentNumber: dni,
+      name: nameParts[0],
+      lastname: nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined,
+      phone: hecomCliente?.phones?.[0] ?? null,
+      fullName: hecomCliente?.name ?? null,
+    };
+    if (amountCents < 1000) {
+      throw new Error(
+        "Con el tipo de cambio actual el cargo en soles queda bajo el mínimo de Cobrana (S/ 10). Subí el monto en USD.",
+      );
+    }
+  }
+
   if (amountCents <= 0) {
     throw new Error("El monto a cobrar debe ser mayor a cero.");
   }
@@ -145,7 +191,8 @@ export async function createPaymentIntentForSession(
     organizationId,
     walletId,
     amountCents,
-    currency: input.provider === "manual" ? intentCurrency : currency,
+    currency:
+      input.provider === "manual" || isCobrana ? intentCurrency : currency,
     provider,
     createdBy: session.id,
     idempotencyKey,
@@ -161,21 +208,41 @@ export async function createPaymentIntentForSession(
       credit_amount_cents: fee.creditCents,
       gross_amount_cents: fee.grossCents,
       wallet_credit_currency: "USD",
+      ...(cobranaCustomer
+        ? {
+            customer_document_number: cobranaCustomer.documentNumber,
+            customer_full_name: cobranaCustomer.fullName,
+            customer_phone: cobranaCustomer.phone,
+          }
+        : {}),
       ...manualQuoteMeta,
     },
   });
 
   const checkoutResult = await providerImpl.createCheckout({
     amountCents,
-    currency: input.provider === "manual" ? intentCurrency : currency,
+    currency:
+      input.provider === "manual" || isCobrana ? intentCurrency : currency,
     organizationId,
     walletId,
     paymentIntentId: intent.id,
     idempotencyKey,
     customerEmail: session.email,
+    customerDocumentNumber: cobranaCustomer?.documentNumber,
+    customerName: cobranaCustomer?.name,
+    customerLastname: cobranaCustomer?.lastname,
+    customerPhone: cobranaCustomer?.phone ?? undefined,
+    concept: fee.hecomClienteName
+      ? `Recarga Holistic · ${fee.hecomClienteName}`
+      : `Recarga Holistic`,
+    metadata: {
+      customer_full_name: cobranaCustomer?.fullName ?? undefined,
+      customer_phone: cobranaCustomer?.phone ?? undefined,
+    },
   });
 
   // Manual siempre voucher. Crypto: voucher solo si no hay checkout automático (NOWPayments).
+  // Cobrana: requiere pago en Yape/banco (sin voucher Holistic).
   const voucherFlow =
     provider === "manual" ||
     (provider === "crypto" && !checkoutResult.checkoutUrl);
@@ -196,13 +263,14 @@ export async function createPaymentIntentForSession(
 
   // Anotar modo cripto sin pisar metadata de fee.
   if (provider === "crypto") {
-    await updatePaymentIntentRecord(intent.id, {
-      metadata: {
-        ...intent.metadata,
-        crypto_mode: voucherFlow ? "manual_proof" : "nowpayments",
-        nowpayments_invoice_id: checkoutResult.providerReference,
-      },
+    await mergePaymentIntentMetadata(intent.id, {
+      crypto_mode: voucherFlow ? "manual_proof" : "nowpayments",
+      nowpayments_invoice_id: checkoutResult.providerReference,
     });
+  }
+
+  if (checkoutResult.resultMetadata) {
+    await mergePaymentIntentMetadata(intent.id, checkoutResult.resultMetadata);
   }
 
   if (voucherFlow) {
@@ -212,7 +280,7 @@ export async function createPaymentIntentForSession(
       organizationId,
       paymentIntentId: intent.id,
       amountCents,
-      currency,
+      currency: intentCurrency,
     });
   }
 
@@ -227,16 +295,30 @@ export async function createPaymentIntentForSession(
     feeCents: fee.feeCents,
     creditCents: fee.creditCents,
     grossCents: fee.grossCents,
-    chargeCurrency: input.provider === "manual" ? chargeCurrency : undefined,
+    chargeCurrency:
+      input.provider === "manual" || isCobrana ? chargeCurrency : undefined,
     grossChargeCents: amountCents,
     grossPenCents:
-      input.provider === "manual" && chargeCurrency === "PEN"
+      (input.provider === "manual" && chargeCurrency === "PEN") || isCobrana
         ? amountCents
         : null,
     fxRateUsdPen:
       typeof manualQuoteMeta.fx_rate_usd_pen === "number"
         ? manualQuoteMeta.fx_rate_usd_pen
         : undefined,
+    cobranaCode:
+      typeof checkoutResult.resultMetadata?.cobrana_code === "string"
+        ? checkoutResult.resultMetadata.cobrana_code
+        : null,
+    cobranaDeeplinks: Array.isArray(
+      checkoutResult.resultMetadata?.cobrana_deeplinks,
+    )
+      ? (checkoutResult.resultMetadata.cobrana_deeplinks as Array<{
+          key: string;
+          label: string;
+          url: string;
+        }>)
+      : undefined,
   };
 }
 

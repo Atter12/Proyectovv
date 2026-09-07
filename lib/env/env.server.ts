@@ -167,6 +167,19 @@ export const serverEnv = {
     300,
   ),
 
+  /** Cobrana (Yape / servicios PEN). Cert: api.cert.cobrana.pe */
+  cobranaSecretKey: process.env.COBRANA_SECRET_KEY ?? "",
+  cobranaWebhookSecret: process.env.COBRANA_WEBHOOK_SECRET ?? "",
+  cobranaApiBaseUrl:
+    process.env.COBRANA_API_BASE_URL?.trim() ||
+    "https://api.cert.cobrana.pe/v1",
+  cobranaServicesOption:
+    process.env.COBRANA_SERVICES_OPTION?.trim().toLowerCase() || "cobrana",
+  cobranaFeeMode:
+    process.env.COBRANA_FEE_MODE?.trim().toLowerCase() === "customer"
+      ? "customer"
+      : "merchant",
+
   /** NOWPayments (cripto). Sandbox: api-sandbox.nowpayments.io */
   nowPaymentsApiKey: process.env.NOWPAYMENTS_API_KEY ?? "",
   nowPaymentsIpnSecret: process.env.NOWPAYMENTS_IPN_SECRET ?? "",

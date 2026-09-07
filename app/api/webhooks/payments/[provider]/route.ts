@@ -21,6 +21,9 @@ function getWebhookSignature(request: Request, provider: PaymentGatewayId): stri
   if (provider === "stripe") {
     return request.headers.get("stripe-signature");
   }
+  if (provider === "cobrana") {
+    return request.headers.get("x-cobrana-signature");
+  }
   if (provider === "crypto") {
     return (
       request.headers.get("x-nowpayments-sig") ??
