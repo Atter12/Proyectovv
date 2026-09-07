@@ -45,6 +45,38 @@ interface PostMessageResponse {
   message: ChatMessage;
 }
 
+type RechargeChatState = "idle" | "awaiting_amount" | "awaiting_payment";
+
+interface RechargeBotResponse {
+  handled: boolean;
+  state: RechargeChatState;
+  replies: Array<{ id: string; text: string }>;
+}
+
+/**
+ * Le pregunta al bot de recarga si quiere hacerse cargo del mensaje.
+ *
+ * Si algo falla devuelve null y el mensaje sigue al ticket de soporte: una
+ * caida del bot nunca debe dejar al cliente sin poder escribirle a un humano.
+ */
+async function tryRechargeBot(
+  message: string,
+  state: RechargeChatState,
+): Promise<RechargeBotResponse | null> {
+  try {
+    const res = await fetch("/api/payments/recharge-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ message, state }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as RechargeBotResponse;
+  } catch {
+    return null;
+  }
+}
+
 function greetingMessage(): ChatMessage {
   return {
     id: "support-greeting",
@@ -64,6 +96,9 @@ export function SupportChatWidget({
   onOpenChange,
 }: SupportChatWidgetProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
+  // Estado del bot de recarga. Es solo una pista para interpretar un "50"
+  // suelto; el servidor revalida todo y no confia en este valor.
+  const [rechargeState, setRechargeState] = useState<RechargeChatState>("idle");
   const [inputValue, setInputValue] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -231,6 +266,27 @@ export function SupportChatWidget({
     ]);
 
     try {
+      // El bot de recarga va primero. Si se hace cargo, no se crea ticket: el
+      // gerente no tiene por que recibir "quiero recargar". Cualquier otra
+      // cosa sigue de largo al soporte de siempre.
+      if (text && files.length === 0) {
+        const bot = await tryRechargeBot(text, rechargeState);
+        if (bot?.handled) {
+          setRechargeState(bot.state);
+          setMessages((prev) => [
+            ...prev,
+            ...bot.replies.map((reply) => ({
+              id: reply.id,
+              role: "bot" as const,
+              text: reply.text,
+              ...supportChatTimestampsNow(),
+            })),
+          ]);
+          setSending(false);
+          return;
+        }
+      }
+
       const formData = new FormData();
       if (text) formData.set("message", text);
       for (const file of files) formData.append("files", file);

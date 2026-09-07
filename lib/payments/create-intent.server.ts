@@ -122,6 +122,21 @@ export async function createPaymentIntentForSession(
     // bruto en soles, y con montos iguales el aviso del banco no se puede
     // cruzar con una sola recarga. Sumamos céntimos hasta que sea único.
     // El cliente paga como mucho S/ 0.99 de más; el crédito no cambia.
+    // El banco no avisa por montos chicos, y sin aviso no hay forma de
+    // verificar el cobro. Mejor rechazar la recarga que dejarla colgada.
+    const minNotifiableCents = Math.round(serverEnv.yapeMinNotifiablePen * 100);
+    if (
+      serverEnv.yapeRequireBankConfirmation &&
+      quote.grossChargeCents <= minNotifiableCents
+    ) {
+      const minCredit = (minNotifiableCents / 100 / (quote.fxRateUsdPen * (1 + fee.feePercent / 100))).toFixed(2);
+      throw new Error(
+        `Para pagar en soles el monto debe superar S/ ${(minNotifiableCents / 100).toFixed(2)}; ` +
+          `tu recarga da S/ ${(quote.grossChargeCents / 100).toFixed(2)}. ` +
+          `Probá con al menos ${minCredit} USD, o pagá en dólares.`,
+      );
+    }
+
     const reserved = await reserveUniquePenAmount(quote.grossChargeCents);
 
     amountCents = reserved.amountCents;

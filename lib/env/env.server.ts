@@ -9,6 +9,12 @@ function parseInteger(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseDecimalEnv(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function splitCsv(value: string | undefined): string[] {
   return (value ?? "")
     .split(",")
@@ -143,6 +149,18 @@ export const serverEnv = {
    * el canal de avisos empieza a traer N° de operación.
    */
   yapeUniquePenCents: parseBoolean(process.env.YAPE_UNIQUE_PEN_CENTS, true),
+  /**
+   * Umbral de notificacion del banco, en soles.
+   *
+   * El BCP solo manda el correo de "Constancia de recepcion de Yapeo" por
+   * montos mayores a este valor. Un cobro por debajo entra a la cuenta pero no
+   * genera aviso, asi que el sistema no tiene forma de verificarlo y la
+   * recarga quedaria colgada en revision manual para siempre.
+   *
+   * Por eso se rechaza antes de crearla, en vez de dejar al cliente esperando
+   * un saldo que no va a llegar solo.
+   */
+  yapeMinNotifiablePen: parseDecimalEnv(process.env.YAPE_MIN_NOTIFIABLE_PEN, 10),
   /** Minutos que un monto en soles queda reservado y es cruzable. */
   yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
   /**
