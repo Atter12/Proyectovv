@@ -23,9 +23,27 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   let notes: string | null = null;
+  let adjustedGrossChargeCents: number | null = null;
   try {
-    const body = (await request.json()) as { notes?: string };
+    const body = (await request.json()) as {
+      notes?: string;
+      adjustedGrossChargeCents?: number;
+      adjustedAmount?: number;
+    };
     notes = typeof body.notes === "string" ? body.notes.trim() || null : null;
+    if (
+      typeof body.adjustedGrossChargeCents === "number" &&
+      Number.isFinite(body.adjustedGrossChargeCents) &&
+      body.adjustedGrossChargeCents > 0
+    ) {
+      adjustedGrossChargeCents = Math.round(body.adjustedGrossChargeCents);
+    } else if (
+      typeof body.adjustedAmount === "number" &&
+      Number.isFinite(body.adjustedAmount) &&
+      body.adjustedAmount > 0
+    ) {
+      adjustedGrossChargeCents = Math.round(body.adjustedAmount * 100);
+    }
   } catch {
     notes = null;
   }
@@ -36,10 +54,13 @@ export async function POST(request: Request, context: RouteContext) {
       actor: { id: session.id, email: session.email },
       notes,
       approvedFrom: "dashboard",
+      adjustedGrossChargeCents,
     });
     return NextResponse.json({
       ok: true,
       journalId: result.journalId,
+      creditUsdCents: result.creditUsdCents,
+      grossChargeCents: result.grossChargeCents,
       message: "Saldo disponible en cartera. El cliente ya puede asignar.",
     });
   } catch (error) {

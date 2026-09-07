@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
+import {
+  formatPenAmount,
+  quoteFromGrossCharge,
+} from "@/lib/payments/manual-deposit.shared";
 
 const reviewLabels = {
   awaiting_proof: "Falta voucher",
@@ -43,16 +47,46 @@ function VoucherCard({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  const chargeCurrency =
+    intent.currency.toUpperCase() === "PEN" ? "PEN" : "USD";
+  const feePercent = intent.feePercent ?? 10;
+  const fxRate = intent.fxRateUsdPen ?? 3.48;
+  const defaultAmount =
+    intent.detectedAmount != null && intent.detectedAmount > 0
+      ? intent.detectedAmount
+      : intent.amount;
+
+  const [amountInput, setAmountInput] = useState(
+    () => String(Math.round(defaultAmount * 100) / 100),
+  );
+
+  const parsedAmount = Number.parseFloat(amountInput.replace(",", "."));
+  const quote = useMemo(() => {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
+    return quoteFromGrossCharge({
+      grossChargeCents: Math.round(parsedAmount * 100),
+      chargeCurrency,
+      feePercent,
+      fxRateUsdPen: fxRate,
+    });
+  }, [parsedAmount, chargeCurrency, feePercent, fxRate]);
+
   const showActions =
     canReview && intent.reviewStatus === "pending_review";
 
   async function handleApprove() {
+    if (!quote) {
+      setError("Ingresá un monto válido de la boleta.");
+      return;
+    }
     setBusy("approve");
     setError(null);
     try {
       await apiClient(`/api/payments/manual/${intent.id}/approve`, {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          adjustedGrossChargeCents: quote.grossChargeCents,
+        }),
       });
       router.refresh();
     } catch (err) {
@@ -138,7 +172,8 @@ function VoucherCard({
               </p>
               {intent.hecomClienteName &&
               intent.organizationName &&
-              intent.hecomClienteName.trim() !== intent.organizationName.trim() ? (
+              intent.hecomClienteName.trim() !==
+                intent.organizationName.trim() ? (
                 <p className="mt-0.5 text-[11px] text-[var(--auth-muted)]">
                   Org: {intent.organizationName}
                 </p>
@@ -150,28 +185,95 @@ function VoucherCard({
           </div>
 
           <div className="rounded-xl bg-[#f8fafc] px-3 py-2.5">
-            <p className="text-xs text-[var(--auth-muted)]">Monto cargado</p>
-            <p className="text-lg font-bold tabular-nums text-[var(--auth-text)]">
-              {formatMoney(intent.amount, intent.currency)}
-            </p>
-            <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-muted)]">
-              {intent.creditUsd != null ? (
-                <p>
-                  Acredita a cartera:{" "}
-                  <span className="font-semibold text-[var(--auth-text)]">
-                    {formatMoney(intent.creditUsd, "USD")}
-                  </span>
+            {showActions ? (
+              <>
+                <label className="text-xs font-medium text-[var(--auth-muted)]">
+                  Monto real de la boleta ({chargeCurrency})
+                </label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0.01"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                    className="w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-lg font-bold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#ff781f]"
+                  />
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-[#ff781f] underline-offset-2 hover:underline"
+                    onClick={() =>
+                      setAmountInput(
+                        String(Math.round(intent.amount * 100) / 100),
+                      )
+                    }
+                  >
+                    Usar esperado
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--auth-muted)]">
+                  Esperado:{" "}
+                  {chargeCurrency === "PEN"
+                    ? formatPenAmount(Math.round(intent.amount * 100))
+                    : formatMoney(intent.amount, "USD")}
+                  {intent.detectedAmount != null
+                    ? ` · OCR: ${
+                        chargeCurrency === "PEN"
+                          ? formatPenAmount(
+                              Math.round(intent.detectedAmount * 100),
+                            )
+                          : formatMoney(intent.detectedAmount, "USD")
+                      }`
+                    : ""}
                 </p>
-              ) : null}
-              {intent.feePercent != null ? (
-                <p>
-                  Fee:{" "}
-                  <span className="font-semibold text-[var(--auth-text)]">
-                    {intent.feePercent}%
-                  </span>
+                <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-muted)]">
+                  <p>
+                    Acredita a cartera:{" "}
+                    <span className="font-semibold text-[var(--auth-text)]">
+                      {quote
+                        ? formatMoney(quote.creditUsdCents / 100, "USD")
+                        : "—"}
+                    </span>
+                  </p>
+                  <p>
+                    Fee {feePercent}%:{" "}
+                    <span className="font-semibold text-[var(--auth-text)]">
+                      {quote
+                        ? chargeCurrency === "PEN" && quote.feePenCents != null
+                          ? formatPenAmount(quote.feePenCents)
+                          : formatMoney(quote.feeUsdCents / 100, "USD")
+                        : "—"}
+                    </span>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-[var(--auth-muted)]">Monto cargado</p>
+                <p className="text-lg font-bold tabular-nums text-[var(--auth-text)]">
+                  {formatMoney(intent.amount, intent.currency)}
                 </p>
-              ) : null}
-            </div>
+                <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-muted)]">
+                  {intent.creditUsd != null ? (
+                    <p>
+                      Acredita a cartera:{" "}
+                      <span className="font-semibold text-[var(--auth-text)]">
+                        {formatMoney(intent.creditUsd, "USD")}
+                      </span>
+                    </p>
+                  ) : null}
+                  {intent.feePercent != null ? (
+                    <p>
+                      Fee:{" "}
+                      <span className="font-semibold text-[var(--auth-text)]">
+                        {intent.feePercent}%
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            )}
           </div>
 
           <p className="text-xs text-[var(--auth-muted)]">
@@ -202,8 +304,8 @@ function VoucherCard({
           {showActions ? (
             <div className="mt-auto space-y-2 border-t border-[var(--auth-divider)] pt-3">
               <p className="text-[11px] text-[var(--auth-muted)]">
-                Al aceptar se acredita saldo disponible. El cliente asigna a
-                TikTok cuando quiera.
+                Revisá el monto de la boleta, ajustalo si hace falta y recién
+                entonces aceptá. Ahí se acredita cartera y va a Lo pagado.
               </p>
               {!rejectOpen ? (
                 <div className="flex flex-wrap gap-2">
@@ -211,7 +313,7 @@ function VoucherCard({
                     type="button"
                     variant="success"
                     size="sm"
-                    disabled={busy !== null}
+                    disabled={busy !== null || !quote}
                     onClick={() => void handleApprove()}
                   >
                     {busy === "approve" ? "Acreditando…" : "Aceptar"}
@@ -346,7 +448,7 @@ export function ManualVoucherReviewSection({
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
             Solo boletas BCP por aceptar o rechazar
             {globalQueue ? " · todos los clientes · más viejos primero" : ""}.
-            Al aceptar se acredita saldo disponible.
+            Editá el monto de la boleta si no coincide y recién aceptá.
           </p>
         </div>
       </div>

@@ -60,6 +60,12 @@ export async function approveManualPaymentAction(formData: FormData) {
     actor: { id: actor.id, email: actor.email },
     notes,
     approvedFrom: "admin_panel",
+    adjustedGrossChargeCents: (() => {
+      const raw = getOptionalString(formData, "adjustedAmount");
+      if (!raw) return null;
+      const n = Number(raw.replace(",", "."));
+      return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+    })(),
   });
 }
 

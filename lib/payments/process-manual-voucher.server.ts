@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { confirmDepositInLedger } from "@/lib/ledger/ledger.server";
 import { getPaymentIntentByIdInternal, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
@@ -16,7 +15,6 @@ import {
   type VoucherSecurityFlags,
 } from "@/lib/payments/voucher-security.server";
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
-import { serverEnv } from "@/lib/env/env.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 
@@ -76,11 +74,6 @@ export class VoucherRateLimitError extends Error {
     super(message);
     this.name = "VoucherRateLimitError";
   }
-}
-
-function canAutoApproveCredit(creditUsdCents: number): boolean {
-  const maxUsd = serverEnv.manualVoucherAutoApproveMaxUsd;
-  return creditUsdCents / 100 <= maxUsd;
 }
 
 export async function processManualVoucherUpload(input: {
@@ -186,15 +179,13 @@ export async function processManualVoucherUpload(input: {
   }
 
   const submittedAt = new Date().toISOString();
-  let autoApproved = false;
-  let nextStatus = "processing";
-
+  // Siempre revisión de gerente: no acreditar sola la cartera.
   const baseMeta = mergeMetadata(metadata, {
-    manual_review_status: analysis.confirmed ? "approved" : "pending_review",
+    manual_review_status: "pending_review",
     voucher_content_hash: contentHash,
-    ...(normalizedOperationCode ?
-      { voucher_operation_code: normalizedOperationCode }
-    : {}),
+    ...(normalizedOperationCode
+      ? { voucher_operation_code: normalizedOperationCode }
+      : {}),
     voucher_security: security,
     manual_proof: {
       bucket: "payment-proofs",
@@ -205,77 +196,40 @@ export async function processManualVoucherUpload(input: {
       submitted_at: submittedAt,
       submitted_by: input.submittedBy,
     },
-    voucher_analysis: analysis,
+    voucher_analysis: {
+      ...analysis,
+      // Aunque el OCR diga confirmed, el dinero solo entra con Aceptar del gerente.
+      confirmed: false,
+      needsReview: true,
+    },
     voucher_analyzed_at: submittedAt,
+    requires_manager_approval: true,
   });
 
-  if (
-    analysis.confirmed &&
-    !duplicateHash &&
-    !duplicateOperationCode &&
-    rateLimits.autoApproveAllowed &&
-    canAutoApproveCredit(creditUsdCents)
-  ) {
-    const providerReference = `manual:voucher:${intent.id}`;
-    const journalId = await confirmDepositInLedger({
-      paymentIntentId: intent.id,
-      providerReference,
-      idempotencyKey: `manual:voucher:auto:${intent.id}`,
-      metadata: {
-        provider: "manual",
-        auto_approved: true,
-        voucher_analysis_mode: analysis.analysisMode,
-        voucher_content_hash: contentHash,
-        ...(normalizedOperationCode ?
-          { voucher_operation_code: normalizedOperationCode }
-        : {}),
-      },
-    });
+  await updatePaymentIntentRecord(intent.id, {
+    status: "processing",
+    metadata: baseMeta,
+  });
 
-    await updatePaymentIntentRecord(intent.id, {
-      status: "succeeded",
-      providerReference,
-      succeededAt: submittedAt,
-      metadata: mergeMetadata(baseMeta, {
-        manual_review_status: "approved",
-        auto_approved: true,
-        ledger_journal_id: journalId,
-        approved_at: submittedAt,
-        approval_source: "voucher_ai",
-      }),
-    });
-
-    await createNotificationBestEffort({
-      organizationId: intent.organizationId,
-      userId: intent.createdBy,
-      title: "Recarga confirmada",
-      body: `Tu pago manual fue verificado. Ya tenés saldo disponible en cartera.`,
-      type: "payment_approved",
-      data: { payment_intent_id: intent.id, url: "/payments" },
-    });
-
-    autoApproved = true;
-    nextStatus = "succeeded";
-  } else {
-    await updatePaymentIntentRecord(intent.id, {
-      status: "processing",
-      metadata: baseMeta,
-    });
-
-    await createNotificationBestEffort({
-      organizationId: intent.organizationId,
-      userId: intent.createdBy,
-      title: "Comprobante en revisión",
-      body: analysis.reason,
-      type: "payment_proof_uploaded",
-      data: { payment_intent_id: intent.id, url: "/payments" },
-    });
-  }
+  await createNotificationBestEffort({
+    organizationId: intent.organizationId,
+    userId: intent.createdBy,
+    title: "Comprobante en revisión",
+    body:
+      analysis.reason ||
+      "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
+    type: "payment_proof_uploaded",
+    data: { payment_intent_id: intent.id, url: "/payments" },
+  });
 
   return {
-    analysis,
-    autoApproved,
-    status: nextStatus,
+    analysis: {
+      ...analysis,
+      confirmed: false,
+      needsReview: true,
+    },
+    autoApproved: false,
+    status: "processing",
     creditUsdCents,
     security,
     rateLimited: !rateLimits.uploadAllowed,

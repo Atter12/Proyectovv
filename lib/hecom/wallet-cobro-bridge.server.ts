@@ -148,7 +148,7 @@ export async function postHolisticWalletCobroToHecom(
   }
 }
 
-/** Best-effort tras depósito Stripe succeeded. Nunca lanza. */
+/** Best-effort tras depósito succeeded (Stripe / manual / Yape). Nunca lanza. */
 export async function syncWalletDepositCobroBestEffort(input: {
   hecomClienteId: string | null | undefined;
   paymentIntentId: string;
@@ -159,13 +159,15 @@ export async function syncWalletDepositCobroBestEffort(input: {
   paidAt?: string | null;
   provider: string;
 }): Promise<HolisticWalletCobroResult | null> {
-  if (input.provider !== "stripe") {
-    return { ok: true, skipped: true, reason: "not_stripe", status: 0 };
+  const provider = String(input.provider || "").toLowerCase();
+  if (!["stripe", "manual", "cobrana", "crypto"].includes(provider)) {
+    return { ok: true, skipped: true, reason: "provider_not_bridged", status: 0 };
   }
   const clientId = input.hecomClienteId?.trim();
   if (!clientId) {
-    console.warn("[hecom-cobro-bridge] stripe deposit without hecom_cliente_id", {
+    console.warn("[hecom-cobro-bridge] deposit without hecom_cliente_id", {
       paymentIntentId: input.paymentIntentId,
+      provider,
     });
     return {
       ok: true,
@@ -186,7 +188,7 @@ export async function syncWalletDepositCobroBestEffort(input: {
     montoBruto: bruto,
     montoNeto: neto,
     feeHolistic: fee,
-    currency: input.currency,
+    currency: (input.currency || "USD").toUpperCase(),
     paidAt: input.paidAt,
   });
 
@@ -195,6 +197,7 @@ export async function syncWalletDepositCobroBestEffort(input: {
   } else if (result.created || result.idempotent) {
     console.info("[hecom-cobro-bridge] sync ok", {
       paymentIntentId: input.paymentIntentId,
+      provider,
       cobroId: result.cobroId,
       idempotent: result.idempotent,
       periodo: result.periodoResumen,

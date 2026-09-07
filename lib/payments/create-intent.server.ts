@@ -607,32 +607,60 @@ async function ensureHecomWalletCobroSynced(input: {
 
   const creditRaw = meta.credit_amount_cents;
   const feeRaw = meta.fee_amount_cents;
+  const grossUsdRaw = meta.gross_usd_cents;
   const creditCents =
     typeof creditRaw === "number"
       ? creditRaw
       : typeof creditRaw === "string"
         ? Number(creditRaw)
         : null;
-  const feeCents =
+  const feeCentsMeta =
     typeof feeRaw === "number"
       ? feeRaw
       : typeof feeRaw === "string"
         ? Number(feeRaw)
         : null;
+  const grossUsdCents =
+    typeof grossUsdRaw === "number"
+      ? grossUsdRaw
+      : typeof grossUsdRaw === "string"
+        ? Number(grossUsdRaw)
+        : null;
   const hecomClienteId =
     typeof meta.hecom_cliente_id === "string" ? meta.hecom_cliente_id : null;
 
   const paidAt = input.succeededAt ?? new Date().toISOString();
+  const intentCurrency = (
+    fresh?.currency ?? input.intent.currency
+  ).toUpperCase();
+  // Hecom Lo pagado opera en USD (crédito cartera), aunque el cargo sea PEN.
+  const amountCentsForHecom =
+    Number.isFinite(grossUsdCents as number) && (grossUsdCents as number) > 0
+      ? (grossUsdCents as number)
+      : intentCurrency === "USD"
+        ? (fresh?.amountCents ?? input.intent.amountCents)
+        : Number.isFinite(creditCents as number)
+          ? (creditCents as number)
+          : fresh?.amountCents ?? input.intent.amountCents;
+  const feeCentsForHecom =
+    Number.isFinite(feeCentsMeta as number) && intentCurrency === "USD"
+      ? (feeCentsMeta as number)
+      : Number.isFinite(creditCents as number) &&
+          Number.isFinite(amountCentsForHecom)
+        ? Math.max(0, amountCentsForHecom - (creditCents as number))
+        : feeCentsMeta;
 
   const cobroSync = await syncWalletDepositCobroBestEffort({
     hecomClienteId,
     paymentIntentId: input.intent.id,
-    amountCents: fresh?.amountCents ?? input.intent.amountCents,
+    amountCents: amountCentsForHecom,
     creditCents: Number.isFinite(creditCents as number)
       ? (creditCents as number)
       : null,
-    feeCents: Number.isFinite(feeCents as number) ? (feeCents as number) : null,
-    currency: fresh?.currency ?? input.intent.currency,
+    feeCents: Number.isFinite(feeCentsForHecom as number)
+      ? (feeCentsForHecom as number)
+      : null,
+    currency: "USD",
     paidAt,
     provider: fresh?.provider ?? input.intent.provider,
   });

@@ -592,6 +592,9 @@ export interface ManualPaymentIntentItem {
   creditUsd: number | null;
   /** Fee % aplicado al depósito (si viene en metadata). */
   feePercent: number | null;
+  fxRateUsdPen: number | null;
+  /** Monto detectado por OCR en la boleta (misma moneda de cobro). */
+  detectedAmount: number | null;
   status: string;
   provider: string;
   reviewStatus:
@@ -788,6 +791,11 @@ async function mapManualIntentRows(
       const actor = row.created_by ? profileMap.get(row.created_by) : undefined;
       const metadata = isRecord(row.metadata) ? row.metadata : {};
       const feeRaw = Number(metadata.fee_percent);
+      const fxRaw = Number(metadata.fx_rate_usd_pen);
+      const analysis = isRecord(metadata.voucher_analysis)
+        ? metadata.voucher_analysis
+        : null;
+      const detectedRaw = analysis ? Number(analysis.detectedAmount) : NaN;
       return {
         id: row.id,
         createdAt: row.created_at,
@@ -796,6 +804,10 @@ async function mapManualIntentRows(
         creditUsd: getCreditUsd(row.metadata, row.amount_cents, row.currency),
         feePercent:
           Number.isFinite(feeRaw) && feeRaw >= 0 ? feeRaw : null,
+        fxRateUsdPen:
+          Number.isFinite(fxRaw) && fxRaw > 0 ? fxRaw : null,
+        detectedAmount:
+          Number.isFinite(detectedRaw) && detectedRaw > 0 ? detectedRaw : null,
         status: row.status,
         provider: row.provider,
         reviewStatus,

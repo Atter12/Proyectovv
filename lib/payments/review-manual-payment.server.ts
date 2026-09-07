@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeJsonMetadata } from "@/lib/types/json";
 import { isVoucherPaymentProvider } from "@/types/payment";
+import { quoteFromGrossCharge } from "@/lib/payments/manual-deposit.shared";
 
 export type ManualReviewActor = {
   id: string;
@@ -88,24 +89,102 @@ async function loadVoucherIntent(paymentIntentId: string): Promise<IntentRow> {
 
 /**
  * Aprueba voucher y acredita saldo disponible en cartera (no asigna a TikTok).
+ * Opcionalmente ajusta el monto cobrado real (ej. boleta 173.71 vs esperado 179.92).
  */
 export async function approveManualVoucherPayment(input: {
   paymentIntentId: string;
   actor: ManualReviewActor;
   notes?: string | null;
   approvedFrom: "admin_panel" | "dashboard";
-}): Promise<{ journalId: string }> {
+  /** Centavos en la moneda de cobro (PEN o USD) leídos de la boleta. */
+  adjustedGrossChargeCents?: number | null;
+}): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
   const intent = await loadVoucherIntent(input.paymentIntentId);
   if (intent.status === "succeeded") {
     const meta = intent.metadata ?? {};
     const existing = meta.ledger_journal_id;
-    return { journalId: typeof existing === "string" ? existing : "" };
+    const creditRaw = meta.credit_amount_cents;
+    const creditUsdCents =
+      typeof creditRaw === "number"
+        ? creditRaw
+        : typeof creditRaw === "string"
+          ? Number(creditRaw)
+          : intent.amount_cents;
+    return {
+      journalId: typeof existing === "string" ? existing : "",
+      creditUsdCents: Number.isFinite(creditUsdCents) ? creditUsdCents : 0,
+      grossChargeCents: intent.amount_cents,
+    };
   }
   if (intent.status === "failed" || intent.status === "cancelled") {
     throw new Error("No se puede aprobar un pago fallido o cancelado.");
   }
 
   const admin = createAdminClient();
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+  const chargeCurrency =
+    String(meta.charge_currency ?? intent.currency).toUpperCase() === "PEN"
+      ? "PEN"
+      : "USD";
+  const feePercent = Number(meta.fee_percent);
+  const fxRate = Number(meta.fx_rate_usd_pen);
+  const safeFee = Number.isFinite(feePercent) && feePercent >= 0 ? feePercent : 10;
+  const safeFx = Number.isFinite(fxRate) && fxRate > 0 ? fxRate : 3.48;
+
+  let amountCents = intent.amount_cents;
+  let workingMeta = { ...meta };
+
+  if (
+    input.adjustedGrossChargeCents != null &&
+    Number.isFinite(input.adjustedGrossChargeCents) &&
+    input.adjustedGrossChargeCents > 0
+  ) {
+    const quote = quoteFromGrossCharge({
+      grossChargeCents: Math.round(input.adjustedGrossChargeCents),
+      chargeCurrency,
+      feePercent: safeFee,
+      fxRateUsdPen: safeFx,
+    });
+    if (quote.creditUsdCents < 1) {
+      throw new Error("El monto ajustado es demasiado bajo para acreditar saldo.");
+    }
+    amountCents = quote.grossChargeCents;
+    workingMeta = {
+      ...workingMeta,
+      charge_currency: chargeCurrency,
+      fx_rate_usd_pen: quote.fxRateUsdPen,
+      fee_percent: quote.feePercent,
+      credit_amount_cents: quote.creditUsdCents,
+      fee_amount_cents: quote.feeUsdCents,
+      gross_usd_cents: quote.grossUsdCents,
+      gross_amount_cents: quote.grossChargeCents,
+      wallet_credit_currency: "USD",
+      ...(chargeCurrency === "PEN"
+        ? {
+            gross_pen_cents: quote.grossPenCents,
+            credit_pen_cents: quote.creditPenCents,
+            fee_pen_cents: quote.feePenCents,
+          }
+        : {}),
+      amount_adjusted_by: input.actor.id,
+      amount_adjusted_by_email: input.actor.email,
+      amount_adjusted_at: new Date().toISOString(),
+      original_amount_cents: intent.amount_cents,
+    };
+
+    const { error: adjustError } = await admin
+      .from("payment_intents")
+      .update({
+        amount_cents: amountCents,
+        currency: chargeCurrency,
+        updated_at: new Date().toISOString(),
+        metadata: workingMeta,
+      })
+      .eq("id", intent.id)
+      .neq("status", "succeeded");
+    if (adjustError) throw new Error(adjustError.message);
+  }
+
   const providerReference =
     intent.provider_reference ?? `${intent.provider}:${intent.id}`;
 
@@ -127,18 +206,21 @@ export async function approveManualVoucherPayment(input: {
   if (ledgerError) throw new Error(ledgerError.message);
 
   const journalIdStr = String(journalId);
+  const creditUsdCents = Number(workingMeta.credit_amount_cents) || 0;
+  const succeededAt = new Date().toISOString();
+
   await admin
     .from("payment_intents")
     .update({
       status: "succeeded",
       provider_reference: providerReference,
-      succeeded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      metadata: mergeJsonMetadata(intent.metadata, {
+      succeeded_at: succeededAt,
+      updated_at: succeededAt,
+      metadata: mergeJsonMetadata(workingMeta, {
         manual_review_status: "approved",
         approved_by: input.actor.id,
         approved_by_email: input.actor.email,
-        approved_at: new Date().toISOString(),
+        approved_at: succeededAt,
         approval_notes: input.notes ?? null,
         approval_source: input.approvedFrom,
         ledger_journal_id: journalIdStr,
@@ -170,17 +252,76 @@ export async function approveManualVoucherPayment(input: {
     entityType: "payment_intent",
     entityId: intent.id,
     metadata: {
-      amount_cents: intent.amount_cents,
-      currency: intent.currency,
+      amount_cents: amountCents,
+      currency: chargeCurrency,
       provider: intent.provider,
       ledger_journal_id: journalIdStr,
+      credit_amount_cents: creditUsdCents,
       notes: input.notes ?? null,
       approved_from: input.approvedFrom,
+      adjusted:
+        input.adjustedGrossChargeCents != null &&
+        Math.round(input.adjustedGrossChargeCents) !== intent.amount_cents,
     },
   });
 
+  // Lo pagado (Hecom) — mismo bridge que Stripe.
+  try {
+    const { syncWalletDepositCobroBestEffort } = await import(
+      "@/lib/hecom/wallet-cobro-bridge.server"
+    );
+    const hecomClienteId =
+      typeof workingMeta.hecom_cliente_id === "string"
+        ? workingMeta.hecom_cliente_id
+        : null;
+    const grossUsd = Number(workingMeta.gross_usd_cents);
+    const feeUsd = Number(workingMeta.fee_amount_cents);
+    const cobroSync = await syncWalletDepositCobroBestEffort({
+      hecomClienteId,
+      paymentIntentId: intent.id,
+      amountCents:
+        Number.isFinite(grossUsd) && grossUsd > 0 ? grossUsd : creditUsdCents,
+      creditCents: creditUsdCents > 0 ? creditUsdCents : null,
+      feeCents: Number.isFinite(feeUsd) ? feeUsd : null,
+      currency: "USD",
+      paidAt: succeededAt,
+      provider: intent.provider,
+    });
+    if (cobroSync) {
+      await admin
+        .from("payment_intents")
+        .update({
+          metadata: mergeJsonMetadata(workingMeta, {
+            manual_review_status: "approved",
+            approved_by: input.actor.id,
+            approved_by_email: input.actor.email,
+            approved_at: succeededAt,
+            approval_notes: input.notes ?? null,
+            approval_source: input.approvedFrom,
+            ledger_journal_id: journalIdStr,
+            hecom_cobro_sync: {
+              ok: cobroSync.ok,
+              skipped: cobroSync.skipped ?? false,
+              reason: cobroSync.reason ?? null,
+              cobro_id: cobroSync.cobroId ?? null,
+              codigo: cobroSync.codigo ?? null,
+              at: new Date().toISOString(),
+            },
+          }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", intent.id);
+    }
+  } catch (error) {
+    console.error("[manual-approve] hecom cobro sync failed", error);
+  }
+
   revalidateManualPaymentPaths(intent.id);
-  return { journalId: journalIdStr };
+  return {
+    journalId: journalIdStr,
+    creditUsdCents,
+    grossChargeCents: amountCents,
+  };
 }
 
 export async function rejectManualVoucherPayment(input: {
