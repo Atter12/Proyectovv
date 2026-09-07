@@ -115,6 +115,31 @@ export const serverEnv = {
   holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.48"),
   /** JSON array de cuentas bancarias / Yape para pago manual. */
   manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
+
+  // --- Validación del cobro real (Yape/Plin) ---------------------------------
+  // El análisis del comprobante dice que la captura "se ve bien"; esto dice que
+  // la plata llegó. Sin lo segundo no se auto-aprueba.
+  /**
+   * Secreto del agente que reporta los cobros observados en la cuenta
+   * receptora (celular Android o parser de correo del banco). Quien lo tenga
+   * puede acreditar saldo: tratalo como una llave de pasarela.
+   */
+  yapeIngestSecret:
+    process.env.YAPE_INGEST_SECRET ??
+    process.env.INTERNAL_JOB_SECRET ??
+    process.env.CRON_SECRET ??
+    "",
+  /** Minutos que un monto en soles queda reservado y es cruzable. */
+  yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
+  /**
+   * Si true, un pago manual en PEN solo se auto-aprueba cuando además del
+   * comprobante llegó el aviso de cobro real. Apagarlo devuelve el sistema al
+   * comportamiento que permitió el incidente de comprobante falso.
+   */
+  yapeRequireBankConfirmation: parseBoolean(
+    process.env.YAPE_REQUIRE_BANK_CONFIRMATION,
+    true,
+  ),
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   openAiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
   /** Sin IA: auto-acredita al subir voucher (solo staging / demo; nunca en producción). */

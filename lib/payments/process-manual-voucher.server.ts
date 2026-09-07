@@ -19,6 +19,7 @@ import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server"
 import { serverEnv } from "@/lib/env/env.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
+import { readBankConfirmedAt } from "@/lib/payments/yape/confirm-deposit.server";
 
 export type ProcessManualVoucherResult = {
   analysis: VoucherAnalysisResult;
@@ -81,6 +82,29 @@ export class VoucherRateLimitError extends Error {
 function canAutoApproveCredit(creditUsdCents: number): boolean {
   const maxUsd = serverEnv.manualVoucherAutoApproveMaxUsd;
   return creditUsdCents / 100 <= maxUsd;
+}
+
+/**
+ * ¿Llegó el cobro de verdad a la cuenta receptora?
+ *
+ * Todas las demás condiciones de auto-aprobación leen la captura que mandó el
+ * cliente: que se vea bien, que no esté repetida, que el monto cuadre. Ninguna
+ * comprueba la realidad, y una captura se falsifica en minutos — ya pasó una
+ * vez (`fake_voucher_auto_approve_incident`).
+ *
+ * Esta marca la escribe el matcher cuando cruza un aviso de cobro real contra
+ * esta recarga, gracias a los céntimos únicos del monto.
+ *
+ * Solo aplica a cobros en soles, que son los que el agente puede observar. Un
+ * pago manual en USD (transferencia internacional) sigue como antes.
+ */
+function hasBankConfirmation(
+  chargeCurrency: ManualChargeCurrency,
+  metadata: Record<string, unknown> | null,
+): boolean {
+  if (!serverEnv.yapeRequireBankConfirmation) return true;
+  if (chargeCurrency !== "PEN") return true;
+  return Boolean(readBankConfirmedAt(metadata));
 }
 
 export async function processManualVoucherUpload(input: {
@@ -214,7 +238,11 @@ export async function processManualVoucherUpload(input: {
     !duplicateHash &&
     !duplicateOperationCode &&
     rateLimits.autoApproveAllowed &&
-    canAutoApproveCredit(creditUsdCents)
+    canAutoApproveCredit(creditUsdCents) &&
+    // La condición que faltaba: además de que el comprobante se vea bien, la
+    // plata tiene que haber llegado. Sin esto, la recarga cae a revisión
+    // manual — el circuito de siempre queda como red.
+    hasBankConfirmation(readChargeCurrency(metadata), baseMeta)
   ) {
     const providerReference = `manual:voucher:${intent.id}`;
     const journalId = await confirmDepositInLedger({

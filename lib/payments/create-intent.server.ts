@@ -21,6 +21,7 @@ import {
 } from "@/lib/email/templates/payments";
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
+import { reserveUniquePenAmount } from "@/lib/payments/yape/reserve-amount.server";
 import {
   buildManualDepositQuote,
   type ManualChargeCurrency,
@@ -117,13 +118,21 @@ export async function createPaymentIntentForSession(
       feePercent: fee.feePercent,
       chargeCurrency: "PEN",
     });
-    amountCents = quote.grossChargeCents;
+    // Céntimos únicos: dos clientes que piden lo mismo recibirían el mismo
+    // bruto en soles, y con montos iguales el aviso del banco no se puede
+    // cruzar con una sola recarga. Sumamos céntimos hasta que sea único.
+    // El cliente paga como mucho S/ 0.99 de más; el crédito no cambia.
+    const reserved = await reserveUniquePenAmount(quote.grossChargeCents);
+
+    amountCents = reserved.amountCents;
     intentCurrency = "PEN";
     manualQuoteMeta = {
       charge_currency: "PEN",
       fx_rate_usd_pen: quote.fxRateUsdPen,
       credit_pen_cents: quote.creditPenCents,
-      gross_pen_cents: quote.grossPenCents,
+      gross_pen_cents: reserved.amountCents,
+      gross_pen_cents_base: quote.grossPenCents,
+      pen_discriminator_cents: reserved.discriminatorCents,
       fee_pen_cents: quote.feePenCents,
       gross_usd_cents: quote.grossUsdCents,
     };
