@@ -108,14 +108,13 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
     });
 
     const deeplinks = Array.isArray(charge.deeplinks) ? charge.deeplinks : [];
-    const yape = deeplinks.find((d) => d.key?.toLowerCase() === "yape");
     const code = charge.code?.trim() || null;
 
     const messageParts = [
       code
-        ? `Pagá con Yape / bancos usando el código ${code}.`
-        : "Orden creada. Completá el pago en Yape o tu app bancaria.",
-      yape ? "Podés abrir Yape con el botón de pago directo." : null,
+        ? `Pagá en Yape → Pago de servicios con el código ${code}.`
+        : "Orden creada. Completá el pago en Yape (Pago de servicios).",
+      "Desde la PC: mirá el código acá y pagá en el celular.",
       "Cuando se confirme el pago, el saldo USD se acredita solo.",
     ].filter(Boolean);
 

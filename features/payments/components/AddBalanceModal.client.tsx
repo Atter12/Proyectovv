@@ -109,6 +109,7 @@ export function AddBalanceModal({
   const [cobranaDeeplinks, setCobranaDeeplinks] = useState<CobranaDeeplink[]>(
     [],
   );
+  const [codeCopied, setCodeCopied] = useState(false);
   const [paidConfirmed, setPaidConfirmed] = useState(false);
 
   const isCobrana = selectedGateway === "cobrana";
@@ -577,11 +578,11 @@ export function AddBalanceModal({
                   id="add-balance-title"
                   className="text-lg font-semibold text-[var(--foreground)]"
                 >
-                  Pagá con Yape u otra app
+                  Pagá con Yape (PC o celular)
                 </h2>
                 <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
                   {resultMessage ??
-                    "Usá el código o abrí tu billetera. Esperamos la confirmación automática."}
+                    "La mayoría paga desde la PC mirando el código y usando Yape en el celular."}
                 </p>
               </div>
             </div>
@@ -589,68 +590,117 @@ export function AddBalanceModal({
             <div className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
               {cobranaCode ? (
                 <div>
-                  <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
                     Código de pago
                   </p>
-                  <p className="mt-1 font-mono text-2xl font-bold tracking-wide text-[var(--foreground)]">
-                    {cobranaCode}
-                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <p className="font-mono text-2xl font-bold tracking-wide text-[var(--foreground)]">
+                      {cobranaCode}
+                    </p>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-[var(--border-subtle)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-soft)]"
+                      onClick={() => {
+                        void navigator.clipboard
+                          ?.writeText(cobranaCode)
+                          .then(() => {
+                            setCodeCopied(true);
+                            window.setTimeout(() => setCodeCopied(false), 2000);
+                          })
+                          .catch(() => {
+                            /* ignore */
+                          });
+                      }}
+                    >
+                      {codeCopied ? "Copiado" : "Copiar"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {penPreview ? (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[var(--admin-text-muted,#64748b)]">
+                    Pagás en Yape
+                  </span>
+                  <span className="text-base font-bold tabular-nums text-[#5F0B72]">
+                    {formatPenAmount(penPreview.grossPenCents)}
+                  </span>
                 </div>
               ) : null}
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="text-[var(--admin-text-muted,#64748b)]">
-                  Acredita
+                  Llega a cartera
                 </span>
                 <span className="font-semibold text-[var(--foreground)]">
                   {formatMoney(parsedAmount)}
                 </span>
               </div>
-              {penPreview ? (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-[var(--admin-text-muted,#64748b)]">
-                    Cobro PEN
-                  </span>
-                  <span className="font-semibold text-[var(--foreground)]">
-                    {formatPenAmount(penPreview.grossPenCents)}
-                  </span>
-                </div>
-              ) : null}
               <p className="text-[11px] text-[var(--admin-text-muted,#64748b)]">
                 ID: <span className="font-mono">{paymentIntentId}</span>
               </p>
               <p className="text-xs font-medium text-[#5F0B72]">
-                Esperando confirmación del pago…
+                Esperando confirmación automática del pago…
               </p>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
-              {orderedLinks.length > 0 ? (
-                orderedLinks.map((link) => {
-                  const app = resolvePaymentAppKey(link.key, link.label);
-                  return (
-                    <button
-                      key={`${link.key}-${link.url}`}
-                      type="button"
-                      className={cn(
-                        "inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-semibold transition-colors",
-                        paymentAppButtonClass(app),
-                      )}
-                      onClick={() => {
-                        window.open(link.url, "_blank", "noopener,noreferrer");
-                      }}
-                    >
-                      <PaymentAppIcon app={app} size="sm" />
-                      Abrir {paymentAppLabel(app, link.label)}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-3 text-center text-xs text-[var(--admin-text-muted,#64748b)]">
-                  No hay deeplinks en esta orden. Pagá con el código en Yape /
-                  banca.
+            <ol className="mt-4 list-decimal space-y-2 rounded-xl border border-[#e9dff0] bg-[#faf6fc] px-4 py-3 pl-8 text-sm leading-5 text-[var(--foreground)]">
+              <li>
+                En el celular abrí <strong>Yape</strong>.
+              </li>
+              <li>
+                Entrá a <strong>Pago de servicios</strong> (o “Servicios”).
+              </li>
+              <li>
+                Buscá / ingresá el código{" "}
+                <strong className="font-mono">
+                  {cobranaCode ?? "HOL…"}
+                </strong>
+                .
+              </li>
+              <li>
+                Confirmá el pago por{" "}
+                <strong>
+                  {penPreview
+                    ? formatPenAmount(penPreview.grossPenCents)
+                    : "el monto en soles"}
+                </strong>
+                .
+              </li>
+              <li>
+                Volvé acá: al confirmarse, se acreditan{" "}
+                <strong>{formatMoney(parsedAmount)}</strong> solos en tu
+                cartera.
+              </li>
+            </ol>
+
+            {orderedLinks.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+                  Si estás en el celular, también podés abrir la app directo:
                 </p>
-              )}
-            </div>
+                <div className="flex flex-col gap-2">
+                  {orderedLinks.map((link) => {
+                    const app = resolvePaymentAppKey(link.key, link.label);
+                    return (
+                      <button
+                        key={`${link.key}-${link.url}`}
+                        type="button"
+                        className={cn(
+                          "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-semibold transition-colors",
+                          paymentAppButtonClass(app),
+                        )}
+                        onClick={() => {
+                          window.open(link.url, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        <PaymentAppIcon app={app} size="sm" />
+                        Abrir {paymentAppLabel(app, link.label)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {error && (
               <p className="mt-3 text-xs text-red-600" role="alert">
