@@ -4,6 +4,11 @@ import type { SessionUser } from "@/types/auth";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPaymentIntentForSession } from "@/lib/payments/create-intent.server";
+import {
+  getPaymentIntentByIdInternal,
+  updatePaymentIntentRecord,
+} from "@/lib/payments/payment-intents.server";
+import { mergeMetadata } from "@/lib/records";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 import { isRecord, getNumber, getString } from "@/lib/records";
@@ -108,10 +113,7 @@ export async function handleRechargeMessage(input: {
   const amountUsd = extractAmountUsd(text);
 
   if (matchesAny(text, CANCEL_PATTERNS) && active) {
-    return reply("idle", [
-      "Listo, dejamos esa recarga de lado.",
-      "Si ya habías pagado, escribime y un gerente lo revisa.",
-    ]);
+    return cancelRecharge(active);
   }
 
   // Con una recarga en curso, recordamos el monto exacto en vez de abrir otra.
@@ -143,6 +145,41 @@ export async function handleRechargeMessage(input: {
 
   // No es sobre recargas: que siga al ticket de soporte.
   return notHandled();
+}
+
+/**
+ * Cancela de verdad la recarga.
+ *
+ * Antes esto solo respondia "listo, cancelada" sin tocar nada, y el cliente
+ * quedaba trabado: al pedir otra recarga le decia que ya tenia una en curso.
+ *
+ * Con el comprobante ya subido no se cancela: esa recarga esta en la cola de
+ * revision de soporte, y sacarla de ahi dejaria al cliente sin su plata y sin
+ * nadie mirando el caso.
+ */
+async function cancelRecharge(active: ActiveRecharge): Promise<RechargeChatResult> {
+  if (active.status === "processing") {
+    return reply("awaiting_payment", [
+      "Esa recarga ya tiene tu comprobante y está en revisión, así que no la puedo cancelar.",
+      "Si te equivocaste, escribime y un gerente la revisa.",
+    ]);
+  }
+
+  const intent = await getPaymentIntentByIdInternal(active.id);
+  await updatePaymentIntentRecord(active.id, {
+    status: "cancelled",
+    canceledAt: new Date().toISOString(),
+    metadata: mergeMetadata(intent?.metadata, {
+      cancelled_from: "recharge_chat",
+      manual_review_status: "cancelled",
+    }),
+  });
+
+  return reply("idle", [
+    "Listo, cancelé esa recarga. El monto queda libre.",
+    "Si ya habías yapeado, escribime y un gerente lo revisa — no la vuelvas a pagar.",
+    "Cuando quieras arrancar otra, escribí *quiero recargar*.",
+  ]);
 }
 
 async function startRecharge(
@@ -211,6 +248,7 @@ async function getYapeNumber(): Promise<string> {
 /** Recarga manual en soles todavía esperando pago. */
 interface ActiveRecharge {
   id: string;
+  status: string;
   /** Lo que el cliente yapea: saldo + comisión. */
   grossPenCents: number;
   /** La parte que se convierte en saldo. */
@@ -230,7 +268,7 @@ async function findActiveManualPenIntent(
   const admin = createAdminClient();
   const { data } = await admin
     .from("payment_intents")
-    .select("id, amount_cents, metadata")
+    .select("id, status, amount_cents, metadata")
     .eq("organization_id", organizationId)
     .eq("provider", "manual")
     .eq("currency", "PEN")
@@ -245,6 +283,7 @@ async function findActiveManualPenIntent(
     .limit(1)
     .maybeSingle<{
       id: string;
+      status: string;
       amount_cents: number;
       metadata: Record<string, unknown> | null;
     }>();
@@ -262,6 +301,7 @@ async function findActiveManualPenIntent(
 
   return {
     id: data.id,
+    status: data.status,
     grossPenCents,
     creditPenCents,
     feePenCents: num("fee_pen_cents", Math.max(0, grossPenCents - creditPenCents)),
