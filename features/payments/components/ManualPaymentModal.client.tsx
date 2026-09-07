@@ -24,6 +24,7 @@ type BankAccount = {
   accountNumber: string;
   cci?: string;
   notes?: string;
+  qrImageUrl?: string;
 };
 
 type ManualConfig = {
@@ -428,6 +429,19 @@ export function ManualPaymentModal({
                       {bank.label}
                     </p>
                     <p className="mt-1 text-xs text-[#5c564e]">{bank.holder}</p>
+                    {bank.qrImageUrl ? (
+                      <div className="mt-3 flex flex-col items-center gap-1.5 rounded-xl bg-white p-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={bank.qrImageUrl}
+                          alt={`Código QR de Yape de ${bank.holder}`}
+                          className="h-44 w-44 object-contain"
+                        />
+                        <p className="text-[11px] font-semibold text-[#5c564e]">
+                          Escaneá y yapeá el monto exacto
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <span className="font-mono text-sm font-semibold text-[#1c1917]">
                         {bank.accountNumber}

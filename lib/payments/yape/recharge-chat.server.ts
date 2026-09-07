@@ -33,6 +33,8 @@ export interface RechargeChatResult {
   state: RechargeChatState;
   replies: RechargeBotReply[];
   paymentIntentId?: string;
+  /** QR de Yape, para que el cliente escanee en vez de tipear el numero. */
+  qrImageUrl?: string;
 }
 
 // --- Detección de intención -------------------------------------------------
@@ -152,12 +154,17 @@ async function startRecharge(
     const monto = intent ? formatPenAmount(intent.grossPenCents) : "el monto indicado";
     const numero = await getYapeNumber();
 
+    const cuenta = getYapeAccount();
+
     return {
       handled: true,
       state: "awaiting_payment",
       paymentIntentId: result.paymentIntentId,
+      ...(cuenta?.qrImageUrl ? { qrImageUrl: cuenta.qrImageUrl } : {}),
       replies: toReplies([
-        `Listo. Yapeá **${monto}** al **${numero}**.`,
+        `Listo. Yapeá **${monto}** al **${numero}**${
+          getYapeAccount()?.holder ? ` (${getYapeAccount()?.holder})` : ""
+        }.`,
         "Tiene que ser el monto exacto, céntimos incluidos: esos céntimos son los que me dicen que el pago es tuyo.",
         `Se acreditan **${formatUsd(amountUsd)}** en tu cartera (el resto es la comisión Holistic).`,
         "Cuando hayas yapeado, adjuntá la captura acá con el clip 📎 y el saldo entra solo.",
@@ -184,10 +191,12 @@ function formatUsd(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+function getYapeAccount() {
+  return getManualBankAccounts("PEN")[0] ?? null;
+}
+
 async function getYapeNumber(): Promise<string> {
-  const accounts = await getManualBankAccounts();
-  const yape = accounts.find((account) => account.currencies.includes("PEN"));
-  return yape?.accountNumber ?? "el número que figura en Pagos";
+  return getYapeAccount()?.accountNumber ?? "el número que figura en Pagos";
 }
 
 /** Recarga manual en soles todavía esperando pago. */
@@ -234,10 +243,14 @@ export async function getRechargeChatSnapshot(
   const active = await findActiveManualPenIntent(session.organizationId);
   if (!active) return notHandled();
 
-  return reply("awaiting_payment", [
-    `Tenés una recarga en curso: yapea **${formatPenAmount(active.grossPenCents)}** al ${await getYapeNumber()}.`,
-    "Cuando lo hagas, adjuntá la captura acá con el clip 📎.",
-  ]);
+  const cuenta = getYapeAccount();
+  return {
+    ...reply("awaiting_payment", [
+      `Tenés una recarga en curso: yapea **${formatPenAmount(active.grossPenCents)}** al ${await getYapeNumber()}.`,
+      "Cuando lo hagas, adjuntá la captura acá con el clip 📎.",
+    ]),
+    ...(cuenta?.qrImageUrl ? { qrImageUrl: cuenta.qrImageUrl } : {}),
+  };
 }
 
 export function readIntentIdFromMetadata(metadata: unknown): string | null {

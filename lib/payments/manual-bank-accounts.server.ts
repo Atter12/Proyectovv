@@ -11,6 +11,8 @@ export type ManualBankAccount = {
   cci?: string;
   currencies: ManualChargeCurrency[];
   notes?: string;
+  /** QR de Yape/Plin: el cliente escanea en vez de tipear el numero. */
+  qrImageUrl?: string;
 };
 
 const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
@@ -59,6 +61,11 @@ function parseAccountsFromEnv(): ManualBankAccount[] {
         cci: row.cci ? String(row.cci) : undefined,
         currencies: currencies.length ? currencies : ["PEN"],
         notes: row.notes ? String(row.notes) : undefined,
+        qrImageUrl: row.qrImageUrl
+          ? String(row.qrImageUrl)
+          : row.qr_image_url
+            ? String(row.qr_image_url)
+            : undefined,
       });
     }
 

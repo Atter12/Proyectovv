@@ -51,6 +51,7 @@ interface RechargeBotResponse {
   handled: boolean;
   state: RechargeChatState;
   replies: Array<{ id: string; text: string }>;
+  qrImageUrl?: string;
 }
 
 /**
@@ -275,10 +276,26 @@ export function SupportChatWidget({
           setRechargeState(bot.state);
           setMessages((prev) => [
             ...prev,
-            ...bot.replies.map((reply) => ({
+            ...bot.replies.map((reply, index) => ({
               id: reply.id,
               role: "bot" as const,
               text: reply.text,
+              // El QR va colgado del primer mensaje, que es el que trae el
+              // monto: se ve el numero y el codigo juntos.
+              ...(index === 0 && bot.qrImageUrl
+                ? {
+                    attachments: [
+                      {
+                        name: "QR de Yape",
+                        mimeType: "image/png",
+                        path: bot.qrImageUrl,
+                        bucket: "public",
+                        size: 0,
+                        url: bot.qrImageUrl,
+                      },
+                    ],
+                  }
+                : {}),
               ...supportChatTimestampsNow(),
             })),
           ]);
