@@ -52,6 +52,51 @@ interface RechargeBotResponse {
   state: RechargeChatState;
   replies: Array<{ id: string; text: string }>;
   qrImageUrl?: string;
+  /** Recarga esperando pago: si existe, un adjunto es su comprobante. */
+  pending?: { paymentIntentId: string; grossPenCents: number } | null;
+}
+
+/**
+ * Sube la captura como comprobante de la recarga en curso.
+ *
+ * Mientras haya una recarga esperando pago, una imagen en el chat es el
+ * comprobante — no una consulta para el gerente. Va al mismo endpoint que usa
+ * el panel, asi que la analiza la misma IA y pasa por los mismos controles.
+ */
+async function uploadVoucherFromChat(
+  paymentIntentId: string,
+  file: File,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const formData = new FormData();
+    formData.set("proof", file);
+    const res = await fetch(`/api/payments/intents/${paymentIntentId}/proof`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    if (!res.ok || data.error) return { ok: false, error: data.error };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "No pude subir la captura. Revisá tu conexión." };
+  }
+}
+
+/** Consulta si hay una recarga esperando pago. */
+async function fetchPendingRecharge(): Promise<
+  { paymentIntentId: string; grossPenCents: number } | null
+> {
+  try {
+    const res = await fetch("/api/payments/recharge-chat", {
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as RechargeBotResponse;
+    return data.pending ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -267,6 +312,33 @@ export function SupportChatWidget({
     ]);
 
     try {
+      // Una imagen con una recarga en curso es el comprobante de pago, no una
+      // consulta para el gerente. Va al validador, que es lo que el cliente
+      // espera cuando el bot le acaba de pedir la captura.
+      const imagen = files.find((file) => file.type.startsWith("image/"));
+      if (imagen) {
+        const pending = await fetchPendingRecharge();
+        if (pending) {
+          const subida = await uploadVoucherFromChat(pending.paymentIntentId, imagen);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `bot-voucher-${Date.now()}`,
+              role: "bot" as const,
+              text: subida.ok
+                ? [
+                    "⏳ Recibí tu comprobante, estoy validando el pago...",
+                    "_(Si demoro es porque voy en orden, esperame por favor)_",
+                  ].join("\n")
+                : (subida.error ?? "No pude procesar tu comprobante."),
+              ...supportChatTimestampsNow(),
+            },
+          ]);
+          setSending(false);
+          return;
+        }
+      }
+
       // El bot de recarga va primero. Si se hace cargo, no se crea ticket: el
       // gerente no tiene por que recibir "quiero recargar". Cualquier otra
       // cosa sigue de largo al soporte de siempre.

@@ -27,6 +27,12 @@ export interface RechargeBotReply {
   text: string;
 }
 
+/** Recarga esperando pago, para que el chat sepa a donde mandar la captura. */
+export interface PendingRechargeInfo {
+  paymentIntentId: string;
+  grossPenCents: number;
+}
+
 export interface RechargeChatResult {
   /** false = el bot no se hace cargo; que siga al ticket de soporte. */
   handled: boolean;
@@ -290,6 +296,20 @@ function buildBreakdown(active: ActiveRecharge): string[] {
 /** El desglose como un solo mensaje del bot, una línea por concepto. */
 function breakdownMessage(active: ActiveRecharge): string {
   return ["Ese monto se compone así:", ...buildBreakdown(active)].join("\n");
+}
+
+/**
+ * Recarga viva del usuario, si la hay.
+ *
+ * El chat la consulta antes de mandar un adjunto: si existe, la captura es un
+ * comprobante de pago y va al validador, no al ticket de soporte.
+ */
+export async function getPendingRecharge(
+  session: SessionUser,
+): Promise<PendingRechargeInfo | null> {
+  const active = await findActiveManualPenIntent(session.organizationId);
+  if (!active) return null;
+  return { paymentIntentId: active.id, grossPenCents: active.grossPenCents };
 }
 
 /** Estado del bot al abrir el chat, para retomar una recarga en curso. */

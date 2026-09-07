@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
+  getPendingRecharge,
   getRechargeChatSnapshot,
   handleRechargeMessage,
   type RechargeChatState,
@@ -30,13 +31,22 @@ async function authorize() {
   return { session };
 }
 
-/** Estado del bot al abrir el chat: retoma una recarga en curso si la hay. */
+/**
+ * Estado del bot al abrir el chat, y a donde mandar un adjunto.
+ *
+ * `pending` le dice al chat que hay una recarga esperando pago: cualquier
+ * captura que suba el cliente es su comprobante y va al validador.
+ */
 export async function GET() {
   const auth = await authorize();
   if (auth.error) return auth.error;
 
   try {
-    return NextResponse.json({ ok: true, ...(await getRechargeChatSnapshot(auth.session)) });
+    const [snapshot, pending] = await Promise.all([
+      getRechargeChatSnapshot(auth.session),
+      getPendingRecharge(auth.session),
+    ]);
+    return NextResponse.json({ ok: true, ...snapshot, pending });
   } catch (error) {
     // El bot nunca debe romper el chat de soporte: si falla, no se hace cargo
     // y el mensaje sigue su curso normal hacia el gerente.
