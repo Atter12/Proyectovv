@@ -60,6 +60,13 @@ export type NotificationDirection = "inbound" | "outbound" | "unknown";
 
 /** Plata que sale. Si aparece cualquiera de estas, el aviso se descarta. */
 const OUTBOUND_PATTERNS: RegExp[] = [
+  // Verificado contra el correo real del BCP: el aviso de un yapeo ENVIADO
+  // dice "Realizaste un yapeo a celular" y "Monto enviado", y llega por el
+  // mismo remitente y con el mismo monto que el de un cobro recibido. Antes
+  // caia en "desconocido" y se descartaba de casualidad; si el cuerpo hubiera
+  // dicho "Monto recibido" en algun pie, habria acreditado plata propia.
+  /realizaste\s+un\s+yape/i,
+  /monto\s+enviado/i,
   /realizaste\s+un\s+consumo/i,
   /realizaste\s+una\s+(?:transferencia|compra|operaci[oó]n\s+de\s+pago)/i,
   /total\s+del\s+consumo/i,
@@ -170,7 +177,10 @@ function stripDiacritics(value: string): string {
 function extractSenderName(text: string): string | null {
   for (const pattern of SENDER_PATTERNS) {
     const match = pattern.exec(text);
-    const value = match?.[1]?.replace(/\s+/g, " ").trim();
+    // Cortamos en el punto que cierra la oracion: el nombre viene seguido de
+    // ". Por tu seguridad te enviamos..." y la clase de caracteres, que acepta
+    // letras, espacios y puntos, se lo comia entero.
+    const value = match?.[1]?.replace(/\s+/g, " ").split(/\.\s/)[0]?.trim();
     if (!value) continue;
 
     const words = value.split(" ").filter(Boolean);
