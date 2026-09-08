@@ -130,6 +130,20 @@ export async function getCobranaCharge(chargeId: string): Promise<CobranaCharge>
   });
 }
 
+/** Cancela un cargo pendiente (sale de “recibos” Yape Pago de servicios). */
+export async function cancelCobranaCharge(
+  chargeId: string,
+): Promise<CobranaCharge> {
+  return cobranaFetch<CobranaCharge>(
+    `/charges/${encodeURIComponent(chargeId)}/cancel`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+      idempotencyKey: `cancel:${chargeId}`,
+    },
+  );
+}
+
 /**
  * Verifica `X-Cobrana-Signature: t=…,v1=…`
  * HMAC_SHA256(secret, `${t}.${rawBody}`) comparado con v1 (timing-safe).
