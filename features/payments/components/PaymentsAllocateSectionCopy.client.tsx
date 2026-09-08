@@ -35,10 +35,7 @@ export function PaymentsAllocateSectionCopy({
       </h2>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
         {walletBalance > 0 ? (
-          <>
-            Tienes <strong className="font-semibold text-[var(--auth-text)]">{walletBalanceLabel}</strong>{" "}
-            disponible. Elige la cuenta que quieres recargar.
-          </>
+          <>Elige la cuenta que quieres recargar y define cuánto saldo asignar.</>
         ) : (
           <>
             Tu cartera está en {walletBalanceLabel}.{" "}
