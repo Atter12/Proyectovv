@@ -143,7 +143,7 @@ export function AutoRechargeSchedule({
     setSuccess(null);
 
     if (enabled && !paymentMethod?.last4) {
-      setError("Primero guardá una tarjeta y después activá la recarga automática.");
+      setError("Primero guardá una tarjeta y después activá el débito automático.");
       setSaving(false);
       return;
     }
@@ -172,7 +172,7 @@ export function AutoRechargeSchedule({
       setSuccess(
         enabled
           ? `Listo: se cobrará ${formatMoney(preview?.grossCents ? preview.grossCents / 100 : credit)} cada ${intervalDays} días. El primer cobro es en ${intervalDays} días.`
-          : "Recarga automática desactivada.",
+          : "Débito automático desactivado.",
       );
       await load();
     } catch (err) {
@@ -185,7 +185,7 @@ export function AutoRechargeSchedule({
   if (loading) {
     return (
       <section className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6">
-        <p className="text-[13px] text-[var(--auth-text-muted)]">Cargando recarga automática…</p>
+        <p className="text-[13px] text-[var(--auth-text-muted)]">Cargando débito automático…</p>
       </section>
     );
   }
@@ -193,7 +193,7 @@ export function AutoRechargeSchedule({
   return (
     <section className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6">
       <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-        Recarga automática
+        Débito automático
       </p>
       <h2 className="mt-1.5 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
         Programá cobros con tu tarjeta
@@ -291,7 +291,7 @@ export function AutoRechargeSchedule({
           onChange={(e) => setEnabled(e.target.checked)}
           className="h-4 w-4 rounded border-[var(--auth-control-border)]"
         />
-        Activar recarga automática
+        Activar débito automático
       </label>
 
       {error ? (

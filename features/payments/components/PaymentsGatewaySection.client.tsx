@@ -2,6 +2,7 @@
 
 import { formatMoney } from "@/lib/format-money";
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
+import { PaymentsMoneyFlowGuide } from "./PaymentsMoneyFlowGuide";
 import {
   PaymentsFundingModeSwitch,
   type PaymentsFundingMode,
@@ -59,23 +60,26 @@ export function PaymentsGatewaySection({
           id="recargar-saldo"
           className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
         >
-          <div className="flex flex-col gap-4 border-b border-[var(--auth-divider)] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div className="min-w-0">
-              <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-                Recargar saldo
-              </h2>
-              <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                Elegí un método y escribí cuánto querés agregar a la cartera.
-              </p>
+          <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+                  Recargar saldo
+                </h2>
+                <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+                  Elegí un método y escribí cuánto querés agregar a la cartera.
+                </p>
+              </div>
+              <div className="shrink-0 sm:text-right">
+                <p className="text-[12px] font-medium text-[var(--auth-text-muted)]">
+                  Saldo disponible
+                </p>
+                <p className="mt-0.5 text-[1.7rem] font-semibold leading-none tracking-[-0.035em] tabular-nums text-[var(--auth-text)]">
+                  {formatMoney(wallet.balance, wallet.currency)}
+                </p>
+              </div>
             </div>
-            <div className="shrink-0 sm:text-right">
-              <p className="text-[12px] font-medium text-[var(--auth-text-muted)]">
-                Saldo disponible
-              </p>
-              <p className="mt-0.5 text-[1.7rem] font-semibold leading-none tracking-[-0.035em] tabular-nums text-[var(--auth-text)]">
-                {formatMoney(wallet.balance, wallet.currency)}
-              </p>
-            </div>
+            <PaymentsMoneyFlowGuide />
           </div>
 
           <div className="px-5 py-5 sm:px-6 sm:py-6">

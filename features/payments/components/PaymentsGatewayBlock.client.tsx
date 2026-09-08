@@ -113,7 +113,7 @@ export function PaymentsGatewayBlockClient({
       {canClientStripeFund ? (
         <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">
-            <span>Configurar recarga automática</span>
+            <span>Configurar débito automático</span>
             <span
               aria-hidden
               className="text-[var(--auth-text-soft)] transition-transform group-open:rotate-180"

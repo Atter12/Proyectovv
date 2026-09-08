@@ -367,7 +367,7 @@ export function PaymentsTable({
                       </div>
                       {!agencyBmFunding ? (
                         <p className="mt-1 text-[10px] font-normal text-[#8a8178]">
-                          {account.autoRecharge ? "Recarga automática activa" : "Recarga automática desactivada"}
+                          {account.autoRecharge ? "Débito automático activo" : "Débito automático desactivado"}
                           {account.thresholdInfo ? ` · ${account.thresholdInfo}` : ""}
                         </p>
                       ) : null}
