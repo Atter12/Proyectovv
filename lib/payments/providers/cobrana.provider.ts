@@ -5,6 +5,7 @@ import {
   verifyCobranaWebhookSignature,
   type CobranaCharge,
 } from "@/lib/payments/cobrana/client.server";
+import { COBRANA_YAPE_SERVICE_COMPANY } from "@/lib/payments/cobrana/service-brand";
 import {
   ProviderNotConfiguredError,
   type CreateCheckoutInput,
@@ -112,8 +113,8 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
 
     const messageParts = [
       code
-        ? `Paga en Yape → Pago de servicios con el código ${code}.`
-        : "Orden creada. Completa el pago en Yape (Pago de servicios).",
+        ? `En Yape → Pago de servicios → empresa ${COBRANA_YAPE_SERVICE_COMPANY} → código ${code}.`
+        : `Orden creada. En Yape busca la empresa ${COBRANA_YAPE_SERVICE_COMPANY} en Pago de servicios.`,
       "Desde la computadora, consulta el código aquí y paga desde el celular.",
       "Cuando se confirme el pago, el saldo USD se acredita solo.",
     ].filter(Boolean);

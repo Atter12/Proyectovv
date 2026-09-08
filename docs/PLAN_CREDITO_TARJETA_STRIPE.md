@@ -1,9 +1,18 @@
 # Plan — Crédito con tarjeta (Stripe) + cobro al retirar
 
-**Estado:** solo diseño. **No implementar** hasta orden explícita.  
-**Fecha:** 2026-09-03  
+**Estado:** diseño + siguiente fase. Recarga por calendario (10/15/30 días) **anulada en Pagos** (2026-09-08).
+**Fecha:** 2026-09-03 · actualización 2026-09-08
 **Relacionado:** bridge cartera Holistic → cobros Hecom (ya live); `docs/REUNION_COBRANA_PAUTAS.md`; API Cobrana (pendiente).
 
+---
+
+## 0. Orden actual (producto)
+
+1. ~~Recarga automática cada X días~~ → **OFF** (UI quitada; job no cobra).
+2. **Crédito por aprobación del equipo** (el equipo aprueba o rechaza según el historial del cliente) → habilitar cupo en plataforma.
+3. Luego: **guardar tarjeta Stripe** como candado + reglas de cobro / ciclo (no reabrir el calendario genérico de prepago).
+
+Prepago (Stripe / BCP / Yape) sigue igual.
 ---
 
 ## 1. Contexto

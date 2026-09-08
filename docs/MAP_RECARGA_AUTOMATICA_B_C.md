@@ -1,8 +1,8 @@
 # Mapa — Recarga automática (Opción B + C)
 
-> **Estado:** implementado v1 (calendario / Opción B) — requiere migración `019` + deploy  
+> **Estado:** **PAUSADO** (2026-09-08) — UI de calendario quitada de Pagos; `CALENDAR_AUTO_RECHARGE_ENABLED=false`.
+> Siguiente producto: **crédito con aprobación** + tarjeta (ver `PLAN_CREDITO_TARJETA_STRIPE.md`).
 > **Repo:** Proyectovv (`adsholistic.com`)  
-> **Decisión:** combinar **B** (calendario) y **C** (umbral de saldo). Comparten tarjeta guardada y motor de cobro.
 
 ---
 

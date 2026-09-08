@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PAYMENTS_OPEN_ADD_BALANCE_MODAL } from "@/lib/events/modal-events";
 import { PaymentsGatewaySection } from "./PaymentsGatewaySection.client";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
@@ -19,12 +19,6 @@ const AddBalanceModal = dynamic(
 const ManualPaymentModal = dynamic(
   () =>
     import("./ManualPaymentModal.client").then((m) => m.ManualPaymentModal),
-  { ssr: false },
-);
-
-const AutoRechargeSchedule = dynamic(
-  () =>
-    import("./AutoRechargeSchedule.client").then((m) => m.AutoRechargeSchedule),
   { ssr: false },
 );
 
@@ -108,25 +102,6 @@ export function PaymentsGatewayBlockClient({
           selectedGateway={selectedGateway}
           feePercent={depositFeePercent}
         />
-      ) : null}
-
-      {canClientStripeFund ? (
-        <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">
-            <span>Configurar débito automático</span>
-            <span
-              aria-hidden
-              className="text-[var(--auth-text-soft)] transition-transform group-open:rotate-180"
-            >
-              ↓
-            </span>
-          </summary>
-          <div className="border-t border-[var(--auth-divider)] p-4 sm:p-5">
-            <Suspense fallback={null}>
-              <AutoRechargeSchedule depositFeePercent={depositFeePercent} />
-            </Suspense>
-          </div>
-        </details>
       ) : null}
     </>
   );

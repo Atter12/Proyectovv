@@ -14,6 +14,7 @@ import {
   DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 } from "@/lib/payments/deposit-fee";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
+import { COBRANA_YAPE_SERVICE_COMPANY } from "@/lib/payments/cobrana/service-brand";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isVoucherPaymentProvider } from "@/types/payment";
 import {
@@ -668,6 +669,21 @@ export function AddBalanceModal({
             </div>
 
             <div className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
+                  Empresa en Yape (Pago de servicios)
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight text-[var(--foreground)]">
+                  {COBRANA_YAPE_SERVICE_COMPANY}
+                </p>
+                <p className="mt-1 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
+                  En Yape busca exactamente{" "}
+                  <strong className="text-[var(--foreground)]">
+                    {COBRANA_YAPE_SERVICE_COMPANY}
+                  </strong>{" "}
+                  (categoría Compras online / Servicios). No es “Holistic”.
+                </p>
+              </div>
               {cobranaCode ? (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
@@ -728,10 +744,15 @@ export function AddBalanceModal({
                 En el celular, abre <strong>Yape</strong>.
               </li>
               <li>
-                Ingresa a <strong>Pago de servicios</strong> (o “Servicios”).
+                Ingresa a <strong>Pago de servicios</strong> (o “Yapear
+                servicios”).
               </li>
               <li>
-                Busca o ingresa el código{" "}
+                Busca la empresa{" "}
+                <strong>{COBRANA_YAPE_SERVICE_COMPANY}</strong> (no Holistic).
+              </li>
+              <li>
+                Ingresa el código{" "}
                 <strong className="font-mono">
                   {cobranaCode ?? "HOL…"}
                 </strong>
