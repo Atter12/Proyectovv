@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 export type PaymentAppKey =
@@ -108,24 +109,96 @@ const SIZE = {
   lg: "h-10 w-10",
 } as const;
 
+const SIZE_PX = {
+  sm: 32,
+  md: 36,
+  lg: 40,
+} as const;
+
 /** Icono de marca para Yape / Plin / bancos (deeplinks Cobrana). */
 export function PaymentAppIcon({
   app,
   size = "md",
   className,
 }: PaymentAppIconProps) {
+  const usesOfficialAsset = ["yape", "plin", "bcp", "bbva", "interbank"].includes(app);
+
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[0.65rem]",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-black/5",
         SIZE[size],
         iconShell(app),
         className,
       )}
       aria-hidden
     >
-      <Mark app={app} />
+      {usesOfficialAsset ? (
+        <OfficialPaymentAppImage app={app} diameter={SIZE_PX[size]} />
+      ) : (
+        <Mark app={app} />
+      )}
     </span>
+  );
+}
+
+function OfficialPaymentAppImage({
+  app,
+  diameter,
+}: {
+  app: PaymentAppKey;
+  diameter: number;
+}) {
+  if (app === "yape") {
+    const scale = diameter / 138;
+    return (
+      <Image
+        src="/payment-methods/yape-reference.png"
+        alt=""
+        width={605}
+        height={346}
+        className="absolute max-w-none"
+        style={{
+          width: 605 * scale,
+          height: 346 * scale,
+          left: -38 * scale,
+          top: -17 * scale,
+        }}
+      />
+    );
+  }
+
+  if (app === "bcp" || app === "interbank") {
+    const scale = diameter / 311;
+    return (
+      <Image
+        src="/payment-methods/peru-banks-reference.png"
+        alt=""
+        width={633}
+        height={315}
+        className="absolute max-w-none"
+        style={{
+          width: 633 * scale,
+          height: 315 * scale,
+          left: app === "bcp" ? 0 : -320 * scale,
+          top: 0,
+        }}
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={
+        app === "plin"
+          ? "/payment-methods/plin-circle.png"
+          : "/payment-methods/bbva-circle.png"
+      }
+      alt=""
+      fill
+      sizes={`${diameter}px`}
+      className="object-cover"
+    />
   );
 }
 

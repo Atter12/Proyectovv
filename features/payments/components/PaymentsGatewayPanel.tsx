@@ -1,4 +1,3 @@
-import { PaymentOverviewStats } from "./PaymentOverviewStats";
 import { PaymentsAllocateSection } from "./PaymentsAllocateSection";
 import { PaymentsGatewayBlockClient } from "./PaymentsGatewayBlock.client";
 import { PaymentsFundingModeProvider } from "./PaymentsFundingModeContext.client";
@@ -11,10 +10,7 @@ import {
   buildAdvertiserEnsureList,
   enrichAllocationAccountsFromAdsOverview,
 } from "@/lib/payments/enrich-allocation-accounts";
-import {
-  sortPaymentAccounts,
-  summarizePaymentAccounts,
-} from "@/lib/sort/payment-accounts";
+import { sortPaymentAccounts } from "@/lib/sort/payment-accounts";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
@@ -60,7 +56,6 @@ export async function PaymentsGatewayPanel({
   hecomAdvertiserIds,
   hecomClienteId,
   clienteName,
-  hecomFinance = null,
   adsAccounts = [],
   skipOrphanCleanup = false,
   skipApprovedSync = false,
@@ -269,10 +264,6 @@ export async function PaymentsGatewayPanel({
   const core = await getPaymentPageCore(session, {
     organizationId: opsOrganizationId,
   });
-  const activeGateway =
-    core.gateways.find((gateway) => gateway.id === core.selectedGateway) ??
-    core.gateways[0]!;
-
   let depositFeePercent = DEFAULT_DEPOSIT_FEE_PERCENT;
   if (hecomClienteId) {
     try {
@@ -431,32 +422,14 @@ export async function PaymentsGatewayPanel({
     ...fundableAccounts,
   ]);
 
-  const allocationSummary = summarizePaymentAccounts(scopedAccounts);
-
-  const scopedSummary = {
-    ...core.summary,
-    accountsReadyForAllocation: fundableAccounts.filter(
-      (a) => a.status === "active" || a.status === "pending",
-    ).length,
-  };
-
   return (
     <PaymentsFundingModeProvider capabilities={capabilities}>
       <div className="space-y-5">
         <PaymentsGatewayBlockClient
           gateways={core.gateways}
           initialSelected={core.selectedGateway}
-          depositFeePercent={depositFeePercent}
-        />
-
-        <PaymentOverviewStats
           wallet={core.wallet}
-          summary={scopedSummary}
-          activeGateway={activeGateway}
-          isStaff={capabilities.isStaff}
-          hecomFinance={hecomFinance}
-          allocationSummary={allocationSummary}
-          advertiserIds={clienteAdvIds}
+          depositFeePercent={depositFeePercent}
         />
 
         {syncNote ? (

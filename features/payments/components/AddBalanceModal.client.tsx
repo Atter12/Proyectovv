@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -83,12 +83,14 @@ const gatewayLabels: Record<PaymentGatewayId, string> = {
   mercadopago: "Mercado Pago",
   crypto: "Cripto (USDT)",
   manual: "Pago manual",
-  cobrana: "Yape",
+  cobrana: "Yape, Plin y bancos",
 };
 
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 100_000;
 const DEFAULT_FX = 3.48;
+
+const subscribeToNothing = () => () => {};
 
 type Step = "form" | "confirm" | "proof" | "yape" | "result";
 
@@ -100,7 +102,11 @@ export function AddBalanceModal({
   stripeSurchargePercent = DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 }: AddBalanceModalProps) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
@@ -126,10 +132,7 @@ export function AddBalanceModal({
     provider: selectedGateway,
     stripeSurchargePercent: stripeExtra,
   });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const parsedAmount = Number.parseFloat(amount);
 
   useEffect(() => {
     if (!open) return;
@@ -211,11 +214,8 @@ export function AddBalanceModal({
       cancelled = true;
       window.clearInterval(timer);
     };
-    // parsedAmount is stable while on yape step
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, step, paymentIntentId, paidConfirmed, router]);
+  }, [open, step, paymentIntentId, paidConfirmed, router, parsedAmount]);
 
-  const parsedAmount = Number.parseFloat(amount);
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
     parsedAmount >= MIN_AMOUNT &&
@@ -396,7 +396,7 @@ export function AddBalanceModal({
               id="add-balance-title"
               className="text-lg font-semibold text-[var(--foreground)]"
             >
-              Agregar saldo
+              Recargar saldo
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               Indicá cuánto querés en cartera. El fee Holistic (
@@ -406,9 +406,9 @@ export function AddBalanceModal({
                 : ""}{" "}
               se suma
               {isCobrana
-                ? " y se cobra en soles vía Yape."
+                ? " y se cobra en soles desde la app que elijas."
                 : isStripe
-                  ? ". Si preferís no pagar fee de tarjeta, usá transferencia BCP o Yape."
+                  ? ". Si preferís no pagar fee de tarjeta, usá Yape, Plin o transferencia bancaria."
                   : " y eso es lo que se cobra."}
             </p>
 
@@ -502,12 +502,12 @@ export function AddBalanceModal({
                 {isCobrana ? (
                   <>
                     <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
-                      Abrís Yape u otra app bancaria con el código. El saldo USD
-                      se acredita cuando se confirma el pago.
+                      Abrís Yape, Plin o tu banco con el código. El saldo USD se
+                      acredita cuando se confirma el pago.
                     </p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       {(
-                        ["yape", "bcp", "plin", "interbank"] as const
+                        ["yape", "plin", "bcp", "interbank", "bbva"] as const
                       ).map((app) => (
                         <PaymentAppIcon key={app} app={app} size="sm" />
                       ))}

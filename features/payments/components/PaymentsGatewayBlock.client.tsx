@@ -5,7 +5,11 @@ import { Suspense, useEffect, useState } from "react";
 import { PAYMENTS_OPEN_ADD_BALANCE_MODAL } from "@/lib/events/modal-events";
 import { PaymentsGatewaySection } from "./PaymentsGatewaySection.client";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
-import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
+import type {
+  PaymentGateway,
+  PaymentGatewayId,
+  WalletOverview,
+} from "@/types/payment";
 
 const AddBalanceModal = dynamic(
   () => import("./AddBalanceModal.client").then((m) => m.AddBalanceModal),
@@ -27,13 +31,14 @@ const AutoRechargeSchedule = dynamic(
 interface PaymentsGatewayBlockClientProps {
   gateways: PaymentGateway[];
   initialSelected: PaymentGatewayId;
-  /** Fee % Hecom del cliente activo. */
+  wallet: WalletOverview;
   depositFeePercent?: number;
 }
 
 export function PaymentsGatewayBlockClient({
   gateways,
   initialSelected,
+  wallet,
   depositFeePercent = 10,
 }: PaymentsGatewayBlockClientProps) {
   const {
@@ -62,10 +67,9 @@ export function PaymentsGatewayBlockClient({
 
   function handleSelectGateway(id: PaymentGatewayId) {
     if (!canClientStripeFund) return;
-    const gateway = gateways.find((g) => g.id === id);
+    const gateway = gateways.find((item) => item.id === id);
     if (gateway?.maintenance) return;
     setSelectedGateway(id);
-    setModalOpen(true);
   }
 
   return (
@@ -76,7 +80,7 @@ export function PaymentsGatewayBlockClient({
         onSelect={handleSelectGateway}
         onContinue={() => {
           if (!canClientStripeFund) return;
-          const gateway = gateways.find((g) => g.id === selectedGateway);
+          const gateway = gateways.find((item) => item.id === selectedGateway);
           if (gateway?.maintenance) return;
           setModalOpen(true);
         }}
@@ -85,6 +89,7 @@ export function PaymentsGatewayBlockClient({
         canClientStripeFund={canClientStripeFund}
         canAgencyBmFund={canAgencyBmFund}
         canSwitchFundingModes={canSwitchFundingModes}
+        wallet={wallet}
         depositFeePercent={depositFeePercent}
       />
 
@@ -106,9 +111,22 @@ export function PaymentsGatewayBlockClient({
       ) : null}
 
       {canClientStripeFund ? (
-        <Suspense fallback={null}>
-          <AutoRechargeSchedule depositFeePercent={depositFeePercent} />
-        </Suspense>
+        <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">
+            <span>Configurar recarga automática</span>
+            <span
+              aria-hidden
+              className="text-[var(--auth-text-soft)] transition-transform group-open:rotate-180"
+            >
+              ↓
+            </span>
+          </summary>
+          <div className="border-t border-[var(--auth-divider)] p-4 sm:p-5">
+            <Suspense fallback={null}>
+              <AutoRechargeSchedule depositFeePercent={depositFeePercent} />
+            </Suspense>
+          </div>
+        </details>
       ) : null}
     </>
   );

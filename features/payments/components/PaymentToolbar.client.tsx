@@ -31,31 +31,26 @@ export function PaymentToolbar({
         </span>{" "}
         en la cuenta que quieras {agencyBmFunding ? "fondear" : "recargar"}.
       </p>
-      <div className="relative flex-1 sm:max-w-xs">
-        <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--auth-text-soft)]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
+      <div className="flex-1 sm:max-w-xs">
+        <label htmlFor="payment-account-search" className="sr-only">
+          Buscar cuenta
+        </label>
         <Input
+          id="payment-account-search"
           placeholder="Buscar cuenta"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-9 border-[var(--auth-border)] bg-white pl-9 text-[13px]"
+          className="h-11 border-[var(--auth-border)] bg-white text-[13px]"
         />
       </div>
+      <label htmlFor="payment-account-status" className="sr-only">
+        Filtrar por estado
+      </label>
       <select
+        id="payment-account-status"
         value={status}
         onChange={(e) => onStatusChange(e.target.value)}
-        className="h-9 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
+        className="h-11 rounded-xl border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
       >
         <option value="all">Todos los estados</option>
         <option value="active">Activa</option>
@@ -63,18 +58,23 @@ export function PaymentToolbar({
         <option value="disabled">Desactivada</option>
       </select>
       {onSortChange ? (
-        <select
-          value={sort}
-          onChange={(e) => onSortChange(e.target.value as PaymentAccountSortKey)}
-          className="h-9 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
-          aria-label="Ordenar cuentas"
-        >
-          <option value="recommended">Orden recomendado</option>
-          <option value="bm">BM (10 → 200)</option>
-          <option value="name">Nombre / número</option>
-          <option value="ledger_desc">Ledger mayor</option>
-          <option value="ledger_asc">Ledger menor</option>
-        </select>
+        <>
+          <label htmlFor="payment-account-sort" className="sr-only">
+            Ordenar cuentas
+          </label>
+          <select
+            id="payment-account-sort"
+            value={sort}
+            onChange={(e) => onSortChange(e.target.value as PaymentAccountSortKey)}
+            className="h-11 rounded-xl border border-[var(--auth-border)] bg-white px-3 text-[13px] text-[var(--auth-text)] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
+          >
+            <option value="recommended">Orden recomendado</option>
+            <option value="bm">BM (10 → 200)</option>
+            <option value="name">Nombre / número</option>
+            <option value="ledger_desc">Ledger mayor</option>
+            <option value="ledger_asc">Ledger menor</option>
+          </select>
+        </>
       ) : null}
     </div>
   );

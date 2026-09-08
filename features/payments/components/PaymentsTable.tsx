@@ -288,7 +288,7 @@ export function PaymentsTable({
                     ) : null}
                     <p className="truncate font-mono text-[10px] text-[#9a9187]">
                       adv{" "}
-                      {account.externalAccountId?.trim() || "— sin TikTok ID —"}
+                      {account.externalAccountId?.trim() || "Sin TikTok ID"}
                     </p>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -322,7 +322,7 @@ export function PaymentsTable({
       ) : null}
 
       {!isEmpty ? (
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block">
           <Table embedded className="rounded-none">
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
@@ -335,16 +335,6 @@ export function PaymentsTable({
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
                   {balanceColumnLabel}
                 </TableHead>
-                {!agencyBmFunding ? (
-                  <>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                      Recarga
-                    </TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                      Umbral
-                    </TableHead>
-                  </>
-                ) : null}
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
                   Acción
                 </TableHead>
@@ -372,9 +362,15 @@ export function PaymentsTable({
                         <p className="truncate font-mono text-[10px] font-normal text-[#9a9187]">
                           adv{" "}
                           {account.externalAccountId?.trim() ||
-                            "— sin TikTok ID —"}
+                            "Sin TikTok ID"}
                         </p>
                       </div>
+                      {!agencyBmFunding ? (
+                        <p className="mt-1 text-[10px] font-normal text-[#8a8178]">
+                          {account.autoRecharge ? "Recarga automática activa" : "Recarga automática desactivada"}
+                          {account.thresholdInfo ? ` · ${account.thresholdInfo}` : ""}
+                        </p>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -383,26 +379,6 @@ export function PaymentsTable({
                     </span>
                   </TableCell>
                   <TableCell>{renderBalanceCell(account)}</TableCell>
-                  {!agencyBmFunding ? (
-                    <>
-                      <TableCell>
-                        <span
-                          className={
-                            account.autoRecharge
-                              ? "text-[12px] font-semibold text-[#1f5c40]"
-                              : "text-[12px] text-[#7a736a]"
-                          }
-                        >
-                          {account.autoRecharge ? "Activada" : "Desactivada"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]">
-                          {account.thresholdInfo}
-                        </span>
-                      </TableCell>
-                    </>
-                  ) : null}
                   <TableCell>{renderActions(account, false)}</TableCell>
                 </TableRow>
               ))}

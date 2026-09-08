@@ -12,32 +12,17 @@ export function PaymentsAllocateSectionCopy({
   clienteName?: string;
 }) {
   const { agencyBmFunding } = usePaymentsFundingMode();
-  const who = clienteName ? ` ${clienteName}` : " este cliente";
-  const hasWallet = walletBalance > 0;
 
   if (agencyBmFunding) {
     return (
       <>
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Gerente · Recargar desde BM
-          {clienteName ? ` · ${clienteName}` : ""}
-        </p>
-        <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-          Recargar cuentas TikTok desde el BM
+        <h2 className="text-[1.2rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+          Recargar una cuenta de TikTok
         </h2>
-        <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Fondeás la cuenta ads de{who} desde el Business Center (BM 200 = cash;
-          BM 10/30 = presupuesto de crédito). No exige cartera Holistic
-          {hasWallet
-            ? ` (ahora hay ${walletBalanceLabel} disponible para asignar si querés).`
-            : ` (cartera Holistic: ${walletBalanceLabel}).`}{" "}
-          <span className="font-semibold text-[var(--auth-text)]">
-            No baja la deuda neta Hecom
-          </span>{" "}
-          (eso baja solo con cobro del cliente). Usá cuentas Aprobadas. Si una se
-          suspende con saldo, queda acá con{" "}
-          <span className="font-semibold text-[var(--auth-text)]">Recuperar</span>
-          ; al jalárselo a cartera sale de esta lista (sigue en Cuentas ads).
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+          Elegí una cuenta{clienteName ? ` de ${clienteName}` : ""} y usá el
+          saldo disponible del Business Center. Si una cuenta suspendida todavía
+          tiene saldo, podés recuperarlo desde su acción.
         </p>
       </>
     );
@@ -45,43 +30,25 @@ export function PaymentsAllocateSectionCopy({
 
   return (
     <>
-      <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-        Cliente · Asignar desde cartera
-        {clienteName ? ` · ${clienteName}` : ""}
-      </p>
-      <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-        Asignar saldo a cuentas TikTok
+      <h2 className="text-[1.2rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+        Asignar saldo a TikTok
       </h2>
-      <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-        {hasWallet ? (
+      <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+        {walletBalance > 0 ? (
           <>
-            Cartera Holistic: {walletBalanceLabel} (para asignar). En cada fila:{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              Saldo TikTok
-            </span>{" "}
-            = cash real (BM 200);{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              Cupo presupuesto
-            </span>{" "}
-            = tope BM 10/30 (no es plata para “tener”). El resumen de arriba solo
-            suma cash. Para pasar plata entre cuentas usá{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              Transferir a otra cuenta
-            </span>
-            .
+            Tenés <strong className="font-semibold text-[var(--auth-text)]">{walletBalanceLabel}</strong>{" "}
+            disponible. Elegí la cuenta que querés recargar.
           </>
         ) : (
           <>
-            Cartera Holistic en {walletBalanceLabel}. Primero recargá arriba
-            (Stripe / manual) si querés asignar. Abajo:{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              Saldo TikTok
-            </span>{" "}
-            (cash) vs{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              Cupo presupuesto
-            </span>{" "}
-            (BM 10/30 · no es cash).
+            Tu cartera está en {walletBalanceLabel}.{" "}
+            <a
+              href="#recargar-saldo"
+              className="font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
+            >
+              Recargá saldo primero
+            </a>
+            .
           </>
         )}
       </p>

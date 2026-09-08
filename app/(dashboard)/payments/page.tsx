@@ -6,7 +6,6 @@ import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpt
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
-import { PaymentsWalletSection } from "@/features/payments/components/PaymentsWalletSection";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
@@ -85,8 +84,6 @@ export default async function PaymentsPage({
     );
   }
 
-  const pageStarted = Date.now();
-
   // Paralelizar: dashboard ligero + cuentas (cache BM). Antes: serie + TikTok live.
   const [data, adsOverview] = await Promise.all([
     getHecomClienteDashboard(selected.id, {
@@ -127,7 +124,6 @@ export default async function PaymentsPage({
 
   console.info("[payments] page_load", {
     clienteId: cliente.id,
-    ms: Date.now() - pageStarted,
     ads: adsOverview.accounts.length,
     mappedHecomIds: mappedHecomIds.length,
     allocateIds: hecomAdvertiserIds.length,
@@ -159,17 +155,10 @@ export default async function PaymentsPage({
     });
   }
 
-  const introCopy = actingAsCliente
-    ? hecomFinance.billingModality === "credito"
-      ? `Estás en el panel de ${cliente.name} (crédito Hecom). Recargá con Stripe/BCP si querés sumar cartera, o mirá el cupo TikTok abajo.`
-      : `Estás en el panel de ${cliente.name}: recargá con Stripe o BCP y asigná a sus cuentas, como lo haría el cliente.`
-    : capabilities.canSwitchFundingModes
-    ? `Super admin: operá como Cliente (Stripe / pago manual) o Gerente (cash BM) para ${cliente.name}.`
-    : capabilities.canAgencyBmFund
-      ? `Modo gerente: recargá cuentas de ${cliente.name} desde cash del BM. Las boletas BCP se revisan en Pagos manuales.`
-      : hecomFinance.billingModality === "credito"
-        ? `${cliente.name} es crédito Hecom (paga según cobranza). La cartera Holistic es opcional; el cupo TikTok está en cada cuenta.`
-        : `Recargá con Stripe o transferencia BCP y asigná saldo a las cuentas de ${cliente.name}.`;
+  const introCopy =
+    capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
+      ? `Elegí una cuenta de ${cliente.name} y recargala desde el Business Center.`
+      : `Agregá saldo a la cartera de ${cliente.name} y asignalo a una cuenta de TikTok.`;
 
   return (
     <div className={dashboardClasses.page}>
@@ -179,18 +168,7 @@ export default async function PaymentsPage({
         cliente={cliente}
         capabilities={capabilities}
         introCopy={introCopy}
-        hecomFinance={hecomFinance}
       />
-
-      <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-        <PaymentsWalletSection
-          session={session}
-          staffMode={capabilities.isStaff}
-          hecomFinance={hecomFinance}
-          clienteName={cliente.name}
-          hecomClienteId={cliente.id}
-        />
-      </Suspense>
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={2} />}>
         <PaymentsGatewayPanel
@@ -205,15 +183,26 @@ export default async function PaymentsPage({
         />
       </Suspense>
 
-      <div
-        className="border-t border-[var(--auth-divider)] pt-2"
-        aria-label={`Historial Hecom de ${cliente.name}`}
-      >
-        <ClienteScopedPayments
-          data={data}
-          staffMode={capabilities.isStaff || capabilities.canAgencyBmFund}
-        />
-      </div>
+      <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">
+          <span>Ver movimientos e historial</span>
+          <span
+            aria-hidden
+            className="text-[var(--auth-text-soft)] transition-transform group-open:rotate-180"
+          >
+            ↓
+          </span>
+        </summary>
+        <div
+          className="border-t border-[var(--auth-divider)] p-4 sm:p-6"
+          aria-label={`Historial Hecom de ${cliente.name}`}
+        >
+          <ClienteScopedPayments
+            data={data}
+            staffMode={capabilities.isStaff || capabilities.canAgencyBmFund}
+          />
+        </div>
+      </details>
     </div>
   );
 }

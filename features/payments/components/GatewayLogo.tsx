@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/cn";
 import type { PaymentGatewayId } from "@/types/payment";
-import { YapeBrandMark } from "./PaymentAppIcon";
+import { PaymentAppIcon } from "./PaymentAppIcon";
 
 interface GatewayLogoProps {
   gatewayId: PaymentGatewayId;
@@ -15,6 +15,10 @@ const SIZE = {
 } as const;
 
 export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
+  if (gatewayId === "cobrana") {
+    return <PaymentAppIcon app="yape" size={size} />;
+  }
+
   return (
     <div
       className={cn(
@@ -41,8 +45,6 @@ function shellClass(id: PaymentGatewayId) {
       return "bg-[#26A17B]";
     case "manual":
       return "bg-[#1f1c19]";
-    case "cobrana":
-      return "bg-[#5F0B72]";
     default:
       return "bg-white";
   }
@@ -61,7 +63,7 @@ function GatewayMark({ id }: { id: PaymentGatewayId }) {
     case "manual":
       return <ManualMark />;
     case "cobrana":
-      return <YapeBrandMark />;
+      return null;
   }
 }
 

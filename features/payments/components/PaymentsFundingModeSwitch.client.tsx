@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { cn } from "@/lib/cn";
 
@@ -12,7 +12,6 @@ interface PaymentsFundingModeSwitchProps {
   canSwitchFundingModes: boolean;
 }
 
-/** Switch dual: Cliente (Stripe) vs Gerente (BM) — solo super admin. */
 export function PaymentsFundingModeSwitch({
   mode,
   onChange,
@@ -20,82 +19,65 @@ export function PaymentsFundingModeSwitch({
   canAgencyBmFund,
   canSwitchFundingModes,
 }: PaymentsFundingModeSwitchProps) {
-  if (!canSwitchFundingModes) {
-    return null;
-  }
+  if (!canSwitchFundingModes) return null;
 
   return (
-    <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
-      <div className="border-b border-[var(--auth-divider)] px-5 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-            Super admin
-          </p>
-          <span className="dashboard-role-badge" data-role="super_admin">
-            Dual
-          </span>
-        </div>
-        <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-          Cómo vas a recargar
+    <section className="rounded-2xl border border-[var(--auth-border)] bg-white p-3 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="px-1 pb-3 sm:pb-0">
+        <h2 className="text-[14px] font-semibold text-[var(--auth-text)]">
+          Origen del saldo
         </h2>
-        <p className="mt-1 text-[13px] font-medium text-[var(--auth-text-muted)]">
-          Cambiá entre camino cliente (Stripe) y gerente (cash BM).
+        <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
+          Elegí cómo querés hacer esta recarga.
         </p>
       </div>
-
       <div
-        className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4"
-        role="tablist"
-        aria-label="Modo de recarga"
+        className="grid gap-1 rounded-xl bg-[var(--auth-bg)] p-1 sm:min-w-[24rem] sm:grid-cols-2"
+        role="radiogroup"
+        aria-label="Origen del saldo"
       >
         <button
           type="button"
-          role="tab"
-          aria-selected={mode === "client"}
+          role="radio"
+          aria-checked={mode === "client"}
           disabled={!canClientStripeFund}
           onClick={() => canClientStripeFund && onChange("client")}
           className={cn(
-            "rounded-[0.85rem] border px-4 py-3.5 text-left transition-colors",
+            "min-h-11 rounded-lg px-4 py-2 text-left transition-[background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30",
             mode === "client"
-              ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
-              : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/35",
+              ? "bg-white shadow-sm"
+              : "hover:bg-white/70",
             !canClientStripeFund && "cursor-not-allowed opacity-50",
           )}
         >
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-accent)]">
-            Cliente
-          </p>
-          <p className="mt-1 text-[14px] font-bold text-[var(--auth-text)]">
-            Stripe / manual
-          </p>
-          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            Plata a la cartera Holistic → asignás a la cuenta ads.
-          </p>
+          <span className="block text-[13px] font-semibold text-[var(--auth-text)]">
+            Cartera Holistic
+          </span>
+          <span className="block text-[11px] text-[var(--auth-text-muted)]">
+            Stripe, Yape o banco
+          </span>
         </button>
 
         <button
           type="button"
-          role="tab"
-          aria-selected={mode === "agency_bm"}
+          role="radio"
+          aria-checked={mode === "agency_bm"}
           disabled={!canAgencyBmFund}
           onClick={() => canAgencyBmFund && onChange("agency_bm")}
           className={cn(
-            "rounded-[0.85rem] border px-4 py-3.5 text-left transition-colors",
+            "min-h-11 rounded-lg px-4 py-2 text-left transition-[background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30",
             mode === "agency_bm"
-              ? "border-[var(--auth-text)] bg-[var(--auth-bg)]"
-              : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-text)]/25",
+              ? "bg-white shadow-sm"
+              : "hover:bg-white/70",
             !canAgencyBmFund && "cursor-not-allowed opacity-50",
           )}
         >
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-[var(--auth-text-muted)]">
-            Gerente
-          </p>
-          <p className="mt-1 text-[14px] font-bold text-[var(--auth-text)]">
-            Cash BM TikTok
-          </p>
-          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            Sin Stripe: cash del Business Center → cuenta ads.
-          </p>
+          <span className="block text-[13px] font-semibold text-[var(--auth-text)]">
+            Business Center
+          </span>
+          <span className="block text-[11px] text-[var(--auth-text-muted)]">
+            Saldo disponible del BM
+          </span>
         </button>
       </div>
     </section>

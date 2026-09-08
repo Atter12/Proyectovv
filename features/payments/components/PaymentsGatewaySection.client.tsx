@@ -1,11 +1,17 @@
-﻿"use client";
+"use client";
 
+import { formatMoney } from "@/lib/format-money";
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
 import {
   PaymentsFundingModeSwitch,
   type PaymentsFundingMode,
 } from "./PaymentsFundingModeSwitch.client";
-import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
+import { WalletSummaryActions } from "./WalletSummaryActions.client";
+import type {
+  PaymentGateway,
+  PaymentGatewayId,
+  WalletOverview,
+} from "@/types/payment";
 
 interface PaymentsGatewaySectionProps {
   gateways: PaymentGateway[];
@@ -17,7 +23,7 @@ interface PaymentsGatewaySectionProps {
   canClientStripeFund: boolean;
   canAgencyBmFund: boolean;
   canSwitchFundingModes: boolean;
-  /** Fee % Hecom del cliente activo (visible en Recargar). */
+  wallet: WalletOverview;
   depositFeePercent?: number;
 }
 
@@ -31,12 +37,12 @@ export function PaymentsGatewaySection({
   canClientStripeFund,
   canAgencyBmFund,
   canSwitchFundingModes,
+  wallet,
   depositFeePercent = 10,
 }: PaymentsGatewaySectionProps) {
-  const selectedGateway = gateways.find((g) => g.id === selected);
+  const selectedGateway = gateways.find((gateway) => gateway.id === selected);
   const selectedInMaintenance = Boolean(selectedGateway?.maintenance);
-  const showClientDeposit =
-    canClientStripeFund && fundingMode === "client";
+  const showClientDeposit = canClientStripeFund && fundingMode === "client";
 
   return (
     <div className="space-y-5">
@@ -49,84 +55,101 @@ export function PaymentsGatewaySection({
       />
 
       {showClientDeposit ? (
-        <section className="dashboard-surface-card overflow-hidden rounded-[1rem]">
-          <div className="border-b border-[var(--auth-border)] px-5 py-4 sm:px-6">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-              Cliente · Cartera Holistic
-            </p>
-            <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Recargar cartera
-            </h2>
-            <p className="mt-1 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-              No paga TikTok directo: recargás la cartera y después asignás a
-              una cuenta ads. Fee de este cliente:{" "}
-              <span className="font-bold text-[var(--auth-text)]">
-                {depositFeePercent}%
-              </span>{" "}
-              (Hecom) — se suma al cobrar.
-            </p>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--auth-accent)]/35 bg-[var(--auth-accent-soft)] px-3 py-1.5 text-[12px] font-bold text-[var(--auth-accent)]">
-              Fee Holistic {depositFeePercent}%
-              <span className="font-medium text-[var(--auth-text-muted)]">
-                · querés $100 → se cobran $
-                {(100 * (1 + depositFeePercent / 100)).toFixed(0)}
-              </span>
+        <section
+          id="recargar-saldo"
+          className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
+        >
+          <div className="flex flex-col gap-4 border-b border-[var(--auth-divider)] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="min-w-0">
+              <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+                Recargar saldo
+              </h2>
+              <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+                Elegí un método y escribí cuánto querés agregar a la cartera.
+              </p>
+            </div>
+            <div className="shrink-0 sm:text-right">
+              <p className="text-[12px] font-medium text-[var(--auth-text-muted)]">
+                Saldo disponible
+              </p>
+              <p className="mt-0.5 text-[1.7rem] font-semibold leading-none tracking-[-0.035em] tabular-nums text-[var(--auth-text)]">
+                {formatMoney(wallet.balance, wallet.currency)}
+              </p>
             </div>
           </div>
 
-          <div className="px-5 py-4 sm:px-6 sm:py-5">
-            <PaymentGatewaySelector
-              gateways={gateways}
-              selected={selected}
-              onSelect={onSelect}
-            />
+          <div className="px-5 py-5 sm:px-6 sm:py-6">
+            <fieldset>
+              <legend className="mb-3 text-[13px] font-semibold text-[var(--auth-text)]">
+                Método de pago
+              </legend>
+              <PaymentGatewaySelector
+                gateways={gateways}
+                selected={selected}
+                onSelect={onSelect}
+              />
+            </fieldset>
 
-            <div className="mt-4 flex flex-col gap-3 rounded-[0.85rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                  Siguiente paso
-                </p>
-                <p className="mt-0.5 text-[13px] font-medium text-[var(--auth-text)]">
-                  {selectedInMaintenance
-                    ? "Pago manual en mantenimiento — usá Stripe"
-                    : selectedGateway
-                      ? `Continuar con ${selectedGateway.name}`
-                      : "Seleccioná un método para continuar"}
-                </p>
-              </div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={onContinue}
                 disabled={selectedInMaintenance || !selectedGateway}
-                className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {selectedInMaintenance
                   ? "No disponible"
                   : selectedGateway
-                    ? `Pagar con ${selectedGateway.name}`
-                    : "Agregar saldo"}
+                    ? `Recargar con ${selectedGateway.name}`
+                    : "Recargar saldo"}
               </button>
+              <WalletSummaryActions
+                availableBalance={wallet.balance}
+                currency={wallet.currency}
+                showAddBalance={false}
+              />
             </div>
+
+            <details className="mt-5 border-t border-[var(--auth-divider)] pt-4 text-[12px] text-[var(--auth-text-muted)]">
+              <summary className="cursor-pointer font-medium outline-none hover:text-[var(--auth-text)] focus-visible:text-[var(--auth-text)]">
+                Detalles de la cartera y comisiones
+              </summary>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <dt className="text-[var(--auth-text-soft)]">Cartera</dt>
+                  <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
+                    {wallet.name}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--auth-text-soft)]">Última recarga</dt>
+                  <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
+                    {wallet.lastTopUp ?? "Sin registros"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--auth-text-soft)]">Fee Holistic</dt>
+                  <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
+                    {depositFeePercent}% sobre el monto neto
+                  </dd>
+                </div>
+              </dl>
+            </details>
           </div>
         </section>
       ) : (
-        <section className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-            Gerente · Cash BM
-          </p>
-          <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            Sin Stripe en este paso
+        <section className="rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-5 sm:px-6 sm:py-6">
+          <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+            Recargar desde el Business Center
           </h2>
-          <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-            Bajá a{" "}
-            <span className="font-semibold text-[var(--auth-text)]">Asignar</span>{" "}
-            y recargá la cuenta ads con cash del Business Center.
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+            Elegí una cuenta de TikTok y transferí el saldo disponible del BM.
           </p>
           <a
             href="#asignar-saldo"
-            className="mt-4 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+            className="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
           >
-            Ir a recargar cuenta ads
+            Elegir cuenta
           </a>
         </section>
       )}
