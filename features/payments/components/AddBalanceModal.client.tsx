@@ -105,6 +105,7 @@ export function AddBalanceModal({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [fxRate, setFxRate] = useState(DEFAULT_FX);
+  const [fxSourceLabel, setFxSourceLabel] = useState("TC referencial");
   const [cobranaCode, setCobranaCode] = useState<string | null>(null);
   const [cobranaDeeplinks, setCobranaDeeplinks] = useState<CobranaDeeplink[]>(
     [],
@@ -134,10 +135,24 @@ export function AddBalanceModal({
 
   useEffect(() => {
     if (!open || !isCobrana) return;
-    void apiClient<{ fxRateUsdPen: number }>("/api/payments/manual/config")
+    void apiClient<{
+      fxRateUsdPen: number;
+      fxSource?: string;
+      fxAsOf?: string | null;
+    }>("/api/payments/manual/config")
       .then((cfg) => {
         if (Number.isFinite(cfg.fxRateUsdPen) && cfg.fxRateUsdPen > 0) {
           setFxRate(cfg.fxRateUsdPen);
+        }
+        const src = (cfg.fxSource ?? "").toLowerCase();
+        if (src === "sbs") {
+          setFxSourceLabel(
+            cfg.fxAsOf
+              ? `TC SBS venta (${cfg.fxAsOf})`
+              : "TC SBS venta",
+          );
+        } else {
+          setFxSourceLabel("TC referencial");
         }
       })
       .catch(() => {
@@ -432,7 +447,7 @@ export function AddBalanceModal({
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
                     {isCobrana
-                      ? `TC referencial ${fxRate.toFixed(2)} · necesitás DNI en Hecom CRM.`
+                      ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitás DNI en Hecom CRM.`
                       : "Ej.: querés $100 con fee 10% → se cobran $110."}
                   </p>
                 </div>

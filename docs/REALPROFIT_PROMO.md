@@ -13,7 +13,7 @@ La tienda **no** se vincula desde el panel gratis.
 
 `/gastos` redirige a `/profit`.
 
-Ver también: [`SALES_SOURCES_REALPROFIT.md`](./SALES_SOURCES_REALPROFIT.md).
+Ver también: [`SALES_SOURCES_REALPROFIT.md`](./SALES_SOURCES_REALPROFIT.md) · plan triggers Shopify/Meta: [`PLAN_REALPROFIT_SHOPIFY_META.md`](./PLAN_REALPROFIT_SHOPIFY_META.md).
 
 ## Fuentes (gratis)
 

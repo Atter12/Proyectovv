@@ -23,6 +23,7 @@ import { serverEnv } from "@/lib/env/env.server";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
   buildManualDepositQuote,
+  resolveUsdPenRateForQuote,
   type ManualChargeCurrency,
 } from "@/lib/payments/manual-deposit.server";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
@@ -127,10 +128,13 @@ export async function createPaymentIntentForSession(
   } | null = null;
 
   if (isCobrana || (input.provider === "manual" && chargeCurrency === "PEN")) {
+    // TC SBS (BCRP venta) o fallback env — se congela en metadata del intent.
+    const usdPenRate = await resolveUsdPenRateForQuote();
     const quote = buildManualDepositQuote({
       creditUsd: input.amount,
       feePercent: fee.feePercent,
       chargeCurrency: "PEN",
+      usdPenRate,
     });
     amountCents = quote.grossChargeCents;
     intentCurrency = "PEN";

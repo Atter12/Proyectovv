@@ -111,8 +111,24 @@ export const serverEnv = {
   paymentsManualEnabled: parseBoolean(process.env.PAYMENTS_MANUAL_ENABLED),
   paymentsAllowSandboxSuccess: parseBoolean(process.env.PAYMENTS_ALLOW_SANDBOX_SUCCESS),
 
-  /** Tipo de cambio venta USD→PEN para pago manual (fijado al crear intent). */
+  /**
+   * Fallback TC USD→PEN (1 USD = X PEN) si SBS/BCRP falla o FX_RATE_SOURCE=manual.
+   * Se congela en el intent al cotizar.
+   */
   holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.48"),
+  /** sbs = serie BCRP SBS venta; manual = solo env. */
+  fxRateSource: (process.env.FX_RATE_SOURCE ?? "sbs").trim().toLowerCase() === "manual"
+    ? ("manual" as const)
+    : ("sbs" as const),
+  /** Sumar a SBS venta (ej. 0.02) para margen; default 0. */
+  holisticUsdPenSpread: Number.parseFloat(process.env.HOLISTIC_USD_PEN_SPREAD ?? "0"),
+  /** Rechazar TC fuera de [min,max] absoluto. */
+  holisticUsdPenMin: Number.parseFloat(process.env.HOLISTIC_USD_PEN_MIN ?? "3.0"),
+  holisticUsdPenMax: Number.parseFloat(process.env.HOLISTIC_USD_PEN_MAX ?? "4.5"),
+  /** Rechazar si |TC − env| / env > esta fracción (default 8%). */
+  holisticUsdPenTolerancePct: Number.parseFloat(
+    process.env.HOLISTIC_USD_PEN_TOLERANCE_PCT ?? "0.08",
+  ),
   /** JSON array de cuentas bancarias / Yape para pago manual. */
   manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",

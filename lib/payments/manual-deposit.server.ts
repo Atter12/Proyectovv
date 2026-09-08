@@ -1,6 +1,9 @@
 import "server-only";
 import { depositFromDesiredCredit } from "@/lib/payments/deposit-fee";
-import { serverEnv } from "@/lib/env/env.server";
+import {
+  getHolisticUsdPenRateSync,
+  resolveHolisticUsdPenRate,
+} from "@/lib/payments/fx-rate.server";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 
 export type ManualChargeCurrency = "USD" | "PEN";
@@ -19,10 +22,15 @@ export type ManualDepositQuote = {
   fxRateUsdPen: number;
 };
 
+/** Sync: cache SBS o fallback env. Para cotizar intents preferí `await resolve…`. */
 export function getHolisticUsdPenRate(): number {
-  const raw = serverEnv.holisticUsdPenRate;
-  if (!Number.isFinite(raw) || raw <= 0) return 3.48;
-  return Math.round(raw * 10000) / 10000;
+  return getHolisticUsdPenRateSync();
+}
+
+/** Refresh SBS (BCRP) con validación + fallback env. */
+export async function resolveUsdPenRateForQuote(): Promise<number> {
+  const q = await resolveHolisticUsdPenRate();
+  return q.usdPen;
 }
 
 /**

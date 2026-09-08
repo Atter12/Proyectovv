@@ -28,6 +28,8 @@ type BankAccount = {
 
 type ManualConfig = {
   fxRateUsdPen: number;
+  fxSource?: string;
+  fxAsOf?: string | null;
   bankAccounts: BankAccount[];
   bankAccountsUsd: BankAccount[];
   aiEnabled: boolean;
@@ -126,6 +128,15 @@ export function ManualPaymentModal({
 
   const parsedAmount = Number.parseFloat(amount);
   const rate = config?.fxRateUsdPen ?? 3.48;
+  const fxLabel = useMemo(() => {
+    const src = (config?.fxSource ?? "").toLowerCase();
+    if (src === "sbs") {
+      return config?.fxAsOf
+        ? `TC SBS venta (${config.fxAsOf})`
+        : "TC SBS venta";
+    }
+    return "TC referencial";
+  }, [config?.fxAsOf, config?.fxSource]);
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
     parsedAmount >= MIN_USD &&
@@ -375,7 +386,7 @@ export function ManualPaymentModal({
                 </div>
                 {chargeCurrency === "PEN" ? (
                   <p className="text-[11px] text-[#8a8177]">
-                    TC Holistic: 1 USD = {rate.toFixed(4)} PEN (fijado al
+                    {fxLabel}: 1 USD = {rate.toFixed(4)} PEN (fijado al
                     confirmar)
                   </p>
                 ) : null}
