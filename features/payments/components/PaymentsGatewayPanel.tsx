@@ -454,8 +454,8 @@ export async function PaymentsGatewayPanel({
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
               Solo listamos cuentas Aprobadas y suspendidas que todavía tengan
-              saldo Holistic por recuperar. Las baneadas en $0 estánieron de
-              Pagos: miralas en{" "}
+              saldo Holistic por recuperar. Las cuentas bloqueadas con saldo $0
+              ya no aparecen en Pagos. Puedes revisarlas en{" "}
               <span className="font-semibold text-[var(--auth-text)]">
                 Cuentas ads
               </span>

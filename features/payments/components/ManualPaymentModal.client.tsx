@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -12,9 +19,18 @@ import {
   formatFeePercentLabel,
 } from "@/lib/payments/deposit-fee";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
+import { GatewayLogo } from "./GatewayLogo";
+import { PaymentAppIcon, resolvePaymentAppKey } from "./PaymentAppIcon";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  PaymentModalFooter,
+  PaymentModalHeader,
+} from "./PaymentModalChrome";
 
 type ChargeCurrency = "USD" | "PEN";
-type Step = "form" | "banks" | "voucher" | "analyzing" | "confirmed" | "pending";
+type Step =
+  "form" | "banks" | "voucher" | "analyzing" | "confirmed" | "pending";
 
 type BankAccount = {
   id: string;
@@ -64,6 +80,8 @@ interface ProofResponse {
 
 const MIN_USD = 10;
 const MAX_USD = 50_000;
+const MANUAL_PAYMENT_STEPS = ["Monto", "Transferencia", "Comprobante"] as const;
+const subscribeToNothing = () => () => {};
 
 function buildPenQuote(creditUsd: number, feePercent: number, rate: number) {
   const usd = depositFromDesiredCredit(Math.round(creditUsd * 100), feePercent);
@@ -85,7 +103,11 @@ export function ManualPaymentModal({
   feePercent = 10,
 }: ManualPaymentModalProps) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
   const [step, setStep] = useState<Step>("form");
   const [amount, setAmount] = useState("");
   const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>("PEN");
@@ -99,10 +121,6 @@ export function ManualPaymentModal({
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteZoneRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -163,6 +181,7 @@ export function ManualPaymentModal({
       : quote
         ? formatMoney(quote.usd.grossCents / 100)
         : "—";
+  const modalStepIndex = step === "form" ? 0 : step === "banks" ? 1 : 2;
 
   function resetAndClose() {
     setStep("form");
@@ -219,20 +238,25 @@ export function ManualPaymentModal({
 
   async function handleCreateIntent() {
     if (!isValidAmount || !quote) {
-      setError(`Monto entre ${formatMoney(MIN_USD)} y ${formatMoney(MAX_USD)}.`);
+      setError(
+        `Monto entre ${formatMoney(MIN_USD)} y ${formatMoney(MAX_USD)}.`,
+      );
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient<CreateIntentResponse>("/api/payments/intents", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parsedAmount,
-          provider: "manual",
-          chargeCurrency,
-        }),
-      });
+      const data = await apiClient<CreateIntentResponse>(
+        "/api/payments/intents",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amount: parsedAmount,
+            provider: "manual",
+            chargeCurrency,
+          }),
+        },
+      );
       setPaymentIntentId(data.paymentIntent.paymentIntentId);
       setStep("banks");
     } catch (err) {
@@ -293,349 +317,441 @@ export function ManualPaymentModal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
         aria-label="Cerrar"
         onClick={resetAndClose}
       />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative max-h-[min(92vh,calc(100dvh-1rem))] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white shadow-2xl"
+        aria-labelledby="manual-payment-title"
+        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)]"
       >
-        <div className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]" />
-
         {step === "form" ? (
-          <div className="p-5 sm:p-6">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-              Pago manual
-            </p>
-            <h2 className="mt-1 text-xl font-bold text-[#1c1917]">
-              Recargar cartera
-            </h2>
-            <p className="mt-1 text-sm text-[#5c564e]">
-              Elige cuánto saldo quieres recibir en la cartera (USD). Realiza la transferencia y sube el
-              comprobante.
-            </p>
-
-            <div className="mt-5">
-              <label className="mb-1.5 block text-xs font-medium text-[#8a8177]">
-                Quiero en cartera (USD)
-              </label>
-              <Input
-                type="number"
-                min={MIN_USD}
-                max={MAX_USD}
-                step="0.01"
-                placeholder="120.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-medium text-[#8a8177]">
-                Pagar en
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {(["PEN", "USD"] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setChargeCurrency(c)}
-                    className={`h-11 rounded-xl border text-sm font-semibold transition ${
-                      chargeCurrency === c
-                        ? "border-[#ff781f] bg-[#fff1e8] text-[#c45a18]"
-                        : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#ff781f]/40"
-                    }`}
-                  >
-                    {c === "PEN" ? "Soles (PEN)" : "Dólares (USD)"}
-                  </button>
-                ))}
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="¿Cuánto saldo quieres recargar?"
+              description="Ingresa el saldo que deseas recibir y elige si realizarás la transferencia en soles o dólares."
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div>
+                <label className="mb-2 block text-[12px] font-semibold text-[#514b45]">
+                  Saldo que recibirás (USD)
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-semibold text-[#8a8177]">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    min={MIN_USD}
+                    max={MAX_USD}
+                    step="0.01"
+                    placeholder="120.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    autoFocus
+                    className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
+                  />
+                </div>
               </div>
-            </div>
 
-            {quote ? (
-              <div className="mt-4 space-y-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#8a8177]">Llega a cartera</span>
-                  <span className="font-bold text-[#1c1917]">
-                    {formatMoney(quote.usd.creditCents / 100)}
-                  </span>
+              <div className="mt-5">
+                <p className="mb-2 text-[12px] font-semibold text-[#514b45]">
+                  Moneda de la transferencia
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["PEN", "USD"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setChargeCurrency(c)}
+                      className={`h-11 rounded-xl border text-sm font-semibold transition ${
+                        chargeCurrency === c
+                          ? "border-[#ff781f] bg-[#fff1e8] text-[#c45a18]"
+                          : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#ff781f]/40"
+                      }`}
+                    >
+                      {c === "PEN" ? "Soles (PEN)" : "Dólares (USD)"}
+                    </button>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#8a8177]">
-                    Fee {formatFeePercentLabel(feePercent)}
-                  </span>
-                  <span className="font-medium">
-                    {chargeCurrency === "PEN"
-                      ? formatPenAmount(quote.pen.feePenCents)
-                      : formatMoney(quote.usd.feeCents / 100)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-[#ece7e0] pt-2">
-                  <span className="font-semibold text-[#1c1917]">
-                    Total a transferir
-                  </span>
-                  <span className="text-lg font-bold text-[#ff781f]">
-                    {chargeLabel}
-                  </span>
-                </div>
-                {chargeCurrency === "PEN" ? (
-                  <p className="text-[11px] text-[#8a8177]">
-                    {fxLabel}: 1 USD = {rate.toFixed(4)} PEN (fijado al
-                    confirmar)
+              </div>
+
+              {quote ? (
+                <div className="mt-5 rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
+                  <p className="mb-3 text-[13px] font-semibold text-[#1c1917]">
+                    Resumen de la transferencia
                   </p>
-                ) : null}
-              </div>
-            ) : null}
+                  <div className="flex justify-between">
+                    <span className="text-[#625b54]">Recibirás en cartera</span>
+                    <span className="font-semibold tabular-nums text-[#1c1917]">
+                      {formatMoney(quote.usd.creditCents / 100)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex justify-between">
+                    <span className="text-[#625b54]">
+                      Fee {formatFeePercentLabel(feePercent)}
+                    </span>
+                    <span className="font-medium tabular-nums text-[#1c1917]">
+                      {chargeCurrency === "PEN"
+                        ? formatPenAmount(quote.pen.feePenCents)
+                        : formatMoney(quote.usd.feeCents / 100)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-end justify-between border-t border-[#e4ddd6] pt-3">
+                    <span className="font-semibold text-[#1c1917]">
+                      Total a transferir
+                    </span>
+                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
+                      {chargeLabel}
+                    </span>
+                  </div>
+                  {chargeCurrency === "PEN" ? (
+                    <p className="mt-3 text-[11px] leading-4 text-[#6f675f]">
+                      {fxLabel}: 1 USD = {rate.toFixed(4)} PEN (fijado al
+                      confirmar)
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
-            {error ? (
-              <p className="mt-3 text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            ) : null}
+              {error ? (
+                <p className="mt-3 text-xs text-red-600" role="alert">
+                  {error}
+                </p>
+              ) : null}
 
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" onClick={resetAndClose} className="flex-1">
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleCreateIntent}
-                disabled={!isValidAmount || loading}
-                className="flex-1 bg-[#ff781f] hover:bg-[#e85a1c]"
-              >
-                {loading ? "Preparando…" : "Continuar"}
-              </Button>
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={resetAndClose}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleCreateIntent}
+                  disabled={!isValidAmount || loading}
+                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                >
+                  {loading ? "Preparando…" : "Ver cuentas bancarias"}
+                </Button>
+              </PaymentModalFooter>
             </div>
-          </div>
+          </>
         ) : null}
 
         {step === "banks" ? (
-          <div className="p-5 sm:p-6">
-            <h2 className="text-lg font-bold text-[#1c1917]">
-              Transfiere {chargeLabel}
-            </h2>
-            <p className="mt-1 text-sm text-[#5c564e]">
-              Usa una de estas cuentas. Luego sube el comprobante.
-            </p>
-
-            <div className="mt-4 space-y-3">
-              {banks.length === 0 ? (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  Las cuentas bancarias están pendientes de configuración. Contacta con
-                  soporte.
-                </p>
-              ) : (
-                banks.map((bank) => (
-                  <div
-                    key={bank.id}
-                    className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-4"
-                  >
-                    <p className="text-sm font-bold text-[#1c1917]">
-                      {bank.label}
-                    </p>
-                    <p className="mt-1 text-xs text-[#5c564e]">{bank.holder}</p>
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm font-semibold text-[#1c1917]">
-                        {bank.accountNumber}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void copyText(bank.accountNumber)}
-                        className="shrink-0 text-xs font-semibold text-[#ff781f] hover:underline"
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="Realiza la transferencia"
+              description={`Transfiere ${chargeLabel} a una de las cuentas disponibles. Conserva el comprobante para el siguiente paso.`}
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div className="space-y-3">
+                {banks.length === 0 ? (
+                  <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
+                    Las cuentas bancarias están pendientes de configuración.
+                    Contacta con soporte.
+                  </p>
+                ) : (
+                  banks.map((bank) => {
+                    const bankApp = resolvePaymentAppKey(bank.bank, bank.label);
+                    return (
+                      <div
+                        key={bank.id}
+                        className="rounded-2xl bg-[#f7f5f2] p-4 sm:p-5"
                       >
-                        Copiar
-                      </button>
-                    </div>
-                    {bank.cci ? (
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-[#8a8177]">
-                          CCI: {bank.cci}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void copyText(bank.cci!)}
-                          className="text-xs font-semibold text-[#ff781f] hover:underline"
-                        >
-                          Copiar
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <PaymentAppIcon app={bankApp} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-semibold text-[#1c1917]">
+                              {bank.label}
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-[#6f675f]">
+                              {bank.holder}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#e4ddd6] pt-3">
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-[#6f675f]">
+                              Número de cuenta
+                            </p>
+                            <p className="mt-0.5 truncate font-mono text-[13px] font-semibold text-[#1c1917]">
+                              {bank.accountNumber}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void copyText(bank.accountNumber)}
+                            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                        {bank.cci ? (
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-[#6f675f]">CCI</p>
+                              <p className="mt-0.5 truncate font-mono text-[12px] font-medium text-[#1c1917]">
+                                {bank.cci}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void copyText(bank.cci!)}
+                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                            >
+                              Copiar
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                ))
-              )}
-            </div>
+                    );
+                  })
+                )}
+              </div>
 
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" onClick={() => setStep("form")}>
-                Volver
-              </Button>
-              <Button
-                className="flex-1 bg-[#ff781f] hover:bg-[#e85a1c]"
-                onClick={() => setStep("voucher")}
-              >
-                Ya pagué · Subir comprobante
-              </Button>
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep("form")}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Volver
+                </Button>
+                <Button
+                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  onClick={() => setStep("voucher")}
+                >
+                  Ya pagué · Subir comprobante
+                </Button>
+              </PaymentModalFooter>
             </div>
-          </div>
+          </>
         ) : null}
 
         {step === "voucher" ? (
-          <div
-            ref={pasteZoneRef}
-            tabIndex={0}
-            className="p-5 outline-none sm:p-6"
-          >
-            <h2 className="text-lg font-bold text-[#1c1917]">
-              Subir comprobante
-            </h2>
-            <p className="mt-1 text-sm text-[#5c564e]">
-              Pega una captura (Ctrl+V), elige una imagen de la galería o sube un archivo.
-            </p>
-
-            <div
-              className={`mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 transition ${
-                proofFile
-                  ? "border-emerald-400 bg-emerald-50"
-                  : "border-[#ece7e0] bg-[#faf8f5] hover:border-[#ff781f]/50"
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") fileInputRef.current?.click();
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              {proofPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={proofPreview}
-                  alt="Vista previa"
-                  className="max-h-32 rounded-lg object-contain"
-                />
-              ) : proofFile ? (
-                <p className="text-sm font-medium text-emerald-800">
-                  {proofFile.name}
-                </p>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-[#1c1917]">
-                    Haz clic para subir el archivo o pégalo aquí
-                  </p>
-                  <p className="mt-1 text-xs text-[#8a8177]">
-                    JPG, PNG, WEBP o PDF · máx. 10 MB
-                  </p>
-                </>
-              )}
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) applyProofFile(f);
-              }}
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="Sube tu comprobante"
+              description="Puedes pegar una captura, elegir una imagen de la galería o subir un archivo PDF."
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
             />
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                type="button"
+            <div
+              ref={pasteZoneRef}
+              tabIndex={0}
+              className="p-5 outline-none sm:p-6"
+            >
+              <div
+                className={`mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 transition ${
+                  proofFile
+                    ? "border-emerald-400 bg-emerald-50"
+                    : "border-[#ece7e0] bg-[#faf8f5] hover:border-[#ff781f]/50"
+                }`}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") fileInputRef.current?.click();
+                }}
+                role="button"
+                tabIndex={0}
               >
-                Galería / archivo
-              </Button>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => pasteZoneRef.current?.focus()}
-              >
-                Pegar captura
-              </Button>
-            </div>
+                {proofPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={proofPreview}
+                    alt="Vista previa"
+                    className="max-h-32 rounded-lg object-contain"
+                  />
+                ) : proofFile ? (
+                  <p className="text-sm font-medium text-emerald-800">
+                    {proofFile.name}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-[#1c1917]">
+                      Haz clic para subir el archivo o pégalo aquí
+                    </p>
+                    <p className="mt-1 text-xs text-[#8a8177]">
+                      JPG, PNG, WEBP o PDF · máx. 10 MB
+                    </p>
+                  </>
+                )}
+              </div>
 
-            {error ? (
-              <p className="mt-3 text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            ) : null}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) applyProofFile(f);
+                }}
+              />
 
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" onClick={() => setStep("banks")}>
-                Volver
-              </Button>
-              <Button
-                disabled={!proofFile}
-                className="flex-1 bg-[#ff781f] hover:bg-[#e85a1c]"
-                onClick={handleSubmitVoucher}
-              >
-                Verificar y acreditar
-              </Button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Galería / archivo
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => pasteZoneRef.current?.focus()}
+                >
+                  Pegar captura
+                </Button>
+              </div>
+
+              {error ? (
+                <p className="mt-3 text-xs text-red-600" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep("banks")}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Volver
+                </Button>
+                <Button
+                  disabled={!proofFile}
+                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  onClick={handleSubmitVoucher}
+                >
+                  Verificar y acreditar
+                </Button>
+              </PaymentModalFooter>
             </div>
-          </div>
+          </>
         ) : null}
 
         {step === "analyzing" ? (
-          <div className="flex flex-col items-center px-6 py-14 text-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#ff781f]/25 border-t-[#ff781f]" />
-            <p className="mt-5 text-lg font-bold text-[#1c1917]">
-              Analizando comprobante…
-            </p>
-            <p className="mt-2 max-w-xs text-sm text-[#5c564e]">
-              Estamos verificando monto y datos del voucher. Unos segundos.
-            </p>
-          </div>
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="Verificando el comprobante"
+              description="Estamos validando el monto y los datos de la transferencia."
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
+            />
+            <div className="flex flex-col items-center px-6 py-12 text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#ff781f]/20 border-t-[#ff781f]" />
+              <p className="mt-5 text-[13px] font-medium text-[#625b54]">
+                Esto puede tomar unos segundos.
+              </p>
+            </div>
+          </>
         ) : null}
 
         {step === "confirmed" ? (
-          <div className="flex flex-col items-center px-6 py-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl">
-              ✓
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="Pago confirmado"
+              description="El saldo ya está disponible en tu cartera Holistic."
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center gap-4 rounded-2xl bg-emerald-50 p-4 text-emerald-800">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                  <CheckCircleIcon />
+                </span>
+                <div>
+                  <p className="text-[11px] font-medium text-emerald-700">
+                    Saldo acreditado
+                  </p>
+                  <p className="mt-0.5 text-2xl font-semibold tracking-[-0.03em] tabular-nums text-[#1c1917]">
+                    {formatMoney(creditResult ?? parsedAmount)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-emerald-800">
+                    Ya puedes asignarlo a tus cuentas de TikTok.
+                  </p>
+                </div>
+              </div>
+              <PaymentModalFooter>
+                <Button
+                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  onClick={resetAndClose}
+                >
+                  Listo
+                </Button>
+              </PaymentModalFooter>
             </div>
-            <p className="mt-5 text-xl font-bold text-emerald-800">
-              ¡Confirmado!
-            </p>
-            <p className="mt-2 text-sm text-[#5c564e]">
-              Tu saldo ya está disponible en cartera.
-            </p>
-            <p className="mt-4 text-2xl font-bold tabular-nums text-[#1c1917]">
-              {formatMoney(creditResult ?? parsedAmount)}
-            </p>
-            <p className="mt-1 text-xs text-[#8a8177]">
-              Puedes asignarlo a tus cuentas de TikTok.
-            </p>
-            <Button
-              className="mt-8 w-full bg-[#ff781f] hover:bg-[#e85a1c]"
-              onClick={resetAndClose}
-            >
-              Listo
-            </Button>
-          </div>
+          </>
         ) : null}
 
         {step === "pending" ? (
-          <div className="flex flex-col items-center px-6 py-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-2xl">
-              ⏳
+          <>
+            <PaymentModalHeader
+              titleId="manual-payment-title"
+              title="Comprobante en revisión"
+              description="Nuestro equipo revisará la transferencia antes de acreditar el saldo."
+              identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
+              identityLabel="Pago manual"
+              identityDescription="Transferencia bancaria con comprobante"
+              steps={MANUAL_PAYMENT_STEPS}
+              currentStep={modalStepIndex}
+              onClose={resetAndClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start gap-4 rounded-2xl bg-amber-50 p-4 text-amber-900">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <ClockIcon />
+                </span>
+                <p className="pt-1 text-[13px] leading-5">{pendingMessage}</p>
+              </div>
+              <PaymentModalFooter>
+                <Button
+                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  onClick={resetAndClose}
+                >
+                  Entendido
+                </Button>
+              </PaymentModalFooter>
             </div>
-            <p className="mt-5 text-lg font-bold text-[#1c1917]">
-              En revisión
-            </p>
-            <p className="mt-2 text-sm text-[#5c564e]">{pendingMessage}</p>
-            <Button
-              className="mt-8 w-full bg-[#ff781f] hover:bg-[#e85a1c]"
-              onClick={resetAndClose}
-            >
-              Entendido
-            </Button>
-          </div>
+          </>
         ) : null}
       </div>
     </div>,

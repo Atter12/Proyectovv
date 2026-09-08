@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +31,12 @@ import {
 } from "./PaymentAppIcon";
 import { cn } from "@/lib/cn";
 import { GatewayLogo } from "./GatewayLogo";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  PaymentModalFooter,
+  PaymentModalHeader,
+} from "./PaymentModalChrome";
 
 interface AddBalanceModalProps {
   open: boolean;
@@ -95,6 +107,8 @@ const subscribeToNothing = () => () => {};
 
 type Step = "form" | "confirm" | "proof" | "yape" | "result";
 
+const ADD_BALANCE_STEPS = ["Monto", "Confirmación", "Pago"] as const;
+
 export function AddBalanceModal({
   open,
   onClose,
@@ -163,9 +177,7 @@ export function AddBalanceModal({
         const src = (cfg.fxSource ?? "").toLowerCase();
         if (src === "sbs") {
           setFxSourceLabel(
-            cfg.fxAsOf
-              ? `TC SBS venta (${cfg.fxAsOf})`
-              : "TC SBS venta",
+            cfg.fxAsOf ? `TC SBS venta (${cfg.fxAsOf})` : "TC SBS venta",
           );
         } else {
           setFxSourceLabel("TC referencial");
@@ -275,15 +287,18 @@ export function AddBalanceModal({
     setError(null);
 
     try {
-      const data = await apiClient<CreateIntentResponse>("/api/payments/intents", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parsedAmount,
-          currency: "USD",
-          provider: selectedGateway,
-          ...(isCobrana ? { chargeCurrency: "PEN" } : {}),
-        }),
-      });
+      const data = await apiClient<CreateIntentResponse>(
+        "/api/payments/intents",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amount: parsedAmount,
+            currency: "USD",
+            provider: selectedGateway,
+            ...(isCobrana ? { chargeCurrency: "PEN" } : {}),
+          }),
+        },
+      );
 
       if (data.paymentIntent.checkoutUrl) {
         window.location.assign(data.paymentIntent.checkoutUrl);
@@ -370,18 +385,21 @@ export function AddBalanceModal({
   const otherLinks = cobranaDeeplinks.filter(
     (d) => d.key.toLowerCase() !== "yape",
   );
-  const orderedLinks = [
-    ...(yapeLink ? [yapeLink] : []),
-    ...otherLinks,
-  ];
+  const orderedLinks = [...(yapeLink ? [yapeLink] : []), ...otherLinks];
+  const modalStepIndex = step === "form" ? 0 : step === "confirm" ? 1 : 2;
+  const gatewayIdentityDescription = isCobrana
+    ? "Yape, Plin y bancos"
+    : isStripe
+      ? "Tarjetas Visa y Mastercard"
+      : "Recarga de cartera";
 
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
         aria-label="Cerrar modal"
         onClick={handleClose}
       />
@@ -389,71 +407,81 @@ export function AddBalanceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-balance-title"
-        className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
+        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[35rem] overflow-y-auto rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)]"
       >
         {step === "form" ? (
           <>
-            <h2
-              id="add-balance-title"
-              className="text-lg font-semibold text-[var(--foreground)]"
-            >
-              Recargar saldo
-            </h2>
-            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Indica cuánto saldo quieres recibir en la cartera. El fee Holistic (
-              {formatFeePercentLabel(feePercent)})
-              {isStripe
-                ? ` + fee pasarela Stripe (${formatFeePercentLabel(stripeExtra)})`
-                : ""}{" "}
-              se suma
-              {isCobrana
-                ? " y se cobra en soles desde la app que elijas."
-                : isStripe
-                  ? ". Si prefieres no pagar el fee de tarjeta, usa Yape, Plin o transferencia bancaria."
-                  : " y eso es lo que se cobra."}
-            </p>
+            <PaymentModalHeader
+              titleId="add-balance-title"
+              title="¿Cuánto saldo quieres recargar?"
+              description={
+                isCobrana
+                  ? "Ingresa el saldo que deseas recibir en USD. Cobrana calculará el pago equivalente en soles."
+                  : isStripe
+                    ? "Ingresa el saldo que deseas recibir. Antes de pagar verás el total exacto, incluidos los fees."
+                    : "Ingresa el saldo que deseas recibir en tu cartera Holistic."
+              }
+              identityIcon={
+                <GatewayLogo gatewayId={selectedGateway} size="sm" />
+              }
+              identityLabel={gatewayLabels[selectedGateway]}
+              identityDescription={gatewayIdentityDescription}
+              steps={ADD_BALANCE_STEPS}
+              currentStep={modalStepIndex}
+              onClose={handleClose}
+            />
 
-            <div className="mt-5 space-y-4">
+            <div className="space-y-5 p-5 sm:p-6">
               <div>
                 <label
                   htmlFor="topup-amount"
-                  className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
+                  className="mb-2 block text-[12px] font-semibold text-[#514b45]"
                 >
-                  Quiero en cartera (USD)
+                  Saldo que recibirás (USD)
                 </label>
-                <Input
-                  id="topup-amount"
-                  type="number"
-                  min={MIN_AMOUNT}
-                  max={MAX_AMOUNT}
-                  step="0.01"
-                  placeholder="100.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  autoFocus
-                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-semibold text-[#8a8177]">
+                    $
+                  </span>
+                  <Input
+                    id="topup-amount"
+                    type="number"
+                    min={MIN_AMOUNT}
+                    max={MAX_AMOUNT}
+                    step="0.01"
+                    placeholder="100.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    autoFocus
+                    className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
+                  />
+                </div>
                 {error && (
-                  <p className="mt-1.5 text-xs text-red-600" role="alert">
+                  <p
+                    className="mt-2 text-xs font-medium text-red-600"
+                    role="alert"
+                  >
                     {error}
                   </p>
                 )}
               </div>
 
               {feePreview ? (
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                <div className="rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
+                  <p className="mb-3 text-[13px] font-semibold text-[#1c1917]">
+                    Resumen de la recarga
+                  </p>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[var(--admin-text-muted,#64748b)]">
-                      Llega a tu cartera
-                    </span>
-                    <span className="font-medium text-[var(--foreground)]">
+                    <span className="text-[#625b54]">Recibirás en cartera</span>
+                    <span className="font-semibold tabular-nums text-[#1c1917]">
                       {formatMoney(feePreview.creditCents / 100)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="text-[var(--admin-text-muted,#64748b)]">
+                    <span className="text-[#625b54]">
                       Fee Holistic ({formatFeePercentLabel(feePercent)})
                     </span>
-                    <span className="font-medium text-[var(--foreground)]">
+                    <span className="font-medium tabular-nums text-[#1c1917]">
                       {isCobrana && penPreview
                         ? formatPenAmount(penPreview.feePenCents)
                         : formatMoney((parsedAmount * feePercent) / 100)}
@@ -461,26 +489,25 @@ export function AddBalanceModal({
                   </div>
                   {isStripe && stripeExtra > 0 ? (
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <span className="text-[var(--admin-text-muted,#64748b)]">
-                        Fee Stripe pasarela (
-                        {formatFeePercentLabel(stripeExtra)})
+                      <span className="text-[#625b54]">
+                        Fee de Stripe ({formatFeePercentLabel(stripeExtra)})
                       </span>
-                      <span className="font-medium text-[var(--foreground)]">
+                      <span className="font-medium tabular-nums text-[#1c1917]">
                         {formatMoney((parsedAmount * stripeExtra) / 100)}
                       </span>
                     </div>
                   ) : null}
-                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-2">
-                    <span className="font-medium text-[var(--foreground)]">
-                      Se cobra
+                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#e4ddd6] pt-3">
+                    <span className="font-semibold text-[#1c1917]">
+                      Total a pagar
                     </span>
-                    <span className="text-base font-bold text-[var(--brand-primary,#ff781f)]">
+                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
                       {isCobrana && penPreview
                         ? formatPenAmount(penPreview.grossPenCents)
                         : formatMoney(feePreview.grossCents / 100)}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
+                  <p className="mt-3 text-[11px] leading-4 text-[#6f675f]">
                     {isCobrana
                       ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitas un DNI registrado en Hecom CRM.`
                       : isStripe
@@ -490,29 +517,35 @@ export function AddBalanceModal({
                 </div>
               ) : null}
 
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
-                <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Método seleccionado
-                </p>
-                <div className="mt-1.5 flex items-center gap-2.5">
-                  <GatewayLogo gatewayId={selectedGateway} size="sm" />
-                  <p className="text-sm font-semibold text-[var(--foreground)]">
-                    {gatewayLabels[selectedGateway]}
-                  </p>
-                </div>
-                {isStripe ? (
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {isStripe ? (
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-[#fff8f3] px-4 py-3">
+                  <div>
+                    <p className="text-[12px] font-semibold text-[#1c1917]">
+                      Paga con tarjeta
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[#6f675f]">
+                      Procesamiento seguro mediante Stripe
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
                     {(["visa", "mastercard"] as const).map((app) => (
                       <PaymentAppIcon key={app} app={app} size="sm" />
                     ))}
                   </div>
-                ) : isCobrana ? (
-                  <>
-                    <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
-                      Abre Yape, Plin o la aplicación de tu banco con el código. El saldo en USD se
-                      acredita cuando se confirma el pago.
-                    </p>
-                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                </div>
+              ) : isCobrana ? (
+                <div className="rounded-xl bg-[#fbf7fc] px-4 py-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[12px] font-semibold text-[#1c1917]">
+                        Pago procesado por Cobrana
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-4 text-[#6f675f]">
+                        En Yape, el servicio aparecerá como{" "}
+                        {COBRANA_YAPE_SERVICE_COMPANY}.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                       {(
                         [
                           "yape",
@@ -526,386 +559,493 @@ export function AddBalanceModal({
                         <PaymentAppIcon key={app} app={app} size="sm" />
                       ))}
                     </div>
-                  </>
-                ) : isVoucher ? (
-                  <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-                    {selectedGateway === "crypto"
-                      ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, envía los USDT y sube una captura o el TxID."
-                      : "Después de crear la intención podrás subir el voucher para revisión."}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+                  </div>
+                </div>
+              ) : isVoucher ? (
+                <p className="rounded-xl bg-[#f7f5f2] px-4 py-3 text-xs leading-5 text-[#625b54]">
+                  {selectedGateway === "crypto"
+                    ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, envía los USDT y sube una captura o el TxID."
+                    : "Después de crear la solicitud podrás subir el comprobante para revisión."}
+                </p>
+              ) : null}
 
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                className="h-11 w-full sm:w-auto"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleContinueToConfirm}
-                className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto"
-              >
-                Continuar
-              </Button>
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleContinueToConfirm}
+                  className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
+                >
+                  Revisar recarga
+                </Button>
+              </PaymentModalFooter>
             </div>
           </>
         ) : step === "confirm" ? (
           <>
-            <h2
-              id="add-balance-title"
-              className="text-lg font-semibold text-[var(--foreground)]"
-            >
-              Confirmar depósito
-            </h2>
-            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              {isCobrana
-                ? "Se acredita el monto en USD y pagas el equivalente en soles mediante Yape."
-                : isStripe
-                  ? "Se acredita el monto pedido. Fee Holistic + fee pasarela Stripe (aparte)."
-                  : "Se acredita el monto pedido; se cobra ese monto + fee Hecom."}
-            </p>
-            <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
-              <div>
-                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Llega a cartera
-                </dt>
-                <dd className="text-lg font-bold text-[var(--brand-primary,#ff781f)]">
-                  {formatMoney(parsedAmount)}
-                </dd>
+            <PaymentModalHeader
+              titleId="add-balance-title"
+              title="Revisa tu recarga"
+              description={
+                isCobrana
+                  ? "Cobrana generará un código para pagar en soles desde Yape, Plin o tu banco."
+                  : "Confirma que el saldo y el total a pagar sean correctos antes de continuar."
+              }
+              identityIcon={
+                <GatewayLogo gatewayId={selectedGateway} size="sm" />
+              }
+              identityLabel={gatewayLabels[selectedGateway]}
+              identityDescription={gatewayIdentityDescription}
+              steps={ADD_BALANCE_STEPS}
+              currentStep={modalStepIndex}
+              onClose={handleClose}
+            />
+
+            <div className="p-5 sm:p-6">
+              <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
+                <dl className="grid grid-cols-2 divide-x divide-[#e4ddd6]">
+                  <div className="p-4 sm:p-5">
+                    <dt className="text-[11px] font-medium text-[#6f675f]">
+                      Recibirás
+                    </dt>
+                    <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#e85a1c]">
+                      {formatMoney(parsedAmount)}
+                    </dd>
+                    <dd className="mt-0.5 text-[10px] text-[#8a8177]">
+                      En tu cartera Holistic
+                    </dd>
+                  </div>
+                  <div className="p-4 sm:p-5">
+                    <dt className="text-[11px] font-medium text-[#6f675f]">
+                      Total a pagar
+                    </dt>
+                    <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#1c1917]">
+                      {isCobrana && penPreview
+                        ? formatPenAmount(penPreview.grossPenCents)
+                        : feePreview
+                          ? formatMoney(feePreview.grossCents / 100)
+                          : formatMoney(parsedAmount)}
+                    </dd>
+                    <dd className="mt-0.5 text-[10px] text-[#8a8177]">
+                      Mediante {gatewayLabels[selectedGateway]}
+                    </dd>
+                  </div>
+                </dl>
+
+                <dl className="space-y-2 border-t border-[#e4ddd6] px-4 py-3 text-[12px] sm:px-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-[#625b54]">
+                      Fee Holistic ({formatFeePercentLabel(feePercent)})
+                    </dt>
+                    <dd className="font-medium tabular-nums text-[#1c1917]">
+                      {isCobrana && penPreview
+                        ? formatPenAmount(penPreview.feePenCents)
+                        : formatMoney((parsedAmount * feePercent) / 100)}
+                    </dd>
+                  </div>
+                  {isStripe && stripeExtra > 0 ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[#625b54]">
+                        Fee de Stripe ({formatFeePercentLabel(stripeExtra)})
+                      </dt>
+                      <dd className="font-medium tabular-nums text-[#1c1917]">
+                        {formatMoney((parsedAmount * stripeExtra) / 100)}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {isCobrana ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[#625b54]">Servicio en Yape</dt>
+                      <dd className="font-semibold text-[#1c1917]">
+                        {COBRANA_YAPE_SERVICE_COMPANY}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
               </div>
-              <div>
-                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  {isStripe
-                    ? `Fee Holistic (${formatFeePercentLabel(feePercent)})`
-                    : `Fee (${formatFeePercentLabel(chargeFeePercent)})`}
-                </dt>
-                <dd className="font-medium text-[var(--foreground)]">
-                  {isStripe
-                    ? formatMoney((parsedAmount * feePercent) / 100)
-                    : isCobrana && penPreview
-                      ? formatPenAmount(penPreview.feePenCents)
-                      : feePreview
-                        ? formatMoney(feePreview.feeCents / 100)
-                        : "—"}
-                </dd>
-              </div>
-              {isStripe && stripeExtra > 0 ? (
-                <div>
-                  <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                    Fee Stripe pasarela ({formatFeePercentLabel(stripeExtra)})
-                  </dt>
-                  <dd className="font-medium text-[var(--foreground)]">
-                    {formatMoney((parsedAmount * stripeExtra) / 100)}
-                  </dd>
-                </div>
-              ) : null}
-              <div>
-                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Se cobra
-                </dt>
-                <dd className="text-lg font-bold text-[var(--foreground)]">
-                  {isCobrana && penPreview
-                    ? formatPenAmount(penPreview.grossPenCents)
-                    : feePreview
-                      ? formatMoney(feePreview.grossCents / 100)
-                      : formatMoney(parsedAmount)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Pasarela
-                </dt>
-                <dd className="font-medium text-[var(--foreground)]">
-                  {gatewayLabels[selectedGateway]}
-                </dd>
-              </div>
-            </dl>
-            {error && (
-              <p className="mt-3 text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            )}
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setStep("form")}
-                disabled={loading}
-              >
-                Volver
-              </Button>
-              <Button
-                onClick={handleConfirm}
-                disabled={loading}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
-              >
-                {loading
-                  ? "Procesando…"
-                  : isCobrana
-                    ? "Generar código de pago"
-                    : "Confirmar depósito"}
-              </Button>
+              {error && (
+                <p
+                  className="mt-3 text-xs font-medium text-red-600"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep("form")}
+                  disabled={loading}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Volver
+                </Button>
+                <Button
+                  onClick={handleConfirm}
+                  disabled={loading}
+                  className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
+                >
+                  {loading
+                    ? "Procesando…"
+                    : isCobrana
+                      ? "Continuar con Cobrana"
+                      : "Pagar con Stripe"}
+                </Button>
+              </PaymentModalFooter>
             </div>
           </>
         ) : step === "yape" ? (
           <>
-            <div className="flex items-start gap-3">
-              <PaymentAppIcon app="yape" size="lg" />
-              <div className="min-w-0">
-                <h2
-                  id="add-balance-title"
-                  className="text-lg font-semibold text-[var(--foreground)]"
-                >
-                  Paga con Yape, Plin o tu banco
-                </h2>
-                <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-                  {resultMessage ??
-                    "Usa el código desde Yape, Plin o la aplicación de tu banco."}
-                </p>
-              </div>
-            </div>
+            <PaymentModalHeader
+              titleId="add-balance-title"
+              title="Completa el pago"
+              description={
+                resultMessage ??
+                "Usa el código generado por Cobrana desde Yape, Plin o la aplicación de tu banco."
+              }
+              identityIcon={<GatewayLogo gatewayId="cobrana" size="sm" />}
+              identityLabel="Cobrana"
+              identityDescription="Yape, Plin y bancos"
+              steps={ADD_BALANCE_STEPS}
+              currentStep={modalStepIndex}
+              onClose={handleClose}
+            />
 
-            <div className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-                  Empresa en Yape (Pago de servicios)
-                </p>
-                <p className="mt-1 text-xl font-bold tracking-tight text-[var(--foreground)]">
-                  {COBRANA_YAPE_SERVICE_COMPANY}
-                </p>
-                <p className="mt-1 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
-                  En Yape busca exactamente{" "}
-                  <strong className="text-[var(--foreground)]">
-                    {COBRANA_YAPE_SERVICE_COMPANY}
-                  </strong>{" "}
-                  (categoría Compras online / Servicios). No es “Holistic”.
-                </p>
-              </div>
-              {cobranaCode ? (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-                    Código de pago
+            <div className="p-5 sm:p-6">
+              <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
+                <div className="border-b border-[#e4ddd6] px-4 py-4 sm:px-5">
+                  <p className="text-[11px] font-medium text-[#6f675f]">
+                    Busca este servicio en Yape
                   </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <p className="font-mono text-2xl font-bold tracking-wide text-[var(--foreground)]">
-                      {cobranaCode}
+                  <div className="mt-1 flex items-end justify-between gap-4">
+                    <p className="text-2xl font-semibold tracking-[-0.03em] text-[#1c1917]">
+                      {COBRANA_YAPE_SERVICE_COMPANY}
                     </p>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-[var(--border-subtle)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-soft)]"
-                      onClick={() => {
-                        void navigator.clipboard
-                          ?.writeText(cobranaCode)
-                          .then(() => {
-                            setCodeCopied(true);
-                            window.setTimeout(() => setCodeCopied(false), 2000);
-                          })
-                          .catch(() => {
-                            /* ignore */
-                          });
-                      }}
-                    >
-                      {codeCopied ? "Copiado" : "Copiar"}
-                    </button>
+                    <span className="rounded-full bg-[#eee5f1] px-2.5 py-1 text-[10px] font-semibold text-[#5f0b72]">
+                      Pago de servicios
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-4 text-[#6f675f]">
+                    El servicio figura como {COBRANA_YAPE_SERVICE_COMPANY}, no
+                    como Holistic.
+                  </p>
+                </div>
+                {cobranaCode ? (
+                  <div className="px-4 py-4 sm:px-5">
+                    <p className="text-[11px] font-medium text-[#6f675f]">
+                      Código de pago
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-between gap-3">
+                      <p className="font-mono text-2xl font-semibold tracking-[0.04em] text-[#1c1917]">
+                        {cobranaCode}
+                      </p>
+                      <button
+                        type="button"
+                        className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#1c1917] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                        onClick={() => {
+                          void navigator.clipboard
+                            ?.writeText(cobranaCode)
+                            .then(() => {
+                              setCodeCopied(true);
+                              window.setTimeout(
+                                () => setCodeCopied(false),
+                                2000,
+                              );
+                            })
+                            .catch(() => {
+                              /* ignore */
+                            });
+                        }}
+                      >
+                        {codeCopied ? "Copiado" : "Copiar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="px-4 py-4 text-[12px] text-[#6f675f] sm:px-5">
+                    Preparando el código de Cobrana…
+                  </p>
+                )}
+                <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] border-t border-[#e4ddd6] px-4 py-4 text-sm sm:px-5">
+                  <div className="pr-4">
+                    <p className="text-[10px] text-[#6f675f]">Pagarás</p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-[#5f0b72]">
+                      {penPreview
+                        ? formatPenAmount(penPreview.grossPenCents)
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="pl-4">
+                    <p className="text-[10px] text-[#6f675f]">Recibirás</p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
+                      {formatMoney(parsedAmount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="mt-3 flex items-center gap-2 rounded-xl bg-[#fbf7fc] px-3.5 py-3 text-[12px] font-medium text-[#5f0b72]"
+                role="status"
+              >
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#8b1aa0]" />
+                Esperando la confirmación automática de Cobrana…
+              </div>
+
+              <div className="mt-5">
+                <h3 className="text-[13px] font-semibold text-[#1c1917]">
+                  Cómo pagar desde Yape
+                </h3>
+                <ol className="mt-3 space-y-3">
+                  <PaymentInstruction
+                    number="1"
+                    text={
+                      <>
+                        Abre Yape e ingresa a <strong>Pago de servicios</strong>
+                        .
+                      </>
+                    }
+                  />
+                  <PaymentInstruction
+                    number="2"
+                    text={
+                      <>
+                        Busca <strong>{COBRANA_YAPE_SERVICE_COMPANY}</strong> en
+                        Compras online / Servicios.
+                      </>
+                    }
+                  />
+                  <PaymentInstruction
+                    number="3"
+                    text={
+                      <>
+                        Ingresa el código{" "}
+                        <strong className="font-mono">
+                          {cobranaCode ?? "HOL…"}
+                        </strong>{" "}
+                        y paga{" "}
+                        <strong>
+                          {penPreview
+                            ? formatPenAmount(penPreview.grossPenCents)
+                            : "el monto indicado"}
+                        </strong>
+                        .
+                      </>
+                    }
+                  />
+                  <PaymentInstruction
+                    number="4"
+                    text={
+                      <>
+                        Regresa aquí. Cobrana confirmará el pago y acreditaremos{" "}
+                        <strong>{formatMoney(parsedAmount)}</strong> en tu
+                        cartera.
+                      </>
+                    }
+                  />
+                </ol>
+              </div>
+
+              {orderedLinks.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+                    Si estás en el celular, también puedes abrir la aplicación
+                    directamente:
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {orderedLinks.map((link) => {
+                      const app = resolvePaymentAppKey(link.key, link.label);
+                      return (
+                        <button
+                          key={`${link.key}-${link.url}`}
+                          type="button"
+                          className={cn(
+                            "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-semibold transition-colors",
+                            paymentAppButtonClass(app),
+                          )}
+                          onClick={() => {
+                            window.open(
+                              link.url,
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
+                          }}
+                        >
+                          <PaymentAppIcon app={app} size="sm" />
+                          Abrir {paymentAppLabel(app, link.label)}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
-              {penPreview ? (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-[var(--admin-text-muted,#64748b)]">
-                    Pagas en Yape
-                  </span>
-                  <span className="text-base font-bold tabular-nums text-[#5F0B72]">
-                    {formatPenAmount(penPreview.grossPenCents)}
-                  </span>
-                </div>
-              ) : null}
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[var(--admin-text-muted,#64748b)]">
-                  Llega a cartera
-                </span>
-                <span className="font-semibold text-[var(--foreground)]">
-                  {formatMoney(parsedAmount)}
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--admin-text-muted,#64748b)]">
-                ID: <span className="font-mono">{paymentIntentId}</span>
-              </p>
-              <p className="text-xs font-medium text-[#5F0B72]">
-                Esperando confirmación automática del pago…
-              </p>
-            </div>
 
-            <ol className="mt-4 list-decimal space-y-2 rounded-xl border border-[#e9dff0] bg-[#faf6fc] px-4 py-3 pl-8 text-sm leading-5 text-[var(--foreground)]">
-              <li>
-                En el celular, abre <strong>Yape</strong>.
-              </li>
-              <li>
-                Ingresa a <strong>Pago de servicios</strong> (o “Yapear
-                servicios”).
-              </li>
-              <li>
-                Busca la empresa{" "}
-                <strong>{COBRANA_YAPE_SERVICE_COMPANY}</strong> (no Holistic).
-              </li>
-              <li>
-                Ingresa el código{" "}
-                <strong className="font-mono">
-                  {cobranaCode ?? "HOL…"}
-                </strong>
-                .
-              </li>
-              <li>
-                Confirma el pago por{" "}
-                <strong>
-                  {penPreview
-                    ? formatPenAmount(penPreview.grossPenCents)
-                    : "el monto en soles"}
-                </strong>
-                .
-              </li>
-              <li>
-                Vuelve aquí: cuando se confirme, se acreditarán{" "}
-                <strong>{formatMoney(parsedAmount)}</strong> solos en tu
-                cartera.
-              </li>
-            </ol>
-
-            {orderedLinks.length > 0 ? (
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                  Si estás en el celular, también puedes abrir la aplicación directamente:
+              {error && (
+                <p className="mt-3 text-xs text-red-600" role="alert">
+                  {error}
                 </p>
-                <div className="flex flex-col gap-2">
-                  {orderedLinks.map((link) => {
-                    const app = resolvePaymentAppKey(link.key, link.label);
-                    return (
-                      <button
-                        key={`${link.key}-${link.url}`}
-                        type="button"
-                        className={cn(
-                          "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-semibold transition-colors",
-                          paymentAppButtonClass(app),
-                        )}
-                        onClick={() => {
-                          window.open(link.url, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        <PaymentAppIcon app={app} size="sm" />
-                        Abrir {paymentAppLabel(app, link.label)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
+              )}
 
-            {error && (
-              <p className="mt-3 text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <Button variant="outline" onClick={handleClose}>
-                Cerrar y esperar
-              </Button>
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Cerrar y esperar
+                </Button>
+              </PaymentModalFooter>
             </div>
           </>
         ) : step === "proof" ? (
           <>
-            <h2
-              id="add-balance-title"
-              className="text-lg font-semibold text-[var(--foreground)]"
-            >
-              {selectedGateway === "crypto"
-                ? "Subir comprobante cripto"
-                : "Subir voucher"}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              {selectedGateway === "crypto"
-                ? "Adjunta una captura de Binance o de tu billetera, o el TxID, para que el equipo confirme los USDT desde el panel administrativo."
-                : "Adjunta el comprobante de transferencia para que el equipo lo revise desde el panel administrativo."}
-            </p>
-            <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
-              <p className="font-semibold text-[var(--foreground)]">
-                Llegan {formatMoney(parsedAmount)}
-                {feePreview
-                  ? ` · se cobran ${formatMoney(feePreview.grossCents / 100)}`
-                  : null}
-              </p>
-              <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-                ID de intención:{" "}
-                <span className="font-mono">{paymentIntentId}</span>
-              </p>
-            </div>
-            <div className="mt-4">
-              <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                {selectedGateway === "crypto"
-                  ? "Captura / TxID"
-                  : "Voucher o comprobante"}
-              </label>
-              <Input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,application/pdf"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-              />
-              <p className="mt-1.5 text-xs text-[var(--admin-text-muted,#64748b)]">
-                Formatos permitidos: JPG, PNG, WEBP o PDF. Máximo 10 MB.
-              </p>
-            </div>
-            {error && (
-              <p className="mt-3 text-xs text-red-600" role="alert">
-                {error}
-              </p>
-            )}
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={uploadingProof}
-              >
-                Subir luego
-              </Button>
-              <Button
-                onClick={handleProofUpload}
-                disabled={uploadingProof}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
-              >
-                {uploadingProof
-                  ? "Subiendo…"
-                  : selectedGateway === "crypto"
-                    ? "Enviar comprobante"
-                    : "Enviar voucher"}
-              </Button>
+            <PaymentModalHeader
+              titleId="add-balance-title"
+              title={
+                selectedGateway === "crypto"
+                  ? "Sube tu comprobante cripto"
+                  : "Sube tu comprobante"
+              }
+              description={
+                selectedGateway === "crypto"
+                  ? "Adjunta una captura de Binance o de tu billetera, o el TxID, para confirmar los USDT."
+                  : "Adjunta el comprobante de transferencia para enviarlo a revisión."
+              }
+              identityIcon={
+                <GatewayLogo gatewayId={selectedGateway} size="sm" />
+              }
+              identityLabel={gatewayLabels[selectedGateway]}
+              identityDescription={gatewayIdentityDescription}
+              steps={ADD_BALANCE_STEPS}
+              currentStep={modalStepIndex}
+              onClose={handleClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div className="rounded-2xl bg-[#f7f5f2] p-4 text-sm">
+                <p className="font-semibold text-[var(--foreground)]">
+                  Recibirás {formatMoney(parsedAmount)}
+                  {feePreview
+                    ? ` · total ${formatMoney(feePreview.grossCents / 100)}`
+                    : null}
+                </p>
+                <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
+                  ID de intención:{" "}
+                  <span className="font-mono">{paymentIntentId}</span>
+                </p>
+              </div>
+              <div className="mt-4">
+                <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+                  {selectedGateway === "crypto"
+                    ? "Captura / TxID"
+                    : "Voucher o comprobante"}
+                </label>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                />
+                <p className="mt-1.5 text-xs text-[var(--admin-text-muted,#64748b)]">
+                  Formatos permitidos: JPG, PNG, WEBP o PDF. Máximo 10 MB.
+                </p>
+              </div>
+              {error && (
+                <p className="mt-3 text-xs text-red-600" role="alert">
+                  {error}
+                </p>
+              )}
+              <PaymentModalFooter>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={uploadingProof}
+                  className="h-11 w-full rounded-xl sm:w-auto"
+                >
+                  Subir luego
+                </Button>
+                <Button
+                  onClick={handleProofUpload}
+                  disabled={uploadingProof}
+                  className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
+                >
+                  {uploadingProof
+                    ? "Subiendo…"
+                    : selectedGateway === "crypto"
+                      ? "Enviar comprobante"
+                      : "Enviar voucher"}
+                </Button>
+              </PaymentModalFooter>
             </div>
           </>
         ) : (
           <>
-            <h2
-              id="add-balance-title"
-              className="text-lg font-semibold text-[var(--foreground)]"
-            >
-              {paidConfirmed ? "Pago acreditado" : "Intención registrada"}
-            </h2>
-            <p className="mt-3 text-sm text-[var(--admin-text-muted,#64748b)]">
-              {resultMessage}
-            </p>
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={handleClose}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
-              >
-                Cerrar
-              </Button>
+            <PaymentModalHeader
+              titleId="add-balance-title"
+              title={paidConfirmed ? "Pago acreditado" : "Solicitud registrada"}
+              description={
+                paidConfirmed
+                  ? "El saldo ya está disponible en tu cartera Holistic."
+                  : "Guardamos la solicitud y podrás continuar cuando el pago sea confirmado."
+              }
+              identityIcon={
+                <GatewayLogo gatewayId={selectedGateway} size="sm" />
+              }
+              identityLabel={gatewayLabels[selectedGateway]}
+              identityDescription={gatewayIdentityDescription}
+              steps={ADD_BALANCE_STEPS}
+              currentStep={modalStepIndex}
+              onClose={handleClose}
+            />
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start gap-3 rounded-2xl bg-[#f7f5f2] p-4">
+                <span
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
+                    paidConfirmed
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-amber-100 text-amber-700",
+                  )}
+                >
+                  {paidConfirmed ? <CheckCircleIcon /> : <ClockIcon />}
+                </span>
+                <p className="pt-1 text-sm leading-5 text-[#514b45]">
+                  {resultMessage}
+                </p>
+              </div>
+              <PaymentModalFooter>
+                <Button
+                  onClick={handleClose}
+                  className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
+                >
+                  Cerrar
+                </Button>
+              </PaymentModalFooter>
             </div>
           </>
         )}
       </div>
     </div>,
     document.body,
+  );
+}
+
+function PaymentInstruction({
+  number,
+  text,
+}: {
+  number: string;
+  text: ReactNode;
+}) {
+  return (
+    <li className="flex gap-3 text-[13px] leading-5 text-[#514b45]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff1e8] text-[11px] font-semibold text-[#c65113]">
+        {number}
+      </span>
+      <span className="pt-0.5">{text}</span>
+    </li>
   );
 }
