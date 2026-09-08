@@ -25,6 +25,9 @@ import {
   type AutoRechargeRuleRow,
 } from "@/lib/payments/auto-recharge/auto-recharge.store.server";
 
+/** Pausado: la UI de calendario (10/15/30) salió de Pagos. Código queda para crédito futuro. */
+export const CALENDAR_AUTO_RECHARGE_ENABLED = false;
+
 const ALLOWED_INTERVALS = new Set([15, 20, 30]);
 
 export function normalizeIntervalDays(days: number): number {
@@ -90,6 +93,12 @@ export async function startBillingSetupSession(input: {
   userId: string;
   email: string;
 }): Promise<{ checkoutUrl: string }> {
+  if (!CALENDAR_AUTO_RECHARGE_ENABLED) {
+    throw new Error(
+      "La recarga automática por calendario está desactivada. Próximo: crédito con aprobación del equipo.",
+    );
+  }
+
   let billing = await getBillingCustomer(input.organizationId);
   let stripeCustomerId = billing?.stripe_customer_id;
 
@@ -147,6 +156,12 @@ export async function saveAutoRechargeSchedule(input: {
   intervalDays: number;
   creditAmountUsd: number;
 }): Promise<AutoRechargeRuleRow> {
+  if (!CALENDAR_AUTO_RECHARGE_ENABLED) {
+    throw new Error(
+      "La recarga automática por calendario está desactivada. Ya no se programa cobro cada X días.",
+    );
+  }
+
   const billing = await getBillingCustomer(input.organizationId);
   if (
     input.enabled &&
@@ -312,7 +327,12 @@ export async function runDueCalendarAutoRecharges(): Promise<{
   processed: number;
   succeeded: number;
   failed: number;
+  disabled?: boolean;
 }> {
+  if (!CALENDAR_AUTO_RECHARGE_ENABLED) {
+    return { processed: 0, succeeded: 0, failed: 0, disabled: true };
+  }
+
   const rules = await listDueAutoRechargeRules(30);
   let succeeded = 0;
   let failed = 0;
