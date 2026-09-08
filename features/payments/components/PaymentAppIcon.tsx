@@ -158,13 +158,17 @@ export function PaymentAppIcon({
   className,
 }: PaymentAppIconProps) {
   const officialAsset = OFFICIAL_ASSET_PATH[app];
+  const preserveOriginalShape = app === "plin";
 
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_0_0_1px_rgb(20_18_16_/_0.08)]",
+        "relative inline-flex shrink-0 items-center justify-center",
+        preserveOriginalShape
+          ? "overflow-visible bg-transparent"
+          : "overflow-hidden rounded-full bg-white shadow-[0_0_0_1px_rgb(20_18_16_/_0.08)]",
         SIZE[size],
-        iconShell(app),
+        !preserveOriginalShape && iconShell(app),
         className,
       )}
       aria-hidden
@@ -177,7 +181,7 @@ export function PaymentAppIcon({
           sizes={`${SIZE_PX[size]}px`}
           unoptimized
           draggable={false}
-          className="object-cover"
+          className={preserveOriginalShape ? "object-contain" : "object-cover"}
         />
       ) : (
         <Mark app={app} />
