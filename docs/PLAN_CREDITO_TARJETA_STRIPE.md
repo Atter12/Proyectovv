@@ -1,7 +1,7 @@
 # Plan — Crédito con tarjeta (Stripe) + cobro al retirar
 
-**Estado:** diseño + siguiente fase. Recarga por calendario (10/15/30 días) **anulada en Pagos** (2026-09-08).
-**Fecha:** 2026-09-03 · actualización 2026-09-08
+**Estado:** MVP candado Stripe **en código** (guardar tarjeta + cobro al quitar con deuda Hecom). Recarga calendario 10/15/30 **OFF**.  
+**Fecha:** 2026-09-03 · upd 2026-09-09  
 **Relacionado:** bridge cartera Holistic → cobros Hecom (ya live); `docs/REUNION_COBRANA_PAUTAS.md`; API Cobrana (pendiente).
 
 ---
@@ -156,17 +156,64 @@ Webhook clave: **`charge.paid`** (única señal confiable de pago; no confiar en
 ### Encaje Holistic
 | Caso | Quién |
 |---|---|
-| **Candado** crédito (tarjeta on file + cobro al quitar) | **Stripe** |
-| Pagar deuda / recarga cartera en **soles** | **Cobrana** (o manual BCP) |
-| Cobro off-session sin presencia del deudor | Solo Stripe (Cobrana no) |
+| **Candado** crédito (tarjeta on file + cobro al quitar) | **Stripe** (hoy) |
+| Pagar deuda / recarga cartera en **soles** | **Cobrana** (Yape 360pay / BCP) |
+| Cobro off-session sin presencia del deudor | **Solo Stripe** con la API Cobrana v1 actual |
 
 **Frase de producto:** *Stripe = candado · Cobrana = pago en soles.*
 
 Ver también: `docs/REUNION_COBRANA_PAUTAS.md`.
 
-**Pendiente para integrar:** keys cert, webhook URL + secret de firma, mapeo PEN↔USD cartera, bridge cobro Hecom al `charge.paid`.
+Cobrana **ya está integrada** para prepago Yape. El gap es solo **card-on-file / MIT (merchant-initiated)**.
 
-**No integrar Cobrana hasta orden + keys.**
+---
+
+## 6.1 ¿Se puede hacer el “candado pro” con Cobrana?
+
+### Respuesta corta
+**Hoy no.** La API pública Cobrana que usamos (`POST /charges` + `charge.paid`) es **pago iniciado por el deudor** (código Yape / checkout). No hay en docs:
+
+- tokenizar / guardar tarjeta
+- cobro off-session (sin que el cliente abra Yape)
+- “mandate” / suscripción MIT
+
+Yape **Pago de servicios** tampoco guarda tarjeta a nombre de Holistic: cada vez hay un código nuevo.
+
+### Qué sí es “pro” pedirles al equipo Cobrana (mensaje listo)
+
+> Hola equipo Cobrana — en Ads Holistic ya cobramos prepago con `services`/`360pay` (Yape).  
+> Queremos un producto de **crédito**: el cliente gasta con cupo y, si intenta salir antes de pagar lo gastado, necesitamos **cobrar automáticamente** lo adeudado.  
+> ¿Tienen o roadmap de alguna de estas?  
+> 1) **Card-on-file / tokenización** + cobro merchant-initiated (off-session) en PEN  
+> 2) Débito recurrente / mandato bancario  
+> 3) Auto-débito Yape o similar sin nueva acción del usuario  
+> 4) Partnership con pasarela PCI (Culqi/Kushki/Izipay) bajo su marca  
+> Si no está en API pública, ¿beta / enterprise? Monto estimado alto (agencia ads Latam).
+
+### Si Cobrana no lo tiene: alternativas PEN (investigadas)
+
+| Opción | Guardar tarjeta + cobro on-demand | Notas |
+|--------|-----------------------------------|--------|
+| **Culqi** | Sí (suscripciones / cargos) | Muy usado Perú; PCI/token |
+| **Kushki** | Sí (one-click / recurring) | Cobro con `subscriptionId` |
+| **Mercado Pago** | Sí (saved cards + subscriptions) | También Yape en algunos flujos |
+| **Izipay** | Sí (recurrencia) | Banca |
+
+Ninguna reemplaza el **candado USD internacional** de Stripe; sirven si el cliente solo opera en soles y quieren cobro automático local.
+
+### Arquitectura recomendada (sin esperar a Cobrana)
+
+```
+Crédito aprobado (staff)
+  → Stripe SetupIntent (candado)     ← obligatorio para cupo
+  → Cliente gasta
+  → Paga ciclo en PEN: Cobrana/BCP   ← barato / cómodo
+  → Quiere “irse” con deuda:
+        Stripe off_session (lo gastado)
+        si falla → bloqueo + link Cobrana cobranza
+```
+
+Más adelante, si Cobrana lanza card-on-file PEN → **segundo candado** o candado solo-PEN para clientes sin tarjeta internacional.
 
 ---
 
@@ -178,23 +225,26 @@ Ver también: `docs/REUNION_COBRANA_PAUTAS.md`.
 
 ---
 
-## 8. Fases sugeridas (cuando digan “empezar”)
+## 8. Fases
 
-1. **Inventario crédito:** listar clientes `credito_form_slug` + si tienen tarjeta on file hoy (casi nadie en Holistic).
-2. **Spec Stripe** corta (SetupIntent + detach charge) + copy UI.
-3. **MVP:** exigir tarjeta para activar cupo; cobro al “quitar tarjeta” = deuda Hecom pendiente.
-4. **Tope suave:** pausar fondeo TikTok al X% del cupo.
-5. **Cobrana (PEN):** recargas cartera / link de pago; no sustituye card-on-file.
-6. Hardening: 3DS, reintentos, disputa, staff override.
+1. ~~Inventario crédito~~ / spec → documentado aquí.
+2. **MVP (live código):** Pagos → panel *Candado crédito* si `billingModality === credito`.
+   - `POST /api/billing/setup-session` + complete-setup (Setup Checkout Stripe).
+   - `GET|DELETE /api/billing/payment-method` — deuda = `−saldoEstimado` Hecom; cobro off-session `source=credito_detach` **sin** acreditar cartera; bridge Hecom cobro; detach solo si cobro OK (o deuda &lt; $0.50).
+   - Archivos: `lib/payments/credit-lock/*`, `CreditLockPanel.client.tsx`.
+3. **Tope suave:** pausar fondeo TikTok al X% del cupo (pendiente).
+4. **Cobrana (PEN):** recargas / link; no sustituye card-on-file.
+5. Hardening: exigir tarjeta antes de abrir cupo staff, 3DS, reintentos, disputa, override.
 
 ---
 
 ## 9. Fuera de alcance ahora
 
-- Implementar cobro al quitar tarjeta.
-- Cambiar bridge prepago.
-- Integrar Cobrana sin keys / orden.
+- ~~Implementar cobro al quitar tarjeta~~ → hecho en MVP.
+- Cambiar bridge prepago genérico.
+- Integrar Cobrana card-on-file (no existe en API hoy).
 - Pago manual como candado de crédito.
+- Reabrir UI calendario 10/15/30.
 
 ---
 

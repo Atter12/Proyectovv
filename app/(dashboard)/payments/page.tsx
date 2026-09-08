@@ -6,6 +6,7 @@ import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpt
 import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGatewayPanel";
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
+import { CreditLockPanel } from "@/features/payments/components/CreditLockPanel.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
@@ -169,6 +170,13 @@ export default async function PaymentsPage({
         capabilities={capabilities}
         introCopy={introCopy}
       />
+
+      {capabilities.canClientStripeFund &&
+      hecomFinance.billingModality === "credito" ? (
+        <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
+          <CreditLockPanel clienteName={cliente.name} />
+        </Suspense>
+      ) : null}
 
       <Suspense fallback={<PaymentsSectionSkeleton rows={2} />}>
         <PaymentsGatewayPanel

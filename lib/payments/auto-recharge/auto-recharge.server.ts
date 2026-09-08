@@ -92,9 +92,13 @@ export async function startBillingSetupSession(input: {
   userId: string;
   email: string;
 }): Promise<{ checkoutUrl: string }> {
-  if (!CALENDAR_AUTO_RECHARGE_ENABLED) {
+  // Calendario OFF; setup de tarjeta sí (candado crédito / reuso futuro).
+  const { CREDIT_STRIPE_LOCK_ENABLED } = await import(
+    "@/lib/payments/credit-lock/credit-lock.server"
+  );
+  if (!CALENDAR_AUTO_RECHARGE_ENABLED && !CREDIT_STRIPE_LOCK_ENABLED) {
     throw new Error(
-      "La recarga automática por calendario está desactivada. Próximo: crédito con aprobación del equipo.",
+      "Guardar tarjeta no está disponible en este momento.",
     );
   }
 
@@ -122,6 +126,7 @@ export async function startBillingSetupSession(input: {
     stripeCustomerId,
     organizationId: input.organizationId,
     customerEmail: input.email,
+    purpose: CREDIT_STRIPE_LOCK_ENABLED ? "credito_lock" : "auto_recharge",
   });
 
   return { checkoutUrl: session.url };

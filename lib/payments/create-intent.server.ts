@@ -535,6 +535,51 @@ export async function processSuccessfulPaymentIntent(input: {
     throw new Error("La moneda del webhook no coincide con la intención.");
   }
 
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+  const skipWalletCredit =
+    meta.skip_wallet_credit === true || meta.source === "credito_detach";
+
+  // Cobro de deuda crédito (anti-vivo): no acreditar cartera Holistic.
+  if (skipWalletCredit) {
+    if (intent.status === "succeeded") {
+      await ensureHecomWalletCobroSynced({
+        intent,
+        webhookEventId: input.webhookEventId,
+        providerReference: input.providerReference ?? intent.providerReference,
+      });
+      return;
+    }
+
+    const succeededAt = new Date().toISOString();
+    const claimed = await claimPaymentIntentSucceeded(intent.id, {
+      succeededAt,
+      providerReference: input.providerReference ?? intent.providerReference,
+      metadata: {
+        ...meta,
+        skip_wallet_credit: true,
+        provider_reference:
+          input.providerReference ?? intent.providerReference,
+        hecom_cobro_sync_claim: input.webhookEventId ?? succeededAt,
+      },
+    });
+
+    await ensureHecomWalletCobroSynced({
+      intent: {
+        ...intent,
+        metadata: {
+          ...meta,
+          provider_reference:
+            input.providerReference ?? intent.providerReference,
+        },
+      },
+      webhookEventId: input.webhookEventId,
+      providerReference: input.providerReference ?? intent.providerReference,
+      succeededAt,
+      claimed,
+    });
+    return;
+  }
+
   // Ya succeeded (2º webhook Stripe): no re-acreditar; sí curar cobro Hecom si faltó.
   if (intent.status === "succeeded") {
     await ensureHecomWalletCobroSynced({

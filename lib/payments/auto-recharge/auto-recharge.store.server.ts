@@ -75,6 +75,25 @@ export async function upsertBillingCustomer(input: {
   if (error) throw new Error(error.message);
 }
 
+export async function markBillingCustomerDetached(
+  organizationId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("billing_customers")
+    .update({
+      default_payment_method_id: null,
+      card_brand: null,
+      card_last4: null,
+      card_exp_month: null,
+      card_exp_year: null,
+      status: "detached",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId);
+  if (error) throw new Error(error.message);
+}
+
 export async function getAutoRechargeRule(
   organizationId: string,
 ): Promise<AutoRechargeRuleRow | null> {

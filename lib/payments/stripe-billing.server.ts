@@ -61,6 +61,7 @@ export async function createStripeSetupCheckoutSession(input: {
   stripeCustomerId: string;
   organizationId: string;
   customerEmail: string;
+  purpose?: string;
 }): Promise<{ sessionId: string; url: string }> {
   const params = new URLSearchParams();
   params.set("mode", "setup");
@@ -76,7 +77,7 @@ export async function createStripeSetupCheckoutSession(input: {
     `${serverEnv.appUrl}/payments?billing_setup=cancelled`,
   );
   params.set("metadata[organization_id]", input.organizationId);
-  params.set("metadata[purpose]", "auto_recharge");
+  params.set("metadata[purpose]", input.purpose ?? "credito_lock");
   if (input.customerEmail && !input.stripeCustomerId) {
     params.set("customer_email", input.customerEmail);
   }
@@ -178,6 +179,8 @@ export async function chargeStripeOffSession(input: {
   organizationId: string;
   walletId: string;
   idempotencyKey: string;
+  /** Default auto_recharge_calendar; use credito_detach for anti-vivo. */
+  source?: string;
 }): Promise<{ stripePaymentIntentId: string; status: string }> {
   const params = new URLSearchParams();
   params.set("amount", String(input.amountCents));
@@ -189,7 +192,10 @@ export async function chargeStripeOffSession(input: {
   params.set("metadata[payment_intent_id]", input.paymentIntentId);
   params.set("metadata[organization_id]", input.organizationId);
   params.set("metadata[wallet_id]", input.walletId);
-  params.set("metadata[source]", "auto_recharge_calendar");
+  params.set(
+    "metadata[source]",
+    input.source?.trim() || "auto_recharge_calendar",
+  );
 
   const data = await stripeRequest<{ id: string; status: string }>(
     "POST",
@@ -199,4 +205,13 @@ export async function chargeStripeOffSession(input: {
   );
 
   return { stripePaymentIntentId: data.id, status: data.status };
+}
+
+export async function detachStripePaymentMethod(
+  paymentMethodId: string,
+): Promise<void> {
+  await stripeRequest(
+    "POST",
+    `/payment_methods/${encodeURIComponent(paymentMethodId)}/detach`,
+  );
 }
