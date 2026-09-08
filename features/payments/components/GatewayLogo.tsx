@@ -10,23 +10,23 @@ interface GatewayLogoProps {
 }
 
 const SIZE = {
-  sm: "h-9 w-9",
-  md: "h-10 w-10",
+  sm: "h-12 w-12",
+  md: "h-[3.25rem] w-[3.25rem]",
 } as const;
 
 export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
   if (gatewayId === "stripe") {
-    return <PaymentAppIcon app="stripe" size={size} />;
+    return <PaymentAppIcon app="stripe" size={size === "sm" ? "md" : "lg"} />;
   }
 
   if (gatewayId === "cobrana") {
-    return <PaymentAppIcon app="yape" size={size} />;
+    return <PaymentAppIcon app="yape" size={size === "sm" ? "md" : "lg"} />;
   }
 
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_rgb(20_18_16_/_0.06)]",
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-[inset_0_0_0_1px_rgb(20_18_16_/_0.06)]",
         SIZE[size],
         shellClass(gatewayId),
       )}

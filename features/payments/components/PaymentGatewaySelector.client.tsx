@@ -20,7 +20,7 @@ export function PaymentGatewaySelector({
     <div
       role="radiogroup"
       aria-label="Método de pago"
-      className="grid gap-2 lg:grid-cols-3"
+      className="grid gap-2 lg:grid-cols-[1fr_1.2fr_1fr]"
     >
       {gateways.map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
@@ -38,7 +38,7 @@ export function PaymentGatewaySelector({
               onSelect(gateway.id);
             }}
             className={cn(
-              "relative flex min-h-16 items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]",
+              "relative flex min-h-20 items-start gap-3 rounded-xl border px-4 py-3.5 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]",
               inMaintenance
                 ? "cursor-not-allowed border-[var(--auth-border)] bg-[#f7f5f2] opacity-80"
                 : isSelected
@@ -63,13 +63,13 @@ export function PaymentGatewaySelector({
                 {gateway.description}
               </p>
               {gateway.id === "stripe" ? (
-                <div className="mt-2 flex flex-wrap items-center gap-1">
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   {(["visa", "mastercard"] as const).map((app) => (
                     <PaymentAppIcon key={app} app={app} size="sm" />
                   ))}
                 </div>
               ) : gateway.id === "cobrana" ? (
-                <div className="mt-2 flex flex-wrap items-center gap-1">
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   {(
                     [
                       "yape",

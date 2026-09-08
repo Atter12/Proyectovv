@@ -500,7 +500,7 @@ export function AddBalanceModal({
                   </p>
                 </div>
                 {isStripe ? (
-                  <div className="mt-2.5 flex items-center gap-1.5">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
                     {(["visa", "mastercard"] as const).map((app) => (
                       <PaymentAppIcon key={app} app={app} size="sm" />
                     ))}
@@ -511,7 +511,7 @@ export function AddBalanceModal({
                       Abrís Yape, Plin o tu banco con el código. El saldo USD se
                       acredita cuando se confirma el pago.
                     </p>
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
                       {(
                         [
                           "yape",

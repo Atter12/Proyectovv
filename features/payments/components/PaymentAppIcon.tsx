@@ -128,15 +128,15 @@ interface PaymentAppIconProps {
 }
 
 const SIZE = {
-  sm: "h-8 w-8",
-  md: "h-9 w-9",
-  lg: "h-10 w-10",
+  sm: "h-10 w-10",
+  md: "h-12 w-12",
+  lg: "h-[3.25rem] w-[3.25rem]",
 } as const;
 
 const SIZE_PX = {
-  sm: 32,
-  md: 36,
-  lg: 40,
+  sm: 40,
+  md: 48,
+  lg: 52,
 } as const;
 
 const OFFICIAL_ASSET_PATH: Partial<Record<PaymentAppKey, string>> = {
@@ -162,7 +162,7 @@ export function PaymentAppIcon({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-black/5",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_0_0_1px_rgb(20_18_16_/_0.08)]",
         SIZE[size],
         iconShell(app),
         className,
@@ -175,6 +175,8 @@ export function PaymentAppIcon({
           alt=""
           fill
           sizes={`${SIZE_PX[size]}px`}
+          unoptimized
+          draggable={false}
           className="object-cover"
         />
       ) : (
