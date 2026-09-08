@@ -140,7 +140,7 @@ const SIZE_PX = {
 } as const;
 
 const OFFICIAL_ASSET_PATH: Partial<Record<PaymentAppKey, string>> = {
-  stripe: "/payment-methods/stripe-circle.png",
+  stripe: "/payment-methods/stripe-official-circle.png",
   visa: "/payment-methods/visa-circle.png",
   mastercard: "/payment-methods/mastercard-circle.png",
   yape: "/payment-methods/yape-circle.png",
