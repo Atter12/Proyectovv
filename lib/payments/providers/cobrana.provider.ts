@@ -112,8 +112,8 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
 
     const messageParts = [
       code
-        ? `Pagá en Yape → Pago de servicios con el código ${code}.`
-        : "Orden creada. Completá el pago en Yape (Pago de servicios).",
+        ? `En Yape → Pago de servicios → empresa 360pay → código ${code}.`
+        : "Orden creada. En Yape buscá empresa 360pay (Pago de servicios).",
       "Desde la PC: mirá el código acá y pagá en el celular.",
       "Cuando se confirme el pago, el saldo USD se acredita solo.",
     ].filter(Boolean);
