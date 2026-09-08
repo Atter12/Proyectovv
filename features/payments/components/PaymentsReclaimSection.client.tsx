@@ -37,19 +37,19 @@ export function PaymentsReclaimSection({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c45a18]">
-              Recuperar · no pierdas plata
+              Recuperar saldo disponible
             </p>
             <h2 className="mt-1.5 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1a1612]">
               Cuentas suspendidas
               {clienteName ? ` · ${clienteName}` : ""}
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[#6b645c]">
-              Estas cuentas estánieron de la lista de Recargar porque TikTok las
-              suspendió. Si todavía hay saldo asignado en Holistic, jalalo a{" "}
+              Estas cuentas dejaron de aparecer en Recargar porque TikTok las
+              suspendió. Si todavía tienen saldo asignado en Holistic, recupéralo en tu{" "}
               <span className="font-semibold text-[#1a1612]">
                 saldo disponible
               </span>{" "}
-              y usalo en otra cuenta Aprobada.
+              y úsalo en otra cuenta aprobada.
             </p>
           </div>
           <div className="shrink-0 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-[#f0d9c4]">
@@ -97,7 +97,7 @@ export function PaymentsReclaimSection({
                 </p>
                 {!canReclaim ? (
                   <p className="mt-1 text-[12px] leading-4 text-[#7a736a]">
-                    En Holistic ya está en $0 (se gastó o nunca se asignó acá).
+                    En Holistic ya está en $0 (se gastó o nunca se asignó aquí).
                     No hay nada que devolver a cartera desde esta fila.
                   </p>
                 ) : (

@@ -10,7 +10,7 @@ export function usdCentsToTikTokCashAmount(amountCents: number): number {
   }
   // Tope de seguridad: evita mandar por error centavos como dólares (ej. 12000 → $12,000).
   if (amountCents > 5_000_000) {
-    throw new Error("Monto demasiado alto. Si necesitás más de $50,000, pedilo a soporte.");
+    throw new Error("El monto es demasiado alto. Si necesitas más de $50,000, solicítalo a soporte.");
   }
 
   const cashAmount = Math.round(amountCents) / 100;

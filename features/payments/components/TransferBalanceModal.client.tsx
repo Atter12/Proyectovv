@@ -37,7 +37,7 @@ function friendlyTransferError(raw: string): string {
   const text = raw.trim();
   if (text.length <= 280 && !/\| bc=/.test(text)) return text;
   if (/cartera holistic/i.test(text)) return text;
-  return "No se pudo completar la transferencia. Probá de nuevo o contactá soporte.";
+  return "No se pudo completar la transferencia. Inténtalo de nuevo o contacta con soporte.";
 }
 
 export function TransferBalanceModal({
@@ -123,7 +123,7 @@ export function TransferBalanceModal({
       setError(
         maxAmount <= 0
           ? "No hay saldo TikTok transferible en esta cuenta."
-          : `Ingresá un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
+          : `Ingresa un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
       );
       return;
     }
@@ -181,20 +181,20 @@ export function TransferBalanceModal({
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
           {clientSelfService
-            ? "Pasá saldo a otra cuenta"
+            ? "Transfiere saldo a otra cuenta"
             : "Transferir a otra cuenta"}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {clientSelfService ? (
             <>
-              Podés hacerlo vos desde acá, sin esperar a soporte. Se mueve el
-              saldo real de TikTok (aunque Holistic figure en $0). Elegí de qué
-              cuenta sacás y a cuál va el monto. Funciona aunque la origen esté
+              Puedes hacerlo directamente desde aquí, sin esperar a soporte. Se transfiere el
+              saldo real de TikTok, aunque Holistic muestre $0. Elige la cuenta
+              de origen y la cuenta de destino. Funciona aunque la cuenta de origen esté
               suspendida — solo lo no gastado.
             </>
           ) : (
             <>
-              Sacá el saldo TikTok de una cuenta ads y pasalo a otra del mismo
+              Transfiere el saldo de TikTok de una cuenta de anuncios a otra del mismo
               cliente, aunque el ledger Holistic esté en $0. Funciona con
               cuentas activas o suspendidas (solo lo no gastado).
             </>
@@ -225,7 +225,7 @@ export function TransferBalanceModal({
           <p className="mt-1 text-xs text-amber-800">
             Estado:{" "}
             {sourceAccount.status === "disabled"
-              ? "Suspendida (igual podés transferir lo recuperable)"
+              ? "Suspendida (puedes transferir el saldo recuperable)"
               : sourceAccount.status}
           </p>
         </div>
@@ -239,8 +239,8 @@ export function TransferBalanceModal({
           </label>
           {destinationOptions.length === 0 ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950">
-              No hay otra cuenta Activa/Aprobada. Sincronizá cuentas en Pagos o
-              elegí una cuenta distinta.
+              No hay otra cuenta activa o aprobada. Sincroniza las cuentas en Pagos o
+              elige una cuenta distinta.
             </p>
           ) : (
             <select

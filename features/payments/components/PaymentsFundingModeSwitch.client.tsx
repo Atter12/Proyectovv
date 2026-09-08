@@ -28,7 +28,7 @@ export function PaymentsFundingModeSwitch({
           Origen del saldo
         </h2>
         <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
-          Elegí cómo querés hacer esta recarga.
+          Elige cómo quieres realizar esta recarga.
         </p>
       </div>
       <div

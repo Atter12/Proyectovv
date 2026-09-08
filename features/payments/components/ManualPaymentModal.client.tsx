@@ -179,7 +179,7 @@ export function ManualPaymentModal({
 
   function applyProofFile(file: File) {
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      setError("Usá JPG, PNG, WEBP o PDF.");
+      setError("Usa un archivo JPG, PNG, WEBP o PDF.");
       return;
     }
     setProofFile(file);
@@ -248,7 +248,7 @@ export function ManualPaymentModal({
 
   async function handleSubmitVoucher() {
     if (!paymentIntentId || !proofFile) {
-      setError("Subí o pegá el comprobante de pago.");
+      setError("Sube o pega el comprobante de pago.");
       return;
     }
     setStep("analyzing");
@@ -316,7 +316,7 @@ export function ManualPaymentModal({
               Recargar cartera
             </h2>
             <p className="mt-1 text-sm text-[#5c564e]">
-              Elegí cuánto querés en cartera (USD). Transferís y subís el
+              Elige cuánto saldo quieres recibir en la cartera (USD). Realiza la transferencia y sube el
               comprobante.
             </p>
 
@@ -378,7 +378,7 @@ export function ManualPaymentModal({
                 </div>
                 <div className="flex justify-between border-t border-[#ece7e0] pt-2">
                   <span className="font-semibold text-[#1c1917]">
-                    Transferís
+                    Total a transferir
                   </span>
                   <span className="text-lg font-bold text-[#ff781f]">
                     {chargeLabel}
@@ -417,16 +417,16 @@ export function ManualPaymentModal({
         {step === "banks" ? (
           <div className="p-5 sm:p-6">
             <h2 className="text-lg font-bold text-[#1c1917]">
-              Transferí {chargeLabel}
+              Transfiere {chargeLabel}
             </h2>
             <p className="mt-1 text-sm text-[#5c564e]">
-              Usá una de estas cuentas. Después subís el comprobante.
+              Usa una de estas cuentas. Luego sube el comprobante.
             </p>
 
             <div className="mt-4 space-y-3">
               {banks.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  Cuentas bancarias pendientes de configuración. Contactá a
+                  Las cuentas bancarias están pendientes de configuración. Contacta con
                   soporte.
                 </p>
               ) : (
@@ -494,7 +494,7 @@ export function ManualPaymentModal({
               Subir comprobante
             </h2>
             <p className="mt-1 text-sm text-[#5c564e]">
-              Pegá captura (Ctrl+V), elegí de galería o subí archivo.
+              Pega una captura (Ctrl+V), elige una imagen de la galería o sube un archivo.
             </p>
 
             <div
@@ -524,7 +524,7 @@ export function ManualPaymentModal({
               ) : (
                 <>
                   <p className="text-sm font-semibold text-[#1c1917]">
-                    Clic para subir o pegá aquí
+                    Haz clic para subir el archivo o pégalo aquí
                   </p>
                   <p className="mt-1 text-xs text-[#8a8177]">
                     JPG, PNG, WEBP o PDF · máx. 10 MB
@@ -609,7 +609,7 @@ export function ManualPaymentModal({
               {formatMoney(creditResult ?? parsedAmount)}
             </p>
             <p className="mt-1 text-xs text-[#8a8177]">
-              Podés asignarlo a tus cuentas TikTok.
+              Puedes asignarlo a tus cuentas de TikTok.
             </p>
             <Button
               className="mt-8 w-full bg-[#ff781f] hover:bg-[#e85a1c]"

@@ -24,14 +24,14 @@ function StripeReturnBanner({ status }: { status?: string }) {
         className="rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
         role="status"
       >
-        Pago ok. En unos segundos se acredita en la cartera. Después andá a{" "}
+        Pago confirmado. En unos segundos se acreditará en la cartera. Luego ve a{" "}
         <a
           href="#asignar-saldo"
           className="font-bold text-emerald-900 underline underline-offset-2"
         >
           Asignar saldo
         </a>{" "}
-        y pasalo a una cuenta TikTok.
+        y transfiérelo a una cuenta de TikTok.
       </div>
     );
   }
@@ -42,7 +42,7 @@ function StripeReturnBanner({ status }: { status?: string }) {
         className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
         role="status"
       >
-        El checkout de Stripe se canceló. Podés intentar de nuevo cuando quieras.
+        El checkout de Stripe se canceló. Puedes intentarlo de nuevo cuando quieras.
       </div>
     );
   }
@@ -157,8 +157,8 @@ export default async function PaymentsPage({
 
   const introCopy =
     capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
-      ? `Elegí una cuenta de ${cliente.name} y recargala desde el Business Center.`
-      : `Agregá saldo a la cartera de ${cliente.name} y asignalo a una cuenta de TikTok.`;
+      ? `Elige una cuenta de ${cliente.name} y recárgala desde el Business Center.`
+      : `Agrega saldo a la cartera de ${cliente.name} y asígnalo a una cuenta de TikTok.`;
 
   return (
     <div className={dashboardClasses.page}>

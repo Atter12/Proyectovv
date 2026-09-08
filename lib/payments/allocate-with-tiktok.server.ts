@@ -218,7 +218,7 @@ export async function allocateWithOptionalTikTokFunding(
 
   if (fundingOn && isTikTok && advertiserId && !bcId) {
     throw new Error(
-      "Falta bc_id. Poné external_business_id en la cuenta o TIKTOK_DEFAULT_BC_ID en Vercel.",
+      "Falta bc_id. Agrega external_business_id en la cuenta o TIKTOK_DEFAULT_BC_ID en Vercel.",
     );
   }
 
@@ -229,7 +229,7 @@ export async function allocateWithOptionalTikTokFunding(
     !(SYSTEM_ALLOCATABLE_BM_BUCKETS as readonly string[]).includes(bmBucket)
   ) {
     throw new Error(
-      "Esta cuenta no se puede recargar desde Holistic. Contactá a soporte.",
+      "Esta cuenta no se puede recargar desde Holistic. Contacta con soporte.",
     );
   }
 
@@ -253,7 +253,7 @@ export async function allocateWithOptionalTikTokFunding(
     const available = wallet?.availableBalanceCents ?? 0;
     if (available < input.amountCents) {
       throw new Error(
-        `Insufficient wallet balance. available=${available}, requested=${input.amountCents}. Recargá la cartera Holistic del cliente antes de asignar.`,
+        `Insufficient wallet balance. available=${available}, requested=${input.amountCents}. Recarga la cartera Holistic del cliente antes de asignar.`,
       );
     }
   }

@@ -43,8 +43,8 @@ async function analyzeWithOpenAi(input: {
   const base64 = input.buffer.toString("base64");
   const dataUrl = `data:${input.mimeType};base64,${base64}`;
 
-  const prompt = `Analizá este comprobante de pago (transferencia/Yape/Plin/banco Perú).
-Devolvé SOLO JSON válido con estas claves:
+  const prompt = `Analiza este comprobante de pago (transferencia/Yape/Plin/banco Perú).
+Devuelve SOLO JSON válido con estas claves:
 {
   "amount": number o null,
   "currency": "PEN" | "USD" | null,

@@ -228,7 +228,7 @@ export async function reclaimFromAdAccountWithTikTok(
       });
       if (!snapshot && allowTikTokOverLedger) {
         throw new Error(
-          "No se pudo leer el saldo TikTok de esa cuenta. Probá de nuevo en unos segundos.",
+          "No se pudo consultar el saldo de TikTok de esa cuenta. Inténtalo de nuevo en unos segundos.",
         );
       }
 
@@ -256,7 +256,7 @@ export async function reclaimFromAdAccountWithTikTok(
         reclaimCents = Math.min(requested, spendableCents);
       } else if (snapshot && spendableCents <= 0) {
         throw new Error(
-          "En TikTok esa cuenta ya no tiene saldo disponible (se gastó o ya se retiró). No hay nada que jalar del BM.",
+          "En TikTok esa cuenta ya no tiene saldo disponible porque se gastó o se retiró. No hay saldo que recuperar del BM.",
         );
       } else if (spendableCents > 0) {
         reclaimCents = Math.min(reclaimCents, spendableCents);
@@ -298,7 +298,7 @@ export async function reclaimFromAdAccountWithTikTok(
       });
       if (!input.forceLedgerOnly) {
         throw new Error(
-          `${message} Tu saldo Holistic no se tocó. Si TikTok tiene el cash trabado, pedí a soporte recuperación manual o force ledger (staff).`,
+          `${message} Tu saldo Holistic no fue modificado. Si el saldo de TikTok está retenido, solicita a soporte una recuperación manual o force ledger (staff).`,
         );
       }
       path = "ledger_only";
@@ -310,11 +310,11 @@ export async function reclaimFromAdAccountWithTikTok(
     !canTalkTikTok
   ) {
     throw new Error(
-      "Falta advertiser_id o bc_id para mover el saldo TikTok. Completá el ID o pedí a soporte.",
+      "Falta advertiser_id o bc_id para transferir el saldo de TikTok. Completa el ID o solicita ayuda a soporte.",
     );
   } else if (!canTalkTikTok && !input.forceLedgerOnly && fundingOn && isTikTok) {
     throw new Error(
-      "Falta advertiser_id o bc_id para recuperar en TikTok. Completá el ID o pedí a soporte.",
+      "Falta advertiser_id o bc_id para recuperar el saldo en TikTok. Completa el ID o solicita ayuda a soporte.",
     );
   } else if (input.forceLedgerOnly) {
     path = "ledger_only";
@@ -355,7 +355,7 @@ export async function reclaimFromAdAccountWithTikTok(
   if (importCents > 0) {
     if (!allowTikTokOverLedger) {
       throw new Error(
-        "El monto supera el saldo Holistic de la cuenta. Transferí solo lo asignado o usá Transferir (saldo TikTok).",
+        "El monto supera el saldo Holistic de la cuenta. Transfiere solo el saldo asignado o usa Transferir (saldo TikTok).",
       );
     }
     journalId = await creditWalletForExistingTikTokBalance({

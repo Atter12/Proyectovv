@@ -73,7 +73,7 @@ export function ReclaimBalanceModal({
       setError(
         maxAmount <= 0
           ? "No hay saldo recuperable en esta cuenta."
-          : `Ingresá un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
+          : `Ingresa un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
       );
       return;
     }
@@ -123,8 +123,8 @@ export function ReclaimBalanceModal({
           Recuperar saldo a cartera
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Jala el cash/presupuesto de esta cuenta ads de vuelta a saldo
-          disponible Holistic (útil si la cuenta se suspendió).
+          Recupera el saldo o presupuesto disponible de esta cuenta de anuncios
+          y devuélvelo a la cartera Holistic. También funciona si la cuenta fue suspendida.
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
@@ -165,8 +165,8 @@ export function ReclaimBalanceModal({
             autoFocus
           />
           <p className="mt-1.5 text-[12px] text-[#6b645c]">
-            Máximo: {formatMoney(maxAmount)}. En BM 200 TikTok solo deja jalar el
-            cash que quede sin gastar.
+            Máximo: {formatMoney(maxAmount)}. En BM 200, TikTok solo permite recuperar el
+            saldo que no se haya gastado.
           </p>
         </div>
 

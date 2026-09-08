@@ -36,7 +36,7 @@ export async function transferBetweenAdAccountsWithTikTok(
   input: TransferBetweenAdAccountsInput,
 ): Promise<TransferBetweenAdAccountsResult> {
   if (input.fromAdAccountId === input.toAdAccountId) {
-    throw new Error("Elegí dos cuentas distintas para transferir.");
+    throw new Error("Elige dos cuentas distintas para realizar la transferencia.");
   }
 
   const requested = Math.floor(input.amountCents);
@@ -80,7 +80,7 @@ export async function transferBetweenAdAccountsWithTikTok(
 
   if (toAccount.status === "disabled") {
     throw new Error(
-      "La cuenta destino está suspendida. Elegí una cuenta Activa/Aprobada.",
+      "La cuenta de destino está suspendida. Elige una cuenta activa o aprobada.",
     );
   }
 
@@ -101,7 +101,7 @@ export async function transferBetweenAdAccountsWithTikTok(
 
   if (!toAccount.external_account_id?.trim()) {
     throw new Error(
-      "La cuenta destino no tiene advertiser_id de TikTok. Completá el ID antes de transferir.",
+      "La cuenta de destino no tiene advertiser_id de TikTok. Completa el ID antes de transferir.",
     );
   }
 
@@ -180,7 +180,7 @@ export async function transferBetweenAdAccountsWithTikTok(
       message,
     });
     throw new Error(
-      `${message} El saldo ya está en tu cartera Holistic (${(transferCents / 100).toFixed(2)} USD). Podés asignarlo manualmente a la cuenta destino o pedir ayuda a soporte.`,
+      `${message} El saldo ya está en tu cartera Holistic (${(transferCents / 100).toFixed(2)} USD). Puedes asignarlo manualmente a la cuenta de destino o solicitar ayuda a soporte.`,
     );
   }
 }

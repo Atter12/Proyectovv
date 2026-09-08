@@ -84,7 +84,7 @@ export async function createPaymentIntentForSession(
 
   if (isGatewayInMaintenance(input.provider)) {
     throw new Error(
-      "Este método de pago está en mantenimiento. Usá Stripe por ahora.",
+      "Este método de pago está en mantenimiento. Usa Stripe por ahora.",
     );
   }
 
@@ -176,7 +176,7 @@ export async function createPaymentIntentForSession(
 
   if (isCobrana) {
     if (!fee.hecomClienteId) {
-      throw new Error("Seleccioná un cliente Hecom para pagar con Yape.");
+      throw new Error("Selecciona un cliente de Hecom para pagar con Yape.");
     }
     const { getHecomCliente } = await import("@/lib/hecom/clientes.server");
     const { normalizeYapeDocument } = await import(
@@ -201,7 +201,7 @@ export async function createPaymentIntentForSession(
     };
     if (amountCents < 1000) {
       throw new Error(
-        "Con el tipo de cambio actual el cargo en soles queda bajo el mínimo de Yape (S/ 10). Subí el monto en USD.",
+        "Con el tipo de cambio actual, el cargo en soles queda por debajo del mínimo de Yape (S/ 10). Aumenta el monto en USD.",
       );
     }
   }

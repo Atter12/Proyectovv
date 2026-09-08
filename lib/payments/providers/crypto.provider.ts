@@ -120,7 +120,7 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
         checkoutUrl: null,
         status: "requires_payment",
         message:
-          "Recarga cripto registrada. Enviá USDT (red indicada por el equipo), subí el comprobante / TxID y esperá la confirmación. El saldo no se acredita solo.",
+          "Recarga con criptomonedas registrada. Envía los USDT por la red indicada, sube el comprobante o TxID y espera la confirmación. El saldo no se acredita automáticamente.",
       };
     }
 

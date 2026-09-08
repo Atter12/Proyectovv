@@ -130,7 +130,7 @@ export async function checkVoucherUploadRateLimits(
       autoApproveAllowed: false,
       uploadsLastHour,
       autoApprovesLast10Min,
-      reason: `Demasiados comprobantes en la última hora (${uploadsLastHour}). Esperá unos minutos e intentá de nuevo.`,
+      reason: `Se enviaron demasiados comprobantes durante la última hora (${uploadsLastHour}). Espera unos minutos e inténtalo de nuevo.`,
     };
   }
 

@@ -36,7 +36,7 @@ export function EditTikTokIdsModal({
   async function handleSave() {
     const adv = advertiserId.trim();
     if (!adv) {
-      setError("Pegá el TikTok Advertiser ID (ej. el de la cuenta Aprobada).");
+      setError("Pega el TikTok Advertiser ID, por ejemplo, el de la cuenta aprobada.");
       return;
     }
 
@@ -68,7 +68,7 @@ export function EditTikTokIdsModal({
         ID TikTok de la cuenta
       </h2>
       <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-        Holistic recarga el advertiser que esté acá. Tiene que ser el de la
+        Holistic recarga el advertiser que se muestra aquí. Debe ser el de la
         cuenta <span className="font-medium text-[var(--foreground)]">Aprobada</span>{" "}
         en TikTok BM (no la suspendida).
       </p>

@@ -143,7 +143,7 @@ export function AutoRechargeSchedule({
     setSuccess(null);
 
     if (enabled && !paymentMethod?.last4) {
-      setError("Primero guardá una tarjeta y después activá el débito automático.");
+      setError("Primero guarda una tarjeta y luego activa el débito automático.");
       setSaving(false);
       return;
     }
@@ -171,7 +171,7 @@ export function AutoRechargeSchedule({
       });
       setSuccess(
         enabled
-          ? `Listo: se cobrará ${formatMoney(preview?.grossCents ? preview.grossCents / 100 : credit)} cada ${intervalDays} días. El primer cobro es en ${intervalDays} días.`
+          ? `Listo: se debitarán ${formatMoney(preview?.grossCents ? preview.grossCents / 100 : credit)} cada ${intervalDays} días. El primer débito se realizará en ${intervalDays} días.`
           : "Débito automático desactivado.",
       );
       await load();
@@ -196,16 +196,16 @@ export function AutoRechargeSchedule({
         Débito automático
       </p>
       <h2 className="mt-1.5 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-        Programá cobros con tu tarjeta
+        Programa débitos con tu tarjeta
       </h2>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 1:</strong> guardá tu tarjeta.
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 1:</strong> guarda tu tarjeta.
         {" "}
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 2:</strong> elegí cada cuántos días y cuánto USD neto querés en cartera.
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 2:</strong> elige cada cuántos días y cuánto saldo neto en USD quieres recibir en la cartera.
         {" "}
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 3:</strong> activá y guardá.
+        <strong className="font-semibold text-[var(--auth-text)]">Paso 3:</strong> activa y guarda la programación.
         Se cobra neto + fee Holistic ({formatFeePercentLabel(depositFeePercent)}).
-        El primer cobro automático es después del intervalo elegido.
+        El primer débito se realizará después del intervalo elegido.
       </p>
 
       <div className="mt-5 rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-surface-muted)]/40 p-4">
@@ -219,7 +219,7 @@ export function AutoRechargeSchedule({
           </p>
         ) : (
           <p className="mt-1 text-[13px] text-amber-700">
-            Todavía no hay tarjeta guardada. Hacé clic en &quot;Guardar tarjeta&quot; para empezar.
+            Todavía no hay una tarjeta guardada. Haz clic en &quot;Guardar tarjeta&quot; para empezar.
           </p>
         )}
         <Button

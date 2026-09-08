@@ -135,7 +135,7 @@ export async function PaymentsGatewayPanel({
         }
         if (sync.approvedAdvertiserIds.length === 0 && approvedIds.length === 0) {
           syncNote =
-            "No hay cuentas TikTok Aprobadas para este cliente (BM + Hecom). Revisá el advertiser o el nombre en el Business Center.";
+            "No hay cuentas de TikTok aprobadas para este cliente (BM + Hecom). Revisa el advertiser o el nombre en el Business Center.";
         }
       } else if (approvedIds.length === 0) {
         syncNote =
@@ -192,7 +192,7 @@ export async function PaymentsGatewayPanel({
         error: error instanceof Error ? error.message : "unknown",
       });
       syncNote =
-        "No se pudo sincronizar cuentas aprobadas. Probá de nuevo en unos minutos.";
+        "No se pudieron sincronizar las cuentas aprobadas. Inténtalo de nuevo en unos minutos.";
     }
   } else if (
     hasHecomIds &&
@@ -450,7 +450,7 @@ export async function PaymentsGatewayPanel({
               Recargar cuenta ads · {clienteName ?? "Este cliente"}
             </p>
             <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              Sin cuentas para recargar acá
+              No hay cuentas para recargar aquí
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
               Solo listamos cuentas Aprobadas y suspendidas que todavía tengan

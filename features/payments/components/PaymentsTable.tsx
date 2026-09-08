@@ -179,8 +179,8 @@ export function PaymentsTable({
                 : "max-w-[12rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
             }
           >
-            Sin cupo para sacar. Para meter saldo: Transferí desde otra cuenta
-            con disponible (elegí esta como destino) o Asigná desde cartera.
+            No hay saldo disponible para retirar. Para agregar saldo, transfiere desde otra cuenta
+            con saldo disponible (elige esta como destino) o asigna desde la cartera.
           </p>
         ) : null}
 
@@ -207,9 +207,9 @@ export function PaymentsTable({
             >
               {transferable
                 ? clientSelfService
-                  ? "Pasalo a otra cuenta sin escribirnos."
-                  : "O pasá directo a otra cuenta sin pasar por cartera."
-                : "Cuenta suspendida. Jalá el saldo a cartera; después sale de Pagos."}
+                  ? "Transfiérelo a otra cuenta sin contactar con soporte."
+                  : "También puedes transferirlo directamente a otra cuenta sin pasar por la cartera."
+                : "Cuenta suspendida. Recupera el saldo en la cartera; después desaparecerá de Pagos."}
             </p>
           </>
         ) : (

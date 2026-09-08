@@ -21,7 +21,7 @@ export function normalizeYapeDocument(
     return {
       ok: false,
       message:
-        "Completá el DNI (8 dígitos) o RUC (11 dígitos) del cliente en Hecom CRM para pagar con Yape.",
+        "Completa el DNI (8 dígitos) o RUC (11 dígitos) del cliente en Hecom CRM para pagar con Yape.",
     };
   }
 
@@ -43,6 +43,6 @@ export function normalizeYapeDocument(
 
   return {
     ok: false,
-    message: `El documento en CRM (“${original}”) no es un DNI (8 dígitos) ni RUC (11). Actualizalo en Hecom para pagar con Yape.`,
+    message: `El documento en CRM (“${original}”) no es un DNI (8 dígitos) ni RUC (11). Actualízalo en Hecom para pagar con Yape.`,
   };
 }

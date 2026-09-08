@@ -95,7 +95,7 @@ export async function processManualVoucherUpload(input: {
   }
   if (isGatewayInMaintenance("manual")) {
     throw new Error(
-      "Pago manual deshabilitado temporalmente. Contactá soporte o usá Stripe.",
+      "El pago manual está deshabilitado temporalmente. Contacta con soporte o usa Stripe.",
     );
   }
   if (intent.status === "succeeded") {
@@ -135,7 +135,7 @@ export async function processManualVoucherUpload(input: {
   const rateLimits = await checkVoucherUploadRateLimits(input.organizationId);
   if (!rateLimits.uploadAllowed) {
     throw new VoucherRateLimitError(
-      rateLimits.reason ?? "Demasiados comprobantes. Intentá más tarde.",
+      rateLimits.reason ?? "Se enviaron demasiados comprobantes. Inténtalo más tarde.",
     );
   }
 

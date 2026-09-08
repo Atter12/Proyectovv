@@ -30,7 +30,7 @@ interface AllocateResponse {
 function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
   const text = raw.trim();
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
-    return "TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.";
+    return "TikTok solicita al menos $10 en esta cuenta. Prueba con $10 o más.";
   }
   if (
     /no aparece en el BM|rechazó el presupuesto|falta permiso de presupuesto|línea de crédito|crédito compartido|portfolio de crédito|no tiene saldo en efectivo|no tiene cupo disponible/i.test(
@@ -40,21 +40,21 @@ function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
     return text.length <= 280
       ? text
       : agencyBmFunding
-        ? "No se pudo recargar esa cuenta en TikTok. Probá otra cuenta Aprobada."
-        : "No se pudo asignar en esta cuenta ahora. Contactá a soporte. Tu dinero sigue en la cartera.";
+        ? "No se pudo recargar esa cuenta en TikTok. Prueba con otra cuenta aprobada."
+        : "No se pudo asignar saldo a esta cuenta. Contacta con soporte. Tu dinero sigue en la cartera.";
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
     return agencyBmFunding
-      ? "No se pudo recargar esa cuenta en TikTok. Probá otra cuenta o contactá soporte."
-      : "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
+      ? "No se pudo recargar esa cuenta en TikTok. Prueba con otra cuenta o contacta con soporte."
+      : "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Prueba con otra cuenta o contacta con soporte.";
   }
   if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
     return "No hay suficiente saldo en la cartera Holistic. Lo que ya está en la cuenta TikTok no se vuelve a asignar: hay que recargar la cartera.";
   }
   if (text.length <= 220 && !/\| bc=/.test(text)) return text;
   return agencyBmFunding
-    ? "No se pudo recargar desde el BM. Probá otra cuenta Aprobada o contactá soporte."
-    : "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Probá otra cuenta o contactá soporte.";
+    ? "No se pudo recargar desde el BM. Prueba con otra cuenta aprobada o contacta con soporte."
+    : "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Prueba con otra cuenta o contacta con soporte.";
 }
 
 export function AllocateBalanceModal({
@@ -115,18 +115,18 @@ export function AllocateBalanceModal({
 
   async function handleSubmit() {
     if (!isValidAmount) {
-      setError("Ingresá un monto válido mayor a cero.");
+      setError("Ingresa un monto válido mayor que cero.");
       return;
     }
 
     if (agencyBmFunding && parsedAmount < 10) {
-      setError("TikTok pide al menos $10 en esta cuenta. Probá con $10 o más.");
+      setError("TikTok solicita al menos $10 en esta cuenta. Prueba con $10 o más.");
       return;
     }
 
     if (!agencyBmFunding && parsedAmount > walletAvailable + 1e-9) {
       setError(
-        `En cartera solo tenés ${formatMoney(walletAvailable)}. Los ${formatMoney(alreadyOnAccount)} “ya en esta cuenta” ya están en TikTok. Recargá la cartera para asignar más.`,
+        `Solo tienes ${formatMoney(walletAvailable)} en la cartera. Los ${formatMoney(alreadyOnAccount)} que ya están en esta cuenta permanecen en TikTok. Recarga la cartera para asignar más.`,
       );
       return;
     }
@@ -182,18 +182,18 @@ export function AllocateBalanceModal({
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {agencyBmFunding
-            ? "Fondea la cuenta en TikTok desde el BM (sin exigir cartera del cliente). BM 200 = cash; BM 10/30 = subir presupuesto de crédito. Usá cuentas Aprobadas."
-            : "Saca plata de tu cartera Holistic y la suma a esta cuenta TikTok. Lo que ya está en la cuenta no se puede asignar otra vez."}
+            ? "Fondea la cuenta en TikTok desde el BM (sin exigir saldo en la cartera del cliente). BM 200 = cash; BM 10/30 = subir presupuesto de crédito. Usa cuentas aprobadas."
+            : "Transfiere saldo de tu cartera Holistic a esta cuenta de TikTok. Lo que ya está en la cuenta no se puede asignar otra vez."}
         </p>
         <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] leading-5 text-emerald-950">
-          <span className="font-semibold">1 a 1:</span> si asignás $120, TikTok
+          <span className="font-semibold">1 a 1:</span> si asignas $120, TikTok
           recibe $120. No se suma fee al asignar (el fee Holistic solo aplica al
           recargar la cartera).
         </p>
         {agencyBmFunding ? (
           <p className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-5 text-sky-950">
             Si ves error de presupuesto, la cuenta no está visible en el BM de
-            TikTok (ID mal mapeado o cuenta vieja). Probá otra Aprobada del
+            TikTok (ID mal mapeado o cuenta antigua). Prueba con otra cuenta aprobada del
             mismo cliente.
           </p>
         ) : null}
@@ -225,7 +225,7 @@ export function AllocateBalanceModal({
                 </span>
               </p>
               <p className="pt-1 text-[11px] leading-4 text-[#6b645c]">
-                “Ya en esta cuenta” no se asigna otra vez. Solo podés mover lo de
+                “Ya en esta cuenta” no se asigna otra vez. Solo puedes mover el saldo de la
                 cartera.
               </p>
             </div>
@@ -242,8 +242,8 @@ export function AllocateBalanceModal({
           </p>
           {targetAccount.status === "disabled" ? (
             <p className="mt-2 text-[11px] leading-4 text-amber-800" role="alert">
-              Esta cuenta está desactivada/suspendida. Elegí una cuenta Aprobada
-              de la lista (o sincronizá de nuevo en Pagos).
+              Esta cuenta está desactivada o suspendida. Elige una cuenta aprobada
+              de la lista o vuelve a sincronizar las cuentas en Pagos.
             </p>
           ) : null}
         </div>

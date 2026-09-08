@@ -233,7 +233,7 @@ export async function approveManualVoucherPayment(input: {
     organizationId: intent.organization_id,
     userId: intent.created_by,
     title: isCrypto ? "Pago cripto aprobado" : "Pago manual aprobado",
-    body: "Saldo disponible en cartera. Ya podés asignar a tu cuenta.",
+    body: "El saldo ya está disponible en la cartera. Puedes asignarlo a tu cuenta.",
     type: "payment_approved",
     data: {
       payment_intent_id: intent.id,

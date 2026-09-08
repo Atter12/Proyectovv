@@ -25,11 +25,11 @@ export function PaymentToolbar({
   return (
     <div className="flex flex-col gap-3 border-b border-[var(--auth-border)] bg-[var(--auth-bg)] px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
       <p className="w-full text-[12px] leading-5 text-[var(--auth-text-muted)] sm:hidden">
-        Tocá{" "}
+        Selecciona{" "}
         <span className="font-semibold text-[var(--auth-text)]">
           {agencyBmFunding ? "Recargar" : "Asignar saldo"}
         </span>{" "}
-        en la cuenta que quieras {agencyBmFunding ? "fondear" : "recargar"}.
+        en la cuenta que quieras recargar.
       </p>
       <div className="flex-1 sm:max-w-xs">
         <label htmlFor="payment-account-search" className="sr-only">

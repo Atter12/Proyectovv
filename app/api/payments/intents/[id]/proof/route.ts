@@ -66,7 +66,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (intent.provider === "manual" && isGatewayInMaintenance("manual")) {
     return NextResponse.json(
-      { error: "Pago manual deshabilitado temporalmente. Usá Stripe o contactá soporte." },
+      { error: "El pago manual está deshabilitado temporalmente. Usa Stripe o contacta con soporte." },
       { status: 503 },
     );
   }

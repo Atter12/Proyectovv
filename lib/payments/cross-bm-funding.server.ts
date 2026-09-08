@@ -235,7 +235,7 @@ export async function attemptCrossBmCreditPull(input: {
   if (!serverEnv.tiktokMultiTierBcEnabled) {
     throw new Error(
       "Cross-BM no está habilitado en Holistic (TIKTOK_MULTI_TIER_BC_ENABLED). " +
-        "Pedile a TikTok el allowlist Multi-tier BC y activá el flag en Vercel.",
+        "Solicita a TikTok el acceso a la lista Multi-tier BC y activa la opción en Vercel.",
     );
   }
 
@@ -284,7 +284,7 @@ export async function attemptCrossBmCreditPull(input: {
     if (json.code === 40000 || /allowlist|multi-tier/i.test(detail)) {
       throw new Error(
         "TikTok bloqueó la transferencia cross-BM (Multi-tier BC es allowlist-only). " +
-          "Contactá a tu representante TikTok para habilitar BM padre→hijo.",
+          "Contacta con tu representante de TikTok para habilitar BM padre→hijo.",
       );
     }
 
@@ -339,7 +339,7 @@ export async function buildCrossBmFundingPlan(input: {
   if (targetBmBucket === "10" && bm30 && bm30.creditLineUsd > 0) {
     recommendations.push(
       `BM 30 tiene ~$${bm30.creditLineUsd.toFixed(0)} de línea de crédito, pero BM 10 (PANAMERICANA) es otro cliente legal en TikTok. ` +
-        "Sin allowlist Multi-tier BC no se puede jalar ese crédito por API.",
+        "Sin acceso a Multi-tier BC no se puede transferir ese crédito mediante la API.",
     );
   }
 

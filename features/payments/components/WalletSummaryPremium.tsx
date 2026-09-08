@@ -32,7 +32,7 @@ export function WalletSummaryPremium({
 
   const subtitle =
     staffMode && !canClientStripeFund
-      ? "Modo gerente: recargá desde BM (sin Stripe). La cartera es opcional."
+      ? "Modo gerente: recarga desde el BM (sin Stripe). La cartera es opcional."
       : staffMode
         ? "Super admin: Stripe o BM según el camino elegido"
         : "Listo para asignar a cuentas TikTok";
@@ -90,8 +90,8 @@ export function WalletSummaryPremium({
                 {hecomFinance.depositFeePercent}%
               </p>
               <p className="mt-1 text-[12px] leading-4 text-[#5c564e]">
-                Ponés lo que querés en cartera; se cobra ese monto + fee. Con fee{" "}
-                {hecomFinance.depositFeePercent}%: si querés $100 se cobran $
+                Ingresa cuánto saldo quieres recibir en la cartera; se cobrará ese monto más el fee. Con un fee de{" "}
+                {hecomFinance.depositFeePercent}%, si quieres $100 se cobran $
                 {(100 * (1 + hecomFinance.depositFeePercent / 100)).toFixed(0)}.
               </p>
             </div>

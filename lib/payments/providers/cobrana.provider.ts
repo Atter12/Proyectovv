@@ -112,9 +112,9 @@ export class CobranaPaymentProvider implements PaymentProviderAdapter {
 
     const messageParts = [
       code
-        ? `Pagá en Yape → Pago de servicios con el código ${code}.`
-        : "Orden creada. Completá el pago en Yape (Pago de servicios).",
-      "Desde la PC: mirá el código acá y pagá en el celular.",
+        ? `Paga en Yape → Pago de servicios con el código ${code}.`
+        : "Orden creada. Completa el pago en Yape (Pago de servicios).",
+      "Desde la computadora, consulta el código aquí y paga desde el celular.",
       "Cuando se confirme el pago, el saldo USD se acredita solo.",
     ].filter(Boolean);
 

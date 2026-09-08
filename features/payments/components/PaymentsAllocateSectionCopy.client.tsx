@@ -20,9 +20,9 @@ export function PaymentsAllocateSectionCopy({
           Recargar una cuenta de TikTok
         </h2>
         <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-          Elegí una cuenta{clienteName ? ` de ${clienteName}` : ""} y usá el
+          Elige una cuenta{clienteName ? ` de ${clienteName}` : ""} y usa el
           saldo disponible del Business Center. Si una cuenta suspendida todavía
-          tiene saldo, podés recuperarlo desde su acción.
+          tiene saldo, puedes recuperarlo desde su acción.
         </p>
       </>
     );
@@ -36,8 +36,8 @@ export function PaymentsAllocateSectionCopy({
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
         {walletBalance > 0 ? (
           <>
-            Tenés <strong className="font-semibold text-[var(--auth-text)]">{walletBalanceLabel}</strong>{" "}
-            disponible. Elegí la cuenta que querés recargar.
+            Tienes <strong className="font-semibold text-[var(--auth-text)]">{walletBalanceLabel}</strong>{" "}
+            disponible. Elige la cuenta que quieres recargar.
           </>
         ) : (
           <>
@@ -46,7 +46,7 @@ export function PaymentsAllocateSectionCopy({
               href="#recargar-saldo"
               className="font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
             >
-              Recargá saldo primero
+              Recarga saldo primero
             </a>
             .
           </>

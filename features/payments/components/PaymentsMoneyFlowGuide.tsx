@@ -15,17 +15,17 @@ export function PaymentsMoneyFlowGuide() {
         <ol className="mt-1 grid divide-y divide-[var(--auth-divider)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <FlowStep
             number="1"
-            title="Recargá la cartera"
-            description="Elegí el monto y el método de pago."
+            title="Recarga la cartera"
+            description="Elige el monto y el método de pago."
           />
           <FlowStep
             number="2"
-            title="Asigná el saldo"
-            description="Elegí qué cuenta de TikTok lo recibe."
+            title="Asigna el saldo"
+            description="Elige qué cuenta de TikTok lo recibe."
           />
           <FlowStep
             number="3"
-            title="Usalo en campañas"
+            title="Úsalo en campañas"
             description="El saldo queda disponible dentro de TikTok."
           />
         </ol>

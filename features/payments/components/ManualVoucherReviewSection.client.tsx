@@ -76,7 +76,7 @@ function VoucherCard({
 
   async function handleApprove() {
     if (!quote) {
-      setError("Ingresá un monto válido de la boleta.");
+      setError("Ingresa un monto válido de la boleta.");
       return;
     }
     setBusy("approve");
@@ -304,8 +304,8 @@ function VoucherCard({
           {showActions ? (
             <div className="mt-auto space-y-2 border-t border-[var(--auth-divider)] pt-3">
               <p className="text-[11px] text-[var(--auth-muted)]">
-                Revisá el monto de la boleta, ajustalo si hace falta y recién
-                entonces aceptá. Ahí se acredita cartera y va a Lo pagado.
+                Revisa el monto de la boleta, ajústalo si es necesario y luego
+                acepta. El saldo se acredita en la cartera y el registro pasa a Lo pagado.
               </p>
               {!rejectOpen ? (
                 <div className="flex flex-wrap gap-2">
@@ -447,8 +447,8 @@ export function ManualVoucherReviewSection({
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
             Solo boletas BCP por aceptar o rechazar
-            {globalQueue ? " · todos los clientes · más viejos primero" : ""}.
-            Editá el monto de la boleta si no coincide y recién aceptá.
+            {globalQueue ? " · todos los clientes · más antiguos primero" : ""}.
+            Edita el monto de la boleta si no coincide y luego acepta.
           </p>
         </div>
       </div>

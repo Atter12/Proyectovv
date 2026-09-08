@@ -307,7 +307,7 @@ export function AddBalanceModal({
             ? formatMoney(feePreview.grossCents / 100)
             : formatMoney(parsedAmount);
       const defaultMessage = data.paymentIntent.providerConfigured
-        ? `Intención creada. Querés ${formatMoney(parsedAmount)} en cartera; se cobra ${chargeLabel} (fee ${formatFeePercentLabel(chargeFeePercent)}).`
+        ? `Solicitud creada. Recibirás ${formatMoney(parsedAmount)} en la cartera y se cobrará ${chargeLabel} (fee ${formatFeePercentLabel(chargeFeePercent)}).`
         : "La pasarela aún no está configurada. Se registró una intención pendiente.";
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
@@ -399,7 +399,7 @@ export function AddBalanceModal({
               Recargar saldo
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-              Indicá cuánto querés en cartera. El fee Holistic (
+              Indica cuánto saldo quieres recibir en la cartera. El fee Holistic (
               {formatFeePercentLabel(feePercent)})
               {isStripe
                 ? ` + fee pasarela Stripe (${formatFeePercentLabel(stripeExtra)})`
@@ -408,7 +408,7 @@ export function AddBalanceModal({
               {isCobrana
                 ? " y se cobra en soles desde la app que elijas."
                 : isStripe
-                  ? ". Si preferís no pagar fee de tarjeta, usá Yape, Plin o transferencia bancaria."
+                  ? ". Si prefieres no pagar el fee de tarjeta, usa Yape, Plin o transferencia bancaria."
                   : " y eso es lo que se cobra."}
             </p>
 
@@ -481,10 +481,10 @@ export function AddBalanceModal({
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
                     {isCobrana
-                      ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitás DNI en Hecom CRM.`
+                      ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitas un DNI registrado en Hecom CRM.`
                       : isStripe
                         ? `Total fee ${formatFeePercentLabel(chargeFeePercent)} (Holistic + pasarela). Transferencia no lleva el +${formatFeePercentLabel(stripeExtra)}.`
-                        : "Ej.: querés $100 con fee 10% → se cobran $110."}
+                        : "Ej.: si quieres $100 con un fee de 10%, se cobran $110."}
                   </p>
                 </div>
               ) : null}
@@ -508,7 +508,7 @@ export function AddBalanceModal({
                 ) : isCobrana ? (
                   <>
                     <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
-                      Abrís Yape, Plin o tu banco con el código. El saldo USD se
+                      Abre Yape, Plin o la aplicación de tu banco con el código. El saldo en USD se
                       acredita cuando se confirma el pago.
                     </p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -529,7 +529,7 @@ export function AddBalanceModal({
                 ) : isVoucher ? (
                   <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
                     {selectedGateway === "crypto"
-                      ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, enviás USDT y subís captura / TxID."
+                      ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, envía los USDT y sube una captura o el TxID."
                       : "Después de crear la intención podrás subir el voucher para revisión."}
                   </p>
                 ) : null}
@@ -562,7 +562,7 @@ export function AddBalanceModal({
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               {isCobrana
-                ? "Se acredita el monto en USD; cobrás el equivalente en soles por Yape."
+                ? "Se acredita el monto en USD y pagas el equivalente en soles mediante Yape."
                 : isStripe
                   ? "Se acredita el monto pedido. Fee Holistic + fee pasarela Stripe (aparte)."
                   : "Se acredita el monto pedido; se cobra ese monto + fee Hecom."}
@@ -658,7 +658,7 @@ export function AddBalanceModal({
                   id="add-balance-title"
                   className="text-lg font-semibold text-[var(--foreground)]"
                 >
-                  Pagá con Yape (PC o celular)
+                  Paga con Yape (PC o celular)
                 </h2>
                 <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
                   {resultMessage ??
@@ -700,7 +700,7 @@ export function AddBalanceModal({
               {penPreview ? (
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-[var(--admin-text-muted,#64748b)]">
-                    Pagás en Yape
+                    Pagas en Yape
                   </span>
                   <span className="text-base font-bold tabular-nums text-[#5F0B72]">
                     {formatPenAmount(penPreview.grossPenCents)}
@@ -725,20 +725,20 @@ export function AddBalanceModal({
 
             <ol className="mt-4 list-decimal space-y-2 rounded-xl border border-[#e9dff0] bg-[#faf6fc] px-4 py-3 pl-8 text-sm leading-5 text-[var(--foreground)]">
               <li>
-                En el celular abrí <strong>Yape</strong>.
+                En el celular, abre <strong>Yape</strong>.
               </li>
               <li>
-                Entrá a <strong>Pago de servicios</strong> (o “Servicios”).
+                Ingresa a <strong>Pago de servicios</strong> (o “Servicios”).
               </li>
               <li>
-                Buscá / ingresá el código{" "}
+                Busca o ingresa el código{" "}
                 <strong className="font-mono">
                   {cobranaCode ?? "HOL…"}
                 </strong>
                 .
               </li>
               <li>
-                Confirmá el pago por{" "}
+                Confirma el pago por{" "}
                 <strong>
                   {penPreview
                     ? formatPenAmount(penPreview.grossPenCents)
@@ -747,7 +747,7 @@ export function AddBalanceModal({
                 .
               </li>
               <li>
-                Volvé acá: al confirmarse, se acreditan{" "}
+                Vuelve aquí: cuando se confirme, se acreditarán{" "}
                 <strong>{formatMoney(parsedAmount)}</strong> solos en tu
                 cartera.
               </li>
@@ -756,7 +756,7 @@ export function AddBalanceModal({
             {orderedLinks.length > 0 ? (
               <div className="mt-4 space-y-2">
                 <p className="text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                  Si estás en el celular, también podés abrir la app directo:
+                  Si estás en el celular, también puedes abrir la aplicación directamente:
                 </p>
                 <div className="flex flex-col gap-2">
                   {orderedLinks.map((link) => {
@@ -806,8 +806,8 @@ export function AddBalanceModal({
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               {selectedGateway === "crypto"
-                ? "Adjuntá captura de Binance / wallet o TxID para que el equipo confirme el USDT desde el panel admin."
-                : "Adjuntá el comprobante de transferencia para que el equipo lo revise desde el panel admin."}
+                ? "Adjunta una captura de Binance o de tu billetera, o el TxID, para que el equipo confirme los USDT desde el panel administrativo."
+                : "Adjunta el comprobante de transferencia para que el equipo lo revise desde el panel administrativo."}
             </p>
             <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <p className="font-semibold text-[var(--foreground)]">

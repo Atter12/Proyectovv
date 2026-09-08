@@ -60,7 +60,7 @@ export default async function ManualPaymentsReviewPage({
           <strong className="font-semibold text-[var(--auth-text)]">
             manuales (BCP)
           </strong>{" "}
-          pendientes de todos los clientes. Aceptá o rechazá acá.
+          pendientes de todos los clientes. Acepta o rechaza aquí.
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-1">

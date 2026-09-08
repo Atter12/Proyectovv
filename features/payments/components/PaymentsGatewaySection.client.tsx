@@ -67,7 +67,7 @@ export function PaymentsGatewaySection({
                   Recargar saldo
                 </h2>
                 <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                  Elegí un método y escribí cuánto querés agregar a la cartera.
+                  Elige un método e ingresa cuánto saldo quieres agregar a la cartera.
                 </p>
               </div>
               <div className="shrink-0 sm:text-right">
@@ -147,7 +147,7 @@ export function PaymentsGatewaySection({
             Recargar desde el Business Center
           </h2>
           <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-            Elegí una cuenta de TikTok y transferí el saldo disponible del BM.
+            Elige una cuenta de TikTok y transfiere el saldo disponible del BM.
           </p>
           <a
             href="#asignar-saldo"

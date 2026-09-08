@@ -92,6 +92,7 @@ export async function POST(request: Request) {
     const status =
       lower.includes("no tiene saldo") ||
       lower.includes("solo hay") ||
+      lower.includes("elige") ||
       lower.includes("elegí") ||
       lower.includes("suspendida") ||
       lower.includes("no tiene saldo gastable") ||

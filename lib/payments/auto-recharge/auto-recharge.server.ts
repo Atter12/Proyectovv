@@ -31,7 +31,7 @@ export function normalizeIntervalDays(days: number): number {
   const n = Math.round(days);
   if (ALLOWED_INTERVALS.has(n)) return n;
   if (n >= 7 && n <= 90) return n;
-  throw new Error("Intervalo inválido. Usá 15, 20, 30 o entre 7 y 90 días.");
+  throw new Error("Intervalo inválido. Usa 15, 20, 30 o un valor entre 7 y 90 días.");
 }
 
 async function resolveWalletId(organizationId: string): Promise<string> {
@@ -152,7 +152,7 @@ export async function saveAutoRechargeSchedule(input: {
     input.enabled &&
     (!billing?.default_payment_method_id || billing.status !== "active")
   ) {
-    throw new Error("Guardá una tarjeta antes de activar la recarga automática.");
+    throw new Error("Guarda una tarjeta antes de activar el débito automático.");
   }
 
   const interval = normalizeIntervalDays(input.intervalDays);
