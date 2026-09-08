@@ -83,7 +83,7 @@ const gatewayLabels: Record<PaymentGatewayId, string> = {
   mercadopago: "Mercado Pago",
   crypto: "Cripto (USDT)",
   manual: "Pago manual",
-  cobrana: "Yape, Plin y bancos",
+  cobrana: "Cobrana",
 };
 
 const MIN_AMOUNT = 1;
@@ -644,7 +644,7 @@ export function AddBalanceModal({
                 {loading
                   ? "Procesando…"
                   : isCobrana
-                    ? "Generar código Yape"
+                    ? "Generar código de pago"
                     : "Confirmar depósito"}
               </Button>
             </div>
@@ -658,11 +658,11 @@ export function AddBalanceModal({
                   id="add-balance-title"
                   className="text-lg font-semibold text-[var(--foreground)]"
                 >
-                  Paga con Yape (PC o celular)
+                  Paga con Yape, Plin o tu banco
                 </h2>
                 <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
                   {resultMessage ??
-                    "La mayoría paga desde la PC mirando el código y usando Yape en el celular."}
+                    "Usa el código desde Yape, Plin o la aplicación de tu banco."}
                 </p>
               </div>
             </div>
