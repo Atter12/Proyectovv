@@ -45,7 +45,7 @@ interface CreditLockPanelProps {
   visible?: boolean;
 }
 
-const STEPS = ["Monto", "Tarjeta", "Listo"] as const;
+const QUICK_AMOUNTS = [300, 500, 700, 1000] as const;
 
 export function CreditLockPanel({
   clienteName,
@@ -54,14 +54,13 @@ export function CreditLockPanel({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [cardLoading, setCardLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [detachLoading, setDetachLoading] = useState(false);
-  const [savingCupo, setSavingCupo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodState>(null);
   const [cupo, setCupo] = useState<CupoState>(null);
-  const [amountInput, setAmountInput] = useState("700");
+  const [amountInput, setAmountInput] = useState("500");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +100,7 @@ export function CreditLockPanel({
           method: "POST",
           body: JSON.stringify({ sessionId }),
         });
-        setSuccess("¡Listo! Tu crédito ya quedó habilitado con Stripe.");
+        setSuccess("Listo. Tu crédito ya está activo.");
         router.replace("/payments");
         await load();
       } catch (err) {
@@ -118,66 +117,63 @@ export function CreditLockPanel({
     return { requested: n, recommended, headroom };
   }, [amountInput, cupo?.cardHeadroomPercent]);
 
-  const currentStep = cupo?.lockReady
-    ? 2
-    : cupo?.requestedCreditCents
-      ? 1
-      : 0;
+  const amountSaved =
+    cupo?.requestedCreditUsd != null &&
+    Math.round(cupo.requestedCreditUsd) === Math.round(Number(amountInput) || 0);
 
   if (!visible) return null;
 
-  async function handleSaveCupo() {
-    setSavingCupo(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const data = await apiClient<{ ok: boolean; cupo: CupoState }>(
-        "/api/billing/payment-method",
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            requestedCreditUsd: Number(amountInput),
-          }),
-        },
-      );
-      setCupo(data.cupo);
-      setSuccess(
-        `Perfecto. Pediste ${formatMoney(Number(amountInput), "USD")}. Siguiente: vinculá tu tarjeta Stripe.`,
-      );
-    } catch (err) {
-      setError(userErrorMessage(err, "No se pudo guardar el monto."));
-    } finally {
-      setSavingCupo(false);
-    }
+  async function saveCupo(usd: number): Promise<CupoState> {
+    const data = await apiClient<{ ok: boolean; cupo: CupoState }>(
+      "/api/billing/payment-method",
+      {
+        method: "PUT",
+        body: JSON.stringify({ requestedCreditUsd: usd }),
+      },
+    );
+    setCupo(data.cupo);
+    return data.cupo;
   }
 
-  async function handleSaveCard() {
-    if (!cupo?.requestedCreditCents) {
-      setError("Primero elegí cuánto crédito querés y guardá el monto.");
+  async function openStripe() {
+    const data = await apiClient<{ checkoutUrl: string }>(
+      "/api/billing/setup-session",
+      { method: "POST", body: JSON.stringify({}) },
+    );
+    if (!data.checkoutUrl) throw new Error("Stripe no devolvió URL.");
+    window.location.href = data.checkoutUrl;
+  }
+
+  /** Un solo flujo: guarda monto (si hace falta) y abre Stripe. */
+  async function handleContinue() {
+    const usd = Number(amountInput);
+    if (!Number.isFinite(usd) || usd < 50) {
+      setError("Elige un monto de al menos $50.");
       return;
     }
-    setCardLoading(true);
+
+    setBusy(true);
     setError(null);
     setSuccess(null);
     try {
-      const data = await apiClient<{ checkoutUrl: string }>(
-        "/api/billing/setup-session",
-        { method: "POST", body: JSON.stringify({}) },
-      );
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (!amountSaved) {
+        await saveCupo(usd);
+      }
+      if (paymentMethod?.last4) {
+        setSuccess(`Cupo actualizado a ${formatMoney(usd, "USD")}.`);
+        setBusy(false);
         return;
       }
-      throw new Error("Stripe no devolvió URL.");
+      await openStripe();
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo abrir Stripe."));
-      setCardLoading(false);
+      setError(userErrorMessage(err, "No se pudo continuar."));
+      setBusy(false);
     }
   }
 
   async function handleDetach() {
     const ok = window.confirm(
-      "¿Quitar esta tarjeta de tu cuenta? Podés volver a vincular otra cuando quieras.",
+      "¿Quitar esta tarjeta? Puedes volver a registrarla cuando quieras.",
     );
     if (!ok) return;
 
@@ -197,70 +193,57 @@ export function CreditLockPanel({
 
   const brand = paymentMethod?.brand?.toUpperCase() ?? "CARD";
   const last4 = paymentMethod?.last4 ?? "••••";
+  const step = cupo?.lockReady ? 2 : cupo?.requestedCreditCents ? 1 : 0;
 
   return (
     <section
       className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
       aria-label={`Crédito para ${clienteName}`}
     >
-      <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 pb-5 pt-5 sm:px-6">
+      <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 py-5 sm:px-6">
         <div className="flex items-center gap-3">
           <GatewayLogo gatewayId="stripe" size="sm" />
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-[#1c1917]">
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold text-[#1c1917]">
               Crédito Holistic
             </p>
-            <p className="mt-0.5 truncate text-[11px] text-[#6f675f]">
-              Solo con tarjeta Stripe · Visa / Mastercard
+            <p className="mt-0.5 text-[11px] text-[#6f675f]">
+              Solo con Stripe · Visa / Mastercard
             </p>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             <PaymentAppIcon app="visa" size="sm" />
             <PaymentAppIcon app="mastercard" size="sm" />
           </div>
         </div>
 
-        <div className="mt-5 max-w-[38rem]">
-          <h2 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[#171412]">
-            ¿Deseas tener crédito?
-          </h2>
-          <p className="mt-1.5 max-w-[62ch] text-[13px] leading-5 text-[#625b54]">
-            Gastá primero, pagá el ciclo después. Para activarlo solo necesitás
-            una tarjeta Stripe — Yape y BCP siguen para abonar en soles cuando
-            toque cobranza.
-          </p>
-        </div>
+        <h2 className="mt-5 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171412]">
+          ¿Quieres tener crédito?
+        </h2>
+        <p className="mt-1.5 max-w-[40rem] text-[13px] leading-5 text-[#625b54]">
+          Gasta ahora y paga el ciclo después. Actívalo con una tarjeta Stripe.
+          Yape o BCP los usas luego para pagar en soles.
+        </p>
 
-        <ol
-          className="mt-5 grid grid-cols-3 gap-2"
-          aria-label="Progreso del crédito"
-        >
-          {STEPS.map((step, index) => {
-            const reached = index <= currentStep;
-            const current = index === currentStep;
-            return (
-              <li key={step} aria-current={current ? "step" : undefined}>
-                <span
-                  className={cn(
-                    "block h-1 rounded-full transition-colors",
-                    reached ? "bg-[#ff781f]" : "bg-[#e5ddd5]",
-                  )}
-                />
-                <span
-                  className={cn(
-                    "mt-1.5 block text-[10px] font-semibold",
-                    current
-                      ? "text-[#1c1917]"
-                      : reached
-                        ? "text-[#c65113]"
-                        : "text-[#8a8177]",
-                  )}
-                >
-                  {step}
-                </span>
-              </li>
-            );
-          })}
+        <ol className="mt-4 grid grid-cols-3 gap-2" aria-label="Pasos">
+          {(["1. Monto", "2. Tarjeta", "3. Listo"] as const).map((label, i) => (
+            <li key={label}>
+              <span
+                className={cn(
+                  "block h-1 rounded-full",
+                  i <= step ? "bg-[#ff781f]" : "bg-[#e5ddd5]",
+                )}
+              />
+              <span
+                className={cn(
+                  "mt-1.5 block text-[10px] font-semibold",
+                  i === step ? "text-[#1c1917]" : "text-[#8a8177]",
+                )}
+              >
+                {label}
+              </span>
+            </li>
+          ))}
         </ol>
       </header>
 
@@ -269,174 +252,137 @@ export function CreditLockPanel({
           <p className="text-[13px] text-[#6f675f]">Cargando…</p>
         ) : (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
-              <div className="border-b border-[#e4ddd6] px-4 py-4 sm:px-5">
-                <p className="text-[11px] font-medium text-[#6f675f]">
-                  ¿Cuánto crédito querés?
+            <div>
+              <p className="text-[13px] font-semibold text-[#1c1917]">
+                ¿Cuánto necesitas?
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {QUICK_AMOUNTS.map((amount) => {
+                  const selected = Number(amountInput) === amount;
+                  return (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setAmountInput(String(amount))}
+                      className={cn(
+                        "h-10 rounded-xl border px-3.5 text-[13px] font-semibold tabular-nums transition-colors",
+                        selected
+                          ? "border-[#ff781f] bg-[#fff4eb] text-[#c65113]"
+                          : "border-[#e7dfd7] bg-white text-[#1c1917] hover:border-[#ff781f]/50",
+                      )}
+                    >
+                      ${amount}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="mt-3 block">
+                <span className="text-[11px] font-medium text-[#6f675f]">
+                  Otro monto (USD)
+                </span>
+                <Input
+                  type="number"
+                  min={50}
+                  max={50000}
+                  step={50}
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  className="mt-1 h-11 rounded-xl border-[#ddd4cb] bg-[#f7f5f2] text-[1.05rem] font-semibold tabular-nums"
+                />
+              </label>
+            </div>
+
+            {preview ? (
+              <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
+                <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] px-4 py-3.5 text-sm">
+                  <div className="pr-3">
+                    <p className="text-[10px] text-[#6f675f]">Vas a pedir</p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
+                      {formatMoney(preview.requested, "USD")}
+                    </p>
+                  </div>
+                  <div className="pl-3">
+                    <p className="text-[10px] text-[#6f675f]">
+                      Ideal en tu tarjeta
+                    </p>
+                    <p className="mt-0.5 font-semibold tabular-nums text-[#c65113]">
+                      {formatMoney(preview.recommended, "USD")}+
+                    </p>
+                  </div>
+                </div>
+                <p className="border-t border-[#e4ddd6] px-4 py-2.5 text-[11px] leading-4 text-[#6f675f]">
+                  Si pides {formatMoney(preview.requested, "USD")}, conviene
+                  tener al menos {formatMoney(preview.recommended, "USD")} en la
+                  tarjeta (+{preview.headroom}%).
                 </p>
-                <div className="mt-2 flex flex-wrap items-end gap-3">
-                  <label className="block min-w-[9rem] flex-1 space-y-1">
-                    <span className="sr-only">Monto USD</span>
-                    <Input
-                      type="number"
-                      min={50}
-                      max={50000}
-                      step={50}
-                      value={amountInput}
-                      onChange={(e) => setAmountInput(e.target.value)}
-                      placeholder="700"
-                      className="h-11 rounded-xl border-[#ddd4cb] bg-white text-[1.1rem] font-semibold tabular-nums"
-                    />
-                  </label>
+              </div>
+            ) : null}
+
+            {paymentMethod?.last4 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e7dfd7] px-4 py-3.5">
+                <div>
+                  <p className="text-[11px] text-[#6f675f]">Tarjeta registrada</p>
+                  <p className="text-[14px] font-semibold text-[#1c1917]">
+                    {brand} ···· {last4}
+                    {paymentMethod.expMonth && paymentMethod.expYear
+                      ? ` · ${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    disabled={savingCupo}
-                    onClick={() => void handleSaveCupo()}
-                    className="h-11 rounded-xl px-4"
+                    disabled={busy}
+                    onClick={() => void handleContinue()}
+                    className="h-10 rounded-xl"
                   >
-                    {savingCupo ? "Guardando…" : "Guardar monto"}
+                    {busy ? "…" : "Actualizar cupo"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={detachLoading}
+                    onClick={() => void handleDetach()}
+                    className="h-10 rounded-xl"
+                  >
+                    Quitar
                   </Button>
                 </div>
-                <p className="mt-2 text-[11px] leading-4 text-[#6f675f]">
-                  Ejemplos: 300 · 500 · 700 · 1000 USD. El equipo confirma según
-                  historial.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] px-4 py-4 text-sm sm:px-5">
-                <div className="pr-4">
-                  <p className="text-[10px] text-[#6f675f]">Cupo pedido</p>
-                  <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
-                    {preview
-                      ? formatMoney(preview.requested, "USD")
-                      : cupo?.requestedCreditUsd != null
-                        ? formatMoney(cupo.requestedCreditUsd, "USD")
-                        : "—"}
-                  </p>
-                </div>
-                <div className="pl-4">
-                  <p className="text-[10px] text-[#6f675f]">
-                    Conviene en tarjeta
-                  </p>
-                  <p className="mt-0.5 font-semibold tabular-nums text-[#c65113]">
-                    {preview
-                      ? `${formatMoney(preview.recommended, "USD")}+`
-                      : cupo?.recommendedCardUsd != null
-                        ? `${formatMoney(cupo.recommendedCardUsd, "USD")}+`
-                        : "—"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {preview ? (
-              <p className="text-[12px] leading-5 text-[#625b54]">
-                Si pedís{" "}
-                <strong className="text-[#1c1917]">
-                  {formatMoney(preview.requested, "USD")}
-                </strong>
-                , en la tarjeta conviene tener al menos{" "}
-                <strong className="text-[#1c1917]">
-                  {formatMoney(preview.recommended, "USD")}
-                </strong>{" "}
-                (+{preview.headroom}% de margen).
-              </p>
-            ) : null}
-
-            <div className="overflow-hidden rounded-2xl border border-[#e7dfd7] bg-white">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-[#6f675f]">
-                    Candado Stripe
-                  </p>
-                  {paymentMethod?.last4 ? (
-                    <p className="mt-0.5 text-[15px] font-semibold text-[#1c1917]">
-                      {brand} ···· {last4}
-                      {paymentMethod.expMonth && paymentMethod.expYear
-                        ? ` · ${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
-                        : ""}
-                    </p>
-                  ) : (
-                    <p className="mt-0.5 text-[15px] font-semibold text-[#1c1917]">
-                      Todavía no hay tarjeta
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {paymentMethod?.last4 ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={cardLoading}
-                        onClick={() => void handleSaveCard()}
-                        className="h-10 rounded-xl"
-                      >
-                        {cardLoading ? "Abriendo…" : "Cambiar"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={detachLoading}
-                        onClick={() => void handleDetach()}
-                        className="h-10 rounded-xl"
-                      >
-                        {detachLoading ? "…" : "Quitar"}
-                      </Button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={cardLoading || !cupo?.requestedCreditCents}
-                      onClick={() => void handleSaveCard()}
-                      className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {cardLoading
-                        ? "Abriendo Stripe…"
-                        : "Sí, quiero crédito → vincular tarjeta"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {cupo?.lockReady ? (
-              <div
-                className="flex items-center gap-2 rounded-xl bg-[#f0faf4] px-3.5 py-3 text-[12px] font-medium text-[#0f6b3c]"
-                role="status"
-              >
-                <span className="h-2 w-2 shrink-0 rounded-full bg-[#16a34a]" />
-                Crédito activo: cupo + tarjeta listos para fondear.
-              </div>
-            ) : cupo?.requestedCreditCents && !paymentMethod?.last4 ? (
-              <div
-                className="flex items-center gap-2 rounded-xl bg-[#fff4eb] px-3.5 py-3 text-[12px] font-medium text-[#c65113]"
-                role="status"
-              >
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#ff781f]" />
-                Un paso más: vinculá Stripe y listo el crédito.
               </div>
             ) : (
-              <div className="rounded-xl bg-[#fbf7fc] px-3.5 py-3 text-[12px] leading-5 text-[#5f0b72]">
-                <strong>Tip:</strong> el crédito no se paga con Yape al
-                activarlo. Yape/BCP son para el ciclo en soles; Stripe es solo el
-                candado.
-              </div>
+              <button
+                type="button"
+                disabled={busy || !preview}
+                onClick={() => void handleContinue()}
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? "Abriendo Stripe…" : "Continuar con Stripe"}
+              </button>
             )}
+
+            {cupo?.lockReady ? (
+              <p className="rounded-xl bg-[#f0faf4] px-3.5 py-3 text-[12px] font-medium text-[#0f6b3c]">
+                Crédito activo. Ya puedes usar tu cupo.
+              </p>
+            ) : !paymentMethod?.last4 ? (
+              <p className="text-[12px] leading-5 text-[#6f675f]">
+                Un solo paso: elige el monto y registra tu tarjeta. El equipo
+                confirma según tu historial.
+              </p>
+            ) : null}
           </div>
         )}
 
         {error ? (
-          <p className="mt-4 text-[13px] text-red-700" role="alert">
+          <p className="mt-3 text-[13px] text-red-700" role="alert">
             {error}
           </p>
         ) : null}
         {success ? (
-          <p className="mt-4 text-[13px] text-emerald-800" role="status">
+          <p className="mt-3 text-[13px] text-emerald-800" role="status">
             {success}
           </p>
         ) : null}
