@@ -10,6 +10,8 @@ import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import {
   formatFeePercentLabel,
   depositFromDesiredCredit,
+  effectiveDepositFeePercent,
+  DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 } from "@/lib/payments/deposit-fee";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 import type { PaymentGatewayId } from "@/types/payment";
@@ -27,8 +29,10 @@ interface AddBalanceModalProps {
   open: boolean;
   onClose: () => void;
   selectedGateway?: PaymentGatewayId;
-  /** Fee % Hecom (tiktok_default_fee / cuenta). */
+  /** Fee % Hecom (tiktok_default_fee / cuenta). Sin surcharge Stripe. */
   feePercent?: number;
+  /** Recargo pasarela Stripe (default 3). Solo si gateway = stripe. */
+  stripeSurchargePercent?: number;
 }
 
 type CobranaDeeplink = { key: string; label: string; url: string };
@@ -93,6 +97,7 @@ export function AddBalanceModal({
   onClose,
   selectedGateway = "stripe",
   feePercent = 10,
+  stripeSurchargePercent = DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 }: AddBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -114,6 +119,13 @@ export function AddBalanceModal({
   const [paidConfirmed, setPaidConfirmed] = useState(false);
 
   const isCobrana = selectedGateway === "cobrana";
+  const isStripe = selectedGateway === "stripe";
+  const stripeExtra = isStripe ? Math.max(0, stripeSurchargePercent) : 0;
+  const chargeFeePercent = effectiveDepositFeePercent({
+    holisticFeePercent: feePercent,
+    provider: selectedGateway,
+    stripeSurchargePercent: stripeExtra,
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -212,19 +224,24 @@ export function AddBalanceModal({
 
   const feePreview = useMemo(() => {
     if (!isValidAmount) return null;
-    return depositFromDesiredCredit(Math.round(parsedAmount * 100), feePercent);
-  }, [feePercent, isValidAmount, parsedAmount]);
+    return depositFromDesiredCredit(
+      Math.round(parsedAmount * 100),
+      chargeFeePercent,
+    );
+  }, [chargeFeePercent, isValidAmount, parsedAmount]);
 
   const penPreview = useMemo(() => {
     if (!isCobrana || !isValidAmount) return null;
     const creditPenCents = Math.round(parsedAmount * fxRate * 100);
-    const grossPenCents = Math.round(creditPenCents * (1 + feePercent / 100));
+    const grossPenCents = Math.round(
+      creditPenCents * (1 + chargeFeePercent / 100),
+    );
     return {
       creditPenCents,
-      feePenCents: grossPenCents - creditPenCents,
+      feePenCents: Math.max(0, grossPenCents - creditPenCents),
       grossPenCents,
     };
-  }, [feePercent, fxRate, isCobrana, isValidAmount, parsedAmount]);
+  }, [chargeFeePercent, fxRate, isCobrana, isValidAmount, parsedAmount]);
 
   function handleClose() {
     setStep("form");
@@ -290,7 +307,7 @@ export function AddBalanceModal({
             ? formatMoney(feePreview.grossCents / 100)
             : formatMoney(parsedAmount);
       const defaultMessage = data.paymentIntent.providerConfigured
-        ? `Intención creada. Querés ${formatMoney(parsedAmount)} en cartera; se cobra ${chargeLabel} (fee ${formatFeePercentLabel(feePercent)}).`
+        ? `Intención creada. Querés ${formatMoney(parsedAmount)} en cartera; se cobra ${chargeLabel} (fee ${formatFeePercentLabel(chargeFeePercent)}).`
         : "La pasarela aún no está configurada. Se registró una intención pendiente.";
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
@@ -383,10 +400,16 @@ export function AddBalanceModal({
             </h2>
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               Indicá cuánto querés en cartera. El fee Holistic (
-              {formatFeePercentLabel(feePercent)}) se suma
+              {formatFeePercentLabel(feePercent)})
+              {isStripe
+                ? ` + fee pasarela Stripe (${formatFeePercentLabel(stripeExtra)})`
+                : ""}{" "}
+              se suma
               {isCobrana
                 ? " y se cobra en soles vía Yape."
-                : " y eso es lo que se cobra."}
+                : isStripe
+                  ? ". Si preferís no pagar fee de tarjeta, usá transferencia BCP o Yape."
+                  : " y eso es lo que se cobra."}
             </p>
 
             <div className="mt-5 space-y-4">
@@ -432,9 +455,20 @@ export function AddBalanceModal({
                     <span className="font-medium text-[var(--foreground)]">
                       {isCobrana && penPreview
                         ? formatPenAmount(penPreview.feePenCents)
-                        : formatMoney(feePreview.feeCents / 100)}
+                        : formatMoney((parsedAmount * feePercent) / 100)}
                     </span>
                   </div>
+                  {isStripe && stripeExtra > 0 ? (
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="text-[var(--admin-text-muted,#64748b)]">
+                        Fee Stripe pasarela (
+                        {formatFeePercentLabel(stripeExtra)})
+                      </span>
+                      <span className="font-medium text-[var(--foreground)]">
+                        {formatMoney((parsedAmount * stripeExtra) / 100)}
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-2">
                     <span className="font-medium text-[var(--foreground)]">
                       Se cobra
@@ -448,7 +482,9 @@ export function AddBalanceModal({
                   <p className="mt-2 text-[11px] leading-4 text-[var(--admin-text-muted,#64748b)]">
                     {isCobrana
                       ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitás DNI en Hecom CRM.`
-                      : "Ej.: querés $100 con fee 10% → se cobran $110."}
+                      : isStripe
+                        ? `Total fee ${formatFeePercentLabel(chargeFeePercent)} (Holistic + pasarela). Transferencia no lleva el +${formatFeePercentLabel(stripeExtra)}.`
+                        : "Ej.: querés $100 con fee 10% → se cobran $110."}
                   </p>
                 </div>
               ) : null}
@@ -514,7 +550,9 @@ export function AddBalanceModal({
             <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
               {isCobrana
                 ? "Se acredita el monto en USD; cobrás el equivalente en soles por Yape."
-                : "Se acredita el monto pedido; Stripe cobra ese monto + fee Hecom."}
+                : isStripe
+                  ? "Se acredita el monto pedido. Fee Holistic + fee pasarela Stripe (aparte)."
+                  : "Se acredita el monto pedido; se cobra ese monto + fee Hecom."}
             </p>
             <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
               <div>
@@ -527,16 +565,30 @@ export function AddBalanceModal({
               </div>
               <div>
                 <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
-                  Fee ({formatFeePercentLabel(feePercent)})
+                  {isStripe
+                    ? `Fee Holistic (${formatFeePercentLabel(feePercent)})`
+                    : `Fee (${formatFeePercentLabel(chargeFeePercent)})`}
                 </dt>
                 <dd className="font-medium text-[var(--foreground)]">
-                  {isCobrana && penPreview
-                    ? formatPenAmount(penPreview.feePenCents)
-                    : feePreview
-                      ? formatMoney(feePreview.feeCents / 100)
-                      : "—"}
+                  {isStripe
+                    ? formatMoney((parsedAmount * feePercent) / 100)
+                    : isCobrana && penPreview
+                      ? formatPenAmount(penPreview.feePenCents)
+                      : feePreview
+                        ? formatMoney(feePreview.feeCents / 100)
+                        : "—"}
                 </dd>
               </div>
+              {isStripe && stripeExtra > 0 ? (
+                <div>
+                  <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                    Fee Stripe pasarela ({formatFeePercentLabel(stripeExtra)})
+                  </dt>
+                  <dd className="font-medium text-[var(--foreground)]">
+                    {formatMoney((parsedAmount * stripeExtra) / 100)}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
                   Se cobra

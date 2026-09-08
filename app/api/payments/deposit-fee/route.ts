@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getDepositFeePreviewForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
-import { depositFromDesiredCredit } from "@/lib/payments/deposit-fee";
+import {
+  depositFromDesiredCredit,
+  effectiveDepositFeePercent,
+  normalizeStripeSurchargePercent,
+} from "@/lib/payments/deposit-fee";
+import { serverEnv } from "@/lib/env/env.server";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -21,20 +26,33 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const amountRaw = url.searchParams.get("amount");
   const amount = amountRaw != null ? Number(amountRaw) : null;
+  const provider = (url.searchParams.get("provider") ?? "manual").toLowerCase();
 
   const preview = await getDepositFeePreviewForSession({
     userId: session.id,
   });
 
+  const stripeSurchargePercent = normalizeStripeSurchargePercent(
+    serverEnv.stripeDepositSurchargePercent,
+  );
+  const feePercent = effectiveDepositFeePercent({
+    holisticFeePercent: preview.feePercent,
+    provider,
+    stripeSurchargePercent,
+  });
+
   // `amount` = neto deseado en cartera.
   const breakdown =
     amount != null && Number.isFinite(amount) && amount > 0
-      ? depositFromDesiredCredit(Math.round(amount * 100), preview.feePercent)
+      ? depositFromDesiredCredit(Math.round(amount * 100), feePercent)
       : null;
 
   return NextResponse.json({
     ok: true,
-    feePercent: preview.feePercent,
+    feePercent,
+    feeHolisticPercent: preview.feePercent,
+    stripeSurchargePercent:
+      provider === "stripe" ? stripeSurchargePercent : 0,
     feeSource: preview.feeSource,
     hecomClienteId: preview.hecomClienteId,
     hecomClienteName: preview.hecomClienteName,

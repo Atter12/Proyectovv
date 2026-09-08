@@ -22,6 +22,11 @@ import {
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
+  depositFromDesiredCredit,
+  effectiveDepositFeePercent,
+  normalizeStripeSurchargePercent,
+} from "@/lib/payments/deposit-fee";
+import {
   buildManualDepositQuote,
   resolveUsdPenRateForQuote,
   type ManualChargeCurrency,
@@ -101,11 +106,27 @@ export async function createPaymentIntentForSession(
     throw new ProviderNotConfiguredError(provider);
   }
 
-  const fee = await resolveDepositFeeForSession({
+  const feeBase = await resolveDepositFeeForSession({
     userId: session.id,
     creditCents,
     hecomClienteId: input.hecomClienteId,
   });
+
+  const stripeSurchargePercent =
+    provider === "stripe"
+      ? normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent)
+      : 0;
+  const feePercent = effectiveDepositFeePercent({
+    holisticFeePercent: feeBase.feePercent,
+    provider,
+    stripeSurchargePercent,
+  });
+  const feeSplit = depositFromDesiredCredit(creditCents, feePercent);
+  const fee = {
+    ...feeBase,
+    ...feeSplit,
+    feePercent,
+  };
 
   const isCobrana = provider === "cobrana";
   const chargeCurrency: ManualChargeCurrency =
@@ -208,6 +229,8 @@ export async function createPaymentIntentForSession(
       hecom_cliente_id: fee.hecomClienteId,
       hecom_cliente_name: fee.hecomClienteName,
       fee_percent: fee.feePercent,
+      fee_holistic_percent: feeBase.feePercent,
+      fee_stripe_surcharge_percent: stripeSurchargePercent,
       fee_source: fee.feeSource,
       fee_amount_cents: fee.feeCents,
       credit_amount_cents: fee.creditCents,

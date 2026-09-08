@@ -112,6 +112,14 @@ export const serverEnv = {
   paymentsAllowSandboxSuccess: parseBoolean(process.env.PAYMENTS_ALLOW_SANDBOX_SUCCESS),
 
   /**
+   * Recargo % solo Stripe (pasarela / fee tarjeta), sumado al fee Holistic.
+   * Default 3. Transferencia BCP / Yape no lo incluyen.
+   */
+  stripeDepositSurchargePercent: Number.parseFloat(
+    process.env.STRIPE_DEPOSIT_SURCHARGE_PERCENT ?? "3",
+  ),
+
+  /**
    * Fallback TC USD→PEN (1 USD = X PEN) si SBS/BCRP falla o FX_RATE_SOURCE=manual.
    * Se congela en el intent al cotizar.
    */

@@ -4,6 +4,9 @@
  * UX: el cliente indica cuánto quiere en cartera (neto).
  * Ejemplo fee 10%: quiere $100 → se cobra $110 → acredita $100
  *   gross = credit * (1 + fee/100)
+ *
+ * Stripe: fee Holistic + surcharge de pasarela (default +3%), aparte.
+ * Transferencia / Yape: solo fee Holistic.
  */
 
 export type DepositFeeBreakdown = {
@@ -19,6 +22,12 @@ export type DepositFeeBreakdown = {
 export const DEFAULT_DEPOSIT_FEE_PERCENT = 10;
 
 /**
+ * Recargo Stripe (pasarela / fee tarjeta). No aplica a BCP ni Yape.
+ * Override server: STRIPE_DEPOSIT_SURCHARGE_PERCENT
+ */
+export const DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT = 3;
+
+/**
  * Normaliza el % Hecom.
  * Acepta 10 o "10"; si viniera 0.1 (fracción), lo convierte a 10.
  */
@@ -29,6 +38,29 @@ export function normalizeFeePercent(raw: number | null | undefined): number | nu
     return Math.round(raw * 10000) / 100;
   }
   return Math.round(raw * 100) / 100;
+}
+
+export function normalizeStripeSurchargePercent(
+  raw: number | null | undefined,
+): number {
+  if (raw == null || !Number.isFinite(raw) || raw < 0) {
+    return DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT;
+  }
+  return Math.round(raw * 100) / 100;
+}
+
+/** Fee total a cobrar según pasarela (Holistic + surcharge Stripe si aplica). */
+export function effectiveDepositFeePercent(input: {
+  holisticFeePercent: number;
+  provider: string;
+  stripeSurchargePercent?: number;
+}): number {
+  const base = Math.max(0, input.holisticFeePercent);
+  if (input.provider !== "stripe") return base;
+  const surcharge = normalizeStripeSurchargePercent(
+    input.stripeSurchargePercent,
+  );
+  return Math.round((base + surcharge) * 100) / 100;
 }
 
 /**
