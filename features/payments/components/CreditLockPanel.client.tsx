@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
@@ -24,16 +25,20 @@ type PaymentMethodState = {
   expYear: number | null;
 } | null;
 
-type DebtState = {
-  saldoEstimado: number;
-  debtUsd: number;
-  debtCents: number;
-  chargeable: boolean;
+type CupoState = {
+  requestedCreditCents: number | null;
+  requestedCreditUsd: number | null;
+  cardHeadroomPercent: number;
+  recommendedCardCents: number | null;
+  recommendedCardUsd: number | null;
+  softCapPercent: number;
+  requireCard: boolean;
+  hasCard: boolean;
+  lockReady: boolean;
 } | null;
 
 interface CreditLockPanelProps {
   clienteName: string;
-  /** Solo visible para modalidad crédito; el padre controla el mount. */
   visible?: boolean;
 }
 
@@ -46,10 +51,12 @@ export function CreditLockPanel({
   const [loading, setLoading] = useState(true);
   const [cardLoading, setCardLoading] = useState(false);
   const [detachLoading, setDetachLoading] = useState(false);
+  const [savingCupo, setSavingCupo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodState>(null);
-  const [debt, setDebt] = useState<DebtState>(null);
+  const [cupo, setCupo] = useState<CupoState>(null);
+  const [amountInput, setAmountInput] = useState("700");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,10 +65,13 @@ export function CreditLockPanel({
       const data = await apiClient<{
         ok: boolean;
         paymentMethod: PaymentMethodState;
-        debt: DebtState;
+        cupo: CupoState;
       }>("/api/billing/payment-method");
       setPaymentMethod(data.paymentMethod);
-      setDebt(data.debt);
+      setCupo(data.cupo);
+      if (data.cupo?.requestedCreditUsd != null) {
+        setAmountInput(String(Math.round(data.cupo.requestedCreditUsd)));
+      }
     } catch (err) {
       setError(userErrorMessage(err, "No se pudo cargar el candado Stripe."));
     } finally {
@@ -86,7 +96,7 @@ export function CreditLockPanel({
           method: "POST",
           body: JSON.stringify({ sessionId }),
         });
-        setSuccess("Tarjeta guardada. El cupo crédito queda con candado Stripe.");
+        setSuccess("Tarjeta Stripe guardada. El crédito queda habilitado con candado.");
         router.replace("/payments");
         await load();
       } catch (err) {
@@ -95,9 +105,46 @@ export function CreditLockPanel({
     })();
   }, [searchParams, router, load, visible]);
 
+  const preview = useMemo(() => {
+    const n = Number(amountInput);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const headroom = cupo?.cardHeadroomPercent ?? 15;
+    const recommended = Math.ceil(n * (1 + headroom / 100));
+    return { requested: n, recommended, headroom };
+  }, [amountInput, cupo?.cardHeadroomPercent]);
+
   if (!visible) return null;
 
+  async function handleSaveCupo() {
+    setSavingCupo(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const data = await apiClient<{ ok: boolean; cupo: CupoState }>(
+        "/api/billing/payment-method",
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            requestedCreditUsd: Number(amountInput),
+          }),
+        },
+      );
+      setCupo(data.cupo);
+      setSuccess(
+        `Cupo registrado: ${formatMoney(Number(amountInput), "USD")}. En la tarjeta conviene tener al menos ${formatMoney(data.cupo?.recommendedCardUsd ?? 0, "USD")}.`,
+      );
+    } catch (err) {
+      setError(userErrorMessage(err, "No se pudo guardar el monto de crédito."));
+    } finally {
+      setSavingCupo(false);
+    }
+  }
+
   async function handleSaveCard() {
+    if (!cupo?.requestedCreditCents) {
+      setError("Primero indicá cuánto crédito pedís (USD) y guardá el monto.");
+      return;
+    }
     setCardLoading(true);
     setError(null);
     setSuccess(null);
@@ -118,13 +165,8 @@ export function CreditLockPanel({
   }
 
   async function handleDetach() {
-    const debtLabel = debt?.chargeable
-      ? formatMoney(debt.debtUsd, "USD")
-      : null;
     const ok = window.confirm(
-      debtLabel
-        ? `Al quitar la tarjeta se cobrará ${debtLabel} (deuda Hecom viva) con Stripe. Si el cobro falla, la tarjeta sigue vinculada. ¿Continuar?`
-        : "¿Quitar la tarjeta guardada? Sin deuda viva no se cobra nada.",
+      "¿Quitar esta tarjeta de tu cuenta? Podés volver a vincular otra cuando quieras.",
     );
     if (!ok) return;
 
@@ -132,17 +174,8 @@ export function CreditLockPanel({
     setError(null);
     setSuccess(null);
     try {
-      const data = await apiClient<{
-        ok: boolean;
-        chargedCents: number;
-      }>("/api/billing/payment-method", { method: "DELETE" });
-      if (data.chargedCents > 0) {
-        setSuccess(
-          `Cobramos ${formatMoney(data.chargedCents / 100, "USD")} y quitamos la tarjeta.`,
-        );
-      } else {
-        setSuccess("Tarjeta quitada.");
-      }
+      await apiClient("/api/billing/payment-method", { method: "DELETE" });
+      setSuccess("Tarjeta quitada.");
       await load();
     } catch (err) {
       setError(userErrorMessage(err, "No se pudo quitar la tarjeta."));
@@ -162,30 +195,30 @@ export function CreditLockPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-900/70">
-            Candado crédito
+            Crédito · solo Stripe
           </p>
           <h2 className="text-[16px] font-semibold text-[var(--auth-text)]">
-            Tarjeta Stripe anti-vivo
+            Habilitar crédito con tarjeta
           </h2>
           <p className="max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-            Guardá una tarjeta para el cupo. Si la quitás con deuda Hecom, cobramos
-            lo gastado. El ciclo en soles sigue por Yape/BCP.
+            El cupo crédito se habilita <strong>solo con tarjeta Stripe</strong>{" "}
+            (candado). Yape / BCP sirven para pagar el ciclo en soles, no
+            reemplazan la tarjeta.
           </p>
         </div>
-        {debt != null ? (
+        {cupo?.requestedCreditUsd != null ? (
           <div className="rounded-xl bg-white/70 px-3 py-2 text-right ring-1 ring-amber-200/60">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-900/60">
-              Deuda viva
+              Cupo pedido
             </p>
-            <p
-              className={`text-[15px] font-semibold tabular-nums ${
-                debt.debtCents > 0 ? "text-amber-950" : "text-emerald-800"
-              }`}
-            >
-              {debt.debtCents > 0
-                ? formatMoney(debt.debtUsd, "USD")
-                : "Al día"}
+            <p className="text-[15px] font-semibold tabular-nums text-amber-950">
+              {formatMoney(cupo.requestedCreditUsd, "USD")}
             </p>
+            {cupo.recommendedCardUsd != null ? (
+              <p className="mt-0.5 text-[11px] text-amber-900/70">
+                Tarjeta ≈ {formatMoney(cupo.recommendedCardUsd, "USD")}+
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -195,44 +228,98 @@ export function CreditLockPanel({
           Cargando…
         </p>
       ) : (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {paymentMethod?.last4 ? (
-            <>
-              <p className="text-[13px] font-medium text-[var(--auth-text)]">
-                {brand} ···· {last4}
-                {paymentMethod.expMonth && paymentMethod.expYear
-                  ? ` · ${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
-                  : ""}
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={cardLoading}
-                onClick={() => void handleSaveCard()}
-              >
-                {cardLoading ? "Abriendo…" : "Cambiar tarjeta"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={detachLoading}
-                onClick={() => void handleDetach()}
-              >
-                {detachLoading ? "Procesando…" : "Quitar tarjeta"}
-              </Button>
-            </>
-          ) : (
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block min-w-[10rem] flex-1 space-y-1.5">
+              <span className="text-[12px] font-medium text-[var(--auth-text-muted)]">
+                Monto de crédito (USD)
+              </span>
+              <Input
+                type="number"
+                min={50}
+                max={50000}
+                step={50}
+                value={amountInput}
+                onChange={(e) => setAmountInput(e.target.value)}
+                placeholder="700"
+              />
+            </label>
             <Button
               type="button"
+              variant="secondary"
               size="sm"
-              disabled={cardLoading}
-              onClick={() => void handleSaveCard()}
+              disabled={savingCupo}
+              onClick={() => void handleSaveCupo()}
             >
-              {cardLoading ? "Abriendo Stripe…" : "Guardar tarjeta (candado)"}
+              {savingCupo ? "Guardando…" : "Guardar monto"}
             </Button>
-          )}
+          </div>
+
+          {preview ? (
+            <p className="text-[13px] leading-5 text-[var(--auth-text-muted)]">
+              Pedís{" "}
+              <span className="font-semibold text-[var(--auth-text)]">
+                {formatMoney(preview.requested, "USD")}
+              </span>
+              . En la tarjeta conviene tener al menos{" "}
+              <span className="font-semibold text-[var(--auth-text)]">
+                {formatMoney(preview.recommended, "USD")}
+              </span>{" "}
+              (+{preview.headroom}% de margen).
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-3">
+            {paymentMethod?.last4 ? (
+              <>
+                <p className="text-[13px] font-medium text-[var(--auth-text)]">
+                  {brand} ···· {last4}
+                  {paymentMethod.expMonth && paymentMethod.expYear
+                    ? ` · ${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
+                    : ""}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={cardLoading}
+                  onClick={() => void handleSaveCard()}
+                >
+                  {cardLoading ? "Abriendo…" : "Cambiar tarjeta"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={detachLoading}
+                  onClick={() => void handleDetach()}
+                >
+                  {detachLoading ? "Procesando…" : "Quitar tarjeta"}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                disabled={cardLoading || !cupo?.requestedCreditCents}
+                onClick={() => void handleSaveCard()}
+              >
+                {cardLoading
+                  ? "Abriendo Stripe…"
+                  : "Guardar tarjeta Stripe (obligatorio)"}
+              </Button>
+            )}
+          </div>
+
+          {cupo?.lockReady ? (
+            <p className="text-[12px] text-emerald-800">
+              Listo: cupo + tarjeta Stripe. Ya se puede fondear dentro del tope.
+            </p>
+          ) : cupo?.requestedCreditCents && !paymentMethod?.last4 ? (
+            <p className="text-[12px] text-amber-900">
+              Falta vincular la tarjeta Stripe para activar el crédito.
+            </p>
+          ) : null}
         </div>
       )}
 

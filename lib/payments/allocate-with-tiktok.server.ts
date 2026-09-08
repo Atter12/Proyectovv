@@ -183,6 +183,18 @@ export async function allocateWithOptionalTikTokFunding(
     );
   }
 
+  const hecomClienteId = isRecord(account.metadata)
+    ? String(account.metadata.hecom_cliente_id ?? "").trim() || null
+    : null;
+  const { assertCreditLockAllowsAllocate } = await import(
+    "@/lib/payments/credit-lock/credit-lock.server"
+  );
+  await assertCreditLockAllowsAllocate({
+    organizationId: input.organizationId,
+    hecomClienteId,
+    amountCents: input.amountCents,
+  });
+
   const idempotencyKey =
     input.idempotencyKey ??
     `allocation:${input.organizationId}:${input.adAccountId}:${input.amountCents}:${randomUUID()}`;

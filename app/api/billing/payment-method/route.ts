@@ -8,6 +8,7 @@ import {
 import {
   detachCreditLockPaymentMethod,
   getCreditLockState,
+  saveCreditLockCupo,
 } from "@/lib/payments/credit-lock/credit-lock.server";
 import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
 import {
@@ -73,6 +74,60 @@ export async function GET() {
   }
 }
 
+export async function PUT(request: Request) {
+  const session = await getSession();
+  if (!session?.organizationId) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
+  if (!capabilities.canClientStripeFund) {
+    return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
+  }
+  if (
+    !hasPermission(session.permissions, "wallet:deposit") &&
+    !hasPermission(session.permissions, "payments:create")
+  ) {
+    return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
+  }
+
+  let body: { requestedCreditUsd?: number };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+  }
+
+  try {
+    const { organizationId, hecomClienteId } =
+      await resolveClientWalletOrg(session);
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: "Organización no disponible." },
+        { status: 400 },
+      );
+    }
+
+    const cupo = await saveCreditLockCupo({
+      organizationId,
+      hecomClienteId,
+      requestedCreditUsd: Number(body.requestedCreditUsd),
+    });
+    return NextResponse.json({ ok: true, cupo });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No se pudo guardar el cupo.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
 export async function DELETE() {
   const session = await getSession();
   if (!session?.organizationId) {
@@ -119,20 +174,21 @@ export async function DELETE() {
       userId: session.id,
     });
 
+    // No revelar chargedCents al cliente (cobro al detach es interno).
     return NextResponse.json({
       ok: true,
       detached: result.detached,
-      chargedCents: result.chargedCents,
-      paymentIntentId: result.paymentIntentId ?? null,
     });
   } catch (error) {
     const message =
       error instanceof Error
         ? error.message
         : "No se pudo quitar la tarjeta.";
-    return NextResponse.json(
-      { error: formatStripeErrorForUser(message) },
-      { status: 400 },
-    );
+    const sanitized =
+      message === "CREDIT_LOCK_DETACH_CHARGE_FAILED" ||
+      /cobr|deuda|Stripe|CREDIT_LOCK/i.test(message)
+        ? "No se pudo quitar la tarjeta ahora. Probá más tarde o contactá a soporte."
+        : formatStripeErrorForUser(message);
+    return NextResponse.json({ error: sanitized }, { status: 400 });
   }
 }

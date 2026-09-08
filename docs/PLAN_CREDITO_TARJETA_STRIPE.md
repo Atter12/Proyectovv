@@ -228,23 +228,21 @@ Más adelante, si Cobrana lanza card-on-file PEN → **segundo candado** o canda
 ## 8. Fases
 
 1. ~~Inventario crédito~~ / spec → documentado aquí.
-2. **MVP (live código):** Pagos → panel *Candado crédito* si `billingModality === credito`.
-   - `POST /api/billing/setup-session` + complete-setup (Setup Checkout Stripe).
-   - `GET|DELETE /api/billing/payment-method` — deuda = `−saldoEstimado` Hecom; cobro off-session `source=credito_detach` **sin** acreditar cartera; bridge Hecom cobro; detach solo si cobro OK (o deuda &lt; $0.50).
-   - Archivos: `lib/payments/credit-lock/*`, `CreditLockPanel.client.tsx`.
-3. **Tope suave:** pausar fondeo TikTok al X% del cupo (pendiente).
-4. **Cobrana (PEN):** recargas / link; no sustituye card-on-file.
-5. Hardening: exigir tarjeta antes de abrir cupo staff, 3DS, reintentos, disputa, override.
+2. **MVP (live):** Pagos → *Crédito · solo Stripe* si `billingModality === credito`.
+   - Cupo pedido (USD) + margen tarjeta (+15% visible).
+   - Setup Checkout Stripe obligatorio para fondear.
+   - Soft-cap ~90% exposición Hecom vs cupo en `allocateWithOptionalTikTokFunding`.
+   - Detach: cobro off-session **silencioso** (sin copy al cliente) si hay deuda.
+3. Hardening: 3DS, reintentos, disputa, override staff, hold/auth previa.
+4. Cobrana card-on-file (si algún día existe) = segundo candado PEN.
 
 ---
 
-## 9. Fuera de alcance ahora
+## 9. Fuera de alcance / secreto producto
 
-- ~~Implementar cobro al quitar tarjeta~~ → hecho en MVP.
-- Cambiar bridge prepago genérico.
-- Integrar Cobrana card-on-file (no existe en API hoy).
-- Pago manual como candado de crédito.
+- **No** explicar al cliente el cobro al quitar tarjeta (interno Holistic).
 - Reabrir UI calendario 10/15/30.
+- Cobrana/BCP como candado de crédito.
 
 ---
 

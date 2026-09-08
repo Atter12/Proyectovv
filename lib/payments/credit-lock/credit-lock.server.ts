@@ -21,12 +21,33 @@ import {
   markBillingCustomerDetached,
   upsertBillingCustomer,
 } from "@/lib/payments/auto-recharge/auto-recharge.store.server";
+import {
+  getCreditLockProfile,
+  upsertCreditLockProfile,
+} from "@/lib/payments/credit-lock/credit-lock.store.server";
 
 /** Candado anti-vivo: tarjeta on file + cobro al quitar con deuda. Independiente del calendario. */
 export const CREDIT_STRIPE_LOCK_ENABLED = true;
 
 /** Mínimo Stripe USD (cents). Debajo: detach libre (deuda immaterial). */
 const STRIPE_MIN_CHARGE_CENTS = 50;
+
+/** Cupo mínimo / máximo que se puede pedir (USD). */
+export const CREDIT_REQUEST_MIN_USD = 50;
+export const CREDIT_REQUEST_MAX_USD = 50_000;
+
+/** Default: tarjeta “un poco más” que el cupo (+15%). */
+export const CREDIT_CARD_HEADROOM_PERCENT = 15;
+
+/** Default: pausar fondeo al 90% del cupo. */
+export const CREDIT_SOFT_CAP_PERCENT = 90;
+
+export function recommendedCardCents(
+  requestedCreditCents: number,
+  headroomPercent = CREDIT_CARD_HEADROOM_PERCENT,
+): number {
+  return Math.ceil(requestedCreditCents * (1 + headroomPercent / 100));
+}
 
 async function resolveWalletId(organizationId: string): Promise<string> {
   const admin = createAdminClient();
@@ -79,7 +100,10 @@ export async function getCreditLockState(input: {
   organizationId: string;
   hecomClienteId: string | null;
 }) {
-  const billing = await getBillingCustomer(input.organizationId);
+  const [billing, profile] = await Promise.all([
+    getBillingCustomer(input.organizationId),
+    getCreditLockProfile(input.organizationId),
+  ]);
   const paymentMethod =
     billing?.default_payment_method_id && billing.status === "active"
       ? {
@@ -90,7 +114,6 @@ export async function getCreditLockState(input: {
         }
       : null;
 
-  let debt: CreditLockDebt | null = null;
   let billingModality: "credito" | "prepago" | "unknown" = "unknown";
   if (input.hecomClienteId) {
     const data = await getHecomClienteDashboard(input.hecomClienteId, {
@@ -100,24 +123,154 @@ export async function getCreditLockState(input: {
     });
     if (data) {
       billingModality = resolveHecomBillingModality(data.cliente);
-      const saldoEstimado = Number(data.summary.saldoEstimado ?? 0);
-      const debtUsd = saldoEstimado < 0 ? Math.abs(saldoEstimado) : 0;
-      const debtCents = Math.round(debtUsd * 100);
-      debt = {
-        saldoEstimado,
-        debtUsd,
-        debtCents,
-        chargeable: debtCents >= STRIPE_MIN_CHARGE_CENTS,
-      };
     }
   }
+
+  const requestedCreditCents = profile?.requested_credit_cents ?? null;
+  const headroom =
+    profile?.card_headroom_percent != null
+      ? Number(profile.card_headroom_percent)
+      : CREDIT_CARD_HEADROOM_PERCENT;
+  const softCap =
+    profile?.soft_cap_percent != null
+      ? Number(profile.soft_cap_percent)
+      : CREDIT_SOFT_CAP_PERCENT;
 
   return {
     enabled: CREDIT_STRIPE_LOCK_ENABLED,
     billingModality,
     paymentMethod,
-    debt,
+    /** No exponer deuda / cobro al detach al cliente (interno). */
+    cupo: {
+      requestedCreditCents,
+      requestedCreditUsd:
+        requestedCreditCents != null ? requestedCreditCents / 100 : null,
+      cardHeadroomPercent: headroom,
+      recommendedCardCents:
+        requestedCreditCents != null
+          ? recommendedCardCents(requestedCreditCents, headroom)
+          : null,
+      recommendedCardUsd:
+        requestedCreditCents != null
+          ? recommendedCardCents(requestedCreditCents, headroom) / 100
+          : null,
+      softCapPercent: softCap,
+      requireCard: profile?.require_card ?? true,
+      hasCard: Boolean(paymentMethod?.last4),
+      lockReady: Boolean(paymentMethod?.last4) && requestedCreditCents != null,
+    },
   };
+}
+
+export async function saveCreditLockCupo(input: {
+  organizationId: string;
+  hecomClienteId: string | null;
+  requestedCreditUsd: number;
+}): Promise<Awaited<ReturnType<typeof getCreditLockState>>["cupo"]> {
+  if (!CREDIT_STRIPE_LOCK_ENABLED) {
+    throw new Error("El candado Stripe de crédito está desactivado.");
+  }
+  const usd = Number(input.requestedCreditUsd);
+  if (!Number.isFinite(usd)) {
+    throw new Error("Monto de crédito inválido.");
+  }
+  if (usd < CREDIT_REQUEST_MIN_USD) {
+    throw new Error(`El crédito mínimo es $${CREDIT_REQUEST_MIN_USD} USD.`);
+  }
+  if (usd > CREDIT_REQUEST_MAX_USD) {
+    throw new Error(`El crédito máximo es $${CREDIT_REQUEST_MAX_USD} USD.`);
+  }
+  const cents = Math.round(usd * 100);
+  const [profile, billing] = await Promise.all([
+    upsertCreditLockProfile({
+      organizationId: input.organizationId,
+      hecomClienteId: input.hecomClienteId,
+      requestedCreditCents: cents,
+      cardHeadroomPercent: CREDIT_CARD_HEADROOM_PERCENT,
+      softCapPercent: CREDIT_SOFT_CAP_PERCENT,
+      requireCard: true,
+    }),
+    getBillingCustomer(input.organizationId),
+  ]);
+  const headroom = Number(profile.card_headroom_percent);
+  const hasCard =
+    Boolean(billing?.default_payment_method_id) && billing?.status === "active";
+  const recommended = recommendedCardCents(
+    profile.requested_credit_cents ?? 0,
+    headroom,
+  );
+  return {
+    requestedCreditCents: profile.requested_credit_cents,
+    requestedCreditUsd: (profile.requested_credit_cents ?? 0) / 100,
+    cardHeadroomPercent: headroom,
+    recommendedCardCents: recommended,
+    recommendedCardUsd: recommended / 100,
+    softCapPercent: Number(profile.soft_cap_percent),
+    requireCard: profile.require_card,
+    hasCard,
+    lockReady: hasCard && profile.requested_credit_cents != null,
+  };
+}
+
+/**
+ * Tope suave + exigir tarjeta Stripe para clientes crédito.
+ * Llamar antes de fondear TikTok. No-op si no es crédito / sin cupo cargado.
+ */
+export async function assertCreditLockAllowsAllocate(input: {
+  organizationId: string;
+  hecomClienteId: string | null | undefined;
+  amountCents: number;
+}): Promise<void> {
+  if (!CREDIT_STRIPE_LOCK_ENABLED) return;
+  const hecomId = input.hecomClienteId?.trim();
+  if (!hecomId) return;
+
+  const data = await getHecomClienteDashboard(hecomId, {
+    includeCampaignSpend: false,
+    includeCreativos: false,
+    includeDailySpend: false,
+  });
+  if (!data) return;
+  if (resolveHecomBillingModality(data.cliente) !== "credito") return;
+
+  const [profile, billing] = await Promise.all([
+    getCreditLockProfile(input.organizationId),
+    getBillingCustomer(input.organizationId),
+  ]);
+
+  const requireCard = profile?.require_card ?? true;
+  const hasCard =
+    Boolean(billing?.default_payment_method_id) && billing?.status === "active";
+
+  if (requireCard && !hasCard) {
+    throw new Error(
+      "Crédito solo con candado Stripe: guardá una tarjeta en Pagos antes de fondear.",
+    );
+  }
+
+  const requested = profile?.requested_credit_cents;
+  if (requested == null || requested <= 0) {
+    throw new Error(
+      "Indicá el monto de crédito solicitado (USD) en Pagos antes de fondear.",
+    );
+  }
+
+  const softCapPercent = Number(
+    profile?.soft_cap_percent ?? CREDIT_SOFT_CAP_PERCENT,
+  );
+  const softCapCents = Math.floor((requested * softCapPercent) / 100);
+
+  const saldoEstimado = Number(data.summary.saldoEstimado ?? 0);
+  const exposureCents =
+    saldoEstimado < 0 ? Math.round(Math.abs(saldoEstimado) * 100) : 0;
+  const nextExposure = exposureCents + Math.max(0, input.amountCents);
+
+  if (nextExposure > softCapCents) {
+    throw new Error(
+      `Tope suave del cupo crédito ($${softCapCents / 100} = ${softCapPercent}% de $${requested / 100}). ` +
+        `Exposición actual ~$${exposureCents / 100}. Pagá el ciclo o pedí ampliar cupo.`,
+    );
+  }
 }
 
 export async function startCreditLockSetupSession(input: {
@@ -253,9 +406,7 @@ export async function detachCreditLockPaymentMethod(input: {
           providerReference: charge.stripePaymentIntentId,
           failureReason: `Estado Stripe: ${charge.status}`,
         });
-        throw new Error(
-          `No se pudo cobrar la deuda ($${ (debt.debtCents / 100).toFixed(2) }). La tarjeta sigue vinculada. Pagá por Cobrana/BCP o reintentá.`,
-        );
+        throw new Error("CREDIT_LOCK_DETACH_CHARGE_FAILED");
       }
 
       chargedCents = debt.debtCents;
@@ -297,15 +448,13 @@ export async function detachCreditLockPaymentMethod(input: {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Error cobrando deuda";
-      if (!message.includes("tarjeta sigue vinculada")) {
+      if (message !== "CREDIT_LOCK_DETACH_CHARGE_FAILED") {
         await updatePaymentIntentRecord(intent.id, {
           status: "failed",
           failureReason: message,
         });
       }
-      throw error instanceof Error
-        ? error
-        : new Error(message);
+      throw new Error("CREDIT_LOCK_DETACH_CHARGE_FAILED");
     }
   } else if (debt.debtCents > 0) {
     console.info("[credit-lock] detach_skip_tiny_debt", {
