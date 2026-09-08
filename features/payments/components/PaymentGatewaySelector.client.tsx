@@ -20,7 +20,7 @@ export function PaymentGatewaySelector({
     <div
       role="radiogroup"
       aria-label="Método de pago"
-      className="grid gap-2 md:grid-cols-3"
+      className="grid gap-2 lg:grid-cols-3"
     >
       {gateways.map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
@@ -62,10 +62,23 @@ export function PaymentGatewaySelector({
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
                 {gateway.description}
               </p>
-              {gateway.id === "cobrana" ? (
-                <div className="mt-2 flex items-center gap-1">
+              {gateway.id === "stripe" ? (
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  {(["visa", "mastercard"] as const).map((app) => (
+                    <PaymentAppIcon key={app} app={app} size="sm" />
+                  ))}
+                </div>
+              ) : gateway.id === "cobrana" ? (
+                <div className="mt-2 flex flex-wrap items-center gap-1">
                   {(
-                    ["yape", "plin", "bcp", "interbank", "bbva"] as const
+                    [
+                      "yape",
+                      "plin",
+                      "bcp",
+                      "interbank",
+                      "bbva",
+                      "scotiabank",
+                    ] as const
                   ).map((app) => (
                     <PaymentAppIcon key={app} app={app} size="sm" />
                   ))}

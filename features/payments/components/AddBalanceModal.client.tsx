@@ -499,7 +499,13 @@ export function AddBalanceModal({
                     {gatewayLabels[selectedGateway]}
                   </p>
                 </div>
-                {isCobrana ? (
+                {isStripe ? (
+                  <div className="mt-2.5 flex items-center gap-1.5">
+                    {(["visa", "mastercard"] as const).map((app) => (
+                      <PaymentAppIcon key={app} app={app} size="sm" />
+                    ))}
+                  </div>
+                ) : isCobrana ? (
                   <>
                     <p className="mt-2 text-xs text-[var(--admin-text-muted,#64748b)]">
                       Abrís Yape, Plin o tu banco con el código. El saldo USD se
@@ -507,7 +513,14 @@ export function AddBalanceModal({
                     </p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       {(
-                        ["yape", "plin", "bcp", "interbank", "bbva"] as const
+                        [
+                          "yape",
+                          "plin",
+                          "bcp",
+                          "interbank",
+                          "bbva",
+                          "scotiabank",
+                        ] as const
                       ).map((app) => (
                         <PaymentAppIcon key={app} app={app} size="sm" />
                       ))}
