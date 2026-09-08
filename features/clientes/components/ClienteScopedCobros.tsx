@@ -41,15 +41,64 @@ function formatHora(value: string | null): string {
   return value.slice(0, 5);
 }
 
-function formatRegisteredAt(value: string | null): string {
-  if (!value) return "—";
+function limaYmdFromIso(value: string | null): string | null {
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("es-PE", {
-    dateStyle: "medium",
-    timeStyle: "short",
+  if (Number.isNaN(date.getTime())) {
+    const m = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : null;
+  }
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(date);
+}
+
+/**
+ * "Registrado" = created_at en Hecom. En syncs masivos (Ads Holistic)
+ * varias filas comparten la misma hora → se ve raro vs fecha de pago.
+ * Si el día no coincide con el pago, mostramos solo la fecha (sin reloj).
+ */
+function formatRegisteredAt(
+  registeredAt: string | null,
+  paymentFecha: string | null,
+): { label: string; title: string } {
+  if (!registeredAt) {
+    return { label: "—", title: "" };
+  }
+  const date = new Date(registeredAt);
+  if (Number.isNaN(date.getTime())) {
+    return { label: registeredAt, title: "" };
+  }
+
+  const payYmd = paymentFecha?.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
+  const regYmd = limaYmdFromIso(registeredAt);
+  const sameDay = Boolean(payYmd && regYmd && payYmd === regYmd);
+
+  if (sameDay) {
+    return {
+      label: new Intl.DateTimeFormat("es-PE", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "America/Lima",
+      }).format(date),
+      title: "Momento en que quedó cargado en Hecom",
+    };
+  }
+
+  // Sync / backfill: la hora del insert no es la del pago.
+  return {
+    label: new Intl.DateTimeFormat("es-PE", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "America/Lima",
+    }).format(date),
+    title:
+      "Fecha de ingreso al CRM (sync). La fecha de pago real está en la 1ª columna.",
+  };
 }
 
 function maskEmail(email: string | null): string {
@@ -81,8 +130,8 @@ export function ClienteScopedCobros({
             Lo pagado · {cliente.name}
           </h2>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            Cada fila es un pago registrado en Hecom: fecha, período que cubre,
-            monto y comprobantes. Tocá la miniatura para ver el voucher en grande.
+            Cada fila es un pago en Hecom. La fecha de pago es la real; “Ingreso
+            CRM” es cuándo se cargó al sistema (en syncs puede diferir).
           </p>
         </div>
         <Link
@@ -149,7 +198,7 @@ export function ClienteScopedCobros({
                   <th className="px-4 py-3">Método</th>
                   <th className="px-4 py-3">Comprobantes</th>
                   <th className="px-4 py-3">Registrado por</th>
-                  <th className="px-4 py-3">Registrado</th>
+                  <th className="px-4 py-3">Ingreso CRM</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,6 +217,7 @@ export function ClienteScopedCobros({
 function CobroTableRow({ row }: { row: HecomCobroRow }) {
   const fecha = formatHecomFecha(row.fecha);
   const periodo = formatPeriodoResumen(row.periodoResumen);
+  const registered = formatRegisteredAt(row.registeredAt, row.fecha);
 
   return (
     <tr className="border-b border-[var(--auth-divider)] last:border-0 hover:bg-[var(--auth-bg)]/50">
@@ -212,8 +262,11 @@ function CobroTableRow({ row }: { row: HecomCobroRow }) {
       <td className="px-4 py-3.5 text-[var(--auth-text-muted)]">
         {maskEmail(row.registeredBy)}
       </td>
-      <td className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]">
-        {formatRegisteredAt(row.registeredAt)}
+      <td
+        className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]"
+        title={registered.title || undefined}
+      >
+        {registered.label}
       </td>
     </tr>
   );
