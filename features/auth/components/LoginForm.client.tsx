@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
@@ -35,17 +36,15 @@ function PasswordToggle({
   );
 }
 
-/** Inputs estilo mortgage (pill suave). */
 const inputClassName =
-  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+  "h-[3.15rem] w-full rounded-[0.9rem] border border-[#e8e2da] bg-white pl-11 pr-4 text-[15px] text-[var(--auth-text)] placeholder:text-[#b0a89e] transition-[border-color,box-shadow] hover:border-[#d6cec4] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-[3px] focus:ring-[var(--auth-accent)]/15";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
 }
 
 /**
- * Login Holistic — layout mortgage (form limpio).
- * Acceso simplificado: solo correo → código / enlace mágico (OTP).
+ * Login Holistic — mockup split-card (OTP email).
  */
 export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const router = useRouter();
@@ -151,11 +150,14 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-6 sm:mb-7">
-        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
+      <div className="mb-7 sm:mb-8">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[var(--auth-accent)]">
+          Hola de nuevo
+        </p>
+        <h1 className="mt-2 text-[1.65rem] font-bold leading-[1.12] tracking-[-0.03em] text-[#1a1a1a] sm:text-[1.95rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
+        <p className="mt-2.5 max-w-[22rem] text-[13.5px] font-medium leading-6 text-[#7a736a] sm:text-[14px]">
           {otpMode
             ? "Ingresá tu correo. Te enviamos un código y un enlace para entrar."
             : "Entrá a tu panel de anunciante"}
@@ -169,20 +171,30 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+            className="mb-2 block text-[13px] font-semibold text-[#1a1a1a]"
           >
             Correo electrónico
           </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="tu@gmail.com"
-            className={inputClassName}
-          />
+          <div className="relative">
+            <span
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0a89e]"
+              aria-hidden
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </span>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="tu@gmail.com"
+              className={inputClassName}
+            />
+          </div>
         </div>
 
         {!otpMode && (
@@ -190,13 +202,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             <div className="mb-2 flex items-center justify-between gap-3">
               <label
                 htmlFor="password"
-                className="block text-[13px] font-medium text-[var(--auth-text)]"
+                className="block text-[13px] font-semibold text-[#1a1a1a]"
               >
                 Contraseña
               </label>
               <a
                 href={routes.forgotPassword}
-                className="text-[13px] font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
+                className="text-[13px] font-medium text-[#7a736a] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </a>
@@ -210,7 +222,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Tu contraseña"
-                className={cn(inputClassName, "pr-11")}
+                className={cn(inputClassName, "pl-4 pr-11")}
               />
               <PasswordToggle
                 visible={showPassword}
@@ -222,7 +234,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <p
-            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-[0.9rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error ??
@@ -233,28 +245,41 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-1 flex h-[3.15rem] w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading
             ? otpMode
               ? "Enviando…"
               : "Iniciando sesión…"
-            : "Entrar"}
+            : (
+              <>
+                Entrar
+                <span aria-hidden className="text-[1.1rem] leading-none">
+                  →
+                </span>
+              </>
+            )}
         </button>
       </form>
 
       {otpMode ? (
-        <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
-          ¿No tienes cuenta?{" "}
-          <a
+        <div className="mt-7">
+          <div className="flex items-center gap-3" aria-hidden>
+            <span className="h-px flex-1 bg-[#ece7e0]" />
+            <span className="text-[12.5px] font-medium text-[#9a9288]">
+              ¿No tienes cuenta?
+            </span>
+            <span className="h-px flex-1 bg-[#ece7e0]" />
+          </div>
+          <Link
             href={routes.register}
-            className="font-semibold text-[var(--auth-accent)] hover:underline"
+            className="mt-4 flex h-[3.15rem] w-full items-center justify-center rounded-[0.9rem] border-[1.5px] border-[var(--auth-accent)] bg-white text-[15px] font-bold text-[var(--auth-accent)] transition-[background-color,transform] hover:bg-[var(--auth-accent-soft)] active:translate-y-px"
           >
             Registrarme
-          </a>
-        </p>
+          </Link>
+        </div>
       ) : (
-        <p className="mt-6 text-center text-[13px] text-[var(--auth-text-muted)]">
+        <p className="mt-6 text-center text-[13px] text-[#7a736a]">
           ¿Problemas?{" "}
           <a
             href={routes.forgotPassword}

@@ -523,17 +523,41 @@ body {
 
 /* Login mortgage-services (NextSaaS) adaptado Holistic */
 .mortgage-login {
-  background-color: #f3f1ed;
+  background-color: #f7f4ef;
   background-image:
-    radial-gradient(50% 40% at 50% 0%, rgb(255 120 31 / 0.1), transparent 70%),
-    linear-gradient(180deg, #faf8f5 0%, #f3f1ed 55%, #ebe7e1 100%);
+    radial-gradient(48% 42% at 6% 8%, rgb(255 176 130 / 0.38), transparent 70%),
+    radial-gradient(42% 36% at 94% 4%, rgb(255 150 100 / 0.22), transparent 68%),
+    radial-gradient(55% 40% at 70% 100%, rgb(255 200 160 / 0.2), transparent 65%),
+    linear-gradient(180deg, #fffaf6 0%, #f7f3ee 52%, #f0ebe4 100%);
 }
 
 .mortgage-login-card {
   border: 1px solid rgb(236 231 224 / 0.9);
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.9) inset,
-    0 24px 60px -32px rgb(28 25 23 / 0.28);
+    0 28px 70px -34px rgb(28 25 23 / 0.3),
+    0 12px 28px -18px rgb(255 120 31 / 0.12);
+}
+
+/* Login mockup Holistic — atmósfera + panel olas */
+.holistic-login {
+  --font-script: var(--font-caveat), "Segoe Script", "Comic Sans MS", cursive;
+}
+
+.holistic-login-script {
+  font-family: var(--font-script);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.holistic-login-photo {
+  background-color: #ffe8d6;
+  background-image:
+    linear-gradient(180deg, rgb(255 252 248 / 0.55), transparent 45%),
+    url("/auth/login-side-waves.png");
+  background-position: center 55%;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 /* Foto login — CSS background (no depende de next/image fill) */

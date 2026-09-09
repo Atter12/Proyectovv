@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { Caveat, Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
@@ -41,6 +41,16 @@ const sora = Sora({
   adjustFontFallback: true,
 });
 
+/** Acento tipográfico auth (mockup script). */
+const caveat = Caveat({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-caveat",
+  weight: ["500", "600", "700"],
+  fallback: ["cursive"],
+  adjustFontFallback: true,
+});
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
@@ -74,7 +84,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${plusJakarta.variable} ${sora.variable} light h-full antialiased`}
+      className={`${plusJakarta.variable} ${sora.variable} ${caveat.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
