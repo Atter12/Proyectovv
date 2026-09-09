@@ -70,16 +70,7 @@ export function PaymentGatewaySelector({
                 </div>
               ) : gateway.id === "cobrana" ? (
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      "yape",
-                      "plin",
-                      "bcp",
-                      "interbank",
-                      "bbva",
-                      "scotiabank",
-                    ] as const
-                  ).map((app) => (
+                  {(["yape", "plin"] as const).map((app) => (
                     <PaymentAppIcon key={app} app={app} size="sm" />
                   ))}
                 </div>

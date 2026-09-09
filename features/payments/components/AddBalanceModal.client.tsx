@@ -97,7 +97,7 @@ const gatewayLabels: Record<PaymentGatewayId, string> = {
   mercadopago: "Mercado Pago",
   crypto: "Cripto (USDT)",
   manual: "Pago manual",
-  cobrana: "Cobrana",
+  cobrana: "Yape / Plin",
 };
 
 const MIN_AMOUNT = 1;
@@ -441,7 +441,7 @@ export function AddBalanceModal({
   const orderedLinks = [...(yapeLink ? [yapeLink] : []), ...otherLinks];
   const modalStepIndex = step === "form" ? 0 : step === "confirm" ? 1 : 2;
   const gatewayIdentityDescription = isCobrana
-    ? "Yape, Plin y bancos"
+    ? "Yape o Plin en soles"
     : isStripe
       ? "Tarjetas Visa y Mastercard"
       : "Recarga de cartera";
@@ -469,7 +469,7 @@ export function AddBalanceModal({
               title="¿Cuánto saldo quieres recargar?"
               description={
                 isCobrana
-                  ? "Ingresa el saldo que deseas recibir en USD. Cobrana calculará el pago equivalente en soles."
+                  ? "Ingresa el saldo que deseas recibir en USD. Calcularemos el pago equivalente en soles para Yape o Plin."
                   : isStripe
                     ? "Ingresa el saldo que deseas recibir. Antes de pagar verás el total exacto, incluidos los fees."
                     : "Ingresa el saldo que deseas recibir en tu cartera Holistic."
@@ -591,7 +591,7 @@ export function AddBalanceModal({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-[12px] font-semibold text-[#1c1917]">
-                        Pago procesado por Cobrana
+                        Pago con Yape o Plin
                       </p>
                       <p className="mt-0.5 text-[11px] leading-4 text-[#6f675f]">
                         En Yape, el servicio aparecerá como{" "}
@@ -599,16 +599,7 @@ export function AddBalanceModal({
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                      {(
-                        [
-                          "yape",
-                          "plin",
-                          "bcp",
-                          "interbank",
-                          "bbva",
-                          "scotiabank",
-                        ] as const
-                      ).map((app) => (
+                      {(["yape", "plin"] as const).map((app) => (
                         <PaymentAppIcon key={app} app={app} size="sm" />
                       ))}
                     </div>
@@ -646,7 +637,7 @@ export function AddBalanceModal({
               title="Revisa tu recarga"
               description={
                 isCobrana
-                  ? "Cobrana generará un código para pagar en soles desde Yape, Plin o tu banco."
+                  ? "Te daremos un código para pagar en soles desde Yape o Plin."
                   : "Confirma que el saldo y el total a pagar sean correctos antes de continuar."
               }
               identityIcon={
@@ -784,7 +775,7 @@ export function AddBalanceModal({
                   {loading
                     ? "Procesando…"
                     : isCobrana
-                      ? "Continuar con Cobrana"
+                      ? "Continuar con Yape / Plin"
                       : "Pagar con Stripe"}
                 </Button>
               </PaymentModalFooter>
@@ -797,11 +788,11 @@ export function AddBalanceModal({
               title="Completa el pago"
               description={
                 resultMessage ??
-                "Usa el código generado por Cobrana desde Yape, Plin o la aplicación de tu banco."
+                "Usa el código desde Yape o Plin para completar el pago en soles."
               }
               identityIcon={<GatewayLogo gatewayId="cobrana" size="sm" />}
-              identityLabel="Cobrana"
-              identityDescription="Yape, Plin y bancos"
+              identityLabel="Yape / Plin"
+              identityDescription="Pago en soles"
               steps={ADD_BALANCE_STEPS}
               currentStep={modalStepIndex}
               onClose={handleClose}
@@ -859,7 +850,7 @@ export function AddBalanceModal({
                   </div>
                 ) : (
                   <p className="px-4 py-4 text-[12px] text-[#6f675f] sm:px-5">
-                    Preparando el código de Cobrana…
+                    Preparando tu código de pago…
                   </p>
                 )}
                 <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] border-t border-[#e4ddd6] px-4 py-4 text-sm sm:px-5">
@@ -885,7 +876,7 @@ export function AddBalanceModal({
                 role="status"
               >
                 <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#8b1aa0]" />
-                Esperando la confirmación automática de Cobrana…
+                Esperando la confirmación automática del pago…
               </div>
 
               <div className="mt-5">
@@ -933,7 +924,7 @@ export function AddBalanceModal({
                     number="4"
                     text={
                       <>
-                        Regresa aquí. Cobrana confirmará el pago y acreditaremos{" "}
+                        Regresa aquí. Cuando el pago se confirme, acreditaremos{" "}
                         <strong>{formatMoney(parsedAmount)}</strong> en tu
                         cartera.
                       </>
