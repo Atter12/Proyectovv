@@ -9,7 +9,7 @@ import { NsxCta, NsxFooter } from "./NsxCta";
 /**
  * Landing principal — layout Automation SaaS (Nexsas template),
  * marca e info Holistic Marketing / Hecom.
- * Un solo acceso público: Entrar → login.
+ * Acceso público dual: Registrarme + Iniciar sesión.
  */
 export function LandingPage() {
   return (

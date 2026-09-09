@@ -1,94 +1,52 @@
-const FEATURES = [
-  {
-    title: "Activa en minutos",
-    description: "Organización lista sin fricción de setup.",
-  },
-  {
-    title: "Cartera desde el día uno",
-    description: "Cuentas ads y saldos listos para operar.",
-  },
-  {
-    title: "Soporte Latam",
-    description: "Atención en español para Perú y la región.",
-  },
-] as const;
-
-const STEPS = [
-  {
-    step: "01",
-    title: "Regístrate",
-    description: "Completá tus datos de anunciante.",
-  },
-  {
-    step: "02",
-    title: "Verifica",
-    description: "Confirmá tu correo con un código.",
-  },
-  {
-    step: "03",
-    title: "Opera",
-    description: "Recargá cartera y asigná a TikTok.",
-  },
-] as const;
-
+/** Panel derecho registro — Ads Holistic + Crédito Holistic (mockup Sebastian). */
 export function RegisterHeroPanel() {
   return (
-    <div className="relative z-10 hidden min-h-0 flex-col justify-center py-6 lg:flex lg:py-10">
-      <div className="max-w-[36rem]">
-        <p className="text-[0.78rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-          Registro gratuito
-        </p>
-        <h1 className="mt-3 text-[2.1rem] font-bold leading-[1.15] tracking-[-0.035em] text-[var(--auth-text)] sm:text-[2.45rem] xl:text-[2.7rem]">
-          Crea tu cuenta y opera con control real
-        </h1>
-        <p className="mt-4 max-w-xl text-[15px] font-medium leading-7 text-[var(--auth-text-muted)] sm:text-[16px]">
-          Unite a agencias y equipos que centralizan campañas, pagos y cuentas
-          TikTok en un solo panel.
-        </p>
+    <div className="relative flex h-full min-h-[520px] flex-col justify-between overflow-hidden rounded-[1.25rem] bg-[linear-gradient(145deg,#ff7a1f_0%,#ff5a2a_42%,#7c3aed_100%)] p-8 text-white">
+      <div
+        className="pointer-events-none absolute -right-16 top-10 h-56 w-56 rounded-full bg-white/15 blur-2xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-[#2e1065]/40 blur-3xl"
+        aria-hidden
+      />
 
-        <ul className="mt-8 space-y-4">
-          {FEATURES.map((feature) => (
-            <li key={feature.title} className="flex gap-3.5">
-              <span
-                className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent-soft)]"
-                aria-hidden
-              >
-                <span className="h-2 w-2 rounded-full bg-[var(--auth-accent)]" />
-              </span>
-              <div>
-                <p className="text-[15px] font-bold tracking-[-0.01em] text-[var(--auth-text)]">
-                  {feature.title}
-                </p>
-                <p className="mt-0.5 text-[14px] leading-6 text-[var(--auth-text-muted)]">
-                  {feature.description}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+      <div className="relative z-10">
+        <p className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-white/80">
+          Bienvenido
+        </p>
+        <h2 className="mt-3 max-w-[16rem] text-[1.85rem] font-bold leading-[1.15] tracking-[-0.03em]">
+          Tu operación de ads, en un solo lugar
+        </h2>
+        <p className="mt-3 max-w-[18rem] text-[14px] font-medium leading-6 text-white/85">
+          Registrate una vez: quedás en Hecom Club y en Ads Holistic con la misma
+          ficha.
+        </p>
       </div>
 
-      <div className="auth-panel relative z-10 mt-10 max-w-[28rem] rounded-[1.25rem] p-6 sm:p-7">
-        <p className="text-[0.72rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
-          Cómo empezar
-        </p>
-        <ol className="mt-5 space-y-5">
-          {STEPS.map((item) => (
-            <li key={item.step} className="flex items-start gap-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent)] text-[12px] font-bold text-white">
-                {item.step}
-              </span>
-              <div>
-                <p className="text-[15px] font-bold tracking-[-0.01em] text-[var(--auth-text)]">
-                  {item.title}
-                </p>
-                <p className="mt-0.5 text-[14px] leading-6 text-[var(--auth-text-muted)]">
-                  {item.description}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+      <div className="relative z-10 mt-10 space-y-3">
+        <div className="rounded-2xl border border-white/25 bg-white/15 px-4 py-3.5 backdrop-blur-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
+            Producto
+          </p>
+          <p className="mt-1 text-[16px] font-bold tracking-[-0.02em]">
+            Ads Holistic
+          </p>
+          <p className="mt-0.5 text-[13px] leading-5 text-white/85">
+            Cartera, cuentas TikTok y pagos desde el overview.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/25 bg-white/15 px-4 py-3.5 backdrop-blur-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
+            Opcional
+          </p>
+          <p className="mt-1 text-[16px] font-bold tracking-[-0.02em]">
+            Crédito Holistic
+          </p>
+          <p className="mt-0.5 text-[13px] leading-5 text-white/85">
+            Podés solicitarlo después; la aprobación es aparte.
+          </p>
+        </div>
       </div>
     </div>
   );

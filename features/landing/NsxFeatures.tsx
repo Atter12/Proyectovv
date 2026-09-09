@@ -122,10 +122,15 @@ export function NsxFeatures() {
         </div>
 
         <div className="nsx-feature-cta">
-          <p>¿Ya tienes acceso? Entra al panel con tu cuenta.</p>
-          <Link href={routes.login} className="nsx-btn-dark">
-            Entrar <span aria-hidden>→</span>
-          </Link>
+          <p>¿Nuevo o ya tienes ficha en Hecom? Elegí tu acceso.</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link href={routes.register} className="nsx-btn-dark">
+              Registrarme <span aria-hidden>→</span>
+            </Link>
+            <Link href={routes.login} className="nsx-btn-outline">
+              Iniciar sesión
+            </Link>
+          </div>
         </div>
       </div>
     </section>

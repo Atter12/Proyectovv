@@ -3,50 +3,29 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
-import { cn } from "@/lib/cn";
-import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 
 interface RegisterFormValues {
   fullName: string;
-  organizationName: string;
+  dni: string;
+  phone: string;
   email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-function PasswordToggle({
-  visible,
-  onToggle,
-}: {
-  visible: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
-      aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
-    >
-      {visible ? (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-        </svg>
-      ) : (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )}
-    </button>
-  );
 }
 
 const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-white px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
+  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 pl-11 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+
+function FieldIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="pointer-events-none absolute left-4 top-1/2 z-[1] -translate-y-1/2 text-[var(--auth-text-soft)]"
+      aria-hidden
+    >
+      {children}
+    </span>
+  );
+}
 
 function readStoredReferralCode(): string | null {
   if (typeof window === "undefined") return null;
@@ -73,16 +52,22 @@ async function trackReferralClick(code: string): Promise<void> {
 }
 
 function validateForm(values: RegisterFormValues): string | null {
-  if (!values.fullName.trim()) return "El nombre completo es obligatorio.";
-  if (!values.organizationName.trim()) {
-    return "El nombre de la organización es obligatorio.";
+  if (values.fullName.trim().length < 2) {
+    return "Ingresá tu nombre completo.";
   }
-  if (!values.email.trim()) return "El correo electrónico es obligatorio.";
-  if (values.password.length < 8) {
-    return "La contraseña debe tener al menos 8 caracteres.";
+  const dni = values.dni.trim();
+  if (dni.length < 5) {
+    return "Ingresá un DNI o documento de identificación válido.";
   }
-  if (values.password !== values.confirmPassword) {
-    return "Las contraseñas no coinciden.";
+  if (/^\d+$/.test(dni) && dni.length !== 8 && dni.length !== 11) {
+    return "Si es DNI peruano usá 8 dígitos (o 11 para RUC).";
+  }
+  const phoneDigits = values.phone.replace(/\D/g, "");
+  if (phoneDigits.length < 9) {
+    return "Ingresá un teléfono válido (mín. 9 dígitos).";
+  }
+  if (!values.email.trim().includes("@")) {
+    return "Ingresá un correo electrónico válido.";
   }
   return null;
 }
@@ -93,19 +78,15 @@ export function RegisterForm() {
   const referralCode = searchParams.get("ref")?.trim() || null;
   const [values, setValues] = useState<RegisterFormValues>({
     fullName: "",
-    organizationName: "",
+    dni: "",
+    phone: "",
     email: "",
-    password: "",
-    confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!referralCode) return;
-
     persistReferralCode(referralCode);
     void trackReferralClick(referralCode);
   }, [referralCode]);
@@ -130,87 +111,93 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const email = values.email.trim();
-      const storedReferralCode = readStoredReferralCode() ?? referralCode;
+      // Mantener referral en cookie/localStorage para provision post-OTP.
+      void readStoredReferralCode();
 
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: values.fullName.trim(),
-            organization_name: values.organizationName.trim(),
-            ...(storedReferralCode ? { referral_code: storedReferralCode } : {}),
-          },
-        },
+      const response = await fetch(routes.api.auth.otpRegister, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: values.fullName.trim(),
+          dni: values.dni.trim(),
+          phone: values.phone.trim(),
+          email: values.email.trim(),
+        }),
       });
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+        email?: string;
+        retryAfterSec?: number;
+      };
 
-      if (signUpError) {
-        setError(mapAuthErrorMessage(signUpError.message));
+      if (!response.ok) {
+        setError(
+          mapAuthErrorMessage(
+            payload.error ?? "No se pudo completar el registro.",
+          ),
+        );
+        setLoading(false);
         return;
       }
 
-      router.push(`${routes.verifyOtp}?email=${encodeURIComponent(email)}`);
+      const canonicalEmail =
+        payload.email?.trim() || values.email.trim().toLowerCase();
+
+      const verifyUrl = new URL(routes.verifyOtp, window.location.origin);
+      verifyUrl.searchParams.set("email", canonicalEmail);
+      verifyUrl.searchParams.set("flow", "hecom");
+      verifyUrl.searchParams.set("sent", "1");
+      verifyUrl.searchParams.set("from", "register");
+      if (payload.retryAfterSec) {
+        verifyUrl.searchParams.set("cooldown", String(payload.retryAfterSec));
+      }
+      if (payload.message) {
+        verifyUrl.searchParams.set("hint", payload.message);
+      }
+      const nextPath = searchParams.get("next");
+      if (nextPath) verifyUrl.searchParams.set("next", nextPath);
+
+      router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? mapAuthErrorMessage(err.message)
-          : "No se pudo conectar con Supabase. Revisa la configuración del servidor.";
-      setError(message);
-    } finally {
+    } catch {
+      setError("No se pudo completar el registro. Reintentá.");
       setLoading(false);
     }
   }
 
   return (
-    <div className="auth-panel relative w-full max-w-[440px] overflow-hidden rounded-[1rem] p-7 sm:p-8 lg:max-w-none">
-      <div className="mb-7">
-        <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-          Registro
-        </p>
-        <h1 className="mt-2 text-[1.7rem] font-bold leading-[1.2] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.9rem]">
-          Crear cuenta
+    <div className="w-full">
+      <div className="mb-6 sm:mb-7">
+        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
+          Registrarme
         </h1>
-        <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Registrá tu organización en {siteConfig.name}
+        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
+          Creá tu ficha en Hecom y entrá a Ads Holistic con un código al correo.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="fullName"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Nombre completo
-            </label>
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        <div>
+          <label
+            htmlFor="fullName"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+          >
+            Nombres y apellidos
+          </label>
+          <div className="relative">
+            <FieldIcon>
+              <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </FieldIcon>
             <input
               id="fullName"
+              autoComplete="name"
               required
               value={values.fullName}
               onChange={(event) => updateField("fullName", event.target.value)}
-              placeholder="María González"
-              className={inputClassName}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="organizationName"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Organización
-            </label>
-            <input
-              id="organizationName"
-              required
-              value={values.organizationName}
-              onChange={(event) =>
-                updateField("organizationName", event.target.value)
-              }
-              placeholder="Mi agencia"
+              placeholder="María González Pérez"
               className={inputClassName}
             />
           </div>
@@ -218,86 +205,97 @@ export function RegisterForm() {
 
         <div>
           <label
+            htmlFor="dni"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+          >
+            DNI / ID
+          </label>
+          <div className="relative">
+            <FieldIcon>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+              </svg>
+            </FieldIcon>
+            <input
+              id="dni"
+              autoComplete="off"
+              required
+              value={values.dni}
+              onChange={(event) => updateField("dni", event.target.value)}
+              placeholder="DNI, pasaporte u otro ID"
+              className={inputClassName}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="phone"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+          >
+            Teléfono
+          </label>
+          <div className="relative">
+            <FieldIcon>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+              </svg>
+            </FieldIcon>
+            <div className="pointer-events-none absolute left-11 top-1/2 z-[1] -translate-y-1/2 text-[13px] font-semibold text-[var(--auth-text-muted)]">
+              +51
+            </div>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required
+              value={values.phone}
+              onChange={(event) => updateField("phone", event.target.value)}
+              placeholder="987 654 321"
+              className={`${inputClassName} pl-[4.75rem]`}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
             htmlFor="email"
-            className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
           >
             Correo electrónico
           </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={values.email}
-            onChange={(event) => updateField("email", event.target.value)}
-            placeholder="tu@empresa.com"
-            className={inputClassName}
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Contraseña
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                value={values.password}
-                onChange={(event) => updateField("password", event.target.value)}
-                placeholder="Mín. 8 caracteres"
-                className={cn(inputClassName, "pr-11")}
-              />
-              <PasswordToggle
-                visible={showPassword}
-                onToggle={() => setShowPassword((prev) => !prev)}
-              />
-            </div>
-          </div>
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Confirmar
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                value={values.confirmPassword}
-                onChange={(event) =>
-                  updateField("confirmPassword", event.target.value)
-                }
-                placeholder="Repite contraseña"
-                className={cn(inputClassName, "pr-11")}
-              />
-              <PasswordToggle
-                visible={showConfirmPassword}
-                onToggle={() => setShowConfirmPassword((prev) => !prev)}
-              />
-            </div>
+          <div className="relative">
+            <FieldIcon>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </FieldIcon>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={values.email}
+              onChange={(event) => updateField("email", event.target.value)}
+              placeholder="tu@gmail.com"
+              className={inputClassName}
+            />
           </div>
         </div>
 
         {referralCode && (
-          <div className="rounded-xl border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Código referido aplicado:{" "}
-            <span className="font-semibold text-[var(--auth-text)]">{referralCode}</span>
+          <div className="rounded-2xl border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--auth-text-muted)]">
+            Código referido:{" "}
+            <span className="font-semibold text-[var(--auth-text)]">
+              {referralCode}
+            </span>
           </div>
         )}
 
         {error && (
           <p
-            className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error}
@@ -307,26 +305,21 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1.5 flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
-          {loading ? "Creando cuenta…" : "Crear cuenta"}
+          {loading ? "Registrando…" : "Registrarme"}
         </button>
-
-        <p className="text-center text-[13px] leading-5 text-[var(--auth-text-soft)]">
-          Al registrarte aceptas nuestros términos de servicio y política de
-          privacidad.
-        </p>
       </form>
 
-      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
+      <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
         ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
-          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
+          className="font-semibold text-[var(--auth-accent)] hover:underline"
         >
-          Inicia sesión
+          Iniciar sesión
         </Link>
-      </div>
+      </p>
     </div>
   );
 }

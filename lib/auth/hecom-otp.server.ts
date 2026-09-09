@@ -12,6 +12,7 @@ import { setSelectedHecomCliente, clearSelectedHecomCliente } from "@/lib/hecom/
 import {
   findHecomClientesByEmail,
   buildOtpTestHecomCliente,
+  createHecomCliente,
   type HecomCliente,
 } from "@/lib/hecom/clientes.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
@@ -342,6 +343,100 @@ export async function requestHecomClientOtp(input: {
     clienteIds: clientes.map((item) => item.id),
     retryAfterSec: OTP_COOLDOWN_SECONDS,
   };
+}
+
+/**
+ * Registro: crea ficha Hecom (prepago) y envía el mismo OTP de login.
+ * Si el email ya existe en Hecom → 400 orientando a iniciar sesión.
+ */
+export async function registerHecomClientOtp(input: {
+  name: string;
+  dni: string;
+  phone: string;
+  email: string;
+}): Promise<
+  | {
+      ok: true;
+      message: string;
+      email: string;
+      allowed: boolean;
+      sent?: boolean;
+      clienteIds: string[];
+      retryAfterSec?: number;
+    }
+  | { ok: false; error: string; status: number; retryAfterSec?: number }
+> {
+  if (!isHecomOtpLoginEnabled()) {
+    logHecomOtp("warn", "register_disabled", {});
+    return { ok: false, error: "OTP Hecom deshabilitado.", status: 403 };
+  }
+
+  const name = String(input.name ?? "").trim();
+  const dni = String(input.dni ?? "").trim();
+  const phone = String(input.phone ?? "").trim();
+  const email = normalizeEmail(input.email);
+  const emailMasked = maskEmail(email);
+
+  if (name.length < 2) {
+    return { ok: false, error: "Ingresá tu nombre completo.", status: 400 };
+  }
+  if (dni.length < 5) {
+    return {
+      ok: false,
+      error: "Ingresá un DNI o documento de identificación válido.",
+      status: 400,
+    };
+  }
+  const dniDigitsOnly = /^\d+$/.test(dni);
+  if (dniDigitsOnly && dni.length !== 8 && dni.length !== 11) {
+    return {
+      ok: false,
+      error: "Si es DNI peruano usá 8 dígitos (o 11 para RUC).",
+      status: 400,
+    };
+  }
+  const phoneDigits = phone.replace(/\D/g, "");
+  if (phoneDigits.length < 9) {
+    return {
+      ok: false,
+      error: "Ingresá un teléfono válido (mín. 9 dígitos).",
+      status: 400,
+    };
+  }
+  if (!email.includes("@")) {
+    return { ok: false, error: "Correo inválido.", status: 400 };
+  }
+
+  logHecomOtp("info", "register_start", {
+    email: emailMasked,
+    nameLen: name.length,
+    dniLen: dni.length,
+    phoneDigits: phoneDigits.length,
+  });
+
+  const created = await createHecomCliente({
+    name,
+    dni,
+    email,
+    phone,
+  });
+
+  if (!created.ok) {
+    const status = created.code === "duplicate_email" ? 400 : 503;
+    logHecomOtp("warn", "register_create_failed", {
+      email: emailMasked,
+      code: created.code ?? "unknown",
+      error: created.message,
+    });
+    return { ok: false, error: created.message, status };
+  }
+
+  logHecomOtp("info", "register_cliente_created", {
+    email: emailMasked,
+    clienteId: created.cliente.id,
+  });
+
+  return requestHecomClientOtp({ email });
 }
 
 export async function linkHecomClientesForUser(input: {

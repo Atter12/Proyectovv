@@ -46,11 +46,10 @@ export default function LoginPage() {
               />
             </Link>
             <Link
-              href={routes.home}
-              className="shrink-0 rounded-full px-2 py-1.5 text-[0.8125rem] font-semibold text-[var(--auth-text-muted)] transition-colors hover:bg-white/70 hover:text-[var(--auth-accent)] sm:text-[0.875rem]"
+              href={routes.register}
+              className="shrink-0 rounded-full bg-[var(--auth-accent)] px-4 py-2 text-[0.8125rem] font-semibold text-white shadow-[0_8px_18px_rgb(255_120_31_/_0.25)] transition-[filter] hover:brightness-[1.05] sm:text-[0.875rem]"
             >
-              <span className="sm:hidden">Inicio</span>
-              <span className="hidden sm:inline">Volver al inicio</span>
+              Registrarme
             </Link>
           </div>
         </header>

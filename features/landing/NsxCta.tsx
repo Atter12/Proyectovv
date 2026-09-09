@@ -16,12 +16,17 @@ export function NsxCta() {
             entra y opera con la cuenta que te dio {siteConfig.name}.
           </p>
         </div>
-        <Link href={routes.login} className="nsx-btn-light">
-          Entrar
-          <span className="nsx-btn-arrow" aria-hidden>
-            →
-          </span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href={routes.register} className="nsx-btn-light">
+            Registrarme
+            <span className="nsx-btn-arrow" aria-hidden>
+              →
+            </span>
+          </Link>
+          <Link href={routes.login} className="nsx-btn-outline">
+            Iniciar sesión
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -41,7 +46,8 @@ export function NsxFooter() {
           <a href="#nosotros">Nosotros</a>
           <a href="#producto">Producto</a>
           <a href="#resultados">Resultados</a>
-          <Link href={routes.login}>Entrar</Link>
+          <Link href={routes.login}>Iniciar sesión</Link>
+          <Link href={routes.register}>Registrarme</Link>
         </nav>
         <p className="nsx-footer-copy">
           © {new Date().getFullYear()} {siteConfig.name}

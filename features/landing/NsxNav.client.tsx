@@ -6,7 +6,7 @@ import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { cn } from "@/lib/cn";
-import { NsxBtnPrimary } from "./NsxButtons";
+import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
 
 const NAV = [
   { href: "#soluciones", label: "Soluciones" },
@@ -72,8 +72,9 @@ export function NsxNav() {
           </ul>
         </nav>
 
-        <div className="hidden items-center xl:flex">
-          <NsxBtnPrimary href={routes.login}>Entrar</NsxBtnPrimary>
+        <div className="hidden items-center gap-2 xl:flex">
+          <NsxBtnSecondary href={routes.login}>Iniciar sesión</NsxBtnSecondary>
+          <NsxBtnPrimary href={routes.register}>Registrarme</NsxBtnPrimary>
         </div>
 
         <button
@@ -108,13 +109,19 @@ export function NsxNav() {
               </li>
             ))}
           </ul>
-          <div className="mt-2 border-t border-[var(--nsx-stroke)] pt-3">
+          <div className="mt-2 space-y-2 border-t border-[var(--nsx-stroke)] pt-3">
             <NsxBtnPrimary
+              href={routes.register}
+              className="w-full justify-center"
+            >
+              Registrarme
+            </NsxBtnPrimary>
+            <NsxBtnSecondary
               href={routes.login}
               className="w-full justify-center"
             >
-              Entrar
-            </NsxBtnPrimary>
+              Iniciar sesión
+            </NsxBtnSecondary>
           </div>
         </div>
       ) : null}

@@ -398,6 +398,144 @@ export async function updateHecomClienteDocument(input: {
   }
 }
 
+/**
+ * Alta de cliente nuevo desde Registro Ads Holistic → Hecom Club CRM.
+ * Prepago por defecto (sin credito_form_slug).
+ */
+export async function createHecomCliente(input: {
+  name: string;
+  dni: string;
+  email: string;
+  phone: string;
+}): Promise<
+  | { ok: true; cliente: HecomCliente }
+  | { ok: false; message: string; code?: "duplicate_email" | "config" | "insert" }
+> {
+  const name = String(input.name ?? "").trim();
+  const dni = String(input.dni ?? "").trim();
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const phoneDigits = String(input.phone ?? "").replace(/\D/g, "");
+
+  if (name.length < 2) {
+    return { ok: false, message: "Ingresá tu nombre completo.", code: "insert" };
+  }
+  if (dni.length < 5) {
+    return {
+      ok: false,
+      message: "Ingresá un DNI o documento de identificación válido.",
+      code: "insert",
+    };
+  }
+  if (!email.includes("@")) {
+    return { ok: false, message: "Correo electrónico inválido.", code: "insert" };
+  }
+  if (phoneDigits.length < 9) {
+    return {
+      ok: false,
+      message: "Ingresá un número telefónico válido (mín. 9 dígitos).",
+      code: "insert",
+    };
+  }
+
+  const cfg = getHecomSupabaseConfig();
+  if (!cfg.configured) {
+    return {
+      ok: false,
+      message: "Hecom no está configurado. No se pudo crear el cliente.",
+      code: "config",
+    };
+  }
+
+  const existing = await findHecomClientesByEmail(email);
+  if (existing.length > 0) {
+    return {
+      ok: false,
+      message: "Ya tienes una cuenta con ese correo. Inicia sesión.",
+      code: "duplicate_email",
+    };
+  }
+
+  const phoneNormalized =
+    phoneDigits.length === 9
+      ? `+51${phoneDigits}`
+      : phoneDigits.startsWith("51") && phoneDigits.length >= 11
+        ? `+${phoneDigits}`
+        : `+${phoneDigits}`;
+
+  try {
+    const hecom = createHecomAdminClient();
+    const payload = {
+      name,
+      dni,
+      emails: [email],
+      phones: [phoneNormalized],
+      notes: "Alta desde Ads Holistic · registro OTP",
+      tiktok_sync_enabled: false,
+    };
+
+    const { data, error } = await hecom
+      .from("clientes")
+      .insert(payload)
+      .select(HECOM_CLIENTE_SELECT)
+      .single();
+
+    if (error || !data) {
+      console.error("[hecom] createHecomCliente", {
+        email,
+        error: error?.message ?? "no_data",
+      });
+      // Retry without optional columns if schema differs.
+      if (error && /tiktok_sync_enabled|column|schema/i.test(error.message)) {
+        const basic = await hecom
+          .from("clientes")
+          .insert({
+            name,
+            dni,
+            emails: [email],
+            phones: [phoneNormalized],
+            notes: "Alta desde Ads Holistic · registro OTP",
+          })
+          .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
+          .single();
+        if (basic.error || !basic.data) {
+          return {
+            ok: false,
+            message:
+              basic.error?.message ??
+              "No se pudo crear el cliente en Hecom. Probá de nuevo.",
+            code: "insert",
+          };
+        }
+        const cliente = mapClienteRow(basic.data as Record<string, unknown>, []);
+        console.info("[hecom] cliente_created_basic", {
+          clienteId: cliente.id,
+          email,
+        });
+        return { ok: true, cliente };
+      }
+      return {
+        ok: false,
+        message: error?.message ?? "No se pudo crear el cliente en Hecom.",
+        code: "insert",
+      };
+    }
+
+    const cliente = mapClienteRow(data as Record<string, unknown>, []);
+    console.info("[hecom] cliente_created", {
+      clienteId: cliente.id,
+      email,
+    });
+    return { ok: true, cliente };
+  } catch (error) {
+    console.error("[hecom] createHecomCliente unexpected", error);
+    return {
+      ok: false,
+      message: "No se pudo crear el cliente en Hecom. Probá de nuevo.",
+      code: "insert",
+    };
+  }
+}
+
 export async function listHecomClienteSpend(clientId: string, limit = 30) {
   try {
     const hecom = createHecomAdminClient();

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
-import { NsxBtnPrimary } from "./NsxButtons";
+import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
 import { NsxReveal } from "./NsxReveal.client";
 
 const AVATARS = [
@@ -72,11 +72,17 @@ export function NsxHero() {
 
             <div className="nsx-hero-cta">
               <NsxBtnPrimary
+                href={routes.register}
+                className="nsx-hero-cta-btn justify-center"
+              >
+                Registrarme
+              </NsxBtnPrimary>
+              <NsxBtnSecondary
                 href={routes.login}
                 className="nsx-hero-cta-btn justify-center"
               >
-                Entrar
-              </NsxBtnPrimary>
+                Iniciar sesión
+              </NsxBtnSecondary>
             </div>
           </div>
 

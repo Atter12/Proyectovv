@@ -245,15 +245,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
       {otpMode ? (
         <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
-          Revisá tu correo: entrás con el{" "}
-          <strong className="font-semibold text-[var(--auth-text)]">
-            código de 6 dígitos
-          </strong>{" "}
-          o el{" "}
-          <strong className="font-semibold text-[var(--auth-text)]">
-            enlace mágico
-          </strong>
-          .
+          ¿No tienes cuenta?{" "}
+          <a
+            href={routes.register}
+            className="font-semibold text-[var(--auth-accent)] hover:underline"
+          >
+            Registrarme
+          </a>
         </p>
       ) : (
         <p className="mt-6 text-center text-[13px] text-[var(--auth-text-muted)]">
