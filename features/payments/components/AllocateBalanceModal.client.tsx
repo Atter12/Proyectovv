@@ -33,7 +33,7 @@ function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
     return "TikTok solicita al menos $10 en esta cuenta. Prueba con $10 o más.";
   }
   if (
-    /no aparece en el BM|rechazó el presupuesto|falta permiso de presupuesto|línea de crédito|crédito compartido|portfolio de crédito|no tiene saldo en efectivo|no tiene cupo disponible/i.test(
+    /no aparece en el BM|rechazó el presupuesto|falta permiso de presupuesto|línea de crédito|crédito compartido|portfolio de crédito|no tiene saldo en efectivo|no tiene cupo disponible|limitó los cambios de presupuesto|FrequencyControl/i.test(
       text,
     )
   ) {

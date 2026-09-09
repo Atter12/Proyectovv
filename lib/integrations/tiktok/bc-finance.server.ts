@@ -724,6 +724,69 @@ function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type AdvertiserBudgetUpdateItem = {
+  advertiser_id?: string | number;
+  status?: string;
+  error_msg?: string;
+  one_click_set_amount?: unknown;
+};
+
+/**
+ * TikTok a veces responde code=0 pero cada fila en data.list puede venir FAILED
+ * (p.ej. FrequencyControlException: máx. ~20 updates/día por cuenta).
+ */
+function parseAdvertiserBudgetUpdateList(
+  data: unknown,
+): AdvertiserBudgetUpdateItem[] {
+  if (!data || typeof data !== "object") return [];
+  const list = (data as { list?: unknown }).list;
+  if (!Array.isArray(list)) return [];
+  return list.filter(
+    (row): row is AdvertiserBudgetUpdateItem =>
+      Boolean(row) && typeof row === "object",
+  );
+}
+
+function assertAdvertiserBudgetUpdateApplied(input: {
+  data: unknown;
+  advertiserId: string;
+  context: string;
+}): void {
+  const items = parseAdvertiserBudgetUpdateList(input.data);
+  if (items.length === 0) return;
+
+  const want = input.advertiserId.trim();
+  const row =
+    items.find((item) => String(item.advertiser_id ?? "") === want) ??
+    items.find((item) => String(item.advertiser_id ?? "") === "0") ??
+    items[0];
+  if (!row) return;
+
+  const status = String(row.status ?? "").toUpperCase();
+  const errorMsg = String(row.error_msg ?? "").trim();
+  if (!status || status === "SUCCESS" || status === "OK") return;
+
+  console.error("[tiktok-bc] budget_update_item_failed", {
+    context: input.context,
+    advertiserId: input.advertiserId,
+    status,
+    errorMsg: errorMsg || null,
+    rawAdvertiserId: row.advertiser_id ?? null,
+  });
+
+  if (/FrequencyControl|out of upper limit|cycleUpperLimit/i.test(errorMsg)) {
+    throw new Error(
+      "TikTok limitó los cambios de presupuesto en esta cuenta (máx. ~20 por día). Tu cartera no se debitó: esperá unas horas o probá mañana.",
+    );
+  }
+
+  throw new Error(
+    errorMsg
+      ? `TikTok rechazó el cambio de presupuesto: ${errorMsg}`
+      : "TikTok rechazó el cambio de presupuesto de esa cuenta. No se debitó la cartera.",
+  );
+}
+
 /**
  * Espera a que TikTok refleje el presupuesto tras UPDATE (eventual consistency).
  * Éxito si budget ≥ expected − tolerancia (y modo CUSTOM si se pidió).
@@ -952,6 +1015,12 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       });
     } else {
       tiktokRequestId = json.request_id ?? null;
+      assertAdvertiserBudgetUpdateApplied({
+        data: json.data,
+        advertiserId,
+        context: "incremental",
+      });
+
       console.info("[tiktok-bc] budget_increase_ok", {
         bcId,
         advertiserId,
@@ -1024,10 +1093,12 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   });
 
   // 3) Un reintento absoluto si TikTok aún no refleja (lag / carrera con cap).
+  // No reintentar si absolute ya vino skipped — evita quemar cuota diaria.
   if (
-    !verified ||
-    (verified.budget + 1e-6 < newBudget - 0.05 &&
-      verified.budget + 1e-6 < baseBudget + increase - 0.05)
+    !absolute.skipped &&
+    (!verified ||
+      (verified.budget + 1e-6 < newBudget - 0.05 &&
+        verified.budget + 1e-6 < baseBudget + increase - 0.05))
   ) {
     console.warn("[tiktok-bc] budget_absolute_retry", {
       bcId,
@@ -1206,6 +1277,12 @@ export async function decreaseSharedBmAdvertiserBudget(input: {
     );
   }
 
+  assertAdvertiserBudgetUpdateApplied({
+    data: json.data,
+    advertiserId,
+    context: "decrease",
+  });
+
   return {
     ok: true,
     previousBudget,
@@ -1343,6 +1420,12 @@ export async function setSharedBmAdvertiserBudgetAbsolute(input: {
       "No se pudo ajustar el presupuesto en TikTok al tope Holistic.",
     );
   }
+
+  assertAdvertiserBudgetUpdateApplied({
+    data: json.data,
+    advertiserId,
+    context: "absolute",
+  });
 
   return {
     ok: true,
