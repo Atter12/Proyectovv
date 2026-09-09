@@ -1,6 +1,5 @@
 "use client";
 
-import { formatMoney } from "@/lib/format-money";
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
 import { PaymentsMoneyFlowGuide } from "./PaymentsMoneyFlowGuide";
 import {
@@ -61,23 +60,18 @@ export function PaymentsGatewaySection({
           className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
         >
           <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-                  Recargar saldo
-                </h2>
-                <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                  Elige un método e ingresa cuánto saldo quieres agregar a la cartera.
-                </p>
-              </div>
-              <div className="shrink-0 sm:text-right">
-                <p className="text-[12px] font-medium text-[var(--auth-text-muted)]">
-                  Saldo disponible
-                </p>
-                <p className="mt-0.5 text-[1.7rem] font-semibold leading-none tracking-[-0.035em] tabular-nums text-[var(--auth-text)]">
-                  {formatMoney(wallet.balance, wallet.currency)}
-                </p>
-              </div>
+            {/*
+             * El saldo ya está fijo en la barra lateral y otra vez en “Asignar
+             * saldo”, donde sí aporta (compara contra TikTok). Repetirlo acá
+             * era la tercera copia del mismo número.
+             */}
+            <div className="min-w-0">
+              <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+                Recargar saldo
+              </h2>
+              <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+                Elige un método e ingresa cuánto saldo quieres agregar a la cartera.
+              </p>
             </div>
             <PaymentsMoneyFlowGuide />
           </div>

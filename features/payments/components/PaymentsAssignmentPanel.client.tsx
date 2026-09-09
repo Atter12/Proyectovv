@@ -242,7 +242,9 @@ function ClientBalanceComparison({
       return `Cupo publicitario: ${formatMoney(cupoTotalUsd)} (no es saldo)`;
     }
     if (expectedCount === 0) return "No hay cuentas vinculadas a TikTok";
-    return "TikTok no devolvió saldos para estas cuentas";
+    // No es un saldo de cero: es que TikTok no respondió. Decirlo así evita
+    // que el cliente crea que se le perdió la plata.
+    return "TikTok no respondió el saldo · vuelve a intentar en un momento";
   })();
 
   return (

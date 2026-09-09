@@ -77,6 +77,7 @@ export function CreditLockPanel({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodState>(null);
   const [cupo, setCupo] = useState<CupoState>(null);
   const [amountInput, setAmountInput] = useState("500");
+  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -281,6 +282,40 @@ export function CreditLockPanel({
     "3. Tarjeta",
   ] as const;
 
+  // Sin pedido en curso el crédito es una opción, no una tarea: se muestra
+  // como una fila que se abre. Con pedido en curso hay estado que el cliente
+  // necesita ver sin buscarlo, así que queda abierto.
+  const idle = !loading && (status === "none" || status === "rejected");
+  if (idle && !expanded) {
+    return (
+      <section
+        className="flex flex-col gap-3 rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6"
+        aria-label={`Crédito Holistic para ${clienteName}`}
+      >
+        <GatewayLogo gatewayId="stripe" size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold text-[#1c1917]">
+            ¿Necesitas crédito Holistic?
+          </p>
+          <p className="mt-0.5 text-[12px] leading-[1.45] text-[#6f675f]">
+            Pides el monto, gerencia lo acepta según tu historial y pagas el
+            ciclo después. No reemplaza la recarga de arriba.
+            {status === "rejected"
+              ? " Tu último pedido fue rechazado; puedes enviar otro."
+              : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition-colors hover:border-[var(--auth-accent)]/50 hover:bg-[var(--auth-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
+        >
+          Pedir crédito
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section
       className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
@@ -300,6 +335,26 @@ export function CreditLockPanel({
           <div className="flex shrink-0 items-center gap-1.5">
             <PaymentAppIcon app="visa" size="sm" />
             <PaymentAppIcon app="mastercard" size="sm" />
+            {idle ? (
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                aria-label="Cerrar crédito Holistic"
+                className="ml-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8a8177] transition-colors hover:bg-[#f0eae4] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  aria-hidden
+                >
+                  <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" />
+                </svg>
+              </button>
+            ) : null}
           </div>
         </div>
 

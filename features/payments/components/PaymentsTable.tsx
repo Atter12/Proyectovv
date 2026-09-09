@@ -176,11 +176,11 @@ export function PaymentsTable({
             className={
               mobile
                 ? "text-[11px] leading-4 text-[#7a736a]"
-                : "max-w-[12rem] px-2 text-[10px] leading-3.5 text-[#7a736a]"
+                : "max-w-[13rem] text-[10px] leading-[1.45] text-[#7a736a]"
             }
           >
-            No hay saldo disponible para retirar. Para agregar saldo, transfiere desde otra cuenta
-            con saldo disponible (elige esta como destino) o asigna desde la cartera.
+            Sin saldo para retirar. Asígnale desde la cartera, o transfiérele
+            saldo desde otra cuenta eligiendo esta como destino.
           </p>
         ) : null}
 
@@ -379,7 +379,9 @@ export function PaymentsTable({
                     </span>
                   </TableCell>
                   <TableCell>{renderBalanceCell(account)}</TableCell>
-                  <TableCell>{renderActions(account, false)}</TableCell>
+                  <TableCell className="w-[15rem] whitespace-normal align-top sm:whitespace-normal">
+                    {renderActions(account, false)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

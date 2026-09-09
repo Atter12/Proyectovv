@@ -1,5 +1,4 @@
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
-import { PaymentsOpenAddBalanceButton } from "./PaymentsOpenAddBalanceButton.client";
 import type { PaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 interface PaymentsPageHeroProps {
@@ -43,10 +42,18 @@ export function PaymentsPageHero({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+        {/*
+         * Lleva al selector de método en vez de abrir el modal directo: el modal
+         * hereda el método ya elegido, así que abrirlo desde acá metía a todos
+         * por Stripe aunque quisieran pagar con Yape.
+         */}
         {capabilities.canClientStripeFund ? (
-          <PaymentsOpenAddBalanceButton className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2">
+          <a
+            href="#recargar-saldo"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
+          >
             Recargar saldo
-          </PaymentsOpenAddBalanceButton>
+          </a>
         ) : null}
         <a
           href="#asignar-saldo"

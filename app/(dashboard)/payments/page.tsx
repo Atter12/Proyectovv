@@ -174,15 +174,6 @@ export default async function PaymentsPage({
         introCopy={introCopy}
       />
 
-      {capabilities.canClientStripeFund ? (
-        <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-          <CreditLockPanel
-            clienteName={cliente.name}
-            canReviewCredit={canReviewCredit}
-          />
-        </Suspense>
-      ) : null}
-
       <Suspense fallback={<PaymentsSectionSkeleton rows={2} />}>
         <PaymentsGatewayPanel
           session={session}
@@ -195,6 +186,16 @@ export default async function PaymentsPage({
           skipApprovedSync={isStripeReturn}
         />
       </Suspense>
+
+      {/* Debajo de recargar: pedir crédito es la excepción, no la tarea del día. */}
+      {capabilities.canClientStripeFund ? (
+        <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
+          <CreditLockPanel
+            clienteName={cliente.name}
+            canReviewCredit={canReviewCredit}
+          />
+        </Suspense>
+      ) : null}
 
       <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">
