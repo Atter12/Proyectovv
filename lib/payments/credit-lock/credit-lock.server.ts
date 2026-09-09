@@ -213,15 +213,20 @@ export async function saveCreditLockCupo(input: {
 }
 
 /**
- * Tope suave + exigir tarjeta Stripe para clientes crédito.
- * Llamar antes de fondear TikTok. No-op si no es crédito / sin cupo cargado.
+ * Tope suave + tarjeta Stripe para fondeo a crédito (cash BM / cupo).
+ * NO bloquea asignación desde cartera Holistic ya pagada (Stripe/Yape/BCP).
  */
 export async function assertCreditLockAllowsAllocate(input: {
   organizationId: string;
   hecomClienteId: string | null | undefined;
   amountCents: number;
+  /** Solo se aplica el candado cuando el fondeo es a crédito BM, no cartera prepago. */
+  agencyBmFunding?: boolean;
 }): Promise<void> {
   if (!CREDIT_STRIPE_LOCK_ENABLED) return;
+  // Recarga ya pagada en cartera → el cliente puede asignar a TikTok sin candado.
+  if (!input.agencyBmFunding) return;
+
   const hecomId = input.hecomClienteId?.trim();
   if (!hecomId) return;
 
@@ -244,14 +249,14 @@ export async function assertCreditLockAllowsAllocate(input: {
 
   if (requireCard && !hasCard) {
     throw new Error(
-      "Crédito solo con candado Stripe: guardá una tarjeta en Pagos antes de fondear.",
+      "Crédito solo con candado Stripe: guarda una tarjeta en Pagos antes de fondear desde BM.",
     );
   }
 
   const requested = profile?.requested_credit_cents;
   if (requested == null || requested <= 0) {
     throw new Error(
-      "Indicá el monto de crédito solicitado (USD) en Pagos antes de fondear.",
+      "Indica el monto de crédito solicitado (USD) en Pagos antes de fondear desde BM.",
     );
   }
 
@@ -268,7 +273,7 @@ export async function assertCreditLockAllowsAllocate(input: {
   if (nextExposure > softCapCents) {
     throw new Error(
       `Tope suave del cupo crédito ($${softCapCents / 100} = ${softCapPercent}% de $${requested / 100}). ` +
-        `Exposición actual ~$${exposureCents / 100}. Pagá el ciclo o pedí ampliar cupo.`,
+        `Exposición actual ~$${exposureCents / 100}. Paga el ciclo o pide ampliar cupo.`,
     );
   }
 }
