@@ -15,7 +15,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
     id: "cobrana",
     name: "Yape / Plin",
-    description: "Paga con Yape o Plin en soles",
+    description: "Paga con Yape, Plin o transferencia bancaria",
   },
   {
     id: "manual",

@@ -441,7 +441,7 @@ export function AddBalanceModal({
   const orderedLinks = [...(yapeLink ? [yapeLink] : []), ...otherLinks];
   const modalStepIndex = step === "form" ? 0 : step === "confirm" ? 1 : 2;
   const gatewayIdentityDescription = isCobrana
-    ? "Yape o Plin en soles"
+    ? "Yape, Plin y bancos"
     : isStripe
       ? "Tarjetas Visa y Mastercard"
       : "Recarga de cartera";
@@ -469,7 +469,7 @@ export function AddBalanceModal({
               title="¿Cuánto saldo quieres recargar?"
               description={
                 isCobrana
-                  ? "Ingresa el saldo que deseas recibir en USD. Calcularemos el pago equivalente en soles para Yape o Plin."
+                  ? "Ingresa el saldo que deseas recibir en USD. Calcularemos el pago equivalente en soles para Yape, Plin o tu banco."
                   : isStripe
                     ? "Ingresa el saldo que deseas recibir. Antes de pagar verás el total exacto, incluidos los fees."
                     : "Ingresa el saldo que deseas recibir en tu cartera Holistic."
@@ -591,7 +591,7 @@ export function AddBalanceModal({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-[12px] font-semibold text-[#1c1917]">
-                        Pago con Yape o Plin
+                        Pago con Yape, Plin o bancos
                       </p>
                       <p className="mt-0.5 text-[11px] leading-4 text-[#6f675f]">
                         En Yape, el servicio aparecerá como{" "}
@@ -599,7 +599,16 @@ export function AddBalanceModal({
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                      {(["yape", "plin"] as const).map((app) => (
+                      {(
+                        [
+                          "yape",
+                          "plin",
+                          "bcp",
+                          "interbank",
+                          "bbva",
+                          "scotiabank",
+                        ] as const
+                      ).map((app) => (
                         <PaymentAppIcon key={app} app={app} size="sm" />
                       ))}
                     </div>
@@ -637,7 +646,7 @@ export function AddBalanceModal({
               title="Revisa tu recarga"
               description={
                 isCobrana
-                  ? "Te daremos un código para pagar en soles desde Yape o Plin."
+                  ? "Te daremos un código para pagar en soles desde Yape, Plin o tu banco."
                   : "Confirma que el saldo y el total a pagar sean correctos antes de continuar."
               }
               identityIcon={
@@ -788,11 +797,11 @@ export function AddBalanceModal({
               title="Completa el pago"
               description={
                 resultMessage ??
-                "Usa el código desde Yape o Plin para completar el pago en soles."
+                "Usa el código desde Yape, Plin o la app de tu banco para completar el pago en soles."
               }
               identityIcon={<GatewayLogo gatewayId="cobrana" size="sm" />}
               identityLabel="Yape / Plin"
-              identityDescription="Pago en soles"
+              identityDescription="Yape, Plin y bancos"
               steps={ADD_BALANCE_STEPS}
               currentStep={modalStepIndex}
               onClose={handleClose}
