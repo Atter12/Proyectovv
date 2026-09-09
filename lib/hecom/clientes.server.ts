@@ -337,6 +337,67 @@ export const getHecomCliente = cache(
   },
 );
 
+/**
+ * Guarda DNI/RUC real en Hecom cuando el CRM tenía código interno (CL-…) o vacío.
+ * Solo dígitos normalizados (8 = DNI, 11 = RUC).
+ */
+export async function updateHecomClienteDocument(input: {
+  clienteId: string;
+  documentNumber: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const clienteId = String(input.clienteId ?? "").trim();
+  const documentNumber = String(input.documentNumber ?? "").replace(/\D/g, "");
+  if (!clienteId) {
+    return { ok: false, message: "Cliente Hecom no disponible." };
+  }
+  if (isOtpTestClienteId(clienteId)) {
+    return { ok: true };
+  }
+  if (documentNumber.length !== 8 && documentNumber.length !== 11) {
+    return {
+      ok: false,
+      message: "El documento debe ser DNI (8 dígitos) o RUC (11).",
+    };
+  }
+
+  const cfg = getHecomSupabaseConfig();
+  if (!cfg.configured) {
+    return {
+      ok: false,
+      message: "Hecom no está configurado; no se pudo guardar el documento.",
+    };
+  }
+
+  try {
+    const hecom = createHecomAdminClient();
+    const { error } = await hecom
+      .from("clientes")
+      .update({ dni: documentNumber })
+      .eq("id", clienteId);
+    if (error) {
+      console.error("[hecom] updateHecomClienteDocument", {
+        clienteId,
+        error: error.message,
+      });
+      return {
+        ok: false,
+        message: "No se pudo guardar el DNI en Hecom. Probá de nuevo.",
+      };
+    }
+    console.info("[hecom] cliente_document_saved", {
+      clienteId,
+      digits: documentNumber.length,
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error("[hecom] updateHecomClienteDocument unexpected", error);
+    return {
+      ok: false,
+      message: "No se pudo guardar el DNI en Hecom. Probá de nuevo.",
+    };
+  }
+}
+
 export async function listHecomClienteSpend(clientId: string, limit = 30) {
   try {
     const hecom = createHecomAdminClient();

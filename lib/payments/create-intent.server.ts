@@ -47,6 +47,11 @@ export interface CreatePaymentIntentRequest {
   hecomClienteId?: string | null;
   /** Org de la cartera destino (cliente OTP al “ver como”); default = sesión. */
   organizationId?: string | null;
+  /**
+   * DNI (8) o RUC (11) ingresado por el cliente cuando Hecom tiene CL-… / vacío.
+   * Se usa en Cobrana y se persiste en `clientes.dni`.
+   */
+  customerDocument?: string | null;
 }
 
 export interface CreatePaymentIntentResponse {
@@ -178,15 +183,43 @@ export async function createPaymentIntentForSession(
     if (!fee.hecomClienteId) {
       throw new Error("Selecciona un cliente de Hecom para pagar con Yape.");
     }
-    const { getHecomCliente } = await import("@/lib/hecom/clientes.server");
+    const { getHecomCliente, updateHecomClienteDocument } = await import(
+      "@/lib/hecom/clientes.server"
+    );
     const { normalizeYapeDocument } = await import(
       "@/lib/payments/cobrana/document.server"
     );
     const hecomCliente = await getHecomCliente(fee.hecomClienteId);
-    const doc = normalizeYapeDocument(hecomCliente?.dni);
+    const crmDoc = normalizeYapeDocument(hecomCliente?.dni);
+    let doc = crmDoc;
+    let documentFromClient = false;
+
+    if (!crmDoc.ok) {
+      const override = normalizeYapeDocument(input.customerDocument);
+      if (!override.ok) {
+        throw new Error(
+          "NEED_CUSTOMER_DOCUMENT: Ingresa tu DNI (8 dígitos) o RUC (11) para pagar con Yape.",
+        );
+      }
+      doc = override;
+      documentFromClient = true;
+      const saved = await updateHecomClienteDocument({
+        clienteId: fee.hecomClienteId,
+        documentNumber: override.value.documentNumber,
+      });
+      if (!saved.ok) {
+        // No bloquear el pago si Hecom falla al guardar; Cobrana igual usa el doc.
+        console.warn("[create-intent] hecom_dni_save_failed", {
+          hecomClienteId: fee.hecomClienteId,
+          message: saved.message,
+        });
+      }
+    }
+
     if (!doc.ok) {
       throw new Error(doc.message);
     }
+
     const nameParts = String(hecomCliente?.name ?? "")
       .trim()
       .split(/\s+/)
@@ -199,6 +232,12 @@ export async function createPaymentIntentForSession(
       phone: hecomCliente?.phones?.[0] ?? null,
       fullName: hecomCliente?.name ?? null,
     };
+    if (documentFromClient) {
+      manualQuoteMeta = {
+        ...manualQuoteMeta,
+        customer_document_source: "client_input",
+      };
+    }
     if (amountCents < 1000) {
       throw new Error(
         "Con el tipo de cambio actual, el cargo en soles queda por debajo del mínimo de Yape (S/ 10). Aumenta el monto en USD.",

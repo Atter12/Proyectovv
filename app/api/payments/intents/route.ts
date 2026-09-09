@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     provider?: PaymentGatewayId;
     gatewayId?: PaymentGatewayId;
     idempotencyKey?: string;
+    customerDocument?: string;
   };
 
   try {
@@ -85,6 +86,11 @@ export async function POST(request: Request) {
       ? clienteOrgId
       : session.organizationId;
 
+  const customerDocument =
+    typeof body.customerDocument === "string"
+      ? body.customerDocument.trim()
+      : null;
+
   try {
     const result = await createPaymentIntentForSession(session, {
       amount,
@@ -94,6 +100,7 @@ export async function POST(request: Request) {
       idempotencyKey: body.idempotencyKey,
       hecomClienteId,
       organizationId,
+      customerDocument,
     });
 
     return NextResponse.json({
@@ -106,6 +113,15 @@ export async function POST(request: Request) {
     }
     const message =
       error instanceof Error ? error.message : "No se pudo crear la intención de pago.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const needsDocument = message.startsWith("NEED_CUSTOMER_DOCUMENT:");
+    return NextResponse.json(
+      {
+        error: needsDocument
+          ? message.replace(/^NEED_CUSTOMER_DOCUMENT:\s*/, "")
+          : message,
+        code: needsDocument ? "NEED_CUSTOMER_DOCUMENT" : undefined,
+      },
+      { status: needsDocument ? 400 : 500 },
+    );
   }
 }

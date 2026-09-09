@@ -21,6 +21,7 @@ import {
 } from "@/lib/payments/deposit-fee";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
 import { COBRANA_YAPE_SERVICE_COMPANY } from "@/lib/payments/cobrana/service-brand";
+import { normalizeYapeDocument } from "@/lib/payments/cobrana/document";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isVoucherPaymentProvider } from "@/types/payment";
 import {
@@ -138,6 +139,9 @@ export function AddBalanceModal({
   );
   const [codeCopied, setCodeCopied] = useState(false);
   const [paidConfirmed, setPaidConfirmed] = useState(false);
+  const [needsCustomerDocument, setNeedsCustomerDocument] = useState(false);
+  const [customerDocument, setCustomerDocument] = useState("");
+  const [crmDocumentHint, setCrmDocumentHint] = useState<string | null>(null);
 
   const isCobrana = selectedGateway === "cobrana";
   const isStripe = selectedGateway === "stripe";
@@ -187,6 +191,32 @@ export function AddBalanceModal({
         /* keep default FX */
       });
   }, [open, isCobrana]);
+
+  useEffect(() => {
+    if (!open || !isCobrana || step !== "confirm") return;
+    let cancelled = false;
+    void apiClient<{
+      ok: boolean;
+      needsDocument: boolean;
+      crmDocument: string | null;
+      message: string | null;
+    }>("/api/payments/cobrana/document")
+      .then((data) => {
+        if (cancelled) return;
+        setNeedsCustomerDocument(Boolean(data.needsDocument));
+        setCrmDocumentHint(
+          data.needsDocument && data.crmDocument ? data.crmDocument : null,
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Ante duda, pedir DNI: mejor UX que bloquear con error opaco.
+        setNeedsCustomerDocument(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isCobrana, step]);
 
   useEffect(() => {
     if (!open || step !== "yape" || !paymentIntentId || paidConfirmed) return;
@@ -268,6 +298,9 @@ export function AddBalanceModal({
     setCobranaCode(null);
     setCobranaDeeplinks([]);
     setPaidConfirmed(false);
+    setNeedsCustomerDocument(false);
+    setCustomerDocument("");
+    setCrmDocumentHint(null);
     onClose();
   }
 
@@ -287,6 +320,15 @@ export function AddBalanceModal({
     setError(null);
 
     try {
+      if (isCobrana && needsCustomerDocument) {
+        const doc = normalizeYapeDocument(customerDocument);
+        if (!doc.ok) {
+          setError(doc.message);
+          setLoading(false);
+          return;
+        }
+      }
+
       const data = await apiClient<CreateIntentResponse>(
         "/api/payments/intents",
         {
@@ -296,6 +338,9 @@ export function AddBalanceModal({
             currency: "USD",
             provider: selectedGateway,
             ...(isCobrana ? { chargeCurrency: "PEN" } : {}),
+            ...(isCobrana && needsCustomerDocument
+              ? { customerDocument: customerDocument.replace(/\D/g, "") }
+              : {}),
           }),
         },
       );
@@ -330,11 +375,19 @@ export function AddBalanceModal({
       setStep(isVoucher ? "proof" : "result");
       router.refresh();
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo crear la intención de pago.",
-      );
+          : "No se pudo crear la intención de pago.";
+      if (
+        isCobrana &&
+        /NEED_CUSTOMER_DOCUMENT|DNI \(8|RUC \(11|documento|Ingresa tu DNI/i.test(
+          message,
+        )
+      ) {
+        setNeedsCustomerDocument(true);
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -668,6 +721,39 @@ export function AddBalanceModal({
                   ) : null}
                 </dl>
               </div>
+
+              {isCobrana && needsCustomerDocument ? (
+                <div className="mt-4 rounded-2xl border border-[#e7dfd7] bg-white px-4 py-4 sm:px-5">
+                  <p className="text-[13px] font-semibold text-[#1c1917]">
+                    Ingresa tu DNI
+                  </p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#625b54]">
+                    {crmDocumentHint
+                      ? `En el CRM figura “${crmDocumentHint}”, que no sirve para Yape. Escribí tu DNI (8 dígitos) o RUC (11).`
+                      : "Para pagar con Yape necesitamos tu DNI (8 dígitos) o RUC (11). Se guarda en tu ficha Hecom."}
+                  </p>
+                  <label className="mt-3 block">
+                    <span className="text-[11px] font-medium text-[#6f675f]">
+                      DNI o RUC
+                    </span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="Ej. 12345678"
+                      maxLength={11}
+                      value={customerDocument}
+                      onChange={(e) =>
+                        setCustomerDocument(
+                          e.target.value.replace(/\D/g, "").slice(0, 11),
+                        )
+                      }
+                      className="mt-1 h-11 rounded-xl border-[#ddd4cb] bg-[#f7f5f2] text-[1.05rem] font-semibold tabular-nums tracking-wide"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               {error && (
                 <p
                   className="mt-3 text-xs font-medium text-red-600"
@@ -686,8 +772,13 @@ export function AddBalanceModal({
                   Volver
                 </Button>
                 <Button
-                  onClick={handleConfirm}
-                  disabled={loading}
+                  onClick={() => void handleConfirm()}
+                  disabled={
+                    loading ||
+                    (isCobrana &&
+                      needsCustomerDocument &&
+                      !normalizeYapeDocument(customerDocument).ok)
+                  }
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
                 >
                   {loading
