@@ -93,13 +93,28 @@ export async function startBillingSetupSession(input: {
   email: string;
 }): Promise<{ checkoutUrl: string }> {
   // Calendario OFF; setup de tarjeta sí (candado crédito / reuso futuro).
-  const { CREDIT_STRIPE_LOCK_ENABLED } = await import(
+  const { CREDIT_STRIPE_LOCK_ENABLED, getCreditLockState } = await import(
     "@/lib/payments/credit-lock/credit-lock.server"
   );
   if (!CALENDAR_AUTO_RECHARGE_ENABLED && !CREDIT_STRIPE_LOCK_ENABLED) {
     throw new Error(
       "Guardar tarjeta no está disponible en este momento.",
     );
+  }
+
+  // Candado: solo después de que gerencia apruebe el pedido de crédito.
+  if (CREDIT_STRIPE_LOCK_ENABLED && !CALENDAR_AUTO_RECHARGE_ENABLED) {
+    const lock = await getCreditLockState({
+      organizationId: input.organizationId,
+      hecomClienteId: null,
+    });
+    if (!lock.cupo.canLinkCard) {
+      throw new Error(
+        lock.cupo.approvalStatus === "requested"
+          ? "Gerencia aún no aceptó tu pedido de crédito. Cuando lo aprueben, podrás registrar la tarjeta."
+          : "Primero pedí crédito Holistic y esperá la aceptación de gerencia.",
+      );
+    }
   }
 
   const billing = await getBillingCustomer(input.organizationId);

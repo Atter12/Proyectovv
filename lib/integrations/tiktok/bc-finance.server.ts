@@ -720,6 +720,68 @@ export async function getAdvertiserBudgetSnapshot(input: {
   };
 }
 
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Espera a que TikTok refleje el presupuesto tras UPDATE (eventual consistency).
+ * Éxito si budget ≥ expected − tolerancia (y modo CUSTOM si se pidió).
+ */
+async function waitForSharedBudgetApplied(input: {
+  bcId: string;
+  advertiserId: string;
+  organizationId?: string;
+  expectedBudget: number;
+  requireCustomMode?: boolean;
+  /** Si el abs no llegó, igual aceptar si subió al menos este delta desde previous. */
+  previousBudget?: number;
+  increaseUsd?: number;
+}): Promise<TikTokAdvertiserBudgetSnapshot | null> {
+  const delaysMs = [0, 600, 1200, 2000, 3200, 4500];
+  const tol = 0.05;
+  let last: TikTokAdvertiserBudgetSnapshot | null = null;
+
+  for (let i = 0; i < delaysMs.length; i++) {
+    if (delaysMs[i]! > 0) await sleepMs(delaysMs[i]!);
+    last = await getAdvertiserBudgetSnapshot({
+      bcId: input.bcId,
+      advertiserId: input.advertiserId,
+      organizationId: input.organizationId,
+    });
+    if (!last) continue;
+
+    const budgetOk = last.budget + 1e-6 >= input.expectedBudget - tol;
+    const deltaOk =
+      input.previousBudget != null &&
+      input.increaseUsd != null &&
+      last.budget + 1e-6 >=
+        input.previousBudget + input.increaseUsd - tol;
+    const modeOk =
+      !input.requireCustomMode ||
+      last.budgetMode === "CUSTOM_BUDGET" ||
+      // Algunos BCs tardan en flippear el mode; si el tope ya subió, OK.
+      budgetOk ||
+      deltaOk;
+
+    if ((budgetOk || deltaOk) && modeOk) {
+      return last;
+    }
+
+    console.info("[tiktok-bc] budget_verify_retry", {
+      attempt: i + 1,
+      bcId: input.bcId,
+      advertiserId: input.advertiserId,
+      expected: input.expectedBudget,
+      liveBudget: last.budget,
+      liveCost: last.budgetCost,
+      liveMode: last.budgetMode,
+    });
+  }
+
+  return last;
+}
+
 /**
  * BM SHARED (10/30): no hay cash que transferir. La cuenta gasta de la línea de
  * crédito según su presupuesto (CUSTOM/DAILY/UNLIMITED).
@@ -806,14 +868,132 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   const baseBudget =
     snapshot.budgetMode === "UNLIMITED" ? snapshot.budgetCost : previousBudget;
   const newBudget = Math.round((baseBudget + increase) * 100) / 100;
+  const wasCustom = snapshot.budgetMode === "CUSTOM_BUDGET";
 
-  // DAILY/MONTHLY no dejan el cupo de allocate estable (vuelve a $0).
-  // Pasamos a CUSTOM absoluto = gastable total (1:1 con lo asignado).
-  if (
-    snapshot.budgetMode === "DAILY_BUDGET" ||
-    snapshot.budgetMode === "MONTHLY_BUDGET" ||
-    snapshot.budgetMode === "UNLIMITED"
-  ) {
+  let tiktokRequestId: string | null = null;
+
+  // 1) Si ya es CUSTOM: intentar INCREMENTAL (rápido). Si no persiste → absoluto.
+  if (wasCustom) {
+    const { token: accessToken, source: tokenSource } =
+      await resolveTikTokFinanceAccessToken(input.organizationId);
+    const tokenFp = tokenFingerprint(accessToken);
+
+    const body = {
+      bc_id: bcId,
+      budget_update_type: "INCREMENTAL_UPDATE",
+      advertiser_budgets: [
+        {
+          advertiser_id: advertiserId,
+          budget: increase,
+          budget_mode: "CUSTOM_BUDGET",
+        },
+      ],
+    };
+
+    console.info("[tiktok-bc] budget_increase_attempt", {
+      bcId,
+      advertiserId,
+      previousBudget: baseBudget,
+      newBudget,
+      increase,
+      budgetMode: "CUSTOM_BUDGET",
+      tokenSource,
+      tokenFp,
+    });
+
+    const response = await fetch(apiUrl("/advertiser/update/"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Token": accessToken,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    const json = (await response.json()) as TikTokApiResponse<
+      Record<string, unknown>
+    > & { log_id?: string };
+
+    if (!response.ok || (json.code !== undefined && json.code !== 0)) {
+      const detail = json.message ?? `HTTP ${response.status}`;
+      console.error("[tiktok-bc] budget_increase_failed", {
+        code: json.code ?? null,
+        message: detail,
+        bcId,
+        advertiserId,
+        previousBudget,
+        newBudget,
+        tokenSource,
+        tokenFp,
+        tiktokRequestId: json.request_id ?? json.log_id ?? null,
+      });
+
+      if (
+        json.code === 40001 ||
+        /does not grant you|advertiser\/update|permission/i.test(detail)
+      ) {
+        throw new Error(
+          "No se pudo asignar en esta cuenta todavía (falta permiso de presupuesto en TikTok). Contactá a soporte.",
+        );
+      }
+
+      if (json.code === 52404 || /internal error/i.test(detail)) {
+        throw new Error(
+          "TikTok rechazó el presupuesto de esa cuenta. Probá otra cuenta Aprobada del mismo BM.",
+        );
+      }
+
+      // No abortar aún: caemos a UPDATE absoluto.
+      console.warn("[tiktok-bc] budget_incremental_failed_try_absolute", {
+        bcId,
+        advertiserId,
+        detail,
+      });
+    } else {
+      tiktokRequestId = json.request_id ?? null;
+      console.info("[tiktok-bc] budget_increase_ok", {
+        bcId,
+        advertiserId,
+        previousBudget: baseBudget,
+        newBudget,
+        budgetMode: "CUSTOM_BUDGET",
+        tiktokRequestId,
+      });
+
+      const verifiedIncremental = await waitForSharedBudgetApplied({
+        bcId,
+        advertiserId,
+        organizationId: input.organizationId,
+        expectedBudget: newBudget,
+        requireCustomMode: true,
+        previousBudget: baseBudget,
+        increaseUsd: increase,
+      });
+      if (
+        verifiedIncremental &&
+        (verifiedIncremental.budget + 1e-6 >= newBudget - 0.05 ||
+          verifiedIncremental.budget + 1e-6 >= baseBudget + increase - 0.05)
+      ) {
+        return {
+          ok: true,
+          previousBudget: baseBudget,
+          newBudget: verifiedIncremental.budget,
+          budgetMode: verifiedIncremental.budgetMode || "CUSTOM_BUDGET",
+          tiktokRequestId,
+        };
+      }
+
+      console.warn("[tiktok-bc] budget_increase_not_persisted_try_absolute", {
+        bcId,
+        advertiserId,
+        expected: newBudget,
+        live: verifiedIncremental?.budget ?? null,
+        mode: verifiedIncremental?.budgetMode ?? null,
+        tiktokRequestId,
+      });
+    }
+  } else {
     console.info("[tiktok-bc] budget_increase_via_custom_absolute", {
       bcId,
       advertiserId,
@@ -821,161 +1001,72 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       previousBudget: baseBudget,
       newBudget,
     });
-    const absolute = await setSharedBmAdvertiserBudgetAbsolute({
+  }
+
+  // 2) Absolute CUSTOM (DAILY/MONTHLY/UNLIMITED, o fallback si incremental no persistió).
+  const absolute = await setSharedBmAdvertiserBudgetAbsolute({
+    bcId,
+    advertiserId,
+    budgetUsd: newBudget,
+    organizationId: input.organizationId,
+    preferBudgetMode: "CUSTOM_BUDGET",
+  });
+  tiktokRequestId = absolute.tiktokRequestId ?? tiktokRequestId;
+
+  let verified = await waitForSharedBudgetApplied({
+    bcId,
+    advertiserId,
+    organizationId: input.organizationId,
+    expectedBudget: newBudget,
+    requireCustomMode: true,
+    previousBudget: baseBudget,
+    increaseUsd: increase,
+  });
+
+  // 3) Un reintento absoluto si TikTok aún no refleja (lag / carrera con cap).
+  if (
+    !verified ||
+    (verified.budget + 1e-6 < newBudget - 0.05 &&
+      verified.budget + 1e-6 < baseBudget + increase - 0.05)
+  ) {
+    console.warn("[tiktok-bc] budget_absolute_retry", {
+      bcId,
+      advertiserId,
+      expected: newBudget,
+      live: verified?.budget ?? null,
+    });
+    await sleepMs(1500);
+    const retry = await setSharedBmAdvertiserBudgetAbsolute({
       bcId,
       advertiserId,
       budgetUsd: newBudget,
       organizationId: input.organizationId,
       preferBudgetMode: "CUSTOM_BUDGET",
     });
-
-    let verified: TikTokAdvertiserBudgetSnapshot | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) {
-        await new Promise((r) => setTimeout(r, 800 * attempt));
-      }
-      verified = await getAdvertiserBudgetSnapshot({
-        bcId,
-        advertiserId,
-        organizationId: input.organizationId,
-      });
-      if (verified && verified.budget + 1e-6 >= newBudget - 0.01) {
-        break;
-      }
-    }
-    if (!verified || verified.budget + 1e-6 < newBudget - 0.01) {
-      console.error("[tiktok-bc] budget_custom_absolute_not_persisted", {
-        bcId,
-        advertiserId,
-        expected: newBudget,
-        live: verified?.budget ?? null,
-      });
-      throw new Error(
-        "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
-      );
-    }
-
-    return {
-      ok: true,
-      previousBudget: absolute.previousBudget,
-      newBudget: verified.budget,
-      budgetMode: "CUSTOM_BUDGET",
-      tiktokRequestId: absolute.tiktokRequestId,
-    };
-  }
-
-  const resolvedMode = "CUSTOM_BUDGET";
-
-  const { token: accessToken, source: tokenSource } =
-    await resolveTikTokFinanceAccessToken(input.organizationId);
-  const tokenFp = tokenFingerprint(accessToken);
-
-  // TikTok: INCREMENTAL_UPDATE = sumar al presupuesto (no absoluto).
-  // Allowed: INCREMENTAL_UPDATE | ONE_CLICK_SET | RESET | UPDATE
-  const body = {
-    bc_id: bcId,
-    budget_update_type: "INCREMENTAL_UPDATE",
-    advertiser_budgets: [
-      {
-        advertiser_id: advertiserId,
-        budget: increase,
-        budget_mode: resolvedMode,
-      },
-    ],
-  };
-
-  console.info("[tiktok-bc] budget_increase_attempt", {
-    bcId,
-    advertiserId,
-    previousBudget: baseBudget,
-    newBudget,
-    increase,
-    budgetMode: resolvedMode,
-    tokenSource,
-    tokenFp,
-  });
-
-  const response = await fetch(apiUrl("/advertiser/update/"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Token": accessToken,
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-
-  const json = (await response.json()) as TikTokApiResponse<Record<string, unknown>> & {
-    log_id?: string;
-  };
-
-  if (!response.ok || (json.code !== undefined && json.code !== 0)) {
-    const detail = json.message ?? `HTTP ${response.status}`;
-    console.error("[tiktok-bc] budget_increase_failed", {
-      code: json.code ?? null,
-      message: detail,
-      bcId,
-      advertiserId,
-      previousBudget,
-      newBudget,
-      tokenSource,
-      tokenFp,
-      tiktokRequestId: json.request_id ?? json.log_id ?? null,
-    });
-
-    if (
-      json.code === 40001 ||
-      /does not grant you|advertiser\/update|permission/i.test(detail)
-    ) {
-      throw new Error(
-        "No se pudo asignar en esta cuenta todavía (falta permiso de presupuesto en TikTok). Contactá a soporte.",
-      );
-    }
-
-    if (json.code === 52404 || /internal error/i.test(detail)) {
-      throw new Error(
-        "TikTok rechazó el presupuesto de esa cuenta. Probá otra cuenta Aprobada del mismo BM.",
-      );
-    }
-
-    throw new Error(
-      "No se pudo completar la asignación en TikTok. No se debitó nada en Holistic. Contactá a soporte.",
-    );
-  }
-
-  console.info("[tiktok-bc] budget_increase_ok", {
-    bcId,
-    advertiserId,
-    previousBudget: baseBudget,
-    newBudget,
-    budgetMode: resolvedMode,
-    tiktokRequestId: json.request_id ?? null,
-  });
-
-  // Verificar en TikTok: a veces el API responde SUCCESS pero el budget no queda.
-  let verified: TikTokAdvertiserBudgetSnapshot | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, 800 * attempt));
-    }
-    verified = await getAdvertiserBudgetSnapshot({
+    tiktokRequestId = retry.tiktokRequestId ?? tiktokRequestId;
+    verified = await waitForSharedBudgetApplied({
       bcId,
       advertiserId,
       organizationId: input.organizationId,
+      expectedBudget: newBudget,
+      requireCustomMode: true,
+      previousBudget: baseBudget,
+      increaseUsd: increase,
     });
-    if (verified && verified.budget + 1e-6 >= newBudget - 0.01) {
-      break;
-    }
   }
 
-  if (!verified || verified.budget + 1e-6 < newBudget - 0.01) {
+  if (
+    !verified ||
+    (verified.budget + 1e-6 < newBudget - 0.05 &&
+      verified.budget + 1e-6 < baseBudget + increase - 0.05)
+  ) {
     console.error("[tiktok-bc] budget_increase_not_persisted", {
       bcId,
       advertiserId,
       expected: newBudget,
       live: verified?.budget ?? null,
       mode: verified?.budgetMode ?? null,
-      tiktokRequestId: json.request_id ?? null,
+      tiktokRequestId,
     });
     throw new Error(
       "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
@@ -986,8 +1077,8 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     ok: true,
     previousBudget: baseBudget,
     newBudget: verified.budget,
-    budgetMode: resolvedMode,
-    tiktokRequestId: json.request_id ?? null,
+    budgetMode: verified.budgetMode || "CUSTOM_BUDGET",
+    tiktokRequestId,
   };
 }
 
@@ -1165,9 +1256,13 @@ export async function setSharedBmAdvertiserBudgetAbsolute(input: {
   const floor = Math.max(0, Math.round(snapshot.budgetCost * 100) / 100);
   const newBudget = Math.max(floor, target);
 
+  // Si el caller pide un modo (ej. CUSTOM al asignar), se respeta.
+  // Si no pide, conservar DAILY/MONTHLY/CUSTOM actual (caps / reclaim).
   let newMode: "DAILY_BUDGET" | "MONTHLY_BUDGET" | "CUSTOM_BUDGET" =
-    input.preferBudgetMode ?? "CUSTOM_BUDGET";
-  if (
+    "CUSTOM_BUDGET";
+  if (input.preferBudgetMode) {
+    newMode = input.preferBudgetMode;
+  } else if (
     previousMode === "DAILY_BUDGET" ||
     previousMode === "MONTHLY_BUDGET" ||
     previousMode === "CUSTOM_BUDGET"
@@ -1179,8 +1274,10 @@ export async function setSharedBmAdvertiserBudgetAbsolute(input: {
     previousMode === "DAILY_BUDGET" ||
     previousMode === "MONTHLY_BUDGET" ||
     previousMode === "CUSTOM_BUDGET";
+  const modeAlreadyOk = previousMode === newMode;
   if (
     alreadyFinite &&
+    modeAlreadyOk &&
     Math.abs(previousBudget - newBudget) < 0.02
   ) {
     return {

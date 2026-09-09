@@ -15,6 +15,7 @@ import {
 } from "@/lib/hecom/bm-bucket.shared";
 import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
+  getAdvertiserBudgetSnapshot,
   increaseSharedBmAdvertiserBudget,
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
@@ -311,6 +312,16 @@ export async function allocateWithOptionalTikTokFunding(
       tiktokBudgetBefore = budgetResult.previousBudget;
       tiktokBudgetAfter = budgetResult.newBudget;
     } else {
+      const beforeCashSnap = await getAdvertiserBudgetSnapshot({
+        bcId,
+        advertiserId,
+        organizationId: input.organizationId,
+      });
+      const beforeCash =
+        beforeCashSnap?.validCashBalance ??
+        beforeCashSnap?.cashBalance ??
+        null;
+
       const transfer = await transferBcFundsToAdvertiser({
         organizationId: input.organizationId,
         bcId,
@@ -321,6 +332,60 @@ export async function allocateWithOptionalTikTokFunding(
       });
       tiktokRequestId = transfer.tiktokRequestId;
       tiktokFundingSource = transfer.fundingSource;
+
+      // BM 200: confirmar que el cash llegó (si podemos leer el advertiser).
+      if (beforeCash != null && transfer.fundingSource === "cash") {
+        const expectedCash = Math.round((beforeCash + cashAmount) * 100) / 100;
+        let cashOk = false;
+        let sawAfter = false;
+        const delays = [0, 700, 1500, 2800];
+        for (let i = 0; i < delays.length; i++) {
+          if (delays[i]! > 0) {
+            await new Promise((r) => setTimeout(r, delays[i]));
+          }
+          const after = await getAdvertiserBudgetSnapshot({
+            bcId,
+            advertiserId,
+            organizationId: input.organizationId,
+          });
+          const live =
+            after?.validCashBalance ?? after?.cashBalance ?? null;
+          if (live == null) continue;
+          sawAfter = true;
+          if (live + 1e-6 >= expectedCash - 0.05) {
+            cashOk = true;
+            break;
+          }
+          console.info("[payments/allocate] bm200_cash_verify_retry", {
+            attempt: i + 1,
+            advertiserId,
+            beforeCash,
+            expectedCash,
+            live,
+          });
+        }
+        if (!cashOk && sawAfter) {
+          console.error("[payments/allocate] bm200_cash_not_persisted", {
+            advertiserId,
+            bcId,
+            beforeCash,
+            cashAmount,
+            tiktokRequestId,
+          });
+          throw new Error(
+            "TikTok aceptó la transferencia pero el saldo cash no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
+          );
+        }
+        if (!cashOk && !sawAfter) {
+          console.warn("[payments/allocate] bm200_cash_verify_skipped", {
+            advertiserId,
+            bcId,
+            beforeCash,
+            cashAmount,
+            reason: "no_after_snapshot",
+          });
+        }
+      }
     }
   } else if (agencyBmFunding) {
     throw new Error(

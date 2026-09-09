@@ -62,16 +62,19 @@ export default async function PaymentsPage({
   const isStripeReturn = status === "success" || status === "cancelled";
   const selected = await getSelectedHecomCliente(session.id);
   const actingAsCliente = await getActingAsCliente(session.id);
+  const rawCapabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
-      email: session.email,
-      role: session.role,
-    }),
+    rawCapabilities,
     actingAsCliente,
   );
+  const canReviewCredit =
+    rawCapabilities.isStaff || rawCapabilities.isSuperAdmin;
   const canChangeCliente =
-    capabilities.isStaff ||
-    capabilities.isSuperAdmin ||
+    rawCapabilities.isStaff ||
+    rawCapabilities.isSuperAdmin ||
     actingAsCliente;
 
   if (!selected) {
@@ -171,10 +174,12 @@ export default async function PaymentsPage({
         introCopy={introCopy}
       />
 
-      {capabilities.canClientStripeFund &&
-      hecomFinance.billingModality === "credito" ? (
+      {capabilities.canClientStripeFund ? (
         <Suspense fallback={<PaymentsSectionSkeleton rows={1} />}>
-          <CreditLockPanel clienteName={cliente.name} />
+          <CreditLockPanel
+            clienteName={cliente.name}
+            canReviewCredit={canReviewCredit}
+          />
         </Suspense>
       ) : null}
 

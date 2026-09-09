@@ -23,7 +23,9 @@ import {
 } from "@/lib/payments/auto-recharge/auto-recharge.store.server";
 import {
   getCreditLockProfile,
+  setCreditLockApproval,
   upsertCreditLockProfile,
+  type CreditLockApprovalStatus,
 } from "@/lib/payments/credit-lock/credit-lock.store.server";
 
 /** Candado anti-vivo: tarjeta on file + cobro al quitar con deuda. Independiente del calendario. */
@@ -127,6 +129,9 @@ export async function getCreditLockState(input: {
   }
 
   const requestedCreditCents = profile?.requested_credit_cents ?? null;
+  const approvalStatus: CreditLockApprovalStatus =
+    profile?.approval_status ??
+    (requestedCreditCents != null ? "requested" : "none");
   const headroom =
     profile?.card_headroom_percent != null
       ? Number(profile.card_headroom_percent)
@@ -135,6 +140,8 @@ export async function getCreditLockState(input: {
     profile?.soft_cap_percent != null
       ? Number(profile.soft_cap_percent)
       : CREDIT_SOFT_CAP_PERCENT;
+  const approved = approvalStatus === "approved";
+  const hasCard = Boolean(paymentMethod?.last4);
 
   return {
     enabled: CREDIT_STRIPE_LOCK_ENABLED,
@@ -142,6 +149,7 @@ export async function getCreditLockState(input: {
     paymentMethod,
     /** No exponer deuda / cobro al detach al cliente (interno). */
     cupo: {
+      approvalStatus,
       requestedCreditCents,
       requestedCreditUsd:
         requestedCreditCents != null ? requestedCreditCents / 100 : null,
@@ -156,8 +164,12 @@ export async function getCreditLockState(input: {
           : null,
       softCapPercent: softCap,
       requireCard: profile?.require_card ?? true,
-      hasCard: Boolean(paymentMethod?.last4),
-      lockReady: Boolean(paymentMethod?.last4) && requestedCreditCents != null,
+      hasCard,
+      /** Listo solo si gerencia aprobó + tarjeta. */
+      lockReady: approved && hasCard && requestedCreditCents != null,
+      canLinkCard: approved,
+      requestedAt: profile?.requested_at ?? null,
+      reviewedAt: profile?.reviewed_at ?? null,
     },
   };
 }
@@ -181,35 +193,56 @@ export async function saveCreditLockCupo(input: {
     throw new Error(`El crédito máximo es $${CREDIT_REQUEST_MAX_USD} USD.`);
   }
   const cents = Math.round(usd * 100);
-  const [profile, billing] = await Promise.all([
-    upsertCreditLockProfile({
-      organizationId: input.organizationId,
-      hecomClienteId: input.hecomClienteId,
-      requestedCreditCents: cents,
-      cardHeadroomPercent: CREDIT_CARD_HEADROOM_PERCENT,
-      softCapPercent: CREDIT_SOFT_CAP_PERCENT,
-      requireCard: true,
-    }),
-    getBillingCustomer(input.organizationId),
-  ]);
-  const headroom = Number(profile.card_headroom_percent);
-  const hasCard =
-    Boolean(billing?.default_payment_method_id) && billing?.status === "active";
-  const recommended = recommendedCardCents(
-    profile.requested_credit_cents ?? 0,
-    headroom,
-  );
-  return {
-    requestedCreditCents: profile.requested_credit_cents,
-    requestedCreditUsd: (profile.requested_credit_cents ?? 0) / 100,
-    cardHeadroomPercent: headroom,
-    recommendedCardCents: recommended,
-    recommendedCardUsd: recommended / 100,
-    softCapPercent: Number(profile.soft_cap_percent),
-    requireCard: profile.require_card,
-    hasCard,
-    lockReady: hasCard && profile.requested_credit_cents != null,
-  };
+  const existing = await getCreditLockProfile(input.organizationId);
+  // Si ya estaba aprobado y solo cambia monto → vuelve a “requested” (re-aprobación).
+  const nextStatus: CreditLockApprovalStatus =
+    existing?.approval_status === "approved" &&
+    existing.requested_credit_cents === cents
+      ? "approved"
+      : "requested";
+
+  await upsertCreditLockProfile({
+    organizationId: input.organizationId,
+    hecomClienteId: input.hecomClienteId,
+    requestedCreditCents: cents,
+    cardHeadroomPercent: CREDIT_CARD_HEADROOM_PERCENT,
+    softCapPercent: CREDIT_SOFT_CAP_PERCENT,
+    requireCard: true,
+    approvalStatus: nextStatus,
+    requestedAt: new Date().toISOString(),
+    reviewedAt: nextStatus === "approved" ? existing?.reviewed_at ?? null : null,
+    reviewedBy: nextStatus === "approved" ? existing?.reviewed_by ?? null : null,
+  });
+
+  const state = await getCreditLockState({
+    organizationId: input.organizationId,
+    hecomClienteId: input.hecomClienteId,
+  });
+  return state.cupo;
+}
+
+export async function reviewCreditLockRequest(input: {
+  organizationId: string;
+  hecomClienteId: string | null;
+  decision: "approved" | "rejected";
+  reviewedBy: string;
+  notes?: string | null;
+}): Promise<Awaited<ReturnType<typeof getCreditLockState>>["cupo"]> {
+  const profile = await getCreditLockProfile(input.organizationId);
+  if (!profile?.requested_credit_cents) {
+    throw new Error("No hay un pedido de crédito para revisar.");
+  }
+  await setCreditLockApproval({
+    organizationId: input.organizationId,
+    status: input.decision,
+    reviewedBy: input.reviewedBy,
+    notes: input.notes,
+  });
+  const state = await getCreditLockState({
+    organizationId: input.organizationId,
+    hecomClienteId: input.hecomClienteId,
+  });
+  return state.cupo;
 }
 
 /**
@@ -242,6 +275,15 @@ export async function assertCreditLockAllowsAllocate(input: {
     getCreditLockProfile(input.organizationId),
     getBillingCustomer(input.organizationId),
   ]);
+
+  const approval = profile?.approval_status ?? "none";
+  if (approval !== "approved") {
+    throw new Error(
+      approval === "requested"
+        ? "Tu pedido de crédito Holistic está en revisión. Gerencia debe aceptarlo antes de fondear."
+        : "Pedí crédito Holistic en Pagos y esperá la aceptación de gerencia antes de fondear desde BM.",
+    );
+  }
 
   const requireCard = profile?.require_card ?? true;
   const hasCard =

@@ -9,8 +9,10 @@
 ## 0. Orden actual (producto)
 
 1. ~~Recarga automática cada X días~~ → **OFF** (UI quitada; job no cobra).
-2. **Crédito por aprobación del equipo** (el equipo aprueba o rechaza según el historial del cliente) → habilitar cupo en plataforma.
-3. Luego: **guardar tarjeta Stripe** como candado + reglas de cobro / ciclo (no reabrir el calendario genérico de prepago).
+2. **Cualquier cliente pide crédito Holistic** (monto en Pagos) → queda `requested`.
+3. **Gerencia acepta o rechaza** (según historial) → si acepta, `approved`.
+4. Recién ahí el cliente **guarda tarjeta Stripe** (candado) → crédito activo.
+5. No confundir con modalidad Hecom CRM (`credito` / prepago): el cupo Holistic vive en `credit_lock_profiles`.
 
 Prepago (Stripe / BCP / Yape) sigue igual.
 ---
@@ -72,9 +74,11 @@ Queda un producto más débil: tope de cupo + no fondear más + cobranza Hecom/C
 ## 3. Flujo resumido
 
 ```
-Pide crédito $700
+Cliente pide crédito Holistic $700 (cualquiera)
+    → status = requested (gerencia revisa)
+    → Gerencia acepta → status = approved
     → SetupIntent / save card (Stripe Customer + PaymentMethod)  ← CANDADO
-    → Cupo activo (Hecom credito_form_slug + flag Holistic)
+    → Cupo activo (flag Holistic; independiente del CRM Hecom)
 
 Gasta $300 (TikTok → gastos Hecom)
     → Deuda viva ≈ $300 + fee
