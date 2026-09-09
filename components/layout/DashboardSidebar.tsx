@@ -49,7 +49,7 @@ export function DashboardSidebar({
 
       <p className="dashboard-sidebar-menu-label">Menú</p>
 
-      <DashboardNavLinks persona={persona} actingAsCliente={actingAsCliente} />
+      <DashboardNavLinks persona={persona} />
     </aside>
   );
 }

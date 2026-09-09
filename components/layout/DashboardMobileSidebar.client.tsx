@@ -57,11 +57,7 @@ export function DashboardMobileSidebar({
 
       <p className="dashboard-sidebar-menu-label">Menú</p>
 
-      <DashboardNavLinks
-        onNavigate={onNavigate}
-        persona={persona}
-        actingAsCliente={actingAsCliente}
-      />
+      <DashboardNavLinks onNavigate={onNavigate} persona={persona} />
 
       <div className="mt-auto border-t border-[var(--auth-divider)] p-4">
         <div className="rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-3.5">
