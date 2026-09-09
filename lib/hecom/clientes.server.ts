@@ -412,17 +412,17 @@ export async function createHecomCliente(input: {
   | { ok: false; message: string; code?: "duplicate_email" | "config" | "insert" }
 > {
   const name = String(input.name ?? "").trim();
-  const dni = String(input.dni ?? "").trim();
+  const dni = String(input.dni ?? "").replace(/\D/g, "");
   const email = String(input.email ?? "").trim().toLowerCase();
   const phoneDigits = String(input.phone ?? "").replace(/\D/g, "");
 
   if (name.length < 2) {
     return { ok: false, message: "Ingresá tu nombre completo.", code: "insert" };
   }
-  if (dni.length < 5) {
+  if (!/^\d{8}$/.test(dni)) {
     return {
       ok: false,
-      message: "Ingresá un DNI o documento de identificación válido.",
+      message: "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
       code: "insert",
     };
   }

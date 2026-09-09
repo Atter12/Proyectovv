@@ -55,12 +55,9 @@ function validateForm(values: RegisterFormValues): string | null {
   if (values.fullName.trim().length < 2) {
     return "Ingresá tu nombre completo.";
   }
-  const dni = values.dni.trim();
-  if (dni.length < 5) {
-    return "Ingresá un DNI o documento de identificación válido.";
-  }
-  if (/^\d+$/.test(dni) && dni.length !== 8 && dni.length !== 11) {
-    return "Si es DNI peruano usá 8 dígitos (o 11 para RUC).";
+  const dni = values.dni.trim().replace(/\D/g, "");
+  if (!/^\d{8}$/.test(dni)) {
+    return "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.";
   }
   const phoneDigits = values.phone.replace(/\D/g, "");
   if (phoneDigits.length < 9) {
@@ -119,7 +116,7 @@ export function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: values.fullName.trim(),
-          dni: values.dni.trim(),
+          dni: values.dni.trim().replace(/\D/g, ""),
           phone: values.phone.trim(),
           email: values.email.trim(),
         }),
@@ -208,7 +205,7 @@ export function RegisterForm() {
             htmlFor="dni"
             className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
           >
-            DNI / ID
+            DNI
           </label>
           <div className="relative">
             <FieldIcon>
@@ -218,11 +215,19 @@ export function RegisterForm() {
             </FieldIcon>
             <input
               id="dni"
+              inputMode="numeric"
               autoComplete="off"
               required
+              maxLength={8}
+              pattern="[0-9]{8}"
               value={values.dni}
-              onChange={(event) => updateField("dni", event.target.value)}
-              placeholder="DNI, pasaporte u otro ID"
+              onChange={(event) =>
+                updateField(
+                  "dni",
+                  event.target.value.replace(/\D/g, "").slice(0, 8),
+                )
+              }
+              placeholder="8 dígitos"
               className={inputClassName}
             />
           </div>

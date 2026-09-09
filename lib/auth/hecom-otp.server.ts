@@ -372,7 +372,7 @@ export async function registerHecomClientOtp(input: {
   }
 
   const name = String(input.name ?? "").trim();
-  const dni = String(input.dni ?? "").trim();
+  const dni = String(input.dni ?? "").replace(/\D/g, "");
   const phone = String(input.phone ?? "").trim();
   const email = normalizeEmail(input.email);
   const emailMasked = maskEmail(email);
@@ -380,18 +380,10 @@ export async function registerHecomClientOtp(input: {
   if (name.length < 2) {
     return { ok: false, error: "Ingresá tu nombre completo.", status: 400 };
   }
-  if (dni.length < 5) {
+  if (!/^\d{8}$/.test(dni)) {
     return {
       ok: false,
-      error: "Ingresá un DNI o documento de identificación válido.",
-      status: 400,
-    };
-  }
-  const dniDigitsOnly = /^\d+$/.test(dni);
-  if (dniDigitsOnly && dni.length !== 8 && dni.length !== 11) {
-    return {
-      ok: false,
-      error: "Si es DNI peruano usá 8 dígitos (o 11 para RUC).",
+      error: "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
       status: 400,
     };
   }
