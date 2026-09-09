@@ -57,6 +57,57 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [lookupOpen, setLookupOpen] = useState(false);
+  const [lookupName, setLookupName] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupHint, setLookupHint] = useState<string | null>(null);
+  const [lookupMatches, setLookupMatches] = useState<
+    Array<{ name: string; email: string; emailMasked: string }>
+  >([]);
+
+  async function handleLookup() {
+    setLookupLoading(true);
+    setLookupError(null);
+    setLookupHint(null);
+    setLookupMatches([]);
+
+    try {
+      const response = await fetch(routes.api.auth.otpLookupEmail, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: lookupName.trim() }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+        matches?: Array<{ name: string; email: string; emailMasked: string }>;
+      };
+
+      if (!response.ok) {
+        setLookupError(payload.error ?? "No se pudo buscar el correo.");
+        setLookupLoading(false);
+        return;
+      }
+
+      setLookupMatches(payload.matches ?? []);
+      setLookupHint(payload.message ?? null);
+      setLookupLoading(false);
+    } catch {
+      setLookupError("No se pudo buscar. Reintentá.");
+      setLookupLoading(false);
+    }
+  }
+
+  function applyLookupEmail(nextEmail: string) {
+    setEmail(nextEmail);
+    setLookupOpen(false);
+    setLookupError(null);
+    setLookupHint(null);
+    setLookupMatches([]);
+    setError(null);
+  }
+
   async function handleOtpSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -195,7 +246,104 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               className={inputClassName}
             />
           </div>
+          {otpMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setLookupOpen((open) => !open);
+                setLookupError(null);
+                setLookupHint(null);
+              }}
+              className="mt-2.5 text-left text-[13px] font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
+            >
+              ¿No sabes cuál es tu correo?
+            </button>
+          ) : null}
         </div>
+
+        {otpMode && lookupOpen ? (
+          <div className="rounded-[1.1rem] border border-[#efe8e0] bg-[#fffaf6] px-4 py-4">
+            <p className="text-[13px] font-semibold text-[#1a1a1a]">
+              Buscá tu correo por nombre
+            </p>
+            <p className="mt-1 text-[12.5px] leading-5 text-[#7a736a]">
+              Escribí tu nombre y apellido como figura en Hecom. Te mostramos el
+              correo asociado para entrar.
+            </p>
+            <div className="mt-3 space-y-3">
+              <div className="relative">
+                <span
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0a89e]"
+                  aria-hidden
+                >
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                </span>
+                <input
+                  id="lookup-name"
+                  autoComplete="name"
+                  minLength={4}
+                  value={lookupName}
+                  onChange={(event) => setLookupName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      if (lookupName.trim().length >= 4 && !lookupLoading) {
+                        void handleLookup();
+                      }
+                    }
+                  }}
+                  placeholder="Ej. Ximena Jaño"
+                  className={inputClassName}
+                />
+              </div>
+              {lookupError ? (
+                <p className="text-[13px] font-medium text-red-700" role="alert">
+                  {lookupError}
+                </p>
+              ) : null}
+              {lookupHint && lookupMatches.length === 0 ? (
+                <p className="text-[13px] font-medium text-[#7a736a]">
+                  {lookupHint}
+                </p>
+              ) : null}
+              {lookupMatches.length > 0 ? (
+                <ul className="space-y-2">
+                  {lookupMatches.map((match) => (
+                    <li key={`${match.email}-${match.name}`}>
+                      <button
+                        type="button"
+                        onClick={() => applyLookupEmail(match.email)}
+                        className="flex w-full items-center justify-between gap-3 rounded-[0.85rem] border border-[#e8e2da] bg-white px-3.5 py-3 text-left transition-[border-color,background-color] hover:border-[var(--auth-accent)]/50 hover:bg-[var(--auth-accent-soft)]/40"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13.5px] font-semibold text-[#1a1a1a]">
+                            {match.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[12.5px] text-[#7a736a]">
+                            {match.emailMasked}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)]">
+                          Usar
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void handleLookup()}
+                disabled={lookupLoading || lookupName.trim().length < 4}
+                className="flex h-11 w-full items-center justify-center rounded-[0.85rem] border border-[#e8e2da] bg-white text-[14px] font-bold text-[#1a1a1a] transition-[background-color] hover:bg-[#fff7f0] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {lookupLoading ? "Buscando…" : "Buscar mi correo"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {!otpMode && (
           <div>

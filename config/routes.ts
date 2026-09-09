@@ -31,6 +31,7 @@ export const routes = {
       adminAccess: "/api/auth/admin-access",
       otpRequest: "/api/auth/otp/request",
       otpRegister: "/api/auth/otp/register",
+      otpLookupEmail: "/api/auth/otp/lookup-email",
       otpProvision: "/api/auth/otp/provision",
     },
     onboarding: {

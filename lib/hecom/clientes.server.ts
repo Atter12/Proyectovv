@@ -276,6 +276,65 @@ export async function findHecomClientesByEmail(
   );
 }
 
+/**
+ * Búsqueda por nombre para “¿No sabes tu correo?” en login.
+ * `ilike` en Hecom; solo filas con al menos un email usable.
+ */
+export async function findHecomClientesByName(
+  nameQuery: string,
+): Promise<HecomCliente[]> {
+  const needle = String(nameQuery ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (needle.length < 4) return [];
+
+  const cfg = getHecomSupabaseConfig();
+  if (!cfg.configured) {
+    const backup = await listHecomClientesFromBackup();
+    if (!backup) return [];
+    const lower = needle.toLowerCase();
+    return backup.clientes
+      .filter((cliente) => {
+        if (!cliente.emails.some((e) => e.includes("@"))) return false;
+        return cliente.name.toLowerCase().includes(lower);
+      })
+      .slice(0, 8);
+  }
+
+  const hecom = createHecomAdminClient();
+  const pattern = `%${needle.replace(/[%_]/g, "")}%`;
+  const { data, error } = await hecom
+    .from("clientes")
+    .select(HECOM_CLIENTE_SELECT)
+    .ilike("name", pattern)
+    .order("name", { ascending: true })
+    .limit(12);
+
+  if (error) {
+    console.error("[hecom] findHecomClientesByName", error.message);
+    return [];
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const mapped = rows.map((row) => mapClienteRow(row, []));
+  const withEmail = mapped.filter((cliente) =>
+    cliente.emails.some((item) => normalizeEmail(item).includes("@")),
+  );
+
+  // Preferir coincidencias que empiezan igual / más cortas (menos ruido).
+  const lower = needle.toLowerCase();
+  withEmail.sort((a, b) => {
+    const aName = a.name.toLowerCase();
+    const bName = b.name.toLowerCase();
+    const aExact = aName === lower ? 0 : aName.startsWith(lower) ? 1 : 2;
+    const bExact = bName === lower ? 0 : bName.startsWith(lower) ? 1 : 2;
+    if (aExact !== bExact) return aExact - bExact;
+    return aName.length - bName.length;
+  });
+
+  return withEmail.slice(0, 8);
+}
+
 export const getHecomCliente = cache(
   async (id: string): Promise<HecomCliente | null> => {
     const clienteId = String(id ?? "").trim();
