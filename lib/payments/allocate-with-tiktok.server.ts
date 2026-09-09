@@ -193,6 +193,7 @@ export async function allocateWithOptionalTikTokFunding(
     organizationId: input.organizationId,
     hecomClienteId,
     amountCents: input.amountCents,
+    agencyBmFunding: Boolean(input.agencyBmFunding),
   });
 
   const idempotencyKey =
