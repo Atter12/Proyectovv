@@ -52,7 +52,7 @@ export async function transferBetweenAdAccountsWithTikTok(
 
   if (error) throw new Error(error.message);
 
-  const fromAccount = rows?.find((r) => r.id === input.fromAdAccountId) as
+  let fromAccount = rows?.find((r) => r.id === input.fromAdAccountId) as
     | {
         id: string;
         organization_id: string;
@@ -61,7 +61,7 @@ export async function transferBetweenAdAccountsWithTikTok(
         external_account_id: string | null;
       }
     | undefined;
-  const toAccount = rows?.find((r) => r.id === input.toAdAccountId) as
+  let toAccount = rows?.find((r) => r.id === input.toAdAccountId) as
     | {
         id: string;
         organization_id: string;
@@ -71,12 +71,59 @@ export async function transferBetweenAdAccountsWithTikTok(
       }
     | undefined;
 
-  if (!fromAccount || fromAccount.organization_id !== input.organizationId) {
+  if (!fromAccount) {
     throw new Error("Cuenta origen no encontrada en la organización.");
   }
-  if (!toAccount || toAccount.organization_id !== input.organizationId) {
+
+  // Canonical org = cuenta origen (evita fallar al “ver como” con org de staff).
+  const organizationId = fromAccount.organization_id;
+  if (
+    input.organizationId &&
+    input.organizationId !== organizationId
+  ) {
+    console.warn("[payments/transfer] org_remapped_to_source_account", {
+      sessionOrInputOrg: input.organizationId,
+      organizationId,
+      fromAdAccountId: fromAccount.id,
+    });
+  }
+
+  if (!toAccount) {
     throw new Error("Cuenta destino no encontrada en la organización.");
   }
+
+  // Si el destino es un mirror en otra org, usar la hermana en la org origen.
+  if (toAccount.organization_id !== organizationId) {
+    const advertiserId = toAccount.external_account_id?.trim() || "";
+    if (!advertiserId) {
+      throw new Error("Cuenta destino no encontrada en la organización.");
+    }
+    const { data: sibling } = await admin
+      .from("ad_accounts")
+      .select("id, organization_id, name, status, external_account_id")
+      .eq("organization_id", organizationId)
+      .eq("external_account_id", advertiserId)
+      .maybeSingle<{
+        id: string;
+        organization_id: string;
+        name: string;
+        status: string;
+        external_account_id: string | null;
+      }>();
+    if (!sibling) {
+      throw new Error("Cuenta destino no encontrada en la organización.");
+    }
+    console.warn("[payments/transfer] destination_remapped_to_org_sibling", {
+      requestedToId: toAccount.id,
+      siblingId: sibling.id,
+      organizationId,
+      advertiserId,
+    });
+    toAccount = sibling;
+  }
+
+  // Usar org canónica en el resto del flujo.
+  input = { ...input, organizationId };
 
   if (toAccount.status === "disabled") {
     throw new Error(

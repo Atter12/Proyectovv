@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { reclaimFromAdAccountWithTikTok } from "@/lib/payments/reclaim-with-tiktok.server";
 
 export async function POST(request: Request) {
@@ -41,10 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Monto inválido." }, { status: 400 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   const forceLedgerOnly = Boolean(body.forceLedgerOnly);
   if (forceLedgerOnly && !capabilities.isStaff && !capabilities.isSuperAdmin) {
     return NextResponse.json(
@@ -53,19 +62,46 @@ export async function POST(request: Request) {
     );
   }
 
+  const admin = createAdminClient();
+  const { data: accountRow, error: accountError } = await admin
+    .from("ad_accounts")
+    .select("id, organization_id")
+    .eq("id", body.adAccountId)
+    .maybeSingle<{ id: string; organization_id: string }>();
+
+  if (accountError) {
+    return NextResponse.json({ error: accountError.message }, { status: 500 });
+  }
+  if (!accountRow?.organization_id) {
+    return NextResponse.json(
+      { error: "Cuenta publicitaria no encontrada." },
+      { status: 404 },
+    );
+  }
+
+  const organizationId = accountRow.organization_id;
   const amountCents =
     amount === undefined ? undefined : Math.round(amount * 100);
 
+  console.info("[payments/reclaim]", {
+    email: session.email,
+    actingAsCliente,
+    amountCents: amountCents ?? "all",
+    adAccountId: body.adAccountId,
+    organizationId,
+    sessionOrg: session.organizationId,
+  });
+
   try {
     const result = await reclaimFromAdAccountWithTikTok({
-      organizationId: session.organizationId,
+      organizationId,
       adAccountId: body.adAccountId,
       amountCents,
       requestedBy: session.id,
       forceLedgerOnly,
       idempotencyKey:
         body.idempotencyKey ??
-        `reclaim:${session.organizationId}:${body.adAccountId}:${amountCents ?? "all"}:${randomUUID()}`,
+        `reclaim:${organizationId}:${body.adAccountId}:${amountCents ?? "all"}:${randomUUID()}`,
     });
 
     return NextResponse.json({
@@ -78,9 +114,9 @@ export async function POST(request: Request) {
       error instanceof Error ? error.message : "No se pudo recuperar el saldo.";
     const lower = message.toLowerCase();
     const status =
-      lower.includes("insufficient") ||
       lower.includes("no tiene saldo") ||
-      lower.includes("no hay nada")
+      lower.includes("solo hay") ||
+      lower.includes("no encontrada")
         ? 409
         : lower.includes("tiktok")
           ? 502

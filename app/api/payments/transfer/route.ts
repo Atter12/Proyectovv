@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { transferBetweenAdAccountsWithTikTok } from "@/lib/payments/transfer-between-ad-accounts.server";
 
 export async function POST(request: Request) {
@@ -43,10 +48,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Monto inválido." }, { status: 400 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const capabilities = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
 
   const forceLedgerOnly = Boolean(body.forceLedgerOnly);
   if (forceLedgerOnly && !capabilities.isStaff && !capabilities.isSuperAdmin) {
@@ -63,11 +72,41 @@ export async function POST(request: Request) {
       : true;
   }
 
+  // Org de la cuenta origen (cartera del cliente), no la org del staff al “ver como”.
+  const admin = createAdminClient();
+  const { data: fromRow, error: fromError } = await admin
+    .from("ad_accounts")
+    .select("id, organization_id")
+    .eq("id", body.fromAdAccountId)
+    .maybeSingle<{ id: string; organization_id: string }>();
+
+  if (fromError) {
+    return NextResponse.json({ error: fromError.message }, { status: 500 });
+  }
+  if (!fromRow?.organization_id) {
+    return NextResponse.json(
+      { error: "Cuenta origen no encontrada." },
+      { status: 404 },
+    );
+  }
+
+  const organizationId = fromRow.organization_id;
   const amountCents = Math.round(amount * 100);
+
+  console.info("[payments/transfer]", {
+    email: session.email,
+    actingAsCliente,
+    wantsAgencyBm,
+    amountCents,
+    fromAdAccountId: body.fromAdAccountId,
+    toAdAccountId: body.toAdAccountId,
+    organizationId,
+    sessionOrg: session.organizationId,
+  });
 
   try {
     const result = await transferBetweenAdAccountsWithTikTok({
-      organizationId: session.organizationId,
+      organizationId,
       fromAdAccountId: body.fromAdAccountId,
       toAdAccountId: body.toAdAccountId,
       amountCents,
@@ -76,7 +115,7 @@ export async function POST(request: Request) {
       forceLedgerOnly,
       idempotencyKey:
         body.idempotencyKey ??
-        `transfer:${session.organizationId}:${body.fromAdAccountId}:${body.toAdAccountId}:${amountCents}:${randomUUID()}`,
+        `transfer:${organizationId}:${body.fromAdAccountId}:${body.toAdAccountId}:${amountCents}:${randomUUID()}`,
     });
 
     return NextResponse.json({
@@ -96,7 +135,8 @@ export async function POST(request: Request) {
       lower.includes("elegí") ||
       lower.includes("suspendida") ||
       lower.includes("no tiene saldo gastable") ||
-      lower.includes("ya no tiene saldo")
+      lower.includes("ya no tiene saldo") ||
+      lower.includes("no encontrada")
         ? 409
         : lower.includes("tiktok") || lower.includes("cartera holistic")
           ? 502
