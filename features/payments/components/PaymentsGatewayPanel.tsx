@@ -38,6 +38,8 @@ interface PaymentsGatewayPanelProps {
   adsAccounts?: AdAccount[];
   /** Si el cleanup ya corrió (o se diferió) en la página. */
   skipOrphanCleanup?: boolean;
+  /** Se renderiza entre "Recargar saldo" y "Asignar saldo". */
+  creditSlot?: React.ReactNode;
   /**
    * Tras Stripe u otra vuelta rápida: no bloquear en sync TikTok BC.
    * Usa IDs Hecom y deja el sync cacheado para la próxima visita.
@@ -59,6 +61,7 @@ export async function PaymentsGatewayPanel({
   adsAccounts = [],
   skipOrphanCleanup = false,
   skipApprovedSync = false,
+  creditSlot = null,
 }: PaymentsGatewayPanelProps) {
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
@@ -431,6 +434,10 @@ export async function PaymentsGatewayPanel({
           wallet={core.wallet}
           depositFeePercent={depositFeePercent}
         />
+
+        {/* Crédito va pegado a recargar: es la otra forma de conseguir saldo.
+            Debajo de la tabla de cuentas quedaba fuera de vista. */}
+        {creditSlot}
 
         {syncNote ? (
           <p
