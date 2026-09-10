@@ -149,23 +149,22 @@ export function AllocateBalanceModal({
         }),
       });
 
-      const allocatedAmount = parsedAmount;
-      const allocatedName = targetAccount.name;
-      router.refresh();
-      await onFundingChanged?.();
+      // Cerrar ya: refresh live / RSC no debe frenar el UX.
       onAllocated?.({
-        amount: allocatedAmount,
-        accountName: allocatedName,
+        amount: parsedAmount,
+        accountName: targetAccount.name,
         agencyBmFunding,
       });
       resetAndClose();
+      void Promise.resolve(onFundingChanged?.()).finally(() => {
+        router.refresh();
+      });
     } catch (err) {
       const raw =
         err instanceof ApiClientError
           ? err.message
           : "No se pudo asignar el saldo.";
       setError(friendlyAllocateError(raw, agencyBmFunding));
-    } finally {
       setLoading(false);
     }
   }
