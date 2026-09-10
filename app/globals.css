@@ -239,6 +239,15 @@ body {
   background-color: var(--admin-scrollbar);
 }
 
+@keyframes allocateToast {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @keyframes float-scale {
   0%, 100% {
     transform: scale(1);

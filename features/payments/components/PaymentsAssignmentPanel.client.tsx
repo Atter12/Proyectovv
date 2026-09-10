@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
 import {
   sortPaymentAccounts,
@@ -45,6 +45,17 @@ export function PaymentsAssignmentPanel({
     useState<PaymentAccountAllocation | null>(null);
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
+  const [allocateToast, setAllocateToast] = useState<{
+    amount: number;
+    accountName: string;
+    agencyBmFunding: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!allocateToast) return;
+    const timer = window.setTimeout(() => setAllocateToast(null), 5600);
+    return () => window.clearTimeout(timer);
+  }, [allocateToast]);
 
   // Siempre: el Saldo de la tabla debe alinearse con TikTok Manager (cupo
   // gastable), no solo con el ledger Holistic. Antes solo se pedía en modo gerente.
@@ -110,6 +121,56 @@ export function PaymentsAssignmentPanel({
 
   return (
     <>
+      {allocateToast ? (
+        <div
+          className="fixed bottom-5 left-1/2 z-[120] w-[min(92vw,420px)] -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_18px_50px_-24px_rgb(16_185_129_/_0.55)]">
+            <div className="flex items-start gap-3 px-4 py-3.5">
+              <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold tracking-[-0.01em] text-[#14532d]">
+                  {allocateToast.agencyBmFunding
+                    ? "Recarga lista"
+                    : "Asignado correctamente"}
+                </p>
+                <p className="mt-0.5 text-[12.5px] leading-5 text-[#3f6212]">
+                  {formatMoney(allocateToast.amount)} →{" "}
+                  <span className="font-semibold">
+                    {allocateToast.accountName}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAllocateToast(null)}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[#64748b] hover:bg-[#f8fafc]"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="h-1 bg-emerald-100">
+              <div className="h-full w-full origin-left animate-[allocateToast_5.6s_linear_forwards] bg-emerald-500" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {agencyBmFunding ? (
         <PaymentsGerenteAccountsSummary
           summary={accountSummary}
@@ -160,6 +221,10 @@ export function PaymentsAssignmentPanel({
         agencyBmFunding={agencyBmFunding}
         onFundingChanged={refreshAfterFundingChange}
         walletBalance={walletBalance}
+        onAllocated={(info) => {
+          setSelectedAccount(null);
+          setAllocateToast(info);
+        }}
       />
       <ReclaimBalanceModal
         account={reclaimAccount}

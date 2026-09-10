@@ -242,6 +242,20 @@ export async function approveManualVoucherPayment(input: {
     },
   });
 
+  if (!isCrypto) {
+    void import("@/lib/email/manual-payment-notify.server").then(
+      ({ notifyClientManualPaymentApprovedBestEffort }) =>
+        notifyClientManualPaymentApprovedBestEffort({
+          paymentIntentId: intent.id,
+          organizationId: intent.organization_id,
+          createdBy: intent.created_by,
+          chargeAmountCents: amountCents,
+          chargeCurrency,
+          creditUsdCents: creditUsdCents > 0 ? creditUsdCents : amountCents,
+        }),
+    );
+  }
+
   await insertAudit({
     organizationId: intent.organization_id,
     actorUserId: input.actor.id,

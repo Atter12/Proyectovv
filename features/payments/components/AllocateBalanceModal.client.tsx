@@ -19,6 +19,12 @@ interface AllocateBalanceModalProps {
   onFundingChanged?: () => void | Promise<void>;
   /** Saldo disponible en cartera Holistic (modo cliente). */
   walletBalance?: number;
+  /** Éxito: el padre cierra y muestra banner. */
+  onAllocated?: (info: {
+    amount: number;
+    accountName: string;
+    agencyBmFunding: boolean;
+  }) => void;
 }
 
 interface AllocateResponse {
@@ -64,13 +70,13 @@ export function AllocateBalanceModal({
   agencyBmFunding = false,
   onFundingChanged,
   walletBalance = 0,
+  onAllocated,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -88,7 +94,6 @@ export function AllocateBalanceModal({
   useEffect(() => {
     if (!open || !account) return;
     setError(null);
-    setSuccess(null);
     if (agencyBmFunding) {
       setAmount("");
       return;
@@ -108,7 +113,6 @@ export function AllocateBalanceModal({
   function resetAndClose() {
     setAmount("");
     setError(null);
-    setSuccess(null);
     setLoading(false);
     onClose();
   }
@@ -133,7 +137,6 @@ export function AllocateBalanceModal({
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       await apiClient<AllocateResponse>("/api/payments/allocations", {
@@ -146,13 +149,16 @@ export function AllocateBalanceModal({
         }),
       });
 
-      setSuccess(
-        agencyBmFunding
-          ? `Listo: se recargaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`
-          : `Se asignaron ${formatMoney(parsedAmount)} a ${targetAccount.name}.`,
-      );
+      const allocatedAmount = parsedAmount;
+      const allocatedName = targetAccount.name;
       router.refresh();
       await onFundingChanged?.();
+      onAllocated?.({
+        amount: allocatedAmount,
+        accountName: allocatedName,
+        agencyBmFunding,
+      });
+      resetAndClose();
     } catch (err) {
       const raw =
         err instanceof ApiClientError
@@ -289,11 +295,6 @@ export function AllocateBalanceModal({
             role="alert"
           >
             {error}
-          </p>
-        )}
-        {success && (
-          <p className="mt-3 text-xs text-emerald-600" role="status">
-            {success}
           </p>
         )}
 

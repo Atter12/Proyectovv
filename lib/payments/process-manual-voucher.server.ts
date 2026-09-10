@@ -222,6 +222,25 @@ export async function processManualVoucherUpload(input: {
     data: { payment_intent_id: intent.id, url: "/payments" },
   });
 
+  const chargeCurrency = expected.currency;
+  const chargeAmountCents =
+    chargeCurrency === "PEN"
+      ? Math.round(expected.amount * 100)
+      : intent.amountCents;
+
+  void import("@/lib/email/manual-payment-notify.server").then(
+    ({ notifyManagersManualPaymentPendingBestEffort }) =>
+      notifyManagersManualPaymentPendingBestEffort({
+        paymentIntentId: intent.id,
+        organizationId: intent.organizationId,
+        createdBy: intent.createdBy,
+        chargeAmountCents,
+        chargeCurrency,
+        creditUsdCents,
+        operationCode: normalizedOperationCode,
+      }),
+  );
+
   return {
     analysis: {
       ...analysis,
