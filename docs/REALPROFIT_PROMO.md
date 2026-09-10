@@ -8,25 +8,20 @@
 Gasto TikTok, live, ranking, CTR/CPC/CPM, pacing, señales, fee / BE ROAS.
 
 **Extra · Real Profit COD · +$20 / mes**  
-Pedidos cobrados, ROAS/CPA COD, conexión de tienda Shopify vía app Real Profit.
+Pedidos cobrados, ROAS/CPA COD, tienda Shopify vía app Real Profit.
 
 `/gastos` redirige a `/profit`.
 
-Ver también:
-
-- [`SALES_SOURCES_REALPROFIT.md`](./SALES_SOURCES_REALPROFIT.md)
-- Cobro voucher: [`PLAN_REALPROFIT_COBRO_MANUAL.md`](./PLAN_REALPROFIT_COBRO_MANUAL.md)
-- Triggers Shopify/Meta: [`PLAN_REALPROFIT_SHOPIFY_META.md`](./PLAN_REALPROFIT_SHOPIFY_META.md)
+**Handoff implementación 2026-09-10:** [`HANDOFF_REALPROFIT_COD_2026-09-10.md`](./HANDOFF_REALPROFIT_COD_2026-09-10.md)
 
 ## Cobro del extra (+$20)
 
-**No WhatsApp.** Misma cuenta de pago manual Holistic (BCP / CCI):
+**No WhatsApp.** Misma cuenta BCP Holistic:
 
-1. Cliente elige “Pagar $20 / mes” en el modal de Profit  
-2. Deposita USD 20 → sube voucher  
-3. Staff revisa en admin pagos  
-4. Si OK → se habilita Real Profit COD (sin acreditar cartera TikTok)  
-5. Entonces puede **Instalar app Shopify** → pedidos se jalan solos  
+1. `/profit` → “Pagar $20 / mes” → depósito + voucher  
+2. Gerente revisa en **`/payments/profit`** (Pagos Profit)  
+3. Al aprobar → entitlement activo + auto-link tienda (sin cartera TikTok)  
+4. `/profit` muestra cobrado si hay `rp_orders`
 
 ## Fuentes (gratis)
 
