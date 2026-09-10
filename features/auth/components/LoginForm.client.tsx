@@ -47,8 +47,7 @@ function FieldIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-const inputClassName =
-  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 pl-11 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+const inputClassName = "auth-field";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
@@ -105,7 +104,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       setLookupHint(payload.message ?? null);
       setLookupLoading(false);
     } catch {
-      setLookupError("No se pudo buscar. Reintentá.");
+      setLookupError("No se pudo buscar. Vuelve a intentar.");
       setLookupLoading(false);
     }
   }
@@ -166,7 +165,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo enviar el código. Reintentá.");
+      setError("No se pudo enviar el código. Vuelve a intentar.");
       setLoading(false);
     }
   }
@@ -210,14 +209,14 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-6 sm:mb-7">
-        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
-          Iniciar sesión
+      <div className="mb-7">
+        <h1 className="font-display text-[1.85rem] font-bold leading-[1.13] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.1rem]">
+          Entra a Ads Holistic.
         </h1>
-        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
+        <p className="mt-3 text-[15px] font-medium leading-[1.6] text-[var(--auth-text-muted)]">
           {otpMode
-            ? "Ingresá tu correo. Te enviamos un código y un enlace para entrar."
-            : "Entrá a tu panel de anunciante"}
+            ? "Te enviamos un código a tu correo. No usamos contraseñas."
+            : "Entra a tu panel de anunciante."}
         </p>
       </div>
 
@@ -228,7 +227,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
           >
             Correo electrónico
           </label>
@@ -257,7 +256,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 setLookupError(null);
                 setLookupHint(null);
               }}
-              className="mt-2.5 text-left text-[13px] font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
+              className="mt-2.5 text-left text-[13px] font-semibold text-[#d1590c] underline-offset-2 hover:underline"
             >
               ¿No sabes cuál es tu correo?
             </button>
@@ -270,7 +269,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               Recuperar correo por nombre
             </p>
             <p className="mt-1 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
-              Escribí tu nombre y apellido como figura en Hecom.
+              Escribe tu nombre y apellido como figura en Hecom.
             </p>
             <div className="mt-3.5 space-y-3">
               <div className="relative">
@@ -339,7 +338,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 type="button"
                 onClick={() => void handleLookup()}
                 disabled={lookupLoading || lookupName.trim().length < 4}
-                className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+                className="auth-cta"
               >
                 {lookupLoading ? "Buscando…" : "Buscar mi correo"}
               </button>
@@ -352,7 +351,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             <div className="mb-2 flex items-center justify-between gap-3">
               <label
                 htmlFor="password"
-                className="block text-[13px] font-medium text-[var(--auth-text)]"
+                className="block text-[12.5px] font-semibold text-[var(--auth-text)]"
               >
                 Contraseña
               </label>
@@ -388,14 +387,14 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             role="alert"
           >
             {error ??
-              "El enlace mágico expiró o es inválido. Pedí uno nuevo."}
+              "El enlace expiró o no es válido. Pide uno nuevo."}
           </p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="auth-cta mt-2"
         >
           {loading
             ? otpMode
@@ -406,13 +405,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       </form>
 
       {otpMode ? (
-        <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
-          ¿No tienes cuenta?{" "}
+        <p className="mt-6 text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
+          ¿Todavía no tienes cuenta?{" "}
           <Link
             href={routes.register}
-            className="font-semibold text-[var(--auth-accent)] hover:underline"
+            className="font-semibold text-[#d1590c] hover:underline"
           >
-            Registrarme
+            Crea la tuya
           </Link>
         </p>
       ) : (
@@ -420,7 +419,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
           ¿Problemas?{" "}
           <a
             href={routes.forgotPassword}
-            className="font-semibold text-[var(--auth-accent)] hover:underline"
+            className="font-semibold text-[#d1590c] hover:underline"
           >
             Recuperar acceso
           </a>

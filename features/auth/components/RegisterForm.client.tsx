@@ -7,14 +7,19 @@ import { routes } from "@/config/routes";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 
 interface RegisterFormValues {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   dni: string;
   phone: string;
   email: string;
 }
 
-const inputClassName =
-  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 pl-11 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
+/** Hecom guarda un solo campo `name`: la UI separa, el envío vuelve a unir. */
+function joinFullName(values: RegisterFormValues): string {
+  return `${values.firstName.trim()} ${values.lastName.trim()}`.trim();
+}
+
+const inputClassName = "auth-field";
 
 function FieldIcon({ children }: { children: React.ReactNode }) {
   return (
@@ -52,19 +57,22 @@ async function trackReferralClick(code: string): Promise<void> {
 }
 
 function validateForm(values: RegisterFormValues): string | null {
-  if (values.fullName.trim().length < 2) {
-    return "Ingresá tu nombre completo.";
+  if (values.firstName.trim().length < 2) {
+    return "Escribe tus nombres.";
+  }
+  if (values.lastName.trim().length < 2) {
+    return "Escribe tus apellidos.";
   }
   const dni = values.dni.trim().replace(/\D/g, "");
   if (!/^\d{8}$/.test(dni)) {
-    return "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.";
+    return "El DNI tiene 8 dígitos. No se acepta RUC ni pasaporte.";
   }
   const phoneDigits = values.phone.replace(/\D/g, "");
   if (phoneDigits.length < 9) {
-    return "Ingresá un teléfono válido (mín. 9 dígitos).";
+    return "Escribe un teléfono válido (mínimo 9 dígitos).";
   }
   if (!values.email.trim().includes("@")) {
-    return "Ingresá un correo electrónico válido.";
+    return "Escribe un correo electrónico válido.";
   }
   return null;
 }
@@ -74,7 +82,8 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("ref")?.trim() || null;
   const [values, setValues] = useState<RegisterFormValues>({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     dni: "",
     phone: "",
     email: "",
@@ -115,7 +124,8 @@ export function RegisterForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: values.fullName.trim(),
+          // Mismo payload que antes: Hecom sigue recibiendo un `name` completo.
+          name: joinFullName(values),
           dni: values.dni.trim().replace(/\D/g, ""),
           phone: values.phone.trim(),
           email: values.email.trim(),
@@ -158,52 +168,79 @@ export function RegisterForm() {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo completar el registro. Reintentá.");
+      setError("No se pudo completar el registro. Vuelve a intentar.");
       setLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <div className="mb-6 sm:mb-7">
-        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
-          Registrarme
+      <div className="mb-7">
+        <h1 className="font-display text-[1.85rem] font-bold leading-[1.13] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.1rem]">
+          Crea tu cuenta en Ads Holistic.
         </h1>
-        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
-          Creá tu ficha en Hecom y entrá a Ads Holistic con un código al correo.
+        <p className="mt-3 text-[15px] font-medium leading-[1.6] text-[var(--auth-text-muted)]">
+          Con tu DNI y tu correo. Te llega un código y ya estás adentro.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
-        <div>
-          <label
-            htmlFor="fullName"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
-          >
-            Nombres y apellidos
-          </label>
-          <div className="relative">
-            <FieldIcon>
-              <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            </FieldIcon>
-            <input
-              id="fullName"
-              autoComplete="name"
-              required
-              value={values.fullName}
-              onChange={(event) => updateField("fullName", event.target.value)}
-              placeholder="María González Pérez"
-              className={inputClassName}
-            />
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="firstName"
+              className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            >
+              Nombres
+            </label>
+            <div className="relative">
+              <FieldIcon>
+                <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </FieldIcon>
+              <input
+                id="firstName"
+                autoComplete="given-name"
+                required
+                value={values.firstName}
+                onChange={(event) => updateField("firstName", event.target.value)}
+                placeholder="María Fernanda"
+                className={inputClassName}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="lastName"
+              className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            >
+              Apellidos
+            </label>
+            <div className="relative">
+              <FieldIcon>
+                <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </FieldIcon>
+              <input
+                id="lastName"
+                autoComplete="family-name"
+                required
+                value={values.lastName}
+                onChange={(event) => updateField("lastName", event.target.value)}
+                placeholder="Quispe Ramos"
+                className={inputClassName}
+              />
+            </div>
           </div>
         </div>
 
         <div>
           <label
             htmlFor="dni"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
           >
             DNI
           </label>
@@ -236,7 +273,7 @@ export function RegisterForm() {
         <div>
           <label
             htmlFor="phone"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
           >
             Teléfono
           </label>
@@ -266,7 +303,7 @@ export function RegisterForm() {
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
+            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
           >
             Correo electrónico
           </label>
@@ -310,17 +347,17 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="auth-cta mt-2"
         >
-          {loading ? "Registrando…" : "Registrarme"}
+          {loading ? "Creando cuenta…" : "Crear cuenta"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
+      <p className="mt-6 text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
         ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
-          className="font-semibold text-[var(--auth-accent)] hover:underline"
+          className="font-semibold text-[#d1590c] hover:underline"
         >
           Iniciar sesión
         </Link>

@@ -531,6 +531,114 @@ body {
 }
 
 /* Login mortgage-services (NextSaaS) adaptado Holistic */
+/*
+ * Login y registro: blanco manda, el pastel vive en la imagen de /auth y el
+ * naranja queda para el logo, el foco del campo y los links.
+ * Sustituye a .mortgage-login, que venía de una plantilla de hipotecarias y
+ * traía el crema que peleaba con la paleta fría de la landing.
+ */
+.auth-shell {
+  --auth-bg: #fbfaf9;
+  --auth-bg-elevated: #ffffff;
+  --auth-surface: #ffffff;
+  --auth-input-border: #e4e0db;
+  --auth-input-border-hover: #cfc9c1;
+  --auth-text: #14120f;
+  --auth-text-muted: #6d6862;
+  --auth-text-soft: #938d86;
+  --auth-border: #ece9e5;
+  --auth-divider: #ece9e5;
+  --auth-accent: #ff781f;
+  --auth-accent-hover: #e8451a;
+  --auth-accent-soft: #fff3ea;
+  --auth-accent-ring: rgb(255 120 31 / 0.2);
+  --auth-control-bg: #ffffff;
+  --auth-control-border: #e4e0db;
+  --auth-control-hover: #fbfaf9;
+  --auth-skeleton: rgb(20 18 15 / 0.07);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  /* El logo es redondo y generoso: Jakarta lo acompaña, Sora lo contradice. */
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--auth-text);
+  background-color: #ffffff;
+}
+
+/* Altura fija del logo: 506x183 en origen, 2rem de alto en pantalla. */
+.auth-shell .auth-logo {
+  height: 2rem;
+  width: auto;
+  object-fit: contain;
+}
+
+@media (min-width: 640px) {
+  .auth-shell .auth-logo {
+    height: 2.25rem;
+  }
+}
+
+/* Campo: 14px en todo el sistema, nada de píldoras mezcladas con cajas. */
+.auth-field {
+  height: 3.375rem;
+  width: 100%;
+  border-radius: 14px;
+  border: 1.5px solid var(--auth-input-border);
+  background-color: var(--auth-bg);
+  padding: 0 1.0625rem 0 2.875rem;
+  font-size: 15px;
+  color: var(--auth-text);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.auth-field::placeholder {
+  color: var(--auth-text-soft);
+}
+
+.auth-field:hover {
+  border-color: var(--auth-input-border-hover);
+}
+
+.auth-field:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgb(255 120 31 / 0.16);
+}
+
+/* Carbón, no naranja: blanco sobre #ff781f da 2.6:1 y no pasa AA. */
+.auth-cta {
+  display: flex;
+  height: 3.375rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background-color: #17150f;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: #ffffff;
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.auth-cta:hover:not(:disabled) {
+  background-color: #2a261c;
+}
+
+.auth-cta:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .mortgage-login {
   background-color: #f7f4ef;
   background-image:

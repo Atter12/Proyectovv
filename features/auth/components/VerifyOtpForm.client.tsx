@@ -201,7 +201,7 @@ export function VerifyOtpForm() {
           setOtp("");
           setSuccess(
             payload.message ??
-              "Te enviamos un nuevo código y enlace mágico. El código anterior ya no sirve.",
+              "Te enviamos un código nuevo. El anterior ya no sirve.",
           );
         }
       } catch {
@@ -234,11 +234,11 @@ export function VerifyOtpForm() {
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {isHecomFlow ? (
             <>
-              Escribí el código de 6 dígitos enviado a{" "}
+              Escribe el código de 6 dígitos que enviamos a{" "}
               <span className="font-semibold text-[var(--auth-text)]">
                 {email || "tu correo"}
               </span>
-              , o abrí el enlace mágico del mismo email.
+              , o abre el enlace del mismo correo.
             </>
           ) : (
             <>
@@ -296,7 +296,7 @@ export function VerifyOtpForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-[14px] bg-[#17150f] text-[15px] font-bold text-white  transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading ? "Verificando…" : "Verificar y continuar"}
         </button>
@@ -319,7 +319,7 @@ export function VerifyOtpForm() {
         </button>
         {isHecomFlow ? (
           <p className="text-[12px] leading-5 text-[var(--auth-text-soft)]">
-            Si pedís otro código, usá solo el más reciente del correo.
+            Si pides otro código, usa solo el más reciente del correo.
           </p>
         ) : null}
         <p className="text-[var(--auth-text-muted)]">
