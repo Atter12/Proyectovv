@@ -976,7 +976,6 @@ export async function listRealProfitVoucherReviewsForStaff(options?: {
       "failed",
       "requires_payment",
       "created",
-      "requires_action",
     ])
     .filter("metadata->>purpose", "eq", "realprofit_cod")
     .order("created_at", { ascending: false })

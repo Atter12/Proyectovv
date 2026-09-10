@@ -141,7 +141,7 @@ export async function createRealProfitCodSubscribeIntent(input: {
   });
 
   await updatePaymentIntentRecord(intent.id, {
-    status: "requires_action",
+    status: "requires_payment",
   });
   await mergePaymentIntentMetadata(intent.id, {
     manual_review_status: "awaiting_proof",
@@ -156,7 +156,7 @@ export async function createRealProfitCodSubscribeIntent(input: {
 
   return {
     paymentIntentId: intent.id,
-    status: "requires_action",
+    status: "requires_payment",
     amountCents: REALPROFIT_COD_AMOUNT_CENTS,
     currency: "USD",
     bankAccounts: getPublicManualBankAccounts("USD"),
