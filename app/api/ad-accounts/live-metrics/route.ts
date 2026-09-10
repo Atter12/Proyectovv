@@ -3,6 +3,8 @@ import { requirePermission } from "@/lib/auth/guards.server";
 import { assertHecomClienteAccess } from "@/lib/hecom/assert-cliente-access.server";
 import { getHecomAdAccountsLiveMetrics } from "@/lib/hecom/ad-account-live.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { isAdsHolisticCliente } from "@/lib/hecom/is-ads-holistic-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { enforceSharedBudgetCapsForLiveAccounts } from "@/lib/payments/enforce-shared-budget-cap.server";
 import { isTikTokBcFundingEnabled } from "@/lib/integrations/tiktok/bc-finance.server";
 
@@ -44,12 +46,18 @@ export async function GET(request: Request) {
       reason?: string;
     }> = [];
 
-    // BM 10/30: cupo TikTok no puede superar ledger Holistic.
-    if (isTikTokBcFundingEnabled() && accounts.length > 0) {
+    // BM 10/30 Ads Holistic: cupo TikTok = ledger (como cash BM200).
+    // No tocar clientes solo-Hecom/agencia (sin login/pagos Holistic).
+    const adsHolistic = await isAdsHolisticCliente(selected.id);
+    if (isTikTokBcFundingEnabled() && accounts.length > 0 && adsHolistic) {
+      const clienteOrgId =
+        (await resolveOrganizationIdForHecomCliente(selected.id)) ??
+        session.organizationId;
       const capped = await enforceSharedBudgetCapsForLiveAccounts({
-        organizationId: session.organizationId,
+        organizationId: clienteOrgId,
         accounts,
         force: fresh,
+        adsHolisticClient: true,
       });
       accounts = capped.accounts;
       budgetCaps = capped.results
@@ -67,6 +75,7 @@ export async function GET(request: Request) {
       ok: true,
       clienteId: selected.id,
       cached: !fresh,
+      adsHolisticClient: adsHolistic,
       ...result,
       accounts,
       budgetCaps,

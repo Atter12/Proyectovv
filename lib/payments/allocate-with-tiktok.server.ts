@@ -20,6 +20,7 @@ import {
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
+import { enforceSharedBudgetCapForAdvertiser } from "@/lib/payments/enforce-shared-budget-cap.server";
 import {
   assertSharedBmSpendableBeforeAllocate,
   attemptCrossBmCreditPull,
@@ -463,6 +464,34 @@ export async function allocateWithOptionalTikTokFunding(
       }
     }
     throw allocateError;
+  }
+
+  // BM10/30: cupo TikTok = gastado + ledger (mismo criterio que BM200 cash).
+  if (canFund && useSharedBudgetPath && bcId && advertiserId) {
+    try {
+      const snap = await getAdvertiserBudgetSnapshot({
+        bcId,
+        advertiserId,
+        organizationId: input.organizationId,
+      });
+      await enforceSharedBudgetCapForAdvertiser({
+        organizationId: input.organizationId,
+        advertiserId,
+        bcId,
+        currentBudgetUsd: snap?.budget ?? tiktokBudgetAfter,
+        currentBudgetCostUsd: snap?.budgetCost ?? null,
+        currentBudgetMode: snap?.budgetMode ?? "CUSTOM_BUDGET",
+        isUnlimited: snap?.budgetMode === "UNLIMITED",
+        force: true,
+        adsHolisticClient: true,
+      });
+    } catch (capError) {
+      console.error("[payments/allocate] shared_budget_cap_after_failed", {
+        advertiserId,
+        message:
+          capError instanceof Error ? capError.message : String(capError),
+      });
+    }
   }
 
   return {
