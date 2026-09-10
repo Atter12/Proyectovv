@@ -19,7 +19,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
+      className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -36,15 +36,26 @@ function PasswordToggle({
   );
 }
 
+function FieldIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="pointer-events-none absolute left-4 top-1/2 z-[1] -translate-y-1/2 text-[var(--auth-text-soft)]"
+      aria-hidden
+    >
+      {children}
+    </span>
+  );
+}
+
 const inputClassName =
-  "h-[3.15rem] w-full rounded-[0.9rem] border border-[#e8e2da] bg-white pl-11 pr-4 text-[15px] text-[var(--auth-text)] placeholder:text-[#b0a89e] transition-[border-color,box-shadow] hover:border-[#d6cec4] focus:border-[var(--auth-accent)] focus:outline-none focus:ring-[3px] focus:ring-[var(--auth-accent)]/15";
+  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 pl-11 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
 }
 
 /**
- * Login Holistic — mockup split-card (OTP email).
+ * Login Holistic — mismo lenguaje visual que Registrarme + lookup por nombre.
  */
 export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   const router = useRouter();
@@ -128,25 +139,23 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
       if (!response.ok) {
         setError(
-          mapAuthErrorMessage(payload.error ?? "No se pudo enviar el acceso."),
+          mapAuthErrorMessage(
+            payload.error ?? "No se pudo enviar el código.",
+          ),
         );
         setLoading(false);
         return;
       }
 
       const canonicalEmail =
-        payload.email?.trim() ||
-        email.trim().toLowerCase();
+        payload.email?.trim() || email.trim().toLowerCase();
 
       const verifyUrl = new URL(routes.verifyOtp, window.location.origin);
       verifyUrl.searchParams.set("email", canonicalEmail);
       verifyUrl.searchParams.set("flow", "hecom");
       verifyUrl.searchParams.set("sent", "1");
       if (payload.retryAfterSec) {
-        verifyUrl.searchParams.set(
-          "cooldown",
-          String(payload.retryAfterSec),
-        );
+        verifyUrl.searchParams.set("cooldown", String(payload.retryAfterSec));
       }
       if (payload.message) {
         verifyUrl.searchParams.set("hint", payload.message);
@@ -157,7 +166,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo enviar el acceso. Reintentá.");
+      setError("No se pudo enviar el código. Reintentá.");
       setLoading(false);
     }
   }
@@ -201,14 +210,11 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-7 sm:mb-8">
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-[var(--auth-accent)]">
-          Hola de nuevo
-        </p>
-        <h1 className="mt-2 text-[1.65rem] font-bold leading-[1.12] tracking-[-0.03em] text-[#1a1a1a] sm:text-[1.95rem]">
+      <div className="mb-6 sm:mb-7">
+        <h1 className="font-display text-[1.45rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
           Iniciar sesión
         </h1>
-        <p className="mt-2.5 max-w-[22rem] text-[13.5px] font-medium leading-6 text-[#7a736a] sm:text-[14px]">
+        <p className="mt-2 text-[13.5px] font-medium leading-6 text-[var(--auth-text-muted)] sm:text-[14px]">
           {otpMode
             ? "Ingresá tu correo. Te enviamos un código y un enlace para entrar."
             : "Entrá a tu panel de anunciante"}
@@ -217,24 +223,21 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
       <form
         onSubmit={otpMode ? handleOtpSubmit : handlePasswordSubmit}
-        className="space-y-4"
+        className="space-y-3.5"
       >
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[13px] font-semibold text-[#1a1a1a]"
+            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
           >
             Correo electrónico
           </label>
           <div className="relative">
-            <span
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0a89e]"
-              aria-hidden
-            >
+            <FieldIcon>
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
               </svg>
-            </span>
+            </FieldIcon>
             <input
               id="email"
               type="email"
@@ -262,24 +265,20 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         </div>
 
         {otpMode && lookupOpen ? (
-          <div className="rounded-[1.1rem] border border-[#efe8e0] bg-[#fffaf6] px-4 py-4">
-            <p className="text-[13px] font-semibold text-[#1a1a1a]">
-              Buscá tu correo por nombre
+          <div className="rounded-[1.35rem] border border-[var(--auth-border)] bg-[var(--auth-accent-soft)]/55 px-4 py-4">
+            <p className="text-[13px] font-semibold text-[var(--auth-text)]">
+              Recuperar correo por nombre
             </p>
-            <p className="mt-1 text-[12.5px] leading-5 text-[#7a736a]">
-              Escribí tu nombre y apellido como figura en Hecom. Te mostramos el
-              correo asociado para entrar.
+            <p className="mt-1 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
+              Escribí tu nombre y apellido como figura en Hecom.
             </p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3.5 space-y-3">
               <div className="relative">
-                <span
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0a89e]"
-                  aria-hidden
-                >
+                <FieldIcon>
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
-                </span>
+                </FieldIcon>
                 <input
                   id="lookup-name"
                   autoComplete="name"
@@ -294,20 +293,22 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                       }
                     }
                   }}
-                  placeholder="Ej. Ximena Jaño"
+                  placeholder="María González Pérez"
                   className={inputClassName}
                 />
               </div>
+
               {lookupError ? (
                 <p className="text-[13px] font-medium text-red-700" role="alert">
                   {lookupError}
                 </p>
               ) : null}
               {lookupHint && lookupMatches.length === 0 ? (
-                <p className="text-[13px] font-medium text-[#7a736a]">
+                <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">
                   {lookupHint}
                 </p>
               ) : null}
+
               {lookupMatches.length > 0 ? (
                 <ul className="space-y-2">
                   {lookupMatches.map((match) => (
@@ -315,13 +316,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                       <button
                         type="button"
                         onClick={() => applyLookupEmail(match.email)}
-                        className="flex w-full items-center justify-between gap-3 rounded-[0.85rem] border border-[#e8e2da] bg-white px-3.5 py-3 text-left transition-[border-color,background-color] hover:border-[var(--auth-accent)]/50 hover:bg-[var(--auth-accent-soft)]/40"
+                        className="flex w-full items-center justify-between gap-3 rounded-full border border-[var(--auth-input-border)] bg-white px-4 py-3 text-left transition-[border-color,background-color,box-shadow] hover:border-[var(--auth-accent)]/45 hover:bg-white hover:shadow-[0_8px_18px_rgb(255_120_31_/_0.12)]"
                       >
                         <span className="min-w-0">
-                          <span className="block truncate text-[13.5px] font-semibold text-[#1a1a1a]">
+                          <span className="block truncate text-[13.5px] font-semibold text-[var(--auth-text)]">
                             {match.name}
                           </span>
-                          <span className="mt-0.5 block truncate text-[12.5px] text-[#7a736a]">
+                          <span className="mt-0.5 block truncate text-[12.5px] text-[var(--auth-text-muted)]">
                             {match.emailMasked}
                           </span>
                         </span>
@@ -333,11 +334,12 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                   ))}
                 </ul>
               ) : null}
+
               <button
                 type="button"
                 onClick={() => void handleLookup()}
                 disabled={lookupLoading || lookupName.trim().length < 4}
-                className="flex h-11 w-full items-center justify-center rounded-[0.85rem] border border-[#e8e2da] bg-white text-[14px] font-bold text-[#1a1a1a] transition-[background-color] hover:bg-[#fff7f0] disabled:cursor-not-allowed disabled:opacity-55"
+                className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
               >
                 {lookupLoading ? "Buscando…" : "Buscar mi correo"}
               </button>
@@ -350,13 +352,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             <div className="mb-2 flex items-center justify-between gap-3">
               <label
                 htmlFor="password"
-                className="block text-[13px] font-semibold text-[#1a1a1a]"
+                className="block text-[13px] font-medium text-[var(--auth-text)]"
               >
                 Contraseña
               </label>
               <a
                 href={routes.forgotPassword}
-                className="text-[13px] font-medium text-[#7a736a] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
+                className="text-[13px] font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
               >
                 ¿Olvidaste tu contraseña?
               </a>
@@ -370,7 +372,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Tu contraseña"
-                className={cn(inputClassName, "pl-4 pr-11")}
+                className={cn(inputClassName, "pl-5 pr-12")}
               />
               <PasswordToggle
                 visible={showPassword}
@@ -382,7 +384,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <p
-            className="rounded-[0.9rem] border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
+            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
             role="alert"
           >
             {error ??
@@ -393,41 +395,28 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 flex h-[3.15rem] w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_12px_28px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[var(--auth-accent)] text-[15px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
         >
           {loading
             ? otpMode
               ? "Enviando…"
               : "Iniciando sesión…"
-            : (
-              <>
-                Entrar
-                <span aria-hidden className="text-[1.1rem] leading-none">
-                  →
-                </span>
-              </>
-            )}
+            : "Entrar"}
         </button>
       </form>
 
       {otpMode ? (
-        <div className="mt-7">
-          <div className="flex items-center gap-3" aria-hidden>
-            <span className="h-px flex-1 bg-[#ece7e0]" />
-            <span className="text-[12.5px] font-medium text-[#9a9288]">
-              ¿No tienes cuenta?
-            </span>
-            <span className="h-px flex-1 bg-[#ece7e0]" />
-          </div>
+        <p className="mt-6 text-center text-[13px] leading-6 text-[var(--auth-text-muted)]">
+          ¿No tienes cuenta?{" "}
           <Link
             href={routes.register}
-            className="mt-4 flex h-[3.15rem] w-full items-center justify-center rounded-[0.9rem] border-[1.5px] border-[var(--auth-accent)] bg-white text-[15px] font-bold text-[var(--auth-accent)] transition-[background-color,transform] hover:bg-[var(--auth-accent-soft)] active:translate-y-px"
+            className="font-semibold text-[var(--auth-accent)] hover:underline"
           >
             Registrarme
           </Link>
-        </div>
+        </p>
       ) : (
-        <p className="mt-6 text-center text-[13px] text-[#7a736a]">
+        <p className="mt-6 text-center text-[13px] text-[var(--auth-text-muted)]">
           ¿Problemas?{" "}
           <a
             href={routes.forgotPassword}

@@ -59,7 +59,7 @@ export default function RegisterPage() {
         <main className="flex flex-1 items-start justify-center px-3.5 pb-8 pt-5 sm:items-center sm:px-6 sm:py-12 lg:py-14">
           <div className="w-full max-w-[930px]">
             <div className="mortgage-login-card grid overflow-hidden rounded-[1.35rem] bg-white sm:rounded-[1.75rem] lg:grid-cols-[minmax(320px,400px)_minmax(0,1fr)] lg:p-2.5 lg:pl-0">
-              <div className="h-36 w-full bg-[linear-gradient(135deg,#ff7a1f,#7c3aed)] sm:h-44 lg:hidden" />
+              <div className="h-36 w-full bg-[linear-gradient(145deg,#12141a_0%,#2a1a12_55%,#ff781f_140%)] sm:h-44 lg:hidden" />
 
               <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center px-5 pb-7 pt-5 sm:px-8 sm:pb-10 sm:pt-8 lg:row-start-1 lg:px-8 lg:py-10">
                 <Suspense fallback={<AuthCardFallback />}>
