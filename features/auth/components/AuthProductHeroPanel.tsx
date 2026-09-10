@@ -67,35 +67,128 @@ export function AuthProductHeroPanel({
         ))}
       </div>
 
-      <div className="relative z-10 mt-3 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3.5">
-        <p className="text-[11px] font-semibold text-white/55">
-          Crecimiento en conversiones
-        </p>
+      <div className="relative z-10 mt-3 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3.5">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold text-white/55">
+              Crecimiento en conversiones
+            </p>
+            <p className="mt-0.5 text-[10px] font-medium text-white/35">
+              Últimos 30 días
+            </p>
+          </div>
+          <div className="rounded-full border border-[var(--auth-accent)]/25 bg-[var(--auth-accent)]/10 px-2.5 py-1 text-[11px] font-bold text-[var(--auth-accent)]">
+            +184%
+          </div>
+        </div>
+
         <svg
-          viewBox="0 0 280 96"
-          className="mt-2 h-[88px] w-full"
+          viewBox="0 0 320 128"
+          className="auth-hero-chart mt-2 h-[112px] w-full"
           fill="none"
           aria-hidden
         >
           <defs>
             <linearGradient id="authChartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff781f" stopOpacity="0.45" />
+              <stop offset="0%" stopColor="#ff781f" stopOpacity="0.55" />
+              <stop offset="42%" stopColor="#ff781f" stopOpacity="0.18" />
               <stop offset="100%" stopColor="#ff781f" stopOpacity="0" />
             </linearGradient>
+            <linearGradient id="authChartStroke" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#ffb070" />
+              <stop offset="55%" stopColor="#ff781f" />
+              <stop offset="100%" stopColor="#ff5a12" />
+            </linearGradient>
+            <filter
+              id="authChartGlow"
+              x="-20%"
+              y="-40%"
+              width="140%"
+              height="180%"
+            >
+              <feGaussianBlur stdDeviation="3.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="authDotGlow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
+
+          {[28, 52, 76, 100].map((y) => (
+            <line
+              key={y}
+              x1="0"
+              x2="320"
+              y1={y}
+              y2={y}
+              stroke="rgb(255 255 255 / 0.06)"
+              strokeDasharray="3 5"
+            />
+          ))}
+
           <path
-            d="M0 72 C 28 68, 42 58, 70 54 C 98 50, 112 62, 140 48 C 168 34, 182 28, 210 22 C 238 16, 252 30, 280 18 L 280 96 L 0 96 Z"
+            d="M0 108 C 24 104, 40 98, 56 92 C 78 84, 92 78, 112 70 C 132 62, 148 66, 168 52 C 188 38, 204 34, 228 26 C 252 18, 272 22, 292 14 C 304 10, 312 12, 320 10 L 320 128 L 0 128 Z"
             fill="url(#authChartFill)"
+            className="auth-hero-chart-fill"
           />
+
           <path
-            d="M0 72 C 28 68, 42 58, 70 54 C 98 50, 112 62, 140 48 C 168 34, 182 28, 210 22 C 238 16, 252 30, 280 18"
-            stroke="#ff781f"
-            strokeWidth="2.5"
+            d="M0 108 C 24 104, 40 98, 56 92 C 78 84, 92 78, 112 70 C 132 62, 148 66, 168 52 C 188 38, 204 34, 228 26 C 252 18, 272 22, 292 14 C 304 10, 312 12, 320 10"
+            stroke="url(#authChartStroke)"
+            strokeWidth="3"
             strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#authChartGlow)"
+            className="auth-hero-chart-line"
           />
-          <circle cx="210" cy="22" r="4" fill="#ff781f" />
-          <circle cx="210" cy="22" r="7" fill="#ff781f" fillOpacity="0.25" />
+
+          <g filter="url(#authDotGlow)" className="auth-hero-chart-dot">
+            <circle cx="292" cy="14" r="11" fill="#ff781f" fillOpacity="0.16" />
+            <circle cx="292" cy="14" r="6.5" fill="#ff781f" fillOpacity="0.28" />
+            <circle
+              cx="292"
+              cy="14"
+              r="3.6"
+              fill="#fff7f0"
+              stroke="#ff781f"
+              strokeWidth="2"
+            />
+          </g>
+
+          <g transform="translate(236 4)">
+            <rect
+              width="52"
+              height="22"
+              rx="11"
+              fill="#1a1d24"
+              stroke="rgb(255 120 31 / 0.35)"
+            />
+            <text
+              x="26"
+              y="14.5"
+              textAnchor="middle"
+              fill="#ff9a4d"
+              fontSize="10"
+              fontWeight="700"
+            >
+              12.4K
+            </text>
+          </g>
         </svg>
+
+        <div className="mt-1 flex justify-between px-0.5 text-[10px] font-medium tracking-[0.04em] text-white/30">
+          <span>Sem 1</span>
+          <span>Sem 2</span>
+          <span>Sem 3</span>
+          <span>Sem 4</span>
+        </div>
       </div>
 
       <div className="relative z-10 mt-4 grid grid-cols-3 gap-2">
