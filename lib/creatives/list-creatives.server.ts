@@ -14,26 +14,80 @@ export type { CreativeDraftListItem };
 
 export async function listCreativeAccountOptions(
   organizationId: string,
+  options?: {
+    /** Obligatorio en Creativos: solo cuentas del cliente activo. */
+    hecomClienteId?: string | null;
+    /** Advertisers Hecom / sync del cliente (refuerzo por ID TikTok). */
+    advertiserIds?: string[] | null;
+  },
 ): Promise<CreativeAccountOption[]> {
   if (!organizationId) return [];
+  const hecomClienteId = options?.hecomClienteId?.trim() || null;
+  const advertiserIds = [
+    ...new Set(
+      (options?.advertiserIds ?? [])
+        .map((id) => String(id ?? "").trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  // Sin cliente seleccionado no listamos la org entera (evita leak cross-cliente).
+  if (!hecomClienteId && advertiserIds.length === 0) {
+    return [];
+  }
+
   const admin = createAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from("ad_accounts")
     .select(
-      "id, name, status, external_account_id, external_business_id, platform",
+      "id, name, status, external_account_id, external_business_id, platform, metadata",
     )
     .eq("organization_id", organizationId)
     .eq("platform", "tiktok")
     .eq("status", "active")
     .order("name", { ascending: true })
-    .limit(100);
+    .limit(150);
+
+  // Prefer DB filter by cliente; advertiserIds refuerza en memoria.
+  if (hecomClienteId) {
+    query = query.eq("metadata->>hecom_cliente_id", hecomClienteId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.warn("[creatives] list_accounts", error.message);
     return [];
   }
 
-  return (data ?? []).map((row) => ({
+  const advertiserSet = new Set(advertiserIds);
+  let rows = data ?? [];
+
+  // Si el sync aún no etiquetó metadata, complementamos por advertiser_id Hecom.
+  if (hecomClienteId && rows.length === 0 && advertiserSet.size > 0) {
+    const { data: byAdv, error: advErr } = await admin
+      .from("ad_accounts")
+      .select(
+        "id, name, status, external_account_id, external_business_id, platform, metadata",
+      )
+      .eq("organization_id", organizationId)
+      .eq("platform", "tiktok")
+      .eq("status", "active")
+      .in("external_account_id", [...advertiserSet])
+      .order("name", { ascending: true })
+      .limit(150);
+    if (advErr) {
+      console.warn("[creatives] list_accounts_by_adv", advErr.message);
+    } else {
+      rows = byAdv ?? [];
+    }
+  } else if (!hecomClienteId && advertiserSet.size > 0) {
+    rows = rows.filter((row) =>
+      advertiserSet.has(String(row.external_account_id ?? "").trim()),
+    );
+  }
+
+  return rows.map((row) => ({
     id: row.id as string,
     name: row.name as string,
     externalAccountId: (row.external_account_id as string | null) ?? null,
@@ -76,21 +130,56 @@ function insightFromResult(row: {
 
 export async function listOrganizationCreativeAssets(
   organizationId: string,
+  options?: {
+    hecomClienteId?: string | null;
+    advertiserIds?: string[] | null;
+    adAccountIds?: string[] | null;
+  },
 ): Promise<CreativeAssetListItem[]> {
   if (!organizationId) return [];
   const admin = createAdminClient();
 
-  const { data: assets, error } = await admin
+  const advertiserSet = new Set(
+    (options?.advertiserIds ?? [])
+      .map((id) => String(id ?? "").trim())
+      .filter(Boolean),
+  );
+  const adAccountSet = new Set(
+    (options?.adAccountIds ?? [])
+      .map((id) => String(id ?? "").trim())
+      .filter(Boolean),
+  );
+  const scoped = Boolean(options?.hecomClienteId?.trim()) || advertiserSet.size > 0;
+
+  if (scoped && advertiserSet.size === 0 && adAccountSet.size === 0) {
+    return [];
+  }
+
+  const { data: assetsRaw, error } = await admin
     .from("creative_assets")
     .select(
       "id, name, asset_type, mime_type, status, created_at, ad_account_id, external_advertiser_id",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
-    .limit(40);
+    .limit(scoped ? 120 : 40);
 
-  if (error || !assets?.length) {
+  if (error || !assetsRaw?.length) {
     if (error) console.warn("[creatives] list_assets", error.message);
+    return [];
+  }
+
+  const assets = scoped
+    ? assetsRaw.filter((row) => {
+        const accountId = String(row.ad_account_id ?? "").trim();
+        const advertiserId = String(row.external_advertiser_id ?? "").trim();
+        if (accountId && adAccountSet.has(accountId)) return true;
+        if (advertiserId && advertiserSet.has(advertiserId)) return true;
+        return false;
+      })
+    : assetsRaw;
+
+  if (!assets.length) {
     return [];
   }
 
@@ -187,20 +276,56 @@ export async function listOrganizationCreativeAssets(
 
 export async function listOrganizationCreativeDrafts(
   organizationId: string,
+  options?: {
+    hecomClienteId?: string | null;
+    advertiserIds?: string[] | null;
+    adAccountIds?: string[] | null;
+  },
 ): Promise<CreativeDraftListItem[]> {
   if (!organizationId) return [];
   const admin = createAdminClient();
-  const { data, error } = await admin
+
+  const advertiserSet = new Set(
+    (options?.advertiserIds ?? [])
+      .map((id) => String(id ?? "").trim())
+      .filter(Boolean),
+  );
+  const adAccountSet = new Set(
+    (options?.adAccountIds ?? [])
+      .map((id) => String(id ?? "").trim())
+      .filter(Boolean),
+  );
+  const scoped = Boolean(options?.hecomClienteId?.trim()) || advertiserSet.size > 0;
+
+  if (scoped && advertiserSet.size === 0 && adAccountSet.size === 0) {
+    return [];
+  }
+
+  const { data: draftsRaw, error } = await admin
     .from("creative_publish_drafts")
     .select(
       "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(scoped ? 80 : 30);
 
-  if (error || !data?.length) {
+  if (error || !draftsRaw?.length) {
     if (error) console.warn("[creatives] list_drafts", error.message);
+    return [];
+  }
+
+  const data = scoped
+    ? draftsRaw.filter((row) => {
+        const accountId = String(row.ad_account_id ?? "").trim();
+        const advertiserId = String(row.external_advertiser_id ?? "").trim();
+        if (accountId && adAccountSet.has(accountId)) return true;
+        if (advertiserId && advertiserSet.has(advertiserId)) return true;
+        return false;
+      })
+    : draftsRaw;
+
+  if (!data.length) {
     return [];
   }
 

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { processQueuedCreativeJobs } from "@/lib/creatives/process-jobs.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 
 export const runtime = "nodejs";
 
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
   if (adAccountId) {
     const { data: account, error: accountError } = await admin
       .from("ad_accounts")
-      .select("id, external_account_id, organization_id, status")
+      .select("id, external_account_id, organization_id, status, metadata")
       .eq("id", adAccountId)
       .eq("organization_id", session.organizationId)
       .maybeSingle<{
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
         external_account_id: string | null;
         organization_id: string;
         status: string;
+        metadata: Record<string, unknown> | null;
       }>();
     if (accountError || !account) {
       return NextResponse.json(
@@ -114,6 +116,26 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const selectedCliente = await getSelectedHecomCliente(session.id);
+    const metaCliente =
+      typeof account.metadata?.hecom_cliente_id === "string"
+        ? account.metadata.hecom_cliente_id.trim()
+        : "";
+    if (
+      selectedCliente?.id &&
+      metaCliente &&
+      metaCliente !== selectedCliente.id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Esa cuenta TikTok no pertenece al cliente que estás viendo. Cambiá de cliente o elegí otra cuenta.",
+        },
+        { status: 403 },
+      );
+    }
+
     externalAdvertiserId =
       account.external_account_id?.trim() || externalAdvertiserId;
   }

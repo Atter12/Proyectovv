@@ -41,6 +41,7 @@ export default async function CreativeAnalyzerPage() {
     );
   }
 
+  let syncAdvertiserIds: string[] = [];
   if (session.organizationId) {
     try {
       const sync = await syncApprovedAdAccountsForCliente({
@@ -49,6 +50,7 @@ export default async function CreativeAnalyzerPage() {
         userId: session.id,
         forceRefresh: false,
       });
+      syncAdvertiserIds = sync.approvedAdvertiserIds;
       const ids =
         sync.approvedAdvertiserIds.length > 0
           ? sync.approvedAdvertiserIds
@@ -76,13 +78,32 @@ export default async function CreativeAnalyzerPage() {
     }
   }
 
-  const [accounts, assets, drafts] = session.organizationId
+  const hecomAdvertiserIds = data.accounts
+    .map((a) => a.advertiserId)
+    .filter((id): id is string => Boolean(id));
+  const advertiserIds = [
+    ...new Set([...syncAdvertiserIds, ...hecomAdvertiserIds]),
+  ];
+
+  const accounts = session.organizationId
+    ? await listCreativeAccountOptions(session.organizationId, {
+        hecomClienteId: selected.id,
+        advertiserIds,
+      })
+    : [];
+
+  const scopeOpts = {
+    hecomClienteId: selected.id,
+    advertiserIds,
+    adAccountIds: accounts.map((a) => a.id),
+  };
+
+  const [assets, drafts] = session.organizationId
     ? await Promise.all([
-        listCreativeAccountOptions(session.organizationId),
-        listOrganizationCreativeAssets(session.organizationId),
-        listOrganizationCreativeDrafts(session.organizationId),
+        listOrganizationCreativeAssets(session.organizationId, scopeOpts),
+        listOrganizationCreativeDrafts(session.organizationId, scopeOpts),
       ])
-    : [[], [], []];
+    : [[], []];
 
   return (
     <div className={dashboardClasses.page}>

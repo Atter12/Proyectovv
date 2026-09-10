@@ -6,8 +6,12 @@ import {
   publishApprovedCreativeDraft,
   rejectCreativeDraft,
 } from "@/lib/creatives/drafts.server";
-import { listOrganizationCreativeDrafts } from "@/lib/creatives/list-creatives.server";
+import {
+  listCreativeAccountOptions,
+  listOrganizationCreativeDrafts,
+} from "@/lib/creatives/list-creatives.server";
 import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creative-publish.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 
 export const runtime = "nodejs";
 
@@ -23,7 +27,19 @@ export async function GET() {
     return NextResponse.json({ error: "Organización no disponible." }, { status: 400 });
   }
 
-  const drafts = await listOrganizationCreativeDrafts(session.organizationId);
+  const selected = await getSelectedHecomCliente(session.id);
+  const accounts = selected
+    ? await listCreativeAccountOptions(session.organizationId, {
+        hecomClienteId: selected.id,
+      })
+    : [];
+  const drafts = await listOrganizationCreativeDrafts(session.organizationId, {
+    hecomClienteId: selected?.id ?? null,
+    adAccountIds: accounts.map((a) => a.id),
+    advertiserIds: accounts
+      .map((a) => a.externalAccountId)
+      .filter((id): id is string => Boolean(id)),
+  });
   return NextResponse.json({
     ok: true,
     drafts,
