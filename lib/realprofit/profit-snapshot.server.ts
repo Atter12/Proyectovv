@@ -43,6 +43,8 @@ export type ProfitCampaignRow = {
   costPerConversion: number | null;
   /** true si vino overlay del report TikTok live */
   hasTikTokPerf: boolean;
+  /** Último día con gasto Holistic en el rango (YYYY-MM-DD). */
+  lastStatDate: string | null;
 };
 
 export type StoreProfitPromo = {
@@ -288,6 +290,7 @@ type PerfMergeRow = {
   conversions: number | null;
   costPerConversion: number | null;
   hasTikTokPerf: boolean;
+  lastStatDate: string | null;
 };
 
 function mergeCampaignsWithTikTokPerf(input: {
@@ -298,6 +301,7 @@ function mergeCampaignsWithTikTokPerf(input: {
     spend: number;
     bm: string | null;
     advertiserId: string | null;
+    lastStatDate?: string | null;
   }>;
   perfRows: Awaited<
     ReturnType<typeof fetchCampaignPerformanceForAdvertisers>
@@ -355,6 +359,7 @@ function mergeCampaignsWithTikTokPerf(input: {
       conversions: perf?.conversions ?? null,
       costPerConversion: perf?.costPerConversion ?? null,
       hasTikTokPerf: Boolean(perf),
+      lastStatDate: c.lastStatDate ?? null,
     };
   });
 
@@ -376,6 +381,7 @@ function mergeCampaignsWithTikTokPerf(input: {
       conversions: perf.conversions,
       costPerConversion: perf.costPerConversion,
       hasTikTokPerf: true,
+      lastStatDate: null,
     });
   }
 
@@ -436,6 +442,7 @@ function buildCampaignsFromSpend(input: {
     conversions?: number | null;
     costPerConversion?: number | null;
     hasTikTokPerf?: boolean;
+    lastStatDate?: string | null;
   }>;
 }): ProfitCampaignRow[] {
   const adSpend = input.adSpend;
@@ -464,6 +471,7 @@ function buildCampaignsFromSpend(input: {
         conversions: c.conversions ?? null,
         costPerConversion: c.costPerConversion ?? null,
         hasTikTokPerf: Boolean(c.hasTikTokPerf),
+        lastStatDate: c.lastStatDate ?? null,
       };
     });
 }
@@ -573,6 +581,7 @@ export async function loadStoreProfitPromo(input: {
       spend: number;
       bm?: string | null;
       advertiserId?: string | null;
+      lastStatDate?: string | null;
     }>;
   } | null;
 }): Promise<StoreProfitPromo> {
@@ -636,11 +645,13 @@ export async function loadStoreProfitPromo(input: {
       spend: number;
       bm: string | null;
       advertiserId: string | null;
+      lastStatDate: string | null;
     }
   >();
 
   for (const row of spendRows ?? []) {
     const spend = num(row.spend_amount);
+    if (spend <= 0) continue;
     adSpend += spend;
     const cid = String(row.campaign_external_id ?? "").trim();
     const key = cid
@@ -650,9 +661,13 @@ export async function loadStoreProfitPromo(input: {
       cid === ""
         ? `Total ${String(row.platform)} (manual)`
         : String(row.campaign_name ?? cid);
+    const day = String(row.date ?? "").slice(0, 10) || null;
     const prev = byCampaign.get(key);
     if (prev) {
       prev.spend += spend;
+      if (day && (!prev.lastStatDate || day > prev.lastStatDate)) {
+        prev.lastStatDate = day;
+      }
     } else {
       byCampaign.set(key, {
         campaignExternalId: cid || "__platform_total__",
@@ -661,6 +676,7 @@ export async function loadStoreProfitPromo(input: {
         spend,
         bm: null,
         advertiserId: null,
+        lastStatDate: day,
       });
     }
   }
@@ -678,6 +694,7 @@ export async function loadStoreProfitPromo(input: {
       ...c,
       bm: c.bm ?? null,
       advertiserId: c.advertiserId ?? null,
+      lastStatDate: c.lastStatDate ?? null,
     }));
     spendSource = "holistic_tiktok";
   } else if (adSpend <= 0) {

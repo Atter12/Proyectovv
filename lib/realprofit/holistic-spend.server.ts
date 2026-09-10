@@ -20,6 +20,8 @@ export type HolisticCampaignAgg = {
   spend: number;
   advertiserId: string | null;
   bm: string | null;
+  /** Último día con gasto en el rango (YYYY-MM-DD). */
+  lastStatDate: string | null;
 };
 
 export type HolisticTikTokSpendBundle = {
@@ -105,6 +107,9 @@ function aggregateCampaigns(
     if (prev) {
       prev.spend = round2(prev.spend + row.spend);
       if (!prev.bm && row.bm) prev.bm = row.bm;
+      if (row.date && (!prev.lastStatDate || row.date > prev.lastStatDate)) {
+        prev.lastStatDate = row.date;
+      }
     } else {
       byCampaign.set(key, {
         campaignExternalId: cid || `name:${row.campaignName}`,
@@ -113,6 +118,7 @@ function aggregateCampaigns(
         spend: row.spend,
         advertiserId: row.advertiserId,
         bm: row.bm,
+        lastStatDate: row.date || null,
       });
     }
   }

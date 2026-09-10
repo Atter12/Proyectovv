@@ -42,6 +42,7 @@ type CampaignRow = {
   conversions: number | null;
   costPerConversion: number | null;
   hasTikTokPerf: boolean;
+  lastStatDate: string | null;
 };
 
 type DailyPoint = { date: string; spend: number };
@@ -200,11 +201,45 @@ function Kpi({
   );
 }
 
-function DailyBars({ series }: { series: DailyPoint[] }) {
-  const max = Math.max(...series.map((p) => p.spend), 0);
+function formatDayShort(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "numeric",
+    month: "short",
+  }).format(dt);
+}
+
+function formatRangeLabel(from: string, to: string): string {
+  if (!from || !to) return "—";
+  if (from === to) return formatDayShort(from);
+  return `${formatDayShort(from)} → ${formatDayShort(to)}`;
+}
+
+function DailyBars({
+  series,
+  todayYmd,
+  liveTodaySpend,
+}: {
+  series: DailyPoint[];
+  todayYmd: string;
+  liveTodaySpend: number | null;
+}) {
+  const display = series.map((p) => {
+    if (
+      p.date === todayYmd &&
+      liveTodaySpend != null &&
+      Number.isFinite(liveTodaySpend)
+    ) {
+      return { ...p, spend: liveTodaySpend, live: true as const };
+    }
+    return { ...p, live: false as const };
+  });
+  const max = Math.max(...display.map((p) => p.spend), 0);
   const peak = max > 0 ? max : 1;
-  const hasAny = series.some((p) => p.spend > 0);
-  const mobile = series.slice(-7);
+  const hasAny = display.some((p) => p.spend > 0);
+  const total = display.reduce((s, p) => s + p.spend, 0);
 
   if (!hasAny) {
     return (
@@ -216,52 +251,66 @@ function DailyBars({ series }: { series: DailyPoint[] }) {
   }
 
   return (
-    <>
-      <div className="sm:hidden">
-        <div className="flex h-28 items-end gap-1">
-          {mobile.map((p) => (
-            <div
-              key={p.date}
-              className="flex min-w-0 flex-1 flex-col items-center gap-1"
-              title={`${p.date}: ${moneyUsd(p.spend)}`}
-            >
-              <div
-                className="w-full rounded-t-md bg-[#ff781f]/85"
-                style={{
-                  height: `${Math.max(4, (p.spend / peak) * 100)}%`,
-                }}
-              />
-              <span className="text-[9px] tabular-nums text-[#9a9187]">
-                {p.date.slice(8)}
-              </span>
-            </div>
-          ))}
+    <div>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            Serie diaria
+          </p>
+          <p className="mt-0.5 text-[12px] text-[#5c564e]">
+            {display.length} días · total {moneyUsd(total)}
+            {liveTodaySpend != null ? " · hoy en vivo" : ""}
+          </p>
         </div>
-        <p className="mt-2 text-[11px] text-[#8a8177]">Últimos 7 días del rango</p>
+        <p className="text-[11px] tabular-nums text-[#9a9187]">
+          Pico {moneyUsd(max)}
+        </p>
       </div>
-      <div className="hidden sm:block">
-        <div className="flex h-32 items-end gap-0.5">
-          {series.map((p) => (
-            <div
-              key={p.date}
-              className="flex min-w-0 flex-1 flex-col items-center"
-              title={`${p.date}: ${moneyUsd(p.spend)}`}
-            >
+
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div
+          className="flex h-36 items-end gap-1"
+          style={{ minWidth: `${Math.max(display.length * 22, 280)}px` }}
+        >
+          {display.map((p) => {
+            const h = Math.max(4, (p.spend / peak) * 100);
+            const isToday = p.date === todayYmd;
+            return (
               <div
-                className="w-full max-w-[14px] rounded-t bg-[#ff781f]/80 transition hover:bg-[#ff781f]"
-                style={{
-                  height: `${Math.max(3, (p.spend / peak) * 100)}%`,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mt-2 flex justify-between text-[10px] tabular-nums text-[#9a9187]">
-          <span>{series[0]?.date}</span>
-          <span>{series.at(-1)?.date}</span>
+                key={p.date}
+                className="group relative flex min-w-[18px] flex-1 flex-col items-center gap-1"
+                title={`${p.date}: ${moneyUsd(p.spend)}${p.live ? " · live" : ""}`}
+              >
+                <span className="pointer-events-none absolute -top-7 hidden rounded-md bg-[#1c1917] px-1.5 py-0.5 text-[10px] font-semibold text-white group-hover:block">
+                  {moneyUsd(p.spend)}
+                </span>
+                <div
+                  className={`w-full max-w-[18px] rounded-t-md transition ${
+                    isToday
+                      ? "bg-[linear-gradient(180deg,#ff9a4d_0%,#ff781f_100%)] ring-2 ring-[#ff781f]/35"
+                      : "bg-[#ff781f]/75 hover:bg-[#ff781f]"
+                  }`}
+                  style={{ height: `${h}%` }}
+                />
+                <span
+                  className={`text-[9px] tabular-nums ${
+                    isToday
+                      ? "font-bold text-[#c2410c]"
+                      : "text-[#9a9187]"
+                  }`}
+                >
+                  {p.date.slice(8)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </>
+      <div className="mt-2 flex justify-between text-[10px] tabular-nums text-[#9a9187]">
+        <span>{formatDayShort(display[0]!.date)}</span>
+        <span>{formatDayShort(display.at(-1)!.date)}</span>
+      </div>
+    </div>
   );
 }
 
@@ -304,11 +353,11 @@ export function ProfitPageClient({
         (a, b) => (b.spendTodayUsd ?? 0) - (a.spendTodayUsd ?? 0),
       );
   }, [live.metricsByAdvertiser]);
-  const liveBalanceTotal = liveAccounts.reduce(
+  const liveBalanceTotal = Object.values(live.metricsByAdvertiser).reduce(
     (s, a) => s + (a.balanceUsd ?? 0),
     0,
   );
-  const liveSpendTotal = liveAccounts.reduce(
+  const liveSpendTotal = Object.values(live.metricsByAdvertiser).reduce(
     (s, a) => s + (a.spendTodayUsd ?? 0),
     0,
   );
@@ -405,20 +454,18 @@ export function ProfitPageClient({
   }
 
   const useLiveForToday = Boolean(live.lastUpdatedAt) && !live.error;
-  const spendTodayDisplay = analysis
-    ? useLiveForToday
-      ? liveSpendTotal
-      : analysis.spendToday
-    : 0;
-  const hoyHint = analysis
-    ? useLiveForToday
-      ? `Live TikTok${
-          liveBalanceTotal > 0
-            ? ` · saldo ${moneyUsd(liveBalanceTotal)}`
-            : ""
-        }${formatSyncTime(live.lastUpdatedAt) ? ` · ${formatSyncTime(live.lastUpdatedAt)}` : ""}`
-      : `vs ayer ${formatDelta(analysis.spendTodayDeltaPct)} · ${moneyUsd(analysis.spendYesterday)}`
-    : "";
+  const spendTodayDisplay = useLiveForToday
+    ? liveSpendTotal
+    : (analysis?.spendToday ?? 0);
+  const syncLabel = formatSyncTime(live.lastUpdatedAt);
+  const todayYmd = limaTodayYmd();
+  const hoyHint = useLiveForToday
+    ? `TikTok en vivo · America/Lima${
+        liveBalanceTotal > 0 ? ` · saldo ${moneyUsd(liveBalanceTotal)}` : ""
+      }${syncLabel ? ` · act. ${syncLabel}` : ""}`
+    : analysis
+      ? `Snapshots · vs ayer ${formatDelta(analysis.spendTodayDeltaPct)}`
+      : "Cargando live…";
 
   const displayPacing = useMemo(() => {
     if (!analysis) {
@@ -453,7 +500,7 @@ export function ProfitPageClient({
   }, [analysis?.signals, spendTodayDisplay]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
         <div
           aria-hidden
@@ -481,6 +528,95 @@ export function ProfitPageClient({
           {error}
         </div>
       ) : null}
+
+      <section className="space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%,#fff7f0_100%)] p-5 shadow-[0_14px_36px_-24px_rgb(255_120_31_/_0.55)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+              Consumo TikTok · hoy
+            </p>
+            <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+              Gasto live · solo hoy
+            </h2>
+            <p className="mt-0.5 text-[12px] text-[#8a8177]">{hoyHint}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(displayPacing.pacingLabel).className}`}
+            >
+              {pacingBadge(displayPacing.pacingLabel).text}
+              {displayPacing.pacingRatio != null
+                ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
+                : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => void live.refresh({ force: true })}
+              disabled={live.loading}
+              className="rounded-full border border-[#ffd7b8] bg-white px-3 py-1.5 text-[11px] font-bold text-[#c2410c] transition hover:bg-[#fff7f0] disabled:opacity-55"
+            >
+              {live.loading ? "Actualizando…" : "Actualizar live"}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5 sm:px-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a9187]">
+            Hoy · {formatDayShort(todayYmd)} · en vivo
+          </p>
+          <p
+            className={`mt-1 text-[2.35rem] font-bold tabular-nums tracking-[-0.04em] sm:text-[2.75rem] ${
+              spendTodayDisplay > 0 ? "text-[#c2410c]" : "text-[#1c1917]"
+            }`}
+          >
+            {live.loading && !live.lastUpdatedAt
+              ? "…"
+              : moneyUsd(spendTodayDisplay)}
+          </p>
+          {syncLabel ? (
+            <p className="mt-1 text-[12px] text-[#8a8177]">
+              Última sync {syncLabel} · se refresca cada {live.pollSeconds}s
+            </p>
+          ) : (
+            <p className="mt-1 text-[12px] text-[#8a8177]">
+              Consultando TikTok report de hoy…
+            </p>
+          )}
+        </div>
+
+        {liveAccounts.length > 0 ? (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {liveAccounts.slice(0, 6).map((acc) => (
+              <li
+                key={acc.advertiserId}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[#f0ebe4] bg-white/80 px-3.5 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-[#1c1917]">
+                    {acc.accountName}
+                  </p>
+                  <p className="truncate text-[11px] tabular-nums text-[#9a9187]">
+                    {acc.bmBucket ? `BM ${acc.bmBucket} · ` : ""}
+                    {acc.advertiserId}
+                  </p>
+                </div>
+                <p className="shrink-0 text-[14px] font-bold tabular-nums text-[#c2410c]">
+                  {moneyUsd(acc.spendTodayUsd ?? 0)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {live.error ? (
+          <p className="text-[12px] font-medium text-amber-800" role="alert">
+            Live: {live.error}
+            {analysis
+              ? ` · mostrando snapshots (${moneyUsd(analysis.spendToday)})`
+              : ""}
+          </p>
+        ) : null}
+      </section>
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-5">
@@ -517,21 +653,30 @@ export function ProfitPageClient({
             </button>
           </div>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <ProfitDateRangeField
-              from={from}
-              to={to}
-              max={limaTodayYmd()}
-              onChange={({ from: nextFrom, to: nextTo }) => {
-                setFrom(nextFrom);
-                setTo(nextTo);
-              }}
-            />
-            {loading ? (
-              <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
-                Cargando…
-              </p>
-            ) : null}
+          <div>
+            <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+              Rango de calendario
+            </p>
+            <p className="mb-3 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
+              Filtra la serie diaria y el ranking de campañas. El gasto live de
+              arriba siempre es solo hoy.
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+              <ProfitDateRangeField
+                from={from}
+                to={to}
+                max={limaTodayYmd()}
+                onChange={({ from: nextFrom, to: nextTo }) => {
+                  setFrom(nextFrom);
+                  setTo(nextTo);
+                }}
+              />
+              {loading ? (
+                <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
+                  Cargando…
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>
@@ -541,87 +686,29 @@ export function ProfitPageClient({
       ) : analysis ? (
         <>
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  Consumo TikTok
-                </p>
-                <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-                  Gasto · Holistic
-                </h2>
-                <p className="mt-0.5 text-[12px] text-[#8a8177]">
-                  America/Lima · {analysis.from} → {analysis.to} ·{" "}
-                  {analysis.daysWithActivity} días con actividad
-                  {analysis.dataThroughDate
-                    ? ` · datos hasta ${analysis.dataThroughDate}`
-                    : ""}
-                </p>
-              </div>
-              <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(displayPacing.pacingLabel).className}`}
-              >
-                {pacingBadge(displayPacing.pacingLabel).text}
-                {displayPacing.pacingRatio != null
-                  ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
+            <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
+              <DailyBars
+                series={analysis.dailySeries}
+                todayYmd={todayYmd}
+                liveTodaySpend={useLiveForToday ? liveSpendTotal : null}
+              />
+            </div>
+
+            {analysis.from || analysis.to ? (
+              <p className="text-[12px] text-[#8a8177]">
+                Serie del rango {formatRangeLabel(analysis.from, analysis.to)}
+                {analysis.daysWithActivity
+                  ? ` · ${analysis.daysWithActivity} días con actividad`
                   : ""}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi
-                label={useLiveForToday ? "Hoy · live" : "Hoy"}
-                value={
-                  live.loading && !live.lastUpdatedAt
-                    ? "…"
-                    : moneyUsd(spendTodayDisplay)
-                }
-                hint={hoyHint}
-                accent={useLiveForToday && spendTodayDisplay > 0}
-              />
-              <Kpi
-                label="7 días"
-                value={moneyUsd(analysis.spend7d)}
-                hint={`vs 7d previos ${formatDelta(analysis.spend7dDeltaPct)}`}
-              />
-              <Kpi
-                label="30 días"
-                value={moneyUsd(analysis.spend30d)}
-                hint="Ventana corta"
-              />
-              <Kpi
-                label="En el rango"
-                value={moneyUsd(analysis.spendInRange)}
-                hint={`vs período anterior ${formatDelta(analysis.spendRangeDeltaPct)} · ${analysis.campaigns.length} campañas`}
-                accent={!useLiveForToday || spendTodayDisplay <= 0}
-              />
-            </div>
-
-            {useLiveForToday && liveAccounts.length > 0 ? (
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#8a8177]">
-                <span>
-                  {liveAccounts.length === 1
-                    ? liveAccounts[0]!.accountName
-                    : `${liveAccounts.length} cuentas`}
-                  {liveBalanceTotal > 0
-                    ? ` · saldo ${moneyUsd(liveBalanceTotal)}`
-                    : ""}
+                {analysis.dataThroughDate
+                  ? ` · datos hasta ${formatDayShort(analysis.dataThroughDate)}`
+                  : ""}
+                {" · en el rango "}
+                <span className="font-semibold text-[#1c1917]">
+                  {moneyUsd(analysis.spendInRange)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => void live.refresh({ force: true })}
-                  className="font-semibold text-[#c2410c] underline-offset-2 hover:underline"
-                >
-                  Actualizar live
-                </button>
               </p>
             ) : null}
-
-            <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
-              <p className="mb-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                Serie diaria
-              </p>
-              <DailyBars series={analysis.dailySeries} />
-            </div>
 
             {visibleSignals.length > 0 ? (
               <div className="space-y-2">
@@ -655,8 +742,11 @@ export function ProfitPageClient({
                   Ranking + performance TikTok
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                  Impresiones / CTR / CPC desde report live. Cobrado COD por
-                  campaña = estimado si hay tienda vinculada.
+                  Rango {formatRangeLabel(analysis.from, analysis.to)}
+                  {analysis.perf?.fetchedAt
+                    ? ` · perf act. ${formatSyncTime(analysis.perf.fetchedAt)}`
+                    : ""}
+                  . Impresiones / CTR / CPC desde report TikTok.
                 </p>
               </div>
               {bmOptions.length > 0 ? (
@@ -799,65 +889,70 @@ export function ProfitPageClient({
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-[#ece7e0]">
-                <table className="min-w-full text-left text-[12px]">
-                  <thead className="bg-[#faf8f5] text-[10px] uppercase tracking-[0.08em] text-[#9a9187]">
+                <table className="min-w-[960px] w-full border-collapse text-left text-[11.5px]">
+                  <thead className="sticky top-0 z-[1] bg-[#f7f4ef] text-[10px] uppercase tracking-[0.07em] text-[#9a9187]">
                     <tr>
-                      <th className="px-3 py-2.5">
+                      <th className="sticky left-0 z-[2] bg-[#f7f4ef] px-3 py-2.5">
                         <button
                           type="button"
-                          className="font-bold uppercase tracking-[0.08em]"
+                          className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("name")}
                         >
                           Campaña
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">BM</th>
-                      <th className="px-3 py-2.5">
+                      <th className="whitespace-nowrap px-2.5 py-2.5 font-bold">
+                        Entrega
+                      </th>
+                      <th className="px-2.5 py-2.5 font-bold">BM</th>
+                      <th className="px-2.5 py-2.5">
                         <button
                           type="button"
-                          className="font-bold uppercase tracking-[0.08em]"
+                          className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("spend")}
                         >
                           Gasto
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">
+                      <th className="px-2.5 py-2.5">
                         <button
                           type="button"
-                          className="font-bold uppercase tracking-[0.08em]"
+                          className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("share")}
                         >
                           %
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">Imp.</th>
-                      <th className="px-3 py-2.5">
+                      <th className="px-2.5 py-2.5 font-bold">Imp.</th>
+                      <th className="px-2.5 py-2.5 font-bold">Clicks</th>
+                      <th className="px-2.5 py-2.5">
                         <button
                           type="button"
-                          className="font-bold uppercase tracking-[0.08em]"
+                          className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("ctr")}
                         >
                           CTR
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">
+                      <th className="px-2.5 py-2.5">
                         <button
                           type="button"
-                          className="font-bold uppercase tracking-[0.08em]"
+                          className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("cpc")}
                         >
                           CPC
                         </button>
                       </th>
-                      <th className="px-3 py-2.5">CPM</th>
-                      <th className="px-3 py-2.5">Conv.</th>
+                      <th className="px-2.5 py-2.5 font-bold">CPM</th>
+                      <th className="px-2.5 py-2.5 font-bold">Conv.</th>
+                      <th className="px-2.5 py-2.5 font-bold">CPA</th>
                       {analysis.hasCodLink ? (
                         <>
-                          <th className="px-3 py-2.5">Cobrado est.</th>
-                          <th className="px-3 py-2.5">
+                          <th className="px-2.5 py-2.5 font-bold">Cobrado est.</th>
+                          <th className="px-2.5 py-2.5">
                             <button
                               type="button"
-                              className="font-bold uppercase tracking-[0.08em]"
+                              className="font-bold uppercase tracking-[0.07em]"
                               onClick={() => toggleSort("roas")}
                             >
                               ROAS est.
@@ -868,60 +963,101 @@ export function ProfitPageClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedCampaigns.map((c) => (
-                      <tr
-                        key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
-                        className="border-t border-[#f0ebe4]"
-                      >
-                        <td className="px-3 py-2.5 font-medium text-[#1c1917]">
-                          {c.campaignName}
-                          <span className="mt-0.5 block text-[10px] font-normal text-[#9a9187]">
-                            {c.hasTikTokPerf ? "perf TikTok" : "solo Holistic"}
-                            {c.advertiserId ? ` · ${c.advertiserId}` : ""}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-[#6b645c]">
-                          {c.bm ?? "—"}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {moneyUsd(c.spend)}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {(c.spendShare * 100).toFixed(1)}%
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {c.impressions != null
-                            ? c.impressions.toLocaleString("en-US")
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {c.ctr != null ? `${c.ctr.toFixed(2)}%` : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {c.cpc != null ? moneyUsd(c.cpc) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {c.cpm != null ? moneyUsd(c.cpm) : "—"}
-                        </td>
-                        <td className="px-3 py-2.5 tabular-nums">
-                          {c.conversions != null
-                            ? c.conversions.toLocaleString("en-US")
-                            : "—"}
-                        </td>
-                        {analysis.hasCodLink ? (
-                          <>
-                            <td className="px-3 py-2.5 tabular-nums">
-                              {formatMoney(c.collectedEstimated, "PEN")}
-                            </td>
-                            <td className="px-3 py-2.5 font-semibold tabular-nums text-[#c2410c]">
-                              {c.roasEstimated != null
-                                ? `${c.roasEstimated.toFixed(2)}x`
-                                : "—"}
-                            </td>
-                          </>
-                        ) : null}
-                      </tr>
-                    ))}
+                    {sortedCampaigns.map((c) => {
+                      const idShown = c.campaignExternalId.startsWith("name:")
+                        ? null
+                        : c.campaignExternalId;
+                      const deliveryDate = c.lastStatDate
+                        ? formatDayShort(c.lastStatDate)
+                        : formatRangeLabel(analysis.from, analysis.to);
+                      const deliveryTime = c.hasTikTokPerf
+                        ? formatSyncTime(analysis.perf?.fetchedAt ?? null)
+                        : null;
+                      return (
+                        <tr
+                          key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
+                          className="border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
+                        >
+                          <td className="sticky left-0 z-[1] max-w-[240px] bg-white px-3 py-2.5 hover:bg-[#fffaf6]">
+                            <p className="truncate font-semibold text-[#1c1917]">
+                              {c.campaignName}
+                            </p>
+                            <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
+                              {idShown ?? "sin id"}
+                            </p>
+                            <p className="mt-0.5 truncate text-[10px] text-[#b0a89e]">
+                              {c.hasTikTokPerf ? "perf TikTok" : "solo Holistic"}
+                              {c.advertiserId ? ` · ${c.advertiserId}` : ""}
+                            </p>
+                          </td>
+                          <td className="whitespace-nowrap px-2.5 py-2.5 align-top">
+                            <p className="font-semibold tabular-nums text-[#1c1917]">
+                              {deliveryDate}
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-[#9a9187]">
+                              {c.lastStatDate
+                                ? c.lastStatDate
+                                : `${analysis.from}→${analysis.to}`}
+                            </p>
+                            {deliveryTime ? (
+                              <p className="mt-0.5 text-[10px] font-medium text-[#c2410c]">
+                                act. {deliveryTime}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
+                            {c.bm ?? "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#1c1917]">
+                            {moneyUsd(c.spend)}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
+                            {(c.spendShare * 100).toFixed(1)}%
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.impressions != null
+                              ? c.impressions.toLocaleString("en-US")
+                              : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.clicks != null
+                              ? c.clicks.toLocaleString("en-US")
+                              : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.ctr != null ? `${c.ctr.toFixed(2)}%` : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.cpc != null ? moneyUsd(c.cpc) : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.cpm != null ? moneyUsd(c.cpm) : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.conversions != null
+                              ? c.conversions.toLocaleString("en-US")
+                              : "—"}
+                          </td>
+                          <td className="px-2.5 py-2.5 tabular-nums">
+                            {c.costPerConversion != null
+                              ? moneyUsd(c.costPerConversion)
+                              : "—"}
+                          </td>
+                          {analysis.hasCodLink ? (
+                            <>
+                              <td className="px-2.5 py-2.5 tabular-nums">
+                                {formatMoney(c.collectedEstimated, "PEN")}
+                              </td>
+                              <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#c2410c]">
+                                {c.roasEstimated != null
+                                  ? `${c.roasEstimated.toFixed(2)}x`
+                                  : "—"}
+                              </td>
+                            </>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
