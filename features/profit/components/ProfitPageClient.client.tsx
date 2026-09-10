@@ -337,6 +337,9 @@ export function ProfitPageClient({
   const [shopifyModalOpen, setShopifyModalOpen] = useState(false);
   const [shopDomain, setShopDomain] = useState("");
   const [subscription, setSubscription] = useState<RpSubscription | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkMsg, setLinkMsg] = useState<string | null>(null);
+  const [linkErr, setLinkErr] = useState<string | null>(null);
 
   function openShopifyModal() {
     setShopifyModalOpen(true);
@@ -397,6 +400,38 @@ export function ProfitPageClient({
       setLoading(false);
     }
   }, [from, to]);
+
+  const retryLinkStore = useCallback(async () => {
+    setLinkBusy(true);
+    setLinkErr(null);
+    setLinkMsg(null);
+    try {
+      const res = await fetch("/api/profit/link-retry", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopDomain: shopDomain.trim() || undefined,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok || !json.ok) {
+        throw new Error(
+          json.error || "No se pudo vincular. Instalá la app y reintentá.",
+        );
+      }
+      setLinkMsg(json.message || "Tienda vinculada.");
+      await refresh();
+    } catch (e) {
+      setLinkErr(e instanceof Error ? e.message : "Error al vincular");
+    } finally {
+      setLinkBusy(false);
+    }
+  }, [shopDomain, refresh]);
 
   useEffect(() => {
     if (from && to && from > to) {
@@ -1073,6 +1108,50 @@ export function ProfitPageClient({
         id="profit-shopify-connect"
         className="scroll-mt-6 overflow-hidden rounded-2xl border border-[#ece7e0] bg-white"
       >
+        {subscription?.isActive && analysis && !analysis.hasCodLink ? (
+          <div className="border-b border-[#ffd7b8] bg-[#fff7f0] px-5 py-4 sm:px-7">
+            <p className="text-[13px] font-bold text-[#9a3412]">
+              COD activo · falta vincular la tienda
+            </p>
+            <p className="mt-1 max-w-xl text-[12.5px] leading-5 text-[#9a3412]/90">
+              Ya pagaste Real Profit. Instalá la app en Shopify (si aún no) y
+              tocá <span className="font-semibold">Ya instalé — vincular</span>{" "}
+              para jalar pedidos cobrados.
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <a
+                href={
+                  shopDomain.trim()
+                    ? `${(process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() || "https://www.realprofitcod.com").replace(/\/$/, "")}/api/shopify/auth?shop=${encodeURIComponent(normalizeShopDomain(shopDomain))}&surface=web`
+                    : `${(process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() || "https://www.realprofitcod.com").replace(/\/$/, "")}/api/shopify/auth?surface=web`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 text-[13px] font-semibold text-[#c2410c] transition hover:bg-[#fffaf6]"
+              >
+                Instalar app Shopify
+              </a>
+              <button
+                type="button"
+                disabled={linkBusy}
+                onClick={() => void retryLinkStore()}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
+              >
+                {linkBusy ? "Vinculando…" : "Ya instalé — vincular"}
+              </button>
+            </div>
+            {linkErr ? (
+              <p className="mt-2 text-[12px] font-medium text-[#b91c1c]">
+                {linkErr}
+              </p>
+            ) : null}
+            {linkMsg ? (
+              <p className="mt-2 text-[12px] font-medium text-emerald-800">
+                {linkMsg}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="border-b border-[#f0ebe4] px-5 py-5 sm:px-7 sm:py-6">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
             Pedidos y ventas
@@ -1102,20 +1181,35 @@ export function ProfitPageClient({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    openShopifyModal();
+                    if (subscription?.isActive && analysis && !analysis.hasCodLink) {
+                      void retryLinkStore();
+                    } else {
+                      openShopifyModal();
+                    }
                   }
                 }}
                 className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none placeholder:text-[#b0a89e]"
               />
             </div>
           </label>
-          <button
-            type="button"
-            onClick={openShopifyModal}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#1c1917] px-6 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
-          >
-            Conectar
-          </button>
+          {subscription?.isActive && analysis && !analysis.hasCodLink ? (
+            <button
+              type="button"
+              disabled={linkBusy}
+              onClick={() => void retryLinkStore()}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-6 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
+            >
+              {linkBusy ? "Vinculando…" : "Vincular tienda"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={openShopifyModal}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#1c1917] px-6 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
+            >
+              Conectar
+            </button>
+          )}
         </div>
       </section>
 
@@ -1167,6 +1261,9 @@ export function ProfitPageClient({
           shopDomain={shopDomain}
           subscription={subscription}
           onSubscriptionChange={setSubscription}
+          onLinked={async () => {
+            await refresh();
+          }}
           onClose={() => setShopifyModalOpen(false)}
         />
       ) : null}
@@ -1203,11 +1300,13 @@ function ShopifyConnectModal({
   onClose,
   subscription,
   onSubscriptionChange,
+  onLinked,
 }: {
   shopDomain: string;
   onClose: () => void;
   subscription: RpSubscription | null;
   onSubscriptionChange: (sub: RpSubscription) => void;
+  onLinked?: () => void | Promise<void>;
 }) {
   const [mounted, setMounted] = useState(false);
   const [payStep, setPayStep] = useState<"offer" | "deposit" | "done">(
@@ -1219,8 +1318,11 @@ function ShopifyConnectModal({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkFeedback, setLinkFeedback] = useState<string | null>(null);
   const domain = normalizeShopDomain(shopDomain);
-  const isActive = Boolean(subscription?.isActive) || payStep === "done";
+  const isActive = Boolean(subscription?.isActive);
+  const awaitingReview = payStep === "done" && !isActive;
 
   useEffect(() => {
     setMounted(true);
@@ -1335,9 +1437,11 @@ function ShopifyConnectModal({
             >
               {payStep === "deposit"
                 ? "Depósito $20 · Real Profit COD"
-                : payStep === "done" && !isActive
+                : awaitingReview
                   ? "Comprobante en revisión"
-                  : "Qué tenés hoy vs qué desbloqueás"}
+                  : isActive
+                    ? "Real Profit COD activo"
+                    : "Qué tenés hoy vs qué desbloqueás"}
             </h3>
             {domain ? (
               <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
@@ -1525,8 +1629,8 @@ function ShopifyConnectModal({
                   {subscription?.activeUntil
                     ? ` hasta ${subscription.activeUntil.slice(0, 10)}`
                     : ""}
-                  . Instalá la app en Shopify para jalar pedidos
-                  automáticamente.
+                  . Instalá la app en Shopify y después vinculá para jalar
+                  pedidos cobrados.
                 </p>
                 <a
                   href={installUrl}
@@ -1536,11 +1640,62 @@ function ShopifyConnectModal({
                 >
                   Instalar app en Shopify
                 </a>
+                <button
+                  type="button"
+                  disabled={linkBusy}
+                  onClick={() => {
+                    void (async () => {
+                      setLinkBusy(true);
+                      setLinkFeedback(null);
+                      setPayError(null);
+                      try {
+                        const res = await fetch("/api/profit/link-retry", {
+                          method: "POST",
+                          cache: "no-store",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            shopDomain: domain || undefined,
+                          }),
+                        });
+                        const json = (await res.json()) as {
+                          ok?: boolean;
+                          message?: string;
+                          error?: string;
+                        };
+                        if (!res.ok || !json.ok) {
+                          throw new Error(
+                            json.error ||
+                              "No se pudo vincular. Instalá la app y reintentá.",
+                          );
+                        }
+                        setLinkFeedback(json.message || "Tienda vinculada.");
+                        await onLinked?.();
+                      } catch (e) {
+                        setPayError(
+                          e instanceof Error ? e.message : "Error al vincular",
+                        );
+                      } finally {
+                        setLinkBusy(false);
+                      }
+                    })();
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:bg-[#faf8f5] disabled:opacity-60"
+                >
+                  {linkBusy ? "Vinculando…" : "Ya instalé — vincular"}
+                </button>
+                {linkFeedback ? (
+                  <p className="text-[12px] font-medium text-emerald-800">
+                    {linkFeedback}
+                  </p>
+                ) : null}
+                {payError ? (
+                  <p className="text-[12px] text-[#b91c1c]">{payError}</p>
+                ) : null}
               </>
             ) : (
               <p className="text-[13px] leading-5 text-[#5c564e]">
                 Comprobante enviado. Cuando el equipo lo apruebe, vas a poder
-                instalar Real Profit en Shopify desde acá.
+                instalar Real Profit en Shopify y vincular desde acá.
               </p>
             )}
           </div>

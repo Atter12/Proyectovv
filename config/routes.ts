@@ -48,5 +48,9 @@ export const routes = {
       tickets: "/api/support/tickets",
     },
     notifications: "/api/notifications",
+    profit: {
+      linkRetry: "/api/profit/link-retry",
+      subscribe: "/api/profit/subscribe",
+    },
   },
 } as const;

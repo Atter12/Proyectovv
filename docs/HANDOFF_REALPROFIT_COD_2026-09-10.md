@@ -79,8 +79,8 @@ Tablas nuevas/uso: `hecom_cliente_realprofit_subs`, `hecom_cliente_rp_stores`, `
 
 ## Pendiente (no hecho)
 
+- [x] Si tienda se instala **después** del pago: `POST /api/profit/link-retry` + CTA “Ya instalé — vincular” en `/profit`
 - [ ] Smoke E2E en prod: pagar → aparece en Pagos Profit → aceptar → cobrado en `/profit`
-- [ ] Si tienda se instala **después** del pago: deep-link OAuth + auto-link post-install (hoy el link fuerte es al **aprobar** con `shop_domain`)
 - [ ] Renovación mensual / expiración UI
 - [ ] Meta `ads_read` (otro plan)
 

@@ -12,6 +12,7 @@ import {
   sliceHolisticSpend,
   type HolisticDailyPoint,
 } from "@/lib/realprofit/holistic-spend.server";
+import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 
 export type RpStoreSummary = {
   id: string;
@@ -577,6 +578,31 @@ function normalizeShopDomain(raw: string): string {
     .replace(/^https?:\/\//i, "")
     .replace(/\/$/, "")
     .toLowerCase();
+}
+
+export { normalizeShopDomain };
+
+/**
+ * Dominio Shopify del último pago COD (metadata) o de la sub.
+ */
+export async function resolveShopDomainFromCodPayment(
+  hecomClienteId: string,
+): Promise<string | null> {
+  const admin = getRealProfitAdmin();
+  const sub = await getRealProfitSubscription(hecomClienteId);
+  const intentId = sub.lastPaymentIntentId;
+  if (!intentId) return null;
+
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select("metadata")
+    .eq("id", intentId)
+    .maybeSingle<{ metadata: Record<string, unknown> | null }>();
+  if (error) throw new Error(error.message);
+
+  const raw = data?.metadata?.shop_domain;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  return normalizeShopDomain(raw);
 }
 
 /**
