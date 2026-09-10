@@ -56,12 +56,15 @@ export async function POST(request: Request, context: RouteContext) {
       approvedFrom: "dashboard",
       adjustedGrossChargeCents,
     });
+    const isRealProfit = result.creditUsdCents === 0 && result.journalId === "";
     return NextResponse.json({
       ok: true,
       journalId: result.journalId,
       creditUsdCents: result.creditUsdCents,
       grossChargeCents: result.grossChargeCents,
-      message: "Saldo disponible en cartera. El cliente ya puede asignar.",
+      message: isRealProfit
+        ? "Real Profit COD activado. Tienda vinculada si ya estaba instalada."
+        : "Saldo disponible en cartera. El cliente ya puede asignar.",
     });
   } catch (error) {
     const message =

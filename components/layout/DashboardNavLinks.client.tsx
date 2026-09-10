@@ -49,6 +49,16 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           />
         </svg>
       );
+    case "payments-profit":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"
+          />
+        </svg>
+      );
     case "cobros":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -121,6 +131,7 @@ function labelFor(item: NavItem, persona: DashboardPersona): string {
   if (item.href === "/ad-accounts") return "Cuentas ads";
   if (item.href === "/payments") return "Pagos";
   if (item.href === "/payments/manual") return "Pagos manuales";
+  if (item.href === "/payments/profit") return "Pagos Profit";
   if (item.href === "/cobros") return "Lo pagado";
   if (item.href === "/gastos") return "Gastos";
   if (item.href === "/overview") return "Resumen";
@@ -139,6 +150,7 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
   if (persona === "cliente") {
     return mainNavigation.filter((item) => {
       if (item.href === "/payments/manual") return false;
+      if (item.href === "/payments/profit") return false;
       if (item.href === "/clientes") return false;
       return true;
     });

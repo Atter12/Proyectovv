@@ -527,7 +527,7 @@ export async function getLinkedStoresForCliente(
 export async function linkStoreToCliente(input: {
   hecomClienteId: string;
   storeId: string;
-  userId: string;
+  userId?: string | null;
 }): Promise<void> {
   const admin = getRealProfitAdmin();
   const { data: store, error: sErr } = await admin
@@ -538,11 +538,19 @@ export async function linkStoreToCliente(input: {
   if (sErr) throw new Error(sErr.message);
   if (!store) throw new Error("Tienda Real Profit no encontrada.");
 
+  const createdBy =
+    input.userId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      input.userId,
+    )
+      ? input.userId
+      : null;
+
   const { error } = await admin.from("hecom_cliente_rp_stores").upsert(
     {
       hecom_cliente_id: input.hecomClienteId,
       rp_store_id: input.storeId,
-      created_by: input.userId,
+      created_by: createdBy,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "hecom_cliente_id,rp_store_id" },
@@ -561,6 +569,64 @@ export async function unlinkStoreFromCliente(input: {
     .eq("hecom_cliente_id", input.hecomClienteId)
     .eq("rp_store_id", input.storeId);
   if (error) throw new Error(error.message);
+}
+
+function normalizeShopDomain(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/$/, "")
+    .toLowerCase();
+}
+
+/**
+ * Vincula la tienda Real Profit ya instalada al cliente Hecom.
+ * Prioridad: shop_domain del pago → si no, no inventa links.
+ */
+export async function autoLinkRpStoreForCliente(input: {
+  hecomClienteId: string;
+  shopDomain?: string | null;
+  userId?: string | null;
+}): Promise<{ linkedStoreId: string | null; alreadyLinked: boolean }> {
+  const existing = await getLinkedStoresForCliente(input.hecomClienteId);
+  if (existing.length > 0) {
+    return { linkedStoreId: existing[0]!.id, alreadyLinked: true };
+  }
+
+  const domain = input.shopDomain ? normalizeShopDomain(input.shopDomain) : "";
+  if (!domain) {
+    return { linkedStoreId: null, alreadyLinked: false };
+  }
+
+  const candidates = Array.from(
+    new Set([
+      domain,
+      domain.endsWith(".myshopify.com")
+        ? domain
+        : `${domain.replace(/\.myshopify\.com$/i, "")}.myshopify.com`,
+    ]),
+  );
+
+  const admin = getRealProfitAdmin();
+  const { data: stores, error } = await admin
+    .from("rp_stores")
+    .select("id, shop_domain, is_active")
+    .in("shop_domain", candidates)
+    .limit(5);
+  if (error) throw new Error(error.message);
+
+  const store =
+    (stores ?? []).find((s) => s.is_active) ?? (stores ?? [])[0] ?? null;
+  if (!store?.id) {
+    return { linkedStoreId: null, alreadyLinked: false };
+  }
+
+  await linkStoreToCliente({
+    hecomClienteId: input.hecomClienteId,
+    storeId: String(store.id),
+    userId: input.userId,
+  });
+  return { linkedStoreId: String(store.id), alreadyLinked: false };
 }
 
 /**

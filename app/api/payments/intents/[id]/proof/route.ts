@@ -182,6 +182,24 @@ export async function POST(request: Request, context: RouteContext) {
       data: { payment_intent_id: intent.id, url: "/payments" },
     });
 
+    const purpose =
+      typeof intent.metadata?.purpose === "string"
+        ? intent.metadata.purpose
+        : null;
+    void import("@/lib/email/manual-payment-notify.server").then(
+      ({ notifyManagersManualPaymentPendingBestEffort }) =>
+        notifyManagersManualPaymentPendingBestEffort({
+          paymentIntentId: intent.id,
+          organizationId: session.organizationId!,
+          createdBy: session.id,
+          chargeAmountCents: intent.amountCents,
+          chargeCurrency: intent.currency,
+          creditUsdCents:
+            purpose === "realprofit_cod" ? 0 : intent.amountCents,
+          purpose,
+        }),
+    );
+
     return NextResponse.json({
       ok: true,
       paymentIntent: {

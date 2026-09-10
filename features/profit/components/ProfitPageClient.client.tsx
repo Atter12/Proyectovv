@@ -336,6 +336,7 @@ export function ProfitPageClient({
   const [bmFilter, setBmFilter] = useState<string>("all");
   const [shopifyModalOpen, setShopifyModalOpen] = useState(false);
   const [shopDomain, setShopDomain] = useState("");
+  const [subscription, setSubscription] = useState<RpSubscription | null>(null);
 
   function openShopifyModal() {
     setShopifyModalOpen(true);
@@ -378,6 +379,7 @@ export function ProfitPageClient({
         to?: string;
         snapshots?: Snapshot[];
         analysis?: Analysis;
+        subscription?: RpSubscription | null;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "No se pudo cargar Profit.");
@@ -386,6 +388,7 @@ export function ProfitPageClient({
       setSnapshots(
         (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
       );
+      setSubscription(json.subscription ?? null);
       if (!from && json.from) setFrom(json.from);
       if (!to && json.to) setTo(json.to);
     } catch (e) {
@@ -1162,6 +1165,8 @@ export function ProfitPageClient({
       {shopifyModalOpen ? (
         <ShopifyConnectModal
           shopDomain={shopDomain}
+          subscription={subscription}
+          onSubscriptionChange={setSubscription}
           onClose={() => setShopifyModalOpen(false)}
         />
       ) : null}
@@ -1177,21 +1182,45 @@ function normalizeShopDomain(raw: string): string {
     .toLowerCase();
 }
 
-const REAL_PROFIT_WHATSAPP_URL =
-  "https://wa.me/51933484150?text=" +
-  encodeURIComponent(
-    "hola necesito real profit cod vengo de parte de holistic",
-  );
+type BankAccount = {
+  id: string;
+  label: string;
+  bank?: string;
+  holder: string;
+  accountNumber: string;
+  cci?: string;
+  notes?: string;
+};
+
+type RpSubscription = {
+  status: string;
+  isActive: boolean;
+  activeUntil: string | null;
+};
 
 function ShopifyConnectModal({
   shopDomain,
   onClose,
+  subscription,
+  onSubscriptionChange,
 }: {
   shopDomain: string;
   onClose: () => void;
+  subscription: RpSubscription | null;
+  onSubscriptionChange: (sub: RpSubscription) => void;
 }) {
   const [mounted, setMounted] = useState(false);
+  const [payStep, setPayStep] = useState<"offer" | "deposit" | "done">(
+    subscription?.isActive ? "done" : "offer",
+  );
+  const [loadingPay, setLoadingPay] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const domain = normalizeShopDomain(shopDomain);
+  const isActive = Boolean(subscription?.isActive) || payStep === "done";
 
   useEffect(() => {
     setMounted(true);
@@ -1207,7 +1236,81 @@ function ShopifyConnectModal({
     };
   }, [onClose]);
 
+  async function startDeposit() {
+    setLoadingPay(true);
+    setPayError(null);
+    try {
+      const res = await fetch("/api/profit/subscribe", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopDomain: domain || undefined }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        alreadyActive?: boolean;
+        paymentIntentId?: string;
+        bankAccounts?: BankAccount[];
+        subscription?: RpSubscription;
+      };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "No se pudo iniciar el pago.");
+      }
+      if (json.alreadyActive && json.subscription) {
+        onSubscriptionChange(json.subscription);
+        setPayStep("done");
+        return;
+      }
+      setPaymentIntentId(json.paymentIntentId ?? null);
+      setBankAccounts(json.bankAccounts ?? []);
+      setPayStep("deposit");
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Error al iniciar pago");
+    } finally {
+      setLoadingPay(false);
+    }
+  }
+
+  async function uploadProof() {
+    if (!paymentIntentId || !proofFile) {
+      setPayError("Elegí el voucher o comprobante.");
+      return;
+    }
+    setUploading(true);
+    setPayError(null);
+    try {
+      const form = new FormData();
+      form.append("proof", proofFile);
+      const res = await fetch(`/api/payments/intents/${paymentIntentId}/proof`, {
+        method: "POST",
+        body: form,
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "No se pudo subir el comprobante.");
+      }
+      onSubscriptionChange({
+        status: "pending_payment",
+        isActive: false,
+        activeUntil: null,
+      });
+      setPayStep("done");
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Error al subir voucher");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (!mounted) return null;
+
+  const realProfitUrl =
+    process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() ||
+    "https://www.realprofitcod.com";
+  const installUrl = domain
+    ? `${realProfitUrl.replace(/\/$/, "")}/api/shopify/auth?shop=${encodeURIComponent(domain)}&surface=web`
+    : `${realProfitUrl.replace(/\/$/, "")}/api/shopify/auth?surface=web`;
 
   return createPortal(
     <div
@@ -1230,7 +1333,11 @@ function ShopifyConnectModal({
               id="shopify-connect-title"
               className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]"
             >
-              Qué tenés hoy vs qué desbloqueás
+              {payStep === "deposit"
+                ? "Depósito $20 · Real Profit COD"
+                : payStep === "done" && !isActive
+                  ? "Comprobante en revisión"
+                  : "Qué tenés hoy vs qué desbloqueás"}
             </h3>
             {domain ? (
               <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
@@ -1247,106 +1354,197 @@ function ShopifyConnectModal({
           </button>
         </div>
 
-        <div className="grid gap-0 sm:grid-cols-2">
-          <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              Incluido · Holistic
-            </p>
-            <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-              Análisis de campañas
-            </p>
-            <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
-              <li className="flex gap-2">
-                <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                Gasto TikTok (hoy, 7d, rango) + serie diaria
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                Ranking, BM, CTR / CPC / CPM
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                Spend hoy live + pacing y señales
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                Fee Holistic y BE ROAS estimado
-              </li>
-            </ul>
-            <p className="mt-4 text-[11px] leading-4 text-[#9a9187]">
-              Sabés cuánto gastás. Todavía no cuánto cobrás de verdad.
-            </p>
-            <div className="mt-4 border-t border-[#f0ebe4] pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                Precio
+        {payStep === "offer" ? (
+          <div className="grid gap-0 sm:grid-cols-2">
+            <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
+                Incluido · Holistic
               </p>
-              <p className="mt-1 text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
-                $0{" "}
-                <span className="text-[12px] font-medium text-[#6b645c]">
-                  · gratis
-                </span>
+              <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
+                Análisis de campañas
               </p>
+              <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+                <li className="flex gap-2">
+                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
+                  Gasto TikTok (hoy, 7d, rango) + serie diaria
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
+                  Ranking, BM, CTR / CPC / CPM
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
+                  Spend hoy live + pacing y señales
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
+                  Fee Holistic y BE ROAS estimado
+                </li>
+              </ul>
+              <div className="mt-4 border-t border-[#f0ebe4] pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
+                  Precio
+                </p>
+                <p className="mt-1 text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
+                  $0{" "}
+                  <span className="text-[12px] font-medium text-[#6b645c]">
+                    · gratis
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col px-5 py-5 sm:px-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-              Con Shopify · Real Profit COD
-            </p>
-            <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-              Ventas reales y ganancia neta
-            </p>
-            <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
-              <li className="flex gap-2">
-                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                Pedidos y ventas desde tu tienda
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                Cobrado COD · plata que sí llegó
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                ROAS / CPA sobre lo cobrado (no solo ads)
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                Saber cuánto verdaderamente neto ganás
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                Camino a TikTok Shop y más canales
-              </li>
-            </ul>
-            <p className="mt-4 text-[12px] leading-5 text-[#5c564e]">
-              Ahí ves si de verdad estás ganando — no solo gastando.
-            </p>
-            <div className="mt-4 border-t border-[#f0ebe4] pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                Precio cliente Holistic
+            <div className="flex flex-col px-5 py-5 sm:px-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
+                Con Shopify · Real Profit COD
               </p>
-              <p className="mt-1 flex flex-wrap items-baseline gap-2">
-                <span className="text-[14px] font-medium tabular-nums text-[#b0a89e] line-through">
-                  $40
-                </span>
-                <span className="text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
-                  $20
-                </span>
-                <span className="text-[11px] font-medium text-[#6b645c]">
-                  / mes
-                </span>
+              <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
+                Ventas reales y ganancia neta
               </p>
-              <a
-                href={REAL_PROFIT_WHATSAPP_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
-              >
-                Pagar por ahora
-              </a>
+              <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
+                <li className="flex gap-2">
+                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
+                  Pedidos y ventas desde tu tienda
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
+                  Cobrado COD · plata que sí llegó
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
+                  ROAS / CPA sobre lo cobrado
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
+                  Saber cuánto verdaderamente neto ganás
+                </li>
+              </ul>
+              <div className="mt-4 border-t border-[#f0ebe4] pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
+                  Precio cliente Holistic
+                </p>
+                <p className="mt-1 flex flex-wrap items-baseline gap-2">
+                  <span className="text-[14px] font-medium tabular-nums text-[#b0a89e] line-through">
+                    $40
+                  </span>
+                  <span className="text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
+                    $20
+                  </span>
+                  <span className="text-[11px] font-medium text-[#6b645c]">
+                    / mes
+                  </span>
+                </p>
+                {payError ? (
+                  <p className="mt-2 text-[12px] text-[#b91c1c]">{payError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={loadingPay}
+                  onClick={() => void startDeposit()}
+                  className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
+                >
+                  {loadingPay ? "Preparando…" : "Pagar $20 / mes"}
+                </button>
+                <p className="mt-2 text-[11px] leading-4 text-[#9a9187]">
+                  Transferencia a la misma cuenta Holistic + voucher. Sin
+                  WhatsApp.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
+
+        {payStep === "deposit" ? (
+          <div className="space-y-4 px-5 py-5 sm:px-6">
+            <p className="text-[13px] leading-5 text-[#5c564e]">
+              Depositá <strong className="text-[#1c1917]">USD 20</strong> a
+              esta cuenta (la misma de recargas Holistic) y subí el voucher.
+              El equipo revisa y activa Real Profit COD.
+            </p>
+            <div className="space-y-3">
+              {bankAccounts.map((acc) => (
+                <div
+                  key={acc.id}
+                  className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3"
+                >
+                  <p className="text-[12px] font-bold text-[#1c1917]">
+                    {acc.label}
+                  </p>
+                  <p className="mt-1 text-[12px] text-[#5c564e]">
+                    Titular: {acc.holder}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
+                    Cuenta: {acc.accountNumber}
+                  </p>
+                  {acc.cci ? (
+                    <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
+                      CCI: {acc.cci}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+              Comprobante
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="mt-1.5 block w-full text-[13px] font-medium normal-case tracking-normal text-[#1c1917]"
+                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {payError ? (
+              <p className="text-[12px] text-[#b91c1c]">{payError}</p>
+            ) : null}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setPayStep("offer")}
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[#e7e0d8] px-4 text-[13px] font-semibold text-[#5c564e]"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={uploading || !proofFile}
+                onClick={() => void uploadProof()}
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#1c1917] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
+              >
+                {uploading ? "Subiendo…" : "Enviar voucher"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {payStep === "done" ? (
+          <div className="space-y-4 px-5 py-5 sm:px-6">
+            {isActive ? (
+              <>
+                <p className="text-[13px] leading-5 text-[#5c564e]">
+                  Real Profit COD activo
+                  {subscription?.activeUntil
+                    ? ` hasta ${subscription.activeUntil.slice(0, 10)}`
+                    : ""}
+                  . Instalá la app en Shopify para jalar pedidos
+                  automáticamente.
+                </p>
+                <a
+                  href={installUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
+                >
+                  Instalar app en Shopify
+                </a>
+              </>
+            ) : (
+              <p className="text-[13px] leading-5 text-[#5c564e]">
+                Comprobante enviado. Cuando el equipo lo apruebe, vas a poder
+                instalar Real Profit en Shopify desde acá.
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body,

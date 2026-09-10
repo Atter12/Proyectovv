@@ -238,6 +238,11 @@ export async function processManualVoucherUpload(input: {
         chargeCurrency,
         creditUsdCents,
         operationCode: normalizedOperationCode,
+        purpose:
+          typeof (intent.metadata as Record<string, unknown> | null)?.purpose ===
+          "string"
+            ? String((intent.metadata as Record<string, unknown>).purpose)
+            : null,
       }),
   );
 

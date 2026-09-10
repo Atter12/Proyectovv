@@ -614,6 +614,9 @@ export interface ManualPaymentIntentItem {
   hecomClienteName: string | null;
   actorEmail: string | null;
   actorName: string | null;
+  /** Dominio Shopify si el cliente lo indicó al pagar Real Profit. */
+  shopDomain: string | null;
+  purpose: string | null;
 }
 
 function getManualProofMeta(metadata: unknown): {
@@ -678,6 +681,10 @@ function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
 
   if (!hasVoucherTrail) return false;
 
+  // Real Profit COD tiene su propia cola: /payments/profit
+  if (getString(metadata.purpose) === "realprofit_cod") return false;
+  if (getString(metadata.source) === "profit_subscribe") return false;
+
   const source = getString(metadata.source);
   // Permitir source null solo en legados revertidos con rastro de voucher.
   if (
@@ -690,6 +697,23 @@ function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
   }
 
   return true;
+}
+
+/** Boletas Real Profit COD (+$20) pendientes de gerente. */
+function isRealProfitCodVoucherIntent(row: DbPaymentIntentRow): boolean {
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  if (isAgencyBmBridgeIntent(metadata)) return false;
+  if (getString(metadata.purpose) !== "realprofit_cod") return false;
+
+  const proof = getManualProofMeta(row.metadata);
+  const hasProof = Boolean(proof.path || proof.fileName);
+  const review = getString(metadata.manual_review_status);
+  return (
+    hasProof &&
+    (review === "pending_review" ||
+      review === "approved" ||
+      review === "rejected")
+  );
 }
 
 function getManualIntentReviewStatus(
@@ -822,6 +846,8 @@ async function mapManualIntentRows(
         hecomClienteName: getString(metadata.hecom_cliente_name),
         actorEmail: actor?.email ?? null,
         actorName: actor?.full_name ?? null,
+        shopDomain: getString(metadata.shop_domain),
+        purpose: getString(metadata.purpose),
       };
     }),
   );
@@ -910,6 +936,79 @@ export async function listManualVoucherReviewsForStaff(options?: {
       );
     })
     // FIFO: los más viejos primero para no perder boletas.
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
+    .slice(0, hecomClienteId ? 20 : 60);
+
+  const pending = await mapManualIntentRows(pendingRows, { signProofs: true });
+
+  return { pending, recent: [], pendingCount: pending.length, scope };
+}
+
+/**
+ * Staff/gerente: cola Real Profit COD (+$20) — misma revisión voucher, sin acreditar cartera.
+ */
+export async function listRealProfitVoucherReviewsForStaff(options?: {
+  hecomClienteId?: string | null;
+}): Promise<{
+  pending: ManualPaymentIntentItem[];
+  recent: ManualPaymentIntentItem[];
+  pendingCount: number;
+  scope: "all" | "cliente";
+}> {
+  const hecomClienteId = options?.hecomClienteId?.trim() || null;
+  const scope: "all" | "cliente" = hecomClienteId ? "cliente" : "all";
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  let query = admin
+    .from("payment_intents")
+    .select(
+      "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
+    )
+    .eq("provider", "manual")
+    .in("status", [
+      "processing",
+      "succeeded",
+      "failed",
+      "requires_payment",
+      "created",
+      "requires_action",
+    ])
+    .filter("metadata->>purpose", "eq", "realprofit_cod")
+    .order("created_at", { ascending: false })
+    .limit(hecomClienteId ? 80 : 200);
+
+  if (hecomClienteId) {
+    query = query.filter(
+      "metadata->>hecom_cliente_id",
+      "eq",
+      hecomClienteId,
+    );
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error(
+      "[payments] listRealProfitVoucherReviewsForStaff",
+      error.message,
+    );
+    return { pending: [], recent: [], pendingCount: 0, scope };
+  }
+
+  const pendingRows = ((data ?? []) as DbPaymentIntentRow[])
+    .filter(isRealProfitCodVoucherIntent)
+    .filter((row) => {
+      const review = getManualIntentReviewStatus(row);
+      const proof = getManualProofMeta(row.metadata);
+      return (
+        review === "pending_review" && Boolean(proof.path || proof.fileName)
+      );
+    })
     .sort(
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),

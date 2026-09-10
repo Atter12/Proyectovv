@@ -12,6 +12,11 @@ export const mainNavigation: NavItem[] = [
     href: routes.paymentsManual,
     icon: "payments-manual",
   },
+  {
+    label: "Pagos Profit",
+    href: routes.paymentsProfit,
+    icon: "payments-profit",
+  },
   { label: "Lo pagado", href: routes.cobros, icon: "cobros" },
   { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
   { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },

@@ -1,0 +1,108 @@
+import Link from "next/link";
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+import { RealProfitVoucherReviewHost } from "@/features/payments/components/RealProfitVoucherReviewHost";
+import { requirePermission } from "@/lib/auth/guards.server";
+import { getHecomCliente } from "@/lib/hecom/clientes.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { redirect } from "next/navigation";
+import { routes } from "@/config/routes";
+
+export default async function RealProfitPaymentsReviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const session = await requirePermission("payments:read");
+  const capabilities = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+
+  if (!capabilities.isStaff && !capabilities.isSuperAdmin) {
+    redirect(routes.payments);
+  }
+
+  if (await getActingAsCliente(session.id)) {
+    redirect(routes.payments);
+  }
+
+  const params = await searchParams;
+  const filterCliente =
+    typeof params.cliente === "string" && params.cliente.trim()
+      ? params.cliente.trim()
+      : null;
+
+  const selected = await getSelectedHecomCliente(session.id);
+  const hecomClienteId = filterCliente;
+  let clienteName: string | undefined;
+  if (filterCliente) {
+    if (selected?.id === filterCliente) {
+      clienteName = selected.name;
+    } else {
+      const c = await getHecomCliente(filterCliente).catch(() => null);
+      clienteName = c?.name;
+    }
+  }
+
+  return (
+    <div className={dashboardClasses.page}>
+      <header className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+          Gerente · Profit COD
+          {hecomClienteId ? " · Filtro cliente" : " · Todos los clientes"}
+        </p>
+        <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
+          Pagos Profit
+        </h1>
+        <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
+          Depósitos{" "}
+          <strong className="font-semibold text-[var(--auth-text)]">
+            Real Profit COD · $20
+          </strong>{" "}
+          pendientes. Al aceptar se activa el extra y se vincula la tienda
+          Shopify si ya está instalada — no acredita cartera ads.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {hecomClienteId ? (
+            <>
+              <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900 ring-1 ring-orange-200/80">
+                Filtrado
+                {clienteName ? `: ${clienteName}` : ""}
+              </span>
+              <Link
+                href={routes.paymentsProfit}
+                className="text-xs font-semibold text-[var(--brand-primary)] underline-offset-2 hover:underline"
+              >
+                Ver todos los clientes
+              </Link>
+            </>
+          ) : selected?.id ? (
+            <Link
+              href={`${routes.paymentsProfit}?cliente=${encodeURIComponent(selected.id)}`}
+              className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+            >
+              Filtrar solo {selected.name}
+            </Link>
+          ) : null}
+          <Link
+            href={routes.paymentsManual}
+            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+          >
+            Ir a Pagos manuales (cartera)
+          </Link>
+        </div>
+      </header>
+
+      <RealProfitVoucherReviewHost
+        staffMode
+        hecomClienteId={hecomClienteId}
+        clienteName={clienteName ?? selected?.name}
+      />
+    </div>
+  );
+}

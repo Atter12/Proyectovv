@@ -64,6 +64,8 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
   chargeCurrency: string;
   creditUsdCents: number;
   operationCode?: string | null;
+  /** realprofit_cod → cola /payments/profit */
+  purpose?: string | null;
 }): Promise<void> {
   const managers = resolveManualPaymentManagerEmails();
   if (managers.length === 0) {
@@ -82,31 +84,44 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
       input.chargeCurrency,
     );
     const creditUsdLabel = formatMoney(input.creditUsdCents / 100, "USD");
-    const adminUrl = `${serverEnv.appUrl.replace(/\/$/, "")}/admin/payments/${input.paymentIntentId}`;
+    const isRealProfit = input.purpose === "realprofit_cod";
+    const base = serverEnv.appUrl.replace(/\/$/, "");
+    const adminUrl = isRealProfit
+      ? `${base}/payments/profit`
+      : `${base}/payments/manual`;
 
     const template = manualPaymentPendingManagerTemplate({
       appName: serverEnv.appName,
       clientEmail,
       clientName,
       amountLabel,
-      creditUsdLabel,
+      creditUsdLabel: isRealProfit
+        ? "Real Profit COD (sin cartera)"
+        : creditUsdLabel,
       paymentIntentId: input.paymentIntentId,
       adminUrl,
       operationCode: input.operationCode ?? null,
     });
 
+    const subject = isRealProfit
+      ? `[Profit COD] Pago $20 por revisar · ${clientName || clientEmail || "cliente"}`
+      : template.subject;
+
     await sendTransactionalEmail({
       to: managers,
-      subject: template.subject,
+      subject,
       html: template.html,
       text: template.text,
-      templateKey: "payment.manual.pending_manager",
+      templateKey: isRealProfit
+        ? "payment.realprofit.pending_manager"
+        : "payment.manual.pending_manager",
       organizationId: input.organizationId,
       userId: input.createdBy,
       idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}`,
       metadata: {
         payment_intent_id: input.paymentIntentId,
         managers_count: managers.length,
+        purpose: input.purpose ?? null,
       },
     });
   } catch (error) {

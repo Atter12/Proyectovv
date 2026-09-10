@@ -14,6 +14,7 @@ export const routes = {
   adAccounts: "/ad-accounts",
   payments: "/payments",
   paymentsManual: "/payments/manual",
+  paymentsProfit: "/payments/profit",
   cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",

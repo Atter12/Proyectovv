@@ -4,6 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeJsonMetadata } from "@/lib/types/json";
 import { isVoucherPaymentProvider } from "@/types/payment";
 import { quoteFromGrossCharge } from "@/lib/payments/manual-deposit.shared";
+import {
+  activateRealProfitSubscription,
+  isRealProfitCodPurpose,
+  rejectRealProfitSubscriptionPayment,
+} from "@/lib/realprofit/subscription.server";
+import { autoLinkRpStoreForCliente } from "@/lib/realprofit/profit-snapshot.server";
 
 export type ManualReviewActor = {
   id: string;
@@ -65,6 +71,9 @@ async function notify(input: {
 
 function revalidateManualPaymentPaths(paymentIntentId: string) {
   revalidatePath("/payments");
+  revalidatePath("/payments/manual");
+  revalidatePath("/payments/profit");
+  revalidatePath("/profit");
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${paymentIntentId}`);
   revalidatePath("/admin/overview");
@@ -87,9 +96,114 @@ async function loadVoucherIntent(paymentIntentId: string): Promise<IntentRow> {
   return data;
 }
 
+async function approveRealProfitCodVoucher(input: {
+  intent: IntentRow;
+  actor: ManualReviewActor;
+  notes?: string | null;
+  approvedFrom: "admin_panel" | "dashboard";
+}): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
+  const { intent } = input;
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+  const hecomClienteId = String(meta.hecom_cliente_id ?? "").trim();
+  if (!hecomClienteId) {
+    throw new Error("Pago Real Profit COD sin hecom_cliente_id.");
+  }
+
+  const admin = createAdminClient();
+  const providerReference =
+    intent.provider_reference ?? `${intent.provider}:${intent.id}`;
+  const succeededAt = new Date().toISOString();
+
+  await activateRealProfitSubscription({
+    hecomClienteId,
+    organizationId: intent.organization_id,
+    paymentIntentId: intent.id,
+    userId: intent.created_by,
+  });
+
+  const shopDomain =
+    typeof meta.shop_domain === "string" ? meta.shop_domain.trim() : null;
+  let linkResult: { linkedStoreId: string | null; alreadyLinked: boolean } = {
+    linkedStoreId: null,
+    alreadyLinked: false,
+  };
+  try {
+    linkResult = await autoLinkRpStoreForCliente({
+      hecomClienteId,
+      shopDomain,
+      userId: intent.created_by,
+    });
+  } catch (err) {
+    console.error("[realprofit-approve] auto-link failed", err);
+  }
+
+  await admin
+    .from("payment_intents")
+    .update({
+      status: "succeeded",
+      provider_reference: providerReference,
+      succeeded_at: succeededAt,
+      updated_at: succeededAt,
+      metadata: mergeJsonMetadata(meta, {
+        manual_review_status: "approved",
+        approved_by: input.actor.id,
+        approved_by_email: input.actor.email,
+        approved_at: succeededAt,
+        approval_notes: input.notes ?? null,
+        approval_source: input.approvedFrom,
+        skip_wallet_credit: true,
+        realprofit_cod_activated: true,
+        rp_store_linked_id: linkResult.linkedStoreId,
+        rp_store_already_linked: linkResult.alreadyLinked,
+      }),
+    })
+    .eq("id", intent.id);
+
+  const linkHint = linkResult.linkedStoreId
+    ? " Tienda vinculada: ya ves cobrado en Profit."
+    : shopDomain
+      ? " No se encontró esa tienda en Real Profit: instalá la app Shopify y reintentá el link."
+      : " Indicá el dominio de la tienda en Profit si aún no ves cobrado.";
+
+  await notify({
+    organizationId: intent.organization_id,
+    userId: intent.created_by,
+    title: "Real Profit COD activado",
+    body: `Tu pago de $20 fue aprobado.${linkHint}`,
+    type: "payment_approved",
+    data: {
+      payment_intent_id: intent.id,
+      purpose: "realprofit_cod",
+      url: "/profit",
+      linked_store_id: linkResult.linkedStoreId,
+    },
+  });
+
+  void import("@/lib/email/manual-payment-notify.server").then(
+    ({ notifyClientManualPaymentApprovedBestEffort }) =>
+      notifyClientManualPaymentApprovedBestEffort({
+        paymentIntentId: intent.id,
+        organizationId: intent.organization_id,
+        createdBy: intent.created_by,
+        chargeAmountCents: intent.amount_cents,
+        chargeCurrency: "USD",
+        creditUsdCents: 0,
+      }),
+  );
+
+  revalidateManualPaymentPaths(intent.id);
+  revalidatePath("/profit");
+  return {
+    journalId: "",
+    creditUsdCents: 0,
+    grossChargeCents: intent.amount_cents,
+  };
+}
+
 /**
  * Aprueba voucher y acredita saldo disponible en cartera (no asigna a TikTok).
  * Opcionalmente ajusta el monto cobrado real (ej. boleta 173.71 vs esperado 179.92).
+ * Si `metadata.purpose === realprofit_cod`: activa entitlement COD y NO acredita cartera.
  */
 export async function approveManualVoucherPayment(input: {
   paymentIntentId: string;
@@ -122,6 +236,16 @@ export async function approveManualVoucherPayment(input: {
 
   const admin = createAdminClient();
   const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+
+  if (isRealProfitCodPurpose(meta)) {
+    return approveRealProfitCodVoucher({
+      intent,
+      actor: input.actor,
+      notes: input.notes,
+      approvedFrom: input.approvedFrom,
+    });
+  }
+
   const chargeCurrency =
     String(meta.charge_currency ?? intent.currency).toUpperCase() === "PEN"
       ? "PEN"
@@ -372,6 +496,18 @@ export async function rejectManualVoucherPayment(input: {
     })
     .eq("id", intent.id);
   if (updateError) throw new Error(updateError.message);
+
+  if (isRealProfitCodPurpose(intent.metadata)) {
+    const hecomClienteId = String(
+      (intent.metadata as Record<string, unknown>).hecom_cliente_id ?? "",
+    ).trim();
+    if (hecomClienteId) {
+      await rejectRealProfitSubscriptionPayment({
+        hecomClienteId,
+        paymentIntentId: intent.id,
+      });
+    }
+  }
 
   await notify({
     organizationId: intent.organization_id,

@@ -37,19 +37,22 @@ function isImageMime(mime: string | null, fileName: string | null): boolean {
 function VoucherCard({
   intent,
   canReview,
+  product = "wallet",
 }: {
   intent: ManualPaymentIntentItem;
   canReview: boolean;
+  product?: "wallet" | "realprofit";
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const isRealProfit = product === "realprofit";
 
   const chargeCurrency =
     intent.currency.toUpperCase() === "PEN" ? "PEN" : "USD";
-  const feePercent = intent.feePercent ?? 10;
+  const feePercent = isRealProfit ? 0 : (intent.feePercent ?? 10);
   const fxRate = intent.fxRateUsdPen ?? 3.48;
   const defaultAmount =
     intent.detectedAmount != null && intent.detectedAmount > 0
@@ -63,13 +66,26 @@ function VoucherCard({
   const parsedAmount = Number.parseFloat(amountInput.replace(",", "."));
   const quote = useMemo(() => {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
+    if (isRealProfit) {
+      return {
+        grossChargeCents: Math.round(parsedAmount * 100),
+        creditUsdCents: 0,
+        feeUsdCents: 0,
+        feePercent: 0,
+        fxRateUsdPen: fxRate,
+        grossUsdCents: Math.round(parsedAmount * 100),
+        grossPenCents: 0,
+        creditPenCents: 0,
+        feePenCents: 0,
+      };
+    }
     return quoteFromGrossCharge({
       grossChargeCents: Math.round(parsedAmount * 100),
       chargeCurrency,
       feePercent,
       fxRateUsdPen: fxRate,
     });
-  }, [parsedAmount, chargeCurrency, feePercent, fxRate]);
+  }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit]);
 
   const showActions =
     canReview && intent.reviewStatus === "pending_review";
@@ -160,7 +176,11 @@ function VoucherCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-muted)]">
-                {intent.provider === "crypto" ? "Cripto" : "Transferencia BCP"}
+                {isRealProfit
+                  ? "Real Profit COD · $20"
+                  : intent.provider === "crypto"
+                    ? "Cripto"
+                    : "Transferencia BCP"}
               </p>
               <h3 className="mt-0.5 truncate text-base font-semibold text-[var(--auth-text)]">
                 {intent.hecomClienteName?.trim() ||
@@ -170,6 +190,11 @@ function VoucherCard({
               <p className="text-xs text-[var(--auth-muted)]">
                 {intent.actorEmail ?? intent.actorName ?? "—"}
               </p>
+              {intent.shopDomain ? (
+                <p className="mt-0.5 font-mono text-[11px] text-[var(--auth-muted)]">
+                  Tienda: {intent.shopDomain}
+                </p>
+              ) : null}
               {intent.hecomClienteName &&
               intent.organizationName &&
               intent.hecomClienteName.trim() !==
@@ -228,24 +253,38 @@ function VoucherCard({
                     : ""}
                 </p>
                 <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-muted)]">
-                  <p>
-                    Acredita a cartera:{" "}
-                    <span className="font-semibold text-[var(--auth-text)]">
-                      {quote
-                        ? formatMoney(quote.creditUsdCents / 100, "USD")
-                        : "—"}
-                    </span>
-                  </p>
-                  <p>
-                    Fee {feePercent}%:{" "}
-                    <span className="font-semibold text-[var(--auth-text)]">
-                      {quote
-                        ? chargeCurrency === "PEN" && quote.feePenCents != null
-                          ? formatPenAmount(quote.feePenCents)
-                          : formatMoney(quote.feeUsdCents / 100, "USD")
-                        : "—"}
-                    </span>
-                  </p>
+                  {isRealProfit ? (
+                    <p>
+                      Al aceptar:{" "}
+                      <span className="font-semibold text-[var(--auth-text)]">
+                        activa Real Profit COD + vincula tienda
+                      </span>
+                      {" "}
+                      (no acredita cartera ads).
+                    </p>
+                  ) : (
+                    <>
+                      <p>
+                        Acredita a cartera:{" "}
+                        <span className="font-semibold text-[var(--auth-text)]">
+                          {quote
+                            ? formatMoney(quote.creditUsdCents / 100, "USD")
+                            : "—"}
+                        </span>
+                      </p>
+                      <p>
+                        Fee {feePercent}%:{" "}
+                        <span className="font-semibold text-[var(--auth-text)]">
+                          {quote
+                            ? chargeCurrency === "PEN" &&
+                              quote.feePenCents != null
+                              ? formatPenAmount(quote.feePenCents)
+                              : formatMoney(quote.feeUsdCents / 100, "USD")
+                            : "—"}
+                        </span>
+                      </p>
+                    </>
+                  )}
                 </div>
               </>
             ) : (
@@ -387,6 +426,8 @@ interface ManualVoucherReviewSectionProps {
   mode: "staff" | "client";
   /** Cola de todos los clientes (copy de gerente). */
   globalQueue?: boolean;
+  /** wallet = recarga cartera; realprofit = +$20 COD */
+  product?: "wallet" | "realprofit";
 }
 
 export function ManualVoucherReviewSection({
@@ -397,6 +438,7 @@ export function ManualVoucherReviewSection({
   clientItems,
   mode,
   globalQueue = false,
+  product = "wallet",
 }: ManualVoucherReviewSectionProps) {
   if (mode === "client") {
     const items = clientItems ?? [];
@@ -418,7 +460,12 @@ export function ManualVoucherReviewSection({
         </div>
         <div className="space-y-4">
           {items.map((intent) => (
-            <VoucherCard key={intent.id} intent={intent} canReview={false} />
+            <VoucherCard
+              key={intent.id}
+              intent={intent}
+              canReview={false}
+              product={product}
+            />
           ))}
         </div>
       </section>
@@ -426,6 +473,8 @@ export function ManualVoucherReviewSection({
   }
 
   if (pending.length === 0) return null;
+
+  const isRealProfit = product === "realprofit";
 
   return (
     <section
@@ -437,7 +486,13 @@ export function ManualVoucherReviewSection({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-[var(--auth-text)]">
-              {globalQueue ? "Pagos manuales pendientes" : "Pendientes"}
+              {isRealProfit
+                ? globalQueue
+                  ? "Pagos Profit pendientes"
+                  : "Pendientes Profit"
+                : globalQueue
+                  ? "Pagos manuales pendientes"
+                  : "Pendientes"}
             </h2>
             {pendingCount > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">
@@ -446,16 +501,25 @@ export function ManualVoucherReviewSection({
             ) : null}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
-            Solo boletas BCP por aceptar o rechazar
+            {isRealProfit
+              ? "Depósitos Real Profit COD $20 por aceptar o rechazar"
+              : "Solo boletas BCP por aceptar o rechazar"}
             {globalQueue ? " · todos los clientes · más antiguos primero" : ""}.
-            Edita el monto de la boleta si no coincide y luego acepta.
+            {isRealProfit
+              ? " Al aceptar se activa COD y se vincula la tienda (sin cartera ads)."
+              : " Edita el monto de la boleta si no coincide y luego acepta."}
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
         {pending.map((intent) => (
-          <VoucherCard key={intent.id} intent={intent} canReview={canReview} />
+          <VoucherCard
+            key={intent.id}
+            intent={intent}
+            canReview={canReview}
+            product={product}
+          />
         ))}
       </div>
     </section>
