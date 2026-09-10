@@ -597,6 +597,14 @@ body {
   color: var(--auth-text-soft);
 }
 
+/*
+ * El teléfono lleva el prefijo +51 dentro del campo. Va como modificador y no
+ * como utilidad porque este CSS no está en capa y le ganaría a `pl-*`.
+ */
+.auth-shell .auth-field--phone {
+  padding-left: 4.75rem;
+}
+
 .auth-field:hover {
   border-color: var(--auth-input-border-hover);
 }

@@ -295,7 +295,7 @@ export function RegisterForm() {
               value={values.phone}
               onChange={(event) => updateField("phone", event.target.value)}
               placeholder="987 654 321"
-              className={`${inputClassName} pl-[4.75rem]`}
+              className={`${inputClassName} auth-field--phone`}
             />
           </div>
         </div>
