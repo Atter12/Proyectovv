@@ -60,11 +60,11 @@ export function AgentProDraftsPanel({
         setMessage("Borrador rechazado.");
       } else if (res.published || action === "publish") {
         setMessage(
-          "Listo: campaña creada en TikTok en pausa. Abrí Ads Manager para prenderla.",
+          "Listo: campaña creada en TikTok en pausa. Abre Ads Manager para prenderla.",
         );
       } else {
         setMessage(
-          "Brief aprobado. Cuando esté el publish, tocá Enviar campaña a TikTok.",
+          "Brief aprobado. Cuando esté el publish, toca Enviar campaña a TikTok.",
         );
       }
       router.refresh();
@@ -84,13 +84,13 @@ export function AgentProDraftsPanel({
       title="Enviar campaña"
       subtitle={
         publishEnabled
-          ? "IA arma el brief · vos mandás a TikTok (pausada)"
+          ? "IA arma el brief · tú lo mandas a TikTok (pausada)"
           : "IA arma el brief · falta activar publish en servidor"
       }
     >
       {!publishEnabled ? (
         <p className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950 sm:mx-5">
-          El botón de TikTok está listo en la UI. Ops: poné{" "}
+          El botón de TikTok está listo en la UI. Ops: pon{" "}
           <code className="rounded bg-white px-1">TIKTOK_CREATIVE_PUBLISH_ENABLED=true</code>{" "}
           y scopes Ads/Creative en la app TikTok.
         </p>
@@ -116,7 +116,7 @@ export function AgentProDraftsPanel({
             Sin campañas todavía
           </p>
           <p className="mt-1.5 text-[13px] text-[var(--auth-text-muted)]">
-            Subí un video con cuenta Aprobada. La IA scorea y arma el brief acá
+            Sube un video con cuenta Aprobada. La IA scorea y arma el brief acá
             para enviarlo a TikTok.
           </p>
         </div>

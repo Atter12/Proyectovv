@@ -256,7 +256,7 @@ export function PixelsPageClient({
 
   async function handleCreatePixelOnly() {
     if (selectedAdvertiserIds.length === 0) {
-      setError("Elegí al menos una cuenta ads.");
+      setError("Elige al menos una cuenta ads.");
       return;
     }
     setCreating(true);
@@ -294,11 +294,11 @@ export function PixelsPageClient({
         setNotice(
           failN > 0
             ? `Píxel creado (ID ${id}). Vinculado a ${linked} cuenta(s); ${failN} no se pudieron vincular. Code: ${code || "—"}.`
-            : `Píxel único creado y vinculado a ${linked} cuentas. ID: ${id}${code ? ` · Code: ${code}` : ""}. Ahora instalalo en la tienda (paso 3).`,
+            : `Píxel único creado y vinculado a ${linked} cuentas. ID: ${id}${code ? ` · Code: ${code}` : ""}. Ahora instálalo en la tienda (paso 3).`,
         );
       } else {
         setNotice(
-          `Píxel creado. ID: ${id}. Ahora instalalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
+          `Píxel creado. ID: ${id}. Ahora instálalo / conectalo a tu tienda (paso 3). Los eventos COD se activan después (paso 4).`,
         );
       }
       if (failN > 0 && json.failures?.[0]?.error) {
@@ -320,7 +320,7 @@ export function PixelsPageClient({
 
   async function handleActivateEvents() {
     if (!selectedPixel) {
-      setError("Elegí un píxel primero.");
+      setError("Elige un píxel primero.");
       return;
     }
     setActivatingEvents(true);
@@ -384,12 +384,12 @@ export function PixelsPageClient({
       if (totalRemote === 0) {
         setNotice(
           nAcc > 1
-            ? "Las cuentas seleccionadas no tienen píxeles en TikTok. Creá con el botón 1."
-            : "Esta cuenta ads no tiene píxeles en TikTok. Creá uno con el botón 1.",
+            ? "Las cuentas seleccionadas no tienen píxeles en TikTok. Crea con el botón 1."
+            : "Esta cuenta ads no tiene píxeles en TikTok. Crea uno con el botón 1.",
         );
       } else {
         setNotice(
-          `TikTok tiene ${totalRemote} píxel${totalRemote === 1 ? "" : "es"} en ${nAcc} cuenta${nAcc === 1 ? "" : "s"}. Seleccionalo abajo y activá eventos cuando ya esté en la tienda.`,
+          `TikTok tiene ${totalRemote} píxel${totalRemote === 1 ? "" : "es"} en ${nAcc} cuenta${nAcc === 1 ? "" : "s"}. Seleccionalo abajo y activa eventos cuando ya esté en la tienda.`,
         );
       }
     } catch (e) {
@@ -436,9 +436,9 @@ export function PixelsPageClient({
           {clienteName}
         </h1>
         <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-          Primero <span className="font-semibold text-[#1c1917]">creá el píxel</span>{" "}
+          Primero <span className="font-semibold text-[#1c1917]">crea el píxel</span>{" "}
           y conectalo a tu tienda. Después{" "}
-          <span className="font-semibold text-[#1c1917]">activá los eventos COD</span>{" "}
+          <span className="font-semibold text-[#1c1917]">activa los eventos COD</span>{" "}
           para que TikTok los vea en Events Manager. Son dos pasos separados a
           propósito.
         </p>
@@ -492,7 +492,7 @@ export function PixelsPageClient({
               Cuentas ads
             </h2>
             <p className="mt-1 text-[12px] text-[#5c564e]">
-              Seleccioná una, varias o todas. Se crea <strong>un solo píxel</strong>{" "}
+              Selecciona una, varias o todas. Se crea <strong>un solo píxel</strong>{" "}
               y se vincula a las cuentas marcadas.
             </p>
           </div>
@@ -652,7 +652,7 @@ export function PixelsPageClient({
           </p>
           {!selectedPixel ? (
             <p className="mt-4 text-[12px] font-medium text-[#8a8177]">
-              Primero creá o seleccioná un píxel.
+              Primero crea o selecciona un píxel.
             </p>
           ) : hasCodEvents ? (
             <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-900">
@@ -708,7 +708,7 @@ export function PixelsPageClient({
               Todavía no hay píxeles
             </p>
             <p className="mx-auto mt-1 max-w-sm text-[12.5px] leading-5 text-[#5c564e]">
-              Usá el botón 1 para crear uno, o “traer de TikTok” si ya existía.
+              Usa el botón 1 para crear uno, o “traer de TikTok” si ya existía.
             </p>
           </div>
         ) : (
@@ -772,9 +772,9 @@ export function PixelsPageClient({
               IDs + snippet
             </h2>
             <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              Copiá el <strong>Pixel code</strong> (tipo{" "}
+              Copia el <strong>Pixel code</strong> (tipo{" "}
               <span className="font-mono text-[11px]">DAE…</span>, lo que
-              Shopify suele pedir como “Pixel ID”) o el snippet, e instalalo en
+              Shopify suele pedir como “Pixel ID”) o el snippet, e instálalo en
               la tienda / landing. El ID numérico es el de TikTok API. Hasta que
               esté en la web, TikTok no recibe ventas reales.
             </p>
@@ -861,7 +861,7 @@ export function PixelsPageClient({
               </div>
             ) : (
               <p className="mt-3 text-[12px] text-amber-800">
-                Eventos COD pendientes · usá el botón 2 cuando la tienda ya tenga
+                Eventos COD pendientes · usa el botón 2 cuando la tienda ya tenga
                 el píxel.
               </p>
             )}
@@ -888,7 +888,7 @@ export function PixelsPageClient({
               Eventos de prueba
             </h2>
             <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              Dispará acá y mirá{" "}
+              Dispara acá y mira{" "}
               <span className="font-semibold text-[#1c1917]">Test Events</span>{" "}
               en TikTok. No reemplaza instalar el snippet en la tienda.
             </p>

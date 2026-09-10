@@ -430,8 +430,8 @@ export function DateRangePicker({
 
               <p className="mt-3 text-[11px] text-[var(--auth-text-muted)]">
                 {pickingEnd
-                  ? "Elegí la fecha final del rango."
-                  : "Elegí la fecha inicial y luego la final."}
+                  ? "Elige la fecha final del rango."
+                  : "Elige la fecha inicial y luego la final."}
               </p>
             </div>
           </div>

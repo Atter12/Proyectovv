@@ -88,7 +88,7 @@ const SERVICES: ReadonlyArray<{
   },
   {
     title: "Analizador creativo",
-    hint: "Subí piezas y encolá análisis",
+    hint: "Sube piezas y encola análisis",
     tag: "Creativos",
     icon: <SparklesIcon />,
   },

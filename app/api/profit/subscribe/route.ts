@@ -23,7 +23,7 @@ export async function GET() {
   const selected = await getSelectedHecomCliente(session.id);
   if (!selected) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente primero." },
+      { error: "Selecciona un cliente primero." },
       { status: 400 },
     );
   }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   const selected = await getSelectedHecomCliente(session.id);
   if (!selected) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente primero." },
+      { error: "Selecciona un cliente primero." },
       { status: 400 },
     );
   }

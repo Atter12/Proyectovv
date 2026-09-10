@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const selected = await getSelectedHecomCliente(session.id);
   if (!selected) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente primero." },
+      { error: "Selecciona un cliente primero." },
       { status: 400 },
     );
   }
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Real Profit COD no está activo. Primero pagá el +$20 y esperá la aprobación.",
+          "Real Profit COD no está activo. Primero paga el +$20 y espera la aprobación.",
       },
       { status: 400 },
     );
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Falta el dominio de la tienda. Escribí mitienda.myshopify.com y reintentá.",
+          "Falta el dominio de la tienda. Escribe mitienda.myshopify.com y reintenta.",
         needsShopDomain: true,
       },
       { status: 400 },
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           linked: false,
           shopDomain,
           error:
-            "Todavía no encontramos esa tienda en Real Profit. Instalá la app Shopify y esperá unos segundos; después tocá Vincular de nuevo.",
+            "Todavía no encontramos esa tienda en Real Profit. Instala la app Shopify y espera unos segundos; después toca Vincular de nuevo.",
           installHint: true,
         },
         { status: 404 },
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       shopDomain,
       message: result.alreadyLinked
         ? "La tienda ya estaba vinculada."
-        : "Tienda vinculada. Ya podés ver cobrado COD en Profit.",
+        : "Tienda vinculada. Ya puedes ver cobrado COD en Profit.",
     });
   } catch (error) {
     return NextResponse.json(

@@ -353,8 +353,8 @@ export function ProfitDateRangeField({
             </div>
             <p className="text-[11px] font-medium text-[#8a8177]">
               {selecting
-                ? "Elegí la fecha final del rango"
-                : "Elegí inicio y luego el fin"}
+                ? "Elige la fecha final del rango"
+                : "Elige inicio y luego el fin"}
             </p>
             <div className="flex items-center gap-0.5">
               <button

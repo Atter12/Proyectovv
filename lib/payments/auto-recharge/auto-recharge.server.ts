@@ -112,7 +112,7 @@ export async function startBillingSetupSession(input: {
       throw new Error(
         lock.cupo.approvalStatus === "requested"
           ? "Gerencia aún no aceptó tu pedido de crédito. Cuando lo aprueben, podrás registrar la tarjeta."
-          : "Primero pedí crédito Holistic y esperá la aceptación de gerencia.",
+          : "Primero pide crédito Holistic y espera la aceptación de gerencia.",
       );
     }
   }

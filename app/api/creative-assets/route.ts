@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     }
     if (account.status === "disabled" || account.status === "archived") {
       return NextResponse.json(
-        { error: "Elegí una cuenta Aprobada (no suspendida)." },
+        { error: "Elige una cuenta Aprobada (no suspendida)." },
         { status: 400 },
       );
     }

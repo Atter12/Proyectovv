@@ -25,7 +25,7 @@ async function assertOrganizationExists(organizationId: string): Promise<void> {
     .maybeSingle<{ id: string }>();
   if (!data?.id) {
     throw new Error(
-      "No encontramos la organización del cliente. Recargá la página o pedile al equipo que revise el vínculo Hecom.",
+      "No encontramos la organización del cliente. Recarga la página o pídele al equipo que revise el vínculo Hecom.",
     );
   }
 }
@@ -95,7 +95,7 @@ export async function createRealProfitCodSubscribeIntent(input: {
 }> {
   if (isGatewayInMaintenance("manual")) {
     throw new Error(
-      "El pago manual está deshabilitado temporalmente. Contactá a soporte.",
+      "El pago manual está deshabilitado temporalmente. Contacta a soporte.",
     );
   }
 

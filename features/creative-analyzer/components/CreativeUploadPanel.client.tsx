@@ -76,12 +76,12 @@ export function CreativeUploadPanel({
 
   async function handleUpload() {
     if (!file) {
-      setError("Seleccioná una imagen, video o PDF.");
+      setError("Selecciona una imagen, video o PDF.");
       return;
     }
     if (!adAccountId) {
       setError(
-        "Elegí una cuenta TikTok Aprobada para poder enviar la campaña después.",
+        "Elige una cuenta TikTok Aprobada para poder enviar la campaña después.",
       );
       return;
     }
@@ -167,11 +167,11 @@ export function CreativeUploadPanel({
           Paso 1 · Creativo
         </p>
         <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-          Subí el video y la IA lo scorea
+          Sube el video y la IA lo scorea
         </h2>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Elegí una cuenta <span className="font-semibold text-[var(--auth-text)]">Aprobada</span>,
-          subí el archivo y Agent Pro arma el brief para mandar la campaña a TikTok
+          Elige una cuenta <span className="font-semibold text-[var(--auth-text)]">Aprobada</span>,
+          sube el archivo y Agent Pro arma el brief para mandar la campaña a TikTok
           {clienteName ? ` · ${clienteName}` : ""}.
         </p>
       </div>
@@ -185,8 +185,8 @@ export function CreativeUploadPanel({
               </label>
               {accountChoices.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">
-                  No hay cuentas en esta org. Sincronizá en Pagos / Cuentas ads
-                  primero (podés subir igual sin vínculo).
+                  No hay cuentas en esta org. Sincroniza en Pagos / Cuentas ads
+                  primero (puedes subir igual sin vínculo).
                 </p>
               ) : (
                 <select
@@ -194,7 +194,7 @@ export function CreativeUploadPanel({
                   onChange={(e) => setAdAccountId(e.target.value)}
                   className="h-10 w-full rounded-xl border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[var(--auth-text)]"
                 >
-                  <option value="">Elegí cuenta Aprobada…</option>
+                  <option value="">Elige cuenta Aprobada…</option>
                   {accountChoices.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -282,7 +282,7 @@ export function CreativeUploadPanel({
                         </span>
                       </div>
                       <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">
-                        Clic para cambiar · o soltá otro archivo
+                        Clic para cambiar · o suelta otro archivo
                       </p>
                     </div>
                     <button
@@ -303,8 +303,8 @@ export function CreativeUploadPanel({
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
                         {dragging
-                          ? "Soltá el archivo acá"
-                          : "Arrastrá el creativo o elegilo"}
+                          ? "Suelta el archivo acá"
+                          : "Arrastra el creativo o elígelo"}
                       </p>
                       <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                         Imagen, video o PDF · máx. {MAX_MB} MB

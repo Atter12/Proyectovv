@@ -69,7 +69,7 @@ export async function resolveTikTokFinanceAccessToken(
   }
 
   throw new Error(
-    "Sin token TikTok para recargar BM. Configurá TIKTOK_ACCESS_TOKEN (usuario con finance_role en el BM) o conectá TikTok en la org.",
+    "Sin token TikTok para recargar BM. Configura TIKTOK_ACCESS_TOKEN (usuario con finance_role en el BM) o conecta TikTok en la org.",
   );
 }
 
@@ -102,7 +102,7 @@ function formatTransferError(input: {
       input.message,
     )
   ) {
-    return "Ese monto es menor al mínimo que TikTok permite en esta cuenta. Probá con $10 o más.";
+    return "Ese monto es menor al mínimo que TikTok permite en esta cuenta. Prueba con $10 o más.";
   }
 
   if (
@@ -110,22 +110,22 @@ function formatTransferError(input: {
     (input.code === 40001 && /permission/i.test(input.message)) ||
     (input.code === 40002 && /permission/i.test(input.message))
   ) {
-    return "No hay permiso Finance en este Business Center para recargar. Pedile a soporte que revise el BM.";
+    return "No hay permiso Finance en este Business Center para recargar. Pídele a soporte que revise el BM.";
   }
 
   if (/abnormal state|cannot be used for top-up|banned|suspended/i.test(input.message)) {
-    return "Esta cuenta ads no puede recibir saldo ahora (puede estar suspendida). Probá con otra cuenta Aprobada.";
+    return "Esta cuenta ads no puede recibir saldo ahora (puede estar suspendida). Prueba con otra cuenta Aprobada.";
   }
 
   if (
     input.code === 51060 ||
     /coupon balance not enough|grant balance/i.test(input.message)
   ) {
-    return "Este BM no tiene ad credits (cupones) disponibles para asignar. Asignar solo mueve efectivo o cupones, no la línea de crédito. Probá BM 200 o pedile a soporte que cargue cash en el BM.";
+    return "Este BM no tiene ad credits (cupones) disponibles para asignar. Asignar solo mueve efectivo o cupones, no la línea de crédito. Prueba BM 200 o pídele a soporte que cargue cash en el BM.";
   }
 
   if (/Can not find the paInfo|multi pa|specify paId/i.test(input.message)) {
-    return "Este BM usa Payment Portfolio (multi-PA). Holistic debe enviar payment_portfolio_id; si ves este error, pedile a soporte que revise el fondeo del BM.";
+    return "Este BM usa Payment Portfolio (multi-PA). Holistic debe enviar payment_portfolio_id; si ves este error, pídele a soporte que revise el fondeo del BM.";
   }
 
   if (
@@ -134,10 +134,10 @@ function formatTransferError(input: {
       input.message,
     )
   ) {
-    return "No se pudo mover saldo a esa cuenta desde su BM. Suele ser: el BM no tiene cash disponible, o la cuenta no está lista en TikTok. Probá una cuenta de BM 200 o pedile a soporte que cargue cash en ese BM.";
+    return "No se pudo mover saldo a esa cuenta desde su BM. Suele ser: el BM no tiene cash disponible, o la cuenta no está lista en TikTok. Prueba una cuenta de BM 200 o pídele a soporte que cargue cash en ese BM.";
   }
 
-  return "No se pudo asignar el saldo en TikTok ahora. Tu dinero sigue en la cartera Holistic. Probá otra cuenta o contactá soporte.";
+  return "No se pudo asignar el saldo en TikTok ahora. Tu dinero sigue en la cartera Holistic. Prueba otra cuenta o contacta soporte.";
 }
 
 function formatBlockedTransferError(input: {
@@ -166,16 +166,16 @@ function formatBlockedTransferError(input: {
     return (
       "Este BM (crédito compartido) no tiene saldo en efectivo ni cupones." +
       creditHint +
-      " Usá una cuenta de BM 200 (tiene efectivo) o pedile a soporte que cargue cash en ese BM."
+      " Usa una cuenta de BM 200 (tiene efectivo) o pídele a soporte que cargue cash en ese BM."
     );
   }
 
   if (cashAvailable <= 0 && grantAvailable <= 0) {
-    return "Este Business Center no tiene cash ni cupones para asignar. Tu saldo sigue en la cartera Holistic. Probá BM 200 o pedile a soporte que fondee ese BM.";
+    return "Este Business Center no tiene cash ni cupones para asignar. Tu saldo sigue en la cartera Holistic. Prueba BM 200 o pídele a soporte que fondee ese BM.";
   }
 
   const best = Math.max(cashAvailable, grantAvailable);
-  return `Este BM solo tiene ~$${best.toFixed(2)} disponible (${cashAvailable > 0 ? "cash" : "cupones"}). Pedí menos o usá otra cuenta/BM. Tu saldo sigue en la cartera Holistic.`;
+  return `Este BM solo tiene ~$${best.toFixed(2)} disponible (${cashAvailable > 0 ? "cash" : "cupones"}). Pide menos o usa otra cuenta/BM. Tu saldo sigue en la cartera Holistic.`;
 }
 
 type ResolvedBcFunding =
@@ -776,7 +776,7 @@ function assertAdvertiserBudgetUpdateApplied(input: {
 
   if (/FrequencyControl|out of upper limit|cycleUpperLimit/i.test(errorMsg)) {
     throw new Error(
-      "TikTok limitó los cambios de presupuesto en esta cuenta (máx. ~20 por día). Tu cartera no se debitó: esperá unas horas o probá mañana.",
+      "TikTok limitó los cambios de presupuesto en esta cuenta (máx. ~20 por día). Tu cartera no se debitó: espera unas horas o prueba mañana.",
     );
   }
 
@@ -891,7 +891,7 @@ async function resolveSharedBudgetSnapshot(input: {
   }
 
   throw new Error(
-    "Esa cuenta no aparece en el BM de TikTok (finance). Probá otra cuenta Aprobada (BM 10/30) o corregí el advertiser ID.",
+    "Esa cuenta no aparece en el BM de TikTok (finance). Prueba otra cuenta Aprobada (BM 10/30) o corrige el advertiser ID.",
   );
 }
 
@@ -997,13 +997,13 @@ export async function increaseSharedBmAdvertiserBudget(input: {
         /does not grant you|advertiser\/update|permission/i.test(detail)
       ) {
         throw new Error(
-          "No se pudo asignar en esta cuenta todavía (falta permiso de presupuesto en TikTok). Contactá a soporte.",
+          "No se pudo asignar en esta cuenta todavía (falta permiso de presupuesto en TikTok). Contacta a soporte.",
         );
       }
 
       if (json.code === 52404 || /internal error/i.test(detail)) {
         throw new Error(
-          "TikTok rechazó el presupuesto de esa cuenta. Probá otra cuenta Aprobada del mismo BM.",
+          "TikTok rechazó el presupuesto de esa cuenta. Prueba otra cuenta Aprobada del mismo BM.",
         );
       }
 
@@ -1140,7 +1140,7 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       tiktokRequestId,
     });
     throw new Error(
-      "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
+      "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintenta o contacta a soporte.",
     );
   }
 
@@ -1273,7 +1273,7 @@ export async function decreaseSharedBmAdvertiserBudget(input: {
       tiktokRequestId: json.request_id ?? json.log_id ?? null,
     });
     throw new Error(
-      "No se pudo bajar el presupuesto en TikTok de esa cuenta. Contactá a soporte.",
+      "No se pudo bajar el presupuesto en TikTok de esa cuenta. Contacta a soporte.",
     );
   }
 

@@ -38,7 +38,7 @@ export function createHecomAdminClient(): SupabaseClient {
   const cfg = getHecomSupabaseConfig();
   if (!cfg.serviceRoleKey) {
     throw new Error(
-      "[hecom] Falta HECOM_SUPABASE_SERVICE_ROLE_KEY. En Vercel agregá la service role del proyecto Hecom Club (fsnolvozwcnbyuradiru).",
+      "[hecom] Falta HECOM_SUPABASE_SERVICE_ROLE_KEY. En Vercel agrega la service role del proyecto Hecom Club (fsnolvozwcnbyuradiru).",
     );
   }
   return createClient(cfg.url, cfg.serviceRoleKey, {

@@ -36,8 +36,8 @@ export async function analyzeCreativeWithOpenAi(input: {
   const dataUrl = `data:${input.mimeType};base64,${base64}`;
 
   const prompt = `Sos un analista senior de creativos TikTok Ads (Latam ecom).
-Evaluá este creativo "${input.assetName}" (tipo ${input.assetType}).
-Devolvé SOLO JSON válido:
+Evalúa este creativo "${input.assetName}" (tipo ${input.assetType}).
+Devuelve SOLO JSON válido:
 {
   "overall_score": number 0-100,
   "clarity_score": number 0-100,
@@ -49,7 +49,7 @@ Devolvé SOLO JSON válido:
   "why_it_may_perform": "por qué puede rendir",
   "recommendations": ["mejoras accionables"]
 }
-Sé concreto y comercial. Si es PDF/video sin frames, inferí por nombre y contexto.`;
+Sé concreto y comercial. Si es PDF/video sin frames, infiere por nombre y contexto.`;
 
   const content: Array<
     | { type: "text"; text: string }
@@ -61,7 +61,7 @@ Sé concreto y comercial. Si es PDF/video sin frames, inferí por nombre y conte
   } else {
     content[0] = {
       type: "text",
-      text: `${prompt}\n\nNota: el archivo es ${input.mimeType} (${Math.round(input.buffer.length / 1024)} KB). Analizá por nombre/tipo; no hay frame embebido.`,
+      text: `${prompt}\n\nNota: el archivo es ${input.mimeType} (${Math.round(input.buffer.length / 1024)} KB). Analiza por nombre/tipo; no hay frame embebido.`,
     };
   }
 
@@ -141,13 +141,13 @@ export async function buildAgentBriefWithOpenAi(input: {
     };
   }
 
-  const prompt = `Armá un brief de campaña TikTok Ads (Agent Pro) en español comercial.
+  const prompt = `Arma un brief de campaña TikTok Ads (Agent Pro) en español comercial.
 Creativo: ${input.assetName}
 Cuenta: ${input.advertiserName ?? "N/D"}
 Spend reciente (USD, hint): ${input.spendHintUsd ?? "n/d"}
 Insight IA: ${JSON.stringify(input.insight)}
 
-Devolvé SOLO JSON:
+Devuelve SOLO JSON:
 {
   "objective": "TRAFFIC" | "CONVERSIONS" | "REACH" | "VIDEO_VIEWS",
   "audience": "string",

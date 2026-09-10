@@ -49,7 +49,7 @@ function greetingMessage(): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: "Hola 👋 Soy soporte Holistic. Escribí tu consulta y un gerente te responde acá.",
+    text: "Hola 👋 Soy soporte Holistic. Escribe tu consulta y un gerente te responde acá.",
     ...supportChatTimestampsNow(),
   };
 }
@@ -316,7 +316,7 @@ export function SupportChatWidget({
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
             onBack={handleClose}
-            emptyHint="Escribí tu mensaje. Un gerente te responde acá."
+            emptyHint="Escribe tu mensaje. Un gerente te responde acá."
             className="h-[min(520px,70vh)] max-h-[70vh]"
             headerActions={
               <button

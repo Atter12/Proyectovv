@@ -372,7 +372,7 @@ export async function createSharedPixelForCliente(input: {
     ...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean)),
   ];
   if (advertiserIds.length === 0) {
-    throw new Error("Seleccioná al menos una cuenta ads.");
+    throw new Error("Selecciona al menos una cuenta ads.");
   }
 
   for (const advertiserId of advertiserIds) {

@@ -122,7 +122,7 @@ export function NsxFeatures() {
         </div>
 
         <div className="nsx-feature-cta">
-          <p>¿Nuevo o ya tienes ficha en Hecom? Elegí tu acceso.</p>
+          <p>¿Nuevo o ya tienes ficha en Hecom? Elige tu acceso.</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href={routes.register} className="nsx-btn-dark">
               Registrarme <span aria-hidden>→</span>

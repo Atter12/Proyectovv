@@ -98,7 +98,7 @@ export function depositFromDesiredCredit(
 }
 
 /**
- * @deprecated Preferí depositFromDesiredCredit (UX: cliente elige neto).
+ * @deprecated Prefiere depositFromDesiredCredit (UX: cliente elige neto).
  * Conservado por si llega un bruto conocido (reconciliación).
  */
 export function splitDepositByFeePercent(

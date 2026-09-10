@@ -78,7 +78,7 @@ export function ChatConversation({
   onBack,
   composerDisabled = false,
   composerDisabledReason,
-  emptyHint = "Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.",
+  emptyHint = "Escribe tu consulta, pega una captura (Ctrl+V) o adjunta un archivo.",
 }: ChatConversationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -258,7 +258,7 @@ export function ChatConversation({
       >
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
-            Soltá la imagen o PDF acá
+            Suelta la imagen o PDF acá
           </div>
         ) : null}
 
@@ -308,7 +308,7 @@ export function ChatConversation({
       <div className="border-t border-[var(--auth-divider)] bg-white p-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.04)] sm:px-5 sm:py-4">
         {composerDisabled ? (
           <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
-            {composerDisabledReason ?? "No podés escribir en este chat ahora."}
+            {composerDisabledReason ?? "No puedes escribir en este chat ahora."}
           </p>
         ) : null}
         {pending.length > 0 ? (
@@ -352,7 +352,7 @@ export function ChatConversation({
             onPaste={handlePaste}
             rows={2}
             disabled={composerDisabled}
-            placeholder="Escribí tu mensaje… Podés pegar capturas con Ctrl+V"
+            placeholder="Escribe tu mensaje… Puedes pegar capturas con Ctrl+V"
             aria-label="Escribir mensaje"
             className="max-h-40 min-h-[48px] w-full resize-none bg-transparent px-3 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none disabled:opacity-60"
           />

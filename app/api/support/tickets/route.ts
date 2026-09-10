@@ -44,7 +44,7 @@ function validateFiles(files: File[]): string | null {
       return `"${file.name}" supera 10 MB.`;
     }
     if (file.type && !ALLOWED_MIME.has(file.type)) {
-      return `"${file.name}" no permitido. Usá JPG, PNG, WEBP, GIF o PDF.`;
+      return `"${file.name}" no permitido. Usa JPG, PNG, WEBP, GIF o PDF.`;
     }
   }
   return null;

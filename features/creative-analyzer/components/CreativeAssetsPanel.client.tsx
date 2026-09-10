@@ -95,7 +95,7 @@ export function CreativeAssetsPanel({
             Todavía vacío
           </p>
           <p className="mt-1.5 text-[13px] text-[var(--auth-text-muted)]">
-            Subí un video o imagen arriba. La IA te da score + veredicto en
+            Sube un video o imagen arriba. La IA te da score + veredicto en
             segundos.
           </p>
         </div>
@@ -196,7 +196,7 @@ export function CreativeAssetsPanel({
                       </>
                     ) : asset.jobStatus === "failed" ? (
                       <p className="mt-2 text-[12px] text-[#991b1b]">
-                        El análisis falló. Revisá OPENAI_API_KEY o reencolá.
+                        El análisis falló. Revisa OPENAI_API_KEY o reencola.
                       </p>
                     ) : (
                       <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">

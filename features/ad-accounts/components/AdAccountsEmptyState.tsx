@@ -24,7 +24,7 @@ export function AdAccountsEmptyState() {
         Aún no hay cuentas publicitarias
       </h3>
       <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
-        Creá la primera para asignar presupuesto, configurar campañas y empezar
+        Crea la primera para asignar presupuesto, configurar campañas y empezar
         a publicar.
       </p>
       <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]">

@@ -24,12 +24,12 @@ export function paymentSucceededTemplate(input: {
     preview: subject,
     bodyHtml: `
       <p style="margin:0 0 12px;">Tu depósito de <strong style="color:#1c1917">${escapeHtml(amount)}</strong> vía <strong style="color:#1c1917">${escapeHtml(providerLabel)}</strong> fue confirmado.</p>
-      <p style="margin:0;">El saldo ya está disponible en tu cartera de ${escapeHtml(input.appName)}. Podés asignarlo a tus cuentas TikTok cuando quieras.</p>
+      <p style="margin:0;">El saldo ya está disponible en tu cartera de ${escapeHtml(input.appName)}. Puedes asignarlo a tus cuentas TikTok cuando quieras.</p>
     `,
     ctaLabel: "Ver cartera",
     ctaUrl: input.dashboardUrl,
   });
-  const text = `Tu depósito de ${amount} vía ${providerLabel} fue confirmado. Revisá tu cartera en ${input.dashboardUrl}${wrapped.textFooter}`;
+  const text = `Tu depósito de ${amount} vía ${providerLabel} fue confirmado. Revisa tu cartera en ${input.dashboardUrl}${wrapped.textFooter}`;
   return { subject, text, html: wrapped.html };
 }
 
@@ -116,11 +116,11 @@ export function manualPaymentApprovedClientTemplate(input: {
         <tr><td style="padding:14px;font-size:13px;color:#8a8177;">Acreditado en cartera</td><td style="padding:14px;text-align:right;font-size:20px;font-weight:700;color:#c2410c;">${escapeHtml(input.creditUsdLabel)}</td></tr>
         <tr><td style="padding:0 14px 14px;font-size:13px;color:#8a8177;">Monto del comprobante</td><td style="padding:0 14px 14px;text-align:right;font-size:14px;font-weight:600;color:#1c1917;">${escapeHtml(input.chargedLabel)}</td></tr>
       </table>
-      <p style="margin:0;">Podés asignar ese saldo a tus cuentas TikTok desde Pagos. El fee Holistic ya se descontó al recargar; al asignar es 1 a 1.</p>
+      <p style="margin:0;">Puedes asignar ese saldo a tus cuentas TikTok desde Pagos. El fee Holistic ya se descontó al recargar; al asignar es 1 a 1.</p>
     `,
     ctaLabel: "Ir a Pagos",
     ctaUrl: input.dashboardUrl,
   });
-  const text = `Pago manual aprobado. Acreditamos ${input.creditUsdLabel} en tu cartera (comprobante ${input.chargedLabel}). Asigná saldo en ${input.dashboardUrl}${wrapped.textFooter}`;
+  const text = `Pago manual aprobado. Acreditamos ${input.creditUsdLabel} en tu cartera (comprobante ${input.chargedLabel}). Asigna saldo en ${input.dashboardUrl}${wrapped.textFooter}`;
   return { subject, text, html: wrapped.html };
 }

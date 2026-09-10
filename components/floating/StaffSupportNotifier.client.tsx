@@ -70,7 +70,7 @@ export function StaffSupportNotifier() {
         if (!prev || prev === stamp) continue;
 
         const sender = ticket.lastMessageSenderUserId?.trim() || null;
-        // Solo avisar si el último mensaje NO lo escribí yo.
+        // Solo avisar si el último mensaje NO lo escribe yo.
         if (!sender || !myId || sender === myId) continue;
 
         fresh.push({

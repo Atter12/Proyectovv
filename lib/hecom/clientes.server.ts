@@ -146,7 +146,7 @@ export async function listHecomClientes(): Promise<{
       };
     }
     throw new Error(
-      "Hecom Club no configurado. Agregá HECOM_SUPABASE_SERVICE_ROLE_KEY en Vercel (service role del proyecto Hecom), o un backup Holistic-Backup-*.json accesible.",
+      "Hecom Club no configurado. Agrega HECOM_SUPABASE_SERVICE_ROLE_KEY en Vercel (service role del proyecto Hecom), o un backup Holistic-Backup-*.json accesible.",
     );
   }
 
@@ -440,7 +440,7 @@ export async function updateHecomClienteDocument(input: {
       });
       return {
         ok: false,
-        message: "No se pudo guardar el DNI en Hecom. Probá de nuevo.",
+        message: "No se pudo guardar el DNI en Hecom. Prueba de nuevo.",
       };
     }
     console.info("[hecom] cliente_document_saved", {
@@ -452,7 +452,7 @@ export async function updateHecomClienteDocument(input: {
     console.error("[hecom] updateHecomClienteDocument unexpected", error);
     return {
       ok: false,
-      message: "No se pudo guardar el DNI en Hecom. Probá de nuevo.",
+      message: "No se pudo guardar el DNI en Hecom. Prueba de nuevo.",
     };
   }
 }
@@ -476,12 +476,12 @@ export async function createHecomCliente(input: {
   const phoneDigits = String(input.phone ?? "").replace(/\D/g, "");
 
   if (name.length < 2) {
-    return { ok: false, message: "Ingresá tu nombre completo.", code: "insert" };
+    return { ok: false, message: "Ingresa tu nombre completo.", code: "insert" };
   }
   if (!/^\d{8}$/.test(dni)) {
     return {
       ok: false,
-      message: "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
+      message: "Ingresa tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
       code: "insert",
     };
   }
@@ -491,7 +491,7 @@ export async function createHecomCliente(input: {
   if (phoneDigits.length < 9) {
     return {
       ok: false,
-      message: "Ingresá un número telefónico válido (mín. 9 dígitos).",
+      message: "Ingresa un número telefónico válido (mín. 9 dígitos).",
       code: "insert",
     };
   }
@@ -561,7 +561,7 @@ export async function createHecomCliente(input: {
             ok: false,
             message:
               basic.error?.message ??
-              "No se pudo crear el cliente en Hecom. Probá de nuevo.",
+              "No se pudo crear el cliente en Hecom. Prueba de nuevo.",
             code: "insert",
           };
         }
@@ -589,7 +589,7 @@ export async function createHecomCliente(input: {
     console.error("[hecom] createHecomCliente unexpected", error);
     return {
       ok: false,
-      message: "No se pudo crear el cliente en Hecom. Probá de nuevo.",
+      message: "No se pudo crear el cliente en Hecom. Prueba de nuevo.",
       code: "insert",
     };
   }

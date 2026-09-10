@@ -580,7 +580,7 @@ export function AdAccountsTable({
             Ninguna cuenta coincide con el filtro
           </p>
           <p className="mt-1 text-[13px] text-[#7a736a]">
-            Probá otro estado o limpiá la búsqueda.
+            Prueba otro estado o limpia la búsqueda.
           </p>
         </div>
       ) : null}

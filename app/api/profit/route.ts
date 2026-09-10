@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const selected = await getSelectedHecomCliente(session.id);
   if (!selected) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente primero." },
+      { error: "Selecciona un cliente primero." },
       { status: 400 },
     );
   }

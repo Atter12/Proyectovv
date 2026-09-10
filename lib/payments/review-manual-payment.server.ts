@@ -162,8 +162,8 @@ async function approveRealProfitCodVoucher(input: {
   const linkHint = linkResult.linkedStoreId
     ? " Tienda vinculada: ya ves cobrado en Profit."
     : shopDomain
-      ? " No se encontró esa tienda en Real Profit: instalá la app Shopify y reintentá el link."
-      : " Indicá el dominio de la tienda en Profit si aún no ves cobrado.";
+      ? " No se encontró esa tienda en Real Profit: instala la app Shopify y reintenta el link."
+      : " Indica el dominio de la tienda en Profit si aún no ves cobrado.";
 
   await notify({
     organizationId: intent.organization_id,

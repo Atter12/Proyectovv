@@ -78,7 +78,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
 
       <CrmPanel
         title={`Advertisers de ${clienteName}`}
-        subtitle="Filtrá por nombre o estado · solo lectura"
+        subtitle="Filtra por nombre o estado · solo lectura"
         className="overflow-hidden"
       >
         <Suspense fallback={null}>

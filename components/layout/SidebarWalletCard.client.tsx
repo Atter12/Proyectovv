@@ -47,7 +47,7 @@ export function SidebarWalletCard({
             Tu cuenta
           </p>
           <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-            Recargá saldo con Stripe y asignalo a tus cuentas ads.
+            Recarga saldo con Stripe y asígnalo a tus cuentas ads.
           </p>
           <Link
             href={routes.payments}
@@ -67,7 +67,7 @@ export function SidebarWalletCard({
           Sin cliente
         </p>
         <p className="mt-2 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Elegí un cliente del CRM para recargar desde el BM.
+          Elige un cliente del CRM para recargar desde el BM.
         </p>
         <Link
           href={routes.clientes}

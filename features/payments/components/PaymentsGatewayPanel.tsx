@@ -236,7 +236,7 @@ export async function PaymentsGatewayPanel({
     });
   }
 
-  // Si el sync se saltó (vuelta Stripe), igual asegurá suspendidas del overview.
+  // Si el sync se saltó (vuelta Stripe), igual asegura suspendidas del overview.
   if (
     skipApprovedSync &&
     opsOrganizationId &&

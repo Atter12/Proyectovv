@@ -4,7 +4,7 @@ const ITEMS = [
   {
     title: "Crédito y cartera",
     description:
-      "Recargá saldo, asigná presupuesto a cuentas ads y seguí cada movimiento con claridad.",
+      "Recarga saldo, asigna presupuesto a cuentas ads y sigue cada movimiento con claridad.",
   },
   {
     title: "Operación asistida",
@@ -38,7 +38,7 @@ export function LandingCore() {
             Soluciones publicitarias pensadas para operar, no para decorar.
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] font-medium leading-7 text-[var(--auth-text-muted)] sm:mt-4 sm:text-[16px]">
-            Todo lo que necesitás para crecer con control: pagos, saldos,
+            Todo lo que necesitas para crecer con control: pagos, saldos,
             cuentas y seguimiento en un panel formal y claro.
           </p>
         </LandingReveal>

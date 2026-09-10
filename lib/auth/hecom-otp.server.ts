@@ -186,7 +186,7 @@ export async function requestHecomClientOtp(input: {
     });
     return {
       ok: false,
-      error: `Esperá ${rate.retryAfterSec ?? OTP_COOLDOWN_SECONDS}s antes de pedir otro código.`,
+      error: `Espera ${rate.retryAfterSec ?? OTP_COOLDOWN_SECONDS}s antes de pedir otro código.`,
       status: 429,
       retryAfterSec: rate.retryAfterSec ?? OTP_COOLDOWN_SECONDS,
     };
@@ -293,7 +293,7 @@ export async function requestHecomClientOtp(input: {
     await releaseOtpCooldown(email).catch(() => undefined);
     return {
       ok: false,
-      error: "Supabase no devolvió código/enlace. Revisá Auth settings.",
+      error: "Supabase no devolvió código/enlace. Revisa Auth settings.",
       status: 502,
     };
   }
@@ -311,7 +311,7 @@ export async function requestHecomClientOtp(input: {
       await releaseOtpCooldown(email).catch(() => undefined);
       return {
         ok: false,
-        error: "Resend no envió el correo. Revisá RESEND_API_KEY y RESEND_FROM.",
+        error: "Resend no envió el correo. Revisa RESEND_API_KEY y RESEND_FROM.",
         status: 502,
       };
     }
@@ -336,7 +336,7 @@ export async function requestHecomClientOtp(input: {
   return {
     ok: true,
     message:
-      "Te enviamos un código y un enlace mágico. Revisá bandeja de entrada y spam.",
+      "Te enviamos un código y un enlace mágico. Revisa bandeja de entrada y spam.",
     email,
     allowed: true,
     sent: true,
@@ -378,12 +378,12 @@ export async function registerHecomClientOtp(input: {
   const emailMasked = maskEmail(email);
 
   if (name.length < 2) {
-    return { ok: false, error: "Ingresá tu nombre completo.", status: 400 };
+    return { ok: false, error: "Ingresa tu nombre completo.", status: 400 };
   }
   if (!/^\d{8}$/.test(dni)) {
     return {
       ok: false,
-      error: "Ingresá tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
+      error: "Ingresa tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
       status: 400,
     };
   }
@@ -391,7 +391,7 @@ export async function registerHecomClientOtp(input: {
   if (phoneDigits.length < 9) {
     return {
       ok: false,
-      error: "Ingresá un teléfono válido (mín. 9 dígitos).",
+      error: "Ingresa un teléfono válido (mín. 9 dígitos).",
       status: 400,
     };
   }

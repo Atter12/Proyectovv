@@ -93,7 +93,7 @@ export function ClientAccessInvitePanel({
         Acceso por correo
       </h2>
       <p className="mt-1 text-sm text-[var(--admin-text-muted)]">
-        Mapeá el correo del cliente (el de tu otro sistema). Ellos ponen{" "}
+        Mapea el correo del cliente (el de tu otro sistema). Ellos ponen{" "}
         <strong>correo + contraseña</strong> al registrarse y se abren solo los datos de{" "}
         {clientLabel}.
       </p>

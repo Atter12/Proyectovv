@@ -22,7 +22,7 @@ export type ManualDepositQuote = {
   fxRateUsdPen: number;
 };
 
-/** Sync: cache SBS o fallback env. Para cotizar intents preferí `await resolve…`. */
+/** Sync: cache SBS o fallback env. Para cotizar intents prefiere `await resolve…`. */
 export function getHolisticUsdPenRate(): number {
   return getHolisticUsdPenRateSync();
 }

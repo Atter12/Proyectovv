@@ -78,7 +78,7 @@ export async function GET() {
         step: "hecom_env_hint",
         ok: false,
         detail:
-          "Sin HECOM_SUPABASE_SERVICE_ROLE_KEY: usando backup local. Para live, agregá la service role de Hecom en Vercel.",
+          "Sin HECOM_SUPABASE_SERVICE_ROLE_KEY: usando backup local. Para live, agrega la service role de Hecom en Vercel.",
       });
     }
 
@@ -128,7 +128,7 @@ export async function GET() {
         ok: false,
         error: message,
         hint:
-          "Verificá que HECOM_SUPABASE_SERVICE_ROLE_KEY sea del proyecto Hecom (tabla public.clientes).",
+          "Verifica que HECOM_SUPABASE_SERVICE_ROLE_KEY sea del proyecto Hecom (tabla public.clientes).",
         steps,
       },
       { status: 500 },

@@ -32,8 +32,8 @@ export function PickClienteEmpty({
           Tu panel de cliente
         </h3>
         <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Desde acá recargás con Stripe y asignás a tus cuentas ads. No
-          necesitás elegir entre clientes del CRM.
+          Desde acá recargas con Stripe y asignas a tus cuentas ads. No
+          necesitas elegir entre clientes del CRM.
         </p>
         <Link
           href={routes.payments}
@@ -64,10 +64,10 @@ export function PickClienteEmpty({
         </svg>
       </div>
       <h3 className="text-[1.25rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)]">
-        Elegí un cliente para operar
+        Elige un cliente para operar
       </h3>
       <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-        Para ver {section}, abrí la lista y Elegí a quién recargar desde el BM.
+        Para ver {section}, abre la lista y Elige a quién recargar desde el BM.
         Después el panel queda filtrado a ese cliente.
       </p>
       <Link

@@ -58,7 +58,7 @@ function greetingMessage(): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: `Hola. Este es el chat de ${SUPPORT_NAME}. Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá fotos/PDF. Te respondemos acá.`,
+    text: `Hola. Este es el chat de ${SUPPORT_NAME}. Escribe tu consulta, pega una captura (Ctrl+V) o adjunta fotos/PDF. Te respondemos acá.`,
     ...supportChatTimestampsNow(),
     senderName: SUPPORT_NAME,
     senderKind: "system",
@@ -490,7 +490,7 @@ export function SupportPageClient({
         showBack={mobileShowChat && faqMode === false}
         className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
         title={SUPPORT_NAME}
-        subtitle="Escribí, pegá capturas (Ctrl+V) o adjuntá fotos/PDF."
+        subtitle="Escribe, pega capturas (Ctrl+V) o adjunta fotos/PDF."
         onInputChange={setInputValue}
         onSend={(files) => void handleSend(files)}
         onClearChat={ticketId ? () => void handleClearChat() : undefined}

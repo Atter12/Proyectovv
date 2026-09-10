@@ -15,7 +15,7 @@ export function LandingHero() {
             Opera campañas, pagos y saldos en un solo lugar.
           </h1>
           <p className="mt-4 max-w-xl text-[15px] font-medium leading-7 text-[var(--auth-text-muted)] sm:mt-5 sm:text-[17px] sm:leading-8">
-            Recargá la cartera, asigná a cuentas TikTok y controlá la operación
+            Recarga la cartera, asigna a cuentas TikTok y controla la operación
             publicitaria sin planillas ni dashboards genéricos.
           </p>
 

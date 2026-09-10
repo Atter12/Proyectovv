@@ -88,7 +88,7 @@ export function ClienteScopedGastos({
       <GastosAdsLedger
         gastos={gastos}
         title="Gasto en el período"
-        subtitle="Elegí fechas y ves el total"
+        subtitle="Elige fechas y ves el total"
       />
     </div>
   );

@@ -70,7 +70,7 @@ export const supportMock: SupportConfig = {
       title: "¿Por dónde empiezo?",
       audience: "cliente",
       content:
-        "Entrá con tu correo (OTP). En el menú izquierdo ves solo tus datos: Resumen, Cuentas ads, Pagos y este chat de soporte.",
+        "Entra con tu correo (OTP). En el menú izquierdo ves solo tus datos: Resumen, Cuentas ads, Pagos y este chat de soporte.",
       bullets: [
         "Resumen → gastos, cobros y saldo estimado",
         "Cuentas ads → tus advertisers TikTok",
@@ -84,7 +84,7 @@ export const supportMock: SupportConfig = {
       title: "¿Por dónde empiezo como gerente?",
       audience: "gerente",
       content:
-        "Entrá con tu correo de staff. Primero elegís el cliente en Clientes; después operás Pagos, Cuentas ads y Resumen con ese scope.",
+        "Entra con tu correo de staff. Primero eliges el cliente en Clientes; después operas Pagos, Cuentas ads y Resumen con ese scope.",
       bullets: [
         "Clientes → elegir persona del CRM",
         "Pagos → recarga BM o revisar historial del cliente",
@@ -111,11 +111,11 @@ export const supportMock: SupportConfig = {
       title: "¿Cómo recargo?",
       audience: "cliente",
       content:
-        "Como cliente: andá a Pagos → Recargar cartera (Stripe / método disponible). Elegís el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tenés saldo en cartera para asignar a una cuenta ads.",
+        "Como cliente: ve a Pagos → Recargar cartera (Stripe / método disponible). Eliges el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tienes saldo en cartera para asignar a una cuenta ads.",
       bullets: [
-        "Abrí Pagos",
+        "Abre Pagos",
         "Recargar cartera → monto neto",
-        "Confirmá el pago",
+        "Confirma el pago",
         "Después: Asignar ese saldo a una cuenta TikTok",
       ],
     },
@@ -125,12 +125,12 @@ export const supportMock: SupportConfig = {
       title: "¿Cómo asigno saldo a una cuenta?",
       audience: "cliente",
       content:
-        "En Pagos, sección Asignar: elegí una cuenta Aprobada, monto y confirmá. Eso mueve presupuesto hacia el advertiser TikTok. Solo aparecen cuentas activas/aprobadas (no las suspendidas).",
+        "En Pagos, sección Asignar: elige una cuenta Aprobada, monto y confirma. Eso mueve presupuesto hacia el advertiser TikTok. Solo aparecen cuentas activas/aprobadas (no las suspendidas).",
       bullets: [
         "Pagos → Asignar / lista de cuentas",
         "Solo cuentas Aprobadas",
         "Monto → confirmar",
-        "Si no hay cuentas: revisá Cuentas ads o pedí mapeo al gerente",
+        "Si no hay cuentas: revisa Cuentas ads o pide mapeo al gerente",
       ],
     },
     {
@@ -139,9 +139,9 @@ export const supportMock: SupportConfig = {
       title: "Recargar desde el Business Center",
       audience: "gerente",
       content:
-        "En Pagos (modo BM) recargás cash del Business Center TikTok directo a la cuenta ads del cliente. Eso suma presupuesto en TikTok; no reduce la deuda neta Hecom del cliente.",
+        "En Pagos (modo BM) recargas cash del Business Center TikTok directo a la cuenta ads del cliente. Eso suma presupuesto en TikTok; no reduce la deuda neta Hecom del cliente.",
       bullets: [
-        "Elegí el cliente en Clientes",
+        "Elige el cliente en Clientes",
         "Pagos → Recargar desde BM",
         "Cuenta Aprobada + monto (≥ 10 USD típico)",
         "La deuda Hecom solo baja con cobro registrado del cliente",
@@ -153,12 +153,12 @@ export const supportMock: SupportConfig = {
       title: "Asignar saldo como gerente",
       audience: "gerente",
       content:
-        "Podés mover presupuesto entre cuentas Aprobadas del cliente desde Pagos. Solo aparecen advertisers activos en TikTok (no suspendidas).",
+        "Puedes mover presupuesto entre cuentas Aprobadas del cliente desde Pagos. Solo aparecen advertisers activos en TikTok (no suspendidas).",
       bullets: [
         "Cliente elegido en el rail",
         "Pagos → Asignar / lista de cuentas",
         "Solo cuentas Aprobadas",
-        "Si falta una cuenta: revisá mapeo Hecom o Cuentas ads",
+        "Si falta una cuenta: revisa mapeo Hecom o Cuentas ads",
       ],
     },
     {
@@ -167,7 +167,7 @@ export const supportMock: SupportConfig = {
       title: "Cobros Hecom vs recarga BM",
       audience: "gerente",
       content:
-        "Recargar BM sube presupuesto TikTok pero no registra cobro en Hecom. Para bajar deuda neta del cliente necesitás un cobro en el CRM (transferencia, Stripe del cliente, etc.).",
+        "Recargar BM sube presupuesto TikTok pero no registra cobro en Hecom. Para bajar deuda neta del cliente necesitas un cobro en el CRM (transferencia, Stripe del cliente, etc.).",
       bullets: [
         "BM → presupuesto TikTok del advertiser",
         "Cobro Hecom → baja saldo/deuda en CRM",
@@ -180,7 +180,7 @@ export const supportMock: SupportConfig = {
       categoryId: "dinero",
       title: "¿Qué es el fee?",
       content:
-        "Es el % Holistic del cliente (viene de Hecom, p.ej. 10%). En depósitos: vos pedís un neto; se cobra neto + fee. En el historial, el fee también entra en el “cargo” junto al gasto de ads.",
+        "Es el % Holistic del cliente (viene de Hecom, p.ej. 10%). En depósitos: pides un neto; se cobra neto + fee. En el historial, el fee también entra en el “cargo” junto al gasto de ads.",
       bullets: [
         "Se ve en Cuentas ads (Fee X%)",
         "Afecta el cobro al recargar",
@@ -192,10 +192,10 @@ export const supportMock: SupportConfig = {
       categoryId: "cuentas",
       title: "¿Dónde veo mis cuentas TikTok?",
       content:
-        "Menú Cuentas ads. Listado de advertisers (nombre + ID), estado Activa / Suspendida, fee y huso. Como cliente es solo lectura: no creás ni editás cuentas acá.",
+        "Menú Cuentas ads. Listado de advertisers (nombre + ID), estado Activa / Suspendida, fee y huso. Como cliente es solo lectura: no creas ni editas cuentas acá.",
       bullets: [
         "Cuentas ads → tabla completa",
-        "Buscá por nombre o ID",
+        "Busca por nombre o ID",
         "Filtro por estado (Activa / Suspendida)",
         "KPI arriba: totales, activas, suspendidas",
       ],
@@ -205,11 +205,11 @@ export const supportMock: SupportConfig = {
       categoryId: "cuentas",
       title: "¿Qué pasa si una cuenta está suspendida?",
       content:
-        "Significa que TikTok la tiene castigada/cerrada (o similar). Se muestra en la lista, pero no sirve para asignar/recargar. Usá otra cuenta Aprobada.",
+        "Significa que TikTok la tiene castigada/cerrada (o similar). Se muestra en la lista, pero no sirve para asignar/recargar. Usa otra cuenta Aprobada.",
       bullets: [
         "Badge rojo: Suspendida",
         "No aparece para Asignar en Pagos",
-        "Si todas están suspendidas, avisá a soporte",
+        "Si todas están suspendidas, avisa a soporte",
       ],
     },
     {
@@ -242,7 +242,7 @@ export const supportMock: SupportConfig = {
       categoryId: "soporte",
       title: "¿Cómo uso este chat?",
       content:
-        "Escribí tu consulta acá. Podés pegar capturas (Ctrl+V) o adjuntar fotos/PDF. Te responde un gerente humano (no un bot). Los mensajes se actualizan solos, sin F5.",
+        "Escribe tu consulta acá. Puedes pegar capturas (Ctrl+V) o adjuntar fotos/PDF. Te responde un gerente humano (no un bot). Los mensajes se actualizan solos, sin F5.",
       bullets: [
         "Un solo chat: Soporte Holistic",
         "Humano del equipo responde",
@@ -254,10 +254,10 @@ export const supportMock: SupportConfig = {
       categoryId: "soporte",
       title: "¿Cuánto tardan en responder?",
       content:
-        "La meta operativa es contestar en 30 minutos o menos en horario de atención. Si es urgente, dejá el detalle (cuenta, monto, error) para ir más rápido.",
+        "La meta operativa es contestar en 30 minutos o menos en horario de atención. Si es urgente, deja el detalle (cuenta, monto, error) para ir más rápido.",
       bullets: [
         "Meta: ≤ 30 min",
-        "Incluí ID de cuenta o captura si aplica",
+        "Incluye ID de cuenta o captura si aplica",
         "No uses IG/WhatsApp sueltos para lo mismo: acá está centralizado",
       ],
     },

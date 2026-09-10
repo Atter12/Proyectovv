@@ -48,7 +48,7 @@ async function runTikTokPublish(input: {
 }> {
   if (!isTikTokCreativePublishEnabled()) {
     throw new Error(
-      "Publicación TikTok desactivada. Pedí a Holistic activar TIKTOK_CREATIVE_PUBLISH_ENABLED.",
+      "Publicación TikTok desactivada. Pide a Holistic activar TIKTOK_CREATIVE_PUBLISH_ENABLED.",
     );
   }
 
@@ -77,7 +77,7 @@ async function runTikTokPublish(input: {
     }
     if (!advertiserId) {
       throw new Error(
-        "Falta advertiser_id de TikTok. Vinculá una cuenta Aprobada al subir el creativo.",
+        "Falta advertiser_id de TikTok. Vincula una cuenta Aprobada al subir el creativo.",
       );
     }
     if (!input.draft.creative_asset_id) {
@@ -196,7 +196,7 @@ export async function approveCreativeDraft(input: {
   if (!wantPublish) {
     if (Boolean(input.publish) && !isTikTokCreativePublishEnabled()) {
       throw new Error(
-        "Publicación TikTok desactivada. Pedí a Holistic activar TIKTOK_CREATIVE_PUBLISH_ENABLED.",
+        "Publicación TikTok desactivada. Pide a Holistic activar TIKTOK_CREATIVE_PUBLISH_ENABLED.",
       );
     }
     const { error: updError } = await admin

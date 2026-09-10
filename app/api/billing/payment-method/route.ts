@@ -163,7 +163,7 @@ export async function DELETE() {
     }
     if (!hecomClienteId) {
       return NextResponse.json(
-        { error: "Seleccioná un cliente Hecom para quitar la tarjeta." },
+        { error: "Selecciona un cliente Hecom para quitar la tarjeta." },
         { status: 400 },
       );
     }
@@ -187,7 +187,7 @@ export async function DELETE() {
     const sanitized =
       message === "CREDIT_LOCK_DETACH_CHARGE_FAILED" ||
       /cobr|deuda|Stripe|CREDIT_LOCK/i.test(message)
-        ? "No se pudo quitar la tarjeta ahora. Probá más tarde o contactá a soporte."
+        ? "No se pudo quitar la tarjeta ahora. Prueba más tarde o contacta a soporte."
         : formatStripeErrorForUser(message);
     return NextResponse.json({ error: sanitized }, { status: 400 });
   }

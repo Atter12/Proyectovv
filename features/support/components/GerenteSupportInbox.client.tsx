@@ -63,7 +63,7 @@ function emptyThread(): ChatMessage[] {
     {
       id: "inbox-empty",
       role: "bot",
-      text: "Elegí un cliente a la izquierda para atender.",
+      text: "Elige un cliente a la izquierda para atender.",
       ...supportChatTimestampsNow(),
       senderName: "Sistema",
       senderKind: "system",
@@ -374,7 +374,7 @@ export function GerenteSupportInbox() {
         {
           id: "empty",
           role: "bot",
-          text: "Chat borrado. Escribí para empezar de nuevo.",
+          text: "Chat borrado. Escribe para empezar de nuevo.",
           ...supportChatTimestampsNow(),
           senderName: "Sistema",
           senderKind: "system",
@@ -454,7 +454,7 @@ export function GerenteSupportInbox() {
           role: "bot",
           text: noAccount
             ? "Este cliente de Hecom aún no tiene cuenta en Ads Holistic. Cuando entre con su correo, verá Soporte Holistic acá."
-            : "Todavía no hay mensajes. Escribí para iniciar; le llega a su Soporte Holistic.",
+            : "Todavía no hay mensajes. Escribe para iniciar; le llega a su Soporte Holistic.",
           ...supportChatTimestampsNow(),
           senderName: "Sistema",
           senderKind: "system",
@@ -484,7 +484,7 @@ export function GerenteSupportInbox() {
               {
                 id: "empty",
                 role: "bot",
-                text: "Sin mensajes todavía. Escribí para responder.",
+                text: "Sin mensajes todavía. Escribe para responder.",
                 ...supportChatTimestampsNow(),
                 senderName: "Sistema",
               },
@@ -711,10 +711,10 @@ export function GerenteSupportInbox() {
                 </p>
                 <p className="mt-1.5 max-w-[16rem] text-[12px] leading-relaxed text-[var(--auth-text-muted)]">
                   {q.trim()
-                    ? "Probá con otro nombre, correo o fragmento del último mensaje."
+                    ? "Prueba con otro nombre, correo o fragmento del último mensaje."
                     : statusFilter === "all"
                       ? "Cuando un cliente escriba en Soporte Holistic, aparecerá acá."
-                      : 'Cambiá a "Todos" o probá otro filtro para ver más clientes.'}
+                      : 'Cambia a "Todos" o prueba otro filtro para ver más clientes.'}
                 </p>
               </div>
             ) : (
@@ -806,7 +806,7 @@ export function GerenteSupportInbox() {
                                 : free
                                   ? "Sin atender"
                                   : mine
-                                    ? "Atendiendo vos"
+                                    ? "Lo atiendes tú"
                                     : `Agente: ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro"}`}
                             {ticket.hasTicket && ticket.status !== "none"
                               ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
@@ -848,7 +848,7 @@ export function GerenteSupportInbox() {
                 Inbox Soporte Holistic
               </p>
               <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[#6b645c]">
-                Elegí un cliente de la lista para ver el historial, tomar el chat
+                Elige un cliente de la lista para ver el historial, tomar el chat
                 y responder. Los mensajes le llegan a su Soporte en Ads Holistic.
               </p>
               {unreadIds.size > 0 ? (
@@ -871,11 +871,11 @@ export function GerenteSupportInbox() {
             subtitle={
               selected
                 ? isUnassigned
-                  ? "Sin agente · tomá el chat o respondé"
+                  ? "Sin agente · toma el chat o responde"
                   : iOwnSelected
-                    ? "Lo estás atendiendo vos"
+                    ? "Lo estás atendiendo tú"
                     : `Atendido por ${assigneeLabel ?? "otro agente"}`
-                : "Seleccioná un cliente en la lista"
+                : "Selecciona un cliente en la lista"
             }
             avatarUrl={selected?.avatarUrl}
             headerActions={headerActions}
@@ -888,9 +888,9 @@ export function GerenteSupportInbox() {
             composerDisabledReason={
               selected?.hasHolisticAccount === false
                 ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
-                : "Otro agente tiene este chat. Pedile que lo libere para responder."
+                : "Otro agente tiene este chat. Pídele que lo libere para responder."
             }
-            emptyHint="Escribí para responder al cliente. Podés pegar capturas o adjuntar archivos."
+            emptyHint="Escribe para responder al cliente. Puedes pegar capturas o adjuntar archivos."
           />
           )}
         </section>

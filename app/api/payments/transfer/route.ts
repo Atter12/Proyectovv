@@ -132,7 +132,7 @@ export async function POST(request: Request) {
       lower.includes("no tiene saldo") ||
       lower.includes("solo hay") ||
       lower.includes("elige") ||
-      lower.includes("elegí") ||
+      lower.includes("elige") ||
       lower.includes("suspendida") ||
       lower.includes("no tiene saldo gastable") ||
       lower.includes("ya no tiene saldo") ||

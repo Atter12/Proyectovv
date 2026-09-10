@@ -4,17 +4,17 @@ const STEPS = [
   {
     n: "01",
     title: "Recargar cartera",
-    description: "Ingresá saldo con pasarelas locales o flujo manual revisado.",
+    description: "Ingresa saldo con pasarelas locales o flujo manual revisado.",
   },
   {
     n: "02",
     title: "Asignar a cuentas ads",
-    description: "Distribuí presupuesto a TikTok y cuentas activas en segundos.",
+    description: "Distribuye presupuesto a TikTok y cuentas activas en segundos.",
   },
   {
     n: "03",
     title: "Gastar y controlar",
-    description: "Seguí cobros, gastos y saldo estimado sin salir del panel.",
+    description: "Sigue cobros, gastos y saldo estimado sin salir del panel.",
   },
 ] as const;
 

@@ -51,7 +51,7 @@ async function uploadInboxAttachment(
   if (error) {
     throw new Error(
       error.message ||
-        "No se pudo subir el archivo. Verificá el bucket support-attachments.",
+        "No se pudo subir el archivo. Verifica el bucket support-attachments.",
     );
   }
 
@@ -876,7 +876,7 @@ export async function ensureInboxTicketForHecomCliente(input: {
     organizationId,
     userId: requesterId,
     title: "Soporte Holistic te escribió",
-    body: `Tenés un mensaje nuevo de soporte.`,
+    body: `Tienes un mensaje nuevo de soporte.`,
     type: "support_reply",
     data: { ticket_id: ticket.id, url: "/support", hecom_cliente_id: cliente.id },
   });
@@ -933,7 +933,7 @@ export async function ensureInboxTicketForOrganization(input: {
   }
 
   throw new Error(
-    "Usá un cliente de Hecom Club. Este inbox ya no abre chats por organización interna.",
+    "Usa un cliente de Hecom Club. Este inbox ya no abre chats por organización interna.",
   );
 }
 
@@ -1130,7 +1130,7 @@ export async function replyInboxTicket(input: {
     ticket.assigned_user_id &&
     ticket.assigned_user_id !== input.session.id
   ) {
-    throw new Error("Este chat lo está atendiendo otro agente. Pedile que lo libere o tomalo solo si está libre.");
+    throw new Error("Este chat lo está atendiendo otro agente. Pídele que lo libere o tómalo solo si está libre.");
   }
 
   // Whaticket-style: al responder se toma el chat automáticamente.

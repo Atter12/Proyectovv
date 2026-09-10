@@ -16,8 +16,8 @@ export function TechloBanner() {
               <span className="text-[var(--tl-primary)]">un solo lugar</span>
             </h1>
             <p className="tl-hero-description mt-4 max-w-lg text-[1rem] leading-7 text-[var(--tl-text)] md:text-[1.05rem]">
-              Recargá la cartera, asigná presupuesto a cuentas TikTok y
-              controlá la operación publicitaria sin planillas ni dashboards
+              Recarga la cartera, asigna presupuesto a cuentas TikTok y
+              controla la operación publicitaria sin planillas ni dashboards
               genéricos.
             </p>
             <div className="tl-hero-actions mt-8 flex flex-wrap items-center gap-3">

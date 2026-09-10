@@ -374,7 +374,7 @@ export async function allocateWithOptionalTikTokFunding(
             tiktokRequestId,
           });
           throw new Error(
-            "TikTok aceptó la transferencia pero el saldo cash no quedó aplicado. No se debitó la cartera: reintentá o contactá a soporte.",
+            "TikTok aceptó la transferencia pero el saldo cash no quedó aplicado. No se debitó la cartera: reintenta o contacta a soporte.",
           );
         }
         if (!cashOk && !sawAfter) {

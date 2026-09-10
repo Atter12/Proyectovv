@@ -362,8 +362,8 @@ export function CreditLockPanel({
           ¿Quieres crédito Holistic?
         </h2>
         <p className="mt-1.5 max-w-[40rem] text-[13px] leading-5 text-[#625b54]">
-          Primero pedís el monto. Gerencia acepta según tu historial. Recién
-          después registrás la tarjeta (candado). Yape o BCP los usás luego para
+          Primero pides el monto. Gerencia acepta según tu historial. Recién
+          después registras la tarjeta (candado). Yape o BCP los usas luego para
           pagar el ciclo en soles.
         </p>
 
@@ -460,7 +460,7 @@ export function CreditLockPanel({
                   </div>
                 </div>
                 <p className="border-t border-[#e4ddd6] px-4 py-2.5 text-[11px] leading-4 text-[#6f675f]">
-                  Si pedís {formatMoney(preview.requested, "USD")}, conviene
+                  Si pides {formatMoney(preview.requested, "USD")}, conviene
                   tener al menos {formatMoney(preview.recommended, "USD")} en la
                   tarjeta (+{preview.headroom}%).
                 </p>
@@ -469,7 +469,7 @@ export function CreditLockPanel({
 
             {status === "rejected" ? (
               <p className="rounded-xl bg-[#fff1f0] px-3.5 py-3 text-[12px] font-medium text-[#9b1c1c]">
-                Este pedido fue rechazado. Podés enviar uno nuevo con otro monto.
+                Este pedido fue rechazado. Puedes enviar uno nuevo con otro monto.
               </p>
             ) : null}
 
@@ -544,7 +544,7 @@ export function CreditLockPanel({
                   .
                   {cupo?.lockReady
                     ? " Ya está activo con tarjeta."
-                    : " Ahora registrá tu tarjeta Stripe (candado)."}
+                    : " Ahora registra tu tarjeta Stripe (candado)."}
                 </p>
 
                 {paymentMethod?.last4 ? (

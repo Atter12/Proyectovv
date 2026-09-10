@@ -77,7 +77,7 @@ export async function POST(request: Request) {
   if (name.length < MIN_NAME_LEN) {
     return NextResponse.json(
       {
-        error: `Escribí al menos ${MIN_NAME_LEN} letras (mejor nombre y apellido).`,
+        error: `Escribe al menos ${MIN_NAME_LEN} letras (mejor nombre y apellido).`,
       },
       { status: 400 },
     );
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
   if (!rate.ok) {
     return NextResponse.json(
       {
-        error: `Esperá ${rate.retryAfterSec ?? LOOKUP_COOLDOWN_SECONDS}s antes de buscar de nuevo.`,
+        error: `Espera ${rate.retryAfterSec ?? LOOKUP_COOLDOWN_SECONDS}s antes de buscar de nuevo.`,
         retryAfterSec: rate.retryAfterSec,
       },
       { status: 429 },
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       ok: true,
       matches: [],
       message:
-        "No encontramos ese nombre con correo en Hecom. Probá nombre y apellido, o escribí el correo si lo recordás.",
+        "No encontramos ese nombre con correo en Hecom. Prueba nombre y apellido, o escribe el correo si lo recuerdas.",
     });
   }
 
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     matches,
     message:
       matches.length === 1
-        ? "Encontramos este correo. Tocá para usarlo e iniciar sesión."
-        : "Encontramos varias coincidencias. Elegí la tuya.",
+        ? "Encontramos este correo. Toca para usarlo e iniciar sesión."
+        : "Encontramos varias coincidencias. Elige la tuya.",
   });
 }

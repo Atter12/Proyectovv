@@ -95,7 +95,7 @@ export function AdAccountsPageHeader({
         meta={
           hecomScoped
             ? "TikTok · solo lectura"
-            : "Seleccioná un cliente para ver sus advertisers"
+            : "Selecciona un cliente para ver sus advertisers"
         }
         actions={
           <>

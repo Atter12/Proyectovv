@@ -107,7 +107,7 @@ export async function listPaymentPortfoliosForBc(input: {
 /**
  * Resuelve el Payment Portfolio del BC (BM200 multi-PA exige este id en
  * `/bc/balance/get/` y `/bc/transfer/`).
- * Preferí string exacto de `/payment_portfolio/get/` — nunca Number().
+ * Prefiere string exacto de `/payment_portfolio/get/` — nunca Number().
  */
 export async function resolveBcPaymentPortfolioId(input: {
   bcId: string;
@@ -117,7 +117,7 @@ export async function resolveBcPaymentPortfolioId(input: {
   if (portfolios.length === 0) return null;
   if (portfolios.length === 1) return portfolios[0].paymentPortfolioId;
 
-  // Si hay varios, preferí NON_SHARED con cash/crédito visible; si no, el primero.
+  // Si hay varios, prefiere NON_SHARED con cash/crédito visible; si no, el primero.
   const withFunds = portfolios.find(
     (p) => (p.availableCredit ?? 0) > 0 || p.type === "NON_SHARED",
   );

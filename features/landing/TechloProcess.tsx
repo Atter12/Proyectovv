@@ -2,19 +2,19 @@ const STEPS = [
   {
     title: "Recargar cartera",
     description:
-      "Ingresá saldo con Stripe, pasarelas locales o flujo manual revisado.",
+      "Ingresa saldo con Stripe, pasarelas locales o flujo manual revisado.",
     image: "/landing/techlo/process/step-01.png",
   },
   {
     title: "Asignar a cuentas ads",
     description:
-      "Distribuí presupuesto a TikTok y advertisers aprobados en segundos.",
+      "Distribuye presupuesto a TikTok y advertisers aprobados en segundos.",
     image: "/landing/techlo/process/step-02.png",
   },
   {
     title: "Gastar y controlar",
     description:
-      "Seguí cobros, gastos y saldo estimado sin salir del panel Holistic.",
+      "Sigue cobros, gastos y saldo estimado sin salir del panel Holistic.",
     image: "/landing/techlo/process/step-03.png",
   },
 ] as const;

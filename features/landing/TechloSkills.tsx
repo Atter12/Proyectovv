@@ -4,7 +4,7 @@ import { TechloButton } from "./TechloButton";
 const FEATURES = [
   {
     title: "Cartera y asignación",
-    description: "Recargá, asigná a TikTok y seguí cada movimiento.",
+    description: "Recarga, asigna a TikTok y sigue cada movimiento.",
   },
   {
     title: "Soporte Latam",
@@ -46,7 +46,7 @@ export function TechloSkills() {
             Tecnología que organiza la operación publicitaria
           </h2>
           <p className="mt-5 max-w-xl text-[1.05rem] leading-[1.8]">
-            Planificá pagos, cuentas y creativos en un panel formal — menos
+            Planifica pagos, cuentas y creativos en un panel formal — menos
             fricción, más trazabilidad financiera real.
           </p>
 

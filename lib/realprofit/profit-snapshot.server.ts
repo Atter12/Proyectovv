@@ -198,7 +198,7 @@ function buildSignals(input: {
       kind: "concentration",
       severity: "warn",
       title: `${top.campaignName} concentra ${(top.spendShare * 100).toFixed(0)}%`,
-      detail: "Revisá si el resultado justifica ese share del budget.",
+      detail: "Revisa si el resultado justifica ese share del budget.",
     });
   }
 
@@ -221,7 +221,7 @@ function buildSignals(input: {
       kind: "pacing",
       severity: "info",
       title: `Pacing bajo (${input.pacingRatio.toFixed(2)}× promedio 7d)`,
-      detail: "Hoy gastás menos de la mitad del promedio diario 7d.",
+      detail: "Hoy gastas menos de la mitad del promedio diario 7d.",
     });
   }
 
@@ -269,7 +269,7 @@ function buildSignals(input: {
       kind: "low_ctr",
       severity: "warn",
       title: `${c.campaignName}: CTR bajo`,
-      detail: `CTR ${c.ctr!.toFixed(2)}% · CPC ${c.cpc != null ? `$${c.cpc.toFixed(2)}` : "—"} — revisá creativo/oferta.`,
+      detail: `CTR ${c.ctr!.toFixed(2)}% · CPC ${c.cpc != null ? `$${c.cpc.toFixed(2)}` : "—"} — revisa creativo/oferta.`,
     });
   }
 

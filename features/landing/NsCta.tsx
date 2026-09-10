@@ -9,15 +9,15 @@ export function NsCta() {
       <div className="ns-container">
         <div className="mx-auto max-w-[40rem] text-center">
           <NsReveal delayMs={40}>
-            <span className="ns-badge mb-5">Empezá hoy</span>
+            <span className="ns-badge mb-5">Empieza hoy</span>
           </NsReveal>
           <NsReveal delayMs={100}>
             <h2 className="ns-h2 mb-3">¿Listo para crecer con control?</h2>
           </NsReveal>
           <NsReveal delayMs={160}>
             <p className="mb-6 text-[var(--ns-muted)]">
-              Hacé que cada dólar de media trabaje más claro. Creá tu cuenta y
-              operá clientes, pagos y gasto diario en Holistic Marketing.
+              Haz que cada dólar de media trabaje más claro. Crea tu cuenta y
+              opera clientes, pagos y gasto diario en Holistic Marketing.
             </p>
           </NsReveal>
           <NsReveal delayMs={220}>

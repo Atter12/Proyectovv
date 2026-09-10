@@ -213,7 +213,7 @@ export function CampaignSpendExplorer({
   return (
     <CrmPanel
       title="Gasto por campaña"
-      subtitle="Filtrá por BM y campaña · buscá o elegí recientes"
+      subtitle="Filtra por BM y campaña · busca o elige recientes"
       className="shadow-none"
       action={
         <div className="flex flex-col items-end gap-0.5 text-right">
@@ -339,8 +339,8 @@ export function CampaignSpendExplorer({
 
           {!hasAny ? (
             <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
-              No hay gasto en este rango con los filtros elegidos. Probá otra BM,
-              campaña o ampliá las fechas.
+              No hay gasto en este rango con los filtros elegidos. Prueba otra BM,
+              campaña o amplía las fechas.
             </p>
           ) : (
             <div className="px-3 pb-4 pt-3 sm:px-5 sm:pt-4">
@@ -395,7 +395,7 @@ export function CampaignSpendExplorer({
                 </div>
               </div>
               <p className="mt-1 text-center text-[10px] text-[var(--auth-text-soft)]">
-                Pasá el mouse sobre una barra para ver el monto exacto
+                Pasa el mouse sobre una barra para ver el monto exacto
               </p>
             </div>
           )}

@@ -13,7 +13,7 @@ export function LandingStartPanel() {
           Empezar en Holistic
         </h2>
         <p className="mt-2 text-[15px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Recargá la cartera, asigná a TikTok y operá campañas en un solo panel.
+          Recarga la cartera, asigna a TikTok y opera campañas en un solo panel.
         </p>
       </div>
 
@@ -50,12 +50,12 @@ export function LandingStartPanel() {
       </div>
 
       <p className="mt-6 text-center text-[13px] font-medium text-[var(--auth-text-soft)]">
-        ¿Ya tenés cuenta?{" "}
+        ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
           className="font-bold text-[var(--auth-accent)] underline-offset-2 hover:underline"
         >
-          Entrá acá
+          Entra acá
         </Link>
       </p>
     </div>

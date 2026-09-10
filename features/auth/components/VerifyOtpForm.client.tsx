@@ -76,13 +76,13 @@ export function VerifyOtpForm() {
     setSuccess(null);
 
     if (!email) {
-      setError("Falta el correo electrónico. Volvé al inicio de sesión.");
+      setError("Falta el correo electrónico. Vuelve al inicio de sesión.");
       setLoading(false);
       return;
     }
 
     if (!/^\d{6}$/.test(otp.trim())) {
-      setError("Introducí un código de 6 dígitos.");
+      setError("Introduce un código de 6 dígitos.");
       setLoading(false);
       return;
     }
@@ -229,7 +229,7 @@ export function VerifyOtpForm() {
     <div className="w-full">
       <div className="mb-7">
         <h1 className="font-display text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
-          {isHecomFlow ? "Código o enlace" : "Verificá tu correo"}
+          {isHecomFlow ? "Código o enlace" : "Verifica tu correo"}
         </h1>
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
           {isHecomFlow ? (
@@ -242,7 +242,7 @@ export function VerifyOtpForm() {
             </>
           ) : (
             <>
-              Introducí el código de 6 dígitos enviado a{" "}
+              Introduce el código de 6 dígitos enviado a{" "}
               <span className="font-semibold text-[var(--auth-text)]">
                 {email || "tu correo"}
               </span>

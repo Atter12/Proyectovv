@@ -127,7 +127,7 @@ export function GastosAdsLedger({
             No hay gastos en este rango
           </p>
           <p className="mt-1 text-[12px] text-[var(--auth-text-muted)]">
-            Probá ampliar las fechas con el selector de arriba.
+            Prueba ampliar las fechas con el selector de arriba.
           </p>
         </div>
       ) : (

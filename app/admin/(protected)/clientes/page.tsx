@@ -48,7 +48,7 @@ export default async function ClientesPage({
       <AdminPageHeader
         eyebrow="Operación"
         title="Elegir cliente"
-        description="Seleccioná un cliente y mirá solo lo suyo: wallet, cuentas, campañas y gasto. Nada se mezcla entre Ely, Luis u otros."
+        description="Selecciona un cliente y mira solo lo suyo: wallet, cuentas, campañas y gasto. Nada se mezcla entre Ely, Luis u otros."
       />
 
       <Card className="mb-5 border-[var(--admin-accent)]/25 bg-[linear-gradient(135deg,var(--admin-accent-soft),transparent)] p-5">
@@ -56,7 +56,7 @@ export default async function ClientesPage({
           Flujo para demo / día a día
         </p>
         <p className="mt-1 text-sm text-[var(--admin-text-muted)]">
-          1) Elegí cliente → 2) Entrá a su vista → 3) Mostrás: “esto es lo único que ve al
+          1) Elige cliente → 2) Entra a su vista → 3) Muestras: “esto es lo único que ve al
           entrar con su correo”. Los datos ya vienen de tu operación; no hace falta conectar
           TikTok acá por ahora.
         </p>

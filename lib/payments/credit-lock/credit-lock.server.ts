@@ -281,7 +281,7 @@ export async function assertCreditLockAllowsAllocate(input: {
     throw new Error(
       approval === "requested"
         ? "Tu pedido de crédito Holistic está en revisión. Gerencia debe aceptarlo antes de fondear."
-        : "Pedí crédito Holistic en Pagos y esperá la aceptación de gerencia antes de fondear desde BM.",
+        : "Pide crédito Holistic en Pagos y espera la aceptación de gerencia antes de fondear desde BM.",
     );
   }
 

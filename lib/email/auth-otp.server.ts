@@ -48,7 +48,7 @@ export async function sendHecomOtpEmail(input: {
                 Tu acceso
               </h1>
               <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#b7aea2;">
-                Usá el código de 6 dígitos o el enlace mágico. Expira pronto y es de un solo uso.
+                Usa el código de 6 dígitos o el enlace mágico. Expira pronto y es de un solo uso.
               </p>
             </td>
           </tr>
@@ -70,7 +70,7 @@ export async function sendHecomOtpEmail(input: {
                 Entrar con enlace mágico
               </a>
               <p style="margin:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#7a7268;">
-                Si no pediste este acceso, ignorá este correo.
+                Si no pediste este acceso, ignora este correo.
               </p>
             </td>
           </tr>
@@ -89,7 +89,7 @@ export async function sendHecomOtpEmail(input: {
     ``,
     `Código: ${input.code}`,
     ``,
-    `O abrí el enlace mágico:`,
+    `O abre el enlace mágico:`,
     input.magicLink,
     ``,
     `Expira pronto y es de un solo uso.`,

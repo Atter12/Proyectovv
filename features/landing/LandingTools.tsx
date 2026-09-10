@@ -7,7 +7,7 @@ const TOOLS = [
   },
   {
     title: "Cuentas publicitarias",
-    description: "Conectá e importá advertisers TikTok con control por cliente.",
+    description: "Conecta e importa advertisers TikTok con control por cliente.",
   },
   {
     title: "Pagos y ledger",
@@ -15,7 +15,7 @@ const TOOLS = [
   },
   {
     title: "Creative Analyzer",
-    description: "Evaluá creativos con criterios de performance, no intuición.",
+    description: "Evalúa creativos con criterios de performance, no intuición.",
   },
 ] as const;
 

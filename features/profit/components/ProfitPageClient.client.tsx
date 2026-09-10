@@ -324,7 +324,7 @@ export function ProfitPageClient({
       };
       if (!res.ok || !json.ok) {
         throw new Error(
-          json.error || "No se pudo vincular. Instalá la app y reintentá.",
+          json.error || "No se pudo vincular. Instala la app y reintenta.",
         );
       }
       setLinkMsg(json.message || "Tienda vinculada.");
@@ -727,7 +727,7 @@ export function ProfitPageClient({
                 <span className="font-semibold text-[#1c1917]">
                   {analysis.breakEvenRoas?.toFixed(2)}x
                 </span>
-                . Conectá tu tienda abajo para CPA / ganancia neta.
+                . Conecta tu tienda abajo para CPA / ganancia neta.
               </div>
             ) : null}
 
@@ -737,7 +737,7 @@ export function ProfitPageClient({
                   Sin campañas con gasto en este período
                 </p>
                 <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
-                  Probá otro rango o esperá a que sync TikTok escriba snapshots.
+                  Prueba otro rango o espera a que sync TikTok escriba snapshots.
                 </p>
               </div>
             ) : (
@@ -929,8 +929,8 @@ export function ProfitPageClient({
               COD activo · falta vincular la tienda
             </p>
             <p className="mt-1 max-w-xl text-[12.5px] leading-5 text-[#9a3412]/90">
-              Ya pagaste Real Profit. Instalá la app en Shopify (si aún no) y
-              tocá <span className="font-semibold">Ya instalé — vincular</span>{" "}
+              Ya pagaste Real Profit. Instala la app en Shopify (si aún no) y
+              toca <span className="font-semibold">Ya instalé — vincular</span>{" "}
               para jalar pedidos cobrados.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -988,10 +988,10 @@ export function ProfitPageClient({
                 Con Shopify · Real Profit COD
               </p>
               <h2 className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)] sm:text-[1.45rem]">
-                ¿Vendés en Shopify?
+                ¿Vendes en Shopify?
               </h2>
               <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                Conectá tu tienda para jalar pedidos y ventas reales. Mirá la
+                Conecta tu tienda para jalar pedidos y ventas reales. Mira la
                 plata que{" "}
                 <span className="font-semibold text-[var(--auth-text)]">
                   sí cobraste
@@ -1004,7 +1004,7 @@ export function ProfitPageClient({
                   "Pedidos y ventas desde tu tienda",
                   "Cobrado COD · plata que sí llegó",
                   "ROAS / CPA sobre lo cobrado",
-                  "Saber cuánto verdaderamente neto ganás",
+                  "Saber cuánto verdaderamente neto ganas",
                 ].map((item) => (
                   <li
                     key={item}
@@ -1292,7 +1292,7 @@ function ShopifyConnectModal({
 
   async function uploadProof() {
     if (!paymentIntentId || !proofFile) {
-      setPayError("Elegí el voucher o comprobante.");
+      setPayError("Elige el voucher o comprobante.");
       return;
     }
     setUploading(true);
@@ -1357,7 +1357,7 @@ function ShopifyConnectModal({
                   ? "Comprobante en revisión"
                   : isActive
                     ? "Real Profit COD activo"
-                    : "Qué tenés hoy vs qué desbloqueás"}
+                    : "Qué tienes hoy vs qué desbloqueas"}
             </h3>
             {domain ? (
               <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
@@ -1436,7 +1436,7 @@ function ShopifyConnectModal({
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  Saber cuánto verdaderamente neto ganás
+                  Saber cuánto verdaderamente neto ganas
                 </li>
               </ul>
               <div className="mt-4 border-t border-[#f0ebe4] pt-3">
@@ -1495,7 +1495,7 @@ function ShopifyConnectModal({
           <div className="space-y-4 px-5 py-5 sm:px-6">
             <p className="text-[13px] leading-5 text-[#5c564e]">
               Depositá <strong className="text-[#1c1917]">USD 20</strong> a
-              esta cuenta (la misma de recargas Holistic) y subí el voucher.
+              esta cuenta (la misma de recargas Holistic) y sube el voucher.
               El equipo revisa y activa Real Profit COD.
             </p>
             <div className="space-y-3">
@@ -1562,7 +1562,7 @@ function ShopifyConnectModal({
                   {subscription?.activeUntil
                     ? ` hasta ${subscription.activeUntil.slice(0, 10)}`
                     : ""}
-                  . Instalá la app en Shopify y después vinculá para jalar
+                  . Instala la app en Shopify y después vincula para jalar
                   pedidos cobrados.
                 </p>
                 <a
@@ -1598,7 +1598,7 @@ function ShopifyConnectModal({
                         if (!res.ok || !json.ok) {
                           throw new Error(
                             json.error ||
-                              "No se pudo vincular. Instalá la app y reintentá.",
+                              "No se pudo vincular. Instala la app y reintenta.",
                           );
                         }
                         setLinkFeedback(json.message || "Tienda vinculada.");

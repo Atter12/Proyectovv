@@ -33,7 +33,7 @@ import {
 export interface ReclaimFromAdAccountInput {
   organizationId: string;
   adAccountId: string;
-  /** Si omitís, recupera todo el saldo Holistic disponible (capado por cash TikTok en BM200). */
+  /** Si omites, recupera todo el saldo Holistic disponible (capado por cash TikTok en BM200). */
   amountCents?: number;
   requestedBy: string;
   idempotencyKey?: string;

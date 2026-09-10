@@ -28,7 +28,7 @@ export default async function PaymentsPage({
       <AdminPageHeader
         eyebrow="Finanzas"
         title="Pagos con comprobante"
-        description="Revisión de transferencias y cripto: al aprobar se acredita saldo disponible en cartera (el cliente asigna a TikTok después). También podés rechazar con motivo."
+        description="Revisión de transferencias y cripto: al aprobar se acredita saldo disponible en cartera (el cliente asigna a TikTok después). También puedes rechazar con motivo."
       />
       <Card className="p-5">
         <form className="mb-5 grid gap-3 md:grid-cols-[1fr_13rem_auto]">

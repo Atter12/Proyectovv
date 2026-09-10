@@ -51,3 +51,11 @@ node_modules/
 .env
 .env.local
 .env.production
+
+# Credenciales locales de despliegue: nunca al repo
+.vercel-token
+.vercel-bypass
+.vercel-cron-secret
+.vercel-preview-secret
+.vercel-preview-url
+scripts/yape-agent/.state.json

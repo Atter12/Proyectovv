@@ -43,13 +43,13 @@ export async function assertHecomClienteAccess(
         clienteId: normalizedClienteId,
       })
     ) {
-      throw new Error("No tenés acceso a este cliente.");
+      throw new Error("No tienes acceso a este cliente.");
     }
     return;
   }
 
   const selected = await getSelectedHecomCliente(session.id);
   if (!selected?.id || selected.id !== normalizedClienteId) {
-    throw new Error("No tenés acceso a este cliente.");
+    throw new Error("No tienes acceso a este cliente.");
   }
 }

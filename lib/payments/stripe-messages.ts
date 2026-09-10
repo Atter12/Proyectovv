@@ -20,7 +20,7 @@ export function formatStripeErrorForUser(message: string): string {
   if (m.includes("stripe no configurado")) {
     return "Los pagos con tarjeta no están disponibles en este momento.";
   }
-  if (m.includes("guarda una tarjeta") || m.includes("guardá una tarjeta")) {
+  if (m.includes("guarda una tarjeta") || m.includes("guarda una tarjeta")) {
     return "Primero guarda una tarjeta y luego activa el débito automático.";
   }
   if (m.includes("monto mínimo")) {

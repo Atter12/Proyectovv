@@ -108,7 +108,7 @@ export function DashboardTopbar({
             </p>
           ) : (
             <p className="mt-0.5 truncate text-[11.5px] font-medium text-[var(--auth-text-soft)] sm:text-[12px]">
-              Recargá con Stripe y asigná a tus ads
+              Recarga con Stripe y asigna a tus ads
             </p>
           )}
         </div>

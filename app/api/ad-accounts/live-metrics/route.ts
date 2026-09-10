@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
   if (!selected?.id) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente primero." },
+      { error: "Selecciona un cliente primero." },
       { status: 400 },
     );
   }

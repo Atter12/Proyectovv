@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const hecomClienteId = selected?.id ?? null;
   if (!hecomClienteId) {
     return NextResponse.json(
-      { error: "Seleccioná un cliente Hecom." },
+      { error: "Selecciona un cliente Hecom." },
       { status: 400 },
     );
   }

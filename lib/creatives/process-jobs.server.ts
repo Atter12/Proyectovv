@@ -154,7 +154,7 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
   if (!insight) {
     await markJobFailed(
       job.id,
-      "No se pudo analizar con IA (revisá OPENAI_API_KEY).",
+      "No se pudo analizar con IA (revisa OPENAI_API_KEY).",
     );
     return { ok: false, error: "OpenAI failed." };
   }

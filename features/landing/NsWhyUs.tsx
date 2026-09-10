@@ -7,12 +7,12 @@ const left = [
   {
     title: "Agencias",
     description:
-      "Operá múltiples clientes, fees y cuentas sin mezclar saldos ni scopes.",
+      "Opera múltiples clientes, fees y cuentas sin mezclar saldos ni scopes.",
   },
   {
     title: "E-commerce",
     description:
-      "Controlá gasto diario y recargas cuando el ROAS exige velocidad.",
+      "Controla gasto diario y recargas cuando el ROAS exige velocidad.",
   },
   {
     title: "SaaS & tech",

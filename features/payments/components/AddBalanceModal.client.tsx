@@ -729,7 +729,7 @@ export function AddBalanceModal({
                   </p>
                   <p className="mt-1 text-[12px] leading-5 text-[#625b54]">
                     {crmDocumentHint
-                      ? `En el CRM figura “${crmDocumentHint}”, que no sirve para Yape. Escribí tu DNI (8 dígitos) o RUC (11).`
+                      ? `En el CRM figura “${crmDocumentHint}”, que no sirve para Yape. Escribe tu DNI (8 dígitos) o RUC (11).`
                       : "Para pagar con Yape necesitamos tu DNI (8 dígitos) o RUC (11). Se guarda en tu ficha Hecom."}
                   </p>
                   <label className="mt-3 block">

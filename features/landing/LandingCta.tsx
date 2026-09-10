@@ -9,10 +9,10 @@ export function LandingCta() {
         <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 overflow-hidden rounded-[1.25rem] bg-[var(--auth-text)] px-5 py-8 sm:gap-8 sm:rounded-[1.5rem] sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl">
             <p className="text-[1rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)] sm:text-[1.1rem]">
-              Empezá hoy
+              Empieza hoy
             </p>
             <h2 className="mt-2 text-[1.55rem] font-bold leading-[1.2] tracking-[-0.03em] text-white sm:text-[2rem] lg:text-[2.15rem]">
-              Creá tu cuenta y publicá con control real.
+              Crea tu cuenta y publica con control real.
             </h2>
             <p className="mt-3 text-[14px] font-medium leading-6 text-white/70 sm:text-[15px] sm:leading-7">
               Unite a +180 equipos que ya centralizan cartera, cuentas ads y pagos.

@@ -259,7 +259,7 @@ export async function resolveHolisticUsdPenRate(): Promise<HolisticFxQuote> {
 
 /**
  * Sync: cache fresca o env. No hace red.
- * Preferí `resolveHolisticUsdPenRate` al crear intents.
+ * Prefiere `resolveHolisticUsdPenRate` al crear intents.
  */
 export function getHolisticUsdPenRateSync(): number {
   if (

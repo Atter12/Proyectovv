@@ -90,7 +90,7 @@ export function ClienteScopedCreatives({
         module="Creativos"
         title="Creative Hub · Agent Pro"
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl }}
-        meta={`Subí → IA → Enviar campaña · ${analyzed} con score`}
+        meta={`Sube → IA → Enviar campaña · ${analyzed} con score`}
         actions={
           <>
             <CrmHeroButton href="#creative-upload">Subir video</CrmHeroButton>
@@ -204,7 +204,7 @@ function ProyectosPanel({ rows }: { rows: HecomCreativoProyecto[] }) {
       {rows.length === 0 ? (
         <div className="px-4 py-8 sm:px-5">
           <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Sin proyectos asociados. Subí una pieza arriba para encolar análisis.
+            Sin proyectos asociados. Sube una pieza arriba para encolar análisis.
           </p>
           <Link
             href="#creative-upload"

@@ -10,17 +10,17 @@ const steps = [
     n: "01",
     title: "Alta y cliente operativo.",
     description:
-      "Entrá al panel, vinculá o elegí el cliente Hecom y ya tenés scope limpio.",
+      "Entra al panel, vincula o elige el cliente Hecom y ya tienes scope limpio.",
   },
   {
     n: "02",
-    title: "Recargá ads.",
+    title: "Recarga ads.",
     description:
       "Cliente con Stripe; gerente con recarga BM. La plata llega a la cuenta que importa.",
   },
   {
     n: "03",
-    title: "Medí gasto todos los días.",
+    title: "Mide gasto todos los días.",
     description:
       "Hoy, 7d y 30d con la sync TikTok — sin pedirle un Excel a nadie.",
   },

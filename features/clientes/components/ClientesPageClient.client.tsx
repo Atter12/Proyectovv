@@ -173,7 +173,7 @@ export function ClientesPageClient({
           {isStaffPicker ? "CRM Hecom" : "Tu cuenta"}
         </p>
         <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
-          {isStaffPicker ? "Elegí un cliente" : "Elegir cliente"}
+          {isStaffPicker ? "Elige un cliente" : "Elegir cliente"}
         </h1>
         <p className="mt-1 text-[13px] text-[var(--auth-text-muted)]">
           {isStaffPicker
@@ -205,7 +205,7 @@ export function ClientesPageClient({
         >
           <p className="font-semibold">No se pudieron cargar los clientes</p>
           <p className="mt-1 font-medium text-red-800/90">
-            {payload.error ?? "Error desconocido. Reintentá en unos segundos."}
+            {payload.error ?? "Error desconocido. Reintenta en unos segundos."}
           </p>
         </div>
       ) : null}

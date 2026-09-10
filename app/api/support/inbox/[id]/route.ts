@@ -45,7 +45,7 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json(
-      { error: "Acción inválida. Usá claim o release." },
+      { error: "Acción inválida. Usa claim o release." },
       { status: 400 },
     );
   } catch (error) {
