@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { SupportPageClient } from "@/features/support/components/SupportPageClient.client";
+import { SupportSpanishProvider } from "@/features/support/components/SupportSpanishProvider.client";
 import { GerenteSupportInbox } from "@/features/support/components/GerenteSupportInbox.client";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,13 @@ export default async function SupportPage() {
         </div>
       }
     >
-      {isGerenteInbox ? <GerenteSupportInbox /> : <SupportPageClient persona={persona} />}
+      {isGerenteInbox ? (
+        <GerenteSupportInbox />
+      ) : (
+        <SupportSpanishProvider>
+          <SupportPageClient persona={persona} />
+        </SupportSpanishProvider>
+      )}
     </Suspense>
   );
 }

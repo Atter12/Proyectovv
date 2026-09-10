@@ -1,5 +1,6 @@
 ﻿import { Suspense } from "react";
 import { after } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedPayments } from "@/features/clientes/components/ClienteScopedPayments";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
@@ -18,37 +19,39 @@ import {
 import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
-function StripeReturnBanner({ status }: { status?: string }) {
+async function StripeReturnBanner({ status }: { status?: string }) {
+  if (status !== "success" && status !== "cancelled") {
+    return null;
+  }
+
+  const t = await getTranslations("payments");
+
   if (status === "success") {
     return (
       <div
         className="rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-950"
         role="status"
       >
-        Pago confirmado. En unos segundos se acreditará en la cartera. Luego ve a{" "}
+        {t("stripe.successBefore")}{" "}
         <a
           href="#asignar-saldo"
           className="font-bold text-emerald-900 underline underline-offset-2"
         >
-          Asignar saldo
+          {t("stripe.successLink")}
         </a>{" "}
-        y transfiérelo a una cuenta de TikTok.
+        {t("stripe.successAfter")}
       </div>
     );
   }
 
-  if (status === "cancelled") {
-    return (
-      <div
-        className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
-        role="status"
-      >
-        El checkout de Stripe se canceló. Puedes intentarlo de nuevo cuando quieras.
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div
+      className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
+      role="status"
+    >
+      {t("stripe.cancelled")}
+    </div>
+  );
 }
 
 export default async function PaymentsPage({
@@ -57,6 +60,7 @@ export default async function PaymentsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requirePermission("payments:read");
+  const t = await getTranslations("payments");
   const params = await searchParams;
   const status = typeof params.status === "string" ? params.status : undefined;
   const isStripeReturn = status === "success" || status === "cancelled";
@@ -81,7 +85,7 @@ export default async function PaymentsPage({
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Pagos y recargas"
+          section={t("intro.section")}
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -101,7 +105,7 @@ export default async function PaymentsPage({
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Pagos y recargas"
+          section={t("intro.section")}
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -161,8 +165,8 @@ export default async function PaymentsPage({
 
   const introCopy =
     capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
-      ? `Elige una cuenta de ${cliente.name} y recárgala desde el Business Center.`
-      : `Agrega saldo a la cartera de ${cliente.name} y asígnalo a una cuenta de TikTok.`;
+      ? t("intro.manager", { name: cliente.name })
+      : t("intro.client", { name: cliente.name });
 
   return (
     <div className={dashboardClasses.page}>

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Caveat, Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { siteConfig } from "@/config/site";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
@@ -8,7 +10,8 @@ import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
 import { assertProductionSecrets } from "@/lib/env/env.server";
 import { clerkConfigured, clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { holisticClerkAppearance } from "@/lib/auth/clerk-appearance";
-import { holisticClerkLocalization } from "@/lib/auth/clerk-localization";
+import { getClerkLocalization } from "@/lib/auth/clerk-localization";
+import { resolveAppLocale } from "@/i18n/config";
 import { routes } from "@/config/routes";
 import "./globals.css";
 
@@ -64,26 +67,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   assertProductionSecrets();
 
+  const locale = resolveAppLocale(await getLocale());
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   const clerkEnabled = clerkConfigured() && clerkLoginEnabled();
 
   const body = (
-    <>
+    <NextIntlClientProvider>
       <DocumentThemeScope />
       {children}
-    </>
+    </NextIntlClientProvider>
   );
 
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${plusJakarta.variable} ${sora.variable} ${caveat.variable} light h-full antialiased`}
       suppressHydrationWarning
     >
@@ -101,7 +105,7 @@ export default function RootLayout({
         {clerkEnabled && publishableKey ? (
           <ClerkProvider
             publishableKey={publishableKey}
-            localization={holisticClerkLocalization}
+            localization={getClerkLocalization(locale)}
             appearance={holisticClerkAppearance}
             signInUrl={clerkRoutes.signIn}
             signUpUrl={clerkRoutes.signUp}

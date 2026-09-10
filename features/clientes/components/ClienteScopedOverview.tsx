@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 import {
   CrmHeroButton,
@@ -15,10 +16,10 @@ import {
 } from "@/lib/hecom/gasto-label";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
-  moneyUsd,
   type HecomClienteDashboard,
   type HecomGastoRow,
 } from "@/lib/hecom/cliente-dashboard.server";
+import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import type { HecomTiktokAccount } from "@/lib/hecom/clientes.server";
 
 function parseAdvertiserLabel(raw: string | null) {
@@ -42,10 +43,6 @@ function parseAdvertiserLabel(raw: string | null) {
   return { title: raw.trim(), balance: null, tag: null };
 }
 
-function sourceLabel(source: HecomClienteDashboard["source"]) {
-  return source === "hecom_live" ? "En vivo" : "Backup";
-}
-
 function shortId(id: string) {
   if (id.length <= 12) return id;
   return `${id.slice(0, 6)}…${id.slice(-4)}`;
@@ -63,13 +60,16 @@ function initials(name: string) {
  * No mostramos “Deuda neta” Hecom aquí: suele estar incompleta (cobros faltantes)
  * y asusta al cliente. Staff ve cobros/gastos en el strip de métricas.
  */
-export function ClienteScopedOverview({
+export async function ClienteScopedOverview({
   data,
   canChangeCliente = false,
 }: {
   data: HecomClienteDashboard;
   canChangeCliente?: boolean;
 }) {
+  const t = await getTranslations("overview");
+  const { formatMoney } = await getAppFormatter();
+  const moneyUsd = (value: number) => formatMoney(value, "USD");
   const { cliente, summary, accounts, gastos } = data;
   const recentGastos = gastos.slice(0, 8);
   const activeAccounts = accounts.filter((a) => a.syncEnabled !== false).length;
@@ -78,23 +78,23 @@ export function ClienteScopedOverview({
   return (
     <div className="space-y-5 sm:space-y-6">
       <CrmScopeHero
-        module="Hecom Club"
+        module={t("module")}
         title={cliente.name}
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl, biz: cliente.biz }}
-        meta={`Fee Holistic ${summary.depositFeePercent}%`}
+        meta={t("feeMeta", { percent: summary.depositFeePercent })}
         actions={
           <>
             <CrmHeroButton href={routes.payments}>
               <WalletIcon />
-              {canChangeCliente ? "Recargar / asignar" : "Recargar"}
+              {canChangeCliente ? t("ctaReloadAssign") : t("ctaReload")}
             </CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               <ChartIcon />
-              Ver cuentas
+              {t("ctaAccounts")}
             </CrmHeroButton>
             {canChangeCliente ? (
               <CrmHeroButton href={routes.clientes} variant="ghost">
-                Cambiar cliente
+                {t("changeClient")}
               </CrmHeroButton>
             ) : null}
           </>
@@ -102,14 +102,16 @@ export function ClienteScopedOverview({
         aside={
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-              Gasto de hoy
+              {t("spendToday")}
             </p>
             <p className="mt-1 text-[1.65rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.85rem]">
               {moneyUsd(summary.gastoHoy)}
             </p>
             <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-              Últimos 7 días · {moneyUsd(summary.gasto7d)} · Fee{" "}
-              {summary.depositFeePercent}%
+              {t("spend7dAside", {
+                amount: moneyUsd(summary.gasto7d),
+                percent: summary.depositFeePercent,
+              })}
             </p>
           </div>
         }
@@ -122,6 +124,7 @@ export function ClienteScopedOverview({
         pausedAccounts={pausedAccounts}
         accountCount={summary.accountCount}
         dailySource={summary.dailySource}
+        moneyUsd={moneyUsd}
       />
 
       <DailySpendPanel
@@ -130,52 +133,63 @@ export function ClienteScopedOverview({
         gasto7d={summary.gasto7d}
         gasto30d={summary.gasto30d}
         source={summary.dailySource}
+        moneyUsd={moneyUsd}
       />
 
       <CrmQuickLinks
         links={[
-          { href: routes.adAccounts, label: "Cuentas ads" },
-          { href: routes.payments, label: "Pagos" },
-          { href: routes.profit, label: "Profit" },
-          { href: `${routes.payments}#asignar-saldo`, label: "Asignar saldo" },
+          { href: routes.adAccounts, label: t("quickAdAccounts") },
+          { href: routes.payments, label: t("quickPayments") },
+          { href: routes.profit, label: t("quickProfit") },
+          { href: `${routes.payments}#asignar-saldo`, label: t("quickAssign") },
         ]}
       />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
-        <GastosPanel gastos={recentGastos} accounts={accounts} source={data.source} />
+        <GastosPanel
+          gastos={recentGastos}
+          accounts={accounts}
+          source={data.source}
+          moneyUsd={moneyUsd}
+        />
       </div>
     </div>
   );
 }
 
-function OverviewMetricsStrip({
+async function OverviewMetricsStrip({
   summary,
   activeAccounts,
   pausedAccounts,
   accountCount,
   dailySource,
+  moneyUsd,
 }: {
   summary: HecomClienteDashboard["summary"];
   activeAccounts: number;
   pausedAccounts: number;
   accountCount: number;
   dailySource: HecomClienteDashboard["summary"]["dailySource"];
+  moneyUsd: (value: number) => string;
 }) {
+  const t = await getTranslations("overview");
   const gastoHoyHint =
     dailySource === "none"
-      ? "Sin sync del día"
+      ? t("noDaySync")
       : summary.gastoHoy > 0
-        ? "America/Lima"
-        : "Sin actividad hoy";
+        ? t("timezoneLima")
+        : t("noActivityToday");
   const accountsHint =
-    accountCount > 0 ? `${activeAccounts} activas · ${pausedAccounts} pausadas` : undefined;
+    accountCount > 0
+      ? t("accountsHint", { active: activeAccounts, paused: pausedAccounts })
+      : undefined;
 
   return (
     <CrmMetricsStrip>
       <div className="border-b border-[var(--auth-divider)] sm:hidden">
         <CrmMetricCell
-          label="Gasto de hoy"
+          label={t("spendToday")}
           value={moneyUsd(summary.gastoHoy)}
           hint={gastoHoyHint}
           emphasis="primary"
@@ -184,30 +198,30 @@ function OverviewMetricsStrip({
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)]">
         <CrmMetricCell
           className="hidden sm:block"
-          label="Gasto de hoy"
+          label={t("spendToday")}
           value={moneyUsd(summary.gastoHoy)}
           hint={gastoHoyHint}
           emphasis="primary"
         />
         <CrmMetricCell
           className="border-r border-[var(--auth-divider)] sm:border-r-0"
-          label="Últimos 7 días"
+          label={t("spend7d")}
           value={moneyUsd(summary.gasto7d)}
         />
         <CrmMetricCell
           className="border-b border-[var(--auth-divider)] sm:border-b-0"
-          label="Cobros"
+          label={t("cobros")}
           value={moneyUsd(summary.cobroTotal)}
         />
-        <CrmMetricCell label="Gastos ads" value={moneyUsd(summary.gastoTotal)} />
+        <CrmMetricCell label={t("adSpend")} value={moneyUsd(summary.gastoTotal)} />
         <CrmMetricCell
           className="border-r border-[var(--auth-divider)] sm:border-r-0"
-          label="Fee Holistic"
+          label={t("feeHolistic")}
           value={`${summary.depositFeePercent}%`}
           emphasis="muted"
         />
         <CrmMetricCell
-          label="Cuentas TikTok"
+          label={t("tiktokAccounts")}
           value={String(accountCount)}
           hint={accountsHint}
           emphasis="muted"
@@ -254,14 +268,6 @@ function ChartIcon() {
   );
 }
 
-function dailySourceLabel(
-  source: HecomClienteDashboard["summary"]["dailySource"],
-) {
-  if (source === "snapshots") return "TikTok sync";
-  if (source === "gastos") return "Hecom gastos";
-  return "Sin datos";
-}
-
 function shortDayLabel(dateYmd: string) {
   const iso = dateYmd.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return dateYmd;
@@ -269,35 +275,44 @@ function shortDayLabel(dateYmd: string) {
   return `${d}/${m}`;
 }
 
-function DailySpendPanel({
+async function DailySpendPanel({
   series,
   gastoHoy,
   gasto7d,
   gasto30d,
   source,
+  moneyUsd,
 }: {
   series: HecomClienteDashboard["summary"]["dailySeries"];
   gastoHoy: number;
   gasto7d: number;
   gasto30d: number;
   source: HecomClienteDashboard["summary"]["dailySource"];
+  moneyUsd: (value: number) => string;
 }) {
+  const t = await getTranslations("overview");
   const max = Math.max(...series.map((p) => p.spend), 0);
   const peak = max > 0 ? max : 1;
   const hasAny = series.some((p) => p.spend > 0);
   // Móvil: últimos 7 días para no aplastar barras
   const mobileSeries = series.slice(-7);
+  const sourceLabel =
+    source === "snapshots"
+      ? t("dailySpend.sourceTiktok")
+      : source === "gastos"
+        ? t("dailySpend.sourceGastos")
+        : t("dailySpend.sourceNone");
 
   return (
     <CrmPanel
-      title="Gasto diario"
-      subtitle={`Últimos ${series.length} días · America/Lima`}
+      title={t("dailySpend.title")}
+      subtitle={t("dailySpend.subtitle", { days: series.length })}
       className="shadow-none"
       action={
         <div className="flex items-center gap-4 text-left sm:text-right">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-              Hoy
+              {t("dailySpend.today")}
             </p>
             <p className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
               {moneyUsd(gastoHoy)}
@@ -324,7 +339,7 @@ function DailySpendPanel({
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-[var(--auth-divider)] px-4 pb-3 pt-0.5">
         <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-          Fuente:{" "}
+          {t("dailySpend.source")}{" "}
           <span
             className={
               source === "none"
@@ -332,16 +347,14 @@ function DailySpendPanel({
                 : "text-[var(--auth-text)]"
             }
           >
-            {dailySourceLabel(source)}
+            {sourceLabel}
           </span>
         </span>
       </div>
 
       {!hasAny ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:py-10">
-          Aún no hay gasto diario registrado para este cliente. Cuando la sync
-          TikTok escriba snapshots (o haya filas de gasto con fecha), se verán
-          aquí.
+          {t("dailySpend.empty")}
         </p>
       ) : (
         <>
@@ -440,46 +453,55 @@ function DailySpendPanel({
   );
 }
 
-function statusMeta(syncEnabled: boolean | undefined) {
+function statusMeta(
+  syncEnabled: boolean | undefined,
+  labels: { paused: string; inCampaign: string },
+) {
   if (syncEnabled === false) {
     return {
-      label: "Pausada",
+      label: labels.paused,
       className:
         "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]",
       dot: "bg-[var(--auth-text-soft)]",
     };
   }
   return {
-    label: "En campaña",
+    label: labels.inCampaign,
     className: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80",
     dot: "bg-emerald-500",
   };
 }
 
-function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
+async function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
+  const t = await getTranslations("overview");
+  const statusLabels = {
+    paused: t("accountsPanel.paused"),
+    inCampaign: t("accountsPanel.inCampaign"),
+  };
+
   return (
     <CrmPanel
-      title="Cuentas TikTok"
-      subtitle="Hecom · solo lectura"
+      title={t("tiktokAccounts")}
+      subtitle={t("accountsPanel.hecomReadonly")}
       className="flex h-full flex-col overflow-hidden"
       action={
         <Link
           href={routes.adAccounts}
           className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
         >
-          Ver todas ({accounts.length})
+          {t("accountsPanel.viewAll", { count: accounts.length })}
         </Link>
       }
     >
       {accounts.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
-          Sin advertiser mapeado en Hecom.
+          {t("accountsPanel.empty")}
         </p>
       ) : (
         <ul className="max-h-[28rem] flex-1 overflow-y-auto sm:max-h-[24rem]">
           {accounts.map((account) => {
             const label = parseAdvertiserLabel(account.advertiserName);
-            const status = statusMeta(account.syncEnabled);
+            const status = statusMeta(account.syncEnabled, statusLabels);
             return (
               <li
                 key={account.advertiserId}
@@ -583,31 +605,35 @@ function bmMapFromAccounts(accounts: HecomTiktokAccount[]) {
   return map;
 }
 
-function GastosPanel({
+async function GastosPanel({
   gastos,
   accounts,
   source,
+  moneyUsd,
 }: {
   gastos: HecomGastoRow[];
   accounts: HecomTiktokAccount[];
   source: HecomClienteDashboard["source"];
+  moneyUsd: (value: number) => string;
 }) {
+  const t = await getTranslations("overview");
   const bmByAdvertiser = bmMapFromAccounts(accounts);
+  const sourceLabel = source === "hecom_live" ? t("live") : t("backup");
 
   return (
     <CrmPanel
-      title="Últimos gastos"
-      subtitle="Consumo reciente de campañas"
+      title={t("gastosPanel.title")}
+      subtitle={t("gastosPanel.subtitle")}
       action={
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-            {sourceLabel(source)}
+            {sourceLabel}
           </span>
           <Link
             href={routes.profit}
             className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
           >
-            Ver Profit
+            {t("gastosPanel.viewProfit")}
           </Link>
         </div>
       }
@@ -615,7 +641,7 @@ function GastosPanel({
     >
       {gastos.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
-          Sin gastos registrados para este cliente.
+          {t("gastosPanel.empty")}
         </p>
       ) : (
         <ul className="max-h-[28rem] flex-1 overflow-y-auto sm:max-h-[24rem]">

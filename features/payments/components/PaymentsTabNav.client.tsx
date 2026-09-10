@@ -1,36 +1,46 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
 import type { PaymentTabKey } from "@/types/payment";
-
-const TAB_ITEMS: {
-  id: PaymentTabKey;
-  label: string;
-  shortLabel: string;
-}[] = [
-  { id: "assignment", label: "Asignación de saldo", shortLabel: "Asignación" },
-  {
-    id: "account-tx",
-    label: "Historial de transacciones de la cuenta publicitaria",
-    shortLabel: "Hist. cuenta",
-  },
-  {
-    id: "wallet-tx",
-    label: "Historial de transacciones de la Cartera Default",
-    shortLabel: "Hist. cartera",
-  },
-  { id: "refunds", label: "Historial de reembolsos", shortLabel: "Reembolsos" },
-];
 
 interface PaymentsTabNavProps {
   activeTab: PaymentTabKey;
 }
 
 export function PaymentsTabNav({ activeTab }: PaymentsTabNavProps) {
+  const t = useTranslations("payments");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const TAB_ITEMS: {
+    id: PaymentTabKey;
+    label: string;
+    shortLabel: string;
+  }[] = [
+    {
+      id: "assignment",
+      label: t("tabs.assignment"),
+      shortLabel: t("tabs.assignmentShort"),
+    },
+    {
+      id: "account-tx",
+      label: t("tabs.accountTx"),
+      shortLabel: t("tabs.accountTxShort"),
+    },
+    {
+      id: "wallet-tx",
+      label: t("tabs.walletTx"),
+      shortLabel: t("tabs.walletTxShort"),
+    },
+    {
+      id: "refunds",
+      label: t("tabs.refunds"),
+      shortLabel: t("tabs.refundsShort"),
+    },
+  ];
 
   function handleTabChange(tab: PaymentTabKey) {
     const params = new URLSearchParams(searchParams.toString());

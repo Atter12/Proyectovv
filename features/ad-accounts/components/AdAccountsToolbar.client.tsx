@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -15,15 +16,6 @@ const CreateAdAccountModal = dynamic(
     import("./CreateAdAccountModal.client").then((m) => m.CreateAdAccountModal),
   { ssr: false },
 );
-
-const statusOptions: { value: AdAccountStatus | "all"; label: string }[] = [
-  { value: "all", label: "Todos los estados" },
-  { value: "active", label: "Activa" },
-  { value: "pending", label: "Pendiente" },
-  { value: "disabled", label: "Suspendida" },
-  { value: "review", label: "En revisión" },
-  { value: "archived", label: "Archivada" },
-];
 
 interface AdAccountsToolbarProps {
   initialSearch?: string;
@@ -38,6 +30,7 @@ export function AdAccountsToolbar({
   initialIncludeArchived = false,
   hideCreate = false,
 }: AdAccountsToolbarProps) {
+  const t = useTranslations("adAccounts");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -45,6 +38,15 @@ export function AdAccountsToolbar({
   const [status, setStatus] = useState(initialStatus);
   const [includeArchived, setIncludeArchived] = useState(initialIncludeArchived);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const statusOptions: { value: AdAccountStatus | "all"; label: string }[] = [
+    { value: "all", label: t("toolbar.statusAll") },
+    { value: "active", label: t("status.active") },
+    { value: "pending", label: t("status.pending") },
+    { value: "disabled", label: t("status.disabled") },
+    { value: "review", label: t("status.review") },
+    { value: "archived", label: t("status.archived") },
+  ];
 
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -90,7 +92,7 @@ export function AdAccountsToolbar({
                 />
               </svg>
               <Input
-                placeholder="Buscar cuenta o ID"
+                placeholder={t("toolbar.search")}
                 value={search}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -127,7 +129,7 @@ export function AdAccountsToolbar({
                   }}
                   className="h-3.5 w-3.5 rounded border-[var(--auth-border)] text-[var(--auth-accent)] focus:ring-[var(--auth-accent)]"
                 />
-                Ver archivadas
+                {t("toolbar.includeArchived")}
               </label>
             ) : null}
           </div>
@@ -137,7 +139,7 @@ export function AdAccountsToolbar({
                 variant="outline"
                 className="h-9 rounded-lg border-[var(--auth-border)] bg-white px-3 text-[12px] font-semibold text-[var(--auth-text)] hover:bg-[var(--auth-bg)]"
               >
-                Analizador creativo
+                {t("toolbar.creativeAnalyzer")}
               </Button>
             </Link>
             {!hideCreate ? (
@@ -145,7 +147,7 @@ export function AdAccountsToolbar({
                 onClick={() => setModalOpen(true)}
                 className="hidden h-9 rounded-lg bg-[var(--auth-accent)] px-3.5 text-[12px] font-semibold text-white hover:brightness-[1.05] md:inline-flex"
               >
-                Crear nuevo
+                {t("toolbar.createNew")}
               </Button>
             ) : null}
           </div>

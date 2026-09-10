@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DashboardModalShell } from "@/components/ui/DashboardModalShell.client";
@@ -16,15 +17,10 @@ interface CreateAdAccountModalProps {
 
 const MAX_NAME_LENGTH = 120;
 const MAX_BC_ID_LENGTH = 64;
-const platforms: { value: AdAccountPlatform; label: string }[] = [
-  { value: "meta", label: "Meta" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "google", label: "Google" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "other", label: "Otra" },
-];
 
 export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProps) {
+  const t = useTranslations("adAccounts");
+  const tCommon = useTranslations("common");
   const [accountName, setAccountName] = useState("");
   const [platform, setPlatform] = useState<AdAccountPlatform>("meta");
   const [bcId, setBcId] = useState("");
@@ -39,6 +35,14 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const platforms: { value: AdAccountPlatform; label: string }[] = [
+    { value: "meta", label: "Meta" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "google", label: "Google" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "other", label: t("createModal.other") },
+  ];
 
   function resetForm() {
     setStep("form");
@@ -63,7 +67,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
 
   if (!open) return null;
 
-  const displayName = accountName.trim() || "Cuenta publicitaria Default";
+  const displayName = accountName.trim() || t("createModal.defaultName");
   const displayBcId = bcId.trim() || "Manual/Demo";
 
   function parseAmount(value: string): number | undefined {
@@ -74,7 +78,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
 
   function validateBeforeConfirm() {
     if (!displayName.trim()) {
-      setError("El nombre de cuenta es obligatorio.");
+      setError(t("createModal.nameRequired"));
       return;
     }
     setError(null);
@@ -107,7 +111,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo crear la cuenta publicitaria.",
+          : t("createModal.createError"),
       );
     } finally {
       setLoading(false);
@@ -119,7 +123,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
       {step === "form" ? (
         <>
           <h2 id="create-account-title" className="text-lg font-semibold text-[var(--foreground)]">
-            Crear cuenta publicitaria
+            {t("createModal.title")}
           </h2>
           <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
             Configura una cuenta manual/demo o deja lista la información de vinculación externa.
@@ -128,10 +132,10 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Nombre de cuenta
+                {t("createModal.name")}
               </label>
               <Input
-                placeholder="Cuenta publicitaria Default"
+                placeholder={t("createModal.defaultName")}
                 value={accountName}
                 maxLength={MAX_NAME_LENGTH}
                 onChange={(e) => setAccountName(e.target.value)}
@@ -139,7 +143,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Plataforma
+                {t("createModal.platform")}
               </label>
               <select
                 value={platform}
@@ -155,7 +159,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Huso horario
+                {t("createModal.timezone")}
               </label>
               <Input
                 value={timezone}
@@ -165,7 +169,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Business Center / BC ID
+                {t("createModal.bcId")}
               </label>
               <Input
                 placeholder="BC-0001"
@@ -176,10 +180,10 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                ID de cuenta externa
+                {t("createModal.externalId")}
               </label>
               <Input
-                placeholder="Opcional"
+                placeholder={tCommon("optional")}
                 value={externalAccountId}
                 maxLength={MAX_BC_ID_LENGTH}
                 onChange={(e) => setExternalAccountId(e.target.value)}
@@ -187,10 +191,10 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Nombre externo visible
+                {t("createModal.externalName")}
               </label>
               <Input
-                placeholder="Opcional"
+                placeholder={tCommon("optional")}
                 value={externalAccountName}
                 maxLength={120}
                 onChange={(e) => setExternalAccountName(e.target.value)}
@@ -198,7 +202,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Presupuesto diario USD
+                {t("createModal.dailyBudget")}
               </label>
               <Input
                 type="number"
@@ -210,7 +214,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                Límite mensual USD
+                {t("createModal.monthlyLimit")}
               </label>
               <Input
                 type="number"
@@ -227,7 +231,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                   checked={autoRechargeEnabled}
                   onChange={(e) => setAutoRechargeEnabled(e.target.checked)}
                 />
-                Activar recarga automática
+                {t("createModal.autoRecharge")}
               </label>
               <Input
                 type="number"
@@ -236,7 +240,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 disabled={!autoRechargeEnabled}
                 value={rechargeThreshold}
                 onChange={(e) => setRechargeThreshold(e.target.value)}
-                placeholder="Umbral de recarga USD"
+                placeholder={t("createModal.threshold")}
                 className="mt-3"
               />
             </div>
@@ -250,37 +254,47 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
 
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={handleClose} className="h-11 w-full sm:w-auto">
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button
               onClick={validateBeforeConfirm}
               className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto"
             >
-              Continuar
+              {tCommon("continue")}
             </Button>
           </div>
         </>
       ) : (
         <>
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Confirmar creación</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            {t("createModal.confirmTitle")}
+          </h2>
           <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
             Revisa los datos antes de crear la cuenta.
           </p>
           <dl className="mt-5 space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4 text-sm">
             <div>
-              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">Nombre</dt>
+              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                {t("createModal.name")}
+              </dt>
               <dd className="font-medium text-[var(--foreground)]">{displayName}</dd>
             </div>
             <div>
-              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">Plataforma</dt>
+              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                {t("createModal.platform")}
+              </dt>
               <dd className="font-medium text-[var(--foreground)]">{platform}</dd>
             </div>
             <div>
-              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">BC / ID</dt>
+              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                {t("createModal.bcId")}
+              </dt>
               <dd className="font-medium text-[var(--foreground)]">{displayBcId}</dd>
             </div>
             <div>
-              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">Huso horario</dt>
+              <dt className="text-xs text-[var(--admin-text-muted,#64748b)]">
+                {t("createModal.timezone")}
+              </dt>
               <dd className="font-medium text-[var(--foreground)]">{timezone}</dd>
             </div>
           </dl>
@@ -296,14 +310,14 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
               className="sm:w-auto"
               disabled={loading}
             >
-              Volver
+              {tCommon("back")}
             </Button>
             <Button
               onClick={handleCreate}
               disabled={loading}
               className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:w-auto"
             >
-              {loading ? "Creando…" : "Crear cuenta"}
+              {loading ? t("createModal.creating") : t("createModal.create")}
             </Button>
           </div>
         </>

@@ -1,4 +1,8 @@
-export function PaymentsHistoryEmpty() {
+import { getTranslations } from "next-intl/server";
+
+export async function PaymentsHistoryEmpty() {
+  const t = await getTranslations("payments");
+
   return (
     <div className="flex min-h-[180px] flex-col items-center justify-center px-6 py-10 text-center">
       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 ring-1 ring-[#e5e7eb]">
@@ -16,9 +20,9 @@ export function PaymentsHistoryEmpty() {
           />
         </svg>
       </div>
-      <p className="text-sm font-semibold text-[#0f172a]">No hay registros</p>
+      <p className="text-sm font-semibold text-[#0f172a]">{t("historyEmpty.title")}</p>
       <p className="mt-1 max-w-sm text-sm text-[#64748b]">
-        Las transacciones aparecerán aquí cuando realices operaciones.
+        {t("historyEmpty.body")}
       </p>
     </div>
   );

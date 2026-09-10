@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import type { PaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
@@ -11,11 +12,12 @@ interface PaymentsPageHeroProps {
   introCopy: string;
 }
 
-export function PaymentsPageHero({
+export async function PaymentsPageHero({
   cliente,
   capabilities,
   introCopy,
 }: PaymentsPageHeroProps) {
+  const t = await getTranslations("payments");
   const managerOnly =
     capabilities.canAgencyBmFund && !capabilities.canClientStripeFund;
 
@@ -30,11 +32,11 @@ export function PaymentsPageHero({
             className="ring-1 ring-[var(--auth-border)]"
           />
           <p className="truncate text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Pagos de {cliente.name}
+            {t("hero.ofClient", { name: cliente.name })}
           </p>
         </div>
         <h1 className="mt-4 text-[1.8rem] font-semibold leading-tight tracking-[-0.035em] text-[var(--auth-text)] sm:text-[2.15rem]">
-          {managerOnly ? "Recargar desde el BM" : "Recargar y asignar saldo"}
+          {managerOnly ? t("hero.titleManager") : t("hero.titleClient")}
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-6 text-[var(--auth-text-muted)]">
           {introCopy}
@@ -52,14 +54,14 @@ export function PaymentsPageHero({
             href="#recargar-saldo"
             className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
           >
-            Recargar saldo
+            {t("hero.ctaReload")}
           </a>
         ) : null}
         <a
           href="#asignar-saldo"
           className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--auth-border)] bg-white px-5 text-[14px] font-semibold text-[var(--auth-text)] transition-[background-color,transform] hover:bg-[var(--auth-bg)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
         >
-          {managerOnly ? "Elegir cuenta" : "Asignar a TikTok"}
+          {managerOnly ? t("hero.ctaPickAccount") : t("hero.ctaAssign")}
         </a>
       </div>
     </header>

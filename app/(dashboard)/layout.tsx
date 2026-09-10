@@ -1,5 +1,6 @@
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { DashboardSpanishLock } from "@/components/layout/DashboardSpanishLock.client";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import {
@@ -117,26 +118,28 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] lg:block">
-        <DashboardSidebar
-          className="h-full w-full"
-          selectedCliente={selectedCliente}
-          persona={chromePersona}
-          actingAsCliente={actingAsCliente && Boolean(selected)}
-        />
-      </aside>
+    <DashboardSpanishLock enabled={chromePersona !== "cliente"}>
+      <div className="dashboard-canvas relative flex min-h-screen overflow-x-hidden">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] lg:block">
+          <DashboardSidebar
+            className="h-full w-full"
+            selectedCliente={selectedCliente}
+            persona={chromePersona}
+            actingAsCliente={actingAsCliente && Boolean(selected)}
+          />
+        </aside>
 
-      <div className="relative z-10 flex min-h-screen min-w-0 flex-1 flex-col">
-        <DashboardLayoutChrome
-          user={user}
-          selectedCliente={selectedCliente}
-          persona={chromePersona}
-          actingAsCliente={actingAsCliente && Boolean(selected)}
-        >
-          {children}
-        </DashboardLayoutChrome>
+        <div className="relative z-10 flex min-h-screen min-w-0 flex-1 flex-col">
+          <DashboardLayoutChrome
+            user={user}
+            selectedCliente={selectedCliente}
+            persona={chromePersona}
+            actingAsCliente={actingAsCliente && Boolean(selected)}
+          >
+            {children}
+          </DashboardLayoutChrome>
+        </div>
       </div>
-    </div>
+    </DashboardSpanishLock>
   );
 }

@@ -8,11 +8,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import {
   formatFeePercentLabel,
   depositFromDesiredCredit,
@@ -91,15 +92,6 @@ interface IntentPollResponse {
   };
 }
 
-const gatewayLabels: Record<PaymentGatewayId, string> = {
-  stripe: "Stripe",
-  culqi: "Culqi",
-  mercadopago: "Mercado Pago",
-  crypto: "Cripto (USDT)",
-  manual: "Pago manual",
-  cobrana: "Yape / Plin",
-};
-
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 100_000;
 const DEFAULT_FX = 3.48;
@@ -107,8 +99,6 @@ const DEFAULT_FX = 3.48;
 const subscribeToNothing = () => () => {};
 
 type Step = "form" | "confirm" | "proof" | "yape" | "result";
-
-const ADD_BALANCE_STEPS = ["Monto", "Confirmación", "Pago"] as const;
 
 export function AddBalanceModal({
   open,
@@ -118,10 +108,33 @@ export function AddBalanceModal({
   stripeSurchargePercent = DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 }: AddBalanceModalProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+  const { formatMoney } = useAppFormatter();
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
     () => false,
+  );
+  const addBalanceSteps = useMemo(
+    () =>
+      [
+        t("addBalance.stepAmount"),
+        t("addBalance.stepConfirm"),
+        t("addBalance.stepPay"),
+      ] as const,
+    [t],
+  );
+  const gatewayLabels = useMemo(
+    (): Record<PaymentGatewayId, string> => ({
+      stripe: "Stripe",
+      culqi: "Culqi",
+      mercadopago: "Mercado Pago",
+      crypto: t("addBalance.gatewayCrypto"),
+      manual: t("addBalance.gatewayManual"),
+      cobrana: "Yape / Plin",
+    }),
+    [t],
   );
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<Step>("form");
@@ -306,9 +319,7 @@ export function AddBalanceModal({
 
   function handleContinueToConfirm() {
     if (!isValidAmount) {
-      setError(
-        `Ingresa un monto entre ${formatMoney(MIN_AMOUNT)} y ${formatMoney(MAX_AMOUNT)}.`,
-      );
+      setError(t("addBalance.errAmount"));
       return;
     }
     setError(null);
@@ -441,10 +452,10 @@ export function AddBalanceModal({
   const orderedLinks = [...(yapeLink ? [yapeLink] : []), ...otherLinks];
   const modalStepIndex = step === "form" ? 0 : step === "confirm" ? 1 : 2;
   const gatewayIdentityDescription = isCobrana
-    ? "Yape, Plin y bancos"
+    ? t("addBalance.gatewayLocal")
     : isStripe
-      ? "Tarjetas Visa y Mastercard"
-      : "Recarga de cartera";
+      ? t("addBalance.gatewayCards")
+      : t("addBalance.gatewayWallet");
 
   if (!open || !mounted) return null;
 
@@ -453,7 +464,7 @@ export function AddBalanceModal({
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
-        aria-label="Cerrar modal"
+        aria-label={tCommon("close")}
         onClick={handleClose}
       />
       <div
@@ -466,20 +477,20 @@ export function AddBalanceModal({
           <>
             <PaymentModalHeader
               titleId="add-balance-title"
-              title="¿Cuánto saldo quieres recargar?"
+              title={t("addBalance.titleAmount")}
               description={
                 isCobrana
-                  ? "Ingresa el saldo que deseas recibir en USD. Calcularemos el pago equivalente en soles para Yape, Plin o tu banco."
+                  ? t("addBalance.cobranaUsdHint")
                   : isStripe
-                    ? "Ingresa el saldo que deseas recibir. Antes de pagar verás el total exacto, incluidos los fees."
-                    : "Ingresa el saldo que deseas recibir en tu cartera Holistic."
+                    ? t("addBalance.stripeAmountHint")
+                    : t("addBalance.defaultAmountHint")
               }
               identityIcon={
                 <GatewayLogo gatewayId={selectedGateway} size="sm" />
               }
               identityLabel={gatewayLabels[selectedGateway]}
               identityDescription={gatewayIdentityDescription}
-              steps={ADD_BALANCE_STEPS}
+              steps={addBalanceSteps}
               currentStep={modalStepIndex}
               onClose={handleClose}
             />
@@ -490,7 +501,7 @@ export function AddBalanceModal({
                   htmlFor="topup-amount"
                   className="mb-2 block text-[12px] font-semibold text-[#514b45]"
                 >
-                  Saldo que recibirás (USD)
+                  {t("addBalance.receiveLabel")}
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-semibold text-[#8a8177]">
@@ -522,17 +533,20 @@ export function AddBalanceModal({
               {feePreview ? (
                 <div className="rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
                   <p className="mb-3 text-[13px] font-semibold text-[#1c1917]">
-                    Resumen de la recarga
+                    {t("addBalance.summary")}
                   </p>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[#625b54]">Recibirás en cartera</span>
+                    <span className="text-[#625b54]">
+                      {t("addBalance.receiveWallet")}
+                    </span>
                     <span className="font-semibold tabular-nums text-[#1c1917]">
                       {formatMoney(feePreview.creditCents / 100)}
                     </span>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span className="text-[#625b54]">
-                      Fee Holistic ({formatFeePercentLabel(feePercent)})
+                      {t("addBalance.feeHolistic")} (
+                      {formatFeePercentLabel(feePercent)})
                     </span>
                     <span className="font-medium tabular-nums text-[#1c1917]">
                       {isCobrana && penPreview
@@ -543,7 +557,8 @@ export function AddBalanceModal({
                   {isStripe && stripeExtra > 0 ? (
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-[#625b54]">
-                        Fee de Stripe ({formatFeePercentLabel(stripeExtra)})
+                        {t("addBalance.feeStripe")} (
+                        {formatFeePercentLabel(stripeExtra)})
                       </span>
                       <span className="font-medium tabular-nums text-[#1c1917]">
                         {formatMoney((parsedAmount * stripeExtra) / 100)}
@@ -552,7 +567,7 @@ export function AddBalanceModal({
                   ) : null}
                   <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#e4ddd6] pt-3">
                     <span className="font-semibold text-[#1c1917]">
-                      Total a pagar
+                      {t("addBalance.totalPay")}
                     </span>
                     <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
                       {isCobrana && penPreview
@@ -577,7 +592,7 @@ export function AddBalanceModal({
                       Paga con tarjeta
                     </p>
                     <p className="mt-0.5 text-[11px] text-[#6f675f]">
-                      Procesamiento seguro mediante Stripe
+                      {t("addBalance.stripeSecure")}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -591,11 +606,12 @@ export function AddBalanceModal({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-[12px] font-semibold text-[#1c1917]">
-                        Pago con Yape, Plin o bancos
+{t("addBalance.cobranaProcessed")}
                       </p>
                       <p className="mt-0.5 text-[11px] leading-4 text-[#6f675f]">
-                        En Yape, el servicio aparecerá como{" "}
-                        {COBRANA_YAPE_SERVICE_COMPANY}.
+                        {t("addBalance.yapeServiceHint", {
+                          company: COBRANA_YAPE_SERVICE_COMPANY,
+                        })}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -628,13 +644,13 @@ export function AddBalanceModal({
                   onClick={handleClose}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Cancelar
+                  {tCommon("cancel")}
                 </Button>
                 <Button
                   onClick={handleContinueToConfirm}
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
                 >
-                  Revisar recarga
+                  {t("addBalance.reviewCta")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -643,18 +659,18 @@ export function AddBalanceModal({
           <>
             <PaymentModalHeader
               titleId="add-balance-title"
-              title="Revisa tu recarga"
+              title={t("addBalance.titleConfirm")}
               description={
                 isCobrana
-                  ? "Te daremos un código para pagar en soles desde Yape, Plin o tu banco."
-                  : "Confirma que el saldo y el total a pagar sean correctos antes de continuar."
+                  ? t("addBalance.cobranaConfirmHint")
+                  : t("addBalance.confirmDefaultHint")
               }
               identityIcon={
                 <GatewayLogo gatewayId={selectedGateway} size="sm" />
               }
               identityLabel={gatewayLabels[selectedGateway]}
               identityDescription={gatewayIdentityDescription}
-              steps={ADD_BALANCE_STEPS}
+              steps={addBalanceSteps}
               currentStep={modalStepIndex}
               onClose={handleClose}
             />
@@ -664,18 +680,18 @@ export function AddBalanceModal({
                 <dl className="grid grid-cols-2 divide-x divide-[#e4ddd6]">
                   <div className="p-4 sm:p-5">
                     <dt className="text-[11px] font-medium text-[#6f675f]">
-                      Recibirás
+                      {t("addBalance.receiveWallet")}
                     </dt>
                     <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#e85a1c]">
                       {formatMoney(parsedAmount)}
                     </dd>
                     <dd className="mt-0.5 text-[10px] text-[#8a8177]">
-                      En tu cartera Holistic
+                      {t("addBalance.inHolisticWallet")}
                     </dd>
                   </div>
                   <div className="p-4 sm:p-5">
                     <dt className="text-[11px] font-medium text-[#6f675f]">
-                      Total a pagar
+                      {t("addBalance.totalPay")}
                     </dt>
                     <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#1c1917]">
                       {isCobrana && penPreview
@@ -685,7 +701,9 @@ export function AddBalanceModal({
                           : formatMoney(parsedAmount)}
                     </dd>
                     <dd className="mt-0.5 text-[10px] text-[#8a8177]">
-                      Mediante {gatewayLabels[selectedGateway]}
+                      {t("addBalance.viaGateway", {
+                        gateway: gatewayLabels[selectedGateway],
+                      })}
                     </dd>
                   </div>
                 </dl>
@@ -693,7 +711,8 @@ export function AddBalanceModal({
                 <dl className="space-y-2 border-t border-[#e4ddd6] px-4 py-3 text-[12px] sm:px-5">
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-[#625b54]">
-                      Fee Holistic ({formatFeePercentLabel(feePercent)})
+                      {t("addBalance.feeHolistic")} (
+                      {formatFeePercentLabel(feePercent)})
                     </dt>
                     <dd className="font-medium tabular-nums text-[#1c1917]">
                       {isCobrana && penPreview
@@ -704,7 +723,8 @@ export function AddBalanceModal({
                   {isStripe && stripeExtra > 0 ? (
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-[#625b54]">
-                        Fee de Stripe ({formatFeePercentLabel(stripeExtra)})
+                        {t("addBalance.feeStripe")} (
+                        {formatFeePercentLabel(stripeExtra)})
                       </dt>
                       <dd className="font-medium tabular-nums text-[#1c1917]">
                         {formatMoney((parsedAmount * stripeExtra) / 100)}
@@ -713,7 +733,9 @@ export function AddBalanceModal({
                   ) : null}
                   {isCobrana ? (
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-[#625b54]">Servicio en Yape</dt>
+                      <dt className="text-[#625b54]">
+                        {t("addBalance.yapeService")}
+                      </dt>
                       <dd className="font-semibold text-[#1c1917]">
                         {COBRANA_YAPE_SERVICE_COMPANY}
                       </dd>
@@ -769,7 +791,7 @@ export function AddBalanceModal({
                   disabled={loading}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Volver
+                  {tCommon("back")}
                 </Button>
                 <Button
                   onClick={() => void handleConfirm()}
@@ -782,10 +804,10 @@ export function AddBalanceModal({
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
                 >
                   {loading
-                    ? "Procesando…"
+                    ? t("addBalance.processing")
                     : isCobrana
-                      ? "Continuar con Yape / Plin"
-                      : "Pagar con Stripe"}
+                      ? t("addBalance.continueCobrana")
+                      : t("addBalance.payStripe")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -794,15 +816,14 @@ export function AddBalanceModal({
           <>
             <PaymentModalHeader
               titleId="add-balance-title"
-              title="Completa el pago"
+              title={t("addBalance.titlePay")}
               description={
-                resultMessage ??
-                "Usa el código desde Yape, Plin o la app de tu banco para completar el pago en soles."
+                resultMessage ?? t("addBalance.cobranaCodeHint")
               }
               identityIcon={<GatewayLogo gatewayId="cobrana" size="sm" />}
               identityLabel="Yape / Plin"
-              identityDescription="Yape, Plin y bancos"
-              steps={ADD_BALANCE_STEPS}
+              identityDescription={t("addBalance.gatewayLocal")}
+              steps={addBalanceSteps}
               currentStep={modalStepIndex}
               onClose={handleClose}
             />
@@ -811,25 +832,26 @@ export function AddBalanceModal({
               <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
                 <div className="border-b border-[#e4ddd6] px-4 py-4 sm:px-5">
                   <p className="text-[11px] font-medium text-[#6f675f]">
-                    Busca este servicio en Yape
+                    {t("addBalance.searchInYape")}
                   </p>
                   <div className="mt-1 flex items-end justify-between gap-4">
                     <p className="text-2xl font-semibold tracking-[-0.03em] text-[#1c1917]">
                       {COBRANA_YAPE_SERVICE_COMPANY}
                     </p>
                     <span className="rounded-full bg-[#eee5f1] px-2.5 py-1 text-[10px] font-semibold text-[#5f0b72]">
-                      Pago de servicios
+                      {t("addBalance.payServices")}
                     </span>
                   </div>
                   <p className="mt-2 text-[11px] leading-4 text-[#6f675f]">
-                    El servicio figura como {COBRANA_YAPE_SERVICE_COMPANY}, no
-                    como Holistic.
+                    {t("addBalance.yapeNotHolistic", {
+                      company: COBRANA_YAPE_SERVICE_COMPANY,
+                    })}
                   </p>
                 </div>
                 {cobranaCode ? (
                   <div className="px-4 py-4 sm:px-5">
                     <p className="text-[11px] font-medium text-[#6f675f]">
-                      Código de pago
+                      {t("addBalance.paymentCode")}
                     </p>
                     <div className="mt-1.5 flex items-center justify-between gap-3">
                       <p className="font-mono text-2xl font-semibold tracking-[0.04em] text-[#1c1917]">
@@ -853,18 +875,22 @@ export function AddBalanceModal({
                             });
                         }}
                       >
-                        {codeCopied ? "Copiado" : "Copiar"}
+                        {codeCopied
+                          ? t("addBalance.copied")
+                          : t("addBalance.copy")}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <p className="px-4 py-4 text-[12px] text-[#6f675f] sm:px-5">
-                    Preparando tu código de pago…
+{t("addBalance.preparingCode")}
                   </p>
                 )}
                 <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] border-t border-[#e4ddd6] px-4 py-4 text-sm sm:px-5">
                   <div className="pr-4">
-                    <p className="text-[10px] text-[#6f675f]">Pagarás</p>
+                    <p className="text-[10px] text-[#6f675f]">
+                      {t("addBalance.youPay")}
+                    </p>
                     <p className="mt-0.5 font-semibold tabular-nums text-[#5f0b72]">
                       {penPreview
                         ? formatPenAmount(penPreview.grossPenCents)
@@ -872,7 +898,9 @@ export function AddBalanceModal({
                     </p>
                   </div>
                   <div className="pl-4">
-                    <p className="text-[10px] text-[#6f675f]">Recibirás</p>
+                    <p className="text-[10px] text-[#6f675f]">
+                      {t("addBalance.youReceive")}
+                    </p>
                     <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
                       {formatMoney(parsedAmount)}
                     </p>
@@ -885,59 +913,33 @@ export function AddBalanceModal({
                 role="status"
               >
                 <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#8b1aa0]" />
-                Esperando la confirmación automática del pago…
+{t("addBalance.waitingCobrana")}
               </div>
 
               <div className="mt-5">
                 <h3 className="text-[13px] font-semibold text-[#1c1917]">
-                  Cómo pagar desde Yape
+                  {t("addBalance.yapeHowToTitle")}
                 </h3>
                 <ol className="mt-3 space-y-3">
                   <PaymentInstruction
                     number="1"
-                    text={
-                      <>
-                        Abre Yape e ingresa a <strong>Pago de servicios</strong>
-                        .
-                      </>
-                    }
+                    text={t("addBalance.yapeStep1")}
                   />
                   <PaymentInstruction
                     number="2"
-                    text={
-                      <>
-                        Busca <strong>{COBRANA_YAPE_SERVICE_COMPANY}</strong> en
-                        Compras online / Servicios.
-                      </>
-                    }
+                    text={t("addBalance.yapeStep2", {
+                      company: COBRANA_YAPE_SERVICE_COMPANY,
+                    })}
                   />
                   <PaymentInstruction
                     number="3"
-                    text={
-                      <>
-                        Ingresa el código{" "}
-                        <strong className="font-mono">
-                          {cobranaCode ?? "HOL…"}
-                        </strong>{" "}
-                        y paga{" "}
-                        <strong>
-                          {penPreview
-                            ? formatPenAmount(penPreview.grossPenCents)
-                            : "el monto indicado"}
-                        </strong>
-                        .
-                      </>
-                    }
+                    text={t("addBalance.yapeStep3")}
                   />
                   <PaymentInstruction
                     number="4"
-                    text={
-                      <>
-                        Regresa aquí. Cuando el pago se confirme, acreditaremos{" "}
-                        <strong>{formatMoney(parsedAmount)}</strong> en tu
-                        cartera.
-                      </>
-                    }
+text={t("addBalance.yapeStep4", {
+                      amount: formatMoney(parsedAmount),
+                    })}
                   />
                 </ol>
               </div>
@@ -945,8 +947,7 @@ export function AddBalanceModal({
               {orderedLinks.length > 0 ? (
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-                    Si estás en el celular, también puedes abrir la aplicación
-                    directamente:
+                    {t("addBalance.mobileOpen")}
                   </p>
                   <div className="flex flex-col gap-2">
                     {orderedLinks.map((link) => {
@@ -968,7 +969,9 @@ export function AddBalanceModal({
                           }}
                         >
                           <PaymentAppIcon app={app} size="sm" />
-                          Abrir {paymentAppLabel(app, link.label)}
+                          {t("addBalance.openApp", {
+                            app: paymentAppLabel(app, link.label),
+                          })}
                         </button>
                       );
                     })}
@@ -988,7 +991,7 @@ export function AddBalanceModal({
                   onClick={handleClose}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Cerrar y esperar
+                  {t("addBalance.closeWait")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -997,35 +1000,33 @@ export function AddBalanceModal({
           <>
             <PaymentModalHeader
               titleId="add-balance-title"
-              title={
-                selectedGateway === "crypto"
-                  ? "Sube tu comprobante cripto"
-                  : "Sube tu comprobante"
-              }
+              title={t("addBalance.titleProof")}
               description={
                 selectedGateway === "crypto"
-                  ? "Adjunta una captura de Binance o de tu billetera, o el TxID, para confirmar los USDT."
-                  : "Adjunta el comprobante de transferencia para enviarlo a revisión."
+                  ? t("addBalance.proofHint")
+                  : t("addBalance.proofManualHint")
               }
               identityIcon={
                 <GatewayLogo gatewayId={selectedGateway} size="sm" />
               }
               identityLabel={gatewayLabels[selectedGateway]}
               identityDescription={gatewayIdentityDescription}
-              steps={ADD_BALANCE_STEPS}
+              steps={addBalanceSteps}
               currentStep={modalStepIndex}
               onClose={handleClose}
             />
             <div className="p-5 sm:p-6">
               <div className="rounded-2xl bg-[#f7f5f2] p-4 text-sm">
                 <p className="font-semibold text-[var(--foreground)]">
-                  Recibirás {formatMoney(parsedAmount)}
+                  {t("addBalance.receiveAmount", {
+                    amount: formatMoney(parsedAmount),
+                  })}
                   {feePreview
                     ? ` · total ${formatMoney(feePreview.grossCents / 100)}`
                     : null}
                 </p>
                 <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-                  ID de intención:{" "}
+                  {t("addBalance.intentId")}{" "}
                   <span className="font-mono">{paymentIntentId}</span>
                 </p>
               </div>
@@ -1056,7 +1057,7 @@ export function AddBalanceModal({
                   disabled={uploadingProof}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Subir luego
+                  {t("addBalance.uploadLater")}
                 </Button>
                 <Button
                   onClick={handleProofUpload}
@@ -1064,10 +1065,10 @@ export function AddBalanceModal({
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
                 >
                   {uploadingProof
-                    ? "Subiendo…"
+                    ? t("addBalance.processing")
                     : selectedGateway === "crypto"
-                      ? "Enviar comprobante"
-                      : "Enviar voucher"}
+                      ? t("addBalance.sendProof")
+                      : t("addBalance.sendVoucher")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -1076,7 +1077,11 @@ export function AddBalanceModal({
           <>
             <PaymentModalHeader
               titleId="add-balance-title"
-              title={paidConfirmed ? "Pago acreditado" : "Solicitud registrada"}
+              title={
+                paidConfirmed
+                  ? t("addBalance.titleDone")
+                  : t("addBalance.titleSubmitted")
+              }
               description={
                 paidConfirmed
                   ? "El saldo ya está disponible en tu cartera Holistic."
@@ -1087,7 +1092,7 @@ export function AddBalanceModal({
               }
               identityLabel={gatewayLabels[selectedGateway]}
               identityDescription={gatewayIdentityDescription}
-              steps={ADD_BALANCE_STEPS}
+              steps={addBalanceSteps}
               currentStep={modalStepIndex}
               onClose={handleClose}
             />
@@ -1112,7 +1117,7 @@ export function AddBalanceModal({
                   onClick={handleClose}
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] px-6 hover:bg-[var(--brand-primary-deep)] sm:w-auto"
                 >
-                  Cerrar
+                  {tCommon("close")}
                 </Button>
               </PaymentModalFooter>
             </div>

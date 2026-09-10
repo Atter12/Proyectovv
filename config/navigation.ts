@@ -2,26 +2,30 @@ import { routes } from "./routes";
 import type { NavItem } from "@/types/navigation";
 
 export const mainNavigation: NavItem[] = [
-  { label: "Descripción general", href: routes.overview, icon: "overview" },
-  { label: "Clientes", href: routes.clientes, icon: "clients" },
-  { label: "Mis cuentas publicitarias", href: routes.adAccounts, icon: "ad-accounts" },
-  { label: "Pago", href: routes.payments, icon: "payments" },
-  { label: "Profit", href: routes.profit, icon: "profit" },
+  { key: "overview", href: routes.overview, icon: "overview" },
+  { key: "clients", href: routes.clientes, icon: "clients" },
+  { key: "adAccounts", href: routes.adAccounts, icon: "ad-accounts" },
+  { key: "payments", href: routes.payments, icon: "payments" },
+  { key: "profit", href: routes.profit, icon: "profit" },
   {
-    label: "Pagos manuales",
+    key: "paymentsManual",
     href: routes.paymentsManual,
     icon: "payments-manual",
   },
   {
-    label: "Pagos Profit",
+    key: "paymentsProfit",
     href: routes.paymentsProfit,
     icon: "payments-profit",
   },
-  { label: "Lo pagado", href: routes.cobros, icon: "cobros" },
-  { label: "Programa de afiliados", href: routes.affiliates, icon: "affiliates" },
-  { label: "Analizador creativo", href: routes.creativeAnalyzer, icon: "creative-analyzer" },
-  { label: "Píxeles", href: routes.pixels, icon: "pixels" },
-  { label: "Soporte", href: routes.support, icon: "support" },
+  { key: "cobros", href: routes.cobros, icon: "cobros" },
+  { key: "affiliates", href: routes.affiliates, icon: "affiliates" },
+  {
+    key: "creativeAnalyzer",
+    href: routes.creativeAnalyzer,
+    icon: "creative-analyzer",
+  },
+  { key: "pixels", href: routes.pixels, icon: "pixels" },
+  { key: "support", href: routes.support, icon: "support" },
 ];
 
 export interface AdminNavItem {
@@ -31,6 +35,7 @@ export interface AdminNavItem {
   icon: string;
 }
 
+/** Admin UI stays Spanish-only in v1 (out of scope for next-intl). */
 export const adminNavigation: AdminNavItem[] = [
   { label: "Resumen", href: "/admin/overview", description: "KPIs operativos", icon: "◇" },
   { label: "Clientes", href: "/admin/clientes", description: "Elegir cliente y ver solo lo suyo", icon: "◎" },

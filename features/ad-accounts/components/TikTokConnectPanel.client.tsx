@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,28 +14,30 @@ interface TikTokConnectPanelProps {
   canManage: boolean;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return "Sin sync aún";
-  try {
-    return new Intl.DateTimeFormat("es", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
 export function TikTokConnectPanel({
   organizationName,
   initialStatus,
   canManage,
 }: TikTokConnectPanelProps) {
+  const t = useTranslations("adAccounts.tiktokConnect");
+  const locale = useLocale();
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [busy, setBusy] = useState<"import" | "disconnect" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  function formatDate(value: string | null): string {
+    if (!value) return t("noSync");
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
+  }
 
   async function handleImport() {
     setBusy("import");
@@ -99,7 +102,7 @@ export function TikTokConnectPanel({
         <div className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">
-              Integración por cliente
+              {t("title")}
             </p>
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
@@ -108,12 +111,12 @@ export function TikTokConnectPanel({
                   : "bg-[var(--surface-soft)] text-[#6b645c]"
               }`}
             >
-              {connected ? "Conectado" : "Sin conectar"}
+              {connected ? t("connected") : t("disconnected")}
             </span>
           </div>
 
           <h2 className="font-display mt-2 text-xl font-semibold tracking-tight text-[var(--foreground)] sm:text-2xl">
-            Conectar TikTok Ads
+            {t("connect")}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--admin-text-muted,#64748b)]">
             Cada cliente tiene su propia organización. Esta conexión es solo para{" "}
@@ -125,7 +128,7 @@ export function TikTokConnectPanel({
           <dl className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2.5">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-                Organización
+                {t("organization")}
               </dt>
               <dd className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">
                 {organizationName}
@@ -133,7 +136,7 @@ export function TikTokConnectPanel({
             </div>
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2.5">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-                Cuentas TikTok
+                {t("accounts")}
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[var(--foreground)]">
                 {status.importedTikTokAccounts}
@@ -141,7 +144,7 @@ export function TikTokConnectPanel({
             </div>
             <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2.5">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]">
-                Último sync
+                {t("lastSync")}
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[var(--foreground)]">
                 {formatDate(status.lastSyncedAt ?? status.updatedAt)}
@@ -174,7 +177,7 @@ export function TikTokConnectPanel({
               {status.configured ? (
                 <a href="/api/integrations/tiktok/connect" className="block">
                   <Button className="h-11 w-full rounded-xl bg-[var(--brand-primary)] text-[14px] font-semibold hover:bg-[var(--brand-primary-deep)]">
-                    {connected ? "Reconectar TikTok" : "Conectar con TikTok"}
+                    {connected ? t("reconnect") : t("connectCta")}
                   </Button>
                 </a>
               ) : (
@@ -182,7 +185,7 @@ export function TikTokConnectPanel({
                   disabled
                   className="h-11 w-full rounded-xl bg-[var(--brand-primary)] text-[14px] font-semibold opacity-60"
                 >
-                  Conectar con TikTok
+                  {t("connectCta")}
                 </Button>
               )}
 
@@ -194,7 +197,7 @@ export function TikTokConnectPanel({
                     disabled={busy !== null}
                     onClick={handleImport}
                   >
-                    {busy === "import" ? "Sincronizando…" : "Reimportar cuentas"}
+                    {busy === "import" ? t("syncing") : t("reimport")}
                   </Button>
                   <Button
                     variant="outline"
@@ -202,7 +205,7 @@ export function TikTokConnectPanel({
                     disabled={busy !== null}
                     onClick={handleDisconnect}
                   >
-                    {busy === "disconnect" ? "Desconectando…" : "Desconectar"}
+                    {busy === "disconnect" ? t("disconnecting") : t("disconnect")}
                   </Button>
                 </>
               )}

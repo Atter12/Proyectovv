@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
-import { formatMoney } from "@/lib/format-money";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface AllocateBalanceModalProps {
@@ -33,10 +34,14 @@ interface AllocateResponse {
 }
 
 /** Quita dumps técnicos (bc=/token=/req=) y deja texto usable. */
-function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
+function friendlyAllocateError(
+  raw: string,
+  agencyBmFunding: boolean,
+  messages: { errMin10: string; errWallet: string },
+): string {
   const text = raw.trim();
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
-    return "TikTok solicita al menos $10 en esta cuenta. Prueba con $10 o más.";
+    return messages.errMin10;
   }
   if (
     /no aparece en el BM|rechazó el presupuesto|falta permiso de presupuesto|línea de crédito|crédito compartido|portfolio de crédito|no tiene saldo en efectivo|no tiene cupo disponible|limitó los cambios de presupuesto|FrequencyControl/i.test(
@@ -55,7 +60,7 @@ function friendlyAllocateError(raw: string, agencyBmFunding: boolean): string {
       : "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Prueba con otra cuenta o contacta con soporte.";
   }
   if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
-    return "No hay suficiente saldo en la cartera Holistic. Lo que ya está en la cuenta TikTok no se vuelve a asignar: hay que recargar la cartera.";
+    return messages.errWallet;
   }
   if (text.length <= 220 && !/\| bc=/.test(text)) return text;
   return agencyBmFunding
@@ -73,6 +78,9 @@ export function AllocateBalanceModal({
   onAllocated,
 }: AllocateBalanceModalProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+  const { formatMoney } = useAppFormatter();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,19 +127,17 @@ export function AllocateBalanceModal({
 
   async function handleSubmit() {
     if (!isValidAmount) {
-      setError("Ingresa un monto válido mayor que cero.");
+      setError(t("allocateModal.errInvalid"));
       return;
     }
 
     if (agencyBmFunding && parsedAmount < 10) {
-      setError("TikTok solicita al menos $10 en esta cuenta. Prueba con $10 o más.");
+      setError(t("allocateModal.errMin10"));
       return;
     }
 
     if (!agencyBmFunding && parsedAmount > walletAvailable + 1e-9) {
-      setError(
-        `Solo tienes ${formatMoney(walletAvailable)} en la cartera. Los ${formatMoney(alreadyOnAccount)} que ya están en esta cuenta permanecen en TikTok. Recarga la cartera para asignar más.`,
-      );
+      setError(t("allocateModal.errWallet"));
       return;
     }
 
@@ -163,8 +169,14 @@ export function AllocateBalanceModal({
       const raw =
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo asignar el saldo.";
-      setError(friendlyAllocateError(raw, agencyBmFunding));
+          : t("allocateModal.errGeneric");
+      setError(
+        friendlyAllocateError(raw, agencyBmFunding, {
+          errMin10: t("allocateModal.errMin10"),
+          errWallet: t("allocateModal.errWallet"),
+        }),
+      );
+    } finally {
       setLoading(false);
     }
   }
@@ -174,7 +186,7 @@ export function AllocateBalanceModal({
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
-        aria-label="Cerrar modal"
+        aria-label={t("allocateModal.closeAria")}
         onClick={resetAndClose}
       />
       <div
@@ -183,17 +195,18 @@ export function AllocateBalanceModal({
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
-          {agencyBmFunding ? "Recargar desde BM" : "Asignar saldo"}
+          {agencyBmFunding
+            ? t("allocateModal.titleBm")
+            : t("allocateModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {agencyBmFunding
-            ? "Fondea la cuenta en TikTok desde el BM (sin exigir saldo en la cartera del cliente). BM 200 = cash; BM 10/30 = subir presupuesto de crédito. Usa cuentas aprobadas."
-            : "Transfiere saldo de tu cartera Holistic a esta cuenta de TikTok. Lo que ya está en la cuenta no se puede asignar otra vez."}
+            ? t("allocateModal.bodyBm")
+            : t("allocateModal.body")}
         </p>
         <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] leading-5 text-emerald-950">
-          <span className="font-semibold">1 a 1:</span> si asignas $120, TikTok
-          recibe $120. No se suma fee al asignar (el fee Holistic solo aplica al
-          recargar la cartera).
+          <span className="font-semibold">{t("allocateModal.oneToOne")}</span>{" "}
+          {t("allocateModal.oneToOneBody")}
         </p>
         {agencyBmFunding ? (
           <p className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-5 text-sky-950">
@@ -205,7 +218,7 @@ export function AllocateBalanceModal({
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
-            Cuenta publicitaria
+            {t("allocateModal.account")}
           </p>
           <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {targetAccount.name}
@@ -218,13 +231,13 @@ export function AllocateBalanceModal({
           {!agencyBmFunding ? (
             <div className="mt-3 space-y-1.5 text-xs leading-5">
               <p className="flex items-baseline justify-between gap-3 text-[var(--admin-text-muted,#64748b)]">
-                <span>Disponible en cartera</span>
+                <span>{t("allocateModal.walletAvailable")}</span>
                 <span className="font-semibold tabular-nums text-[var(--foreground)]">
                   {formatMoney(walletAvailable)}
                 </span>
               </p>
               <p className="flex items-baseline justify-between gap-3 text-[var(--admin-text-muted,#64748b)]">
-                <span>Ya en esta cuenta</span>
+                <span>{t("allocateModal.alreadyOnAccount")}</span>
                 <span className="font-semibold tabular-nums text-[var(--foreground)]">
                   {formatMoney(alreadyOnAccount)}
                 </span>
@@ -242,7 +255,9 @@ export function AllocateBalanceModal({
           <p className="mt-2 break-all font-mono text-[11px] text-[var(--admin-text-muted,#64748b)]">
             TikTok advertiser:{" "}
             {targetAccount.externalAccountId?.trim() || (
-              <span className="text-red-600">no configurado</span>
+              <span className="text-red-600">
+                {t("allocateModal.notConfigured")}
+              </span>
             )}
           </p>
           {targetAccount.status === "disabled" ? (
@@ -258,7 +273,7 @@ export function AllocateBalanceModal({
             htmlFor="allocation-amount"
             className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
           >
-            Monto a asignar (USD)
+            {t("allocateModal.amountLabel")}
           </label>
           <Input
             id="allocation-amount"
@@ -273,9 +288,7 @@ export function AllocateBalanceModal({
           />
           {agencyBmFunding ? (
             <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
-              Mínimo recomendado:{" "}
-              <span className="font-medium text-[#1a1612]">$10</span>. Montos
-              chicos ($1–$2) TikTok los rechaza.
+              {t("allocateModal.minHint")}
             </p>
           ) : (
             <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
@@ -299,7 +312,7 @@ export function AllocateBalanceModal({
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={resetAndClose} disabled={loading}>
-            Cerrar
+            {tCommon("close")}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -308,11 +321,11 @@ export function AllocateBalanceModal({
           >
             {loading
               ? agencyBmFunding
-                ? "Fondeando…"
-                : "Asignando…"
+                ? t("allocateModal.funding")
+                : t("allocateModal.assigning")
               : agencyBmFunding
-                ? "Recargar desde BM"
-                : "Asignar saldo"}
+                ? t("allocateModal.fundCta")
+                : t("allocateModal.assignCta")}
           </Button>
         </div>
       </div>

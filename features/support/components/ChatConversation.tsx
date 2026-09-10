@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 import type { ChatMessage } from "../types/support.types";
 import { formatSupportChatTimestamp } from "@/lib/support/chat-time";
 import { buildChatTimeline } from "@/features/support/lib/chat-message-timeline";
@@ -48,6 +49,11 @@ interface ChatConversationProps {
   emptyHint?: string;
 }
 
+const EMPTY_HINT_FALLBACK =
+  "Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.";
+const SUBTITLE_FALLBACK =
+  "Tu conversación queda guardada como ticket de soporte.";
+
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
 
 function isAllowedFile(file: File) {
@@ -67,8 +73,8 @@ export function ChatConversation({
   error = null,
   showBack = true,
   className,
-  title = "Escríbenos",
-  subtitle = "Tu conversación queda guardada como ticket de soporte.",
+  title,
+  subtitle,
   avatarUrl = null,
   headerActions,
   onClearChat,
@@ -78,8 +84,12 @@ export function ChatConversation({
   onBack,
   composerDisabled = false,
   composerDisabledReason,
-  emptyHint = "Escribe tu consulta, pega una captura (Ctrl+V) o adjunta un archivo.",
+  emptyHint,
 }: ChatConversationProps) {
+  const t = useTranslations("support");
+  const resolvedTitle = title ?? t("writeUs");
+  const resolvedSubtitle = subtitle ?? SUBTITLE_FALLBACK;
+  const resolvedEmptyHint = emptyHint ?? EMPTY_HINT_FALLBACK;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -209,7 +219,7 @@ export function ChatConversation({
             type="button"
             onClick={onBack}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
-            aria-label="Volver"
+            aria-label={t("back")}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -217,14 +227,14 @@ export function ChatConversation({
           </button>
         ) : null}
         <HecomClienteAvatar
-          name={title}
+          name={resolvedTitle}
           avatarUrl={avatarUrl}
           size="sm"
           className="h-11 w-11 text-[12px] shadow-md ring-2 ring-white/20"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-white">{title}</p>
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-white/70"><span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />{subtitle}</p>
+          <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-white">{resolvedTitle}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-white/70"><span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />{resolvedSubtitle}</p>
         </div>
         {onClearChat || headerActions ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -233,11 +243,7 @@ export function ChatConversation({
                 type="button"
                 disabled={clearingChat || sending || loading}
                 onClick={() => {
-                  if (
-                    !window.confirm(
-                      "¿Borrar todo el chat? Se eliminan los mensajes de esta conversación.",
-                    )
-                  ) {
+                  if (!window.confirm(t("clearConfirm"))) {
                     return;
                   }
                   onClearChat();
@@ -258,13 +264,13 @@ export function ChatConversation({
       >
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
-            Suelta la imagen o PDF acá
+            {t("dropFiles")}
           </div>
         ) : null}
 
         {loading ? (
           <p className="rounded-2xl bg-white px-4 py-3 text-sm text-[#6b645c] shadow-sm ring-1 ring-[var(--border-subtle)]">
-            Cargando historial…
+            {t("loading")}
           </p>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-10 text-center shadow-sm ring-1 ring-[var(--border-subtle)]">
@@ -275,10 +281,10 @@ export function ChatConversation({
               💬
             </span>
             <p className="mt-3 text-sm font-semibold text-[#3f3a34]">
-              Todavía no hay mensajes
+              {t("noMessages")}
             </p>
             <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-[#6b645c]">
-              {emptyHint}
+              {resolvedEmptyHint}
             </p>
           </div>
         ) : (
@@ -352,8 +358,8 @@ export function ChatConversation({
             onPaste={handlePaste}
             rows={2}
             disabled={composerDisabled}
-            placeholder="Escribe tu mensaje… Puedes pegar capturas con Ctrl+V"
-            aria-label="Escribir mensaje"
+            placeholder={t("placeholder")}
+            aria-label={t("writeUs")}
             className="max-h-40 min-h-[48px] w-full resize-none bg-transparent px-3 py-2 text-[14px] leading-5 text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:outline-none disabled:opacity-60"
           />
           <div className="flex items-center justify-between gap-2 px-1 pb-1">
@@ -379,7 +385,7 @@ export function ChatConversation({
                 <span className="sr-only">Adjuntar</span>
               </button>
               <span className="hidden text-[11px] text-[var(--auth-text-soft)] sm:inline">
-                Enter envía · Shift+Enter nueva línea
+                {t("enterHint")}
               </span>
             </div>
             <button
@@ -392,7 +398,7 @@ export function ChatConversation({
               }
               className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-bold text-white shadow-md shadow-orange-500/20 hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
             >
-              {sending ? "Enviando…" : "Enviar"}
+              {sending ? t("sending") : t("send")}
               {!sending ? (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />

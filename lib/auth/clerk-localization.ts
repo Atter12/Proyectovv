@@ -1,6 +1,8 @@
-import { esES } from "@clerk/localizations";
+import { enUS, esES, ptBR } from "@clerk/localizations";
+import type { AppLocale } from "@/i18n/config";
 
-export const holisticClerkLocalization = {
+/** Spanish (LATAM) overrides on top of Clerk esES. */
+export const holisticClerkLocalizationEs = {
   ...esES,
   formFieldInputPlaceholder__password: "Ingresa tu contraseña",
   formFieldInputPlaceholder__signUpPassword: "Crea una contraseña",
@@ -41,3 +43,18 @@ export const holisticClerkLocalization = {
     },
   },
 };
+
+/** @deprecated Prefer getClerkLocalization(locale). */
+export const holisticClerkLocalization = holisticClerkLocalizationEs;
+
+export function getClerkLocalization(locale: AppLocale) {
+  switch (locale) {
+    case "en":
+      return enUS;
+    case "pt-BR":
+      return ptBR;
+    case "es":
+    default:
+      return holisticClerkLocalizationEs;
+  }
+}

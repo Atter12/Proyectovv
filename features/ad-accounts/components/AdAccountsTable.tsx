@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import {
   Table,
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { formatMoney } from "@/lib/format-money";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { AdAccountsEmptyState } from "./AdAccountsEmptyState";
 import { ConfigureAdAccountModal } from "./ConfigureAdAccountModal.client";
@@ -20,14 +21,6 @@ import { AdAccountLiveBalanceCell } from "./AdAccountLiveBalanceCell.client";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { buildGastosUrlForAdvertiser } from "@/lib/hecom/gastos-url";
 import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
-
-const statusLabels: Record<AdAccountStatus, string> = {
-  active: "Activa",
-  pending: "Pendiente",
-  disabled: "Suspendida",
-  review: "En revisión",
-  archived: "Archivada",
-};
 
 const statusStyles: Record<AdAccountStatus, string> = {
   active: "bg-[#ecf7f0] text-[#1f5c40] ring-[#c5e4d2]",
@@ -46,12 +39,13 @@ const statusDot: Record<AdAccountStatus, string> = {
 };
 
 function StatusPill({ status }: { status: AdAccountStatus }) {
+  const t = useTranslations("adAccounts");
   return (
     <span
       className={`inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold ring-1 ring-inset ${statusStyles[status]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${statusDot[status]}`} />
-      {statusLabels[status]}
+      {t(`status.${status}`)}
     </span>
   );
 }
@@ -113,8 +107,8 @@ function shortId(id: string | null | undefined) {
   return `${id.slice(0, 6)}…${id.slice(-4)}`;
 }
 
-function parseAccountDisplay(account: AdAccount) {
-  const raw = (account.name || account.externalAccountName || "Cuenta").trim();
+function parseAccountDisplay(account: AdAccount, defaultName: string) {
+  const raw = (account.name || account.externalAccountName || defaultName).trim();
   const match = raw.match(/^(.*?)\s+(\d+(?:\.\d+)?\s*USD)\s*[-–]\s*(.+)$/i);
   const title = match ? match[1].trim() : raw;
   const balanceHint = match ? match[2].replace(/\s+/g, " ").trim() : null;
@@ -163,6 +157,8 @@ export function AdAccountsTable({
   accounts,
   readOnly = false,
 }: AdAccountsTableProps) {
+  const t = useTranslations("adAccounts");
+  const { formatMoney } = useAppFormatter();
   const router = useRouter();
   // Siempre: saldo TikTok en vivo (cliente y gerente). Antes solo readOnly.
   const live = useAdAccountLiveMetrics(true);
@@ -171,6 +167,7 @@ export function AdAccountsTable({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isEmpty = accounts.length === 0;
+  const defaultName = t("table.defaultName");
 
   async function runAccountAction(
     account: AdAccount,
@@ -185,17 +182,17 @@ export function AdAccountsTable({
       });
       setMessage(
         action === "archive"
-          ? "Cuenta archivada."
+          ? t("table.archivedMsg")
           : action === "disable"
-            ? "Cuenta desactivada."
-            : "Cuenta reactivada.",
+            ? t("table.disabledMsg")
+            : t("table.reactivatedMsg"),
       );
       router.refresh();
     } catch (err) {
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo ejecutar la acción.",
+          : t("table.actionError"),
       );
     } finally {
       setLoadingActionId(null);
@@ -229,7 +226,7 @@ export function AdAccountsTable({
             : "inline-flex h-8 items-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
         }
       >
-        Ver Profit
+        {t("table.viewProfit")}
       </Link>
     );
   }
@@ -246,7 +243,7 @@ export function AdAccountsTable({
         <div className={compact ? "flex flex-col gap-2" : "flex flex-col items-start gap-2"}>
           <GastosLinkButton account={account} compact={compact} />
           <p className="text-[10px] font-normal uppercase tracking-[0.08em] text-[#9a9187]">
-            Actualiza cada {live.pollSeconds}s
+            {t("table.pollHint", { seconds: live.pollSeconds })}
           </p>
         </div>
       );
@@ -264,7 +261,7 @@ export function AdAccountsTable({
           }
           onClick={() => setSelectedAccount(account)}
         >
-          Configurar
+          {t("table.configure")}
         </Button>
         <div className={compact ? "grid grid-cols-2 gap-2" : "contents"}>
           {account.status === "active" ? (
@@ -279,7 +276,7 @@ export function AdAccountsTable({
               disabled={loadingActionId === `${account.id}:disable`}
               onClick={() => runAccountAction(account, "disable")}
             >
-              Desactivar
+              {t("table.disable")}
             </Button>
           ) : account.status !== "archived" ? (
             <Button
@@ -293,7 +290,7 @@ export function AdAccountsTable({
               disabled={loadingActionId === `${account.id}:reactivate`}
               onClick={() => runAccountAction(account, "reactivate")}
             >
-              Reactivar
+              {t("table.reactivate")}
             </Button>
           ) : null}
           {account.status !== "archived" ? (
@@ -308,7 +305,7 @@ export function AdAccountsTable({
               disabled={loadingActionId === `${account.id}:archive`}
               onClick={() => runAccountAction(account, "archive")}
             >
-              Archivar
+              {t("table.archive")}
             </Button>
           ) : (
             <Button
@@ -322,7 +319,7 @@ export function AdAccountsTable({
               disabled={loadingActionId === `${account.id}:reactivate`}
               onClick={() => runAccountAction(account, "reactivate")}
             >
-              Restaurar
+              {t("table.restore")}
             </Button>
           )}
         </div>
@@ -331,7 +328,7 @@ export function AdAccountsTable({
   }
 
   function AccountCell({ account }: { account: AdAccount }) {
-    const display = parseAccountDisplay(account);
+    const display = parseAccountDisplay(account, defaultName);
     return (
       <div className="flex min-w-0 items-start gap-2.5">
         <PlatformMark platform={account.platform} />
@@ -394,7 +391,7 @@ export function AdAccountsTable({
       {!isEmpty ? (
         <div className="space-y-2.5 p-4 md:hidden">
           {accounts.map((account) => {
-            const display = parseAccountDisplay(account);
+            const display = parseAccountDisplay(account, defaultName);
             return (
               <article
                 key={account.id}
@@ -432,7 +429,7 @@ export function AdAccountsTable({
                   ) : (
                     <>
                       <div>
-                        <dt className="text-[#9a9187]">Saldo</dt>
+                        <dt className="text-[#9a9187]">{t("table.balance")}</dt>
                         <dd className="tabular-nums text-[#1a1612]">
                           {formatMoney(account.balance)}
                         </dd>
@@ -460,9 +457,9 @@ export function AdAccountsTable({
           <Table embedded className="rounded-none">
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
-                <Head>Cuenta</Head>
+                <Head>{t("table.account")}</Head>
                 <Head>ID</Head>
-                <Head>Estado</Head>
+                <Head>{t("table.status")}</Head>
                 {readOnly ? (
                   <>
                     <Head>Saldo en vivo</Head>
@@ -471,17 +468,17 @@ export function AdAccountsTable({
                 ) : (
                   <>
                     <Head>Presupuestos</Head>
-                    <Head>Saldo</Head>
+                    <Head>{t("table.balance")}</Head>
                     <Head>Recarga</Head>
                   </>
                 )}
                 {!readOnly ? <Head>Huso</Head> : null}
-                <Head>Acción</Head>
+                <Head>{t("table.actions")}</Head>
               </TableRow>
             </TableHeader>
             <TableBody>
               {accounts.map((account) => {
-                const display = parseAccountDisplay(account);
+                const display = parseAccountDisplay(account, defaultName);
                 return (
                   <TableRow
                     key={account.id}

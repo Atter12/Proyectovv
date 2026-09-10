@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { cn } from "@/lib/cn";
@@ -52,15 +53,13 @@ type PanelMode =
       "faqCategories" | "faqCategoryDetail" | "faqArticleDetail"
     >;
 
-const SUPPORT_NAME = "Soporte Holistic";
-
-function greetingMessage(): ChatMessage {
+function greetingMessage(supportName: string, text: string): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: `Hola. Este es el chat de ${SUPPORT_NAME}. Escribe tu consulta, pega una captura (Ctrl+V) o adjunta fotos/PDF. Te respondemos acá.`,
+    text,
     ...supportChatTimestampsNow(),
-    senderName: SUPPORT_NAME,
+    senderName: supportName,
     senderKind: "system",
   };
 }
@@ -73,14 +72,10 @@ function pickActiveTicket(tickets: SupportTicketSummary[]): SupportTicketSummary
   return openish ?? tickets[0] ?? null;
 }
 
-/** FAQ Holistic (renombre visual sin “Default”). */
-function mapFaqCategories(persona: DashboardPersona) {
-  return supportFaqForPersona(supportMock, persona).categories.map((category) => ({
-    ...category,
-    title: category.title
-      .replace(/Default Media/gi, "Ads Holistic")
-      .replace(/Default/gi, "Holistic"),
-  }));
+function applyHolisticRename(value: string) {
+  return value
+    .replace(/Default Media/gi, "Ads Holistic")
+    .replace(/Default/gi, "Holistic");
 }
 
 export function SupportPageClient({
@@ -88,14 +83,64 @@ export function SupportPageClient({
 }: {
   persona?: DashboardPersona;
 }) {
+  const t = useTranslations("support");
+  const tFaq = useTranslations("support.faq");
+  const tNav = useTranslations("nav");
+  const supportName = t("brandName");
+  const greetingText = t("greeting", { name: supportName });
+
   const faqConfig = useMemo(
     () => supportFaqForPersona(supportMock, persona),
     [persona],
   );
+
   const holisticFaqCategories = useMemo(
-    () => mapFaqCategories(persona),
-    [persona],
+    () =>
+      faqConfig.categories.map((category) => {
+        const fallback = applyHolisticRename(category.title);
+        const known = (
+          ["empezar", "dinero", "cuentas", "soporte"] as const
+        ).includes(category.id as "empezar");
+        return {
+          ...category,
+          title: known
+            ? tFaq(`categories.${category.id as "empezar"}`)
+            : fallback,
+        };
+      }),
+    [faqConfig.categories, tFaq],
   );
+
+  const localizedArticles = useMemo(
+    () =>
+      faqConfig.articles.map((article) => {
+        const knownIds = [
+          "que-es",
+          "menu-cliente",
+          "saldo-estimado",
+          "como-recargar",
+          "como-asignar",
+          "fee",
+          "ver-cuentas",
+          "como-escribir",
+          "tiempos",
+        ] as const;
+        type KnownArticleId = (typeof knownIds)[number];
+        const known = (knownIds as readonly string[]).includes(article.id);
+        const id = article.id as KnownArticleId;
+        return {
+          ...article,
+          title: known
+            ? tFaq(`articles.${id}.title`)
+            : applyHolisticRename(article.title),
+          content: known
+            ? tFaq(`articles.${id}.content`)
+            : applyHolisticRename(article.content),
+        };
+      }),
+    [faqConfig.articles, tFaq],
+  );
+
   const [panel, setPanel] = useState<PanelMode>("chat");
   const [mobileShowChat, setMobileShowChat] = useState(true);
 
@@ -103,7 +148,9 @@ export function SupportPageClient({
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [faqQuery, setFaqQuery] = useState("");
 
-  const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    greetingMessage(supportName, greetingText),
+  ]);
   const [inputValue, setInputValue] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [ticketStatus, setTicketStatus] = useState<string | null>(null);
@@ -113,25 +160,37 @@ export function SupportPageClient({
   const [error, setError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
 
+  const buildGreeting = useCallback(
+    () => greetingMessage(supportName, greetingText),
+    [greetingText, supportName],
+  );
+
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0]?.id === "support-greeting") {
+        return [buildGreeting()];
+      }
+      return prev.map((msg) =>
+        msg.id === "support-greeting"
+          ? { ...msg, text: greetingText, senderName: supportName }
+          : msg,
+      );
+    });
+  }, [buildGreeting, greetingText, supportName]);
+
   const selectedCategory = holisticFaqCategories.find(
     (c) => c.id === selectedCategoryId,
   );
-  const categoryArticles = faqConfig.articles
-    .filter((a) => a.categoryId === selectedCategoryId)
-    .map((article) => ({
-      ...article,
-      title: article.title.replace(/Default/gi, "Holistic"),
-      content: article.content
-        .replace(/Default Media/gi, "Ads Holistic")
-        .replace(/Default/gi, "Holistic"),
-    }));
+  const categoryArticles = localizedArticles.filter(
+    (a) => a.categoryId === selectedCategoryId,
+  );
   const selectedArticle = categoryArticles.find((a) => a.id === selectedArticleId);
 
   const filteredFaqCategories = useMemo(() => {
     const q = faqQuery.trim().toLowerCase();
     if (!q) return holisticFaqCategories;
     return holisticFaqCategories.filter((category) => {
-      const articles = faqConfig.articles.filter(
+      const articles = localizedArticles.filter(
         (a) => a.categoryId === category.id,
       );
       return (
@@ -143,35 +202,36 @@ export function SupportPageClient({
         )
       );
     });
-  }, [faqQuery, faqConfig.articles, holisticFaqCategories]);
+  }, [faqQuery, holisticFaqCategories, localizedArticles]);
 
-  const openTicket = useCallback(async (ticket: SupportTicketSummary) => {
-    setTicketId(ticket.id);
-    setTicketStatus(ticket.status);
-    setPanel("chat");
-    setMobileShowChat(true);
-    setLoadingConversation(true);
-    setError(null);
-    try {
-      const messagesData = await apiClient<MessagesResponse>(
-        `/api/support/tickets/${ticket.id}/messages`,
-      );
-      setMessages(
-        messagesData.messages.length > 0
-          ? messagesData.messages
-          : [greetingMessage()],
-      );
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? err.message
-          : "No se pudo cargar la conversación.",
-      );
-      setMessages([greetingMessage()]);
-    } finally {
-      setLoadingConversation(false);
-    }
-  }, []);
+  const openTicket = useCallback(
+    async (ticket: SupportTicketSummary) => {
+      setTicketId(ticket.id);
+      setTicketStatus(ticket.status);
+      setPanel("chat");
+      setMobileShowChat(true);
+      setLoadingConversation(true);
+      setError(null);
+      try {
+        const messagesData = await apiClient<MessagesResponse>(
+          `/api/support/tickets/${ticket.id}/messages`,
+        );
+        setMessages(
+          messagesData.messages.length > 0
+            ? messagesData.messages
+            : [buildGreeting()],
+        );
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError ? err.message : t("loadError"),
+        );
+        setMessages([buildGreeting()]);
+      } finally {
+        setLoadingConversation(false);
+      }
+    },
+    [buildGreeting, t],
+  );
 
   const bootChat = useCallback(async () => {
     setLoadingConversation(true);
@@ -185,18 +245,16 @@ export function SupportPageClient({
       }
       setTicketId(null);
       setTicketStatus(null);
-      setMessages([greetingMessage()]);
+      setMessages([buildGreeting()]);
     } catch (err) {
       setBootError(
-        err instanceof ApiClientError
-          ? err.message
-          : "No se pudo abrir Soporte Holistic.",
+        err instanceof ApiClientError ? err.message : t("openError"),
       );
-      setMessages([greetingMessage()]);
+      setMessages([buildGreeting()]);
     } finally {
       setLoadingConversation(false);
     }
-  }, [openTicket]);
+  }, [buildGreeting, openTicket, t]);
 
   useEffect(() => {
     void bootChat();
@@ -229,12 +287,12 @@ export function SupportPageClient({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        throw new Error(data.error ?? "No se pudo borrar el chat.");
+        throw new Error(data.error ?? t("clearError"));
       }
-      setMessages([greetingMessage()]);
+      setMessages([buildGreeting()]);
       setTicketStatus("open");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo borrar el chat.");
+      setError(err instanceof Error ? err.message : t("clearError"));
     } finally {
       setClearingChat(false);
     }
@@ -282,7 +340,7 @@ export function SupportPageClient({
         });
         const data = (await res.json()) as CreateTicketResponse;
         if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? "No se pudo enviar el mensaje.");
+          throw new Error(data.error ?? t("sendError"));
         }
         setTicketId(data.ticketId);
         setTicketStatus("open");
@@ -297,7 +355,7 @@ export function SupportPageClient({
         });
         const data = (await res.json()) as PostMessageResponse;
         if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? "No se pudo enviar el mensaje.");
+          throw new Error(data.error ?? t("sendError"));
         }
         setTicketStatus("open");
         setMessages((prev) =>
@@ -307,7 +365,7 @@ export function SupportPageClient({
     } catch (err) {
       setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
       setInputValue(text);
-      setError(err instanceof Error ? err.message : "No se pudo enviar el mensaje.");
+      setError(err instanceof Error ? err.message : t("sendError"));
     } finally {
       setSending(false);
     }
@@ -327,17 +385,17 @@ export function SupportPageClient({
                 }}
                 className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
               >
-                ← Volver al chat
+                {t("backToChat")}
               </button>
-              <p className="text-sm font-bold text-white">Preguntas frecuentes</p>
-              <p className="text-xs text-white/70">Guías rápidas de Ads Holistic</p>
+              <p className="text-sm font-bold text-white">{t("faqTitle")}</p>
+              <p className="text-xs text-white/70">{t("faqSubtitle")}</p>
             </div>
             <div className="p-4">
               <input
                 type="search"
                 value={faqQuery}
                 onChange={(e) => setFaqQuery(e.target.value)}
-                placeholder="Buscar en FAQ…"
+                placeholder={t("searchFaq")}
                 className="mb-3 h-10 w-full rounded-lg border border-[var(--auth-input-border)] bg-white px-3 text-[14px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20"
               />
               <ul className="space-y-1">
@@ -358,7 +416,7 @@ export function SupportPageClient({
                 ))}
                 {filteredFaqCategories.length === 0 ? (
                   <li className="px-3 py-6 text-center text-[13px] text-[var(--auth-text-muted)]">
-                    No hay resultados para “{faqQuery}”.
+                    {t("noFaqResults", { q: faqQuery })}
                   </li>
                 ) : null}
               </ul>
@@ -402,10 +460,10 @@ export function SupportPageClient({
     <div className="space-y-4">
       <div className="dashboard-surface-card rounded-[1rem] p-4 sm:p-5">
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Chats
+          {t("chats")}
         </p>
         <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-          Conversación
+          {t("conversation")}
         </h2>
 
         {bootError ? (
@@ -438,10 +496,10 @@ export function SupportPageClient({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[14px] font-semibold text-[var(--auth-text)]">
-              {SUPPORT_NAME}
+              {supportName}
             </span>
             <span className="mt-0.5 block truncate text-[12px] text-[var(--auth-text-muted)]">
-              Equipo Ads Holistic · respuesta en este chat
+              {t("teamHint")}
             </span>
           </span>
         </button>
@@ -457,10 +515,10 @@ export function SupportPageClient({
         >
           <div>
             <p className="text-[14px] font-semibold text-[var(--auth-text)]">
-              Preguntas frecuentes
+              {t("faqTitle")}
             </p>
             <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
-              Guías rápidas sin abrir ticket
+              {t("faqGuides")}
             </p>
           </div>
           <svg
@@ -489,7 +547,7 @@ export function SupportPageClient({
         error={error}
         showBack={mobileShowChat && faqMode === false}
         className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
-        title={SUPPORT_NAME}
+        title={supportName}
         subtitle="Escribe, pega capturas (Ctrl+V) o adjunta fotos/PDF."
         onInputChange={setInputValue}
         onSend={(files) => void handleSend(files)}
@@ -504,10 +562,10 @@ export function SupportPageClient({
     <div className={dashboardClasses.page}>
       <header className="border-b border-[var(--auth-divider)] pb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-          Soporte
+          {tNav("support")}
         </p>
         <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
-          {SUPPORT_NAME}
+          {supportName}
         </h1>
         <p className="mt-1 max-w-2xl text-[13px] text-[var(--auth-text-muted)]">
           Chat con el equipo de Ads Holistic.

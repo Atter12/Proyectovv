@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { SupportCategory } from "../types/support.types";
 
 interface ChatFaqCategoriesProps {
@@ -13,6 +16,8 @@ export function ChatFaqCategories({
   onSelectCategory,
   onBack,
 }: ChatFaqCategoriesProps) {
+  const t = useTranslations("support");
+
   return (
     <div className="flex flex-col">
       <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
@@ -20,12 +25,12 @@ export function ChatFaqCategories({
           type="button"
           onClick={onBack}
           className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
-          aria-label="Volver"
+          aria-label={t("back")}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Volver
+          {t("back")}
         </button>
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[10px] font-bold text-white">
@@ -38,8 +43,8 @@ export function ChatFaqCategories({
       <div className="max-h-[420px] overflow-y-auto bg-white p-4">
         <input
           type="search"
-          placeholder="Buscar preguntas frecuentes..."
-          aria-label="Buscar en FAQs"
+          placeholder={t("searchFaq")}
+          aria-label={t("searchFaq")}
           className="mb-4 h-9 w-full rounded-lg border border-[var(--border-subtle)] px-3 text-sm text-[#141210] placeholder:text-[#9a9187] focus:border-[var(--brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
         />
         <ul className="space-y-1">

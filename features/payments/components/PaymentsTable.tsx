@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
@@ -12,11 +13,11 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
-import { formatMoney } from "@/lib/format-money";
-import { mapAdAccountStatusLabel } from "@/lib/ui/labels";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import { PaymentsEmptyState } from "./PaymentsEmptyState";
 import { PaymentsAccountBalanceCell } from "./PaymentsAccountBalanceCell.client";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
+import type { AdAccountStatus } from "@/types/ad-account";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface PaymentsTableProps {
@@ -37,6 +38,14 @@ interface AllocationResponse {
   ok: boolean;
   ledgerJournalId: string;
 }
+
+const STATUS_KEYS = new Set<AdAccountStatus>([
+  "active",
+  "pending",
+  "disabled",
+  "review",
+  "archived",
+]);
 
 function isReclaimableSuspended(account: PaymentAccountAllocation): boolean {
   return account.status === "disabled" && Number(account.balance) > 0;
@@ -72,14 +81,30 @@ export function PaymentsTable({
   liveMetricsLoading = false,
 }: PaymentsTableProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tAd = useTranslations("adAccounts");
+  const { formatMoney } = useAppFormatter();
   const [loadingAccountId, setLoadingAccountId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isEmpty = accounts.length === 0;
-  const actionLabel = agencyBmFunding ? "Recargar" : "Asignar";
-  const actionLabelLong = agencyBmFunding ? "Recargar saldo" : "Asignar saldo";
+  const actionLabel = agencyBmFunding
+    ? t("assignmentTable.reload")
+    : t("assignmentTable.assign");
+  const actionLabelLong = agencyBmFunding
+    ? t("assignmentTable.reloadBalance")
+    : t("assignmentTable.assignBalance");
   const actionLoading = agencyBmFunding ? "Recargando…" : "Asignando…";
-  const balanceColumnLabel = agencyBmFunding ? "TikTok en vivo" : "Saldo / cupo";
+  const balanceColumnLabel = agencyBmFunding
+    ? t("assignmentTable.tiktokLive")
+    : t("assignmentTable.balanceQuota");
+
+  function statusLabel(status: string): string {
+    if (STATUS_KEYS.has(status as AdAccountStatus)) {
+      return tAd(`status.${status as AdAccountStatus}`);
+    }
+    return status;
+  }
 
   function renderBalanceCell(account: PaymentAccountAllocation, compact = false) {
     const advertiserId = account.externalAccountId?.trim();
@@ -169,7 +194,7 @@ export function PaymentsTable({
             size={mobile ? undefined : "sm"}
             onClick={() => runTransfer(account)}
           >
-            Transferir a otra cuenta
+            {t("assignmentTable.transfer")}
           </Button>
         ) : onTransfer && !reclaimable ? (
           <p
@@ -196,7 +221,7 @@ export function PaymentsTable({
               size={mobile ? undefined : "sm"}
               onClick={() => runReclaim(account)}
             >
-              Recuperar a cartera
+              {t("assignmentTable.reclaim")}
             </Button>
             <p
               className={
@@ -242,7 +267,7 @@ export function PaymentsTable({
             }
             onClick={() => onEditTikTokIds(account)}
           >
-            Cambiar ID TikTok
+            {t("assignmentTable.editTikTokId")}
           </button>
         ) : null}
       </div>
@@ -288,12 +313,13 @@ export function PaymentsTable({
                     ) : null}
                     <p className="truncate font-mono text-[10px] text-[#9a9187]">
                       adv{" "}
-                      {account.externalAccountId?.trim() || "Sin TikTok ID"}
+                      {account.externalAccountId?.trim() ||
+                        t("assignmentTable.noTikTokId")}
                     </p>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span className={statusBadgeClass(account.status)}>
-                      {mapAdAccountStatusLabel(account.status)}
+                      {statusLabel(account.status)}
                     </span>
                     {!agencyBmFunding ? (
                       <span
@@ -303,7 +329,9 @@ export function PaymentsTable({
                             : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
                         }
                       >
-                        {account.autoRecharge ? "Auto on" : "Auto off"}
+                        {account.autoRecharge
+                          ? t("assignmentTable.autoDebitOn")
+                          : t("assignmentTable.autoDebitOff")}
                       </span>
                     ) : null}
                   </div>
@@ -327,16 +355,16 @@ export function PaymentsTable({
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Cuenta
+                  {t("assignmentTable.account")}
                 </TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Estado
+                  {t("assignmentTable.status")}
                 </TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
                   {balanceColumnLabel}
                 </TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8178]">
-                  Acción
+                  {t("assignmentTable.action")}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -362,20 +390,24 @@ export function PaymentsTable({
                         <p className="truncate font-mono text-[10px] font-normal text-[#9a9187]">
                           adv{" "}
                           {account.externalAccountId?.trim() ||
-                            "Sin TikTok ID"}
+                            t("assignmentTable.noTikTokId")}
                         </p>
                       </div>
                       {!agencyBmFunding ? (
                         <p className="mt-1 text-[10px] font-normal text-[#8a8178]">
-                          {account.autoRecharge ? "Débito automático activo" : "Débito automático desactivado"}
-                          {account.thresholdInfo ? ` · ${account.thresholdInfo}` : ""}
+                          {account.autoRecharge
+                            ? t("assignmentTable.autoDebitOn")
+                            : t("assignmentTable.autoDebitOff")}
+                          {account.thresholdInfo
+                            ? ` · ${account.thresholdInfo}`
+                            : ""}
                         </p>
                       ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className={statusBadgeClass(account.status)}>
-                      {mapAdAccountStatusLabel(account.status)}
+                      {statusLabel(account.status)}
                     </span>
                   </TableCell>
                   <TableCell>{renderBalanceCell(account)}</TableCell>

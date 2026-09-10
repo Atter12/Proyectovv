@@ -1,38 +1,43 @@
-import { formatMoney } from "@/lib/format-money";
-import { formatNumber } from "@/lib/format-number";
+import { getTranslations } from "next-intl/server";
+import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import type { AdAccountsSummary } from "@/types/ad-account";
 
 interface AdAccountsSummaryCardsProps {
   summary: AdAccountsSummary;
 }
 
-export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps) {
+export async function AdAccountsSummaryCards({
+  summary,
+}: AdAccountsSummaryCardsProps) {
+  const t = await getTranslations("adAccounts");
+  const { formatMoney, formatNumber } = await getAppFormatter();
+
   const items = [
     {
-      label: "Totales",
+      label: t("summary.total"),
       value: formatNumber(summary.totalAccounts),
-      hint: "Mapeadas en Hecom",
+      hint: t("summary.totalHint"),
       accent: "bg-[#8a8178]",
       valueClass: "text-[#1a1612]",
     },
     {
-      label: "Activas",
+      label: t("summary.active"),
       value: formatNumber(summary.activeAccounts),
-      hint: "Listas para gastar",
+      hint: t("summary.activeHint"),
       accent: "bg-[#2f7a57]",
       valueClass: "text-[#1f5c40]",
     },
     {
-      label: "Saldo asignado",
+      label: t("summary.assigned"),
       value: formatMoney(summary.assignedBalance),
-      hint: "Disponible en cuentas",
+      hint: t("summary.assignedHint"),
       accent: "bg-[#c45a18]",
       valueClass: "text-[#1a1612]",
     },
     {
-      label: "Suspendidas",
+      label: t("summary.suspended"),
       value: formatNumber(summary.disabledAccounts ?? 0),
-      hint: "Baneadas o castigadas en TikTok",
+      hint: t("summary.suspendedHint"),
       accent: "bg-[#c53030]",
       valueClass:
         (summary.disabledAccounts ?? 0) > 0
@@ -43,7 +48,7 @@ export function AdAccountsSummaryCards({ summary }: AdAccountsSummaryCardsProps)
 
   return (
     <section
-      aria-label="Resumen de cuentas"
+      aria-label={t("summary.aria")}
       className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]"
     >
       <div className="grid divide-y divide-[rgb(20_18_16_/_0.06)] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">

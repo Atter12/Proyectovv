@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
-import { formatMoney } from "@/lib/format-money";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
@@ -52,6 +53,9 @@ export function TransferBalanceModal({
   liveMetricsByAdvertiser,
 }: TransferBalanceModalProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+  const { formatMoney } = useAppFormatter();
   const [mounted, setMounted] = useState(false);
   const [toAccountId, setToAccountId] = useState("");
   const [amount, setAmount] = useState("");
@@ -116,7 +120,7 @@ export function TransferBalanceModal({
 
   async function handleSubmit() {
     if (destinationOptions.length === 0) {
-      setError("No hay otra cuenta activa para recibir el saldo.");
+      setError(t("transferModal.noTarget"));
       return;
     }
     if (!isValid) {
@@ -171,7 +175,7 @@ export function TransferBalanceModal({
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
-        aria-label="Cerrar modal"
+        aria-label={t("transferModal.closeAria")}
         onClick={resetAndClose}
       />
       <div
@@ -181,8 +185,8 @@ export function TransferBalanceModal({
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
           {clientSelfService
-            ? "Transfiere saldo a otra cuenta"
-            : "Transferir a otra cuenta"}
+            ? t("transferModal.titleLong")
+            : t("transferModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           {clientSelfService ? (
@@ -203,7 +207,7 @@ export function TransferBalanceModal({
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
-            Desde (origen)
+            {t("transferModal.from")}
           </p>
           <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {sourceAccount.name}
@@ -214,7 +218,7 @@ export function TransferBalanceModal({
             </span>
           ) : null}
           <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            Transferible TikTok: {formatMoney(maxAmount)}
+            {t("transferModal.transferable")}: {formatMoney(maxAmount)}
           </p>
           {sourceLiveUsd != null &&
           Math.abs(sourceLiveUsd - Number(sourceAccount.balance)) > 0.5 ? (
@@ -235,12 +239,11 @@ export function TransferBalanceModal({
             htmlFor="transfer-dest"
             className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
           >
-            Hacia (destino)
+            {t("transferModal.to")}
           </label>
           {destinationOptions.length === 0 ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950">
-              No hay otra cuenta activa o aprobada. Sincroniza las cuentas en Pagos o
-              elige una cuenta distinta.
+              {t("transferModal.noTarget")}
             </p>
           ) : (
             <select
@@ -279,7 +282,7 @@ export function TransferBalanceModal({
             htmlFor="transfer-amount"
             className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
           >
-            Monto a transferir (USD)
+            {t("transferModal.amountLabel")}
           </label>
           <Input
             id="transfer-amount"
@@ -330,7 +333,7 @@ export function TransferBalanceModal({
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={resetAndClose} disabled={loading}>
-            Cerrar
+            {tCommon("close")}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -339,7 +342,9 @@ export function TransferBalanceModal({
             }
             className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
           >
-            {loading ? "Transfiriendo…" : "Transferir saldo"}
+            {loading
+              ? t("transferModal.transferring")
+              : t("transferModal.cta")}
           </Button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   CrmMetricCell,
   CrmMetricsStrip,
@@ -12,28 +13,21 @@ import {
   type HecomCobroRow,
 } from "@/lib/hecom/cliente-dashboard.server";
 import { routes } from "@/config/routes";
+import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 
-function formatPeriodoResumen(value: string | null): string {
+function formatPeriodoResumen(value: string | null, bcp47: string): string {
   if (!value) return "—";
   const match = value.match(/^(\d{4})-(\d{2})/);
   if (!match) return value;
-  const months = [
-    "ene",
-    "feb",
-    "mar",
-    "abr",
-    "may",
-    "jun",
-    "jul",
-    "ago",
-    "sep",
-    "oct",
-    "nov",
-    "dic",
-  ];
-  const monthIndex = Number(match[2]) - 1;
-  if (monthIndex < 0 || monthIndex > 11) return value;
-  return `${months[monthIndex]}. ${match[1]}`;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isFinite(year) || month < 1 || month > 12) return value;
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return new Intl.DateTimeFormat(bcp47, {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 function formatHora(value: string | null): string {
@@ -64,6 +58,7 @@ function limaYmdFromIso(value: string | null): string | null {
 function formatRegisteredAt(
   registeredAt: string | null,
   paymentFecha: string | null,
+  bcp47: string,
 ): { label: string; title: string } {
   if (!registeredAt) {
     return { label: "—", title: "" };
@@ -79,7 +74,7 @@ function formatRegisteredAt(
 
   if (sameDay) {
     return {
-      label: new Intl.DateTimeFormat("es-PE", {
+      label: new Intl.DateTimeFormat(bcp47, {
         dateStyle: "medium",
         timeStyle: "short",
         timeZone: "America/Lima",
@@ -90,7 +85,7 @@ function formatRegisteredAt(
 
   // Sync / backfill: la hora del insert no es la del pago.
   return {
-    label: new Intl.DateTimeFormat("es-PE", {
+    label: new Intl.DateTimeFormat(bcp47, {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -109,7 +104,7 @@ function maskEmail(email: string | null): string {
   return `${user.slice(0, 2)}…@${domain}`;
 }
 
-export function ClienteScopedCobros({
+export async function ClienteScopedCobros({
   data,
   showHecomDebt = false,
 }: {
@@ -117,6 +112,8 @@ export function ClienteScopedCobros({
   /** Solo staff en vista ops. Cliente / “viendo como”: no mostrar deuda. */
   showHecomDebt?: boolean;
 }) {
+  const t = await getTranslations("cobros");
+  const { bcp47 } = await getAppFormatter();
   const { cliente, summary, cobros } = data;
 
   return (
@@ -124,10 +121,10 @@ export function ClienteScopedCobros({
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--auth-divider)] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-            Historial Hecom
+            {t("module")}
           </p>
           <h2 className="mt-1 text-[1.125rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            Lo pagado · {cliente.name}
+            {t("title", { name: cliente.name })}
           </h2>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-[var(--auth-text-muted)]">
             Cada fila es un pago en Hecom. La fecha de pago es la real; “Ingreso
@@ -138,7 +135,7 @@ export function ClienteScopedCobros({
           href={routes.payments}
           className="text-[12px] font-semibold text-[var(--auth-accent)] hover:underline"
         >
-          Ir a Pagos →
+          {t("goPayments")}
         </Link>
       </header>
 
@@ -150,14 +147,14 @@ export function ClienteScopedCobros({
         >
           <div className="bg-white">
             <CrmMetricCell
-              label="Total pagado"
+              label={t("totalPaid")}
               value={moneyUsd(summary.cobroTotal)}
               emphasis="primary"
             />
           </div>
           <div className="bg-white">
             <CrmMetricCell
-              label="Registros"
+              label={t("records")}
               value={String(cobros.length)}
             />
           </div>
@@ -165,10 +162,10 @@ export function ClienteScopedCobros({
             <div className="bg-white">
               <CrmMetricCell
                 label={
-                  summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado"
+                  summary.saldoEstimado < 0 ? t("debt") : t("estimated")
                 }
                 value={moneyUsd(summary.saldoEstimado)}
-                hint="Pagos − (gastos + fees)"
+                hint={t("debtHint")}
                 emphasis={summary.saldoEstimado < 0 ? "primary" : "default"}
               />
             </div>
@@ -177,33 +174,33 @@ export function ClienteScopedCobros({
       </CrmMetricsStrip>
 
       <CrmPanel
-        title="Historial de pagos"
+        title={t("historyTitle")}
         subtitle={`${cobros.length} registro${cobros.length === 1 ? "" : "s"} · solo lectura CRM`}
         className="overflow-hidden"
       >
         {cobros.length === 0 ? (
           <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-            Sin pagos registrados para este cliente.
+            {t("empty")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[920px] w-full text-left text-[12px]">
               <thead className="border-b border-[var(--auth-divider)] bg-[var(--auth-bg)]/70 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
                 <tr>
-                  <th className="px-4 py-3 sm:px-5">Fecha de pago</th>
-                  <th className="px-4 py-3">Hora</th>
-                  <th className="px-4 py-3">Cód. pago</th>
-                  <th className="px-4 py-3">Período</th>
-                  <th className="px-4 py-3">Monto</th>
-                  <th className="px-4 py-3">Método</th>
-                  <th className="px-4 py-3">Comprobantes</th>
-                  <th className="px-4 py-3">Registrado por</th>
-                  <th className="px-4 py-3">Ingreso CRM</th>
+                  <th className="px-4 py-3 sm:px-5">{t("colDate")}</th>
+                  <th className="px-4 py-3">{t("colTime")}</th>
+                  <th className="px-4 py-3">{t("colCode")}</th>
+                  <th className="px-4 py-3">{t("colPeriod")}</th>
+                  <th className="px-4 py-3">{t("colAmount")}</th>
+                  <th className="px-4 py-3">{t("colMethod")}</th>
+                  <th className="px-4 py-3">{t("colProofs")}</th>
+                  <th className="px-4 py-3">{t("colRegisteredBy")}</th>
+                  <th className="px-4 py-3">{t("colCrmIn")}</th>
                 </tr>
               </thead>
               <tbody>
                 {cobros.map((row) => (
-                  <CobroTableRow key={row.id} row={row} />
+                  <CobroTableRow key={row.id} row={row} bcp47={bcp47} />
                 ))}
               </tbody>
             </table>
@@ -214,10 +211,16 @@ export function ClienteScopedCobros({
   );
 }
 
-function CobroTableRow({ row }: { row: HecomCobroRow }) {
+function CobroTableRow({
+  row,
+  bcp47,
+}: {
+  row: HecomCobroRow;
+  bcp47: string;
+}) {
   const fecha = formatHecomFecha(row.fecha);
-  const periodo = formatPeriodoResumen(row.periodoResumen);
-  const registered = formatRegisteredAt(row.registeredAt, row.fecha);
+  const periodo = formatPeriodoResumen(row.periodoResumen, bcp47);
+  const registered = formatRegisteredAt(row.registeredAt, row.fecha, bcp47);
 
   return (
     <tr className="border-b border-[var(--auth-divider)] last:border-0 hover:bg-[var(--auth-bg)]/50">

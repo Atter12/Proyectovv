@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { dispatchPaymentsOpenAddBalanceModal } from "@/lib/events/modal-events";
 
@@ -14,6 +15,8 @@ interface WalletSummaryActionsProps {
 export function WalletSummaryActions({
   showAddBalance = true,
 }: WalletSummaryActionsProps) {
+  const t = useTranslations("payments");
+
   if (!showAddBalance) return null;
 
   return (
@@ -22,7 +25,7 @@ export function WalletSummaryActions({
         onClick={dispatchPaymentsOpenAddBalanceModal}
         className="h-11 w-full rounded-xl bg-[#ff781f] text-[13px] font-semibold text-white hover:brightness-[1.05] sm:w-auto"
       >
-        Recargar saldo
+        {t("walletCard.reload")}
       </Button>
     </div>
   );

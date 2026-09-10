@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 
 export function PaymentsAllocateSectionCopy({
@@ -11,18 +12,21 @@ export function PaymentsAllocateSectionCopy({
   walletBalance: number;
   clienteName?: string;
 }) {
+  const t = useTranslations("payments");
   const { agencyBmFunding } = usePaymentsFundingMode();
 
   if (agencyBmFunding) {
     return (
       <>
         <h2 className="text-[1.2rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-          Recargar una cuenta de TikTok
+          {t("allocate.titleManager")}
         </h2>
         <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-          Elige una cuenta{clienteName ? ` de ${clienteName}` : ""} y usa el
-          saldo disponible del Business Center. Si una cuenta suspendida todavía
-          tiene saldo, puedes recuperarlo desde su acción.
+          {t("allocate.bodyManager", {
+            ofClient: clienteName
+              ? t("allocate.ofClient", { name: clienteName })
+              : "",
+          })}
         </p>
       </>
     );
@@ -31,19 +35,19 @@ export function PaymentsAllocateSectionCopy({
   return (
     <>
       <h2 className="text-[1.2rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-        Asignar saldo a TikTok
+        {t("allocate.titleClient")}
       </h2>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
         {walletBalance > 0 ? (
-          <>Elige la cuenta que quieres recargar y define cuánto saldo asignar.</>
+          <>{t("allocate.bodyWithBalance")}</>
         ) : (
           <>
-            Tu cartera está en {walletBalanceLabel}.{" "}
+            {t("allocate.bodyEmptyBefore", { balance: walletBalanceLabel })}{" "}
             <a
               href="#recargar-saldo"
               className="font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
             >
-              Recarga saldo primero
+              {t("allocate.bodyEmptyCta")}
             </a>
             .
           </>

@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { routes } from "@/config/routes";
 import { AdAccountsOpenCreateModalButton } from "./AdAccountsOpenCreateModalButton.client";
 
 export function AdAccountsEmptyState() {
+  const t = useTranslations("adAccounts");
+
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center px-6 py-12 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-border)]">
@@ -21,20 +26,19 @@ export function AdAccountsEmptyState() {
         </svg>
       </div>
       <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--auth-text)]">
-        Aún no hay cuentas publicitarias
+        {t("empty.title")}
       </h3>
       <p className="mt-2 max-w-md text-[14px] leading-6 text-[var(--auth-text-muted)]">
-        Crea la primera para asignar presupuesto, configurar campañas y empezar
-        a publicar.
+{t("empty.body")}
       </p>
       <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]">
-        Crear cuenta publicitaria
+        {t("empty.ctaCreate")}
       </AdAccountsOpenCreateModalButton>
       <Link
         href={routes.payments}
         className="mt-3 text-[13px] font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
       >
-        Cargar saldo en cartera
+        {t("empty.ctaWallet")}
       </Link>
     </div>
   );

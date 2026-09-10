@@ -9,11 +9,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import {
   depositFromDesiredCredit,
   formatFeePercentLabel,
@@ -80,7 +81,6 @@ interface ProofResponse {
 
 const MIN_USD = 10;
 const MAX_USD = 50_000;
-const MANUAL_PAYMENT_STEPS = ["Monto", "Transferencia", "Comprobante"] as const;
 const subscribeToNothing = () => () => {};
 
 function buildPenQuote(creditUsd: number, feePercent: number, rate: number) {
@@ -103,10 +103,22 @@ export function ManualPaymentModal({
   feePercent = 10,
 }: ManualPaymentModalProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+  const { formatMoney } = useAppFormatter();
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
     () => false,
+  );
+  const manualSteps = useMemo(
+    () =>
+      [
+        t("manualModal.stepAmount"),
+        t("manualModal.stepTransfer"),
+        t("manualModal.stepProof"),
+      ] as const,
+    [t],
   );
   const [step, setStep] = useState<Step>("form");
   const [amount, setAmount] = useState("");
@@ -321,7 +333,7 @@ export function ManualPaymentModal({
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
-        aria-label="Cerrar"
+        aria-label={tCommon("close")}
         onClick={resetAndClose}
       />
       <div
@@ -334,19 +346,19 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="¿Cuánto saldo quieres recargar?"
+              title={t("manualModal.amountTitle")}
               description="Ingresa el saldo que deseas recibir y elige si realizarás la transferencia en soles o dólares."
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />
             <div className="p-5 sm:p-6">
               <div>
                 <label className="mb-2 block text-[12px] font-semibold text-[#514b45]">
-                  Saldo que recibirás (USD)
+                  {t("manualModal.receiveLabel")}
                 </label>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg font-semibold text-[#8a8177]">
@@ -368,7 +380,7 @@ export function ManualPaymentModal({
 
               <div className="mt-5">
                 <p className="mb-2 text-[12px] font-semibold text-[#514b45]">
-                  Moneda de la transferencia
+                  {t("manualModal.currency")}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {(["PEN", "USD"] as const).map((c) => (
@@ -382,7 +394,9 @@ export function ManualPaymentModal({
                           : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#ff781f]/40"
                       }`}
                     >
-                      {c === "PEN" ? "Soles (PEN)" : "Dólares (USD)"}
+                      {c === "PEN"
+                        ? t("manualModal.pen")
+                        : t("manualModal.usd")}
                     </button>
                   ))}
                 </div>
@@ -438,14 +452,14 @@ export function ManualPaymentModal({
                   onClick={resetAndClose}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Cancelar
+                  {tCommon("cancel")}
                 </Button>
                 <Button
                   onClick={handleCreateIntent}
                   disabled={!isValidAmount || loading}
                   className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
                 >
-                  {loading ? "Preparando…" : "Ver cuentas bancarias"}
+                  {loading ? t("addBalance.processing") : t("manualModal.seeBanks")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -456,12 +470,12 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="Realiza la transferencia"
+              title={t("manualModal.doTransfer")}
               description={`Transfiere ${chargeLabel} a una de las cuentas disponibles. Conserva el comprobante para el siguiente paso.`}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />
@@ -494,7 +508,7 @@ export function ManualPaymentModal({
                         <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#e4ddd6] pt-3">
                           <div className="min-w-0">
                             <p className="text-[10px] text-[#6f675f]">
-                              Número de cuenta
+                              {t("manualModal.accountNumber")}
                             </p>
                             <p className="mt-0.5 truncate font-mono text-[13px] font-semibold text-[#1c1917]">
                               {bank.accountNumber}
@@ -505,7 +519,7 @@ export function ManualPaymentModal({
                             onClick={() => void copyText(bank.accountNumber)}
                             className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
                           >
-                            Copiar
+                            {t("addBalance.copy")}
                           </button>
                         </div>
                         {bank.cci ? (
@@ -521,7 +535,7 @@ export function ManualPaymentModal({
                               onClick={() => void copyText(bank.cci!)}
                               className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
                             >
-                              Copiar
+                              {t("addBalance.copy")}
                             </button>
                           </div>
                         ) : null}
@@ -537,13 +551,13 @@ export function ManualPaymentModal({
                   onClick={() => setStep("form")}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Volver
+                  {tCommon("back")}
                 </Button>
                 <Button
                   className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
                   onClick={() => setStep("voucher")}
                 >
-                  Ya pagué · Subir comprobante
+                  {t("manualModal.paidUpload")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -554,12 +568,12 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="Sube tu comprobante"
+              title={t("manualModal.uploadTitle")}
               description="Puedes pegar una captura, elegir una imagen de la galería o subir un archivo PDF."
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />
@@ -595,7 +609,7 @@ export function ManualPaymentModal({
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-[#1c1917]">
-                      Haz clic para subir el archivo o pégalo aquí
+                      {t("manualModal.uploadHint")}
                     </p>
                     <p className="mt-1 text-xs text-[#8a8177]">
                       JPG, PNG, WEBP o PDF · máx. 10 MB
@@ -621,14 +635,14 @@ export function ManualPaymentModal({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  Galería / archivo
+                  {t("manualModal.gallery")}
                 </Button>
                 <Button
                   variant="outline"
                   type="button"
                   onClick={() => pasteZoneRef.current?.focus()}
                 >
-                  Pegar captura
+                  {t("manualModal.paste")}
                 </Button>
               </div>
 
@@ -644,14 +658,14 @@ export function ManualPaymentModal({
                   onClick={() => setStep("banks")}
                   className="h-11 w-full rounded-xl sm:w-auto"
                 >
-                  Volver
+                  {tCommon("back")}
                 </Button>
                 <Button
                   disabled={!proofFile}
                   className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
                   onClick={handleSubmitVoucher}
                 >
-                  Verificar y acreditar
+                  {t("manualModal.verify")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -662,12 +676,12 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="Verificando el comprobante"
+              title={t("manualModal.verifying")}
               description="Estamos validando el monto y los datos de la transferencia."
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />
@@ -684,12 +698,12 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="Pago confirmado"
+              title={t("manualModal.confirmed")}
               description="El saldo ya está disponible en tu cartera Holistic."
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />
@@ -700,7 +714,7 @@ export function ManualPaymentModal({
                 </span>
                 <div>
                   <p className="text-[11px] font-medium text-emerald-700">
-                    Saldo acreditado
+                    {t("manualModal.credited")}
                   </p>
                   <p className="mt-0.5 text-2xl font-semibold tracking-[-0.03em] tabular-nums text-[#1c1917]">
                     {formatMoney(creditResult ?? parsedAmount)}
@@ -715,7 +729,7 @@ export function ManualPaymentModal({
                   className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
                   onClick={resetAndClose}
                 >
-                  Listo
+                  {t("manualModal.done")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -729,9 +743,9 @@ export function ManualPaymentModal({
               title="Comprobante en revisión"
               description="Nuestro equipo revisará la transferencia antes de acreditar el saldo."
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
-              identityLabel="Pago manual"
-              identityDescription="Transferencia bancaria con comprobante"
-              steps={MANUAL_PAYMENT_STEPS}
+              identityLabel={t("manualModal.title")}
+              identityDescription={t("manualModal.subtitle")}
+              steps={manualSteps}
               currentStep={modalStepIndex}
               onClose={resetAndClose}
             />

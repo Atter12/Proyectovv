@@ -1,6 +1,6 @@
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
-import { formatMoney } from "@/lib/format-money";
-import { formatNumber } from "@/lib/format-number";
+import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import {
   CrmAsideStat,
   CrmHeroButton,
@@ -19,36 +19,58 @@ interface AdAccountsPageHeaderProps {
   hideCreate?: boolean;
 }
 
-function accountStatusHint(summary: AdAccountsSummary) {
+function accountStatusHint(
+  summary: AdAccountsSummary,
+  t: Awaited<ReturnType<typeof getTranslations>>,
+  formatNumber: (value: number) => string,
+) {
   const total = summary.totalAccounts;
   const active = summary.activeAccounts;
   const suspended = summary.disabledAccounts ?? 0;
   const pending = summary.pendingSetup ?? 0;
 
-  if (total === 0) return "Sin advertisers mapeados";
+  if (total === 0) return t("header.noMapped");
   if (suspended === 0 && pending === 0 && active === total) {
-    return "Todas en campaña";
+    return t("header.allInCampaign");
   }
 
   const parts: string[] = [];
-  if (active > 0) parts.push(`${formatNumber(active)} activa${active === 1 ? "" : "s"}`);
-  if (suspended > 0) {
-    parts.push(`${formatNumber(suspended)} suspendida${suspended === 1 ? "" : "s"}`);
+  if (active > 0) {
+    parts.push(
+      t(active === 1 ? "header.activeOne" : "header.activeMany", {
+        count: formatNumber(active),
+      }),
+    );
   }
-  if (pending > 0) parts.push(`${formatNumber(pending)} pendiente${pending === 1 ? "" : "s"}`);
+  if (suspended > 0) {
+    parts.push(
+      t(suspended === 1 ? "header.suspendedOne" : "header.suspendedMany", {
+        count: formatNumber(suspended),
+      }),
+    );
+  }
+  if (pending > 0) {
+    parts.push(
+      t(pending === 1 ? "header.pendingOne" : "header.pendingMany", {
+        count: formatNumber(pending),
+      }),
+    );
+  }
   return parts.join(" · ");
 }
 
-export function AdAccountsPageHeader({
+export async function AdAccountsPageHeader({
   summary,
   hecomScoped = false,
   clienteName,
   avatarUrl,
   hideCreate = false,
 }: AdAccountsPageHeaderProps) {
+  const t = await getTranslations("adAccounts");
+  const { formatMoney, formatNumber } = await getAppFormatter();
   const suspended = summary.disabledAccounts ?? 0;
   const pending = summary.pendingSetup ?? 0;
-  const statusHint = accountStatusHint(summary);
+  const statusHint = accountStatusHint(summary, t, formatNumber);
 
   const metricItems: Array<{
     label: string;
@@ -57,7 +79,7 @@ export function AdAccountsPageHeader({
     emphasis?: "primary" | "default" | "muted";
   }> = [
     {
-      label: "Cuentas TikTok",
+      label: t("header.tiktokAccounts"),
       value: formatNumber(summary.totalAccounts),
       hint: statusHint,
       emphasis: "primary",
@@ -66,18 +88,18 @@ export function AdAccountsPageHeader({
 
   if (suspended > 0) {
     metricItems.push({
-      label: "Suspendidas",
+      label: t("header.suspended"),
       value: formatNumber(suspended),
-      hint: "Requieren revisión en TikTok",
+      hint: t("header.suspendedHint"),
       emphasis: "muted",
     });
   }
 
   if (pending > 0) {
     metricItems.push({
-      label: "Pendientes",
+      label: t("header.pending"),
       value: formatNumber(pending),
-      hint: "Sin setup completo",
+      hint: t("header.pendingHint"),
       emphasis: "muted",
     });
   }
@@ -85,34 +107,34 @@ export function AdAccountsPageHeader({
   return (
     <div className="space-y-4">
       <CrmScopeHero
-        module="Cuentas ads"
-        title="Mis cuentas publicitarias"
+        module={t("header.module")}
+        title={t("header.pageTitle")}
         cliente={
           hecomScoped && clienteName
             ? { name: clienteName, avatarUrl }
             : undefined
         }
         meta={
-          hecomScoped
-            ? "TikTok · solo lectura"
-            : "Selecciona un cliente para ver sus advertisers"
+hecomScoped ? t("header.metaScoped") : t("header.metaPick")
         }
         actions={
           <>
-            <CrmHeroButton href={routes.payments}>Ir a pagos</CrmHeroButton>
+            <CrmHeroButton href={routes.payments}>
+              {t("header.goPayments")}
+            </CrmHeroButton>
             <CrmHeroButton href={routes.overview} variant="secondary">
-              Resumen
+              {t("header.goOverview")}
             </CrmHeroButton>
             {hideCreate ? null : (
               <AdAccountsOpenCreateModalButton className="inline-flex h-10 items-center rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)]">
-                Crear cuenta
+                {t("header.create")}
               </AdAccountsOpenCreateModalButton>
             )}
           </>
         }
         aside={
           <CrmAsideStat
-            label="Saldo asignado"
+            label={t("header.assignedBalance")}
             value={formatMoney(summary.assignedBalance)}
             detail={statusHint}
           />

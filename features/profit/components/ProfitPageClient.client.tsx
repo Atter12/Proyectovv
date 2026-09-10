@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { formatMoney } from "@/lib/format-money";
@@ -228,6 +229,8 @@ export function ProfitPageClient({
   initialFrom?: string;
   initialTo?: string;
 }) {
+  const t = useTranslations("profit");
+  const tCommon = useTranslations("common");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState(initialFrom ?? "");
@@ -288,7 +291,7 @@ export function ProfitPageClient({
         subscription?: RpSubscription | null;
       };
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudo cargar Profit.");
+        throw new Error(json.error || t("loadError"));
       }
       setAnalysis(json.analysis ?? null);
       setSnapshots(
@@ -302,7 +305,7 @@ export function ProfitPageClient({
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, t]);
 
   const retryLinkStore = useCallback(async () => {
     setLinkBusy(true);
@@ -338,7 +341,7 @@ export function ProfitPageClient({
 
   useEffect(() => {
     if (from && to && from > to) {
-      setError("La fecha Desde no puede ser después de Hasta.");
+      setError(t("dateOrderError"));
       return;
     }
     const delay = from && to ? 280 : 0;
@@ -346,7 +349,7 @@ export function ProfitPageClient({
       void refresh();
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [from, to, refresh]);
+  }, [from, to, refresh, t]);
 
   const bmOptions = useMemo(() => {
     const set = new Set<string>();
@@ -439,14 +442,13 @@ export function ProfitPageClient({
         />
         <div className="relative">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
-            Análisis de campañas
+            {t("heroModule")}
           </p>
           <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
-            Profit · {clienteName}
+            {t("heroTitle", { name: clienteName })}
           </h1>
           <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-            Gasto TikTok live, ranking de campañas y CTR/CPC del rango —
-            incluido en Holistic.
+            {t("heroSubtitle")}
           </p>
         </div>
       </header>
@@ -475,7 +477,7 @@ export function ProfitPageClient({
             <span
               className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(displayPacing.pacingLabel).className}`}
             >
-              {pacingBadge(displayPacing.pacingLabel).text}
+              {t(`pacing.${displayPacing.pacingLabel}`)}
               {displayPacing.pacingRatio != null
                 ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
                 : ""}
@@ -486,7 +488,7 @@ export function ProfitPageClient({
               disabled={live.loading}
               className="rounded-full border border-[#ffd7b8] bg-white px-3 py-1.5 text-[11px] font-bold text-[#c2410c] transition hover:bg-[#fff7f0] disabled:opacity-55"
             >
-              {live.loading ? "Actualizando…" : "Actualizar live"}
+              {live.loading ? tCommon("loading") : t("refreshLive")}
             </button>
           </div>
         </div>
@@ -569,24 +571,24 @@ export function ProfitPageClient({
           />
           {loading ? (
             <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
-              Cargando…
+              {tCommon("loading")}
             </p>
           ) : null}
         </div>
       </section>
 
       {loading && !analysis ? (
-        <p className="text-[13px] text-[#8a8177]">Cargando análisis…</p>
+        <p className="text-[13px] text-[#8a8177]">{t("loadingAnalysis")}</p>
       ) : analysis ? (
         <>
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  Campañas
+                  {t("campaigns")}
                 </p>
                 <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
-                  Ranking + performance TikTok
+                  {t("campaignsSubtitle")}
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#5c564e]">
                   Rango {formatRangeLabel(analysis.from, analysis.to)}
@@ -727,17 +729,17 @@ export function ProfitPageClient({
                 <span className="font-semibold text-[#1c1917]">
                   {analysis.breakEvenRoas?.toFixed(2)}x
                 </span>
-                . Conecta tu tienda abajo para CPA / ganancia neta.
+                . {t("emptyConnectStore")}
               </div>
             ) : null}
 
             {sortedCampaigns.length === 0 ? (
               <div className="rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
                 <p className="text-[13px] font-semibold text-[#1c1917]">
-                  Sin campañas con gasto en este período
+                  {t("emptyCampaigns")}
                 </p>
                 <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
-                  Prueba otro rango o espera a que sync TikTok escriba snapshots.
+                  {t("emptyTryRange")}
                 </p>
               </div>
             ) : (
@@ -751,20 +753,20 @@ export function ProfitPageClient({
                           className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("name")}
                         >
-                          Campaña
+                          {t("colCampaign")}
                         </button>
                       </th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 font-bold">
                         Entrega
                       </th>
-                      <th className="px-2.5 py-2.5 font-bold">BM</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colBm")}</th>
                       <th className="px-2.5 py-2.5">
                         <button
                           type="button"
                           className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("spend")}
                         >
-                          Gasto
+                          {t("colSpend")}
                         </button>
                       </th>
                       <th className="px-2.5 py-2.5">
@@ -773,10 +775,10 @@ export function ProfitPageClient({
                           className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("share")}
                         >
-                          %
+                          {t("colPct")}
                         </button>
                       </th>
-                      <th className="px-2.5 py-2.5 font-bold">Imp.</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colImp")}</th>
                       <th className="px-2.5 py-2.5 font-bold">Clicks</th>
                       <th className="px-2.5 py-2.5">
                         <button
@@ -784,7 +786,7 @@ export function ProfitPageClient({
                           className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("ctr")}
                         >
-                          CTR
+                          {t("colCtr")}
                         </button>
                       </th>
                       <th className="px-2.5 py-2.5">
@@ -793,22 +795,22 @@ export function ProfitPageClient({
                           className="font-bold uppercase tracking-[0.07em]"
                           onClick={() => toggleSort("cpc")}
                         >
-                          CPC
+                          {t("colCpc")}
                         </button>
                       </th>
-                      <th className="px-2.5 py-2.5 font-bold">CPM</th>
-                      <th className="px-2.5 py-2.5 font-bold">Conv.</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colCpm")}</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colConv")}</th>
                       <th className="px-2.5 py-2.5 font-bold">CPA</th>
                       {analysis.hasCodLink ? (
                         <>
-                          <th className="px-2.5 py-2.5 font-bold">Cobrado est.</th>
+                          <th className="px-2.5 py-2.5 font-bold">{t("colCharged")}</th>
                           <th className="px-2.5 py-2.5">
                             <button
                               type="button"
                               className="font-bold uppercase tracking-[0.07em]"
                               onClick={() => toggleSort("roas")}
                             >
-                              ROAS est.
+                              {t("colRoas")}
                             </button>
                           </th>
                         </>

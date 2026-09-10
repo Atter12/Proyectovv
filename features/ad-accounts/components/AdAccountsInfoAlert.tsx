@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 
-export function AdAccountsInfoAlert() {
+export async function AdAccountsInfoAlert() {
+  const t = await getTranslations("adAccounts");
+
   return (
     <aside className="flex gap-3 rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#f6f0e8] px-4 py-3.5 sm:gap-4 sm:px-5">
       <div
@@ -18,17 +21,16 @@ export function AdAccountsInfoAlert() {
       </div>
       <div className="min-w-0">
         <p className="text-[13px] font-medium text-[#2a241f]">
-          Saldo y activación
+          {t("info.title")}
         </p>
         <p className="mt-0.5 text-[13px] leading-5 text-[#6b645c]">
-          Para que las campañas corran, la cuenta necesita saldo cargado desde
-          la cartera. Sin fondos, la cuenta aparece mapeada pero no publica.
+          {t("info.body")}
         </p>
         <Link
           href={routes.payments}
           className="mt-2 inline-flex text-[13px] font-medium text-[#c45a18] underline-offset-2 transition-colors hover:text-[#9a4512] hover:underline"
         >
-          Ir a pagos y cartera
+          {t("info.cta")}
         </Link>
       </div>
     </aside>

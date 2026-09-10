@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
-import { formatMoney } from "@/lib/format-money";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface ReclaimBalanceModalProps {
@@ -33,6 +34,9 @@ export function ReclaimBalanceModal({
   onFundingChanged,
 }: ReclaimBalanceModalProps) {
   const router = useRouter();
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+  const { formatMoney } = useAppFormatter();
   const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [forceLedgerOnly, setForceLedgerOnly] = useState(false);
@@ -72,7 +76,7 @@ export function ReclaimBalanceModal({
     if (!isValid) {
       setError(
         maxAmount <= 0
-          ? "No hay saldo recuperable en esta cuenta."
+          ? t("reclaimModal.none")
           : `Ingresa un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
       );
       return;
@@ -91,7 +95,7 @@ export function ReclaimBalanceModal({
         }),
       });
       setSuccess(
-        `Se recuperaron ${formatMoney(res.amountUsd)} a la cartera Holistic (${res.path}).`,
+        t("reclaimModal.success", { amount: formatMoney(res.amountUsd) }),
       );
       router.refresh();
       await onFundingChanged?.();
@@ -111,7 +115,7 @@ export function ReclaimBalanceModal({
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/45 backdrop-blur-sm"
-        aria-label="Cerrar modal"
+        aria-label={t("reclaimModal.closeAria")}
         onClick={resetAndClose}
       />
       <div
@@ -120,7 +124,7 @@ export function ReclaimBalanceModal({
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-semibold text-[var(--foreground)]">
-          Recuperar saldo a cartera
+          {t("reclaimModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
           Recupera el saldo o presupuesto disponible de esta cuenta de anuncios
@@ -129,7 +133,7 @@ export function ReclaimBalanceModal({
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
-            Cuenta
+            {t("reclaimModal.account")}
           </p>
           <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
             {account.name}
@@ -140,10 +144,12 @@ export function ReclaimBalanceModal({
             </span>
           ) : null}
           <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-            Saldo Holistic en cuenta: {formatMoney(account.balance)}
+            {t("reclaimModal.balanceOnAccount")}: {formatMoney(account.balance)}
           </p>
           <p className="mt-1 text-xs text-amber-800">
-            Estado: {account.status === "disabled" ? "Suspendida" : account.status}
+            {account.status === "disabled"
+              ? t("reclaimModal.statusSuspended")
+              : `Estado: ${account.status}`}
           </p>
         </div>
 
@@ -152,7 +158,7 @@ export function ReclaimBalanceModal({
             htmlFor="reclaim-amount"
             className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
           >
-            Monto a recuperar (USD)
+            {t("reclaimModal.amountLabel")}
           </label>
           <Input
             id="reclaim-amount"
@@ -201,14 +207,16 @@ export function ReclaimBalanceModal({
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={resetAndClose} disabled={loading}>
-            Cerrar
+            {tCommon("close")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading || !isValid}
             className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
           >
-            {loading ? "Recuperando…" : "Recuperar a cartera"}
+            {loading
+              ? t("reclaimModal.reclaiming")
+              : t("reclaimModal.cta")}
           </Button>
         </div>
       </div>

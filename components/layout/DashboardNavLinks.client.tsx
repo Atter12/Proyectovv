@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { mainNavigation } from "@/config/navigation";
 import type { NavItem } from "@/types/navigation";
@@ -126,25 +127,6 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
   }
 }
 
-function labelFor(item: NavItem, persona: DashboardPersona): string {
-  if (item.href === "/clientes") return "Clientes";
-  if (item.href === "/ad-accounts") return "Cuentas ads";
-  if (item.href === "/payments") return "Pagos";
-  if (item.href === "/payments/manual") return "Pagos manuales";
-  if (item.href === "/payments/profit") return "Pagos Profit";
-  if (item.href === "/cobros") return "Lo pagado";
-  if (item.href === "/gastos") return "Gastos";
-  if (item.href === "/overview") return "Resumen";
-  if (item.href === "/affiliates") return "Afiliados";
-  if (item.href === "/creative-analyzer") return "Creativos";
-  if (item.href === "/pixels") return "Píxeles";
-  if (item.href === "/profit") return "Profit";
-  if (item.href === "/support") {
-    return persona === "cliente" ? "Soporte" : "Inbox Soporte";
-  }
-  return item.label;
-}
-
 /** Cliente final (y vista “como cliente”) no elige CRM ni ve cola de boletas. */
 function navItemsForPersona(persona: DashboardPersona): NavItem[] {
   if (persona === "cliente") {
@@ -168,6 +150,7 @@ export function DashboardNavLinks({
   persona = "cliente",
 }: DashboardNavLinksProps) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const items = navItemsForPersona(persona);
 
   return (
@@ -178,6 +161,11 @@ export function DashboardNavLinks({
             ? pathname === "/payments"
             : pathname === item.href ||
               pathname.startsWith(`${item.href}/`);
+
+        const label =
+          item.key === "support" && persona !== "cliente"
+            ? t("supportStaff")
+            : t(item.key);
 
         return (
           <Link
@@ -192,9 +180,7 @@ export function DashboardNavLinks({
             )}
           >
             <NavIcon icon={item.icon} />
-            <span className="min-w-0 truncate leading-none">
-              {labelFor(item, persona)}
-            </span>
+            <span className="min-w-0 truncate leading-none">{label}</span>
           </Link>
         );
       })}

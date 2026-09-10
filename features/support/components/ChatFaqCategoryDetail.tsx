@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { SupportArticle } from "../types/support.types";
 
 interface ChatFaqCategoryDetailProps {
@@ -13,6 +16,8 @@ export function ChatFaqCategoryDetail({
   onSelectArticle,
   onBack,
 }: ChatFaqCategoryDetailProps) {
+  const t = useTranslations("support");
+
   return (
     <div className="flex flex-col">
       <div className="bg-[linear-gradient(135deg,#050505_0%,#1a1008_70%,#e8451a_160%)] px-4 py-3">
@@ -20,12 +25,12 @@ export function ChatFaqCategoryDetail({
           type="button"
           onClick={onBack}
           className="mb-2 flex items-center gap-1 text-xs text-white/80 hover:text-white"
-          aria-label="Volver"
+          aria-label={t("back")}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Volver
+          {t("back")}
         </button>
         <p className="text-sm font-semibold text-white">{categoryTitle}</p>
       </div>

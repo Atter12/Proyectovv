@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import createNextIntlPlugin from "next-intl/plugin";
 import { clerkCspHosts } from "./lib/auth/clerk";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const isProduction = process.env.NODE_ENV === "production";
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -76,4 +79,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

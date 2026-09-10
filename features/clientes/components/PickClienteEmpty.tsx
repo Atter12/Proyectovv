@@ -1,14 +1,21 @@
 ﻿import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 
-export function PickClienteEmpty({
-  section = "esta sección",
+export async function PickClienteEmpty({
+  section,
   mode = "staff",
 }: {
   section?: string;
   /** staff/gerente elige del CRM; cliente no ve el picker. */
   mode?: "staff" | "cliente";
 }) {
+  const t = await getTranslations("overview");
+  const resolvedSection =
+    !section || section === "esta sección"
+      ? t("pickEmpty.defaultSection")
+      : section;
+
   if (mode === "cliente") {
     return (
       <div className="dashboard-surface-card flex min-h-[240px] flex-col items-center justify-center rounded-[1rem] px-6 py-12 text-center">
@@ -29,17 +36,16 @@ export function PickClienteEmpty({
           </svg>
         </div>
         <h3 className="text-[1.25rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)]">
-          Tu panel de cliente
+          {t("pickEmpty.clienteTitle")}
         </h3>
         <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          Desde acá recargas con Stripe y asignas a tus cuentas ads. No
-          necesitas elegir entre clientes del CRM.
+{t("pickEmpty.clienteBody")}
         </p>
         <Link
           href={routes.payments}
           className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
-          Ir a pagos
+          {t("pickEmpty.clienteCta")}
         </Link>
       </div>
     );
@@ -64,17 +70,16 @@ export function PickClienteEmpty({
         </svg>
       </div>
       <h3 className="text-[1.25rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)]">
-        Elige un cliente para operar
+{t("pickEmpty.staffTitle")}
       </h3>
       <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-        Para ver {section}, abre la lista y Elige a quién recargar desde el BM.
-        Después el panel queda filtrado a ese cliente.
+        {t("pickEmpty.staffBody", { section: resolvedSection })}
       </p>
       <Link
         href={routes.clientes}
         className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
       >
-        Ver todos los clientes
+        {t("pickEmpty.staffCta")}
       </Link>
     </div>
   );

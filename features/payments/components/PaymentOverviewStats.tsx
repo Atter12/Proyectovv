@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { formatMoney } from "@/lib/format-money";
-import { formatNumber } from "@/lib/format-number";
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import {
   isTikTokBudgetCupoBalance,
@@ -46,6 +46,8 @@ export function PaymentOverviewStats({
   allocationSummary = null,
   advertiserIds = [],
 }: PaymentOverviewStatsProps) {
+  const t = useTranslations("payments");
+  const { formatMoney, formatNumber } = useAppFormatter();
   const { agencyBmFunding } = usePaymentsFundingMode();
   const hecomMode = isStaff && agencyBmFunding && hecomFinance != null;
   const liveEnabled = !hecomMode && advertiserIds.length > 0;
@@ -102,67 +104,72 @@ export function PaymentOverviewStats({
   const modality = hecomFinance?.billingModality ?? null;
   const modalityLabel =
     modality === "credito"
-      ? "Crédito"
+      ? t("stats.modalityCredit")
       : modality === "prepago"
-        ? "Prepago"
+        ? t("stats.modalityPrepaid")
         : null;
   const modalityHint =
     modality === "credito"
-      ? "Hecom Club · paga según cobranza / fin de ciclo"
+      ? t("stats.modalityCreditHint")
       : modality === "prepago"
-        ? "Recarga antes de gastar (Stripe / manual)"
-        : "Sin dato Hecom";
+        ? t("stats.modalityPrepaidHint")
+        : t("stats.modalityNone");
+
+  const feePercent = hecomFinance?.depositFeePercent ?? 10;
 
   const items = hecomMode
     ? [
         {
-          label: "Cartera Holistic",
+          label: t("stats.holisticWallet"),
           value: formatMoney(wallet.balance, wallet.currency),
-          hint: "Disponible para asignar (no es TikTok)",
+          hint: t("stats.holisticHintStaff"),
           accent: true as boolean,
           warn: false,
         },
         {
-          label: "Cuentas activas",
+          label: t("stats.activeAccounts"),
           value: String(
             allocationSummary?.activeCount ??
               summary.accountsReadyForAllocation,
           ),
-          hint: `${allocationSummary?.totalAccounts ?? "—"} en lista · ${allocationSummary?.pendingCount ?? 0} pend.`,
+          hint: t("stats.activeAccountsHint", {
+            total: allocationSummary?.totalAccounts ?? "—",
+            pending: allocationSummary?.pendingCount ?? 0,
+          }),
           accent: false,
           warn: false,
         },
         {
-          label: "Por recuperar",
+          label: t("stats.reclaimable"),
           value: String(allocationSummary?.reclaimableCount ?? 0),
           hint:
             (allocationSummary?.reclaimableCount ?? 0) > 0
-              ? "Suspendidas con saldo"
-              : "Sin pendientes",
+              ? t("stats.reclaimableHint")
+              : t("stats.reclaimableNone"),
           accent: false,
           warn: (allocationSummary?.reclaimableCount ?? 0) > 0,
         },
         {
-          label: "Modalidad",
+          label: t("stats.modality"),
           value: modalityLabel ?? "—",
           hint:
             modality === "credito"
-              ? `Fee ${hecomFinance?.depositFeePercent ?? 10}% · cobranza`
-              : `Fee ${hecomFinance?.depositFeePercent ?? 10}%`,
+              ? t("stats.modalityFeeCobranza", { percent: feePercent })
+              : t("stats.modalityFee", { percent: feePercent }),
           accent: false,
           warn: false,
         },
       ]
     : [
         {
-          label: "Cartera Holistic",
+          label: t("stats.holisticWallet"),
           value: formatMoney(wallet.balance, wallet.currency),
-          hint: "Disponible para asignar a ads",
+          hint: t("stats.holisticHintClient"),
           accent: true as boolean,
           warn: false,
         },
         {
-          label: "Saldo TikTok",
+          label: t("stats.tiktokBalance"),
           value:
             tiktokAvailableUsd != null
               ? formatMoney(tiktokAvailableUsd, "USD")
@@ -175,47 +182,54 @@ export function PaymentOverviewStats({
             tiktokAvailableUsd != null
               ? [
                   tiktokPartial
-                    ? `Parcial · ${tiktokCoverage.withBalance}/${tiktokCoverage.expected} cuentas`
-                    : "Cash real en Manager (BM 200)",
+                    ? t("stats.tiktokPartial", {
+                        with: tiktokCoverage.withBalance,
+                        expected: tiktokCoverage.expected,
+                      })
+                    : t("stats.tiktokCashHint"),
                   tiktokCoverage.cupoTotal != null
-                    ? `Cupo presupuesto ${formatMoney(tiktokCoverage.cupoTotal, "USD")} (no es cash)`
+                    ? t("stats.tiktokCupoHint", {
+                        amount: formatMoney(tiktokCoverage.cupoTotal, "USD"),
+                      })
                     : null,
-                  tiktokStale ? "algún valor reciente" : null,
+                  tiktokStale ? t("stats.tiktokStale") : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")
               : tiktokCoverage.cupoTotal != null
-                ? `Sin cash · cupo presupuesto ${formatMoney(tiktokCoverage.cupoTotal, "USD")} (no asignable)`
-                : "Cash real de las cuentas",
+                ? t("stats.tiktokNoCashCupo", {
+                    amount: formatMoney(tiktokCoverage.cupoTotal, "USD"),
+                  })
+                : t("stats.tiktokDefaultHint"),
           accent: true,
           warn: tiktokPartial || tiktokCoverage.cupoTotal != null,
         },
         {
-          label: "Modalidad",
+          label: t("stats.modality"),
           value: modalityLabel ?? "—",
           hint: modalityHint,
           accent: false,
           warn: modality === "credito",
         },
         {
-          label: "Pasarela",
+          label: t("stats.gateway"),
           value: activeGateway.name,
-          hint: `${formatNumber(summary.accountsReadyForAllocation)} cuentas listas`,
+          hint: t("stats.gatewayHint", {
+            count: formatNumber(summary.accountsReadyForAllocation),
+          }),
           accent: false,
           warn: false,
         },
       ];
 
   return (
-    <section aria-label="Resumen de pagos" className="space-y-3">
+    <section aria-label={t("stats.aria")} className="space-y-3">
       <div>
         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-          Resumen
+          {t("stats.eyebrow")}
         </p>
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
-          {hecomMode
-            ? "Cartera Holistic + cuentas BM (crédito TikTok abajo)"
-            : "Cartera Holistic vs saldo TikTok (Manager)"}
+          {hecomMode ? t("stats.subtitleStaff") : t("stats.subtitleClient")}
         </p>
       </div>
 

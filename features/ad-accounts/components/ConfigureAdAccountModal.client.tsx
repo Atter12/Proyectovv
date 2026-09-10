@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DashboardModalShell } from "@/components/ui/DashboardModalShell.client";
@@ -13,25 +14,12 @@ interface ConfigureAdAccountModalProps {
   onClose: () => void;
 }
 
-const platforms: { value: AdAccountPlatform; label: string }[] = [
-  { value: "meta", label: "Meta" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "google", label: "Google" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "other", label: "Otra" },
-];
-
-const statuses: { value: Exclude<AdAccountStatus, "archived">; label: string }[] = [
-  { value: "active", label: "Activa" },
-  { value: "pending", label: "Pendiente" },
-  { value: "disabled", label: "Suspendida" },
-  { value: "review", label: "En revisión" },
-];
-
 export function ConfigureAdAccountModal({
   account,
   onClose,
 }: ConfigureAdAccountModalProps) {
+  const t = useTranslations("adAccounts");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [name, setName] = useState(account.name);
   const [platform, setPlatform] = useState<AdAccountPlatform>(account.platform);
@@ -49,6 +37,21 @@ export function ConfigureAdAccountModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const platforms: { value: AdAccountPlatform; label: string }[] = [
+    { value: "meta", label: "Meta" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "google", label: "Google" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "other", label: t("createModal.other") },
+  ];
+
+  const statuses: { value: Exclude<AdAccountStatus, "archived">; label: string }[] = [
+    { value: "active", label: t("status.active") },
+    { value: "pending", label: t("status.pending") },
+    { value: "disabled", label: t("status.disabled") },
+    { value: "review", label: t("status.review") },
+  ];
+
   function parseAmount(value: string): number | undefined {
     if (!value.trim()) return undefined;
     const parsed = Number.parseFloat(value);
@@ -57,7 +60,7 @@ export function ConfigureAdAccountModal({
 
   async function handleSave() {
     if (!name.trim()) {
-      setError("El nombre es obligatorio.");
+      setError(t("configureModal.nameRequired"));
       return;
     }
 
@@ -83,7 +86,7 @@ export function ConfigureAdAccountModal({
       onClose();
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "No se pudo guardar.");
+      setError(err instanceof ApiClientError ? err.message : t("configureModal.saveError"));
     } finally {
       setLoading(false);
     }
@@ -91,21 +94,23 @@ export function ConfigureAdAccountModal({
 
   return (
     <DashboardModalShell open onClose={onClose} maxWidthClassName="max-w-lg">
-      <h2 className="text-lg font-semibold text-[var(--foreground)]">Configurar cuenta</h2>
+      <h2 className="text-lg font-semibold text-[var(--foreground)]">
+        {t("configureModal.title")}
+      </h2>
       <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-        Ajusta datos operativos internos sin depender de proveedores externos.
+        {t("configureModal.subtitle")}
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Nombre
+            {t("configureModal.name")}
           </label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Plataforma
+            {t("createModal.platform")}
           </label>
           <select
             value={platform}
@@ -121,7 +126,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Estado
+            {t("configureModal.status")}
           </label>
           <select
             value={status}
@@ -139,7 +144,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Business Center / BC ID
+            {t("createModal.bcId")}
           </label>
           <Input
             value={externalBusinessId}
@@ -149,7 +154,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            TikTok Advertiser ID
+            {t("configureModal.advertiserId")}
           </label>
           <Input
             value={externalAccountId}
@@ -159,7 +164,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Nombre externo
+            {t("createModal.externalName")}
           </label>
           <Input
             value={externalAccountName}
@@ -168,13 +173,13 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Huso horario
+            {t("createModal.timezone")}
           </label>
           <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Presupuesto diario USD
+            {t("createModal.dailyBudget")}
           </label>
           <Input
             type="number"
@@ -186,7 +191,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Límite mensual USD
+            {t("createModal.monthlyLimit")}
           </label>
           <Input
             type="number"
@@ -198,7 +203,7 @@ export function ConfigureAdAccountModal({
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Umbral recarga USD
+            {t("createModal.threshold")}
           </label>
           <Input
             type="number"
@@ -214,7 +219,7 @@ export function ConfigureAdAccountModal({
             checked={autoRechargeEnabled}
             onChange={(e) => setAutoRechargeEnabled(e.target.checked)}
           />
-          Recarga automática activa
+          {t("configureModal.autoRecharge")}
         </label>
       </div>
 
@@ -226,10 +231,10 @@ export function ConfigureAdAccountModal({
 
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="outline" onClick={onClose} disabled={loading}>
-          Cancelar
+          {tCommon("cancel")}
         </Button>
         <Button onClick={handleSave} disabled={loading}>
-          {loading ? "Guardando…" : "Guardar"}
+          {loading ? t("configureModal.saving") : tCommon("save")}
         </Button>
       </div>
     </DashboardModalShell>
