@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { ChatMessage } from "@/features/support/types/support.types";
@@ -45,11 +46,11 @@ interface PostMessageResponse {
   message: ChatMessage;
 }
 
-function greetingMessage(): ChatMessage {
+function greetingMessage(text: string): ChatMessage {
   return {
     id: "support-greeting",
     role: "bot",
-    text: "Hola 👋 Soy soporte Holistic. Escribe tu consulta y un gerente te responde acá.",
+    text,
     ...supportChatTimestampsNow(),
   };
 }
@@ -63,7 +64,11 @@ export function SupportChatWidget({
   onToggle,
   onOpenChange,
 }: SupportChatWidgetProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([greetingMessage()]);
+  const t = useTranslations("support");
+  const greetingText = t("floatGreeting");
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    greetingMessage(greetingText),
+  ]);
   const [inputValue, setInputValue] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -75,42 +80,61 @@ export function SupportChatWidget({
   const lastSeenStaffMsgIdRef = useRef<string | null>(null);
   const backgroundSeededRef = useRef(false);
 
-  const loadConversation = useCallback(async (opts?: { force?: boolean }) => {
-    if (!opts?.force && (conversationLoaded || loadingConversation)) return;
-    setLoadingConversation(true);
-    setError(null);
-    try {
-      const ticketsData = await apiClient<TicketsResponse>("/api/support/tickets");
-      const activeTicket =
-        ticketsData.tickets.find(
-          (ticket) => !["closed", "resolved"].includes(ticket.status),
-        ) ?? ticketsData.tickets[0];
-
-      if (activeTicket) {
-        setTicketId(activeTicket.id);
-        const messagesData = await apiClient<MessagesResponse>(
-          `/api/support/tickets/${activeTicket.id}/messages`,
-        );
-        const msgs = messagesData.messages ?? [];
-        setMessages(msgs.length > 0 ? msgs : [greetingMessage()]);
-        const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
-        if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
-      } else {
-        setMessages([greetingMessage()]);
+  // Keep greeting in sync when locale changes.
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0]?.id === "support-greeting") {
+        return [greetingMessage(greetingText)];
       }
-      setConversationLoaded(true);
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? err.message
-          : "No se pudo cargar el chat de soporte.",
+      return prev.map((msg) =>
+        msg.id === "support-greeting" ? { ...msg, text: greetingText } : msg,
       );
-    } finally {
-      setLoadingConversation(false);
-    }
-  }, [conversationLoaded, loadingConversation]);
+    });
+  }, [greetingText]);
 
-  const fetchLiveMessages = useCallback(async (): Promise<ChatMessage[] | null> => {
+  const loadConversation = useCallback(
+    async (opts?: { force?: boolean }) => {
+      if (!opts?.force && (conversationLoaded || loadingConversation)) return;
+      setLoadingConversation(true);
+      setError(null);
+      try {
+        const ticketsData = await apiClient<TicketsResponse>(
+          "/api/support/tickets",
+        );
+        const activeTicket =
+          ticketsData.tickets.find(
+            (ticket) => !["closed", "resolved"].includes(ticket.status),
+          ) ?? ticketsData.tickets[0];
+
+        if (activeTicket) {
+          setTicketId(activeTicket.id);
+          const messagesData = await apiClient<MessagesResponse>(
+            `/api/support/tickets/${activeTicket.id}/messages`,
+          );
+          const msgs = messagesData.messages ?? [];
+          setMessages(
+            msgs.length > 0 ? msgs : [greetingMessage(greetingText)],
+          );
+          const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
+          if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
+        } else {
+          setMessages([greetingMessage(greetingText)]);
+        }
+        setConversationLoaded(true);
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError ? err.message : t("loadChatError"),
+        );
+      } finally {
+        setLoadingConversation(false);
+      }
+    },
+    [conversationLoaded, greetingText, loadingConversation, t],
+  );
+
+  const fetchLiveMessages = useCallback(async (): Promise<
+    ChatMessage[] | null
+  > => {
     if (!ticketId) return null;
     const messagesData = await apiClient<MessagesResponse>(
       `/api/support/tickets/${ticketId}/messages`,
@@ -125,7 +149,7 @@ export function SupportChatWidget({
     onMessages: (updater) => {
       setMessages((prev) => {
         const next = updater(prev);
-        const msgs = next.length > 0 ? next : [greetingMessage()];
+        const msgs = next.length > 0 ? next : [greetingMessage(greetingText)];
         const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
         if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
         return msgs;
@@ -176,7 +200,7 @@ export function SupportChatWidget({
           lastSeenStaffMsgIdRef.current = lastStaff.id;
           setUnreadFromStaff((n) => n + 1);
           setPreviewText(
-            (lastStaff.text || "Nuevo mensaje de soporte").slice(0, 80),
+            (lastStaff.text || t("floatNewMessage")).slice(0, 80),
           );
           playSupportNotifySound();
         }
@@ -191,7 +215,7 @@ export function SupportChatWidget({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [isOpen, ticketId]);
+  }, [isOpen, t, ticketId]);
 
   function handleClose() {
     onOpenChange(false);
@@ -222,7 +246,7 @@ export function SupportChatWidget({
     const optimistic: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text: text || (files.length ? "📎 Adjunto" : ""),
+      text: text || (files.length ? `📎 ${t("attachment")}` : ""),
       ...supportChatTimestampsNow(),
     };
     setMessages((prev) => [
@@ -245,7 +269,7 @@ export function SupportChatWidget({
           error?: string;
         };
         if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? "No se pudo crear el chat.");
+          throw new Error(data.error ?? t("createChatError"));
         }
         setTicketId(data.ticketId);
         setConversationLoaded(true);
@@ -262,7 +286,7 @@ export function SupportChatWidget({
           error?: string;
         };
         if (!res.ok || !data.ok) {
-          throw new Error(data.error ?? "No se pudo enviar el mensaje.");
+          throw new Error(data.error ?? t("sendError"));
         }
         setMessages((prev) =>
           prev.map((msg) => (msg.id === optimistic.id ? data.message : msg)),
@@ -274,7 +298,7 @@ export function SupportChatWidget({
       setError(
         err instanceof ApiClientError || err instanceof Error
           ? err.message
-          : "No se pudo enviar el mensaje.",
+          : t("sendError"),
       );
     } finally {
       setSending(false);
@@ -290,7 +314,7 @@ export function SupportChatWidget({
           className="max-w-[min(280px,calc(100vw-5rem))] rounded-2xl border border-[var(--border-subtle)] bg-white px-3 py-2.5 text-left shadow-xl shadow-black/15 ring-1 ring-black/5 transition hover:bg-[rgb(255_120_31_/_0.04)]"
         >
           <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--brand-primary)]">
-            Nuevo mensaje · Soporte
+            {t("floatNewMessage")}
           </p>
           <p className="mt-0.5 line-clamp-2 text-[13px] font-medium text-[var(--auth-text)]">
             {previewText}
@@ -311,19 +335,19 @@ export function SupportChatWidget({
             loading={loadingConversation}
             error={error}
             showBack={false}
-            title="Soporte Holistic"
-            subtitle="Chat directo con un gerente"
+            title={t("floatTitle")}
+            subtitle={t("floatSubtitle")}
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
             onBack={handleClose}
-            emptyHint="Escribe tu mensaje. Un gerente te responde acá."
+            emptyHint={t("floatEmptyHint")}
             className="h-[min(520px,70vh)] max-h-[70vh]"
             headerActions={
               <button
                 type="button"
                 onClick={handleClose}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
-                aria-label="Cerrar chat"
+                aria-label={t("floatClose")}
               >
                 <svg
                   className="h-4 w-4"
@@ -347,7 +371,7 @@ export function SupportChatWidget({
       <button
         type="button"
         onClick={handleToggle}
-        aria-label={isOpen ? "Cerrar chat de soporte" : "Abrir chat de soporte"}
+        aria-label={isOpen ? t("floatCloseSupport") : t("floatOpen")}
         className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
       >
         {unreadFromStaff > 0 && !isOpen ? (

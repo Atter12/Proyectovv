@@ -708,6 +708,30 @@
           "content": "The operational goal is to reply in 30 minutes or less during business hours. If it’s urgent, include the details (account, amount, error) so we can move faster."
         }
       }
+    },
+    "floatTitle": "Holistic Support",
+    "floatSubtitle": "Direct chat with a manager",
+    "floatGreeting": "Hi 👋 I am Holistic support. Write your question and a manager will reply here.",
+    "floatEmptyHint": "Write your message. A manager will reply here.",
+    "floatNewMessage": "New message · Support",
+    "floatClose": "Close chat",
+    "floatOpen": "Open support chat",
+    "floatCloseSupport": "Close support chat",
+    "attachment": "Attachment",
+    "createChatError": "Could not create the chat.",
+    "loadChatError": "Could not load the support chat."
+  },
+  "onboarding": {
+    "title": "Get started with Default",
+    "titleProgress": "{done}/{total} Get started with Default",
+    "guide": "Guide",
+    "showGuide": "Show progress guide",
+    "expandGuide": "Expand progress guide",
+    "closeGuide": "Close progress guide",
+    "steps": {
+      "create-ad-account": "Create your ad account",
+      "add-wallet-balance": "Add balance to your Default wallet",
+      "allocate-balance": "Assign balance to the ad account"
     }
   }
 }

@@ -708,6 +708,30 @@
           "content": "A meta operacional é responder em 30 minutos ou menos no horário de atendimento. Se for urgente, deixe os detalhes (conta, valor, erro) para agilizar."
         }
       }
+    },
+    "floatTitle": "Suporte Holistic",
+    "floatSubtitle": "Chat direto com um gerente",
+    "floatGreeting": "Olá 👋 Sou o suporte Holistic. Escreva sua dúvida e um gerente responde aqui.",
+    "floatEmptyHint": "Escreva sua mensagem. Um gerente responde aqui.",
+    "floatNewMessage": "Nova mensagem · Suporte",
+    "floatClose": "Fechar chat",
+    "floatOpen": "Abrir chat de suporte",
+    "floatCloseSupport": "Fechar chat de suporte",
+    "attachment": "Anexo",
+    "createChatError": "Não foi possível criar o chat.",
+    "loadChatError": "Não foi possível carregar o chat de suporte."
+  },
+  "onboarding": {
+    "title": "Comece com Default",
+    "titleProgress": "{done}/{total} Comece com Default",
+    "guide": "Guia",
+    "showGuide": "Mostrar guia de progresso",
+    "expandGuide": "Expandir guia de progresso",
+    "closeGuide": "Fechar guia de progresso",
+    "steps": {
+      "create-ad-account": "Crie sua conta publicitária",
+      "add-wallet-balance": "Adicione saldo à sua Carteira Default",
+      "allocate-balance": "Atribua saldo à conta publicitária"
     }
   }
 }
