@@ -23,9 +23,15 @@ function uniqueEmails(list: Array<string | null | undefined>): string[] {
   return out;
 }
 
+/** Siempre incluido aunque falte en Vercel env (ops principal). */
+const MANUAL_PAYMENT_MANAGER_FALLBACKS = [
+  "attermayerbasiliorengifo@gmail.com",
+] as const;
+
 /** Gerentes / ops que deben enterarse de pagos manuales pendientes. */
 export function resolveManualPaymentManagerEmails(): string[] {
   return uniqueEmails([
+    ...MANUAL_PAYMENT_MANAGER_FALLBACKS,
     ...serverEnv.authHecomOtpStaffEmails,
     ...serverEnv.adminAllowedEmails,
     ...serverEnv.paymentsSuperAdminEmails,

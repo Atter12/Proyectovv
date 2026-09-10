@@ -179,17 +179,17 @@ async function approveRealProfitCodVoucher(input: {
     },
   });
 
-  void import("@/lib/email/manual-payment-notify.server").then(
-    ({ notifyClientManualPaymentApprovedBestEffort }) =>
-      notifyClientManualPaymentApprovedBestEffort({
-        paymentIntentId: intent.id,
-        organizationId: intent.organization_id,
-        createdBy: intent.created_by,
-        chargeAmountCents: intent.amount_cents,
-        chargeCurrency: "USD",
-        creditUsdCents: 0,
-      }),
+  const { notifyClientManualPaymentApprovedBestEffort } = await import(
+    "@/lib/email/manual-payment-notify.server"
   );
+  await notifyClientManualPaymentApprovedBestEffort({
+    paymentIntentId: intent.id,
+    organizationId: intent.organization_id,
+    createdBy: intent.created_by,
+    chargeAmountCents: intent.amount_cents,
+    chargeCurrency: "USD",
+    creditUsdCents: 0,
+  });
 
   revalidateManualPaymentPaths(intent.id);
   revalidatePath("/profit");
@@ -367,17 +367,17 @@ export async function approveManualVoucherPayment(input: {
   });
 
   if (!isCrypto) {
-    void import("@/lib/email/manual-payment-notify.server").then(
-      ({ notifyClientManualPaymentApprovedBestEffort }) =>
-        notifyClientManualPaymentApprovedBestEffort({
-          paymentIntentId: intent.id,
-          organizationId: intent.organization_id,
-          createdBy: intent.created_by,
-          chargeAmountCents: amountCents,
-          chargeCurrency,
-          creditUsdCents: creditUsdCents > 0 ? creditUsdCents : amountCents,
-        }),
+    const { notifyClientManualPaymentApprovedBestEffort } = await import(
+      "@/lib/email/manual-payment-notify.server"
     );
+    await notifyClientManualPaymentApprovedBestEffort({
+      paymentIntentId: intent.id,
+      organizationId: intent.organization_id,
+      createdBy: intent.created_by,
+      chargeAmountCents: amountCents,
+      chargeCurrency,
+      creditUsdCents: creditUsdCents > 0 ? creditUsdCents : amountCents,
+    });
   }
 
   await insertAudit({

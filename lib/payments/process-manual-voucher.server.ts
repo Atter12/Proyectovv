@@ -228,23 +228,24 @@ export async function processManualVoucherUpload(input: {
       ? Math.round(expected.amount * 100)
       : intent.amountCents;
 
-  void import("@/lib/email/manual-payment-notify.server").then(
-    ({ notifyManagersManualPaymentPendingBestEffort }) =>
-      notifyManagersManualPaymentPendingBestEffort({
-        paymentIntentId: intent.id,
-        organizationId: intent.organizationId,
-        createdBy: intent.createdBy,
-        chargeAmountCents,
-        chargeCurrency,
-        creditUsdCents,
-        operationCode: normalizedOperationCode,
-        purpose:
-          typeof (intent.metadata as Record<string, unknown> | null)?.purpose ===
-          "string"
-            ? String((intent.metadata as Record<string, unknown>).purpose)
-            : null,
-      }),
+  // Await: en Vercel el fire-and-forget a veces muere al cerrar la lambda.
+  const { notifyManagersManualPaymentPendingBestEffort } = await import(
+    "@/lib/email/manual-payment-notify.server"
   );
+  await notifyManagersManualPaymentPendingBestEffort({
+    paymentIntentId: intent.id,
+    organizationId: intent.organizationId,
+    createdBy: intent.createdBy,
+    chargeAmountCents,
+    chargeCurrency,
+    creditUsdCents,
+    operationCode: normalizedOperationCode,
+    purpose:
+      typeof (intent.metadata as Record<string, unknown> | null)?.purpose ===
+      "string"
+        ? String((intent.metadata as Record<string, unknown>).purpose)
+        : null,
+  });
 
   return {
     analysis: {
