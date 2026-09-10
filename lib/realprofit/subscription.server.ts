@@ -43,6 +43,28 @@ function mapRow(row: {
   };
 }
 
+/** Evita FK rota si session.organizationId no existe en organizations. */
+async function sanitizeOrganizationId(
+  organizationId: string | null | undefined,
+): Promise<string | null> {
+  const raw = String(organizationId ?? "").trim();
+  if (!raw) return null;
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      raw,
+    )
+  ) {
+    return null;
+  }
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("id", raw)
+    .maybeSingle<{ id: string }>();
+  return data?.id ?? null;
+}
+
 export async function getRealProfitSubscription(
   hecomClienteId: string,
 ): Promise<RealProfitSubscription> {
@@ -76,11 +98,12 @@ export async function markRealProfitSubPending(input: {
   userId: string;
 }): Promise<void> {
   const admin = createAdminClient();
+  const organizationId = await sanitizeOrganizationId(input.organizationId);
   const now = new Date().toISOString();
   const { error } = await admin.from("hecom_cliente_realprofit_subs").upsert(
     {
       hecom_cliente_id: input.hecomClienteId,
-      organization_id: input.organizationId,
+      organization_id: organizationId,
       status: "pending_payment",
       last_payment_intent_id: input.paymentIntentId,
       created_by: input.userId,
@@ -98,6 +121,7 @@ export async function activateRealProfitSubscription(input: {
   userId?: string | null;
 }): Promise<RealProfitSubscription> {
   const admin = createAdminClient();
+  const organizationId = await sanitizeOrganizationId(input.organizationId);
   const existing = await getRealProfitSubscription(input.hecomClienteId);
   const base =
     existing.isActive && existing.activeUntil
@@ -113,7 +137,7 @@ export async function activateRealProfitSubscription(input: {
     .upsert(
       {
         hecom_cliente_id: input.hecomClienteId,
-        organization_id: input.organizationId,
+        organization_id: organizationId,
         status: "active",
         active_from: now,
         active_until: until.toISOString(),

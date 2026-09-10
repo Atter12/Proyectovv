@@ -16,6 +16,20 @@ import {
   markRealProfitSubPending,
 } from "@/lib/realprofit/subscription.server";
 
+async function assertOrganizationExists(organizationId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("id", organizationId)
+    .maybeSingle<{ id: string }>();
+  if (!data?.id) {
+    throw new Error(
+      "No encontramos la organización del cliente. Recargá la página o pedile al equipo que revise el vínculo Hecom.",
+    );
+  }
+}
+
 async function resolveWalletId(organizationId: string): Promise<string> {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -84,6 +98,8 @@ export async function createRealProfitCodSubscribeIntent(input: {
       "El pago manual está deshabilitado temporalmente. Contactá a soporte.",
     );
   }
+
+  await assertOrganizationExists(input.organizationId);
 
   const provider = getPaymentProvider("manual");
   if (!provider.isConfigured()) {

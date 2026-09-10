@@ -217,103 +217,6 @@ function formatRangeLabel(from: string, to: string): string {
   return `${formatDayShort(from)} → ${formatDayShort(to)}`;
 }
 
-function DailyBars({
-  series,
-  todayYmd,
-  liveTodaySpend,
-}: {
-  series: DailyPoint[];
-  todayYmd: string;
-  liveTodaySpend: number | null;
-}) {
-  const display = series.map((p) => {
-    if (
-      p.date === todayYmd &&
-      liveTodaySpend != null &&
-      Number.isFinite(liveTodaySpend)
-    ) {
-      return { ...p, spend: liveTodaySpend, live: true as const };
-    }
-    return { ...p, live: false as const };
-  });
-  const max = Math.max(...display.map((p) => p.spend), 0);
-  const peak = max > 0 ? max : 1;
-  const hasAny = display.some((p) => p.spend > 0);
-  const total = display.reduce((s, p) => s + p.spend, 0);
-
-  if (!hasAny) {
-    return (
-      <p className="px-1 py-6 text-[13px] text-[#8a8177]">
-        Sin gasto diario en este período. Cuando haya snapshots TikTok o filas
-        de gasto con fecha, aparecen acá.
-      </p>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Serie diaria
-          </p>
-          <p className="mt-0.5 text-[12px] text-[#5c564e]">
-            {display.length} días · total {moneyUsd(total)}
-            {liveTodaySpend != null ? " · hoy en vivo" : ""}
-          </p>
-        </div>
-        <p className="text-[11px] tabular-nums text-[#9a9187]">
-          Pico {moneyUsd(max)}
-        </p>
-      </div>
-
-      <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <div
-          className="flex h-36 items-end gap-1"
-          style={{ minWidth: `${Math.max(display.length * 22, 280)}px` }}
-        >
-          {display.map((p) => {
-            const h = Math.max(4, (p.spend / peak) * 100);
-            const isToday = p.date === todayYmd;
-            return (
-              <div
-                key={p.date}
-                className="group relative flex min-w-[18px] flex-1 flex-col items-center gap-1"
-                title={`${p.date}: ${moneyUsd(p.spend)}${p.live ? " · live" : ""}`}
-              >
-                <span className="pointer-events-none absolute -top-7 hidden rounded-md bg-[#1c1917] px-1.5 py-0.5 text-[10px] font-semibold text-white group-hover:block">
-                  {moneyUsd(p.spend)}
-                </span>
-                <div
-                  className={`w-full max-w-[18px] rounded-t-md transition ${
-                    isToday
-                      ? "bg-[linear-gradient(180deg,#ff9a4d_0%,#ff781f_100%)] ring-2 ring-[#ff781f]/35"
-                      : "bg-[#ff781f]/75 hover:bg-[#ff781f]"
-                  }`}
-                  style={{ height: `${h}%` }}
-                />
-                <span
-                  className={`text-[9px] tabular-nums ${
-                    isToday
-                      ? "font-bold text-[#c2410c]"
-                      : "text-[#9a9187]"
-                  }`}
-                >
-                  {p.date.slice(8)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <div className="mt-2 flex justify-between text-[10px] tabular-nums text-[#9a9187]">
-        <span>{formatDayShort(display[0]!.date)}</span>
-        <span>{formatDayShort(display.at(-1)!.date)}</span>
-      </div>
-    </div>
-  );
-}
-
 export function ProfitPageClient({
   clienteName,
   isStaff: _isStaff,
@@ -527,16 +430,6 @@ export function ProfitPageClient({
     return { pacingRatio: ratio, pacingLabel: "normal" as const };
   }, [analysis, useLiveForToday, liveSpendTotal]);
 
-  const visibleSignals = useMemo(() => {
-    const list = analysis?.signals ?? [];
-    if (spendTodayDisplay > 0) {
-      return list.filter(
-        (s) => s.kind !== "silent" && !(s.kind === "pacing" && s.title.includes("parado")),
-      );
-    }
-    return list;
-  }, [analysis?.signals, spendTodayDisplay]);
-
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
@@ -552,7 +445,7 @@ export function ProfitPageClient({
             Profit · {clienteName}
           </h1>
           <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-            Gasto TikTok, ranking de campañas, CTR/CPC, pacing y señales —
+            Gasto TikTok live, ranking de campañas y CTR/CPC del rango —
             incluido en Holistic.
           </p>
         </div>
@@ -657,65 +550,28 @@ export function ProfitPageClient({
       </section>
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3 rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-5">
-            <div className="min-w-0 max-w-xl">
-              <p className="text-[13px] font-semibold tracking-[-0.01em] text-[#1c1917]">
-                Conectar Shopify
-              </p>
-              <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
-                Vinculá tu tienda para jalar pedidos y ventas reales (COD). Así
-                Profit cruza el gasto TikTok con lo cobrado y el ROAS deja de
-                ser solo estimado.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openShopifyModal}
-              className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
-            >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                className="h-4 w-4 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 8h12l-1 12H7L6 8Z" />
-                <path d="M9 8V7a3 3 0 0 1 6 0v1" />
-              </svg>
-              Conectar
-            </button>
-          </div>
-
-          <div>
-            <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-              Rango de calendario
+        <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+          Rango de calendario
+        </p>
+        <p className="mb-3 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
+          Filtra el ranking y el performance TikTok. El gasto live de arriba
+          siempre es solo hoy.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <ProfitDateRangeField
+            from={from}
+            to={to}
+            max={limaTodayYmd()}
+            onChange={({ from: nextFrom, to: nextTo }) => {
+              setFrom(nextFrom);
+              setTo(nextTo);
+            }}
+          />
+          {loading ? (
+            <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
+              Cargando…
             </p>
-            <p className="mb-3 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-              Filtra la serie diaria y el ranking de campañas. El gasto live de
-              arriba siempre es solo hoy.
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
-              <ProfitDateRangeField
-                from={from}
-                to={to}
-                max={limaTodayYmd()}
-                onChange={({ from: nextFrom, to: nextTo }) => {
-                  setFrom(nextFrom);
-                  setTo(nextTo);
-                }}
-              />
-              {loading ? (
-                <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
-                  Cargando…
-                </p>
-              ) : null}
-            </div>
-          </div>
+          ) : null}
         </div>
       </section>
 
@@ -723,53 +579,6 @@ export function ProfitPageClient({
         <p className="text-[13px] text-[#8a8177]">Cargando análisis…</p>
       ) : analysis ? (
         <>
-          <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 shadow-[0_10px_28px_-22px_rgb(28_25_23_/_0.35)] sm:p-6">
-            <div className="rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-4 py-4">
-              <DailyBars
-                series={analysis.dailySeries}
-                todayYmd={todayYmd}
-                liveTodaySpend={useLiveForToday ? liveSpendTotal : null}
-              />
-            </div>
-
-            {analysis.from || analysis.to ? (
-              <p className="text-[12px] text-[#8a8177]">
-                Serie del rango {formatRangeLabel(analysis.from, analysis.to)}
-                {analysis.daysWithActivity
-                  ? ` · ${analysis.daysWithActivity} días con actividad`
-                  : ""}
-                {analysis.dataThroughDate
-                  ? ` · datos hasta ${formatDayShort(analysis.dataThroughDate)}`
-                  : ""}
-                {" · en el rango "}
-                <span className="font-semibold text-[#1c1917]">
-                  {moneyUsd(analysis.spendInRange)}
-                </span>
-              </p>
-            ) : null}
-
-            {visibleSignals.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  Señales
-                </p>
-                {visibleSignals.map((sig, i) => (
-                  <div
-                    key={`${sig.kind}-${i}`}
-                    className={`rounded-xl border px-4 py-3 text-[13px] ${
-                      sig.severity === "warn"
-                        ? "border-[#ffd7b8] bg-[#fff7f0] text-[#9a3412]"
-                        : "border-[#ece7e0] bg-[#faf8f5] text-[#5c564e]"
-                    }`}
-                  >
-                    <p className="font-semibold text-[#1c1917]">{sig.title}</p>
-                    <p className="mt-0.5 text-[12px]">{sig.detail}</p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -781,10 +590,16 @@ export function ProfitPageClient({
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#5c564e]">
                   Rango {formatRangeLabel(analysis.from, analysis.to)}
+                  {analysis.daysWithActivity
+                    ? ` · ${analysis.daysWithActivity} días con gasto`
+                    : ""}
                   {analysis.perf?.fetchedAt
                     ? ` · perf act. ${formatSyncTime(analysis.perf.fetchedAt)}`
                     : ""}
-                  . Impresiones / CTR / CPC desde report TikTok.
+                  {" · en el rango "}
+                  <span className="font-semibold text-[#1c1917]">
+                    {moneyUsd(analysis.spendInRange)}
+                  </span>
                 </p>
               </div>
               {bmOptions.length > 0 ? (
@@ -1106,10 +921,10 @@ export function ProfitPageClient({
 
       <section
         id="profit-shopify-connect"
-        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[#ece7e0] bg-white"
+        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
       >
         {subscription?.isActive && analysis && !analysis.hasCodLink ? (
-          <div className="border-b border-[#ffd7b8] bg-[#fff7f0] px-5 py-4 sm:px-7">
+          <div className="border-b border-[#ffd7b8] bg-[#fff7f0] px-5 py-4 sm:px-6">
             <p className="text-[13px] font-bold text-[#9a3412]">
               COD activo · falta vincular la tienda
             </p>
@@ -1135,7 +950,7 @@ export function ProfitPageClient({
                 type="button"
                 disabled={linkBusy}
                 onClick={() => void retryLinkStore()}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] disabled:opacity-60"
               >
                 {linkBusy ? "Vinculando…" : "Ya instalé — vincular"}
               </button>
@@ -1152,65 +967,139 @@ export function ProfitPageClient({
             ) : null}
           </div>
         ) : null}
-        <div className="border-b border-[#f0ebe4] px-5 py-5 sm:px-7 sm:py-6">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Pedidos y ventas
-          </p>
-          <h2 className="mt-1.5 max-w-lg text-[1.2rem] font-bold tracking-[-0.03em] text-[#1c1917] sm:text-[1.35rem]">
-            Conectá tu tienda Shopify
-          </h2>
-          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-            Jalá pedidos y ventas reales para ver cuánto estás ganando neto —
-            no solo cuánto gastás en ads.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-end sm:px-7">
-          <label className="block min-w-0 flex-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-            Dominio de tu tienda
-            <div className="mt-1.5 flex overflow-hidden rounded-xl border border-[#e7e0d8] bg-[#faf8f5] transition focus-within:border-[#cfc6bb] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#1c1917]/8">
-              <span className="flex items-center border-r border-[#e7e0d8] bg-[#f3efe9] px-3 text-[12px] font-medium normal-case tracking-normal text-[#8a8177]">
-                https://
-              </span>
-              <input
-                type="text"
-                inputMode="url"
-                autoComplete="off"
-                placeholder="mitienda.myshopify.com"
-                value={shopDomain}
-                onChange={(e) => setShopDomain(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (subscription?.isActive && analysis && !analysis.hasCodLink) {
-                      void retryLinkStore();
-                    } else {
-                      openShopifyModal();
-                    }
-                  }
-                }}
-                className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none placeholder:text-[#b0a89e]"
-              />
+
+        {analysis?.hasCodLink ? (
+          <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700">
+              Shopify · conectada
+            </p>
+            <h2 className="mt-1.5 text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
+              Pedidos COD sincronizados
+            </h2>
+            <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+              Estamos jalando lo cobrado real de tu tienda para el ROAS / CPA
+              del período.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_55%,#faf8f5_100%)] px-5 py-5 sm:px-6">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
+                Con Shopify · Real Profit COD
+              </p>
+              <h2 className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)] sm:text-[1.45rem]">
+                ¿Vendés en Shopify?
+              </h2>
+              <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
+                Conectá tu tienda para jalar pedidos y ventas reales. Mirá la
+                plata que{" "}
+                <span className="font-semibold text-[var(--auth-text)]">
+                  sí cobraste
+                </span>
+                — no solo el gasto en ads. ROAS y CPA sobre lo cobrado COD.
+              </p>
+
+              <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
+                {[
+                  "Pedidos y ventas desde tu tienda",
+                  "Cobrado COD · plata que sí llegó",
+                  "ROAS / CPA sobre lo cobrado",
+                  "Saber cuánto verdaderamente neto ganás",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-2 text-[13px] leading-5 text-[var(--auth-text-muted)]"
+                  >
+                    <span
+                      className="mt-0.5 font-semibold text-[var(--auth-accent)]"
+                      aria-hidden
+                    >
+                      →
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-5 flex flex-wrap items-end gap-4 border-t border-[var(--auth-divider)] pt-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
+                    Precio cliente Holistic
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-baseline gap-2">
+                    <span className="text-[15px] font-medium tabular-nums text-[#b0a89e] line-through">
+                      $40
+                    </span>
+                    <span className="text-[1.35rem] font-bold tabular-nums text-[var(--auth-text)]">
+                      $20
+                    </span>
+                    <span className="text-[12px] font-medium text-[var(--auth-text-muted)]">
+                      / mes
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
-          </label>
-          {subscription?.isActive && analysis && !analysis.hasCodLink ? (
-            <button
-              type="button"
-              disabled={linkBusy}
-              onClick={() => void retryLinkStore()}
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#ff781f] px-6 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
-            >
-              {linkBusy ? "Vinculando…" : "Vincular tienda"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={openShopifyModal}
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#1c1917] px-6 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
-            >
-              Conectar
-            </button>
-          )}
-        </div>
+
+            <div className="px-5 py-5 sm:px-6 sm:py-6">
+              <p className="mb-3 text-[13px] font-semibold text-[var(--auth-text)]">
+                Dominio de tu tienda
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--auth-border)] bg-[#faf8f5] transition focus-within:border-[var(--auth-accent)]/45 focus-within:bg-white focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/20">
+                  <span className="flex items-center border-r border-[var(--auth-border)] bg-[#f3efe9] px-3 text-[12px] font-medium text-[var(--auth-text-muted)]">
+                    https://
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoComplete="off"
+                    placeholder="mitienda.myshopify.com"
+                    value={shopDomain}
+                    onChange={(e) => setShopDomain(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (
+                          subscription?.isActive &&
+                          analysis &&
+                          !analysis.hasCodLink
+                        ) {
+                          void retryLinkStore();
+                        } else {
+                          openShopifyModal();
+                        }
+                      }
+                    }}
+                    className="min-w-0 flex-1 bg-transparent px-3 py-3 text-[14px] font-medium text-[var(--auth-text)] outline-none placeholder:text-[#b0a89e]"
+                  />
+                </div>
+                {subscription?.isActive && analysis && !analysis.hasCodLink ? (
+                  <button
+                    type="button"
+                    disabled={linkBusy}
+                    onClick={() => void retryLinkStore()}
+                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] disabled:opacity-60 sm:w-auto"
+                  >
+                    {linkBusy ? "Vinculando…" : "Vincular tienda"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openShopifyModal}
+                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] sm:w-auto"
+                  >
+                    Conectar Shopify · $20/mes
+                  </button>
+                )}
+              </div>
+              <p className="mt-4 text-[12px] leading-5 text-[var(--auth-text-muted)]">
+                Transferencia a la misma cuenta Holistic + voucher. Sin
+                WhatsApp. Activación cuando el equipo aprueba el comprobante.
+              </p>
+            </div>
+          </>
+        )}
       </section>
 
       {snapshots.length > 0 ? (
@@ -1470,19 +1359,19 @@ function ShopifyConnectModal({
               <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Gasto TikTok (hoy, 7d, rango) + serie diaria
+                  Gasto TikTok live + ranking del rango
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Ranking, BM, CTR / CPC / CPM
+                  Impresiones, CTR / CPC / CPM
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Spend hoy live + pacing y señales
+                  Spend hoy en vivo + fee Holistic
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Fee Holistic y BE ROAS estimado
+                  BE ROAS estimado (ads + fee)
                 </li>
               </ul>
               <div className="mt-4 border-t border-[#f0ebe4] pt-3">

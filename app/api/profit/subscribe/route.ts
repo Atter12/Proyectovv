@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { createRealProfitCodSubscribeIntent } from "@/lib/realprofit/create-subscribe-intent.server";
 import {
   getRealProfitSubscription,
@@ -69,10 +70,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const organizationId = session.organizationId;
+  // Org de la cartera del cliente Hecom (no la del staff al “ver como”).
+  const organizationId =
+    (await resolveOrganizationIdForHecomCliente(selected.id)) ??
+    session.organizationId;
   if (!organizationId) {
     return NextResponse.json(
-      { error: "Organización no disponible." },
+      { error: "Organización no disponible para este cliente." },
       { status: 400 },
     );
   }
