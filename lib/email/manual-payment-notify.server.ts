@@ -110,26 +110,42 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
     });
 
     const subject = isRealProfit
-      ? `[Profit COD] Pago $20 por revisar · ${clientName || clientEmail || "cliente"}`
-      : template.subject;
+      ? `[Acción] Profit COD $20 por revisar · ${clientName || clientEmail || "cliente"}`
+      : `[Acción] ${template.subject}`;
 
-    await sendTransactionalEmail({
-      to: managers,
-      subject,
-      html: template.html,
-      text: template.text,
-      templateKey: isRealProfit
-        ? "payment.realprofit.pending_manager"
-        : "payment.manual.pending_manager",
-      organizationId: input.organizationId,
-      userId: input.createdBy,
-      idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}`,
-      metadata: {
-        payment_intent_id: input.paymentIntentId,
-        managers_count: managers.length,
-        purpose: input.purpose ?? null,
-      },
-    });
+    const templateKey = isRealProfit
+      ? "payment.realprofit.pending_manager"
+      : "payment.manual.pending_manager";
+
+    // Un correo por gerente (no batch). Gmail suele enterrar los TO múltiples.
+    const results = await Promise.allSettled(
+      managers.map((managerEmail) =>
+        sendTransactionalEmail({
+          to: managerEmail,
+          subject,
+          html: template.html,
+          text: template.text,
+          templateKey,
+          organizationId: input.organizationId,
+          userId: input.createdBy,
+          idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}:${managerEmail}`,
+          metadata: {
+            payment_intent_id: input.paymentIntentId,
+            managers_count: managers.length,
+            purpose: input.purpose ?? null,
+            notify_mode: "per_recipient",
+          },
+        }),
+      ),
+    );
+
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      console.error("[email] manual pending manager partial fail", {
+        failed: failed.length,
+        total: managers.length,
+      });
+    }
   } catch (error) {
     console.error("[email] manual pending manager notify failed", error);
   }
