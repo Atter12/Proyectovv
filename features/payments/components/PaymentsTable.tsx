@@ -200,12 +200,13 @@ export function PaymentsTable({
           <p
             className={
               mobile
-                ? "text-[11px] leading-4 text-[#7a736a]"
+                ? "text-[11px] leading-snug text-[#7a736a]"
                 : "max-w-[13rem] text-[10px] leading-[1.45] text-[#7a736a]"
             }
           >
-            Sin saldo para retirar. Asígnale desde la cartera, o transfiérele
-            saldo desde otra cuenta eligiendo esta como destino.
+            {mobile
+              ? "Sin saldo para retirar. Asigná desde la cartera o transferí desde otra cuenta."
+              : "Sin saldo para retirar. Asígnale desde la cartera, o transfiérele saldo desde otra cuenta eligiendo esta como destino."}
           </p>
         ) : null}
 
@@ -290,56 +291,56 @@ export function PaymentsTable({
       )}
 
       {!isEmpty ? (
-        <div className="space-y-2.5 p-4 md:hidden">
+        <div className="space-y-3 p-3 sm:p-4 md:hidden">
           {accounts.map((account) => (
             <article
               key={account.id}
               className={
                 isReclaimableSuspended(account)
-                  ? "rounded-xl border border-[#f0c4a8] bg-[linear-gradient(180deg,#fff8f2_0%,#fffcf8_100%)] p-4"
-                  : "rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
+                  ? "rounded-xl border border-[#f0c4a8] bg-[linear-gradient(180deg,#fff8f2_0%,#fffcf8_100%)] p-3.5"
+                  : "rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-3.5 transition-colors hover:bg-[#faf7f3]"
               }
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
-                    {account.name}
-                  </p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    {account.bmLabel ? (
-                      <span className="rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
-                        {account.bmLabel}
-                      </span>
-                    ) : null}
-                    <p className="truncate font-mono text-[10px] text-[#9a9187]">
-                      adv{" "}
-                      {account.externalAccountId?.trim() ||
-                        t("assignmentTable.noTikTokId")}
-                    </p>
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className={statusBadgeClass(account.status)}>
-                      {statusLabel(account.status)}
+              <div className="min-w-0">
+                <p className="break-words text-[14px] font-semibold leading-snug tracking-[-0.02em] text-[#1a1612]">
+                  {account.name}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {account.bmLabel ? (
+                    <span className="rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
+                      {account.bmLabel}
                     </span>
-                    {!agencyBmFunding ? (
-                      <span
-                        className={
-                          account.autoRecharge
-                            ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
-                            : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
-                        }
-                      >
-                        {account.autoRecharge
-                          ? t("assignmentTable.autoDebitOn")
-                          : t("assignmentTable.autoDebitOff")}
-                      </span>
-                    ) : null}
-                  </div>
+                  ) : null}
+                  <span className={statusBadgeClass(account.status)}>
+                    {statusLabel(account.status)}
+                  </span>
+                  {!agencyBmFunding ? (
+                    <span
+                      className={
+                        account.autoRecharge
+                          ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
+                          : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
+                      }
+                    >
+                      {account.autoRecharge
+                        ? t("assignmentTable.autoDebitOn")
+                        : t("assignmentTable.autoDebitOff")}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="shrink-0 text-right">{renderBalanceCell(account, true)}</div>
+                <p className="mt-1 break-all font-mono text-[10px] leading-4 text-[#9a9187]">
+                  adv{" "}
+                  {account.externalAccountId?.trim() ||
+                    t("assignmentTable.noTikTokId")}
+                </p>
               </div>
+
+              <div className="mt-3 border-t border-[rgb(20_18_16_/_0.06)] pt-3">
+                {renderBalanceCell(account, true)}
+              </div>
+
               {!agencyBmFunding && account.thresholdInfo ? (
-                <p className="mt-2 truncate text-[11px] text-[#9a9187]">
+                <p className="mt-2 text-[11px] leading-4 text-[#9a9187]">
                   {account.thresholdInfo}
                 </p>
               ) : null}

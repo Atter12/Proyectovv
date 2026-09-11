@@ -347,19 +347,20 @@ function BalanceValue({
   live?: boolean;
 }) {
   return (
-    <div className="min-w-0 px-3.5 py-3 sm:px-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8178]">
+    <div className="min-w-0 px-3 py-3 sm:px-4">
+      <p className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8178]">
         {label}
       </p>
       <p
-        className="mt-0.5 truncate text-[17px] font-semibold tabular-nums tracking-[-0.025em] text-[var(--auth-text)]"
+        className="mt-0.5 truncate text-[16px] font-semibold tabular-nums tracking-[-0.025em] text-[var(--auth-text)] sm:text-[17px]"
         aria-live={live ? "polite" : undefined}
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] leading-4 text-[var(--auth-text-muted)]">
+      <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-[#9a9187] sm:line-clamp-none">
         {hint}
       </p>
     </div>
   );
 }
+
