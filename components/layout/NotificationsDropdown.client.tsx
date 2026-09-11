@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { routes } from "@/config/routes";
 import { apiClient } from "@/lib/api/api-client.client";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 
 interface NotificationItem {
   id: string;
@@ -20,24 +22,6 @@ interface NotificationsResponse {
   notifications: NotificationItem[];
 }
 
-function formatRelativeDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Ahora";
-
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
-  if (diffMinutes < 1) return "Ahora";
-  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `Hace ${diffHours} h`;
-
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-
 function getNotificationUrl(item: NotificationItem): string | null {
   const url = item.data.url;
   if (typeof url !== "string" || !url.startsWith("/")) return null;
@@ -45,6 +29,8 @@ function getNotificationUrl(item: NotificationItem): string | null {
 }
 
 export function NotificationsDropdown() {
+  const t = useTranslations("nav.notifications");
+  const { bcp47 } = useAppFormatter();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -56,6 +42,24 @@ export function NotificationsDropdown() {
     () => notifications.filter((notification) => !notification.readAt).length,
     [notifications],
   );
+
+  function formatRelativeDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t("now");
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.max(0, Math.floor(diffMs / 60_000));
+    if (diffMinutes < 1) return t("now");
+    if (diffMinutes < 60) return t("minutesAgo", { count: diffMinutes });
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return t("hoursAgo", { count: diffHours });
+
+    return date.toLocaleDateString(bcp47, {
+      day: "2-digit",
+      month: "short",
+    });
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -79,7 +83,7 @@ export function NotificationsDropdown() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "No se pudieron cargar las notificaciones.",
+          : t("loadError"),
       );
     } finally {
       setLoading(false);
@@ -133,7 +137,7 @@ export function NotificationsDropdown() {
           void handleToggle();
         }}
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--admin-text-muted)] transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/35"
-        aria-label="Notificaciones"
+        aria-label={t("aria")}
         aria-expanded={open}
       >
         <svg
@@ -160,11 +164,11 @@ export function NotificationsDropdown() {
         <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-white shadow-2xl shadow-[rgb(20_18_16_/_0.14)]">
           <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
             <div>
-              <p className="text-sm font-black text-[#141210]">Notificaciones</p>
+              <p className="text-sm font-black text-[#141210]">{t("title")}</p>
               <p className="text-xs text-[#6b645c]">
                 {unreadCount === 0
-                  ? "Todo leído"
-                  : `${unreadCount} sin leer`}
+                  ? t("allRead")
+                  : t("unread", { count: unreadCount })}
               </p>
             </div>
             <button
@@ -175,14 +179,14 @@ export function NotificationsDropdown() {
               disabled={loading}
               className="rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-primary-deep)] transition hover:bg-[var(--brand-primary)]/10 disabled:opacity-50"
             >
-              Actualizar
+              {t("refresh")}
             </button>
           </div>
 
           <div className="max-h-[420px] overflow-y-auto p-2">
             {loading && notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-[#6b645c]">
-                Cargando notificaciones…
+                {t("loading")}
               </div>
             ) : error ? (
               <div className="rounded-2xl bg-[#fef2f2] px-4 py-3 text-sm text-[#991b1b]">
@@ -190,7 +194,7 @@ export function NotificationsDropdown() {
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-[#6b645c]">
-                No tienes notificaciones por ahora.
+                {t("empty")}
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -229,7 +233,7 @@ export function NotificationsDropdown() {
                           )}
                           {url && (
                             <span className="mt-1 inline-flex text-[11px] font-semibold text-[var(--brand-primary)]">
-                              Abrir detalle
+                              {t("openDetail")}
                             </span>
                           )}
                         </span>

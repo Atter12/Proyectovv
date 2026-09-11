@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
@@ -17,12 +18,14 @@ interface DashboardSidebarProps {
   actingAsCliente?: boolean;
 }
 
-export function DashboardSidebar({
+export async function DashboardSidebar({
   className,
   selectedCliente = null,
   persona = "cliente",
   actingAsCliente = false,
 }: DashboardSidebarProps) {
+  const t = await getTranslations("nav");
+
   return (
     <aside
       id="dashboard-sidebar"
@@ -47,7 +50,7 @@ export function DashboardSidebar({
         />
       </div>
 
-      <p className="dashboard-sidebar-menu-label">Menú</p>
+      <p className="dashboard-sidebar-menu-label">{t("menu")}</p>
 
       <DashboardNavLinks persona={persona} />
     </aside>

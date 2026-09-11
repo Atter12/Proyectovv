@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
+import { CrmQuickLinks } from "@/components/dashboard/CrmQuickLinks.client";
+
+export { CrmQuickLinks };
 
 /** UI operativa Ads Holistic — consola SaaS, sin cardificación excesiva. */
 
@@ -235,38 +238,6 @@ export function CrmHeroButton({
     <Link href={href} className={className}>
       {children}
     </Link>
-  );
-}
-
-export function CrmQuickLinks({
-  links,
-}: {
-  links: ReadonlyArray<{ href: string; label: string }>;
-}) {
-  return (
-    <nav
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px]"
-      aria-label="Accesos rápidos"
-    >
-      <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-        Accesos
-      </span>
-      {links.map((link, index) => (
-        <span key={link.href} className="inline-flex items-center">
-          {index > 0 ? (
-            <span className="mx-2 text-[var(--auth-text-soft)]" aria-hidden>
-              ·
-            </span>
-          ) : null}
-          <Link
-            href={link.href}
-            className="font-medium text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-text)]"
-          >
-            {link.label}
-          </Link>
-        </span>
-      ))}
-    </nav>
   );
 }
 

@@ -28,6 +28,16 @@ export function PaymentGatewaySelector({
       {gateways.map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
         const isSelected = selected === gateway.id && !inMaintenance;
+        const localizedName =
+          gateway.id === "manual" ? t("gateways.manualName") : gateway.name;
+        const localizedDescription =
+          gateway.id === "stripe"
+            ? t("gateways.stripeDesc")
+            : gateway.id === "cobrana"
+              ? t("gateways.cobranaDesc")
+              : gateway.id === "manual"
+                ? t("gateways.manualDesc")
+                : gateway.description;
         return (
           <button
             key={gateway.id}
@@ -54,7 +64,7 @@ export function PaymentGatewaySelector({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
-                  {gateway.name}
+                  {localizedName}
                 </p>
                 {inMaintenance ? (
                   <span className="shrink-0 rounded-full bg-[#e7e2db] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#5c564e]">
@@ -63,7 +73,7 @@ export function PaymentGatewaySelector({
                 ) : null}
               </div>
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
-                {gateway.description}
+                {localizedDescription}
               </p>
               {gateway.id === "stripe" ? (
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

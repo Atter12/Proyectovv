@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
@@ -27,6 +28,8 @@ export function DashboardMobileSidebar({
   persona = "cliente",
   actingAsCliente = false,
 }: DashboardMobileSidebarProps) {
+  const t = useTranslations("nav");
+
   return (
     <aside
       className={cn(
@@ -55,7 +58,7 @@ export function DashboardMobileSidebar({
         />
       </div>
 
-      <p className="dashboard-sidebar-menu-label">Menú</p>
+      <p className="dashboard-sidebar-menu-label">{t("menu")}</p>
 
       <DashboardNavLinks onNavigate={onNavigate} persona={persona} />
 
@@ -75,7 +78,7 @@ export function DashboardMobileSidebar({
                 {siteConfig.name}
               </p>
               <p className="mt-0.5 text-[11.5px] leading-4 text-[var(--auth-text-muted)]">
-                Plataforma de marketing integral para marcas y agencias.
+                {t("sidebarTagline")}
               </p>
             </div>
           </div>

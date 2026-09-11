@@ -43,11 +43,31 @@
     "support": "Support",
     "supportStaff": "Support inbox",
     "openMenu": "Open navigation menu",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "navAria": "Navigation menu",
+    "quickAccess": "Shortcuts",
+    "quickAccessAria": "Quick links",
     "clientPrefix": "Client:",
     "changeClient": "change",
     "noClient": "No client",
     "pickClient": "choose",
-    "clienteHint": "Top up with Stripe and assign to your ads"
+    "clienteHint": "Top up with Stripe and assign to your ads",
+    "sidebarTagline": "All-in-one marketing platform for brands and agencies.",
+    "notifications": {
+      "title": "Notifications",
+      "aria": "Notifications",
+      "allRead": "All read",
+      "unread": "{count} unread",
+      "refresh": "Refresh",
+      "loading": "Loading notifications…",
+      "empty": "You have no notifications right now.",
+      "loadError": "Couldn’t load notifications.",
+      "now": "Now",
+      "minutesAgo": "{count} min ago",
+      "hoursAgo": "{count} h ago",
+      "openDetail": "Open details"
+    }
   },
   "wallet": {
     "yourAccount": "Your account",
@@ -579,6 +599,12 @@
     "gatewaySelector": {
       "aria": "Payment method",
       "maintenance": "Maintenance"
+    },
+    "gateways": {
+      "stripeDesc": "Cards and global payments",
+      "cobranaDesc": "Pay with Yape, Plin, or bank transfer",
+      "manualName": "Manual payment",
+      "manualDesc": "BCP transfer · proof under review"
     },
     "clienteScoped": {
       "eyebrow": "Hecom history",

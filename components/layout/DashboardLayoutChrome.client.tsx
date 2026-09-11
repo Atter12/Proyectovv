@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
 import { cn } from "@/lib/cn";
@@ -33,6 +34,7 @@ export function DashboardLayoutChrome({
   persona = "cliente",
   actingAsCliente = false,
 }: DashboardLayoutChromeProps) {
+  const t = useTranslations("nav");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function DashboardLayoutChrome({
         <button
           type="button"
           className="fixed inset-0 z-40 bg-[rgb(28_25_23_/_0.35)] backdrop-blur-sm lg:hidden"
-          aria-label="Cerrar menú"
+          aria-label={t("closeMenu")}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -70,13 +72,13 @@ export function DashboardLayoutChrome({
         role="dialog"
         aria-modal={sidebarOpen}
         aria-hidden={!sidebarOpen}
-        aria-label="Menú de navegación"
+        aria-label={t("navAria")}
       >
         <div className="relative h-full overflow-hidden rounded-r-[1.25rem] border-r border-[var(--auth-border)] shadow-[8px_0_40px_-12px_rgb(28_25_23_/_0.28)]">
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Cerrar menú"
+            aria-label={t("closeMenu")}
             className="absolute right-2.5 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

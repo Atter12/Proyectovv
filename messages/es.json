@@ -43,11 +43,31 @@
     "support": "Soporte",
     "supportStaff": "Inbox Soporte",
     "openMenu": "Abrir menú de navegación",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú",
+    "navAria": "Menú de navegación",
+    "quickAccess": "Accesos",
+    "quickAccessAria": "Accesos rápidos",
     "clientPrefix": "Cliente:",
     "changeClient": "cambiar",
     "noClient": "Sin cliente",
     "pickClient": "elegir",
-    "clienteHint": "Recarga con Stripe y asigna a tus ads"
+    "clienteHint": "Recarga con Stripe y asigna a tus ads",
+    "sidebarTagline": "Plataforma de marketing integral para marcas y agencias.",
+    "notifications": {
+      "title": "Notificaciones",
+      "aria": "Notificaciones",
+      "allRead": "Todo leído",
+      "unread": "{count} sin leer",
+      "refresh": "Actualizar",
+      "loading": "Cargando notificaciones…",
+      "empty": "No tienes notificaciones por ahora.",
+      "loadError": "No se pudieron cargar las notificaciones.",
+      "now": "Ahora",
+      "minutesAgo": "Hace {count} min",
+      "hoursAgo": "Hace {count} h",
+      "openDetail": "Abrir detalle"
+    }
   },
   "wallet": {
     "yourAccount": "Tu cuenta",
@@ -579,6 +599,12 @@
     "gatewaySelector": {
       "aria": "Método de pago",
       "maintenance": "Mantenimiento"
+    },
+    "gateways": {
+      "stripeDesc": "Tarjetas y pagos globales",
+      "cobranaDesc": "Paga con Yape, Plin o transferencia bancaria",
+      "manualName": "Pago manual",
+      "manualDesc": "Transferencia BCP · comprobante en revisión"
     },
     "clienteScoped": {
       "eyebrow": "Historial Hecom",

@@ -43,11 +43,31 @@
     "support": "Suporte",
     "supportStaff": "Inbox de suporte",
     "openMenu": "Abrir menu de navegação",
+    "menu": "Menu",
+    "closeMenu": "Fechar menu",
+    "navAria": "Menu de navegação",
+    "quickAccess": "Acessos",
+    "quickAccessAria": "Acessos rápidos",
     "clientPrefix": "Cliente:",
     "changeClient": "alterar",
     "noClient": "Sem cliente",
     "pickClient": "escolher",
-    "clienteHint": "Recarregue com Stripe e atribua aos seus anúncios"
+    "clienteHint": "Recarregue com Stripe e atribua aos seus anúncios",
+    "sidebarTagline": "Plataforma de marketing integral para marcas e agências.",
+    "notifications": {
+      "title": "Notificações",
+      "aria": "Notificações",
+      "allRead": "Tudo lido",
+      "unread": "{count} não lidas",
+      "refresh": "Atualizar",
+      "loading": "Carregando notificações…",
+      "empty": "Você não tem notificações no momento.",
+      "loadError": "Não foi possível carregar as notificações.",
+      "now": "Agora",
+      "minutesAgo": "Há {count} min",
+      "hoursAgo": "Há {count} h",
+      "openDetail": "Abrir detalhe"
+    }
   },
   "wallet": {
     "yourAccount": "Sua conta",
@@ -580,6 +600,12 @@
       "aria": "Método de pagamento",
       "maintenance": "Manutenção"
     },
+    "gateways": {
+      "stripeDesc": "Cartões e pagamentos globais",
+      "cobranaDesc": "Pague com Yape, Plin ou transferência bancária",
+      "manualName": "Pagamento manual",
+      "manualDesc": "Transferência BCP · comprovante em análise"
+    },
     "clienteScoped": {
       "eyebrow": "Histórico Hecom",
       "title": "Cobranças / recargas · {name}",
@@ -608,7 +634,7 @@
       "idleTitle": "Precisa de crédito Holistic?",
       "idleBody": "Você pede o valor, a gestão aceita conforme seu histórico e você paga o ciclo depois. Não substitui a recarga acima.",
       "idleRejected": " Seu último pedido foi rejeitado; você pode enviar outro.",
-      "askCta": "Pedir crédito",
+      "askCta": "Solicitar crédito",
       "title": "Crédito Holistic",
       "subtitle": "Pedido → aceite da gestão → cartão Stripe",
       "closeAria": "Fechar crédito Holistic",
@@ -1328,7 +1354,7 @@
     "faqSubtitle": "Guias rápidos do Ads Holistic",
     "faqGuides": "Guias rápidos sem abrir chamado",
     "backToChat": "← Voltar ao chat",
-    "searchFaq": "Buscar no FAQ…",
+    "searchFaq": "Pesquisar no FAQ…",
     "noFaqResults": "Nenhum resultado para “{q}”.",
     "loading": "Carregando histórico…",
     "writeUs": "Escreva para nós",
@@ -1417,7 +1443,7 @@
     "chatWithUs": "Fale conosco",
     "welcomeHint": "Bem-vindo! Nossa equipe de suporte está pronta para ajudar.",
     "viewAll": "Ver todas",
-    "searchFaqAria": "Buscar nas FAQs",
+    "searchFaqAria": "Pesquisar nas FAQs",
     "loadingPage": "Carregando suporte…"
   },
   "creatives": {
