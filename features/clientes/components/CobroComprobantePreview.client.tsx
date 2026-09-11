@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { ComprobanteLightbox } from "./ComprobanteLightbox.client";
 
@@ -16,12 +17,14 @@ function guessKindFromUrl(url: string): ComprobanteKind {
 export function CobroComprobantePreview({
   cobroId,
   index = 0,
-  label = "Comprobante",
+  label,
 }: {
   cobroId: string;
   index?: number;
   label?: string;
 }) {
+  const t = useTranslations("cobros");
+  const resolvedLabel = label ?? t("proof");
   const [url, setUrl] = useState<string | null>(null);
   const [kind, setKind] = useState<ComprobanteKind>("unknown");
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,7 @@ export function CobroComprobantePreview({
       }>(
         `/api/hecom/cobros/${encodeURIComponent(cobroId)}/comprobante?index=${index}`,
       );
-      if (!data.url) throw new Error("Comprobante no disponible.");
+      if (!data.url) throw new Error(t("proofUnavailable"));
       setUrl(data.url);
       setKind(data.kind ?? guessKindFromUrl(data.url));
     } catch (err) {
@@ -48,12 +51,12 @@ export function CobroComprobantePreview({
           ? err.message
           : err instanceof Error
             ? err.message
-            : "No se pudo cargar.",
+            : t("proofLoadError"),
       );
     } finally {
       setLoading(false);
     }
-  }, [cobroId, index]);
+  }, [cobroId, index, t]);
 
   useEffect(() => {
     void loadUrl();
@@ -63,7 +66,7 @@ export function CobroComprobantePreview({
     return (
       <div
         className="h-14 w-14 shrink-0 animate-pulse rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)]"
-        title="Cargando comprobante…"
+        title={t("proofLoading")}
       />
     );
   }
@@ -74,9 +77,9 @@ export function CobroComprobantePreview({
         type="button"
         onClick={() => void loadUrl()}
         className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-[9px] font-medium text-red-700"
-        title={error ?? "Reintentar"}
+        title={error ?? t("retry")}
       >
-        Reintentar
+        {t("retry")}
       </button>
     );
   }
@@ -89,7 +92,7 @@ export function CobroComprobantePreview({
         type="button"
         onClick={() => setLightboxOpen(true)}
         className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)] shadow-sm transition hover:border-[var(--auth-accent)] hover:ring-2 hover:ring-[var(--auth-accent)]/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]"
-        title={`Ampliar ${label}`}
+        title={t("enlargeProof", { label: resolvedLabel })}
       >
         {isPdf ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#faf8f5] text-[var(--auth-text-muted)]">
@@ -115,7 +118,7 @@ export function CobroComprobantePreview({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
-            alt={label}
+            alt={resolvedLabel}
             className="h-full w-full object-cover transition group-hover:scale-105"
           />
         )}
@@ -140,7 +143,7 @@ export function CobroComprobantePreview({
       <ComprobanteLightbox
         open={lightboxOpen}
         url={url}
-        title={label}
+        title={resolvedLabel}
         kind={isPdf ? "pdf" : "image"}
         onClose={() => setLightboxOpen(false)}
       />

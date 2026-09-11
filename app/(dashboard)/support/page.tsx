@@ -1,15 +1,16 @@
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { SupportPageClient } from "@/features/support/components/SupportPageClient.client";
-import { SupportSpanishProvider } from "@/features/support/components/SupportSpanishProvider.client";
 import { GerenteSupportInbox } from "@/features/support/components/GerenteSupportInbox.client";
 
 export const dynamic = "force-dynamic";
 
 export default async function SupportPage() {
   const session = await requireSession();
+  const t = await getTranslations("support");
   const funding = resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
@@ -25,16 +26,14 @@ export default async function SupportPage() {
     <Suspense
       fallback={
         <div className="dashboard-surface-card rounded-[1rem] p-8 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
-          Cargando soporte…
+          {t("loadingPage")}
         </div>
       }
     >
       {isGerenteInbox ? (
         <GerenteSupportInbox />
       ) : (
-        <SupportSpanishProvider>
-          <SupportPageClient persona={persona} />
-        </SupportSpanishProvider>
+        <SupportPageClient persona={persona} />
       )}
     </Suspense>
   );

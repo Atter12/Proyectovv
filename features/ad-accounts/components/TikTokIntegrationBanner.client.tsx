@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
 export function TikTokIntegrationBanner() {
+  const t = useTranslations("adAccounts.banner");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -56,19 +58,17 @@ export function TikTokIntegrationBanner() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-semibold">
-            {ok ? "TikTok conectado correctamente" : "No se pudo completar la conexión con TikTok"}
+            {ok ? t("connectedTitle") : t("failedTitle")}
           </p>
           <p className="mt-1 text-sm opacity-90">
-            {ok
-              ? "Se importaron las cuentas advertiser. El gasto y las métricas se llenan cuando asignes saldo y corra el sync."
-              : message ?? "Revisa la autorización e inténtalo de nuevo."}
+            {ok ? t("connectedBody") : message ?? t("failedFallback")}
           </p>
         </div>
         <div className="flex gap-2">
           {!ok && (
             <a href="/api/integrations/tiktok/connect">
               <Button className="h-10 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]">
-                Reintentar
+                {t("retry")}
               </Button>
             </a>
           )}
@@ -80,7 +80,7 @@ export function TikTokIntegrationBanner() {
               router.replace(cleanUrl, { scroll: false });
             }}
           >
-            Cerrar
+            {t("close")}
           </Button>
         </div>
       </div>

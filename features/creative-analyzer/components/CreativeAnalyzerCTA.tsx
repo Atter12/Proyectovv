@@ -1,4 +1,13 @@
-export function CreativeAnalyzerCTA() {
+import { getTranslations } from "next-intl/server";
+
+export async function CreativeAnalyzerCTA() {
+  const t = await getTranslations("creatives");
+  const chips = [
+    t("cta.chipScore"),
+    t("cta.chipBenchmarks"),
+    t("cta.chipPolicy"),
+  ];
+
   return (
     <section className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white p-8 shadow-[var(--shadow-card)] sm:p-10">
       <div
@@ -14,24 +23,21 @@ export function CreativeAnalyzerCTA() {
 
       <div className="relative z-10 text-center">
         <div className="mb-4 flex flex-wrap justify-center gap-2">
-          {["Puntuación creativa", "Referencias", "Control de políticas"].map(
-            (chip) => (
-              <span
-                key={chip}
-                className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]"
-              >
-                {chip}
-              </span>
-            ),
-          )}
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--admin-text-muted,#64748b)]"
+            >
+              {chip}
+            </span>
+          ))}
         </div>
 
         <h2 className="font-display text-[1.35rem] font-medium text-[var(--foreground)] sm:text-[1.6rem]">
-          ¿Listo para escalar tus anuncios?
+          {t("cta.title")}
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-[14px] leading-6 text-[var(--admin-text-muted,#64748b)]">
-          Prueba el analizador creativo y descubre qué piezas tienen mayor
-          potencial antes de invertir más presupuesto.
+          {t("cta.body")}
         </p>
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -39,13 +45,13 @@ export function CreativeAnalyzerCTA() {
             href="#creative-benchmark"
             className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-6 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-primary-deep)] sm:w-auto"
           >
-            Probar gratis
+            {t("cta.tryFree")}
           </a>
           <a
             href="#creative-workflow"
             className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-white px-6 text-[13px] font-semibold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5 sm:w-auto"
           >
-            Ver ejemplo de análisis
+            {t("cta.seeExample")}
           </a>
         </div>
       </div>

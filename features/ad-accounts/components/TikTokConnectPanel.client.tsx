@@ -50,8 +50,10 @@ export function TikTokConnectPanel({
       );
       setInfo(
         result.imported > 0
-          ? `Se sincronizaron ${result.imported} cuenta${result.imported === 1 ? "" : "s"} de TikTok.`
-          : "No había advertisers nuevos para importar.",
+          ? result.imported === 1
+            ? t("importedOne", { count: result.imported })
+            : t("importedMany", { count: result.imported })
+          : t("importedNone"),
       );
       const refreshed = await apiClient<TikTokConnectionStatus & { ok: boolean }>(
         "/api/integrations/tiktok/status",
@@ -59,7 +61,7 @@ export function TikTokConnectPanel({
       setStatus(refreshed);
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "No se pudo reimportar.");
+      setError(err instanceof ApiClientError ? err.message : t("importError"));
     } finally {
       setBusy(null);
     }
@@ -68,7 +70,7 @@ export function TikTokConnectPanel({
   async function handleDisconnect() {
     if (
       !window.confirm(
-        `¿Desconectar TikTok de “${organizationName}”? Solo afecta a esta organización; los demás clientes no cambian.`,
+        t("disconnectConfirm", { organizationName }),
       )
     ) {
       return;
@@ -85,10 +87,10 @@ export function TikTokConnectPanel({
         status: "revoked",
         lastError: null,
       }));
-      setInfo("TikTok desconectado para esta organización.");
+      setInfo(t("disconnected"));
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "No se pudo desconectar.");
+      setError(err instanceof ApiClientError ? err.message : t("disconnectError"));
     } finally {
       setBusy(null);
     }
@@ -119,10 +121,7 @@ export function TikTokConnectPanel({
             {t("connect")}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--admin-text-muted,#64748b)]">
-            Cada cliente tiene su propia organización. Esta conexión es solo para{" "}
-            <span className="font-semibold text-[var(--foreground)]">{organizationName}</span>
-            : sus advertisers, gasto y datos. Luis Vargas, Ely Aguirre u otros no ven ni
-            comparten esta autorización.
+            {t("body", { organizationName })}
           </p>
 
           <dl className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -154,8 +153,7 @@ export function TikTokConnectPanel({
 
           {!status.configured && (
             <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              TikTok OAuth aún no está configurado en el servidor (faltan keys). El flujo
-              de UI ya está listo; ops debe cargar TIKTOK_CLIENT_KEY y TIKTOK_CLIENT_SECRET.
+              {t("notConfigured")}
             </p>
           )}
 
@@ -212,14 +210,12 @@ export function TikTokConnectPanel({
             </>
           ) : (
             <p className="text-sm text-[var(--admin-text-muted,#64748b)]">
-              Solo el dueño o un admin de esta organización puede conectar TikTok.
+              {t("ownerOnly")}
             </p>
           )}
 
           <p className="text-[11px] leading-relaxed text-[var(--admin-text-muted,#64748b)]">
-            Al autorizar, importamos tus advertisers a Holistic Marketing. El gasto se sincroniza por
-            organización. Las campañas a nivel detalle llegan en una siguiente iteración;
-            hoy ya ves cuentas y gasto ads.
+            {t("footer")}
           </p>
         </div>
       </div>

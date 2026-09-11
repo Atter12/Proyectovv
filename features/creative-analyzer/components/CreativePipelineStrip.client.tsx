@@ -1,13 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 
-const STEPS = [
-  { id: "upload", label: "Subir", hint: "Video" },
-  { id: "score", label: "Score IA", hint: "Recomienda" },
-  { id: "brief", label: "Brief", hint: "Agent Pro" },
-  { id: "launch", label: "Enviar", hint: "TikTok pausada" },
-] as const;
+const STEP_IDS = ["upload", "score", "brief", "launch"] as const;
 
 export function CreativePipelineStrip({
   activeStep,
@@ -15,18 +11,26 @@ export function CreativePipelineStrip({
   /** 0=upload, 1=score, 2=brief, 3=launch */
   activeStep: 0 | 1 | 2 | 3;
 }) {
+  const t = useTranslations("creatives.pipeline");
+
+  const steps = STEP_IDS.map((id) => ({
+    id,
+    label: t(id),
+    hint: t(`${id}Hint`),
+  }));
+
   return (
     <nav
-      aria-label="Flujo creativo"
+      aria-label={t("ariaLabel")}
       className="overflow-hidden rounded-[1.25rem] border border-[rgb(20_18_16_/_0.08)] bg-[linear-gradient(135deg,#fffaf6_0%,#ffffff_55%,#f7faf8_100%)] px-3 py-3.5 sm:px-5"
     >
       <ol className="grid grid-cols-4 gap-1 sm:gap-2">
-        {STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const done = index < activeStep;
           const current = index === activeStep;
           return (
             <li key={step.id} className="relative min-w-0 text-center">
-              {index < STEPS.length - 1 ? (
+              {index < steps.length - 1 ? (
                 <span
                   aria-hidden
                   className={cn(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { apiClient } from "@/lib/api/api-client.client";
 
 export type AdAccountLiveMetricsClient = {
@@ -60,6 +61,7 @@ async function fetchLiveMetricsPayload(
 function mergeLiveMetrics(
   prev: Record<string, AdAccountLiveMetricsClient>,
   accounts: AdAccountLiveMetricsClient[],
+  staleFallback: string,
 ): Record<string, AdAccountLiveMetricsClient> {
   const next: Record<string, AdAccountLiveMetricsClient> = { ...prev };
 
@@ -83,9 +85,7 @@ function mergeLiveMetrics(
         spendTodayUsd:
           row.spendTodayUsd != null ? row.spendTodayUsd : prior.spendTodayUsd,
         stale: true,
-        error:
-          row.error ??
-          "TikTok no devolvió este saldo; mostrando el último valor conocido.",
+        error: row.error ?? staleFallback,
       };
       continue;
     }
@@ -104,6 +104,7 @@ export type LiveMetricsRefreshOpts = {
 };
 
 export function useAdAccountLiveMetrics(enabled = true) {
+  const t = useTranslations("adAccounts.live");
   const [metricsByAdvertiser, setMetricsByAdvertiser] = useState<
     Record<string, AdAccountLiveMetricsClient>
   >({});
@@ -131,14 +132,12 @@ export function useAdAccountLiveMetrics(enabled = true) {
       try {
         const data = await fetchLiveMetricsPayload(Boolean(opts?.force));
         setMetricsByAdvertiser((prev) =>
-          mergeLiveMetrics(prev, data.accounts ?? []),
+          mergeLiveMetrics(prev, data.accounts ?? [], t("staleFallback")),
         );
         setLastUpdatedAt(data.updatedAt ?? new Date().toISOString());
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "No se pudo actualizar saldo en vivo.",
+          err instanceof Error ? err.message : t("refreshError"),
         );
       } finally {
         setLoading(false);
@@ -149,7 +148,7 @@ export function useAdAccountLiveMetrics(enabled = true) {
         }
       }
     },
-    [enabled],
+    [enabled, t],
   );
 
   /** Tras Asignar / Transferir / Recuperar: refresco inmediato + uno diferido. */

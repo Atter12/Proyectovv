@@ -1,22 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-
-const WEEKDAYS = ["do", "lu", "ma", "mi", "ju", "vi", "sá"] as const;
-const MONTHS_SHORT = [
-  "Ene.",
-  "Feb.",
-  "Mar.",
-  "Abr.",
-  "May.",
-  "Jun.",
-  "Jul.",
-  "Ago.",
-  "Sep.",
-  "Oct.",
-  "Nov.",
-  "Dic.",
-] as const;
+import { useTranslations } from "next-intl";
 
 function parseYmd(ymd: string): { y: number; m: number; d: number } | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
@@ -106,6 +91,9 @@ export function ProfitDateRangeField({
   max,
   onChange,
 }: ProfitDateRangeFieldProps) {
+  const t = useTranslations("profit.dateRange");
+  const weekdays = t.raw("weekdays") as string[];
+  const monthsShort = t.raw("monthsShort") as string[];
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -257,10 +245,10 @@ export function ProfitDateRangeField({
     return (
       <div className="min-w-[15.5rem]">
         <p className="px-1 pb-2 text-center text-[12px] font-semibold text-[#1c1917]">
-          Año {y} {MONTHS_SHORT[m - 1]}
+          {t("yearMonth", { year: y, month: monthsShort[m - 1] })}
         </p>
         <div className="grid grid-cols-7 gap-y-0.5">
-          {WEEKDAYS.map((d) => (
+          {weekdays.map((d) => (
             <span
               key={`${y}-${m}-${d}`}
               className="py-1 text-center text-[10px] font-bold uppercase tracking-wide text-[#9a9187]"
@@ -292,7 +280,7 @@ export function ProfitDateRangeField({
   return (
     <div ref={rootRef} className="relative block w-full max-w-md">
       <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-        Rango
+        {t("label")}
       </span>
       <button
         type="button"
@@ -309,7 +297,7 @@ export function ProfitDateRangeField({
         <span>
           {from && to
             ? `${formatDisplay(from)} ~ ${formatDisplay(to)}`
-            : "Elegir rango de fechas"}
+            : t("placeholder")}
         </span>
         <svg
           aria-hidden
@@ -329,14 +317,14 @@ export function ProfitDateRangeField({
       {open ? (
         <div
           role="dialog"
-          aria-label="Elegir rango de fechas"
+          aria-label={t("dialogAria")}
           className="absolute left-0 z-40 mt-2 w-[min(100vw-2rem,36rem)] rounded-2xl border border-[#ece7e0] bg-white p-3 shadow-[0_18px_40px_-24px_rgb(28_25_23_/_0.55)] sm:p-4"
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
-                aria-label="Año anterior"
+                aria-label={t("prevYear")}
                 onClick={() => shiftLeft(-12)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
               >
@@ -344,7 +332,7 @@ export function ProfitDateRangeField({
               </button>
               <button
                 type="button"
-                aria-label="Mes anterior"
+                aria-label={t("prevMonth")}
                 onClick={() => shiftLeft(-1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
               >
@@ -352,14 +340,12 @@ export function ProfitDateRangeField({
               </button>
             </div>
             <p className="text-[11px] font-medium text-[#8a8177]">
-              {selecting
-                ? "Elige la fecha final del rango"
-                : "Elige inicio y luego el fin"}
+              {selecting ? t("pickEnd") : t("pickStartEnd")}
             </p>
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
-                aria-label="Mes siguiente"
+                aria-label={t("nextMonth")}
                 onClick={() => shiftLeft(1)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
               >
@@ -367,7 +353,7 @@ export function ProfitDateRangeField({
               </button>
               <button
                 type="button"
-                aria-label="Año siguiente"
+                aria-label={t("nextYear")}
                 onClick={() => shiftLeft(12)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
               >
@@ -388,14 +374,14 @@ export function ProfitDateRangeField({
               onClick={clearRange}
               className="rounded-lg px-2 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
             >
-              Borrar
+              {t("clear")}
             </button>
             <button
               type="button"
               onClick={goToday}
               className="rounded-lg px-2 py-1.5 text-[12px] font-semibold text-[var(--auth-accent)] transition hover:bg-[#fff7f0]"
             >
-              Hoy
+              {t("today")}
             </button>
           </div>
         </div>

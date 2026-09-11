@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
@@ -37,6 +38,7 @@ export function CreativeUploadPanel({
   clienteName?: string;
   accounts?: CreativeAccountOption[];
 }) {
+  const t = useTranslations("creatives.upload");
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
@@ -49,21 +51,24 @@ export function CreativeUploadPanel({
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const pickFile = useCallback((next: File | null) => {
-    if (!next) {
-      setFile(null);
-      return;
-    }
-    if (next.size > MAX_MB * 1024 * 1024) {
-      setError(`El archivo supera ${MAX_MB} MB.`);
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-    setError(null);
-    setSuccess(null);
-    setFile(next);
-  }, []);
+  const pickFile = useCallback(
+    (next: File | null) => {
+      if (!next) {
+        setFile(null);
+        return;
+      }
+      if (next.size > MAX_MB * 1024 * 1024) {
+        setError(t("fileTooLarge", { max: MAX_MB }));
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      setError(null);
+      setSuccess(null);
+      setFile(next);
+    },
+    [t],
+  );
 
   function clearForm() {
     setName("");
@@ -76,13 +81,11 @@ export function CreativeUploadPanel({
 
   async function handleUpload() {
     if (!file) {
-      setError("Selecciona una imagen, video o PDF.");
+      setError(t("selectFile"));
       return;
     }
     if (!adAccountId) {
-      setError(
-        "Elige una cuenta TikTok Aprobada para poder enviar la campaña después.",
-      );
+      setError(t("selectAccount"));
       return;
     }
 
@@ -113,7 +116,10 @@ export function CreativeUploadPanel({
       );
 
       setSuccess(
-        `“${response.asset.name}” subido. Análisis IA en curso (${response.job.status}).`,
+        t("success", {
+          name: response.asset.name,
+          status: response.job.status,
+        }),
       );
       setName("");
       setFile(null);
@@ -123,7 +129,7 @@ export function CreativeUploadPanel({
       setError(
         requestError instanceof ApiClientError
           ? requestError.message
-          : "No se pudo subir el creativo.",
+          : t("uploadError"),
       );
     } finally {
       setLoading(false);
@@ -157,6 +163,15 @@ export function CreativeUploadPanel({
   const accountChoices =
     approvedAccounts.length > 0 ? approvedAccounts : accounts;
 
+  const kindLabel =
+    kind === "image"
+      ? t("kindImage")
+      : kind === "video"
+        ? t("kindVideo")
+        : kind === "pdf"
+          ? t("kindPdf")
+          : t("kindFile");
+
   return (
     <section
       id="creative-upload"
@@ -164,15 +179,20 @@ export function CreativeUploadPanel({
     >
       <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-          Paso 1 · Creativo
+          {t("step1")}
         </p>
         <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-          Sube el video y la IA lo scorea
+          {t("subtitle")}
         </h2>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          Elige una cuenta <span className="font-semibold text-[var(--auth-text)]">Aprobada</span>,
-          sube el archivo y Agent Pro arma el brief para mandar la campaña a TikTok
-          {clienteName ? ` · ${clienteName}` : ""}.
+          {t.rich("instructions", {
+            approved: (chunks) => (
+              <span className="font-semibold text-[var(--auth-text)]">
+                {chunks}
+              </span>
+            ),
+            clientSuffix: clienteName ? ` · ${clienteName}` : "",
+          })}
         </p>
       </div>
 
@@ -181,12 +201,11 @@ export function CreativeUploadPanel({
           <div className="grid gap-4">
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                Cuenta TikTok
+                {t("accountLabel")}
               </label>
               {accountChoices.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">
-                  No hay cuentas en esta org. Sincroniza en Pagos / Cuentas ads
-                  primero (puedes subir igual sin vínculo).
+                  {t("noAccounts")}
                 </p>
               ) : (
                 <select
@@ -194,7 +213,7 @@ export function CreativeUploadPanel({
                   onChange={(e) => setAdAccountId(e.target.value)}
                   className="h-10 w-full rounded-xl border border-[rgb(20_18_16_/_0.1)] bg-white px-3 text-[13px] text-[var(--auth-text)]"
                 >
-                  <option value="">Elige cuenta Aprobada…</option>
+                  <option value="">{t("chooseApprovedAccount")}</option>
                   {accountChoices.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -208,15 +227,15 @@ export function CreativeUploadPanel({
 
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                Nombre visible
+                {t("visibleName")}
               </label>
               <Input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder={
                   clienteName
-                    ? `Ej. Hook ${clienteName}`
-                    : "Ej. Hook descuento verano"
+                    ? t("namePlaceholderWithClient", { name: clienteName })
+                    : t("namePlaceholder")
                 }
                 className="h-10 border-[rgb(20_18_16_/_0.1)] text-[13px]"
               />
@@ -224,7 +243,7 @@ export function CreativeUploadPanel({
 
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                Archivo
+                {t("file")}
               </label>
 
               <input
@@ -269,20 +288,14 @@ export function CreativeUploadPanel({
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="rounded bg-[rgb(20_18_16_/_0.05)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
-                          {kind === "image"
-                            ? "Imagen"
-                            : kind === "video"
-                              ? "Video"
-                              : kind === "pdf"
-                                ? "PDF"
-                                : "Archivo"}
+                          {kindLabel}
                         </span>
                         <span className="rounded bg-[rgb(20_18_16_/_0.05)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--auth-text-muted)]">
                           {formatBytes(file.size)}
                         </span>
                       </div>
                       <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">
-                        Clic para cambiar · o suelta otro archivo
+                        {t("changeFile")}
                       </p>
                     </div>
                     <button
@@ -295,22 +308,20 @@ export function CreativeUploadPanel({
                           fileInputRef.current.value = "";
                       }}
                     >
-                      Quitar
+                      {t("remove")}
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-4 sm:text-left">
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-                        {dragging
-                          ? "Suelta el archivo acá"
-                          : "Arrastra el creativo o elígelo"}
+                        {dragging ? t("dropHere") : t("dragOrChoose")}
                       </p>
                       <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-                        Imagen, video o PDF · máx. {MAX_MB} MB
+                        {t("fileHints", { max: MAX_MB })}
                       </p>
                       <span className="mt-3 inline-flex h-8 items-center rounded-lg bg-[var(--auth-accent)] px-3 text-[12px] font-bold text-white transition-[filter] group-hover:brightness-[1.05]">
-                        Elegir archivo
+                        {t("chooseFile")}
                       </span>
                     </div>
                   </div>
@@ -339,7 +350,7 @@ export function CreativeUploadPanel({
               disabled={loading}
               className="h-11 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] hover:brightness-[1.05]"
             >
-              {loading ? "Subiendo…" : "Subir y analizar con IA"}
+              {loading ? t("uploading") : t("uploadAnalyze")}
             </Button>
             <Button
               variant="outline"
@@ -347,21 +358,21 @@ export function CreativeUploadPanel({
               disabled={loading}
               className="h-11 rounded-xl border-[rgb(20_18_16_/_0.12)] px-4 text-[14px] font-semibold text-[var(--auth-text)] hover:bg-[rgb(255_248_243_/_0.7)]"
             >
-              Limpiar
+              {t("clear")}
             </Button>
           </div>
         </div>
 
         <aside className="border-t border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.65)] px-5 py-4 sm:px-6 sm:py-5 lg:border-l lg:border-t-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-text-soft)]">
-            Flujo Agent Pro
+            {t("flowTitle")}
           </p>
           <ul className="mt-3 space-y-2.5">
             {[
-              "Cuenta TikTok Aprobada",
-              "Score IA (antes de gastar)",
-              "Brief de campaña automático",
-              "Enviar campaña → TikTok en pausa",
+              t("flowStep1"),
+              t("flowStep2"),
+              t("flowStep3"),
+              t("flowStep4"),
             ].map((item) => (
               <li
                 key={item}

@@ -37,7 +37,16 @@ interface AllocateResponse {
 function friendlyAllocateError(
   raw: string,
   agencyBmFunding: boolean,
-  messages: { errMin10: string; errWallet: string },
+  messages: {
+    errMin10: string;
+    errWallet: string;
+    errBmMapped: string;
+    errAssignMapped: string;
+    errBmTikTok: string;
+    errAssignTikTok: string;
+    errBmFallback: string;
+    errAssignFallback: string;
+  },
 ): string {
   const text = raw.trim();
   if (/amountToTransfer|mínimo|minimo|menor al mínimo|al menos \$10/i.test(text)) {
@@ -51,21 +60,21 @@ function friendlyAllocateError(
     return text.length <= 280
       ? text
       : agencyBmFunding
-        ? "No se pudo recargar esa cuenta en TikTok. Prueba con otra cuenta aprobada."
-        : "No se pudo asignar saldo a esta cuenta. Contacta con soporte. Tu dinero sigue en la cartera.";
+        ? messages.errBmMapped
+        : messages.errAssignMapped;
   }
   if (/TikTok BC transfer falló|token=agency_env|bc=\d+|adv=\d+|req=/i.test(text)) {
     return agencyBmFunding
-      ? "No se pudo recargar esa cuenta en TikTok. Prueba con otra cuenta o contacta con soporte."
-      : "No se pudo asignar el saldo a esa cuenta. Tu dinero sigue en la cartera. Prueba con otra cuenta o contacta con soporte.";
+      ? messages.errBmTikTok
+      : messages.errAssignTikTok;
   }
   if (/Insufficient wallet balance|saldo.*cartera/i.test(text)) {
     return messages.errWallet;
   }
   if (text.length <= 220 && !/\| bc=/.test(text)) return text;
   return agencyBmFunding
-    ? "No se pudo recargar desde el BM. Prueba con otra cuenta aprobada o contacta con soporte."
-    : "No se pudo asignar el saldo. Tu dinero sigue en la cartera. Prueba con otra cuenta o contacta con soporte.";
+    ? messages.errBmFallback
+    : messages.errAssignFallback;
 }
 
 export function AllocateBalanceModal({
@@ -174,6 +183,12 @@ export function AllocateBalanceModal({
         friendlyAllocateError(raw, agencyBmFunding, {
           errMin10: t("allocateModal.errMin10"),
           errWallet: t("allocateModal.errWallet"),
+          errBmMapped: t("allocateModal.errBmMapped"),
+          errAssignMapped: t("allocateModal.errAssignMapped"),
+          errBmTikTok: t("allocateModal.errBmTikTok"),
+          errAssignTikTok: t("allocateModal.errAssignTikTok"),
+          errBmFallback: t("allocateModal.errBmFallback"),
+          errAssignFallback: t("allocateModal.errAssignFallback"),
         }),
       );
     } finally {
@@ -210,9 +225,7 @@ export function AllocateBalanceModal({
         </p>
         {agencyBmFunding ? (
           <p className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-5 text-sky-950">
-            Si ves error de presupuesto, la cuenta no está visible en el BM de
-            TikTok (ID mal mapeado o cuenta antigua). Prueba con otra cuenta aprobada del
-            mismo cliente.
+            {t("allocateModal.budgetHint")}
           </p>
         ) : null}
 
@@ -243,17 +256,18 @@ export function AllocateBalanceModal({
                 </span>
               </p>
               <p className="pt-1 text-[11px] leading-4 text-[#6b645c]">
-                “Ya en esta cuenta” no se asigna otra vez. Solo puedes mover el saldo de la
-                cartera.
+                {t("allocateModal.alreadyAssignedHint")}
               </p>
             </div>
           ) : (
             <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
-              Saldo / ledger: {formatMoney(targetAccount.balance)}
+              {t("allocateModal.ledgerBalance", {
+                amount: formatMoney(targetAccount.balance),
+              })}
             </p>
           )}
           <p className="mt-2 break-all font-mono text-[11px] text-[var(--admin-text-muted,#64748b)]">
-            TikTok advertiser:{" "}
+            {t("allocateModal.advertiserLabel")}{" "}
             {targetAccount.externalAccountId?.trim() || (
               <span className="text-red-600">
                 {t("allocateModal.notConfigured")}
@@ -262,8 +276,7 @@ export function AllocateBalanceModal({
           </p>
           {targetAccount.status === "disabled" ? (
             <p className="mt-2 text-[11px] leading-4 text-amber-800" role="alert">
-              Esta cuenta está desactivada o suspendida. Elige una cuenta aprobada
-              de la lista o vuelve a sincronizar las cuentas en Pagos.
+              {t("allocateModal.disabledAlert")}
             </p>
           ) : null}
         </div>
@@ -292,11 +305,9 @@ export function AllocateBalanceModal({
             </p>
           ) : (
             <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
-              Máximo ahora:{" "}
-              <span className="font-medium text-[#1a1612]">
-                {formatMoney(walletAvailable)}
-              </span>{" "}
-              (cartera).
+              {t("allocateModal.maxNow", {
+                amount: formatMoney(walletAvailable),
+              })}
             </p>
           )}
         </div>

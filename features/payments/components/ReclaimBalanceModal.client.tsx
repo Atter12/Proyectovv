@@ -77,7 +77,9 @@ export function ReclaimBalanceModal({
       setError(
         maxAmount <= 0
           ? t("reclaimModal.none")
-          : `Ingresa un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
+          : t("reclaimModal.errAmountRange", {
+              max: formatMoney(maxAmount),
+            }),
       );
       return;
     }
@@ -103,7 +105,7 @@ export function ReclaimBalanceModal({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo recuperar el saldo.",
+          : t("reclaimModal.errGeneric"),
       );
     } finally {
       setLoading(false);
@@ -127,8 +129,7 @@ export function ReclaimBalanceModal({
           {t("reclaimModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          Recupera el saldo o presupuesto disponible de esta cuenta de anuncios
-          y devuélvelo a la cartera Holistic. También funciona si la cuenta fue suspendida.
+          {t("reclaimModal.body")}
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
@@ -149,7 +150,7 @@ export function ReclaimBalanceModal({
           <p className="mt-1 text-xs text-amber-800">
             {account.status === "disabled"
               ? t("reclaimModal.statusSuspended")
-              : `Estado: ${account.status}`}
+              : t("reclaimModal.statusPrefix", { status: account.status })}
           </p>
         </div>
 
@@ -171,8 +172,7 @@ export function ReclaimBalanceModal({
             autoFocus
           />
           <p className="mt-1.5 text-[12px] text-[#6b645c]">
-            Máximo: {formatMoney(maxAmount)}. En BM 200, TikTok solo permite recuperar el
-            saldo que no se haya gastado.
+            {t("reclaimModal.maxHint", { amount: formatMoney(maxAmount) })}
           </p>
         </div>
 

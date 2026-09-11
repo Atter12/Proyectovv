@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { filterPaymentAccounts } from "@/lib/filter/payment-accounts";
 import {
   sortPaymentAccounts,
@@ -34,6 +35,8 @@ export function PaymentsAssignmentPanel({
   allowForceLedger = false,
   walletBalance = 0,
 }: PaymentsAssignmentPanelProps) {
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState<PaymentAccountSortKey>("recommended");
@@ -146,8 +149,8 @@ export function PaymentsAssignmentPanel({
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold tracking-[-0.01em] text-[#14532d]">
                   {allocateToast.agencyBmFunding
-                    ? "Recarga lista"
-                    : "Asignado correctamente"}
+                    ? t("toast.reloadReady")
+                    : t("toast.assignedOk")}
                 </p>
                 <p className="mt-0.5 text-[12.5px] leading-5 text-[#3f6212]">
                   {formatMoney(allocateToast.amount)} →{" "}
@@ -161,7 +164,7 @@ export function PaymentsAssignmentPanel({
                 onClick={() => setAllocateToast(null)}
                 className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[#64748b] hover:bg-[#f8fafc]"
               >
-                Cerrar
+                {tCommon("close")}
               </button>
             </div>
             <div className="h-1 bg-emerald-100">
@@ -274,58 +277,70 @@ function ClientBalanceComparison({
   loading: boolean;
   error: string | null;
 }) {
+  const t = useTranslations("payments");
   const accountsWithData = cashCount + cupoCount;
   const partial = accountsWithData > 0 && accountsWithData < expectedCount;
 
   const tiktokValue =
     loading && cashTotalUsd == null
-      ? "Actualizando…"
+      ? t("balanceCompare.updating")
       : cashTotalUsd != null
         ? formatMoney(cashTotalUsd)
         : error
-          ? "No disponible"
+          ? t("balanceCompare.unavailable")
           : cupoTotalUsd != null
             ? "$0"
-            : "Sin datos";
+            : t("balanceCompare.noData");
 
   const tiktokHint = (() => {
     if (cashTotalUsd != null) {
       const coverage = partial
-        ? `Suma parcial: ${accountsWithData} de ${expectedCount} cuentas con datos`
-        : `Suma en vivo de ${cashCount} ${cashCount === 1 ? "cuenta" : "cuentas"}`;
+        ? t("balanceCompare.partialCoverage", {
+            with: accountsWithData,
+            expected: expectedCount,
+          })
+        : t("balanceCompare.liveCoverage", {
+            count: cashCount,
+            accounts:
+              cashCount === 1
+                ? t("balanceCompare.accountOne")
+                : t("balanceCompare.accountMany"),
+          });
       const notes = [
         coverage,
-        cupoTotalUsd != null ? "No incluye cupo publicitario" : null,
-        stale || error ? "Incluye el último valor disponible" : null,
+        cupoTotalUsd != null ? t("balanceCompare.excludesCupo") : null,
+        stale || error ? t("balanceCompare.includesStale") : null,
       ];
       return notes.filter(Boolean).join(" · ");
     }
 
-    if (loading) return "Consultando TikTok Manager";
-    if (error) return "No se pudo consultar TikTok Manager";
+    if (loading) return t("balanceCompare.querying");
+    if (error) return t("balanceCompare.queryFailed");
     if (cupoTotalUsd != null) {
-      return `Cupo publicitario: ${formatMoney(cupoTotalUsd)} (no es saldo)`;
+      return t("balanceCompare.cupoOnly", {
+        amount: formatMoney(cupoTotalUsd),
+      });
     }
-    if (expectedCount === 0) return "No hay cuentas vinculadas a TikTok";
+    if (expectedCount === 0) return t("balanceCompare.noLinked");
     // No es un saldo de cero: es que TikTok no respondió. Decirlo así evita
     // que el cliente crea que se le perdió la plata.
-    return "TikTok no respondió el saldo · vuelve a intentar en un momento";
+    return t("balanceCompare.noResponse");
   })();
 
   return (
     <div
       className="border-b border-[var(--auth-border)] bg-[#faf8f5] px-4 py-3 sm:px-5"
-      aria-label="Comparación de saldos"
+      aria-label={t("balanceCompare.aria")}
       aria-busy={loading}
     >
       <div className="grid grid-cols-2 divide-x divide-[var(--auth-divider)] overflow-hidden rounded-xl border border-[var(--auth-divider)] bg-white">
         <BalanceValue
-          label="Cartera Holistic"
+          label={t("balanceCompare.holistic")}
           value={formatMoney(walletBalance)}
-          hint="Disponible para asignar"
+          hint={t("balanceCompare.holisticHint")}
         />
         <BalanceValue
-          label="Saldo TikTok"
+          label={t("balanceCompare.tiktok")}
           value={tiktokValue}
           hint={tiktokHint}
           live

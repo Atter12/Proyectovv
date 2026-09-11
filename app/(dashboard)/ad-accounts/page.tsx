@@ -1,4 +1,5 @@
-﻿import { dashboardClasses } from "@/lib/ui/dashboard-classes";
+﻿import { getTranslations } from "next-intl/server";
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
@@ -33,6 +34,7 @@ function resolveAccountStatusFilter(raw: string): string {
 }
 
 export default async function AdAccountsPage({ searchParams }: AdAccountsPageProps) {
+  const t = await getTranslations("adAccounts");
   const session = await requirePermission("adAccounts:read");
   const params = await searchParams;
   const search = getSearchParam(params, "q");
@@ -77,8 +79,8 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       />
 
       <CrmPanel
-        title={`Advertisers de ${clienteName}`}
-        subtitle="Filtra por nombre o estado · solo lectura"
+        title={t("panel.title", { name: clienteName })}
+        subtitle={t("panel.subtitle")}
         className="overflow-hidden"
       >
         <Suspense fallback={null}>
@@ -96,21 +98,16 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               <span className="text-[#fe2c55]">T</span>
             </div>
             <p className="mt-4 text-[14px] font-medium tracking-[-0.01em] text-[var(--auth-text)]">
-              {clienteName} no tiene cuentas TikTok para operar
+              {t("panel.emptyTitle", { name: clienteName })}
             </p>
             <p className="mx-auto mt-2 max-w-lg text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              Solo mostramos advertisers con{" "}
-              <code className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[12px] text-[var(--auth-accent)]">
-                advertiser_id
-              </code>{" "}
-              mapeado en Hecom para “{clienteName}”. Si no aparece nada, falta
-              vincular la cuenta TikTok en el CRM (no se busca por nombre).
+              {t("panel.emptyBody", { name: clienteName })}
             </p>
             <Link
               href={routes.payments}
               className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
             >
-              Ir a pagos para recargar
+              {t("panel.emptyCta")}
             </Link>
           </div>
         ) : (

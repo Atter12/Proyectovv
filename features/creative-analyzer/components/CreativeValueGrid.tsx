@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import type { CreativeValueItem } from "@/types/creative-analyzer";
 
@@ -48,16 +49,15 @@ interface CreativeValueGridProps {
   features: CreativeValueItem[];
 }
 
-export function CreativeValueGrid({ features }: CreativeValueGridProps) {
+export async function CreativeValueGrid({ features }: CreativeValueGridProps) {
+  const t = await getTranslations("creatives");
   return (
     <section>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-[#0f172a]">
-          Valores fundamentales
+          {t("valueGrid.title")}
         </h2>
-        <p className="mt-1 text-sm text-[#64748b]">
-          Capacidades diseñadas para equipos de performance y creativos.
-        </p>
+        <p className="mt-1 text-sm text-[#64748b]">{t("valueGrid.subtitle")}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

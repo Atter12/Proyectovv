@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { dispatchPaymentsOpenAddBalanceModal } from "@/lib/events/modal-events";
 
 /**
@@ -7,6 +8,8 @@ import { dispatchPaymentsOpenAddBalanceModal } from "@/lib/events/modal-events";
  * scroll to the wallet card / empty state to top up.
  */
 export function PaymentsMobileStickyCta() {
+  const t = useTranslations("payments");
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"
@@ -19,7 +22,7 @@ export function PaymentsMobileStickyCta() {
             onClick={dispatchPaymentsOpenAddBalanceModal}
             className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
           >
-            Agregar saldo
+            {t("header.addBalance")}
           </button>
         </div>
       </div>

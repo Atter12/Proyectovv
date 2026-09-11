@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { GatewayLogo } from "./GatewayLogo";
 import { PaymentAppIcon } from "./PaymentAppIcon";
@@ -16,10 +17,12 @@ export function PaymentGatewaySelector({
   selected,
   onSelect,
 }: PaymentGatewaySelectorProps) {
+  const t = useTranslations("payments");
+
   return (
     <div
       role="radiogroup"
-      aria-label="Método de pago"
+      aria-label={t("gatewaySelector.aria")}
       className="grid gap-2 lg:grid-cols-[1fr_1.2fr_1fr]"
     >
       {gateways.map((gateway) => {
@@ -55,7 +58,7 @@ export function PaymentGatewaySelector({
                 </p>
                 {inMaintenance ? (
                   <span className="shrink-0 rounded-full bg-[#e7e2db] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#5c564e]">
-                    Mantenimiento
+                    {t("gatewaySelector.maintenance")}
                   </span>
                 ) : null}
               </div>

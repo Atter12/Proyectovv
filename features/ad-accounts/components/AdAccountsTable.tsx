@@ -357,9 +357,9 @@ export function AdAccountsTable({
       {readOnly && !isEmpty ? (
         <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[rgb(20_18_16_/_0.08)] bg-[#fffaf5] px-4 py-3 text-[12px] text-[#5c564e]">
           <p>
-            <span className="font-semibold text-[#1a1612]">Saldo en vivo TikTok</span>
+            <span className="font-semibold text-[#1a1612]">{t("live.title")}</span>
             {" · "}
-            se actualiza automáticamente cada {live.pollSeconds} segundos.
+            {t("live.autoRefresh", { seconds: live.pollSeconds })}.
           </p>
           {live.error ? (
             <span className="text-[11px] font-medium text-red-600">{live.error}</span>
@@ -369,7 +369,7 @@ export function AdAccountsTable({
               onClick={() => void live.refresh()}
               className="text-[11px] font-semibold text-[#c45a18] hover:underline"
             >
-              Actualizar ahora
+              {t("live.refreshNow")}
             </button>
           )}
         </div>
@@ -405,7 +405,9 @@ export function AdAccountsTable({
                   <MetaChip tone="mono">{shortId(display.accountId)}</MetaChip>
                   {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
                   {display.fee ? (
-                    <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                    <MetaChip tone="fee">
+                      {t("table.fee")} {display.fee}%
+                    </MetaChip>
                   ) : (
                     <MetaChip>{account.thresholdInfo}</MetaChip>
                   )}
@@ -413,7 +415,7 @@ export function AdAccountsTable({
                 <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px]">
                   {readOnly ? (
                     <div>
-                      <dt className="text-[#9a9187]">Saldo TikTok en vivo</dt>
+                      <dt className="text-[#9a9187]">{t("live.mobileLabel")}</dt>
                       <dd>
                         <AdAccountLiveBalanceCell
                           advertiserId={account.externalAccountId}
@@ -435,7 +437,7 @@ export function AdAccountsTable({
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-[#9a9187]">Huso</dt>
+                        <dt className="text-[#9a9187]">{t("table.timezone")}</dt>
                         <dd className="text-[#5c564e]">
                           {account.timezone || "—"}
                         </dd>
@@ -458,21 +460,21 @@ export function AdAccountsTable({
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">
                 <Head>{t("table.account")}</Head>
-                <Head>ID</Head>
+                <Head>{t("table.colId")}</Head>
                 <Head>{t("table.status")}</Head>
                 {readOnly ? (
                   <>
-                    <Head>Saldo en vivo</Head>
-                    <Head>Fee</Head>
+                    <Head>{t("live.column")}</Head>
+                    <Head>{t("table.fee")}</Head>
                   </>
                 ) : (
                   <>
-                    <Head>Presupuestos</Head>
+                    <Head>{t("table.budgets")}</Head>
                     <Head>{t("table.balance")}</Head>
-                    <Head>Recarga</Head>
+                    <Head>{t("table.recharge")}</Head>
                   </>
                 )}
-                {!readOnly ? <Head>Huso</Head> : null}
+                {!readOnly ? <Head>{t("table.timezone")}</Head> : null}
                 <Head>{t("table.actions")}</Head>
               </TableRow>
             </TableHeader>
@@ -513,7 +515,9 @@ export function AdAccountsTable({
                         </TableCell>
                         <TableCell>
                           {display.fee ? (
-                            <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                            <MetaChip tone="fee">
+                              {t("table.fee")} {display.fee}%
+                            </MetaChip>
                           ) : (
                             <span className="text-[12px] text-[#5c564e]">
                               {account.thresholdInfo}
@@ -524,9 +528,15 @@ export function AdAccountsTable({
                     ) : (
                       <>
                         <TableCell className="text-[12px] tabular-nums text-[#5c564e]">
-                          <div>Diario: {formatMoney(account.dailyBudget)}</div>
+                          <div>
+                            {t("table.daily", {
+                              amount: formatMoney(account.dailyBudget),
+                            })}
+                          </div>
                           <div className="text-[#9a9187]">
-                            Mensual: {formatMoney(account.monthlyLimit)}
+                            {t("table.monthly", {
+                              amount: formatMoney(account.monthlyLimit),
+                            })}
                           </div>
                         </TableCell>
                         <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
@@ -540,11 +550,15 @@ export function AdAccountsTable({
                                 : "text-[12px] text-[#7a736a]"
                             }
                           >
-                            {account.autoRecharge ? "Activada" : "Desactivada"}
+                            {account.autoRecharge
+                              ? t("table.rechargeOn")
+                              : t("table.rechargeOff")}
                           </span>
                           <div className="mt-1">
                             {display.fee ? (
-                              <MetaChip tone="fee">Fee {display.fee}%</MetaChip>
+                              <MetaChip tone="fee">
+                                {t("table.fee")} {display.fee}%
+                              </MetaChip>
                             ) : (
                               <span className="text-[11px] text-[#9a9187]">
                                 {account.thresholdInfo}
@@ -574,10 +588,10 @@ export function AdAccountsTable({
       {isEmpty && readOnly ? (
         <div className="px-6 py-12 text-center">
           <p className="text-[14px] font-medium text-[#1a1612]">
-            Ninguna cuenta coincide con el filtro
+            {t("table.noFilterMatch")}
           </p>
           <p className="mt-1 text-[13px] text-[#7a736a]">
-            Prueba otro estado o limpia la búsqueda.
+            {t("table.noFilterHint")}
           </p>
         </div>
       ) : null}

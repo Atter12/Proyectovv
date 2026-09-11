@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import type { CreativeWorkflowStep } from "@/types/creative-analyzer";
 
@@ -36,17 +37,17 @@ interface CreativeAnalysisWorkflowProps {
   steps: CreativeWorkflowStep[];
 }
 
-export function CreativeAnalysisWorkflow({ steps }: CreativeAnalysisWorkflowProps) {
+export async function CreativeAnalysisWorkflow({
+  steps,
+}: CreativeAnalysisWorkflowProps) {
+  const t = await getTranslations("creatives");
   return (
     <section id="creative-workflow" className="scroll-mt-24">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-[#0f172a]">
-          Cómo analiza tus creatividades
+          {t("workflow.title")}
         </h2>
-        <p className="mt-1 text-sm text-[#64748b]">
-          Un flujo simple para convertir señales creativas en decisiones
-          accionables.
-        </p>
+        <p className="mt-1 text-sm text-[#64748b]">{t("workflow.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,11 +1,25 @@
+import { getTranslations } from "next-intl/server";
 import type { CreativeAnalyzerMetrics } from "@/types/creative-analyzer";
 
 interface CreativeAnalyzerHeroProps {
   metrics: CreativeAnalyzerMetrics;
 }
 
-export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
+export async function CreativeAnalyzerHero({
+  metrics,
+}: CreativeAnalyzerHeroProps) {
+  const t = await getTranslations("creatives");
   const barHeights = [40, 65, 55, 80, 70, 90, 75];
+  const miniMetrics = [
+    { label: "CTR", value: "2.4%" },
+    { label: "CPA", value: "$6.80" },
+    { label: metrics.topMetric, value: "3.8x" },
+  ];
+  const tags = [
+    t("hero.tagHook"),
+    t("hero.tagRetention"),
+    t("hero.tagCta"),
+  ];
 
   return (
     <div className="dashboard-surface-card relative min-h-[260px] overflow-hidden rounded-2xl sm:min-h-[300px] lg:min-h-[340px]">
@@ -21,27 +35,26 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
       <div className="relative z-10 flex flex-col gap-6 p-5 pl-6 sm:gap-8 sm:p-7 sm:pl-8 lg:flex-row lg:items-center lg:justify-between lg:p-8 lg:pl-9">
         <div className="min-w-0 max-w-xl">
           <p className="text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-accent)]">
-            Análisis creativo
+            {t("hero.eyebrow")}
           </p>
           <h2 className="mt-2 text-[1.75rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2rem] lg:text-[2.35rem]">
-            Analizador creativo
+            {t("hero.title")}
           </h2>
           <p className="mt-3 max-w-lg text-[15px] font-medium leading-7 text-[var(--auth-text-muted)]">
-            Analiza, puntúa y mejora piezas creativas con señales reales de
-            campaña antes de escalar presupuesto.
+            {t("hero.subtitle")}
           </p>
           <div className="mt-6 flex flex-wrap gap-2.5">
             <a
               href="#creative-benchmark"
               className="inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.28)] transition-[filter] hover:brightness-[1.05]"
             >
-              Analiza tu primer video
+              {t("hero.ctaAnalyze")}
             </a>
             <a
               href="#creative-workflow"
               className="inline-flex h-11 items-center rounded-xl border border-[var(--auth-control-border)] bg-white px-5 text-[14px] font-semibold text-[var(--auth-text)] transition-colors hover:bg-[var(--auth-control-hover)]"
             >
-              Ver cómo funciona
+              {t("hero.ctaHow")}
             </a>
           </div>
         </div>
@@ -51,7 +64,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9a9187]">
-                  Puntuación creativa
+                  {t("hero.scoreLabel")}
                 </p>
                 <p className="mt-1 font-display text-3xl font-medium text-[#141210]">
                   {metrics.averageScore}
@@ -60,20 +73,16 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                  Señal ganadora
+                  {t("hero.winningSignal")}
                 </span>
                 <span className="rounded-full bg-[var(--brand-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--brand-primary-deep)]">
-                  Cumple políticas
+                  {t("hero.policyOk")}
                 </span>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
-              {[
-                { label: "CTR", value: "2.4%" },
-                { label: "CPA", value: "$6.80" },
-                { label: metrics.topMetric, value: "3.8x" },
-              ].map((m) => (
+              {miniMetrics.map((m) => (
                 <div
                   key={m.label}
                   className="rounded-lg border border-[var(--border-subtle)] bg-white px-2 py-2 text-center"
@@ -99,7 +108,7 @@ export function CreativeAnalyzerHero({ metrics }: CreativeAnalyzerHeroProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {["GANCHO", "RETENCIÓN", "CTA"].map((tag) => (
+              {tags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded border border-[var(--border-subtle)] bg-white px-2 py-0.5 text-[9px] font-semibold tracking-wide text-[#6b645c]"

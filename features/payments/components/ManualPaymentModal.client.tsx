@@ -162,11 +162,11 @@ export function ManualPaymentModal({
     const src = (config?.fxSource ?? "").toLowerCase();
     if (src === "sbs") {
       return config?.fxAsOf
-        ? `TC SBS venta (${config.fxAsOf})`
-        : "TC SBS venta";
+        ? t("addBalance.fxSbsAsOf", { date: config.fxAsOf })
+        : t("addBalance.fxSbs");
     }
-    return "TC referencial";
-  }, [config?.fxAsOf, config?.fxSource]);
+    return t("addBalance.fxReferential");
+  }, [config?.fxAsOf, config?.fxSource, t]);
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
     parsedAmount >= MIN_USD &&
@@ -192,7 +192,7 @@ export function ManualPaymentModal({
       ? formatPenAmount(quote.pen.grossPenCents)
       : quote
         ? formatMoney(quote.usd.grossCents / 100)
-        : "—";
+        : tCommon("emDash");
   const modalStepIndex = step === "form" ? 0 : step === "banks" ? 1 : 2;
 
   function resetAndClose() {
@@ -210,7 +210,7 @@ export function ManualPaymentModal({
 
   function applyProofFile(file: File) {
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      setError("Usa un archivo JPG, PNG, WEBP o PDF.");
+      setError(t("manualModal.errFileType"));
       return;
     }
     setProofFile(file);
@@ -251,7 +251,10 @@ export function ManualPaymentModal({
   async function handleCreateIntent() {
     if (!isValidAmount || !quote) {
       setError(
-        `Monto entre ${formatMoney(MIN_USD)} y ${formatMoney(MAX_USD)}.`,
+        t("manualModal.errAmountRange", {
+          min: formatMoney(MIN_USD),
+          max: formatMoney(MAX_USD),
+        }),
       );
       return;
     }
@@ -275,7 +278,7 @@ export function ManualPaymentModal({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo crear la recarga.",
+          : t("manualModal.errCreate"),
       );
     } finally {
       setLoading(false);
@@ -284,7 +287,7 @@ export function ManualPaymentModal({
 
   async function handleSubmitVoucher() {
     if (!paymentIntentId || !proofFile) {
-      setError("Sube o pega el comprobante de pago.");
+      setError(t("manualModal.errNeedProof"));
       return;
     }
     setStep("analyzing");
@@ -304,7 +307,7 @@ export function ManualPaymentModal({
       } else {
         setPendingMessage(
           data.paymentIntent.analysis?.reason ??
-            "Comprobante en revisión. Te avisamos cuando se acredite.",
+            t("manualModal.pendingToast"),
         );
         setStep("pending");
       }
@@ -313,7 +316,7 @@ export function ManualPaymentModal({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo procesar el comprobante.",
+          : t("manualModal.errProcess"),
       );
     }
   }
@@ -347,7 +350,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.amountTitle")}
-              description="Ingresa el saldo que deseas recibir y elige si realizarás la transferencia en soles o dólares."
+              description={t("manualModal.amountHint")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -405,10 +408,12 @@ export function ManualPaymentModal({
               {quote ? (
                 <div className="mt-5 rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
                   <p className="mb-3 text-[13px] font-semibold text-[#1c1917]">
-                    Resumen de la transferencia
+                    {t("manualModal.transferSummary")}
                   </p>
                   <div className="flex justify-between">
-                    <span className="text-[#625b54]">Recibirás en cartera</span>
+                    <span className="text-[#625b54]">
+                      {t("manualModal.receiveWallet")}
+                    </span>
                     <span className="font-semibold tabular-nums text-[#1c1917]">
                       {formatMoney(quote.usd.creditCents / 100)}
                     </span>
@@ -425,7 +430,7 @@ export function ManualPaymentModal({
                   </div>
                   <div className="mt-3 flex items-end justify-between border-t border-[#e4ddd6] pt-3">
                     <span className="font-semibold text-[#1c1917]">
-                      Total a transferir
+                      {t("manualModal.totalTransfer")}
                     </span>
                     <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
                       {chargeLabel}
@@ -433,8 +438,10 @@ export function ManualPaymentModal({
                   </div>
                   {chargeCurrency === "PEN" ? (
                     <p className="mt-3 text-[11px] leading-4 text-[#6f675f]">
-                      {fxLabel}: 1 USD = {rate.toFixed(4)} PEN (fijado al
-                      confirmar)
+                      {t("manualModal.fxFixed", {
+                        label: fxLabel,
+                        rate: rate.toFixed(4),
+                      })}
                     </p>
                   ) : null}
                 </div>
@@ -471,7 +478,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.doTransfer")}
-              description={`Transfiere ${chargeLabel} a una de las cuentas disponibles. Conserva el comprobante para el siguiente paso.`}
+              description={t("manualModal.transferHint", { amount: chargeLabel })}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -569,7 +576,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.uploadTitle")}
-              description="Puedes pegar una captura, elegir una imagen de la galería o subir un archivo PDF."
+              description={t("manualModal.uploadDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -599,7 +606,7 @@ export function ManualPaymentModal({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={proofPreview}
-                    alt="Vista previa"
+                    alt={t("manualModal.previewAlt")}
                     className="max-h-32 rounded-lg object-contain"
                   />
                 ) : proofFile ? (
@@ -612,7 +619,7 @@ export function ManualPaymentModal({
                       {t("manualModal.uploadHint")}
                     </p>
                     <p className="mt-1 text-xs text-[#8a8177]">
-                      JPG, PNG, WEBP o PDF · máx. 10 MB
+                      {t("manualModal.fileTypesHint")}
                     </p>
                   </>
                 )}
@@ -677,7 +684,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.verifying")}
-              description="Estamos validando el monto y los datos de la transferencia."
+              description={t("manualModal.verifyingDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -688,7 +695,7 @@ export function ManualPaymentModal({
             <div className="flex flex-col items-center px-6 py-12 text-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#ff781f]/20 border-t-[#ff781f]" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
-                Esto puede tomar unos segundos.
+                {t("manualModal.analyzingWait")}
               </p>
             </div>
           </>
@@ -699,7 +706,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.confirmed")}
-              description="El saldo ya está disponible en tu cartera Holistic."
+              description={t("manualModal.confirmedDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -720,7 +727,7 @@ export function ManualPaymentModal({
                     {formatMoney(creditResult ?? parsedAmount)}
                   </p>
                   <p className="mt-1 text-[11px] text-emerald-800">
-                    Ya puedes asignarlo a tus cuentas de TikTok.
+                    {t("manualModal.canAssign")}
                   </p>
                 </div>
               </div>
@@ -740,8 +747,8 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title="Comprobante en revisión"
-              description="Nuestro equipo revisará la transferencia antes de acreditar el saldo."
+              title={t("manualModal.pendingTitle")}
+              description={t("manualModal.pendingDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -761,7 +768,7 @@ export function ManualPaymentModal({
                   className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
                   onClick={resetAndClose}
                 >
-                  Entendido
+                  {t("manualModal.understood")}
                 </Button>
               </PaymentModalFooter>
             </div>

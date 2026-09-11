@@ -26,6 +26,7 @@ import type { SessionUser } from "@/types/auth";
 import type { AdAccount } from "@/types/ad-account";
 import type { PaymentAccountAllocation } from "@/types/payment";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 
 interface PaymentsGatewayPanelProps {
@@ -63,6 +64,7 @@ export async function PaymentsGatewayPanel({
   skipApprovedSync = false,
   creditSlot = null,
 }: PaymentsGatewayPanelProps) {
+  const t = await getTranslations("payments");
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
     resolvePaymentsFundingCapabilities({
@@ -137,15 +139,12 @@ export async function PaymentsGatewayPanel({
           ];
         }
         if (sync.approvedAdvertiserIds.length === 0 && approvedIds.length === 0) {
-          syncNote =
-            "No hay cuentas de TikTok aprobadas para este cliente (BM + Hecom). Revisa el advertiser o el nombre en el Business Center.";
+          syncNote = t("syncNotes.noApproved");
         }
       } else if (approvedIds.length === 0) {
-        syncNote =
-          "No se pudo consultar TikTok; si Hecom no tiene advertiser_id, no hay cuentas para recargar todavía.";
+        syncNote = t("syncNotes.tiktokUnavailableEmpty");
       } else {
-        syncNote =
-          "No se pudo consultar el estado en TikTok; se muestran las cuentas mapeadas en Hecom.";
+        syncNote = t("syncNotes.tiktokUnavailableMapped");
       }
 
       // Asegurar filas en la org (aprobadas + suspendidas) → Recuperar + Recargar.
@@ -194,8 +193,7 @@ export async function PaymentsGatewayPanel({
       console.error("[payments] approved_sync_failed", {
         error: error instanceof Error ? error.message : "unknown",
       });
-      syncNote =
-        "No se pudieron sincronizar las cuentas aprobadas. Inténtalo de nuevo en unos minutos.";
+      syncNote = t("syncNotes.syncFailed");
     }
   } else if (
     hasHecomIds &&
@@ -454,17 +452,17 @@ export async function PaymentsGatewayPanel({
             className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
           >
             <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-              Recargar cuenta ads · {clienteName ?? "Este cliente"}
+              {t("emptyAllocate.eyebrow", {
+                name: clienteName ?? t("emptyAllocate.thisClient"),
+              })}
             </p>
             <h2 className="mt-1.5 text-[1.1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-              No hay cuentas para recargar aquí
+              {t("emptyAllocate.title")}
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-              Solo listamos cuentas Aprobadas y suspendidas que todavía tengan
-              saldo Holistic por recuperar. Las cuentas bloqueadas con saldo $0
-              ya no aparecen en Pagos. Puedes revisarlas en{" "}
+              {t("emptyAllocate.bodyBefore")}{" "}
               <span className="font-semibold text-[var(--auth-text)]">
-                Cuentas ads
+                {t("emptyAllocate.adAccounts")}
               </span>
               .
             </p>
@@ -472,7 +470,7 @@ export async function PaymentsGatewayPanel({
               href={routes.adAccounts}
               className="mt-4 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
             >
-              Ver cuentas del cliente
+              {t("emptyAllocate.cta")}
             </Link>
           </section>
         ) : (

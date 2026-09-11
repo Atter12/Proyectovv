@@ -34,11 +34,11 @@ interface TransferResponse {
   reclaimPath: string;
 }
 
-function friendlyTransferError(raw: string): string {
+function friendlyTransferError(raw: string, fallback: string): string {
   const text = raw.trim();
   if (text.length <= 280 && !/\| bc=/.test(text)) return text;
   if (/cartera holistic/i.test(text)) return text;
-  return "No se pudo completar la transferencia. Inténtalo de nuevo o contacta con soporte.";
+  return fallback;
 }
 
 export function TransferBalanceModal({
@@ -126,8 +126,10 @@ export function TransferBalanceModal({
     if (!isValid) {
       setError(
         maxAmount <= 0
-          ? "No hay saldo TikTok transferible en esta cuenta."
-          : `Ingresa un monto entre 0.01 y ${formatMoney(maxAmount)}.`,
+          ? t("transferModal.errNoTransferable")
+          : t("transferModal.errAmountRange", {
+              max: formatMoney(maxAmount),
+            }),
       );
       return;
     }
@@ -148,10 +150,18 @@ export function TransferBalanceModal({
       });
       const partial =
         res.requestedAmountUsd > res.amountUsd + 1e-9
-          ? ` (TikTok permitió ${formatMoney(res.amountUsd)} de ${formatMoney(res.requestedAmountUsd)} solicitados)`
+          ? t("transferModal.partialNote", {
+              allowed: formatMoney(res.amountUsd),
+              requested: formatMoney(res.requestedAmountUsd),
+            })
           : "";
       setSuccess(
-        `Listo: ${formatMoney(res.amountUsd)} pasaron de ${res.fromAccountName} a ${res.toAccountName}${partial}.`,
+        t("transferModal.success", {
+          amount: formatMoney(res.amountUsd),
+          from: res.fromAccountName,
+          to: res.toAccountName,
+          partial,
+        }),
       );
       router.refresh();
       await onFundingChanged?.();
@@ -160,7 +170,8 @@ export function TransferBalanceModal({
         friendlyTransferError(
           err instanceof ApiClientError
             ? err.message
-            : "No se pudo transferir el saldo.",
+            : t("transferModal.errGeneric"),
+          t("transferModal.errFriendly"),
         ),
       );
     } finally {
@@ -189,20 +200,9 @@ export function TransferBalanceModal({
             : t("transferModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-          {clientSelfService ? (
-            <>
-              Puedes hacerlo directamente desde aquí, sin esperar a soporte. Se transfiere el
-              saldo real de TikTok, aunque Holistic muestre $0. Elige la cuenta
-              de origen y la cuenta de destino. Funciona aunque la cuenta de origen esté
-              suspendida — solo lo no gastado.
-            </>
-          ) : (
-            <>
-              Transfiere el saldo de TikTok de una cuenta de anuncios a otra del mismo
-              cliente, aunque el ledger Holistic esté en $0. Funciona con
-              cuentas activas o suspendidas (solo lo no gastado).
-            </>
-          )}
+          {clientSelfService
+            ? t("transferModal.bodyClient")
+            : t("transferModal.bodyStaff")}
         </p>
 
         <div className="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-4 py-3">
@@ -223,14 +223,18 @@ export function TransferBalanceModal({
           {sourceLiveUsd != null &&
           Math.abs(sourceLiveUsd - Number(sourceAccount.balance)) > 0.5 ? (
             <p className="mt-0.5 text-[11px] text-[#9a9187]">
-              Asignado Holistic: {formatMoney(sourceAccount.balance)}
+              {t("transferModal.holisticAssigned", {
+                amount: formatMoney(sourceAccount.balance),
+              })}
             </p>
           ) : null}
           <p className="mt-1 text-xs text-amber-800">
-            Estado:{" "}
-            {sourceAccount.status === "disabled"
-              ? "Suspendida (puedes transferir el saldo recuperable)"
-              : sourceAccount.status}
+            {t("transferModal.statusPrefix", {
+              status:
+                sourceAccount.status === "disabled"
+                  ? t("transferModal.statusSuspendedTransfer")
+                  : sourceAccount.status,
+            })}
           </p>
         </div>
 
@@ -296,9 +300,12 @@ export function TransferBalanceModal({
           />
           <p className="mt-1.5 text-[12px] text-[#6b645c]">
             {clientSelfService
-              ? "Máximo = saldo TikTok en vivo de la origen (no solo Holistic): "
-              : "Máximo = cupo TikTok en vivo de la origen (no solo Holistic): "}
-            {formatMoney(maxAmount)}.
+              ? t("transferModal.maxLiveBalance", {
+                  amount: formatMoney(maxAmount),
+                })
+              : t("transferModal.maxLiveCupo", {
+                  amount: formatMoney(maxAmount),
+                })}
           </p>
         </div>
 

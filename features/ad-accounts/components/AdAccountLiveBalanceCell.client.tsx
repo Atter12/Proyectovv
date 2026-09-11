@@ -1,30 +1,34 @@
 ﻿"use client";
 
+import { useTranslations } from "next-intl";
 import { formatMoney } from "@/lib/format-money";
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
-import { formatTikTokBudgetLimitLine } from "@/features/ad-accounts/lib/format-tiktok-budget-limit";
-import { tikTokLiveBalanceLabel } from "@/features/ad-accounts/lib/classify-tiktok-live-balance";
-
-function formatUpdatedAgo(fetchedAt: string | null | undefined): string {
-  if (!fetchedAt) return "actualizando…";
-  const ms = Date.now() - Date.parse(fetchedAt);
-  if (!Number.isFinite(ms) || ms < 0) return "ahora";
-  if (ms < 15_000) return "ahora";
-  const sec = Math.round(ms / 1000);
-  if (sec < 60) return `hace ${sec}s`;
-  const min = Math.round(sec / 60);
-  return `hace ${min} min`;
-}
+import { classifyTikTokLiveBalance } from "@/features/ad-accounts/lib/classify-tiktok-live-balance";
 
 export function AdAccountLiveBalanceCell({
   advertiserId,
   metric,
   loading,
+  agencyBmFunding = false,
 }: {
   advertiserId: string | null | undefined;
   metric?: AdAccountLiveMetricsClient;
   loading?: boolean;
+  agencyBmFunding?: boolean;
 }) {
+  const t = useTranslations("adAccounts.live");
+
+  function formatUpdatedAgo(fetchedAt: string | null | undefined): string {
+    if (!fetchedAt) return t("updating");
+    const ms = Date.now() - Date.parse(fetchedAt);
+    if (!Number.isFinite(ms) || ms < 0) return t("now");
+    if (ms < 15_000) return t("now");
+    const sec = Math.round(ms / 1000);
+    if (sec < 60) return t("agoSeconds", { seconds: sec });
+    const min = Math.round(sec / 60);
+    return t("agoMinutes", { minutes: min });
+  }
+
   if (!advertiserId) {
     return <span className="text-[12px] text-[#9a9187]">—</span>;
   }
@@ -32,7 +36,7 @@ export function AdAccountLiveBalanceCell({
   if (loading && !metric) {
     return (
       <span className="text-[12px] text-[#9a9187] animate-pulse">
-        Cargando…
+        {t("loading")}
       </span>
     );
   }
@@ -40,7 +44,7 @@ export function AdAccountLiveBalanceCell({
   if (metric?.error) {
     return (
       <span className="text-[11px] text-amber-700" title={metric.error}>
-        Sin datos
+        {t("noData")}
       </span>
     );
   }
@@ -49,8 +53,29 @@ export function AdAccountLiveBalanceCell({
     return <span className="text-[12px] text-[#9a9187]">—</span>;
   }
 
-  const budgetLimitLine = formatTikTokBudgetLimitLine(metric);
-  const balanceLabel = tikTokLiveBalanceLabel(metric);
+  const kind = classifyTikTokLiveBalance(metric);
+  const balanceLabel =
+    kind === "budget_cupo"
+      ? t("balanceCupo")
+      : kind === "unknown" && agencyBmFunding
+        ? t("balanceCupoUnknown")
+        : t("balanceCash");
+
+  let budgetLimitLine: string | null = null;
+  if (metric?.showBudgetLimit && metric.isUnlimitedBudget) {
+    budgetLimitLine = t("budgetUnlimited");
+  } else if (metric?.showBudgetLimit && metric.budgetUsd != null) {
+    const used = metric.budgetCostUsd ?? 0;
+    const left =
+      metric.balanceUsd != null
+        ? metric.balanceUsd
+        : Math.max(0, Math.round((metric.budgetUsd - used) * 100) / 100);
+    budgetLimitLine = t("budgetLine", {
+      budget: formatMoney(metric.budgetUsd),
+      spent: formatMoney(used),
+      left: formatMoney(left),
+    });
+  }
 
   return (
     <div className="min-w-[7rem]">
@@ -64,7 +89,7 @@ export function AdAccountLiveBalanceCell({
         </p>
       ) : null}
       <p className="mt-0.5 text-[10px] text-[#9a9187]">
-        Gasto hoy{" "}
+        {t("spendToday")}{" "}
         <span className="font-semibold tabular-nums text-[#c45a18]">
           {metric?.spendTodayUsd != null
             ? formatMoney(metric.spendTodayUsd)

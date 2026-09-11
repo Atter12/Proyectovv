@@ -49,11 +49,6 @@ interface ChatConversationProps {
   emptyHint?: string;
 }
 
-const EMPTY_HINT_FALLBACK =
-  "Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá un archivo.";
-const SUBTITLE_FALLBACK =
-  "Tu conversación queda guardada como ticket de soporte.";
-
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
 
 function isAllowedFile(file: File) {
@@ -88,8 +83,8 @@ export function ChatConversation({
 }: ChatConversationProps) {
   const t = useTranslations("support");
   const resolvedTitle = title ?? t("writeUs");
-  const resolvedSubtitle = subtitle ?? SUBTITLE_FALLBACK;
-  const resolvedEmptyHint = emptyHint ?? EMPTY_HINT_FALLBACK;
+  const resolvedSubtitle = subtitle ?? t("ticketSaved");
+  const resolvedEmptyHint = emptyHint ?? t("emptyHint");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -250,7 +245,7 @@ export function ChatConversation({
                 }}
                 className="rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90 hover:bg-white/15 disabled:opacity-50"
               >
-                {clearingChat ? "Borrando…" : "Borrar chat"}
+                {clearingChat ? t("clearingChat") : t("clearChat")}
               </button>
             ) : null}
             {headerActions}
@@ -314,7 +309,7 @@ export function ChatConversation({
       <div className="border-t border-[var(--auth-divider)] bg-white p-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.04)] sm:px-5 sm:py-4">
         {composerDisabled ? (
           <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
-            {composerDisabledReason ?? "No puedes escribir en este chat ahora."}
+            {composerDisabledReason ?? t("composerDisabled")}
           </p>
         ) : null}
         {pending.length > 0 ? (
@@ -340,7 +335,7 @@ export function ChatConversation({
                   type="button"
                   onClick={() => removePending(item.id)}
                   className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
-                  aria-label="Quitar archivo"
+                  aria-label={t("removeFile")}
                 >
                   ×
                 </button>
@@ -377,12 +372,12 @@ export function ChatConversation({
                 disabled={sending || composerDisabled}
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
-                aria-label="Adjuntar archivo"
+                aria-label={t("attachFile")}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
                 </svg>
-                <span className="sr-only">Adjuntar</span>
+                <span className="sr-only">{t("attach")}</span>
               </button>
               <span className="hidden text-[11px] text-[var(--auth-text-soft)] sm:inline">
                 {t("enterHint")}

@@ -2,30 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { cn } from "@/lib/cn";
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "draft":
-      return "Listo para enviar";
-    case "approved":
-      return "Aprobado · falta TikTok";
-    case "rejected":
-      return "Rechazado";
-    case "publishing":
-      return "Creando en TikTok…";
-    case "published":
-      return "En TikTok (pausada)";
-    case "failed":
-      return "Falló el envío";
-    default:
-      return status;
-  }
-}
 
 export function AgentProDraftsPanel({
   drafts,
@@ -34,10 +16,30 @@ export function AgentProDraftsPanel({
   drafts: CreativeDraftListItem[];
   publishEnabled: boolean;
 }) {
+  const t = useTranslations("creatives.drafts");
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  function statusLabel(status: string) {
+    switch (status) {
+      case "draft":
+        return t("statusDraft");
+      case "approved":
+        return t("statusApproved");
+      case "rejected":
+        return t("statusRejected");
+      case "publishing":
+        return t("statusPublishing");
+      case "published":
+        return t("statusPublished");
+      case "failed":
+        return t("statusFailed");
+      default:
+        return status;
+    }
+  }
 
   async function runAction(
     draftId: string,
@@ -57,22 +59,18 @@ export function AgentProDraftsPanel({
         body: JSON.stringify({ draftId, action, publish }),
       });
       if (action === "reject") {
-        setMessage("Borrador rechazado.");
+        setMessage(t("rejectedMsg"));
       } else if (res.published || action === "publish") {
-        setMessage(
-          "Listo: campaña creada en TikTok en pausa. Abre Ads Manager para prenderla.",
-        );
+        setMessage(t("publishedMsg"));
       } else {
-        setMessage(
-          "Brief aprobado. Cuando esté el publish, toca Enviar campaña a TikTok.",
-        );
+        setMessage(t("approvedMsg"));
       }
       router.refresh();
     } catch (err) {
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo actualizar el borrador.",
+          : t("updateError"),
       );
     } finally {
       setBusyId(null);
@@ -81,18 +79,16 @@ export function AgentProDraftsPanel({
 
   return (
     <CrmPanel
-      title="Enviar campaña"
+      title={t("title")}
       subtitle={
-        publishEnabled
-          ? "IA arma el brief · tú lo mandas a TikTok (pausada)"
-          : "IA arma el brief · falta activar publish en servidor"
+        publishEnabled ? t("subtitleEnabled") : t("subtitleDisabled")
       }
     >
       {!publishEnabled ? (
         <p className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950 sm:mx-5">
-          El botón de TikTok está listo en la UI. Ops: pon{" "}
-          <code className="rounded bg-white px-1">TIKTOK_CREATIVE_PUBLISH_ENABLED=true</code>{" "}
-          y scopes Ads/Creative en la app TikTok.
+          {t("publishHintBefore")}
+          <code className="rounded bg-white px-1">TIKTOK_CREATIVE_PUBLISH_ENABLED=true</code>
+          {t("publishHintAfter")}
         </p>
       ) : null}
 
@@ -113,11 +109,10 @@ export function AgentProDraftsPanel({
       {drafts.length === 0 ? (
         <div className="px-4 py-10 text-center sm:px-5">
           <p className="text-[14px] font-semibold text-[var(--auth-text)]">
-            Sin campañas todavía
+            {t("emptyTitle")}
           </p>
           <p className="mt-1.5 text-[13px] text-[var(--auth-text-muted)]">
-            Sube un video con cuenta Aprobada. La IA scorea y arma el brief acá
-            para enviarlo a TikTok.
+            {t("emptyBody")}
           </p>
         </div>
       ) : (
@@ -144,7 +139,7 @@ export function AgentProDraftsPanel({
                 <div className="border-b border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.55)] px-3.5 py-2.5 sm:px-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[13px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                      {draft.brief.campaignName || draft.assetName || "Brief"}
+                      {draft.brief.campaignName || draft.assetName || t("briefFallback")}
                     </p>
                     <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)] ring-1 ring-[rgb(20_18_16_/_0.08)]">
                       {statusLabel(draft.status)}
@@ -154,7 +149,7 @@ export function AgentProDraftsPanel({
                     {[
                       draft.accountName,
                       draft.brief.objective,
-                      `$${draft.brief.suggestedDailyBudgetUsd}/día`,
+                      t("perDay", { amount: draft.brief.suggestedDailyBudgetUsd }),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
@@ -165,7 +160,7 @@ export function AgentProDraftsPanel({
                   {draft.brief.hookCopy ? (
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                        Hook (3s)
+                        {t("hook")}
                       </p>
                       <p className="mt-0.5 text-[13px] font-medium leading-5 text-[var(--auth-text)]">
                         {draft.brief.hookCopy}
@@ -175,7 +170,7 @@ export function AgentProDraftsPanel({
                   {draft.brief.adText ? (
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                        Ad text
+                        {t("adText")}
                       </p>
                       <p className="mt-0.5 text-[13px] leading-5 text-[var(--auth-text-muted)]">
                         {draft.brief.adText}
@@ -185,7 +180,7 @@ export function AgentProDraftsPanel({
                   {draft.brief.audience ? (
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                        Audiencia sugerida
+                        {t("audience")}
                       </p>
                       <p className="mt-0.5 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                         {draft.brief.audience}
@@ -216,9 +211,7 @@ export function AgentProDraftsPanel({
                       }}
                       className="h-10 flex-1 rounded-xl bg-[var(--auth-accent)] text-[13px] font-bold text-white disabled:opacity-50"
                     >
-                      {busyId === draft.id
-                        ? "Enviando…"
-                        : "Enviar campaña a TikTok"}
+                      {busyId === draft.id ? t("sending") : t("sendToTikTok")}
                     </Button>
                     {canApproveOnly ? (
                       <Button
@@ -228,7 +221,7 @@ export function AgentProDraftsPanel({
                         onClick={() => void runAction(draft.id, "approve", false)}
                         className="h-10 flex-1 rounded-xl border-[rgb(20_18_16_/_0.12)] text-[13px] font-semibold"
                       >
-                        Solo aprobar brief
+                        {t("approveOnly")}
                       </Button>
                     ) : null}
                     {canReject ? (
@@ -239,7 +232,7 @@ export function AgentProDraftsPanel({
                         onClick={() => void runAction(draft.id, "reject")}
                         className="h-10 rounded-xl border-[rgb(20_18_16_/_0.12)] text-[13px] font-semibold text-[var(--auth-text-muted)] sm:px-4"
                       >
-                        Rechazar
+                        {t("reject")}
                       </Button>
                     ) : null}
                   </div>

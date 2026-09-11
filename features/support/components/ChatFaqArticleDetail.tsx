@@ -49,7 +49,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
             <button
               type="button"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] text-[#6b645c] transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
-              aria-label="Artículo útil"
+              aria-label={t("usefulYes")}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.25c.806 0 1.533-.278 2.101-.783M6.633 10.25c-.806 0-1.533.278-2.101.783M6.633 10.25l-1.45-4.35A1.125 1.125 0 005.25 4.5h13.5c.621 0 1.125.504 1.125 1.125v.008c0 .621-.504 1.125-1.125 1.125H6.633zM16.5 10.25V18a2.25 2.25 0 01-2.25 2.25H9.75A2.25 2.25 0 017.5 18v-7.75m9 0V6.375c0-.621-.504-1.125-1.125-1.125H7.875c-.621 0-1.125.504-1.125 1.125v3.875m9 0h-9" />
@@ -58,7 +58,7 @@ export function ChatFaqArticleDetail({ article, onBack }: ChatFaqArticleDetailPr
             <button
               type="button"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] text-[#6b645c] transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
-              aria-label="Artículo no útil"
+              aria-label={t("usefulNo")}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.498 15.25H4.372c-1.026 0-1.859-.815-1.859-1.82v-.742c0-1.006.833-1.82 1.86-1.82H7.5v-2.25a2.25 2.25 0 012.25-2.25h4.5A2.25 2.25 0 0116.5 6.75v2.25h3.128c1.026 0 1.86.814 1.86 1.82v.742c0 1.005-.834 1.82-1.86 1.82H16.5v2.25a2.25 2.25 0 01-2.25 2.25h-4.5a2.25 2.25 0 01-2.25-2.25v-2.25z" />

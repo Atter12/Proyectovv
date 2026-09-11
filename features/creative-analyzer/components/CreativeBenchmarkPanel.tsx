@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/Card";
 import type { CreativeAnalyzerMetrics, CreativeSignal } from "@/types/creative-analyzer";
 
@@ -7,20 +8,27 @@ interface CreativeBenchmarkPanelProps {
   recommendation: string;
 }
 
-export function CreativeBenchmarkPanel({
+export async function CreativeBenchmarkPanel({
   metrics,
   signals,
   recommendation,
 }: CreativeBenchmarkPanelProps) {
+  const t = await getTranslations("creatives");
+  const tags = [
+    t("benchmark.tagHook"),
+    t("benchmark.tagRetention"),
+    t("benchmark.tagCta"),
+  ];
+
   return (
     <section id="creative-benchmark" className="scroll-mt-24">
       <Card className="overflow-hidden p-0">
         <div className="border-b border-[var(--border-subtle)] bg-gradient-to-r from-[var(--surface-soft)] to-white px-6 py-4">
           <h2 className="text-base font-semibold text-[#141210]">
-            Resumen de rendimiento creativo
+            {t("benchmark.title")}
           </h2>
           <p className="mt-0.5 text-sm text-[#6b645c]">
-            Señales de ejemplo basadas en patrones de alto rendimiento
+            {t("benchmark.subtitle")}
           </p>
         </div>
 
@@ -32,7 +40,7 @@ export function CreativeBenchmarkPanel({
                 <span className="text-xl font-medium text-[#6b645c]">/100</span>
               </p>
               <span className="mb-1 rounded-full bg-[var(--brand-primary)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--brand-primary-deep)]">
-                Puntuación general
+                {t("benchmark.overallScore")}
               </span>
             </div>
 
@@ -65,13 +73,13 @@ export function CreativeBenchmarkPanel({
               </svg>
             </div>
             <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-              Acción recomendada
+              {t("benchmark.recommendedAction")}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-white/90">
               {recommendation}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {["GANCHO", "RETENCIÓN", "CTA"].map((tag) => (
+              {tags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-semibold text-white/60"

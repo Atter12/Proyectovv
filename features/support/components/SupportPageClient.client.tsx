@@ -136,6 +136,8 @@ export function SupportPageClient({
           content: known
             ? tFaq(`articles.${id}.content`)
             : applyHolisticRename(article.content),
+          // Messages cover title/content only — avoid Spanish mock bullets in other locales.
+          bullets: known ? [] : article.bullets.map(applyHolisticRename),
         };
       }),
     [faqConfig.articles, tFaq],
@@ -309,7 +311,7 @@ export function SupportPageClient({
     const optimistic: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text: text || (files.length ? "📎 Adjunto" : ""),
+      text: text || (files.length ? `📎 ${t("attachment")}` : ""),
       ...supportChatTimestampsNow(),
       attachments: files
         .filter((f) => f.type.startsWith("image/"))
@@ -548,7 +550,7 @@ export function SupportPageClient({
         showBack={mobileShowChat && faqMode === false}
         className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
         title={supportName}
-        subtitle="Escribe, pega capturas (Ctrl+V) o adjunta fotos/PDF."
+        subtitle={t("chatSubtitle")}
         onInputChange={setInputValue}
         onSend={(files) => void handleSend(files)}
         onClearChat={ticketId ? () => void handleClearChat() : undefined}
@@ -568,7 +570,7 @@ export function SupportPageClient({
           {supportName}
         </h1>
         <p className="mt-1 max-w-2xl text-[13px] text-[var(--auth-text-muted)]">
-          Chat con el equipo de Ads Holistic.
+          {t("pageSubtitle")}
         </p>
       </header>
 

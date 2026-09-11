@@ -1,28 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { CreativeAssetListItem } from "@/lib/creatives/types";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { cn } from "@/lib/cn";
 
-function jobLabel(status: string | null) {
-  if (!status) return "Sin job";
-  if (status === "queued" || status === "pending") return "En cola";
-  if (status === "processing") return "Analizando…";
-  if (status === "completed") return "Listo";
-  if (status === "failed") return "Falló";
-  return status;
-}
-
-function verdictFromScore(score: number, policyRisks: string[]) {
-  if (policyRisks.length > 0 && score < 70) {
-    return { label: "Revisar policy", tone: "warn" as const };
-  }
-  if (score >= 80) return { label: "Listo para test", tone: "good" as const };
-  if (score >= 60) return { label: "Mejorar y testear", tone: "mid" as const };
-  return { label: "Rehacer creativo", tone: "bad" as const };
-}
-
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({
+  score,
+  scoreLabel,
+}: {
+  score: number;
+  scoreLabel: string;
+}) {
   const r = 22;
   const c = 2 * Math.PI * r;
   const pct = Math.min(100, Math.max(0, score)) / 100;
@@ -55,7 +44,7 @@ function ScoreRing({ score }: { score: number }) {
           {score}
         </span>
         <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-          score
+          {scoreLabel}
         </span>
       </div>
     </div>
@@ -84,19 +73,35 @@ export function CreativeAssetsPanel({
 }: {
   assets: CreativeAssetListItem[];
 }) {
+  const t = useTranslations("creatives.assets");
+
+  function jobLabel(status: string | null) {
+    if (!status) return t("jobNone");
+    if (status === "queued" || status === "pending") return t("jobQueued");
+    if (status === "processing") return t("jobProcessing");
+    if (status === "completed") return t("jobCompleted");
+    if (status === "failed") return t("jobFailed");
+    return status;
+  }
+
+  function verdictFromScore(score: number, policyRisks: string[]) {
+    if (policyRisks.length > 0 && score < 70) {
+      return { label: t("verdictPolicy"), tone: "warn" as const };
+    }
+    if (score >= 80) return { label: t("verdictReady"), tone: "good" as const };
+    if (score >= 60) return { label: t("verdictImprove"), tone: "mid" as const };
+    return { label: t("verdictRedo"), tone: "bad" as const };
+  }
+
   return (
-    <CrmPanel
-      title="Creative Score"
-      subtitle="Estilo AdCreative / Motion · puntaje antes de gastar"
-    >
+    <CrmPanel title={t("title")} subtitle={t("subtitle")}>
       {assets.length === 0 ? (
         <div className="px-4 py-10 text-center sm:px-5">
           <p className="text-[14px] font-semibold text-[var(--auth-text)]">
-            Todavía vacío
+            {t("emptyTitle")}
           </p>
           <p className="mt-1.5 text-[13px] text-[var(--auth-text-muted)]">
-            Sube un video o imagen arriba. La IA te da score + veredicto en
-            segundos.
+            {t("emptyBody")}
           </p>
         </div>
       ) : (
@@ -113,7 +118,7 @@ export function CreativeAssetsPanel({
               >
                 <div className="flex gap-3.5">
                   {insight ? (
-                    <ScoreRing score={insight.overallScore} />
+                    <ScoreRing score={insight.overallScore} scoreLabel={t("score")} />
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[rgb(255_248_243_/_0.9)] text-[11px] font-semibold text-[var(--auth-text-muted)]">
                       …
@@ -160,10 +165,10 @@ export function CreativeAssetsPanel({
                           {insight.summary}
                         </p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                          <MetricBar label="Claridad" value={insight.clarityScore} />
-                          <MetricBar label="Marca" value={insight.brandScore} />
+                          <MetricBar label={t("clarity")} value={insight.clarityScore} />
+                          <MetricBar label={t("brand")} value={insight.brandScore} />
                           <MetricBar
-                            label="Policy"
+                            label={t("policy")}
                             value={insight.complianceScore}
                           />
                         </div>
@@ -182,25 +187,25 @@ export function CreativeAssetsPanel({
                         {insight.whyItMayPerform ? (
                           <p className="mt-2.5 text-[12px] leading-5 text-[var(--auth-text-muted)]">
                             <span className="font-semibold text-[var(--auth-text)]">
-                              Por qué puede rendir ·{" "}
+                              {t("whyItMayPerform")}
                             </span>
                             {insight.whyItMayPerform}
                           </p>
                         ) : null}
                         {insight.policyRisks.length > 0 ? (
                           <p className="mt-2 text-[12px] leading-5 text-amber-900">
-                            <span className="font-semibold">Riesgo policy · </span>
+                            <span className="font-semibold">{t("policyRisk")}</span>
                             {insight.policyRisks.join(" · ")}
                           </p>
                         ) : null}
                       </>
                     ) : asset.jobStatus === "failed" ? (
                       <p className="mt-2 text-[12px] text-[#991b1b]">
-                        El análisis falló. Revisa OPENAI_API_KEY o reencola.
+                        {t("analysisFailed")}
                       </p>
                     ) : (
                       <p className="mt-2 text-[12px] text-[var(--auth-text-muted)]">
-                        La IA está mirando el creativo…
+                        {t("analyzing")}
                       </p>
                     )}
                   </div>

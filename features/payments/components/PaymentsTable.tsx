@@ -94,7 +94,9 @@ export function PaymentsTable({
   const actionLabelLong = agencyBmFunding
     ? t("assignmentTable.reloadBalance")
     : t("assignmentTable.assignBalance");
-  const actionLoading = agencyBmFunding ? "Recargando…" : "Asignando…";
+  const actionLoading = agencyBmFunding
+    ? t("assignmentTable.reloading")
+    : t("assignmentTable.assigning");
   const balanceColumnLabel = agencyBmFunding
     ? t("assignmentTable.tiktokLive")
     : t("assignmentTable.balanceQuota");
@@ -124,14 +126,14 @@ export function PaymentsTable({
 
   async function handleAllocate(account: PaymentAccountAllocation) {
     const rawAmount = window.prompt(
-      `Monto a asignar a ${account.name} en USD`,
+      t("assignmentHints.promptAmount", { name: account.name }),
       "100",
     );
     if (!rawAmount) return;
 
     const amount = Number.parseFloat(rawAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Ingresa un monto válido mayor a cero.");
+      setError(t("assignmentHints.errInvalid"));
       return;
     }
 
@@ -147,13 +149,13 @@ export function PaymentsTable({
           amount,
         }),
       });
-      setMessage(`Asignación de ${formatMoney(amount)} enviada al ledger.`);
+      setMessage(t("assignmentHints.successLedger", { amount: formatMoney(amount) }));
       router.refresh();
     } catch (err) {
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo asignar saldo a la cuenta.",
+          : t("assignmentHints.errAllocate"),
       );
     } finally {
       setLoadingAccountId(null);
@@ -205,8 +207,8 @@ export function PaymentsTable({
             }
           >
             {mobile
-              ? "Sin saldo para retirar. Asigná desde la cartera o transferí desde otra cuenta."
-              : "Sin saldo para retirar. Asígnale desde la cartera, o transfiérele saldo desde otra cuenta eligiendo esta como destino."}
+              ? t("assignmentHints.noBalanceMobile")
+              : t("assignmentHints.noBalance")}
           </p>
         ) : null}
 
@@ -233,9 +235,9 @@ export function PaymentsTable({
             >
               {transferable
                 ? clientSelfService
-                  ? "Transfiérelo a otra cuenta sin contactar con soporte."
-                  : "También puedes transferirlo directamente a otra cuenta sin pasar por la cartera."
-                : "Cuenta suspendida. Recupera el saldo en la cartera; después desaparecerá de Pagos."}
+                  ? t("assignmentHints.transferClient")
+                  : t("assignmentHints.transferStaff")
+                : t("assignmentHints.suspended")}
             </p>
           </>
         ) : (

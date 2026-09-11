@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function CopyTextButton({
   value,
-  label = "Copiar",
+  label,
 }: {
   value: string;
   label?: string;
 }) {
+  const t = useTranslations("creatives.copy");
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -27,7 +29,7 @@ export function CopyTextButton({
       onClick={copy}
       className="text-[11px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
     >
-      {copied ? "Copiado" : label}
+      {copied ? t("copied") : (label ?? t("default"))}
     </button>
   );
 }

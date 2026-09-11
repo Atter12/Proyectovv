@@ -172,7 +172,7 @@ export function CreateAdAccountModal({ open, onClose }: CreateAdAccountModalProp
                 {t("createModal.bcId")}
               </label>
               <Input
-                placeholder="BC-0001"
+                placeholder={t("createModal.bcPlaceholder")}
                 value={bcId}
                 maxLength={MAX_BC_ID_LENGTH}
                 onChange={(e) => setBcId(e.target.value)}

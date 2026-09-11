@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/format-money";
 import { mapAdAccountStatusLabel } from "@/lib/ui/labels";
@@ -16,6 +17,8 @@ export function PaymentsReclaimSection({
   allowForceLedger?: boolean;
   clienteName?: string;
 }) {
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
   const [selected, setSelected] = useState<PaymentAccountAllocation | null>(
     null,
   );
@@ -37,31 +40,33 @@ export function PaymentsReclaimSection({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c45a18]">
-              Recuperar saldo disponible
+              {t("reclaimSection.eyebrow")}
             </p>
             <h2 className="mt-1.5 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1a1612]">
-              Cuentas suspendidas
+              {t("reclaimSection.title")}
               {clienteName ? ` · ${clienteName}` : ""}
             </h2>
             <p className="mt-1.5 max-w-2xl text-[13px] font-medium leading-5 text-[#6b645c]">
-              Estas cuentas dejaron de aparecer en Recargar porque TikTok las
-              suspendió. Si todavía tienen saldo asignado en Holistic, recupéralo en tu{" "}
+              {t("reclaimSection.bodyBefore")}{" "}
               <span className="font-semibold text-[#1a1612]">
-                saldo disponible
+                {t("reclaimSection.available")}
               </span>{" "}
-              y úsalo en otra cuenta aprobada.
+              {t("reclaimSection.bodyAfter")}
             </p>
           </div>
           <div className="shrink-0 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-[#f0d9c4]">
             <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9a9187]">
-              Recuperable ahora
+              {t("reclaimSection.recoverableNow")}
             </p>
             <p className="mt-0.5 text-[1.15rem] font-bold tabular-nums tracking-[-0.02em] text-[#c45a18]">
               {formatMoney(totalRecoverable)}
             </p>
             <p className="text-[11px] text-[#7a736a]">
-              {recoverable.length} con saldo · {accounts.length} suspendida
-              {accounts.length === 1 ? "" : "s"}
+              {t("reclaimSection.withBalance", {
+                recoverable: recoverable.length,
+                total: accounts.length,
+                plural: accounts.length === 1 ? "" : "s",
+              })}
             </p>
           </div>
         </div>
@@ -89,20 +94,22 @@ export function PaymentsReclaimSection({
                     {mapAdAccountStatusLabel(account.status)}
                   </span>
                   <span className="rounded-md bg-[#f3eee8] px-1.5 py-0.5 font-mono text-[10px] text-[#7a736a]">
-                    adv {account.externalAccountId?.trim() || "—"}
+                    adv{" "}
+                    {account.externalAccountId?.trim() || tCommon("emDash")}
                   </span>
                 </div>
                 <p className="mt-2 text-[13px] font-semibold tabular-nums text-[#1a1612]">
-                  Saldo en cuenta: {formatMoney(account.balance)}
+                  {t("reclaimSection.balanceOnAccount", {
+                    amount: formatMoney(account.balance),
+                  })}
                 </p>
                 {!canReclaim ? (
                   <p className="mt-1 text-[12px] leading-4 text-[#7a736a]">
-                    En Holistic ya está en $0 (se gastó o nunca se asignó aquí).
-                    No hay nada que devolver a cartera desde esta fila.
+                    {t("reclaimSection.zeroHint")}
                   </p>
                 ) : (
                   <p className="mt-1 text-[12px] leading-4 text-[#6b645c]">
-                    Ese monto vuelve a tu saldo disponible al tocar Recuperar.
+                    {t("reclaimSection.reclaimHint")}
                   </p>
                 )}
               </div>
@@ -113,7 +120,9 @@ export function PaymentsReclaimSection({
                 className="h-11 shrink-0 rounded-xl bg-[#c45a18] px-4 text-[13px] font-bold text-white hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-45"
                 onClick={() => setSelected(account)}
               >
-                {canReclaim ? "Recuperar a saldo disponible" : "Sin saldo"}
+                {canReclaim
+                  ? t("reclaimSection.cta")
+                  : t("reclaimSection.noBalance")}
               </Button>
             </li>
           );

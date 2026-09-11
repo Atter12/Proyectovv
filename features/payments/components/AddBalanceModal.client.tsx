@@ -132,7 +132,7 @@ export function AddBalanceModal({
       mercadopago: "Mercado Pago",
       crypto: t("addBalance.gatewayCrypto"),
       manual: t("addBalance.gatewayManual"),
-      cobrana: "Yape / Plin",
+      cobrana: t("addBalance.gatewayYapePlin"),
     }),
     [t],
   );
@@ -145,7 +145,9 @@ export function AddBalanceModal({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [fxRate, setFxRate] = useState(DEFAULT_FX);
-  const [fxSourceLabel, setFxSourceLabel] = useState("TC referencial");
+  const [fxSourceLabel, setFxSourceLabel] = useState(() =>
+    t("addBalance.fxReferential"),
+  );
   const [cobranaCode, setCobranaCode] = useState<string | null>(null);
   const [cobranaDeeplinks, setCobranaDeeplinks] = useState<CobranaDeeplink[]>(
     [],
@@ -194,16 +196,18 @@ export function AddBalanceModal({
         const src = (cfg.fxSource ?? "").toLowerCase();
         if (src === "sbs") {
           setFxSourceLabel(
-            cfg.fxAsOf ? `TC SBS venta (${cfg.fxAsOf})` : "TC SBS venta",
+            cfg.fxAsOf
+              ? t("addBalance.fxSbsAsOf", { date: cfg.fxAsOf })
+              : t("addBalance.fxSbs"),
           );
         } else {
-          setFxSourceLabel("TC referencial");
+          setFxSourceLabel(t("addBalance.fxReferential"));
         }
       })
       .catch(() => {
         /* keep default FX */
       });
-  }, [open, isCobrana]);
+  }, [open, isCobrana, t]);
 
   useEffect(() => {
     if (!open || !isCobrana || step !== "confirm") return;
@@ -251,7 +255,9 @@ export function AddBalanceModal({
         if (data.paymentIntent.status === "succeeded") {
           setPaidConfirmed(true);
           setResultMessage(
-            `Pago confirmado. Se acreditaron ${formatMoney(parsedAmount)} en tu cartera.`,
+            t("addBalance.successConfirmed", {
+              amount: formatMoney(parsedAmount),
+            }),
           );
           setStep("result");
           router.refresh();
@@ -379,8 +385,12 @@ export function AddBalanceModal({
             ? formatMoney(feePreview.grossCents / 100)
             : formatMoney(parsedAmount);
       const defaultMessage = data.paymentIntent.providerConfigured
-        ? `Solicitud creada. Recibirás ${formatMoney(parsedAmount)} en la cartera y se cobrará ${chargeLabel} (fee ${formatFeePercentLabel(chargeFeePercent)}).`
-        : "La pasarela aún no está configurada. Se registró una intención pendiente.";
+        ? t("addBalance.successCreated", {
+            amount: formatMoney(parsedAmount),
+            charge: chargeLabel,
+            fee: formatFeePercentLabel(chargeFeePercent),
+          })
+        : t("addBalance.gatewayNotConfigured");
 
       setResultMessage(data.paymentIntent.message ?? defaultMessage);
       setStep(isVoucher ? "proof" : "result");
@@ -389,7 +399,7 @@ export function AddBalanceModal({
       const message =
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo crear la intención de pago.";
+          : t("addBalance.errCreateIntent");
       if (
         isCobrana &&
         /NEED_CUSTOMER_DOCUMENT|DNI \(8|RUC \(11|documento|Ingresa tu DNI/i.test(
@@ -406,11 +416,11 @@ export function AddBalanceModal({
 
   async function handleProofUpload() {
     if (!paymentIntentId) {
-      setError("Primero crea la intención de pago manual.");
+      setError(t("addBalance.errNeedIntent"));
       return;
     }
     if (!proofFile) {
-      setError("Selecciona el voucher o comprobante de transferencia.");
+      setError(t("addBalance.errNeedVoucher"));
       return;
     }
 
@@ -429,7 +439,9 @@ export function AddBalanceModal({
         },
       );
       setResultMessage(
-        `Voucher ${data.paymentIntent.proofFileName} enviado. Tu pago quedó en revisión manual.`,
+        t("addBalance.voucherSent", {
+          fileName: data.paymentIntent.proofFileName,
+        }),
       );
       setStep("result");
       router.refresh();
@@ -437,7 +449,7 @@ export function AddBalanceModal({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo subir el comprobante.",
+          : t("addBalance.errUploadProof"),
       );
     } finally {
       setUploadingProof(false);
@@ -577,10 +589,16 @@ export function AddBalanceModal({
                   </div>
                   <p className="mt-3 text-[11px] leading-4 text-[#6f675f]">
                     {isCobrana
-                      ? `${fxSourceLabel} ${fxRate.toFixed(3)} · necesitas un DNI registrado en Hecom CRM.`
+                      ? t("addBalance.fxNeedDni", {
+                          fx: fxSourceLabel,
+                          rate: fxRate.toFixed(3),
+                        })
                       : isStripe
-                        ? `Total fee ${formatFeePercentLabel(chargeFeePercent)} (Holistic + pasarela). Transferencia no lleva el +${formatFeePercentLabel(stripeExtra)}.`
-                        : "Ej.: si quieres $100 con un fee de 10%, se cobran $110."}
+                        ? t("addBalance.feeTotalHint", {
+                            fee: formatFeePercentLabel(chargeFeePercent),
+                            stripe: formatFeePercentLabel(stripeExtra),
+                          })
+                        : t("addBalance.feeExample")}
                   </p>
                 </div>
               ) : null}
@@ -589,7 +607,7 @@ export function AddBalanceModal({
                 <div className="flex items-center justify-between gap-4 rounded-xl bg-[#fff8f3] px-4 py-3">
                   <div>
                     <p className="text-[12px] font-semibold text-[#1c1917]">
-                      Paga con tarjeta
+                      {t("addBalance.payWithCard")}
                     </p>
                     <p className="mt-0.5 text-[11px] text-[#6f675f]">
                       {t("addBalance.stripeSecure")}
@@ -633,8 +651,8 @@ export function AddBalanceModal({
               ) : isVoucher ? (
                 <p className="rounded-xl bg-[#f7f5f2] px-4 py-3 text-xs leading-5 text-[#625b54]">
                   {selectedGateway === "crypto"
-                    ? "Checkout solo USDT (TRC20). Si NOWPayments no está activo, envía los USDT y sube una captura o el TxID."
-                    : "Después de crear la solicitud podrás subir el comprobante para revisión."}
+                    ? t("addBalance.cryptoCheckoutHint")
+                    : t("addBalance.manualAfterCreateHint")}
                 </p>
               ) : null}
 
@@ -747,22 +765,22 @@ export function AddBalanceModal({
               {isCobrana && needsCustomerDocument ? (
                 <div className="mt-4 rounded-2xl border border-[#e7dfd7] bg-white px-4 py-4 sm:px-5">
                   <p className="text-[13px] font-semibold text-[#1c1917]">
-                    Ingresa tu DNI
+                    {t("addBalance.dniTitle")}
                   </p>
                   <p className="mt-1 text-[12px] leading-5 text-[#625b54]">
                     {crmDocumentHint
-                      ? `En el CRM figura “${crmDocumentHint}”, que no sirve para Yape. Escribe tu DNI (8 dígitos) o RUC (11).`
-                      : "Para pagar con Yape necesitamos tu DNI (8 dígitos) o RUC (11). Se guarda en tu ficha Hecom."}
+                      ? t("addBalance.crmDocInvalid", { doc: crmDocumentHint })
+                      : t("addBalance.dniRequired")}
                   </p>
                   <label className="mt-3 block">
                     <span className="text-[11px] font-medium text-[#6f675f]">
-                      DNI o RUC
+                      {t("addBalance.dniLabel")}
                     </span>
                     <Input
                       type="text"
                       inputMode="numeric"
                       autoComplete="off"
-                      placeholder="Ej. 12345678"
+                      placeholder={t("addBalance.dniPlaceholder")}
                       maxLength={11}
                       value={customerDocument}
                       onChange={(e) =>
@@ -821,7 +839,7 @@ export function AddBalanceModal({
                 resultMessage ?? t("addBalance.cobranaCodeHint")
               }
               identityIcon={<GatewayLogo gatewayId="cobrana" size="sm" />}
-              identityLabel="Yape / Plin"
+              identityLabel={t("addBalance.gatewayYapePlin")}
               identityDescription={t("addBalance.gatewayLocal")}
               steps={addBalanceSteps}
               currentStep={modalStepIndex}

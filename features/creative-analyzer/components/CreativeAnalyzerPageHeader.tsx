@@ -1,17 +1,19 @@
+import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardPageIntro } from "@/components/layout/DashboardPageIntro";
 
-export function CreativeAnalyzerPageHeader() {
+export async function CreativeAnalyzerPageHeader() {
+  const t = await getTranslations("creatives");
   return (
     <DashboardPageIntro
-      description="Fichas y proyectos del cliente + sube piezas para encolar análisis antes de escalar campañas."
+      description={t("pageHeader.description")}
       badges={
         <>
           <Badge variant="info" className="px-3 py-1">
-            Laboratorio creativo IA
+            {t("pageHeader.badgeLab")}
           </Badge>
           <Badge variant="default" className="px-3 py-1">
-            Datos de ejemplo
+            {t("pageHeader.badgeSample")}
           </Badge>
         </>
       }

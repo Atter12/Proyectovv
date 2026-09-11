@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -48,6 +49,7 @@ const INTERVAL_OPTIONS = [15, 20, 30];
 export function AutoRechargeSchedule({
   depositFeePercent = 10,
 }: AutoRechargeScheduleProps) {
+  const t = useTranslations("payments");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export function AutoRechargeSchedule({
       if (err instanceof ApiClientError && err.status === 500) {
         setError(null);
       } else {
-        setError(userErrorMessage(err, "No se pudo cargar la configuración."));
+        setError(userErrorMessage(err, t("autoRecharge.errLoad")));
       }
     } finally {
       setLoading(false);
@@ -103,11 +105,11 @@ export function AutoRechargeSchedule({
           method: "POST",
           body: JSON.stringify({ sessionId }),
         });
-        setSuccess("Tarjeta guardada correctamente.");
+        setSuccess(t("autoRecharge.successCard"));
         router.replace("/payments");
         await load();
       } catch (err) {
-        setError(userErrorMessage(err, "No se pudo confirmar la tarjeta."));
+        setError(userErrorMessage(err, t("autoRecharge.errConfirmCard")));
       }
     })();
   }, [searchParams, router, load]);
@@ -130,9 +132,9 @@ export function AutoRechargeSchedule({
         window.location.href = data.checkoutUrl;
         return;
       }
-      throw new Error("Stripe no devolvió URL.");
+      throw new Error(t("autoRecharge.errStripeUrl"));
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo abrir el formulario de tarjeta."));
+      setError(userErrorMessage(err, t("autoRecharge.errOpenCard")));
       setCardLoading(false);
     }
   }
@@ -143,19 +145,19 @@ export function AutoRechargeSchedule({
     setSuccess(null);
 
     if (enabled && !paymentMethod?.last4) {
-      setError("Primero guarda una tarjeta y luego activa el débito automático.");
+      setError(t("autoRecharge.errNeedCard"));
       setSaving(false);
       return;
     }
 
     const credit = Number(amount);
     if (!Number.isFinite(credit) || credit < 10) {
-      setError("El monto mínimo de recarga es $10 USD.");
+      setError(t("autoRecharge.errMin"));
       setSaving(false);
       return;
     }
     if (credit > 5000) {
-      setError("El monto máximo de recarga es $5,000 USD.");
+      setError(t("autoRecharge.errMax"));
       setSaving(false);
       return;
     }
@@ -171,12 +173,17 @@ export function AutoRechargeSchedule({
       });
       setSuccess(
         enabled
-          ? `Listo: se debitarán ${formatMoney(preview?.grossCents ? preview.grossCents / 100 : credit)} cada ${intervalDays} días. El primer débito se realizará en ${intervalDays} días.`
-          : "Débito automático desactivado.",
+          ? t("autoRecharge.successEnabled", {
+              amount: formatMoney(
+                preview?.grossCents ? preview.grossCents / 100 : credit,
+              ),
+              days: intervalDays,
+            })
+          : t("autoRecharge.successDisabled"),
       );
       await load();
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo guardar la programación."));
+      setError(userErrorMessage(err, t("autoRecharge.errSave")));
     } finally {
       setSaving(false);
     }
@@ -185,7 +192,7 @@ export function AutoRechargeSchedule({
   if (loading) {
     return (
       <section className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6">
-        <p className="text-[13px] text-[var(--auth-text-muted)]">Cargando débito automático…</p>
+        <p className="text-[13px] text-[var(--auth-text-muted)]">{t("autoRecharge.loading")}</p>
       </section>
     );
   }
@@ -193,33 +200,41 @@ export function AutoRechargeSchedule({
   return (
     <section className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6">
       <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-        Débito automático
+        {t("autoRecharge.eyebrow")}
       </p>
       <h2 className="mt-1.5 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-        Programa débitos con tu tarjeta
+        {t("autoRecharge.title")}
       </h2>
       <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 1:</strong> guarda tu tarjeta.
-        {" "}
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 2:</strong> elige cada cuántos días y cuánto saldo neto en USD quieres recibir en la cartera.
-        {" "}
-        <strong className="font-semibold text-[var(--auth-text)]">Paso 3:</strong> activa y guarda la programación.
-        Se cobra neto + fee Holistic ({formatFeePercentLabel(depositFeePercent)}).
-        El primer débito se realizará después del intervalo elegido.
+        <strong className="font-semibold text-[var(--auth-text)]">
+          {t("autoRecharge.step1")}
+        </strong>
+        {t("autoRecharge.step1Body")}{" "}
+        <strong className="font-semibold text-[var(--auth-text)]">
+          {t("autoRecharge.step2")}
+        </strong>
+        {t("autoRecharge.step2Body")}{" "}
+        <strong className="font-semibold text-[var(--auth-text)]">
+          {t("autoRecharge.step3")}
+        </strong>
+        {t("autoRecharge.step3Body")}{" "}
+        {t("autoRecharge.feeNote", {
+          percent: formatFeePercentLabel(depositFeePercent),
+        })}
       </p>
 
       <div className="mt-5 rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-surface-muted)]/40 p-4">
-        <p className="text-[12px] font-semibold text-[var(--auth-text)]">Tarjeta</p>
+        <p className="text-[12px] font-semibold text-[var(--auth-text)]">{t("autoRecharge.card")}</p>
         {paymentMethod?.last4 ? (
           <p className="mt-1 text-[13px] text-[var(--auth-text-muted)]">
-            {(paymentMethod.brand ?? "Tarjeta").toUpperCase()} ·••• {paymentMethod.last4}
+            {(paymentMethod.brand ?? t("autoRecharge.cardFallback")).toUpperCase()} ·••• {paymentMethod.last4}
             {paymentMethod.expMonth && paymentMethod.expYear
-              ? ` · vence ${paymentMethod.expMonth}/${String(paymentMethod.expYear).slice(-2)}`
+              ? ` · ${t("autoRecharge.expires", { month: paymentMethod.expMonth, year: String(paymentMethod.expYear).slice(-2) })}`
               : ""}
           </p>
         ) : (
           <p className="mt-1 text-[13px] text-amber-700">
-            Todavía no hay una tarjeta guardada. Haz clic en &quot;Guardar tarjeta&quot; para empezar.
+            {t("autoRecharge.noCard")}
           </p>
         )}
         <Button
@@ -230,17 +245,17 @@ export function AutoRechargeSchedule({
           onClick={() => void handleSaveCard()}
         >
           {cardLoading
-            ? "Redirigiendo a Stripe…"
+            ? t("autoRecharge.redirecting")
             : paymentMethod?.last4
-              ? "Cambiar tarjeta"
-              : "Guardar tarjeta"}
+              ? t("autoRecharge.changeCard")
+              : t("autoRecharge.saveCard")}
         </Button>
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-[12px] font-semibold text-[var(--auth-text)]">
-            Cada cuántos días
+            {t("autoRecharge.intervalLabel")}
           </span>
           <select
             className="mt-1.5 h-10 w-full rounded-lg border border-[var(--auth-control-border)] bg-white px-3 text-[14px]"
@@ -249,7 +264,7 @@ export function AutoRechargeSchedule({
           >
             {INTERVAL_OPTIONS.map((days) => (
               <option key={days} value={days}>
-                Cada {days} días
+                {t("autoRecharge.everyDays", { days })}
               </option>
             ))}
           </select>
@@ -257,7 +272,7 @@ export function AutoRechargeSchedule({
 
         <label className="block">
           <span className="text-[12px] font-semibold text-[var(--auth-text)]">
-            Monto neto en cartera (USD)
+            {t("autoRecharge.amountLabel")}
           </span>
           <Input
             type="number"
@@ -272,15 +287,15 @@ export function AutoRechargeSchedule({
 
       {preview ? (
         <p className="mt-3 text-[12px] text-[var(--auth-text-muted)]">
-          Se cobrará{" "}
+          {t("autoRecharge.previewBefore")}{" "}
           <span className="font-semibold text-[var(--auth-text)]">
             {formatMoney(preview.grossCents / 100)}
           </span>{" "}
-          en la tarjeta → llegan{" "}
+          {t("autoRecharge.previewMid")}{" "}
           <span className="font-semibold text-[var(--auth-text)]">
             {formatMoney(preview.creditCents / 100)}
           </span>{" "}
-          a la cartera.
+          {t("autoRecharge.previewAfter")}
         </p>
       ) : null}
 
@@ -291,7 +306,7 @@ export function AutoRechargeSchedule({
           onChange={(e) => setEnabled(e.target.checked)}
           className="h-4 w-4 rounded border-[var(--auth-control-border)]"
         />
-        Activar débito automático
+        {t("autoRecharge.enable")}
       </label>
 
       {error ? (
@@ -311,7 +326,7 @@ export function AutoRechargeSchedule({
         disabled={saving}
         onClick={() => void handleSaveSchedule()}
       >
-        {saving ? "Guardando…" : "Guardar programación"}
+        {saving ? t("autoRecharge.saving") : t("autoRecharge.save")}
       </Button>
     </section>
   );

@@ -200,7 +200,13 @@ export async function ClienteScopedCobros({
               </thead>
               <tbody>
                 {cobros.map((row) => (
-                  <CobroTableRow key={row.id} row={row} bcp47={bcp47} />
+                  <CobroTableRow
+                    key={row.id}
+                    row={row}
+                    bcp47={bcp47}
+                    proofLabel={t("proof")}
+                    proofLabelN={(n) => t("proofN", { n })}
+                  />
                 ))}
               </tbody>
             </table>
@@ -214,9 +220,13 @@ export async function ClienteScopedCobros({
 function CobroTableRow({
   row,
   bcp47,
+  proofLabel,
+  proofLabelN,
 }: {
   row: HecomCobroRow;
   bcp47: string;
+  proofLabel: string;
+  proofLabelN: (n: number) => string;
 }) {
   const fecha = formatHecomFecha(row.fecha);
   const periodo = formatPeriodoResumen(row.periodoResumen, bcp47);
@@ -252,8 +262,8 @@ function CobroTableRow({
                 index={index}
                 label={
                   row.comprobanteUrls.length > 1
-                    ? `Comprobante ${index + 1}`
-                    : "Comprobante"
+                    ? proofLabelN(index + 1)
+                    : proofLabel
                 }
               />
             ))}

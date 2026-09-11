@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -23,6 +24,8 @@ export function EditTikTokIdsModal({
   open,
   onClose,
 }: EditTikTokIdsModalProps) {
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [advertiserId, setAdvertiserId] = useState(
     account?.externalAccountId ?? "",
@@ -36,7 +39,7 @@ export function EditTikTokIdsModal({
   async function handleSave() {
     const adv = advertiserId.trim();
     if (!adv) {
-      setError("Pega el TikTok Advertiser ID, por ejemplo, el de la cuenta aprobada.");
+      setError(t("editTikTok.errRequired"));
       return;
     }
 
@@ -56,7 +59,7 @@ export function EditTikTokIdsModal({
       onClose();
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "No se pudo guardar.");
+      setError(err instanceof ApiClientError ? err.message : t("editTikTok.errSave"));
     } finally {
       setLoading(false);
     }
@@ -65,12 +68,14 @@ export function EditTikTokIdsModal({
   return (
     <DashboardModalShell open onClose={onClose} maxWidthClassName="max-w-md">
       <h2 className="text-lg font-semibold text-[var(--foreground)]">
-        ID TikTok de la cuenta
+        {t("editTikTok.title")}
       </h2>
       <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
-        Holistic recarga el advertiser que se muestra aquí. Debe ser el de la
-        cuenta <span className="font-medium text-[var(--foreground)]">Aprobada</span>{" "}
-        en TikTok BM (no la suspendida).
+        {t("editTikTok.bodyBefore")}{" "}
+        <span className="font-medium text-[var(--foreground)]">
+          {t("editTikTok.approved")}
+        </span>{" "}
+        {t("editTikTok.bodyAfter")}
       </p>
       <p className="mt-2 text-sm font-medium text-[var(--foreground)]">
         {account.name}
@@ -79,7 +84,7 @@ export function EditTikTokIdsModal({
       <div className="mt-5 space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            TikTok Advertiser ID
+            {t("editTikTok.advertiserLabel")}
           </label>
           <Input
             value={advertiserId}
@@ -93,12 +98,12 @@ export function EditTikTokIdsModal({
             className="mt-2 text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
             onClick={() => setAdvertiserId(BRANLYN_206)}
           >
-            Usar Branlyn 206 (aprobada)
+            {t("editTikTok.useBranlyn")}
           </button>
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
-            Business Center / BC ID
+            {t("editTikTok.bcLabel")}
           </label>
           <Input
             value={bcId}
@@ -107,7 +112,7 @@ export function EditTikTokIdsModal({
             className="font-mono text-[13px]"
           />
           <p className="mt-1 text-[11px] text-[var(--admin-text-muted,#64748b)]">
-            BM Entreprise 200 = {BM_200_BC}
+            {t("editTikTok.bmHint", { id: BM_200_BC })}
           </p>
         </div>
       </div>
@@ -120,14 +125,14 @@ export function EditTikTokIdsModal({
 
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="outline" onClick={onClose} disabled={loading}>
-          Cancelar
+          {tCommon("cancel")}
         </Button>
         <Button
           onClick={() => void handleSave()}
           disabled={loading}
           className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
         >
-          {loading ? "Guardando…" : "Guardar ID"}
+          {loading ? t("editTikTok.saving") : t("editTikTok.save")}
         </Button>
       </div>
     </DashboardModalShell>

@@ -149,7 +149,7 @@ export function ConfigureAdAccountModal({
           <Input
             value={externalBusinessId}
             onChange={(e) => setExternalBusinessId(e.target.value)}
-            placeholder="Ej. 7575005779271614480 (BM 200)"
+            placeholder={t("configureModal.bcPlaceholder")}
           />
         </div>
         <div>
@@ -159,7 +159,7 @@ export function ConfigureAdAccountModal({
           <Input
             value={externalAccountId}
             onChange={(e) => setExternalAccountId(e.target.value)}
-            placeholder="ID de cuenta ads en TikTok"
+            placeholder={t("configureModal.advertiserPlaceholder")}
           />
         </div>
         <div className="sm:col-span-2">

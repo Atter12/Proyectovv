@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 import {
   CrmHeroButton,
@@ -54,7 +55,7 @@ function resolveActiveStep(input: {
   return 0;
 }
 
-export function ClienteScopedCreatives({
+export async function ClienteScopedCreatives({
   data,
   accounts,
   assets,
@@ -67,6 +68,7 @@ export function ClienteScopedCreatives({
   drafts: CreativeDraftListItem[];
   publishEnabled: boolean;
 }) {
+  const t = await getTranslations("creatives");
   const { cliente, creativosClientes, creativosProyectos, summary } = data;
   const published = creativosProyectos.filter((p) => p.published === true).length;
   const analyzed = assets.filter((a) => a.insight).length;
@@ -87,15 +89,17 @@ export function ClienteScopedCreatives({
   return (
     <div className="space-y-5 sm:space-y-6">
       <CrmScopeHero
-        module="Creativos"
-        title="Creative Hub · Agent Pro"
+        module={t("module")}
+        title={t("title")}
         cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl }}
-        meta={`Sube → IA → Enviar campaña · ${analyzed} con score`}
+        meta={t("meta", { count: analyzed })}
         actions={
           <>
-            <CrmHeroButton href="#creative-upload">Subir video</CrmHeroButton>
+            <CrmHeroButton href="#creative-upload">
+              {t("uploadVideo")}
+            </CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
-              Cuentas TikTok
+              {t("tiktokAccounts")}
             </CrmHeroButton>
           </>
         }
@@ -106,20 +110,20 @@ export function ClienteScopedCreatives({
       <CrmMetricsStrip>
         <div className="grid grid-cols-2 sm:flex sm:divide-x sm:divide-[var(--auth-divider)] lg:grid-cols-4">
           <CrmMetricCell
-            label="Uploads"
+            label={t("metrics.uploads")}
             value={String(assets.length)}
             emphasis="primary"
           />
           <CrmMetricCell
-            label="Score avg"
+            label={t("metrics.scoreAvg")}
             value={avgScore != null ? String(avgScore) : "—"}
           />
           <CrmMetricCell
-            label="Por aprobar"
+            label={t("metrics.pendingApprove")}
             value={String(pendingDrafts)}
           />
           <CrmMetricCell
-            label="Hecom"
+            label={t("metrics.hecom")}
             value={String(summary.projectCount + published)}
             emphasis="muted"
           />
@@ -141,9 +145,9 @@ export function ClienteScopedCreatives({
 
       <CrmQuickLinks
         links={[
-          { href: routes.overview, label: "Resumen" },
-          { href: routes.adAccounts, label: "Cuentas ads" },
-          { href: routes.payments, label: "Pagos" },
+          { href: routes.overview, label: t("quickLinks.overview") },
+          { href: routes.adAccounts, label: t("quickLinks.adAccounts") },
+          { href: routes.payments, label: t("quickLinks.payments") },
         ]}
       />
 
@@ -155,15 +159,16 @@ export function ClienteScopedCreatives({
   );
 }
 
-function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
+async function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
+  const t = await getTranslations("creatives");
   return (
     <CrmPanel
-      title="Ficha creativa"
-      subtitle={`${rows.length} contacto${rows.length === 1 ? "" : "s"} Hecom`}
+      title={t("ficha.title")}
+      subtitle={t("ficha.contactsSubtitle", { count: rows.length })}
     >
       {rows.length === 0 ? (
         <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-          Sin ficha en Hecom para este cliente.
+          {t("ficha.empty")}
         </p>
       ) : (
         <ul className="max-h-[24rem] overflow-y-auto">
@@ -182,12 +187,15 @@ function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
               {item.email ? (
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <Link
-                    href={`mailto:${item.email}?subject=${encodeURIComponent(`Creativos · ${item.name}`)}`}
+                    href={`mailto:${item.email}?subject=${encodeURIComponent(t("ficha.emailSubject", { name: item.name }))}`}
                     className="text-[12px] font-medium text-[var(--auth-text)] hover:underline"
                   >
-                    Escribir email
+                    {t("ficha.writeEmail")}
                   </Link>
-                  <CopyTextButton value={item.email} label="Copiar email" />
+                  <CopyTextButton
+                    value={item.email}
+                    label={t("ficha.copyEmail")}
+                  />
                 </div>
               ) : null}
             </li>
@@ -198,19 +206,20 @@ function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
   );
 }
 
-function ProyectosPanel({ rows }: { rows: HecomCreativoProyecto[] }) {
+async function ProyectosPanel({ rows }: { rows: HecomCreativoProyecto[] }) {
+  const t = await getTranslations("creatives");
   return (
-    <CrmPanel title="Proyectos Hecom" subtitle="Producción creativa sincronizada">
+    <CrmPanel title={t("proyectos.title")} subtitle={t("proyectos.subtitle")}>
       {rows.length === 0 ? (
         <div className="px-4 py-8 sm:px-5">
           <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Sin proyectos asociados. Sube una pieza arriba para encolar análisis.
+            {t("proyectos.empty")}
           </p>
           <Link
             href="#creative-upload"
             className="mt-2 inline-flex text-[12px] font-medium text-[var(--auth-text)] hover:underline"
           >
-            Ir a subir creativo
+            {t("proyectos.goUpload")}
           </Link>
         </div>
       ) : (
@@ -231,7 +240,7 @@ function ProyectosPanel({ rows }: { rows: HecomCreativoProyecto[] }) {
                   </p>
                 </div>
                 <span className="shrink-0 text-[11px] font-medium text-[var(--auth-text-muted)]">
-                  {row.published ? "Publicado" : "Borrador"}
+                  {row.published ? t("proyectos.published") : t("proyectos.draft")}
                 </span>
               </li>
             );

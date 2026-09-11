@@ -7,6 +7,7 @@ import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccou
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
+import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 
 function limaTodayYmd(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -112,49 +113,31 @@ type Snapshot = {
   spendSource?: "realprofit" | "holistic_tiktok" | "none";
 };
 
-function formatDelta(pct: number | null): string {
-  if (pct == null) return "sin base";
+function formatDelta(pct: number | null, noBaselineLabel: string): string {
+  if (pct == null) return noBaselineLabel;
   const sign = pct > 0 ? "+" : "";
   return `${sign}${pct.toFixed(0)}%`;
 }
 
-function pacingBadge(label: Analysis["pacingLabel"]): {
-  text: string;
-  className: string;
-} {
+function pacingBadgeClass(label: Analysis["pacingLabel"]): string {
   switch (label) {
     case "acelerando":
-      return {
-        text: "Pacing · acelerando",
-        className: "bg-[#fff7f0] text-[#c2410c]",
-      };
+      return "bg-[#fff7f0] text-[#c2410c]";
     case "bajo":
-      return {
-        text: "Pacing · bajo",
-        className: "bg-amber-50 text-amber-900",
-      };
+      return "bg-amber-50 text-amber-900";
     case "parado":
-      return {
-        text: "Pacing · parado",
-        className: "bg-[#f3efe9] text-[#6b645c]",
-      };
+      return "bg-[#f3efe9] text-[#6b645c]";
     case "normal":
-      return {
-        text: "Pacing · normal",
-        className: "bg-emerald-50 text-emerald-800",
-      };
+      return "bg-emerald-50 text-emerald-800";
     default:
-      return {
-        text: "Pacing · sin base",
-        className: "bg-[#f3efe9] text-[#6b645c]",
-      };
+      return "bg-[#f3efe9] text-[#6b645c]";
   }
 }
 
-function formatSyncTime(iso: string | null): string | null {
+function formatSyncTime(iso: string | null, bcp47: string): string | null {
   if (!iso) return null;
   try {
-    return new Intl.DateTimeFormat("es-PE", {
+    return new Intl.DateTimeFormat(bcp47, {
       timeZone: "America/Lima",
       hour: "2-digit",
       minute: "2-digit",
@@ -202,20 +185,20 @@ function Kpi({
   );
 }
 
-function formatDayShort(ymd: string): string {
+function formatDayShort(ymd: string, bcp47: string): string {
   const [y, m, d] = ymd.split("-").map(Number);
   if (!y || !m || !d) return ymd;
   const dt = new Date(Date.UTC(y, m - 1, d));
-  return new Intl.DateTimeFormat("es-PE", {
+  return new Intl.DateTimeFormat(bcp47, {
     day: "numeric",
     month: "short",
   }).format(dt);
 }
 
-function formatRangeLabel(from: string, to: string): string {
+function formatRangeLabel(from: string, to: string, bcp47: string): string {
   if (!from || !to) return "—";
-  if (from === to) return formatDayShort(from);
-  return `${formatDayShort(from)} → ${formatDayShort(to)}`;
+  if (from === to) return formatDayShort(from, bcp47);
+  return `${formatDayShort(from, bcp47)} → ${formatDayShort(to, bcp47)}`;
 }
 
 export function ProfitPageClient({
@@ -231,6 +214,7 @@ export function ProfitPageClient({
 }) {
   const t = useTranslations("profit");
   const tCommon = useTranslations("common");
+  const { bcp47 } = useAppFormatter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState(initialFrom ?? "");
@@ -301,7 +285,7 @@ export function ProfitPageClient({
       if (!from && json.from) setFrom(json.from);
       if (!to && json.to) setTo(json.to);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(e instanceof Error ? e.message : t("genericError"));
     } finally {
       setLoading(false);
     }
@@ -326,18 +310,16 @@ export function ProfitPageClient({
         error?: string;
       };
       if (!res.ok || !json.ok) {
-        throw new Error(
-          json.error || "No se pudo vincular. Instala la app y reintenta.",
-        );
+        throw new Error(json.error || t("shopifyLinkFailDefault"));
       }
-      setLinkMsg(json.message || "Tienda vinculada.");
+      setLinkMsg(json.message || t("shopifyLinkedMsg"));
       await refresh();
     } catch (e) {
-      setLinkErr(e instanceof Error ? e.message : "Error al vincular");
+      setLinkErr(e instanceof Error ? e.message : t("shopifyLinkError"));
     } finally {
       setLinkBusy(false);
     }
-  }, [shopDomain, refresh]);
+  }, [shopDomain, refresh, t]);
 
   useEffect(() => {
     if (from && to && from > to) {
@@ -401,15 +383,23 @@ export function ProfitPageClient({
   const spendTodayDisplay = useLiveForToday
     ? liveSpendTotal
     : (analysis?.spendToday ?? 0);
-  const syncLabel = formatSyncTime(live.lastUpdatedAt);
+  const syncLabel = formatSyncTime(live.lastUpdatedAt, bcp47);
   const todayYmd = limaTodayYmd();
+  const syncPart = syncLabel
+    ? t("liveHintSync", { time: syncLabel })
+    : "";
   const hoyHint = useLiveForToday
-    ? `TikTok en vivo · America/Lima${
-        liveBalanceTotal > 0 ? ` · saldo ${moneyUsd(liveBalanceTotal)}` : ""
-      }${syncLabel ? ` · act. ${syncLabel}` : ""}`
+    ? liveBalanceTotal > 0
+      ? t("liveHintWithBalance", {
+          balance: moneyUsd(liveBalanceTotal),
+          sync: syncPart,
+        })
+      : t("liveHintNoBalance", { sync: syncPart })
     : analysis
-      ? `Snapshots · vs ayer ${formatDelta(analysis.spendTodayDeltaPct)}`
-      : "Cargando live…";
+      ? t("snapshotsVsYesterday", {
+          delta: formatDelta(analysis.spendTodayDeltaPct, t("noBaseline")),
+        })
+      : t("loadingLive");
 
   const displayPacing = useMemo(() => {
     if (!analysis) {
@@ -466,16 +456,16 @@ export function ProfitPageClient({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-              Consumo TikTok · hoy
+              {t("spendTodayTitle")}
             </p>
             <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-              Gasto live · solo hoy
+              {t("spendTodaySubtitle")}
             </h2>
             <p className="mt-0.5 text-[12px] text-[#8a8177]">{hoyHint}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadge(displayPacing.pacingLabel).className}`}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadgeClass(displayPacing.pacingLabel)}`}
             >
               {t(`pacing.${displayPacing.pacingLabel}`)}
               {displayPacing.pacingRatio != null
@@ -495,7 +485,7 @@ export function ProfitPageClient({
 
         <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5 sm:px-6">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a9187]">
-            Hoy · {formatDayShort(todayYmd)} · en vivo
+            {t("spendTodayLiveLabel", { date: formatDayShort(todayYmd, bcp47) })}
           </p>
           <p
             className={`mt-1 text-[2.35rem] font-bold tabular-nums tracking-[-0.04em] sm:text-[2.75rem] ${
@@ -508,11 +498,14 @@ export function ProfitPageClient({
           </p>
           {syncLabel ? (
             <p className="mt-1 text-[12px] text-[#8a8177]">
-              Última sync {syncLabel} · se refresca cada {live.pollSeconds}s
+              {t("lastSyncPoll", {
+                time: syncLabel,
+                seconds: live.pollSeconds,
+              })}
             </p>
           ) : (
             <p className="mt-1 text-[12px] text-[#8a8177]">
-              Consultando TikTok report de hoy…
+              {t("queryingToday")}
             </p>
           )}
         </div>
@@ -529,7 +522,7 @@ export function ProfitPageClient({
                     {acc.accountName}
                   </p>
                   <p className="truncate text-[11px] tabular-nums text-[#9a9187]">
-                    {acc.bmBucket ? `BM ${acc.bmBucket} · ` : ""}
+                    {acc.bmBucket ? `${t("bmLabel")} ${acc.bmBucket} · ` : ""}
                     {acc.advertiserId}
                   </p>
                 </div>
@@ -543,21 +536,22 @@ export function ProfitPageClient({
 
         {live.error ? (
           <p className="text-[12px] font-medium text-amber-800" role="alert">
-            Live: {live.error}
             {analysis
-              ? ` · mostrando snapshots (${moneyUsd(analysis.spendToday)})`
-              : ""}
+              ? t("liveFallback", {
+                  error: live.error,
+                  amount: moneyUsd(analysis.spendToday),
+                })
+              : t("liveErrorOnly", { error: live.error })}
           </p>
         ) : null}
       </section>
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
         <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-          Rango de calendario
+          {t("calendarRangeTitle")}
         </p>
         <p className="mb-3 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-          Filtra el ranking y el performance TikTok. El gasto live de arriba
-          siempre es solo hoy.
+          {t("calendarRangeBody")}
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <ProfitDateRangeField
@@ -591,14 +585,19 @@ export function ProfitPageClient({
                   {t("campaignsSubtitle")}
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                  Rango {formatRangeLabel(analysis.from, analysis.to)}
+                  {t("rangeMeta", {
+                    range: formatRangeLabel(analysis.from, analysis.to, bcp47),
+                  })}
                   {analysis.daysWithActivity
-                    ? ` · ${analysis.daysWithActivity} días con gasto`
+                    ? ` · ${t("daysWithSpend", { count: analysis.daysWithActivity })}`
                     : ""}
                   {analysis.perf?.fetchedAt
-                    ? ` · perf act. ${formatSyncTime(analysis.perf.fetchedAt)}`
+                    ? ` · ${t("perfUpdated", {
+                        time:
+                          formatSyncTime(analysis.perf.fetchedAt, bcp47) ?? "—",
+                      })}`
                     : ""}
-                  {" · en el rango "}
+                  {` · ${t("inRangeSpend")} `}
                   <span className="font-semibold text-[#1c1917]">
                     {moneyUsd(analysis.spendInRange)}
                   </span>
@@ -612,7 +611,7 @@ export function ProfitPageClient({
                     value={bmFilter}
                     onChange={(e) => setBmFilter(e.target.value)}
                   >
-                    <option value="all">Todas</option>
+                    <option value="all">{t("allBm")}</option>
                     {bmOptions.map((bm) => (
                       <option key={bm} value={bm}>
                         {bm}
@@ -626,42 +625,47 @@ export function ProfitPageClient({
             {analysis.perf ? (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Kpi
-                  label="Impresiones"
+                  label={t("kpiImpressions")}
                   value={
                     analysis.perf.available
-                      ? analysis.perf.impressions.toLocaleString("en-US")
+                      ? analysis.perf.impressions.toLocaleString(bcp47)
                       : "—"
                   }
                   hint={
                     analysis.perf.error
                       ? analysis.perf.error
-                      : `${analysis.perf.advertisersOk}/${analysis.perf.advertisersQueried} cuentas OK`
+                      : t("kpiAccountsOk", {
+                          ok: analysis.perf.advertisersOk,
+                          total: analysis.perf.advertisersQueried,
+                        })
                   }
                 />
                 <Kpi
-                  label="Clicks"
+                  label={t("kpiClicks")}
                   value={
                     analysis.perf.available
-                      ? analysis.perf.clicks.toLocaleString("en-US")
+                      ? analysis.perf.clicks.toLocaleString(bcp47)
                       : "—"
                   }
                   hint={
                     analysis.perf.conversions > 0
-                      ? `${analysis.perf.conversions.toLocaleString("en-US")} conv.`
-                      : "Report TikTok"
+                      ? t("kpiConv", {
+                          count: analysis.perf.conversions.toLocaleString(bcp47),
+                        })
+                      : t("kpiReportTikTok")
                   }
                 />
                 <Kpi
-                  label="CTR medio"
+                  label={t("kpiAvgCtr")}
                   value={
                     analysis.perf.avgCtr != null
                       ? `${analysis.perf.avgCtr.toFixed(2)}%`
                       : "—"
                   }
-                  hint="Clicks ÷ impresiones"
+                  hint={t("kpiCtrHint")}
                 />
                 <Kpi
-                  label="CPC medio"
+                  label={t("kpiAvgCpc")}
                   value={
                     analysis.perf.avgCpc != null
                       ? moneyUsd(analysis.perf.avgCpc)
@@ -669,8 +673,10 @@ export function ProfitPageClient({
                   }
                   hint={
                     analysis.perf.avgCpm != null
-                      ? `CPM ${moneyUsd(analysis.perf.avgCpm)}`
-                      : "Gasto ÷ clicks"
+                      ? t("kpiCpmPrefix", {
+                          amount: moneyUsd(analysis.perf.avgCpm),
+                        })
+                      : t("kpiSpendClicks")
                   }
                   accent
                 />
@@ -680,31 +686,33 @@ export function ProfitPageClient({
             {analysis.hasCodLink ? (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Kpi
-                  label="Cobrado COD"
+                  label={t("kpiCollectedCod")}
                   value={formatMoney(analysis.collectedRevenue, "PEN")}
-                  hint={`${analysis.ordersCollected ?? 0} órdenes collected`}
+                  hint={t("kpiOrdersCollected", {
+                    count: analysis.ordersCollected ?? 0,
+                  })}
                 />
                 <Kpi
-                  label="CPA cobrado"
+                  label={t("kpiCpaCollected")}
                   value={
                     analysis.cpaCollected != null
                       ? moneyUsd(analysis.cpaCollected)
                       : "—"
                   }
-                  hint="Gasto ÷ órdenes collected"
+                  hint={t("kpiCpaHint")}
                 />
                 <Kpi
-                  label="ROAS cobrado"
+                  label={t("kpiRoasCollected")}
                   value={
                     analysis.roasCollected != null
                       ? `${analysis.roasCollected.toFixed(2)}x`
                       : "—"
                   }
-                  hint="Cobrado ÷ gasto Holistic"
+                  hint={t("kpiRoasHint")}
                   accent
                 />
                 <Kpi
-                  label="ROAS efectivo"
+                  label={t("kpiRoasEffective")}
                   value={
                     analysis.roasEffective != null
                       ? `${analysis.roasEffective.toFixed(2)}x`
@@ -712,24 +720,32 @@ export function ProfitPageClient({
                   }
                   hint={
                     analysis.aboveBreakEven == null
-                      ? `BE ${analysis.breakEvenRoas?.toFixed(2) ?? "—"}x · fee ${analysis.feePercent ?? "—"}%`
+                      ? t("kpiBeFee", {
+                          be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                          fee: analysis.feePercent ?? "—",
+                        })
                       : analysis.aboveBreakEven
-                        ? `Sobre BE ${analysis.breakEvenRoas?.toFixed(2)}x · fee ${analysis.feePercent}%`
-                        : `Bajo BE ${analysis.breakEvenRoas?.toFixed(2)}x · fee ${analysis.feePercent}%`
+                        ? t("kpiAboveBe", {
+                            be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                            fee: analysis.feePercent ?? "—",
+                          })
+                        : t("kpiBelowBe", {
+                            be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                            fee: analysis.feePercent ?? "—",
+                          })
                   }
                 />
               </div>
             ) : analysis.feePercent != null ? (
               <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3 text-[12px] text-[#5c564e]">
-                Fee Holistic {analysis.feePercent}% · coste efectivo del rango{" "}
-                <span className="font-semibold text-[#1c1917]">
-                  {moneyUsd(analysis.effectiveAdSpend ?? analysis.spendInRange)}
-                </span>{" "}
-                · BE ROAS (solo ads+fee){" "}
-                <span className="font-semibold text-[#1c1917]">
-                  {analysis.breakEvenRoas?.toFixed(2)}x
-                </span>
-                . {t("emptyConnectStore")}
+                {t("feeHolisticLine", {
+                  fee: analysis.feePercent,
+                  spend: moneyUsd(
+                    analysis.effectiveAdSpend ?? analysis.spendInRange,
+                  ),
+                  be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                })}{" "}
+                {t("emptyConnectStore")}
               </div>
             ) : null}
 
@@ -757,7 +773,7 @@ export function ProfitPageClient({
                         </button>
                       </th>
                       <th className="whitespace-nowrap px-2.5 py-2.5 font-bold">
-                        Entrega
+                        {t("colDelivery")}
                       </th>
                       <th className="px-2.5 py-2.5 font-bold">{t("colBm")}</th>
                       <th className="px-2.5 py-2.5">
@@ -779,7 +795,7 @@ export function ProfitPageClient({
                         </button>
                       </th>
                       <th className="px-2.5 py-2.5 font-bold">{t("colImp")}</th>
-                      <th className="px-2.5 py-2.5 font-bold">Clicks</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colClicks")}</th>
                       <th className="px-2.5 py-2.5">
                         <button
                           type="button"
@@ -800,7 +816,7 @@ export function ProfitPageClient({
                       </th>
                       <th className="px-2.5 py-2.5 font-bold">{t("colCpm")}</th>
                       <th className="px-2.5 py-2.5 font-bold">{t("colConv")}</th>
-                      <th className="px-2.5 py-2.5 font-bold">CPA</th>
+                      <th className="px-2.5 py-2.5 font-bold">{t("colCpa")}</th>
                       {analysis.hasCodLink ? (
                         <>
                           <th className="px-2.5 py-2.5 font-bold">{t("colCharged")}</th>
@@ -823,10 +839,10 @@ export function ProfitPageClient({
                         ? null
                         : c.campaignExternalId;
                       const deliveryDate = c.lastStatDate
-                        ? formatDayShort(c.lastStatDate)
-                        : formatRangeLabel(analysis.from, analysis.to);
+                        ? formatDayShort(c.lastStatDate, bcp47)
+                        : formatRangeLabel(analysis.from, analysis.to, bcp47);
                       const deliveryTime = c.hasTikTokPerf
-                        ? formatSyncTime(analysis.perf?.fetchedAt ?? null)
+                        ? formatSyncTime(analysis.perf?.fetchedAt ?? null, bcp47)
                         : null;
                       return (
                         <tr
@@ -838,10 +854,12 @@ export function ProfitPageClient({
                               {c.campaignName}
                             </p>
                             <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
-                              {idShown ?? "sin id"}
+                              {idShown ?? t("noId")}
                             </p>
                             <p className="mt-0.5 truncate text-[10px] text-[#b0a89e]">
-                              {c.hasTikTokPerf ? "perf TikTok" : "solo Holistic"}
+                              {c.hasTikTokPerf
+                                ? t("perfTikTok")
+                                : t("onlyHolistic")}
                               {c.advertiserId ? ` · ${c.advertiserId}` : ""}
                             </p>
                           </td>
@@ -856,7 +874,7 @@ export function ProfitPageClient({
                             </p>
                             {deliveryTime ? (
                               <p className="mt-0.5 text-[10px] font-medium text-[#c2410c]">
-                                act. {deliveryTime}
+                                {t("updatedShort", { time: deliveryTime })}
                               </p>
                             ) : null}
                           </td>
@@ -871,12 +889,12 @@ export function ProfitPageClient({
                           </td>
                           <td className="px-2.5 py-2.5 tabular-nums">
                             {c.impressions != null
-                              ? c.impressions.toLocaleString("en-US")
+                              ? c.impressions.toLocaleString(bcp47)
                               : "—"}
                           </td>
                           <td className="px-2.5 py-2.5 tabular-nums">
                             {c.clicks != null
-                              ? c.clicks.toLocaleString("en-US")
+                              ? c.clicks.toLocaleString(bcp47)
                               : "—"}
                           </td>
                           <td className="px-2.5 py-2.5 tabular-nums">
@@ -890,7 +908,7 @@ export function ProfitPageClient({
                           </td>
                           <td className="px-2.5 py-2.5 tabular-nums">
                             {c.conversions != null
-                              ? c.conversions.toLocaleString("en-US")
+                              ? c.conversions.toLocaleString(bcp47)
                               : "—"}
                           </td>
                           <td className="px-2.5 py-2.5 tabular-nums">
@@ -928,12 +946,12 @@ export function ProfitPageClient({
         {subscription?.isActive && analysis && !analysis.hasCodLink ? (
           <div className="border-b border-[#ffd7b8] bg-[#fff7f0] px-5 py-4 sm:px-6">
             <p className="text-[13px] font-bold text-[#9a3412]">
-              COD activo · falta vincular la tienda
+              {t("shopifyCodPendingTitle")}
             </p>
             <p className="mt-1 max-w-xl text-[12.5px] leading-5 text-[#9a3412]/90">
-              Ya pagaste Real Profit. Instala la app en Shopify (si aún no) y
-              toca <span className="font-semibold">Ya instalé — vincular</span>{" "}
-              para jalar pedidos cobrados.
+              {t("shopifyCodPendingBody", {
+                action: t("shopifyAlreadyInstalled"),
+              })}
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
               <a
@@ -946,15 +964,15 @@ export function ProfitPageClient({
                 rel="noreferrer"
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 text-[13px] font-semibold text-[#c2410c] transition hover:bg-[#fffaf6]"
               >
-                Instalar app Shopify
-              </a>
+                  {t("modal.installInShopify")}
+                </a>
               <button
                 type="button"
                 disabled={linkBusy}
                 onClick={() => void retryLinkStore()}
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] disabled:opacity-60"
               >
-                {linkBusy ? "Vinculando…" : "Ya instalé — vincular"}
+                {linkBusy ? t("shopifyLinking") : t("shopifyAlreadyInstalled")}
               </button>
             </div>
             {linkErr ? (
@@ -973,40 +991,38 @@ export function ProfitPageClient({
         {analysis?.hasCodLink ? (
           <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700">
-              Shopify · conectada
+              {t("shopifyConnectedEyebrow")}
             </p>
             <h2 className="mt-1.5 text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-              Pedidos COD sincronizados
+              {t("shopifyConnectedTitle")}
             </h2>
             <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              Estamos jalando lo cobrado real de tu tienda para el ROAS / CPA
-              del período.
+              {t("shopifyConnectedBody")}
             </p>
           </div>
         ) : (
           <>
             <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_55%,#faf8f5_100%)] px-5 py-5 sm:px-6">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-                Con Shopify · Real Profit COD
+                {t("shopifyOfferEyebrow")}
               </p>
               <h2 className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)] sm:text-[1.45rem]">
-                ¿Vendes en Shopify?
+                {t("shopifyOfferTitle")}
               </h2>
               <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                Conecta tu tienda para jalar pedidos y ventas reales. Mira la
-                plata que{" "}
+                {t("shopifyOfferBodyBefore")}{" "}
                 <span className="font-semibold text-[var(--auth-text)]">
-                  sí cobraste
-                </span>
-                — no solo el gasto en ads. ROAS y CPA sobre lo cobrado COD.
+                  {t("shopifyOfferBodyHighlight")}
+                </span>{" "}
+                {t("shopifyOfferBodyAfter")}
               </p>
 
               <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
                 {[
-                  "Pedidos y ventas desde tu tienda",
-                  "Cobrado COD · plata que sí llegó",
-                  "ROAS / CPA sobre lo cobrado",
-                  "Saber cuánto verdaderamente neto ganas",
+                  t("shopifyBenefit1"),
+                  t("shopifyBenefit2"),
+                  t("shopifyBenefit3"),
+                  t("shopifyBenefit4"),
                 ].map((item) => (
                   <li
                     key={item}
@@ -1026,7 +1042,7 @@ export function ProfitPageClient({
               <div className="mt-5 flex flex-wrap items-end gap-4 border-t border-[var(--auth-divider)] pt-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                    Precio cliente Holistic
+                    {t("shopifyPriceLabel")}
                   </p>
                   <p className="mt-1 flex flex-wrap items-baseline gap-2">
                     <span className="text-[15px] font-medium tabular-nums text-[#b0a89e] line-through">
@@ -1036,7 +1052,7 @@ export function ProfitPageClient({
                       $20
                     </span>
                     <span className="text-[12px] font-medium text-[var(--auth-text-muted)]">
-                      / mes
+                      {t("shopifyPerMonth")}
                     </span>
                   </p>
                 </div>
@@ -1045,7 +1061,7 @@ export function ProfitPageClient({
 
             <div className="px-5 py-5 sm:px-6 sm:py-6">
               <p className="mb-3 text-[13px] font-semibold text-[var(--auth-text)]">
-                Dominio de tu tienda
+                {t("shopifyDomainLabel")}
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--auth-border)] bg-[#faf8f5] transition focus-within:border-[var(--auth-accent)]/45 focus-within:bg-white focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/20">
@@ -1056,7 +1072,7 @@ export function ProfitPageClient({
                     type="text"
                     inputMode="url"
                     autoComplete="off"
-                    placeholder="mitienda.myshopify.com"
+                    placeholder={t("shopifyDomainPlaceholder")}
                     value={shopDomain}
                     onChange={(e) => setShopDomain(e.target.value)}
                     onKeyDown={(e) => {
@@ -1083,7 +1099,7 @@ export function ProfitPageClient({
                     onClick={() => void retryLinkStore()}
                     className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] disabled:opacity-60 sm:w-auto"
                   >
-                    {linkBusy ? "Vinculando…" : "Vincular tienda"}
+                    {linkBusy ? t("shopifyLinking") : t("shopifyLinkStore")}
                   </button>
                 ) : (
                   <button
@@ -1091,17 +1107,16 @@ export function ProfitPageClient({
                     onClick={openShopifyModal}
                     className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] sm:w-auto"
                   >
-                    Conectar Shopify · $20/mes
+                    {t("shopifyConnectCta")}
                   </button>
                 )}
               </div>
               <p className="mt-4 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-                Transferencia a la misma cuenta Holistic + voucher. Activación
-                cuando el equipo aprueba el comprobante.
+                {t("shopifyVoucherHint")}
               </p>
               <a
                 href={`https://wa.me/51933484150?text=${encodeURIComponent(
-                  "Hola, tengo dudas e interés para adquirir Real Profit COD",
+                  t("shopifyWhatsappPrefill"),
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1119,10 +1134,10 @@ export function ProfitPageClient({
                 </span>
                 <span className="min-w-0 text-left">
                   <span className="block text-[13px] font-semibold text-[#166534]">
-                    ¿Tienes dudas? Escríbenos
+                    {t("shopifyWhatsappTitle")}
                   </span>
                   <span className="block text-[11.5px] text-[#15803d]/90">
-                    Te respondemos por WhatsApp · Real Profit COD
+                    {t("shopifyWhatsappSubtitle")}
                   </span>
                 </span>
               </a>
@@ -1134,7 +1149,7 @@ export function ProfitPageClient({
       {snapshots.length > 0 ? (
         <section className="space-y-3">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            Cobrado COD activo
+            {t("snapshotCodTitle")}
           </p>
           {snapshots.map((snap) => (
             <div
@@ -1146,27 +1161,27 @@ export function ProfitPageClient({
                   {snap.store.name}
                 </p>
                 <p className="text-[11px] text-[#8a8177]">
-                  Pedidos sincronizados · cobrado del período
+                  {t("snapshotOrdersHint")}
                 </p>
               </div>
               <Kpi
-                label="Cobrado"
+                label={t("snapshotCollected")}
                 value={formatMoney(snap.collectedRevenue, snap.store.currency)}
-                hint={`${snap.ordersCollected} órdenes`}
+                hint={t("snapshotOrders", { count: snap.ordersCollected })}
               />
               <Kpi
-                label="Gasto"
+                label={t("snapshotSpend")}
                 value={formatMoney(snap.adSpend, snap.store.currency)}
-                hint="Ads del período"
+                hint={t("snapSpendHint")}
               />
               <Kpi
-                label="ROAS"
+                label={t("snapshotRoas")}
                 value={
                   snap.roasCollected != null
                     ? `${snap.roasCollected.toFixed(2)}x`
                     : "—"
                 }
-                hint="Cobrado ÷ gasto"
+                hint={t("snapRoasHint")}
                 accent
               />
             </div>
@@ -1226,6 +1241,9 @@ function ShopifyConnectModal({
   onSubscriptionChange: (sub: RpSubscription) => void;
   onLinked?: () => void | Promise<void>;
 }) {
+  const t = useTranslations("profit");
+  const tCommon = useTranslations("common");
+  const tm = useTranslations("profit.modal");
   const [mounted, setMounted] = useState(false);
   const [payStep, setPayStep] = useState<"offer" | "deposit" | "done">(
     subscription?.isActive ? "done" : "offer",
@@ -1275,7 +1293,7 @@ function ShopifyConnectModal({
         subscription?: RpSubscription;
       };
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudo iniciar el pago.");
+        throw new Error(json.error || tm("payStartError"));
       }
       if (json.alreadyActive && json.subscription) {
         onSubscriptionChange(json.subscription);
@@ -1286,7 +1304,7 @@ function ShopifyConnectModal({
       setBankAccounts(json.bankAccounts ?? []);
       setPayStep("deposit");
     } catch (e) {
-      setPayError(e instanceof Error ? e.message : "Error al iniciar pago");
+      setPayError(e instanceof Error ? e.message : tm("payStartErrorShort"));
     } finally {
       setLoadingPay(false);
     }
@@ -1294,7 +1312,7 @@ function ShopifyConnectModal({
 
   async function uploadProof() {
     if (!paymentIntentId || !proofFile) {
-      setPayError("Elige el voucher o comprobante.");
+      setPayError(tm("pickProof"));
       return;
     }
     setUploading(true);
@@ -1308,7 +1326,7 @@ function ShopifyConnectModal({
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudo subir el comprobante.");
+        throw new Error(json.error || tm("uploadError"));
       }
       onSubscriptionChange({
         status: "pending_payment",
@@ -1317,7 +1335,7 @@ function ShopifyConnectModal({
       });
       setPayStep("done");
     } catch (e) {
-      setPayError(e instanceof Error ? e.message : "Error al subir voucher");
+      setPayError(e instanceof Error ? e.message : tm("uploadErrorShort"));
     } finally {
       setUploading(false);
     }
@@ -1347,19 +1365,19 @@ function ShopifyConnectModal({
         <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
           <div>
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-              Gratuito vs Real Profit COD
+              {tm("compareEyebrow")}
             </p>
             <h3
               id="shopify-connect-title"
               className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]"
             >
               {payStep === "deposit"
-                ? "Depósito $20 · Real Profit COD"
+                ? tm("depositTitle")
                 : awaitingReview
-                  ? "Comprobante en revisión"
+                  ? tm("proofReviewTitle")
                   : isActive
-                    ? "Real Profit COD activo"
-                    : "Qué tienes hoy vs qué desbloqueas"}
+                    ? tm("activeTitle")
+                    : tm("offerTitle")}
             </h3>
             {domain ? (
               <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
@@ -1372,7 +1390,7 @@ function ShopifyConnectModal({
             onClick={onClose}
             className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
           >
-            Cerrar
+            {tCommon("close")}
           </button>
         </div>
 
@@ -1380,37 +1398,37 @@ function ShopifyConnectModal({
           <div className="grid gap-0 sm:grid-cols-2">
             <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-                Incluido · Holistic
+                {tm("includedEyebrow")}
               </p>
               <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-                Análisis de campañas
+                {tm("includedTitle")}
               </p>
               <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Gasto TikTok live + ranking del rango
+                  {tm("freeFeature1")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Impresiones, CTR / CPC / CPM
+                  {tm("freeFeature2")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  Spend hoy en vivo + fee Holistic
+                  {tm("freeFeature3")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  BE ROAS estimado (ads + fee)
+                  {tm("freeFeature4")}
                 </li>
               </ul>
               <div className="mt-4 border-t border-[#f0ebe4] pt-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                  Precio
+                  {tm("price")}
                 </p>
                 <p className="mt-1 text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
                   $0{" "}
                   <span className="text-[12px] font-medium text-[#6b645c]">
-                    · gratis
+                    · {tm("free")}
                   </span>
                 </p>
               </div>
@@ -1418,32 +1436,32 @@ function ShopifyConnectModal({
 
             <div className="flex flex-col px-5 py-5 sm:px-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-                Con Shopify · Real Profit COD
+                {t("shopifyOfferEyebrow")}
               </p>
               <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-                Ventas reales y ganancia neta
+                {tm("paidTitle")}
               </p>
               <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
                 <li className="flex gap-2">
                   <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  Pedidos y ventas desde tu tienda
+                  {t("shopifyBenefit1")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  Cobrado COD · plata que sí llegó
+                  {t("shopifyBenefit2")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  ROAS / CPA sobre lo cobrado
+                  {t("shopifyBenefit3")}
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  Saber cuánto verdaderamente neto ganas
+                  {t("shopifyBenefit4")}
                 </li>
               </ul>
               <div className="mt-4 border-t border-[#f0ebe4] pt-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                  Precio cliente Holistic
+                  {t("shopifyPriceLabel")}
                 </p>
                 <p className="mt-1 flex flex-wrap items-baseline gap-2">
                   <span className="text-[14px] font-medium tabular-nums text-[#b0a89e] line-through">
@@ -1453,7 +1471,7 @@ function ShopifyConnectModal({
                     $20
                   </span>
                   <span className="text-[11px] font-medium text-[#6b645c]">
-                    / mes
+                    {t("shopifyPerMonth")}
                   </span>
                 </p>
                 {payError ? (
@@ -1465,14 +1483,14 @@ function ShopifyConnectModal({
                   onClick={() => void startDeposit()}
                   className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
                 >
-                  {loadingPay ? "Preparando…" : "Pagar $20 / mes"}
+                  {loadingPay ? tm("preparing") : tm("payCta")}
                 </button>
                 <p className="mt-2 text-[11px] leading-4 text-[#9a9187]">
-                  Transferencia a la misma cuenta Holistic + voucher.
+                  {tm("voucherShort")}
                 </p>
                 <a
                   href={`https://wa.me/51933484150?text=${encodeURIComponent(
-                    "Hola, tengo dudas e interés para adquirir Real Profit COD",
+                    t("shopifyWhatsappPrefill"),
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1486,7 +1504,7 @@ function ShopifyConnectModal({
                   >
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                   </svg>
-                  ¿Tienes dudas? Escríbenos
+                  {t("shopifyWhatsappTitle")}
                 </a>
               </div>
             </div>
@@ -1496,9 +1514,7 @@ function ShopifyConnectModal({
         {payStep === "deposit" ? (
           <div className="space-y-4 px-5 py-5 sm:px-6">
             <p className="text-[13px] leading-5 text-[#5c564e]">
-              Depositá <strong className="text-[#1c1917]">USD 20</strong> a
-              esta cuenta (la misma de recargas Holistic) y sube el voucher.
-              El equipo revisa y activa Real Profit COD.
+              {tm("depositBody")}
             </p>
             <div className="space-y-3">
               {bankAccounts.map((acc) => (
@@ -1510,21 +1526,21 @@ function ShopifyConnectModal({
                     {acc.label}
                   </p>
                   <p className="mt-1 text-[12px] text-[#5c564e]">
-                    Titular: {acc.holder}
+                    {tm("holder", { name: acc.holder })}
                   </p>
                   <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
-                    Cuenta: {acc.accountNumber}
+                    {tm("account", { number: acc.accountNumber })}
                   </p>
                   {acc.cci ? (
                     <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
-                      CCI: {acc.cci}
+                      {tm("cci", { cci: acc.cci })}
                     </p>
                   ) : null}
                 </div>
               ))}
             </div>
             <label className="block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-              Comprobante
+              {tm("proof")}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -1541,7 +1557,7 @@ function ShopifyConnectModal({
                 onClick={() => setPayStep("offer")}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[#e7e0d8] px-4 text-[13px] font-semibold text-[#5c564e]"
               >
-                Volver
+                {tCommon("back")}
               </button>
               <button
                 type="button"
@@ -1549,7 +1565,7 @@ function ShopifyConnectModal({
                 onClick={() => void uploadProof()}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#1c1917] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
               >
-                {uploading ? "Subiendo…" : "Enviar voucher"}
+                {uploading ? tm("uploading") : tm("sendVoucher")}
               </button>
             </div>
           </div>
@@ -1560,12 +1576,11 @@ function ShopifyConnectModal({
             {isActive ? (
               <>
                 <p className="text-[13px] leading-5 text-[#5c564e]">
-                  Real Profit COD activo
                   {subscription?.activeUntil
-                    ? ` hasta ${subscription.activeUntil.slice(0, 10)}`
-                    : ""}
-                  . Instala la app en Shopify y después vincula para jalar
-                  pedidos cobrados.
+                    ? tm("activeUntil", {
+                        date: subscription.activeUntil.slice(0, 10),
+                      })
+                    : tm("activeNoUntil")}
                 </p>
                 <a
                   href={installUrl}
@@ -1573,7 +1588,7 @@ function ShopifyConnectModal({
                   rel="noreferrer"
                   className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
                 >
-                  Instalar app en Shopify
+                  {tm("installInShopify")}
                 </a>
                 <button
                   type="button"
@@ -1599,15 +1614,16 @@ function ShopifyConnectModal({
                         };
                         if (!res.ok || !json.ok) {
                           throw new Error(
-                            json.error ||
-                              "No se pudo vincular. Instala la app y reintenta.",
+                            json.error || t("shopifyLinkFailDefault"),
                           );
                         }
-                        setLinkFeedback(json.message || "Tienda vinculada.");
+                        setLinkFeedback(json.message || t("shopifyLinkedMsg"));
                         await onLinked?.();
                       } catch (e) {
                         setPayError(
-                          e instanceof Error ? e.message : "Error al vincular",
+                          e instanceof Error
+                            ? e.message
+                            : t("shopifyLinkError"),
                         );
                       } finally {
                         setLinkBusy(false);
@@ -1616,7 +1632,7 @@ function ShopifyConnectModal({
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:bg-[#faf8f5] disabled:opacity-60"
                 >
-                  {linkBusy ? "Vinculando…" : "Ya instalé — vincular"}
+                  {linkBusy ? t("shopifyLinking") : t("shopifyAlreadyInstalled")}
                 </button>
                 {linkFeedback ? (
                   <p className="text-[12px] font-medium text-emerald-800">
@@ -1629,8 +1645,7 @@ function ShopifyConnectModal({
               </>
             ) : (
               <p className="text-[13px] leading-5 text-[#5c564e]">
-                Comprobante enviado. Cuando el equipo lo apruebe, vas a poder
-                instalar Real Profit en Shopify y vincular desde acá.
+                {tm("proofSent")}
               </p>
             )}
           </div>

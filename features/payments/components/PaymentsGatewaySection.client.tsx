@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { PaymentGatewaySelector } from "./PaymentGatewaySelector.client";
 import { PaymentsMoneyFlowGuide } from "./PaymentsMoneyFlowGuide";
 import {
@@ -40,6 +41,7 @@ export function PaymentsGatewaySection({
   wallet,
   depositFeePercent = 10,
 }: PaymentsGatewaySectionProps) {
+  const t = useTranslations("payments");
   const selectedGateway = gateways.find((gateway) => gateway.id === selected);
   const selectedInMaintenance = Boolean(selectedGateway?.maintenance);
   const showClientDeposit = canClientStripeFund && fundingMode === "client";
@@ -67,10 +69,10 @@ export function PaymentsGatewaySection({
              */}
             <div className="min-w-0">
               <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-                Recargar saldo
+                {t("reloadSection.title")}
               </h2>
               <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                Elige un método e ingresa cuánto saldo quieres agregar a la cartera.
+                {t("reloadSection.body")}
               </p>
             </div>
             <PaymentsMoneyFlowGuide />
@@ -79,7 +81,7 @@ export function PaymentsGatewaySection({
           <div className="px-5 py-5 sm:px-6 sm:py-6">
             <fieldset>
               <legend className="mb-3 text-[13px] font-semibold text-[var(--auth-text)]">
-                Método de pago
+                {t("reloadSection.method")}
               </legend>
               <PaymentGatewaySelector
                 gateways={gateways}
@@ -96,10 +98,12 @@ export function PaymentsGatewaySection({
                 className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {selectedInMaintenance
-                  ? "No disponible"
+                  ? t("reloadSection.unavailable")
                   : selectedGateway
-                    ? `Recargar con ${selectedGateway.name}`
-                    : "Recargar saldo"}
+                    ? t("reloadSection.reloadWith", {
+                        name: selectedGateway.name,
+                      })
+                    : t("reloadSection.title")}
               </button>
               <WalletSummaryActions
                 availableBalance={wallet.balance}
@@ -110,25 +114,33 @@ export function PaymentsGatewaySection({
 
             <details className="mt-5 border-t border-[var(--auth-divider)] pt-4 text-[12px] text-[var(--auth-text-muted)]">
               <summary className="cursor-pointer font-medium outline-none hover:text-[var(--auth-text)] focus-visible:text-[var(--auth-text)]">
-                Detalles de la cartera y comisiones
+                {t("reloadSection.walletDetails")}
               </summary>
               <dl className="mt-3 grid gap-3 sm:grid-cols-3">
                 <div>
-                  <dt className="text-[var(--auth-text-soft)]">Cartera</dt>
+                  <dt className="text-[var(--auth-text-soft)]">
+                    {t("reloadSection.wallet")}
+                  </dt>
                   <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
                     {wallet.name}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--auth-text-soft)]">Última recarga</dt>
+                  <dt className="text-[var(--auth-text-soft)]">
+                    {t("reloadSection.lastTopUp")}
+                  </dt>
                   <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
-                    {wallet.lastTopUp ?? "Sin registros"}
+                    {wallet.lastTopUp ?? t("walletCard.noRecords")}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--auth-text-soft)]">Fee Holistic</dt>
+                  <dt className="text-[var(--auth-text-soft)]">
+                    {t("reloadSection.feeHolistic")}
+                  </dt>
                   <dd className="mt-0.5 font-medium text-[var(--auth-text)]">
-                    {depositFeePercent}% sobre el monto neto
+                    {t("reloadSection.feeOnNet", {
+                      percent: depositFeePercent,
+                    })}
                   </dd>
                 </div>
               </dl>
@@ -138,16 +150,16 @@ export function PaymentsGatewaySection({
       ) : (
         <section className="rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-5 sm:px-6 sm:py-6">
           <h2 className="text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-            Recargar desde el Business Center
+            {t("reloadSection.bmTitle")}
           </h2>
           <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-            Elige una cuenta de TikTok y transfiere el saldo disponible del BM.
+            {t("reloadSection.bmBody")}
           </p>
           <a
             href="#asignar-saldo"
             className="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
           >
-            Elegir cuenta
+            {t("reloadSection.pickAccount")}
           </a>
         </section>
       )}

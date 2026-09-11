@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -64,6 +65,8 @@ export function CreditLockPanel({
   canReviewCredit = false,
   visible = true,
 }: CreditLockPanelProps) {
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -94,11 +97,11 @@ export function CreditLockPanel({
         setAmountInput(String(Math.round(data.cupo.requestedCreditUsd)));
       }
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo cargar el crédito."));
+      setError(userErrorMessage(err, t("creditLock.errLoad")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!visible) return;
@@ -117,11 +120,11 @@ export function CreditLockPanel({
           method: "POST",
           body: JSON.stringify({ sessionId }),
         });
-        setSuccess("Tarjeta guardada. Tu crédito Holistic ya está activo.");
+        setSuccess(t("creditLock.successCard"));
         router.replace("/payments");
         await load();
       } catch (err) {
-        setError(userErrorMessage(err, "No se pudo confirmar la tarjeta."));
+        setError(userErrorMessage(err, t("creditLock.errConfirmCard")));
       }
     })();
   }, [searchParams, router, load, visible]);
@@ -156,7 +159,7 @@ export function CreditLockPanel({
       "/api/billing/setup-session",
       { method: "POST", body: JSON.stringify({}) },
     );
-    if (!data.checkoutUrl) throw new Error("Stripe no devolvió URL.");
+    if (!data.checkoutUrl) throw new Error(t("creditLock.errStripeUrl"));
     window.location.href = data.checkoutUrl;
   }
 
@@ -164,7 +167,7 @@ export function CreditLockPanel({
   async function handleRequest() {
     const usd = Number(amountInput);
     if (!Number.isFinite(usd) || usd < 50) {
-      setError("Elige un monto de al menos $50.");
+      setError(t("creditLock.errMin50"));
       return;
     }
 
@@ -174,10 +177,10 @@ export function CreditLockPanel({
     try {
       await saveCupo(usd);
       setSuccess(
-        "Pedido enviado. Gerencia revisa y te avisa cuando puedas registrar la tarjeta.",
+        t("creditLock.successRequested"),
       );
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo enviar el pedido."));
+      setError(userErrorMessage(err, t("creditLock.errRequest")));
     } finally {
       setBusy(false);
     }
@@ -191,7 +194,7 @@ export function CreditLockPanel({
     try {
       await openStripe();
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo abrir Stripe."));
+      setError(userErrorMessage(err, t("creditLock.errOpenStripe")));
       setBusy(false);
     }
   }
@@ -199,7 +202,7 @@ export function CreditLockPanel({
   async function handleUpdateAmount() {
     const usd = Number(amountInput);
     if (!Number.isFinite(usd) || usd < 50) {
-      setError("Elige un monto de al menos $50.");
+      setError(t("creditLock.errMin50"));
       return;
     }
     setBusy(true);
@@ -209,13 +212,13 @@ export function CreditLockPanel({
       const next = await saveCupo(usd);
       if (approvalOf(next) === "requested") {
         setSuccess(
-          "Monto actualizado. Vuelve a revisión de gerencia (si cambió el cupo).",
+          t("creditLock.successAmountUpdated"),
         );
       } else {
-        setSuccess(`Cupo actualizado a ${formatMoney(usd, "USD")}.`);
+        setSuccess(t("creditLock.successCupoUpdated", { amount: formatMoney(usd, "USD") }));
       }
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo actualizar el cupo."));
+      setError(userErrorMessage(err, t("creditLock.errUpdateCupo")));
     } finally {
       setBusy(false);
     }
@@ -236,11 +239,11 @@ export function CreditLockPanel({
       setCupo(data.cupo);
       setSuccess(
         decision === "approved"
-          ? "Crédito aceptado. El cliente ya puede registrar la tarjeta Stripe."
-          : "Pedido rechazado.",
+          ? t("creditLock.successApproved")
+          : t("creditLock.successRejected"),
       );
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo registrar la decisión."));
+      setError(userErrorMessage(err, t("creditLock.errReview")));
     } finally {
       setReviewBusy(null);
     }
@@ -248,7 +251,7 @@ export function CreditLockPanel({
 
   async function handleDetach() {
     const ok = window.confirm(
-      "¿Quitar esta tarjeta? Puedes volver a registrarla cuando quieras.",
+      t("creditLock.confirmDetach"),
     );
     if (!ok) return;
 
@@ -257,10 +260,10 @@ export function CreditLockPanel({
     setSuccess(null);
     try {
       await apiClient("/api/billing/payment-method", { method: "DELETE" });
-      setSuccess("Tarjeta quitada.");
+      setSuccess(t("creditLock.successDetached"));
       await load();
     } catch (err) {
-      setError(userErrorMessage(err, "No se pudo quitar la tarjeta."));
+      setError(userErrorMessage(err, t("creditLock.errDetach")));
     } finally {
       setDetachLoading(false);
     }
@@ -277,9 +280,9 @@ export function CreditLockPanel({
   else if (status === "rejected") step = 0;
 
   const stepLabels = [
-    "1. Pedir",
-    "2. Gerencia",
-    "3. Tarjeta",
+    t("creditLock.step1"),
+    t("creditLock.step2"),
+    t("creditLock.step3"),
   ] as const;
 
   // Sin pedido en curso el crédito es una opción, no una tarea: se muestra
@@ -290,19 +293,16 @@ export function CreditLockPanel({
     return (
       <section
         className="flex flex-col gap-3 rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6"
-        aria-label={`Crédito Holistic para ${clienteName}`}
+        aria-label={t("creditLock.aria", { name: clienteName })}
       >
         <GatewayLogo gatewayId="stripe" size="sm" />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[#1c1917]">
-            ¿Necesitas crédito Holistic?
+            {t("creditLock.idleTitle")}
           </p>
           <p className="mt-0.5 text-[12px] leading-[1.45] text-[#6f675f]">
-            Pides el monto, gerencia lo acepta según tu historial y pagas el
-            ciclo después. No reemplaza la recarga de arriba.
-            {status === "rejected"
-              ? " Tu último pedido fue rechazado; puedes enviar otro."
-              : ""}
+            {t("creditLock.idleBody")}
+            {status === "rejected" ? t("creditLock.idleRejected") : ""}
           </p>
         </div>
         <button
@@ -310,7 +310,7 @@ export function CreditLockPanel({
           onClick={() => setExpanded(true)}
           className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition-colors hover:border-[var(--auth-accent)]/50 hover:bg-[var(--auth-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
         >
-          Pedir crédito
+          {t("creditLock.askCta")}
         </button>
       </section>
     );
@@ -319,17 +319,17 @@ export function CreditLockPanel({
   return (
     <section
       className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
-      aria-label={`Crédito Holistic para ${clienteName}`}
+      aria-label={t("creditLock.aria", { name: clienteName })}
     >
       <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 py-5 sm:px-6">
         <div className="flex items-center gap-3">
           <GatewayLogo gatewayId="stripe" size="sm" />
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-[#1c1917]">
-              Crédito Holistic
+              {t("creditLock.title")}
             </p>
             <p className="mt-0.5 text-[11px] text-[#6f675f]">
-              Pedido → aceptación gerencia → tarjeta Stripe
+              {t("creditLock.subtitle")}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -339,7 +339,7 @@ export function CreditLockPanel({
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
-                aria-label="Cerrar crédito Holistic"
+                aria-label={t("creditLock.closeAria")}
                 className="ml-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8a8177] transition-colors hover:bg-[#f0eae4] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35"
               >
                 <svg
@@ -359,15 +359,13 @@ export function CreditLockPanel({
         </div>
 
         <h2 className="mt-5 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171412]">
-          ¿Quieres crédito Holistic?
+          {t("creditLock.heading")}
         </h2>
         <p className="mt-1.5 max-w-[40rem] text-[13px] leading-5 text-[#625b54]">
-          Primero pides el monto. Gerencia acepta según tu historial. Recién
-          después registras la tarjeta (candado). Yape o BCP los usas luego para
-          pagar el ciclo en soles.
+          {t("creditLock.intro")}
         </p>
 
-        <ol className="mt-4 grid grid-cols-3 gap-2" aria-label="Pasos">
+        <ol className="mt-4 grid grid-cols-3 gap-2" aria-label={t("creditLock.stepsAria")}>
           {stepLabels.map((label, i) => (
             <li key={label}>
               <span
@@ -393,7 +391,7 @@ export function CreditLockPanel({
 
       <div className="p-5 sm:p-6">
         {loading ? (
-          <p className="text-[13px] text-[#6f675f]">Cargando…</p>
+          <p className="text-[13px] text-[#6f675f]">{tCommon("loading")}</p>
         ) : (
           <div className="space-y-4">
             {(status === "none" ||
@@ -402,7 +400,7 @@ export function CreditLockPanel({
               status === "approved") && (
               <div>
                 <p className="text-[13px] font-semibold text-[#1c1917]">
-                  ¿Cuánto necesitas?
+                  {t("creditLock.howMuch")}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {QUICK_AMOUNTS.map((amount) => {
@@ -426,7 +424,7 @@ export function CreditLockPanel({
                 </div>
                 <label className="mt-3 block">
                   <span className="text-[11px] font-medium text-[#6f675f]">
-                    Otro monto (USD)
+                    {t("creditLock.otherAmount")}
                   </span>
                   <Input
                     type="number"
@@ -445,14 +443,14 @@ export function CreditLockPanel({
               <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
                 <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] px-4 py-3.5 text-sm">
                   <div className="pr-3">
-                    <p className="text-[10px] text-[#6f675f]">Vas a pedir</p>
+                    <p className="text-[10px] text-[#6f675f]">{t("creditLock.willAsk")}</p>
                     <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
                       {formatMoney(preview.requested, "USD")}
                     </p>
                   </div>
                   <div className="pl-3">
                     <p className="text-[10px] text-[#6f675f]">
-                      Ideal en tu tarjeta
+                      {t("creditLock.idealCard")}
                     </p>
                     <p className="mt-0.5 font-semibold tabular-nums text-[#c65113]">
                       {formatMoney(preview.recommended, "USD")}+
@@ -460,28 +458,29 @@ export function CreditLockPanel({
                   </div>
                 </div>
                 <p className="border-t border-[#e4ddd6] px-4 py-2.5 text-[11px] leading-4 text-[#6f675f]">
-                  Si pides {formatMoney(preview.requested, "USD")}, conviene
-                  tener al menos {formatMoney(preview.recommended, "USD")} en la
-                  tarjeta (+{preview.headroom}%).
+                  {t("creditLock.previewHint", {
+                    requested: formatMoney(preview.requested, "USD"),
+                    recommended: formatMoney(preview.recommended, "USD"),
+                    headroom: preview.headroom,
+                  })}
                 </p>
               </div>
             ) : null}
 
             {status === "rejected" ? (
               <p className="rounded-xl bg-[#fff1f0] px-3.5 py-3 text-[12px] font-medium text-[#9b1c1c]">
-                Este pedido fue rechazado. Puedes enviar uno nuevo con otro monto.
+                {t("creditLock.rejectedBanner")}
               </p>
             ) : null}
 
             {status === "requested" ? (
               <div className="space-y-3">
                 <p className="rounded-xl bg-[#fff8eb] px-3.5 py-3 text-[12px] font-medium text-[#8a5a12]">
-                  Pedido en revisión
+                  {t("creditLock.inReview")}
                   {cupo?.requestedCreditUsd != null
                     ? ` · ${formatMoney(cupo.requestedCreditUsd, "USD")}`
                     : ""}
-                  . Todavía no registres tarjeta: espera la aceptación de
-                  gerencia.
+                  {t("creditLock.inReviewWait")}
                 </p>
 
                 {canReviewCredit ? (
@@ -494,8 +493,8 @@ export function CreditLockPanel({
                       className="h-10 rounded-xl"
                     >
                       {reviewBusy === "approved"
-                        ? "Aceptando…"
-                        : "Aceptar crédito"}
+                        ? t("creditLock.accepting")
+                        : t("creditLock.accept")}
                     </Button>
                     <Button
                       type="button"
@@ -505,7 +504,7 @@ export function CreditLockPanel({
                       onClick={() => void handleReview("rejected")}
                       className="h-10 rounded-xl"
                     >
-                      {reviewBusy === "rejected" ? "…" : "Rechazar"}
+                      {reviewBusy === "rejected" ? "…" : t("creditLock.reject")}
                     </Button>
                   </div>
                 ) : (
@@ -517,7 +516,7 @@ export function CreditLockPanel({
                     onClick={() => void handleRequest()}
                     className="h-10 rounded-xl"
                   >
-                    {busy ? "…" : "Actualizar monto del pedido"}
+                    {busy ? "…" : t("creditLock.updateRequest")}
                   </Button>
                 )}
               </div>
@@ -530,28 +529,28 @@ export function CreditLockPanel({
                 onClick={() => void handleRequest()}
                 className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {busy ? "Enviando…" : "Solicitar crédito Holistic"}
+                {busy ? t("creditLock.sending") : t("creditLock.requestCta")}
               </button>
             )}
 
             {status === "approved" ? (
               <div className="space-y-3">
                 <p className="rounded-xl bg-[#f0faf4] px-3.5 py-3 text-[12px] font-medium text-[#0f6b3c]">
-                  Gerencia aceptó tu crédito
+                  {t("creditLock.approvedBanner")}
                   {cupo?.requestedCreditUsd != null
-                    ? ` de ${formatMoney(cupo.requestedCreditUsd, "USD")}`
+                    ? t("creditLock.approvedOf", { amount: formatMoney(cupo.requestedCreditUsd, "USD") })
                     : ""}
                   .
                   {cupo?.lockReady
-                    ? " Ya está activo con tarjeta."
-                    : " Ahora registra tu tarjeta Stripe (candado)."}
+                    ? t("creditLock.approvedActive")
+                    : t("creditLock.approvedLink")}
                 </p>
 
                 {paymentMethod?.last4 ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e7dfd7] px-4 py-3.5">
                     <div>
                       <p className="text-[11px] text-[#6f675f]">
-                        Tarjeta registrada
+                        {t("creditLock.cardRegistered")}
                       </p>
                       <p className="text-[14px] font-semibold text-[#1c1917]">
                         {brand} ···· {last4}
@@ -569,7 +568,7 @@ export function CreditLockPanel({
                         onClick={() => void handleUpdateAmount()}
                         className="h-10 rounded-xl"
                       >
-                        {busy ? "…" : "Actualizar cupo"}
+                        {busy ? "…" : t("creditLock.updateCupo")}
                       </Button>
                       <Button
                         type="button"
@@ -579,7 +578,7 @@ export function CreditLockPanel({
                         onClick={() => void handleDetach()}
                         className="h-10 rounded-xl"
                       >
-                        Quitar
+                        {t("creditLock.remove")}
                       </Button>
                     </div>
                   </div>
@@ -590,7 +589,7 @@ export function CreditLockPanel({
                     onClick={() => void handleLinkCard()}
                     className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {busy ? "Abriendo Stripe…" : "Registrar tarjeta Stripe"}
+                    {busy ? t("creditLock.openingStripe") : t("creditLock.registerCard")}
                   </button>
                 ) : null}
               </div>
@@ -598,9 +597,7 @@ export function CreditLockPanel({
 
             {status === "none" ? (
               <p className="text-[12px] leading-5 text-[#6f675f]">
-                Esto es crédito de Holistic (no confundir con la modalidad del
-                CRM). Sin aceptación de gerencia no se activa ni se pide
-                tarjeta.
+                {t("creditLock.footnote")}
               </p>
             ) : null}
           </div>

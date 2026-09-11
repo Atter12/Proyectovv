@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { formatMoney } from "@/lib/format-money";
 import type { summarizePaymentAccounts } from "@/lib/sort/payment-accounts";
 
@@ -22,29 +23,36 @@ export function PaymentsGerenteAccountsSummary({
   liveMetricsLoading = false,
   lastUpdatedAt,
 }: PaymentsGerenteAccountsSummaryProps) {
+  const t = useTranslations("payments");
   const creditHint = (() => {
     const parts: string[] = [];
     if (liveCashTotalUsd != null) {
-      parts.push(`Cash ${formatMoney(liveCashTotalUsd)}`);
+      parts.push(t("gerenteSummary.cash", { amount: formatMoney(liveCashTotalUsd) }));
     }
     if (liveCupoTotalUsd != null) {
-      parts.push(`Cupo presup. ${formatMoney(liveCupoTotalUsd)}`);
+      parts.push(t("gerenteSummary.cupo", { amount: formatMoney(liveCupoTotalUsd) }));
     }
     if (parts.length === 0) {
-      return "Cash + cupo presupuesto (separados abajo)";
+      return t("gerenteSummary.cashCupoDefault");
     }
     return parts.join(" · ");
   })();
 
   const items = [
     {
-      label: "Cuentas",
+      label: t("gerenteSummary.accounts"),
       value: String(summary.totalAccounts),
-      hint: `${summary.activeCount} activas · ${summary.pendingCount} pend.`,
-      hintMobile: `${summary.activeCount} act. · ${summary.pendingCount} pend.`,
+      hint: t("gerenteSummary.accountsHint", {
+        active: summary.activeCount,
+        pending: summary.pendingCount,
+      }),
+      hintMobile: t("gerenteSummary.accountsHintMobile", {
+        active: summary.activeCount,
+        pending: summary.pendingCount,
+      }),
     },
     {
-      label: "TikTok en vivo",
+      label: t("gerenteSummary.tiktokLive"),
       value:
         liveMetricsLoading && liveCreditTotalUsd == null
           ? "…"
@@ -54,25 +62,30 @@ export function PaymentsGerenteAccountsSummary({
       hint: creditHint,
       hintMobile:
         liveCupoTotalUsd != null
-          ? `Cupo ${formatMoney(liveCupoTotalUsd)}`
+          ? t("gerenteSummary.cupo", { amount: formatMoney(liveCupoTotalUsd) })
           : liveCashTotalUsd != null
-            ? `Cash ${formatMoney(liveCashTotalUsd)}`
-            : "Cash + cupo",
+            ? t("gerenteSummary.cash", { amount: formatMoney(liveCashTotalUsd) })
+            : t("gerenteSummary.cashCupoShort"),
       accent: true,
     },
     {
-      label: "Asignado en cuentas",
+      label: t("gerenteSummary.assigned"),
       value: formatMoney(summary.totalLedgerUsd),
-      hint: "Ledger Holistic en ads (≠ cartera)",
-      hintMobile: "Ledger en ads",
+      hint: t("gerenteSummary.assignedHint"),
+      hintMobile: t("gerenteSummary.assignedHintMobile"),
       muted: true,
     },
     {
-      label: "Por recuperar",
+      label: t("gerenteSummary.reclaimable"),
       value: String(summary.reclaimableCount),
-      hint: summary.reclaimableCount > 0 ? "Suspendidas con saldo" : "Todo en orden",
+      hint:
+        summary.reclaimableCount > 0
+          ? t("gerenteSummary.reclaimableHint")
+          : t("gerenteSummary.reclaimableOk"),
       hintMobile:
-        summary.reclaimableCount > 0 ? "Con saldo" : "En orden",
+        summary.reclaimableCount > 0
+          ? t("gerenteSummary.reclaimableHintMobile")
+          : t("gerenteSummary.reclaimableOkMobile"),
       warn: summary.reclaimableCount > 0,
     },
   ];
@@ -81,14 +94,15 @@ export function PaymentsGerenteAccountsSummary({
     <div className="border-b border-[var(--auth-border)] bg-[#faf8f5] px-3 py-3 sm:px-5">
       <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8a8178]">
-          Pulso de cuentas
+          {t("gerenteSummary.pulse")}
         </p>
         {lastUpdatedAt ? (
           <p className="text-[10px] text-[#b5aea6]">
-            TikTok{" "}
-            {new Date(lastUpdatedAt).toLocaleTimeString("es-PE", {
-              hour: "2-digit",
-              minute: "2-digit",
+            {t("gerenteSummary.updated", {
+              time: new Date(lastUpdatedAt).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
             })}
           </p>
         ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,14 +13,6 @@ import {
   quoteFromGrossCharge,
 } from "@/lib/payments/manual-deposit.shared";
 import { ComprobanteLightbox } from "@/features/clientes/components/ComprobanteLightbox.client";
-
-const reviewLabels = {
-  awaiting_proof: "Falta voucher",
-  pending_review: "En revisión",
-  approved: "Aprobado",
-  rejected: "Rechazado",
-  cancelled: "Cancelado",
-} as const;
 
 const reviewVariants = {
   awaiting_proof: "warning",
@@ -44,6 +37,7 @@ function VoucherCard({
   canReview: boolean;
   product?: "wallet" | "realprofit";
 }) {
+  const t = useTranslations("payments");
   const router = useRouter();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +46,14 @@ function VoucherCard({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isRealProfit = product === "realprofit";
   const proofIsImage = isImageMime(intent.proofMimeType, intent.proofFileName);
+
+  const reviewLabels = {
+    awaiting_proof: t("voucherReview.statusAwaiting"),
+    pending_review: t("voucherReview.statusPending"),
+    approved: t("voucherReview.statusApproved"),
+    rejected: t("voucherReview.statusRejected"),
+    cancelled: t("voucherReview.statusCancelled"),
+  } as const;
 
   const chargeCurrency =
     intent.currency.toUpperCase() === "PEN" ? "PEN" : "USD";
@@ -95,7 +97,7 @@ function VoucherCard({
 
   async function handleApprove() {
     if (!quote) {
-      setError("Ingresa un monto válido de la boleta.");
+      setError(t("voucherReview.errAmount"));
       return;
     }
     setBusy("approve");
@@ -112,7 +114,7 @@ function VoucherCard({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo aprobar el comprobante.",
+          : t("voucherReview.errApprove"),
       );
     } finally {
       setBusy(null);
@@ -120,7 +122,8 @@ function VoucherCard({
   }
 
   async function handleReject() {
-    const reason = rejectReason.trim() || "Comprobante rechazado por revisión.";
+    const reason =
+      rejectReason.trim() || t("voucherReview.rejectDefault");
     setBusy("reject");
     setError(null);
     try {
@@ -134,7 +137,7 @@ function VoucherCard({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "No se pudo rechazar el comprobante.",
+          : t("voucherReview.errReject"),
       );
     } finally {
       setBusy(null);
@@ -189,13 +192,13 @@ function VoucherCard({
                   rel="noreferrer"
                   className="text-sm font-semibold text-[#ff781f] underline underline-offset-2"
                 >
-                  Abrir comprobante
+                  {t("voucherReview.openProof")}
                 </a>
               </div>
             )
           ) : (
             <div className="flex h-full min-h-[200px] items-center justify-center p-6 text-sm text-[var(--auth-muted)]">
-              Sin preview del comprobante
+              {t("voucherReview.noPreview")}
             </div>
           )}
         </div>
@@ -241,7 +244,7 @@ function VoucherCard({
             {showActions ? (
               <>
                 <label className="text-xs font-medium text-[var(--auth-muted)]">
-                  Monto real de la boleta ({chargeCurrency})
+                  {t("voucherReview.realAmount", { currency: chargeCurrency })}
                 </label>
                 <div className="mt-1 flex items-center gap-2">
                   <input
@@ -317,7 +320,9 @@ function VoucherCard({
               </>
             ) : (
               <>
-                <p className="text-xs text-[var(--auth-muted)]">Monto cargado</p>
+                <p className="text-xs text-[var(--auth-muted)]">
+                  {t("voucherReview.charged")}
+                </p>
                 <p className="text-lg font-bold tabular-nums text-[var(--auth-text)]">
                   {formatMoney(intent.amount, intent.currency)}
                 </p>
@@ -383,7 +388,9 @@ function VoucherCard({
                     disabled={busy !== null || !quote}
                     onClick={() => void handleApprove()}
                   >
-                    {busy === "approve" ? "Acreditando…" : "Aceptar"}
+                    {busy === "approve"
+                      ? t("voucherReview.approving")
+                      : t("voucherReview.approve")}
                   </Button>
                   <Button
                     type="button"
@@ -488,6 +495,8 @@ export function ManualVoucherReviewSection({
   globalQueue = false,
   product = "wallet",
 }: ManualVoucherReviewSectionProps) {
+  const t = useTranslations("payments");
+
   if (mode === "client") {
     const items = clientItems ?? [];
     if (items.length === 0) return null;
@@ -495,15 +504,14 @@ export function ManualVoucherReviewSection({
       <section
         id="comprobantes"
         className="space-y-4"
-        aria-label="Tus comprobantes"
+        aria-label={t("voucherReview.yourAria")}
       >
         <div>
           <h2 className="text-base font-semibold text-[var(--auth-text)]">
-            Tus comprobantes
+            {t("voucherReview.yourProofs")}
           </h2>
           <p className="mt-1 text-sm text-[var(--auth-muted)]">
-            Seguimiento de transferencias. Si está en revisión, te avisamos
-            cuando se acredite el saldo.
+            {t("voucherReview.yourProofsBody")}
           </p>
         </div>
         <div className="space-y-4">
@@ -528,7 +536,7 @@ export function ManualVoucherReviewSection({
     <section
       id="comprobantes"
       className="space-y-5"
-      aria-label="Revisión de comprobantes"
+      aria-label={t("voucherReview.staffAria")}
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -550,9 +558,9 @@ export function ManualVoucherReviewSection({
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
             {isRealProfit
-              ? "Depósitos Real Profit COD $20 por aceptar o rechazar"
+              ? t("voucherReview.staffRealProfit")
               : "Solo boletas BCP por aceptar o rechazar"}
-            {globalQueue ? " · todos los clientes · más antiguos primero" : ""}.
+            {globalQueue ? t("voucherReview.staffGlobal") : ""}.
             {isRealProfit
               ? " Al aceptar se activa COD y se vincula la tienda (sin cartera ads)."
               : " Edita el monto de la boleta si no coincide y luego acepta."}

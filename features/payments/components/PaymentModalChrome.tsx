@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 
 interface PaymentModalHeaderProps {
@@ -24,6 +27,9 @@ export function PaymentModalHeader({
   currentStep,
   onClose,
 }: PaymentModalHeaderProps) {
+  const t = useTranslations("payments");
+  const tCommon = useTranslations("common");
+
   return (
     <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 pb-5 pt-5 sm:px-6">
       <div className="flex items-center justify-between gap-4">
@@ -42,7 +48,7 @@ export function PaymentModalHeader({
           type="button"
           onClick={onClose}
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white text-[#6f675f] transition-colors hover:bg-[#f7f2ed] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf6]"
-          aria-label="Cerrar"
+          aria-label={tCommon("close")}
         >
           <CloseIcon />
         </button>
@@ -62,7 +68,7 @@ export function PaymentModalHeader({
 
       <ol
         className="mt-5 grid grid-cols-3 gap-2"
-        aria-label="Progreso del pago"
+        aria-label={t("modalChrome.progressAria")}
       >
         {steps.map((step, index) => {
           const reached = index <= currentStep;

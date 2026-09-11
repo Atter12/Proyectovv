@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   CrmMetricCell,
   CrmMetricsStrip,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/hecom/cliente-dashboard.server";
 import { routes } from "@/config/routes";
 
-export function ClienteScopedPayments({
+export async function ClienteScopedPayments({
   data,
   staffMode = false,
 }: {
@@ -20,30 +21,39 @@ export function ClienteScopedPayments({
   /** Gerente / path BM: copy de fondeo correcto. */
   staffMode?: boolean;
 }) {
+  const t = await getTranslations("payments");
   const { cliente, summary, cobros } = data;
   const recentCobros = cobros.slice(0, 5);
 
+  const debtLabel = t("clienteScoped.debt");
+  const estimatedLabel = t("clienteScoped.estimated");
+  const feeLabel = t("clienteScoped.feeLabel");
+
   const kpis = [
     {
-      label: "Fee Holistic",
+      label: feeLabel,
       value: `${summary.depositFeePercent}%`,
-      hint: "Hecom Club",
+      hint: t("clienteScoped.feeHint"),
+      emphasis: "muted" as const,
     },
     {
-      label: "Total cobros",
+      label: t("clienteScoped.totalCobros"),
       value: moneyUsd(summary.cobroTotal),
+      emphasis: "default" as const,
     },
     {
-      label: "Total gastos",
+      label: t("clienteScoped.totalGastos"),
       value: moneyUsd(summary.gastoTotal),
-      hint: "Ver detalle en Gastos",
+      hint: t("clienteScoped.gastosHint"),
+      emphasis: "default" as const,
     },
     ...(staffMode
       ? [
           {
-            label: summary.saldoEstimado < 0 ? "Deuda neta" : "Saldo estimado",
+            label: summary.saldoEstimado < 0 ? debtLabel : estimatedLabel,
             value: moneyUsd(summary.saldoEstimado),
             accent: summary.saldoEstimado < 0,
+            emphasis: "primary" as const,
           },
         ]
       : []),
@@ -54,14 +64,16 @@ export function ClienteScopedPayments({
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--auth-divider)] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-            Historial Hecom
+            {t("clienteScoped.eyebrow")}
           </p>
           <h2 className="mt-1 text-[1.125rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-            Cobros / recargas · {cliente.name}
+            {t("clienteScoped.title", { name: cliente.name })}
           </h2>
           <p className="mt-1 text-[12px] text-[var(--auth-text-muted)]">
-            Solo lectura CRM · Fee {summary.depositFeePercent}%
-            {staffMode ? " · Recarga BM no reduce deuda neta" : ""}
+            {t("clienteScoped.subtitle", {
+              percent: summary.depositFeePercent,
+            })}
+            {staffMode ? t("clienteScoped.subtitleStaff") : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-[12px] font-semibold">
@@ -69,13 +81,13 @@ export function ClienteScopedPayments({
             href={routes.cobros}
             className="text-[var(--auth-accent)] hover:underline"
           >
-            Ver lo pagado →
+            {t("clienteScoped.linkCobros")}
           </Link>
           <Link
             href={routes.profit}
             className="text-[var(--auth-accent)] hover:underline"
           >
-            Ver Profit →
+            {t("clienteScoped.linkProfit")}
           </Link>
         </div>
       </header>
@@ -92,13 +104,7 @@ export function ClienteScopedPayments({
                 label={kpi.label}
                 value={kpi.value}
                 hint={"hint" in kpi ? kpi.hint : undefined}
-                emphasis={
-                  kpi.label.includes("Saldo") || kpi.label.includes("Deuda")
-                    ? "primary"
-                    : kpi.label === "Fee Holistic"
-                      ? "muted"
-                      : "default"
-                }
+                emphasis={kpi.emphasis}
               />
             </div>
           ))}
@@ -106,13 +112,17 @@ export function ClienteScopedPayments({
       </CrmMetricsStrip>
 
       <CrmPanel
-        title="Últimos cobros"
-        subtitle={`${cobros.length} registro${cobros.length === 1 ? "" : "s"} en Hecom`}
+        title={t("clienteScoped.recentTitle")}
+        subtitle={
+          cobros.length === 1
+            ? t("clienteScoped.recordsOne", { count: cobros.length })
+            : t("clienteScoped.recordsMany", { count: cobros.length })
+        }
         className="overflow-hidden"
       >
         {recentCobros.length === 0 ? (
           <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-            Sin cobros para este cliente.
+            {t("clienteScoped.empty")}
           </p>
         ) : (
           <ul className="divide-y divide-[var(--auth-divider)]">
@@ -125,7 +135,7 @@ export function ClienteScopedPayments({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
-                      {row.metodo ?? "Cobro"}
+                      {row.metodo ?? t("clienteScoped.defaultMethod")}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {fecha ? (
@@ -140,7 +150,7 @@ export function ClienteScopedPayments({
                       ) : null}
                       {row.comprobanteUrls.length > 0 ? (
                         <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800">
-                          Con comprobante
+                          {t("clienteScoped.withProof")}
                         </span>
                       ) : null}
                     </div>
@@ -159,7 +169,7 @@ export function ClienteScopedPayments({
               href={routes.cobros}
               className="text-[12px] font-semibold text-[var(--auth-accent)] hover:underline"
             >
-              Ver todos los pagos y comprobantes →
+              {t("clienteScoped.viewAll")}
             </Link>
           </div>
         ) : cobros.length > 0 ? (
@@ -168,7 +178,7 @@ export function ClienteScopedPayments({
               href={routes.cobros}
               className="text-[12px] font-semibold text-[var(--auth-accent)] hover:underline"
             >
-              Abrir comprobantes →
+              {t("clienteScoped.openProofs")}
             </Link>
           </div>
         ) : null}
