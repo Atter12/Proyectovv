@@ -1,8 +1,11 @@
 # Arquitectura: crear cuentas TikTok desde Ads Holistic
 
 **Estado:** investigación + prueba real OK · **producto aún no implementado**  
-**Fecha:** 2026-09-10  
+**Fecha:** 2026-09-10 · **actualizado enlace 2026-09-11**  
 **Contexto:** mismo tipo de cuentas que se ven en Pagos → Asignar (ej. `Jair Santiago 200.0 USD - Agencia` · BM 200).
+
+> **Estudio ampliado (cliente + BM10/30/200, probes 2026-09-11):**  
+> ver [`ESTUDIO_CREAR_CUENTAS_CLIENTE_BM10_30_200.md`](./ESTUDIO_CREAR_CUENTAS_CLIENTE_BM10_30_200.md).
 
 ---
 
