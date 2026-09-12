@@ -159,6 +159,12 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
     const { ensureAdAccountLedgerAccounts } = await import(
       "@/lib/ledger/ledger.server"
     );
+    const { lookupHecomBmBucketForAdvertiser } = await import(
+      "@/lib/payments/resolve-funding-bc.server"
+    );
+    const { HECOM_BM_BUCKET_TO_BC } = await import(
+      "@/lib/hecom/bm-bucket.shared"
+    );
     const admin = createAdminClient();
     const ids = [
       ...new Set(
@@ -168,6 +174,19 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
       ),
     ];
     if (ids.length === 0) return 0;
+
+    const hecomBcByAdvertiser = new Map<string, string>();
+    await Promise.all(
+      ids.map(async (advertiserId) => {
+        const bucket = await lookupHecomBmBucketForAdvertiser({
+          advertiserId,
+          hecomClienteId: input.clienteId,
+        });
+        if (bucket && HECOM_BM_BUCKET_TO_BC[bucket]) {
+          hecomBcByAdvertiser.set(advertiserId, HECOM_BM_BUCKET_TO_BC[bucket]!);
+        }
+      }),
+    );
 
     const nameById = new Map(
       input.advertisers.map((row) => [
@@ -227,12 +246,17 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
       const ext = String(
         (row as { external_account_id?: string }).external_account_id ?? "",
       ).trim();
-      if (!ext || templateById.has(ext)) continue;
+      if (!ext) continue;
+      const nextBc =
+        (row as { external_business_id?: string | null }).external_business_id ??
+        null;
+      const existing = templateById.get(ext);
+      // Preferir plantilla que ya tenga BC (evita copiar null de org espejo).
+      if (existing?.external_business_id && !nextBc) continue;
+      if (existing && existing.external_business_id === nextBc) continue;
       templateById.set(ext, {
         name: String((row as { name?: string }).name ?? "").trim() || ext,
-        external_business_id:
-          (row as { external_business_id?: string | null }).external_business_id ??
-          null,
+        external_business_id: nextBc,
         external_account_name:
           (row as { external_account_name?: string | null })
             .external_account_name ?? null,
@@ -292,7 +316,10 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
           name: displayName,
           platform: "tiktok",
           external_account_id: advertiserId,
-          external_business_id: template?.external_business_id ?? null,
+          external_business_id:
+            hecomBcByAdvertiser.get(advertiserId) ??
+            template?.external_business_id ??
+            null,
           external_account_name:
             template?.external_account_name ?? displayName,
           status,

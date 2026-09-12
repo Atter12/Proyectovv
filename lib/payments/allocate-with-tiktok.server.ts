@@ -6,14 +6,12 @@ import {
   getWalletLedgerBalance,
   reverseLedgerJournal,
 } from "@/lib/ledger/ledger.server";
-import { serverEnv } from "@/lib/env/env.server";
 import {
   isSharedCreditBmBucket,
   resolveBmBucketFromBcId,
   SYSTEM_ALLOCATABLE_BM_BUCKETS,
   HECOM_BM_BUCKET_TO_BC,
 } from "@/lib/hecom/bm-bucket.shared";
-import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
   getAdvertiserBudgetSnapshot,
   increaseSharedBmAdvertiserBudget,
@@ -25,6 +23,7 @@ import {
   assertSharedBmSpendableBeforeAllocate,
   attemptCrossBmCreditPull,
 } from "@/lib/payments/cross-bm-funding.server";
+import { resolveFundingBcForAdvertiser } from "@/lib/payments/resolve-funding-bc.server";
 import {
   assertTikTokCashMatchesCents,
   usdCentsToTikTokCashAmount,
@@ -205,13 +204,39 @@ export async function allocateWithOptionalTikTokFunding(
   const currency = (input.currency ?? account.currency ?? "USD").toUpperCase();
   const advertiserId = account.external_account_id?.trim() || "";
   // Si en DB quedó "200"/"10"/"30" (label Hecom) → BC real TikTok.
-  // Si ya es el bc_id largo, resolve lo deja (vía fallback).
+  // Si falta external_business_id: Hecom bm_bucket o probe TikTok (evita caer a BM200 cash).
   const rawBusinessId = account.external_business_id?.trim() || "";
-  const bcId =
-    resolveBcIdForHecomBucket(
-      rawBusinessId,
-      rawBusinessId || serverEnv.tiktokDefaultBcId.trim() || null,
-    ) || "";
+  const fundingBc = await resolveFundingBcForAdvertiser({
+    rawBusinessId,
+    advertiserId,
+    hecomClienteId,
+    organizationId: input.organizationId,
+  });
+  const bcId = fundingBc.bcId.trim();
+  const bmBucket = fundingBc.bmBucket ?? (bcId ? resolveBmBucketFromBcId(bcId) : null);
+
+  if (
+    bcId &&
+    advertiserId &&
+    (!rawBusinessId || rawBusinessId !== bcId)
+  ) {
+    await createAdminClient()
+      .from("ad_accounts")
+      .update({
+        external_business_id: bcId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", account.id)
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[payments/allocate] backfill_bc_failed", {
+            adAccountId: account.id,
+            bcId,
+            error: error.message,
+          });
+        }
+      });
+  }
 
   const fundingOn = isTikTokBcFundingEnabled();
   const isTikTok = (account.platform ?? "tiktok").toLowerCase() === "tiktok";
@@ -237,7 +262,6 @@ export async function allocateWithOptionalTikTokFunding(
     );
   }
 
-  const bmBucket = bcId ? resolveBmBucketFromBcId(bcId) : null;
   if (
     canFund &&
     bmBucket &&
@@ -257,6 +281,7 @@ export async function allocateWithOptionalTikTokFunding(
     externalBusinessIdRaw: rawBusinessId || null,
     bcId: bcId || null,
     bmBucket,
+    bcSource: fundingBc.source,
     useSharedBudgetPath,
     agencyBmFunding,
     fundingOn,

@@ -1,17 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { serverEnv } from "@/lib/env/env.server";
 import {
   isSharedCreditBmBucket,
   resolveBmBucketFromBcId,
 } from "@/lib/hecom/bm-bucket.shared";
-import { resolveBcIdForHecomBucket } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import {
   decreaseSharedBmAdvertiserBudget,
   getAdvertiserBudgetSnapshot,
   isTikTokBcFundingEnabled,
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
+import { resolveFundingBcForAdvertiser } from "@/lib/payments/resolve-funding-bc.server";
 import {
   confirmDepositInLedger,
   getAdAccountLedgerBalance,
@@ -29,6 +28,7 @@ import {
   spendableUsdFromFinanceSnapshot,
   usdToCents,
 } from "@/lib/integrations/tiktok/spendable-budget.shared";
+import { isRecord } from "@/lib/records";
 
 export interface ReclaimFromAdAccountInput {
   organizationId: string;
@@ -141,7 +141,7 @@ export async function reclaimFromAdAccountWithTikTok(
   const { data: account, error } = await admin
     .from("ad_accounts")
     .select(
-      "id, organization_id, platform, external_account_id, external_business_id, status, name",
+      "id, organization_id, platform, external_account_id, external_business_id, status, name, metadata",
     )
     .eq("id", input.adAccountId)
     .maybeSingle<{
@@ -152,6 +152,7 @@ export async function reclaimFromAdAccountWithTikTok(
       external_business_id: string | null;
       status: string;
       name: string;
+      metadata: unknown;
     }>();
 
   if (error) throw new Error(error.message);
@@ -184,12 +185,40 @@ export async function reclaimFromAdAccountWithTikTok(
 
   const advertiserId = account.external_account_id?.trim() || "";
   const rawBusinessId = account.external_business_id?.trim() || "";
-  const bcId =
-    resolveBcIdForHecomBucket(
-      rawBusinessId,
-      rawBusinessId || serverEnv.tiktokDefaultBcId.trim() || null,
-    ) || "";
-  const bmBucket = bcId ? resolveBmBucketFromBcId(bcId) : null;
+  const hecomClienteId = isRecord(account.metadata)
+    ? String(
+        (account.metadata as { hecom_cliente_id?: unknown }).hecom_cliente_id ??
+          "",
+      ).trim() || null
+    : null;
+  const fundingBc = await resolveFundingBcForAdvertiser({
+    rawBusinessId,
+    advertiserId,
+    hecomClienteId,
+    organizationId: input.organizationId,
+  });
+  const bcId = fundingBc.bcId.trim();
+  const bmBucket =
+    fundingBc.bmBucket ?? (bcId ? resolveBmBucketFromBcId(bcId) : null);
+
+  if (bcId && advertiserId && (!rawBusinessId || rawBusinessId !== bcId)) {
+    await createAdminClient()
+      .from("ad_accounts")
+      .update({
+        external_business_id: bcId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", account.id)
+      .then(({ error }) => {
+        if (error) {
+          console.warn("[payments/reclaim] backfill_bc_failed", {
+            adAccountId: account.id,
+            bcId,
+            error: error.message,
+          });
+        }
+      });
+  }
   const isTikTok = (account.platform ?? "tiktok").toLowerCase() === "tiktok";
   const fundingOn = isTikTokBcFundingEnabled();
   const canTalkTikTok = fundingOn && isTikTok && Boolean(advertiserId) && Boolean(bcId);
@@ -210,6 +239,7 @@ export async function reclaimFromAdAccountWithTikTok(
     advertiserId: advertiserId || null,
     bcId: bcId || null,
     bmBucket,
+    bcSource: fundingBc.source,
     shared,
     status: account.status,
     holisticAvailable,
