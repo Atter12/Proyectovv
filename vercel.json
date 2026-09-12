@@ -2,7 +2,7 @@
   "installCommand": "npm ci",
   "crons": [
     {
-      "path": "/api/jobs/support-recharge",
+      "path": "/api/jobs/yape-mailbox",
       "schedule": "*/2 * * * *"
     },
     {
@@ -15,4 +15,3 @@
     }
   ]
 }
-

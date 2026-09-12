@@ -9,6 +9,12 @@ function parseInteger(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseDecimalEnv(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function splitCsv(value: string | undefined): string[] {
   return (value ?? "")
     .split(",")
@@ -139,6 +145,36 @@ export const serverEnv = {
   ),
   /** JSON array de cuentas bancarias / Yape para pago manual. */
   manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
+
+  // --- Bot de recarga por Yape en el chat de soporte ------------------------
+  /**
+   * Secreto del agente que reporta cobros observados en la cuenta receptora.
+   * Quien lo tenga puede acreditar saldo: trátalo como una llave de pasarela.
+   */
+  yapeIngestSecret:
+    process.env.YAPE_INGEST_SECRET ??
+    process.env.INTERNAL_JOB_SECRET ??
+    process.env.CRON_SECRET ??
+    "",
+  /**
+   * Céntimos únicos en el monto a pagar (S/ 114.84 vs S/ 114.85). El correo del
+   * BCP no trae N° de operación: el monto exacto es lo que identifica el pago.
+   */
+  yapeUniquePenCents: parseBoolean(process.env.YAPE_UNIQUE_PEN_CENTS, true),
+  /** El BCP solo avisa yapeos que superan este monto (soles). */
+  yapeMinNotifiablePen: parseDecimalEnv(process.env.YAPE_MIN_NOTIFIABLE_PEN, 10),
+  yapeMailUser: process.env.YAPE_MAIL_USER ?? "",
+  yapeMailPassword: process.env.YAPE_MAIL_PASSWORD ?? "",
+  yapeMailHost: process.env.YAPE_MAIL_HOST ?? "imap.gmail.com",
+  yapeMailPort: parseInteger(process.env.YAPE_MAIL_PORT, 993),
+  yapeMailMailbox: process.env.YAPE_MAIL_MAILBOX ?? "INBOX",
+  yapeMailFromFilter: splitCsv(process.env.YAPE_MAIL_FROM_FILTER).map((value) =>
+    value.toLowerCase(),
+  ),
+  /** Ventana que mira cada corrida del cron; holgada frente a su intervalo. */
+  yapeMailLookbackMinutes: parseInteger(process.env.YAPE_MAIL_LOOKBACK_MIN, 30),
+  /** Minutos que un monto en soles queda reservado y es cruzable. */
+  yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   openAiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
   /** Sin IA: auto-acredita al subir voucher (solo staging / demo; nunca en producción). */

@@ -1,0 +1,183 @@
+import "server-only";
+import { confirmDepositInLedger } from "@/lib/ledger/ledger.server";
+import {
+  getPaymentIntentByIdInternal,
+  updatePaymentIntentRecord,
+} from "@/lib/payments/payment-intents.server";
+import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { mergeMetadata, isRecord, getString } from "@/lib/records";
+import { RECHARGE_BOT_SOURCE } from "./recipient";
+
+/**
+ * Cierre de una recarga cuando el cobro real ya fue confirmado.
+ *
+ * Para acreditar hacen falta DOS pruebas independientes:
+ *
+ *   1. El comprobante que sube el cliente, analizado y coherente.
+ *   2. El aviso de cobro observado en la cuenta receptora.
+ *
+ * Ninguna alcanza sola. La captura se falsifica en minutos — ya pasó una vez
+ * (`fake_voucher_auto_approve_incident`) — y el aviso del banco por sí solo no
+ * prueba quién pagó si el comprobante todavía no llegó.
+ *
+ * Los dos órdenes funcionan: si el comprobante llega primero, lo cierra el
+ * aviso; si el aviso llega primero, lo cierra el comprobante. Esta función es
+ * el punto de encuentro y se puede llamar desde cualquiera de los dos lados.
+ */
+
+export type BankConfirmedOutcome =
+  | { completed: true; journalId: string }
+  | { completed: false; reason: string };
+
+/**
+ * ¿El comprobante respalda esta recarga?
+ *
+ * El camino normal es que el análisis lo confirme. Pero hay un caso donde
+ * `confirmed` viene en false y aun así hay que acreditar: cuando lo unico que
+ * lo tumbó fue el límite de subidas por hora.
+ *
+ * Ese límite se diseñó cuando el comprobante era la ÚNICA prueba, para que
+ * nadie pudiera spamear capturas falsas buscando uno que colara. Acá ya
+ * tenemos la confirmación del banco por el monto exacto, o sea que la plata
+ * entró de verdad: retenerle el saldo a alguien que pagó, por haber subido
+ * capturas seguido, es castigar al cliente por una defensa que ya no aplica.
+ *
+ * Lo que NO se relaja: si el análisis fallo por comprobante duplicado, codigo
+ * de operacion repetido o porque el monto no cuadra, no se acredita. Esos si
+ * son señales de fraude y siguen yendo a revision manual.
+ */
+function hasConfirmedVoucher(metadata: unknown): boolean {
+  if (!isRecord(metadata)) return false;
+
+  const analysis = metadata.voucher_analysis;
+  if (!isRecord(analysis)) return false;
+  if (analysis.confirmed === true) return true;
+
+  const security = metadata.voucher_security;
+  if (!isRecord(security)) return false;
+
+  const soloLimitePorHora =
+    security.rateLimitBlocksAutoApprove === true &&
+    security.duplicateContentHash !== true &&
+    security.duplicateOperationCode !== true;
+
+  // El comprobante ademas tiene que ser coherente por si mismo.
+  const analisisSano =
+    analysis.beneficiaryMatch === true &&
+    typeof analysis.detectedAmount === "number" &&
+    analysis.detectedAmount > 0;
+
+  return soloLimitePorHora && analisisSano;
+}
+
+export function readBankConfirmedAt(metadata: unknown): string | null {
+  if (!isRecord(metadata)) return null;
+  return getString(metadata.bank_confirmed_at);
+}
+
+/** El neto en dólares que va a la cartera. El bruto en soles incluye el fee. */
+function readCreditUsdCents(metadata: unknown, fallback: number): number {
+  if (!isRecord(metadata)) return fallback;
+  const raw = metadata.credit_amount_cents;
+  const value = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export async function completeBankConfirmedDeposit(input: {
+  intentId: string;
+  notificationId: string;
+  operationNumber: string | null;
+}): Promise<BankConfirmedOutcome> {
+  const intent = await getPaymentIntentByIdInternal(input.intentId);
+  if (!intent) return { completed: false, reason: "La recarga ya no existe." };
+
+  if (intent.status === "succeeded") {
+    return { completed: false, reason: "La recarga ya estaba acreditada." };
+  }
+
+  // Candado de aislamiento: este camino acredita sin gerente, así que jamás
+  // debe tocar una recarga manual del panel, aunque alguien la marque a mano.
+  if (!isRecord(intent.metadata) || intent.metadata.source !== RECHARGE_BOT_SOURCE) {
+    return { completed: false, reason: "No es una recarga del bot del chat." };
+  }
+
+  if (intent.status !== "requires_payment" && intent.status !== "processing") {
+    return { completed: false, reason: "La recarga ya no está abierta." };
+  }
+
+  if (!hasConfirmedVoucher(intent.metadata)) {
+    // El cliente todavía no subió comprobante, o el análisis no dio positivo.
+    // Guardamos la confirmación del banco y esperamos: el comprobante es
+    // obligatorio, así que sin él no se acredita.
+    return {
+      completed: false,
+      reason: "Cobro confirmado, falta el comprobante del cliente.",
+    };
+  }
+
+  // provider_reference es la llave anti-doble-abono: el índice único
+  // (provider, provider_reference) rechaza acreditar el mismo cobro dos veces
+  // aunque el matcher corra repetido.
+  const providerReference = input.operationNumber
+    ? `manual:yape:op:${input.operationNumber}`
+    : `manual:yape:notif:${input.notificationId}`;
+
+  const confirmedAt = new Date().toISOString();
+  const creditUsdCents = readCreditUsdCents(intent.metadata, intent.amountCents);
+
+  const journalId = await confirmDepositInLedger({
+    paymentIntentId: intent.id,
+    providerReference,
+    idempotencyKey: `manual:yape:${input.notificationId}`,
+    metadata: {
+      provider: "manual",
+      source: RECHARGE_BOT_SOURCE,
+      auto_approved: true,
+      approval_source: "bank_notification",
+      bank_confirmation_notification_id: input.notificationId,
+      credit_amount_cents: creditUsdCents,
+    },
+  });
+
+  await updatePaymentIntentRecord(intent.id, {
+    status: "succeeded",
+    providerReference,
+    succeededAt: confirmedAt,
+    metadata: mergeMetadata(intent.metadata, {
+      manual_review_status: "approved",
+      auto_approved: true,
+      approved_at: confirmedAt,
+      // Distinto de "voucher_ai": acá el cobro se verificó contra la cuenta
+      // receptora, no solo contra la imagen que mandó el cliente.
+      approval_source: "bank_notification",
+      ledger_journal_id: journalId,
+    }),
+  });
+
+  const admin = createAdminClient();
+  await admin.from("audit_logs").insert({
+    organization_id: intent.organizationId,
+    actor_user_id: null,
+    action: "payment_intent.auto_approved_by_bank_notification",
+    entity_type: "payment_intent",
+    entity_id: intent.id,
+    metadata: {
+      notification_id: input.notificationId,
+      operation_number: input.operationNumber,
+      provider_reference: providerReference,
+      credit_amount_cents: creditUsdCents,
+    },
+  });
+
+  await createNotificationBestEffort({
+    organizationId: intent.organizationId,
+    userId: intent.createdBy ?? undefined,
+    title: "Recarga confirmada",
+    body: "Verificamos tu pago y ya tienes saldo disponible en tu cartera.",
+    type: "payment_approved",
+    data: { payment_intent_id: intent.id, url: "/payments" },
+  });
+
+  return { completed: true, journalId };
+}
