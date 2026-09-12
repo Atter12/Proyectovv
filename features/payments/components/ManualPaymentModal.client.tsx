@@ -496,56 +496,78 @@ export function ManualPaymentModal({
                 ) : (
                   banks.map((bank) => {
                     const bankApp = resolvePaymentAppKey(bank.bank, bank.label);
+                    const currencyBadge =
+                      chargeCurrency === "USD" ? "USD" : "PEN";
                     return (
                       <div
                         key={bank.id}
-                        className="rounded-2xl bg-[#f7f5f2] p-4 sm:p-5"
+                        className="overflow-hidden rounded-2xl border border-[#e8e1d8] bg-white shadow-[0_1px_0_rgba(28,25,23,0.04)]"
                       >
-                        <div className="flex items-center gap-3">
-                          <PaymentAppIcon app={bankApp} size="sm" />
-                          <div className="min-w-0">
-                            <p className="truncate text-[13px] font-semibold text-[#1c1917]">
-                              {bank.label}
-                            </p>
-                            <p className="mt-0.5 truncate text-[11px] text-[#6f675f]">
-                              {bank.holder}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#e4ddd6] pt-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] text-[#6f675f]">
-                              {t("manualModal.accountNumber")}
-                            </p>
-                            <p className="mt-0.5 truncate font-mono text-[13px] font-semibold text-[#1c1917]">
-                              {bank.accountNumber}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => void copyText(bank.accountNumber)}
-                            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
-                          >
-                            {t("addBalance.copy")}
-                          </button>
-                        </div>
-                        {bank.cci ? (
-                          <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 bg-[#f7f5f2] px-4 py-3 sm:px-5">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <PaymentAppIcon app={bankApp} size="sm" />
                             <div className="min-w-0">
-                              <p className="text-[10px] text-[#6f675f]">CCI</p>
-                              <p className="mt-0.5 truncate font-mono text-[12px] font-medium text-[#1c1917]">
-                                {bank.cci}
+                              <p className="truncate text-[13px] font-semibold text-[#1c1917]">
+                                {bank.label}
+                              </p>
+                              <p className="mt-0.5 truncate text-[11px] text-[#6f675f]">
+                                {bank.holder}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide ${
+                              currencyBadge === "USD"
+                                ? "bg-[#ecfdf5] text-[#047857]"
+                                : "bg-[#fff7ed] text-[#c2410c]"
+                            }`}
+                          >
+                            {currencyBadge}
+                          </span>
+                        </div>
+                        <div className="space-y-3 px-4 py-4 sm:px-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
+                                {t("manualModal.accountNumber")}
+                              </p>
+                              <p className="mt-1 truncate font-mono text-[14px] font-semibold tracking-tight text-[#1c1917]">
+                                {bank.accountNumber}
                               </p>
                             </div>
                             <button
                               type="button"
-                              onClick={() => void copyText(bank.cci!)}
-                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                              onClick={() => void copyText(bank.accountNumber)}
+                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
                             >
                               {t("addBalance.copy")}
                             </button>
                           </div>
-                        ) : null}
+                          {bank.cci ? (
+                            <div className="flex items-center justify-between gap-3 border-t border-[#f0ebe4] pt-3">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
+                                  CCI
+                                </p>
+                                <p className="mt-1 truncate font-mono text-[13px] font-medium tracking-tight text-[#1c1917]">
+                                  {bank.cci}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void copyText(bank.cci!)}
+                                className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                              >
+                                {t("addBalance.copy")}
+                              </button>
+                            </div>
+                          ) : null}
+                          {bank.notes ? (
+                            <p className="text-[11px] leading-4 text-[#8a8278]">
+                              {bank.notes}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })

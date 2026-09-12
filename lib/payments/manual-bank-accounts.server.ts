@@ -21,8 +21,18 @@ const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
     holder: "HOLISTIC MARKETING LLC",
     accountNumber: "1947376966005",
     cci: "00219400737696600598",
-    currencies: ["PEN", "USD"],
-    notes: "Depósito o transferencia interbancaria (CCI).",
+    currencies: ["PEN"],
+    notes: "Transferencia o depósito en soles (PEN).",
+  },
+  {
+    id: "bcp-usd",
+    label: "BCP · Cuenta corriente dólares",
+    bank: "BCP",
+    holder: "HOLISTIC MARKETING LLC",
+    accountNumber: "1938022768168",
+    cci: "00219300802276816813",
+    currencies: ["USD"],
+    notes: "Transferencia o depósito en dólares (USD).",
   },
 ];
 
