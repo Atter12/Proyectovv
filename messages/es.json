@@ -859,6 +859,10 @@
     "tiktokCreate": {
       "title": "Crear cuenta TikTok",
       "subtitle": "Se crea en el Business Center Holistic (BM 300, cash USD) a nombre de {name}. Luego la ves en Pagos → Asignar.",
+      "maintenanceTitle": "Crear cuenta TikTok",
+      "maintenanceSubtitle": "Hola {name}: las altas nuevas todavía no están disponibles.",
+      "maintenanceBadge": "En mantenimiento",
+      "maintenanceBody": "Aún estamos habilitando la creación de cuentas nuevas. Te avisaremos cuando ya estén listas. Tus cuentas actuales siguen operando con normalidad.",
       "bmLabel": "Business Manager",
       "bmHint": "Principal Holistic · cash USD",
       "quota": "Usadas {used} de {limit} · te quedan {remaining}",

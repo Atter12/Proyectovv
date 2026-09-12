@@ -3,7 +3,10 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createTikTokAccountForCliente } from "@/lib/hecom/create-tiktok-account-for-cliente.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { DEFAULT_TIKTOK_CREATE_BM } from "@/lib/integrations/tiktok/bc-create-profiles";
+import {
+  DEFAULT_TIKTOK_CREATE_BM,
+  TIKTOK_SELF_SERVE_CREATE_MAINTENANCE,
+} from "@/lib/integrations/tiktok/bc-create-profiles";
 import { isRecord } from "@/lib/records";
 
 export const runtime = "nodejs";
@@ -21,6 +24,17 @@ export async function POST(request: Request) {
     }
     if (!hasPermission(session.permissions, "adAccounts:create")) {
       return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
+    }
+
+    if (TIKTOK_SELF_SERVE_CREATE_MAINTENANCE) {
+      return NextResponse.json(
+        {
+          error:
+            "La creación de cuentas nuevas está en mantenimiento. Te avisaremos cuando esté lista.",
+          code: "TIKTOK_CREATE_MAINTENANCE",
+        },
+        { status: 503 },
+      );
     }
 
     const selected = await getSelectedHecomCliente(session.id);

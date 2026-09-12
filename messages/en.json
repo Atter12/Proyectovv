@@ -859,6 +859,10 @@
     "tiktokCreate": {
       "title": "Create TikTok account",
       "subtitle": "Creates under Holistic Business Center (BM 300, USD cash) for {name}. Then it shows up in Payments → Assign.",
+      "maintenanceTitle": "Create TikTok account",
+      "maintenanceSubtitle": "Hi {name}: new account creation is not available yet.",
+      "maintenanceBadge": "Under maintenance",
+      "maintenanceBody": "We're still enabling new account creation. We'll let you know when it's ready. Your existing accounts keep working as usual.",
       "bmLabel": "Business Manager",
       "bmHint": "Primary Holistic · USD cash",
       "quota": "Used {used} of {limit} · {remaining} left",

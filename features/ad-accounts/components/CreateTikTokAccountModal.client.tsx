@@ -9,6 +9,7 @@ import { routes } from "@/config/routes";
 import {
   DEFAULT_TIKTOK_CREATE_BM,
   TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+  TIKTOK_SELF_SERVE_CREATE_MAINTENANCE,
 } from "@/lib/integrations/tiktok/bc-create-profiles";
 
 interface CreateTikTokAccountModalProps {
@@ -50,6 +51,7 @@ export function CreateTikTokAccountModal({
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [success, setSuccess] = useState<CreateOk | null>(null);
 
+  const maintenance = TIKTOK_SELF_SERVE_CREATE_MAINTENANCE;
   const atLimit = currentAccountCount >= TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
   const remaining = Math.max(
     0,
@@ -67,6 +69,7 @@ export function CreateTikTokAccountModal({
   if (!open) return null;
 
   async function handleCreate() {
+    if (maintenance) return;
     setLoading(true);
     setError(null);
     setWhatsappUrl(null);
@@ -94,9 +97,7 @@ export function CreateTikTokAccountModal({
       }
 
       if (!response.ok) {
-        setError(
-          ("error" in json && json.error) || t("errGeneric"),
-        );
+        setError(("error" in json && json.error) || t("errGeneric"));
         return;
       }
 
@@ -119,51 +120,70 @@ export function CreateTikTokAccountModal({
             id="create-tiktok-account-title"
             className="text-[17px] font-semibold tracking-tight text-[#1c1917]"
           >
-            {t("title")}
+            {maintenance ? t("maintenanceTitle") : t("title")}
           </h2>
           <p className="mt-1 text-[13px] leading-5 text-[#6f675f]">
-            {t("subtitle", { name: clienteName })}
+            {maintenance
+              ? t("maintenanceSubtitle", { name: clienteName })
+              : t("subtitle", { name: clienteName })}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e1d8] bg-[#f7f5f2] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#8a8278]">
-                {t("bmLabel")}
-              </p>
-              <p className="mt-1 text-[15px] font-semibold text-[#1c1917]">
-                BM 300
-              </p>
-              <p className="mt-0.5 text-[12px] text-[#6f675f]">{t("bmHint")}</p>
+        {maintenance ? (
+          <div className="rounded-xl border border-[#e8e1d8] bg-[#f7f5f2] px-4 py-3 text-sm leading-6 text-[#3f3a34]">
+            <p className="font-semibold text-[#1c1917]">
+              {t("maintenanceBadge")}
+            </p>
+            <p className="mt-1.5">{t("maintenanceBody")}</p>
+          </div>
+        ) : (
+          <>
+            <div className="rounded-2xl border border-[#e8e1d8] bg-[#f7f5f2] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-[#8a8278]">
+                    {t("bmLabel")}
+                  </p>
+                  <p className="mt-1 text-[15px] font-semibold text-[#1c1917]">
+                    BM 300
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[#6f675f]">
+                    {t("bmHint")}
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-md bg-[#ecfdf5] px-2 py-1 text-[10px] font-bold text-[#047857]">
+                  USD · cash
+                </span>
+              </div>
+              <div className="mt-4 border-t border-[#e4ddd6] pt-3 text-[12px] text-[#6f675f]">
+                {t("quota", {
+                  used: currentAccountCount,
+                  limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+                  remaining,
+                })}
+              </div>
             </div>
-            <span className="inline-flex items-center rounded-md bg-[#ecfdf5] px-2 py-1 text-[10px] font-bold text-[#047857]">
-              USD · cash
-            </span>
-          </div>
-          <div className="mt-4 border-t border-[#e4ddd6] pt-3 text-[12px] text-[#6f675f]">
-            {t("quota", {
-              used: currentAccountCount,
-              limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
-              remaining,
-            })}
-          </div>
-        </div>
 
-        {success ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-            <p className="font-semibold">{t("successTitle")}</p>
-            <p className="mt-1">{success.advertiserName}</p>
-            <p className="mt-1 font-mono text-[12px]">{success.advertiserId}</p>
-            <p className="mt-2 text-[12px] text-emerald-800">{t("successHint")}</p>
-          </div>
-        ) : null}
+            {success ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <p className="font-semibold">{t("successTitle")}</p>
+                <p className="mt-1">{success.advertiserName}</p>
+                <p className="mt-1 font-mono text-[12px]">
+                  {success.advertiserId}
+                </p>
+                <p className="mt-2 text-[12px] text-emerald-800">
+                  {t("successHint")}
+                </p>
+              </div>
+            ) : null}
 
-        {error ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            {error}
-          </div>
-        ) : null}
+            {error ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {error}
+              </div>
+            ) : null}
+          </>
+        )}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
@@ -172,9 +192,9 @@ export function CreateTikTokAccountModal({
             onClick={handleClose}
             className="h-11 rounded-xl"
           >
-            {success ? tCommon("close") : tCommon("cancel")}
+            {maintenance || success ? tCommon("close") : tCommon("cancel")}
           </Button>
-          {whatsappUrl || atLimit ? (
+          {maintenance ? null : whatsappUrl || atLimit ? (
             <a
               href={
                 whatsappUrl ||

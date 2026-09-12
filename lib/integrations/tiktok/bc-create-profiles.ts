@@ -64,6 +64,12 @@ export const DEFAULT_TIKTOK_CREATE_BM: TikTokCreateBmBucket = "300";
 /** Máximo de cuentas TikTok self-serve por cliente Hecom. */
 export const TIKTOK_SELF_SERVE_ACCOUNT_LIMIT = 2;
 
+/**
+ * Self-serve create en mantenimiento (TikTok BC bloqueado / ops).
+ * `true` = UI amable + API rechaza altas. Volver a `false` cuando TikTok abra.
+ */
+export const TIKTOK_SELF_SERVE_CREATE_MAINTENANCE = true;
+
 /** WhatsApp Holistic si el cliente pide más de 2. */
 export const HOLISTIC_WHATSAPP_E164 = "51933484150";
 
