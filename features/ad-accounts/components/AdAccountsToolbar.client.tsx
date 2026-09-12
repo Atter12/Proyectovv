@@ -11,9 +11,11 @@ import { routes } from "@/config/routes";
 import { AD_ACCOUNTS_OPEN_CREATE_MODAL } from "@/lib/events/modal-events";
 import type { AdAccountStatus } from "@/types/ad-account";
 
-const CreateAdAccountModal = dynamic(
+const CreateTikTokAccountModal = dynamic(
   () =>
-    import("./CreateAdAccountModal.client").then((m) => m.CreateAdAccountModal),
+    import("./CreateTikTokAccountModal.client").then(
+      (m) => m.CreateTikTokAccountModal,
+    ),
   { ssr: false },
 );
 
@@ -21,14 +23,19 @@ interface AdAccountsToolbarProps {
   initialSearch?: string;
   initialStatus?: string;
   initialIncludeArchived?: boolean;
-  hideCreate?: boolean;
+  /** Mostrar CTA create TikTok (Hecom scoped). */
+  enableTikTokCreate?: boolean;
+  clienteName?: string;
+  currentAccountCount?: number;
 }
 
 export function AdAccountsToolbar({
   initialSearch = "",
   initialStatus = "all",
   initialIncludeArchived = false,
-  hideCreate = false,
+  enableTikTokCreate = false,
+  clienteName = "",
+  currentAccountCount = 0,
 }: AdAccountsToolbarProps) {
   const t = useTranslations("adAccounts");
   const router = useRouter();
@@ -65,12 +72,12 @@ export function AdAccountsToolbar({
 
   useEffect(() => {
     function handleOpenModal() {
-      setModalOpen(true);
+      if (enableTikTokCreate) setModalOpen(true);
     }
     window.addEventListener(AD_ACCOUNTS_OPEN_CREATE_MODAL, handleOpenModal);
     return () =>
       window.removeEventListener(AD_ACCOUNTS_OPEN_CREATE_MODAL, handleOpenModal);
-  }, []);
+  }, [enableTikTokCreate]);
 
   return (
     <>
@@ -117,21 +124,6 @@ export function AdAccountsToolbar({
                 </option>
               ))}
             </select>
-            {!hideCreate ? (
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-[var(--auth-border)] bg-white px-3 text-[12px] font-normal text-[var(--auth-text-muted)]">
-                <input
-                  type="checkbox"
-                  checked={includeArchived}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setIncludeArchived(checked);
-                    updateParams({ archived: checked ? "1" : null });
-                  }}
-                  className="h-3.5 w-3.5 rounded border-[var(--auth-border)] text-[var(--auth-accent)] focus:ring-[var(--auth-accent)]"
-                />
-                {t("toolbar.includeArchived")}
-              </label>
-            ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Link href={routes.creativeAnalyzer} className="shrink-0">
@@ -142,22 +134,24 @@ export function AdAccountsToolbar({
                 {t("toolbar.creativeAnalyzer")}
               </Button>
             </Link>
-            {!hideCreate ? (
+            {enableTikTokCreate ? (
               <Button
                 onClick={() => setModalOpen(true)}
                 className="hidden h-9 rounded-lg bg-[var(--auth-accent)] px-3.5 text-[12px] font-semibold text-white hover:brightness-[1.05] md:inline-flex"
               >
-                {t("toolbar.createNew")}
+                {t("toolbar.createTikTok")}
               </Button>
             ) : null}
           </div>
         </div>
       </div>
 
-      {modalOpen && !hideCreate ? (
-        <CreateAdAccountModal
+      {modalOpen && enableTikTokCreate ? (
+        <CreateTikTokAccountModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
+          clienteName={clienteName}
+          currentAccountCount={currentAccountCount}
         />
       ) : null}
     </>

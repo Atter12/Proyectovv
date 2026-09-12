@@ -1,13 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { dispatchAdAccountsOpenCreateModal } from "@/lib/events/modal-events";
 
 export function AdAccountsMobileStickyCta({
   hideCreate = false,
+  enableTikTokCreate = false,
 }: {
   hideCreate?: boolean;
+  enableTikTokCreate?: boolean;
 }) {
-  if (hideCreate) return null;
+  const t = useTranslations("adAccounts");
+  if (hideCreate && !enableTikTokCreate) return null;
 
   return (
     <div
@@ -21,7 +25,9 @@ export function AdAccountsMobileStickyCta({
             onClick={dispatchAdAccountsOpenCreateModal}
             className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[15px] font-semibold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.32)] transition-colors hover:bg-[var(--brand-primary-deep)] active:translate-y-px"
           >
-            Crear cuenta
+            {enableTikTokCreate
+              ? t("toolbar.createTikTok")
+              : t("toolbar.createNew")}
           </button>
         </div>
       </div>

@@ -805,10 +805,12 @@
       "module": "Ad accounts",
       "pageTitle": "My ad accounts",
       "metaScoped": "TikTok · read only",
+      "metaScopedCreate": "TikTok · create up to 2 accounts (BM 300)",
       "metaPick": "Select a client to view their advertisers",
       "goPayments": "Go to payments",
       "goOverview": "Overview",
       "create": "Create account",
+      "createTikTok": "Create TikTok account",
       "assignedBalance": "Assigned balance",
       "tiktokAccounts": "TikTok accounts",
       "suspended": "Suspended",
@@ -851,7 +853,24 @@
       "statusAll": "All statuses",
       "includeArchived": "Show archived",
       "creativeAnalyzer": "Creative analyzer",
-      "createNew": "Create new"
+      "createNew": "Create new",
+      "createTikTok": "Create TikTok account"
+    },
+    "tiktokCreate": {
+      "title": "Create TikTok account",
+      "subtitle": "Creates under BM 300 for {name}. Then it shows up in Payments → Assign.",
+      "bmLabel": "Business Manager",
+      "bmHint": "Primary Holistic · USD cash",
+      "quota": "Used {used} of {limit} · {remaining} left",
+      "confirm": "Create on BM 300",
+      "creating": "Creating on TikTok…",
+      "successTitle": "Account created",
+      "successHint": "Mapped. Assign balance from Payments when ready.",
+      "goPayments": "Go to Assign balance",
+      "limitReached": "You hit the 2-account max. Request more on WhatsApp.",
+      "whatsappCta": "WhatsApp Holistic",
+      "whatsappPrefill": "Hi Holistic, I'm {name}. I need more than 2 TikTok accounts on Ads Holistic.",
+      "errGeneric": "Could not create the account. Try again or contact support."
     },
     "status": {
       "active": "Active",
@@ -951,10 +970,12 @@
     },
     "panel": {
       "title": "Advertisers for {name}",
-      "subtitle": "Filter by name or status · read only",
+      "subtitle": "Filter by name or status · create on BM 300",
       "emptyTitle": "{name} has no TikTok accounts to operate",
       "emptyBody": "We only show advertisers with advertiser_id mapped in Hecom for “{name}”. If nothing appears, the TikTok account still needs linking in the CRM (not searched by name).",
-      "emptyCta": "Go to payments to top up"
+      "emptyBodyCreate": "Create up to 2 TikTok accounts on BM 300 for “{name}”. Need more? Ask on WhatsApp.",
+      "emptyCta": "Go to payments to top up",
+      "emptyCtaCreate": "Create TikTok account"
     },
     "live": {
       "title": "Live TikTok balance",

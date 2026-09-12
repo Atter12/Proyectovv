@@ -805,10 +805,12 @@
       "module": "Cuentas ads",
       "pageTitle": "Mis cuentas publicitarias",
       "metaScoped": "TikTok · solo lectura",
+      "metaScopedCreate": "TikTok · crear hasta 2 cuentas (BM 300)",
       "metaPick": "Selecciona un cliente para ver sus advertisers",
       "goPayments": "Ir a pagos",
       "goOverview": "Resumen",
       "create": "Crear cuenta",
+      "createTikTok": "Crear cuenta TikTok",
       "assignedBalance": "Saldo asignado",
       "tiktokAccounts": "Cuentas TikTok",
       "suspended": "Suspendidas",
@@ -851,7 +853,24 @@
       "statusAll": "Todos los estados",
       "includeArchived": "Ver archivadas",
       "creativeAnalyzer": "Analizador creativo",
-      "createNew": "Crear nuevo"
+      "createNew": "Crear nuevo",
+      "createTikTok": "Crear cuenta TikTok"
+    },
+    "tiktokCreate": {
+      "title": "Crear cuenta TikTok",
+      "subtitle": "Se crea en BM 300 a nombre de {name}. Luego aparece en Pagos → Asignar.",
+      "bmLabel": "Business Manager",
+      "bmHint": "Principal Holistic · cash USD",
+      "quota": "Usadas {used} de {limit} · te quedan {remaining}",
+      "confirm": "Crear en BM 300",
+      "creating": "Creando en TikTok…",
+      "successTitle": "Cuenta creada",
+      "successHint": "Ya está mapeada. Asigná saldo desde Pagos cuando quieras.",
+      "goPayments": "Ir a Asignar saldo",
+      "limitReached": "Llegaste al máximo de 2 cuentas. Pedí más por WhatsApp.",
+      "whatsappCta": "WhatsApp Holistic",
+      "whatsappPrefill": "Hola Holistic, soy {name}. Necesito más de 2 cuentas TikTok en Ads Holistic.",
+      "errGeneric": "No se pudo crear la cuenta. Intentá de nuevo o contactá soporte."
     },
     "status": {
       "active": "Activa",
@@ -951,10 +970,12 @@
     },
     "panel": {
       "title": "Advertisers de {name}",
-      "subtitle": "Filtra por nombre o estado · solo lectura",
+      "subtitle": "Filtra por nombre o estado · crear en BM 300",
       "emptyTitle": "{name} no tiene cuentas TikTok para operar",
       "emptyBody": "Solo mostramos advertisers con advertiser_id mapeado en Hecom para “{name}”. Si no aparece nada, falta vincular la cuenta TikTok en el CRM (no se busca por nombre).",
-      "emptyCta": "Ir a pagos para recargar"
+      "emptyBodyCreate": "Creá hasta 2 cuentas TikTok en BM 300 para “{name}”. Si necesitás más, pedilas por WhatsApp.",
+      "emptyCta": "Ir a pagos para recargar",
+      "emptyCtaCreate": "Crear cuenta TikTok"
     },
     "live": {
       "title": "Saldo en vivo TikTok",

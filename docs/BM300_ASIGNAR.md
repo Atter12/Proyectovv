@@ -167,6 +167,40 @@ Detalle create multi-BM: `ARQUITECTURA_CREAR_CUENTAS_TIKTOK.md` + estudio 10/30/
 
 ---
 
+## 9. Crear cuentas (Cuentas ads) — BM 300 primero
+
+**Producto (2026-09-12):**
+
+- UI: **Cuentas ads** → “Crear cuenta TikTok” (no el modal demo Holistic).
+- Default BM: **300**.
+- Cap self-serve: **2** cuentas / cliente Hecom.
+- Más de 2 → CTA **WhatsApp** `wa.me/51933484150`.
+- Flujo: `POST /bc/advertiser/create/` → `cliente_tiktok_cuentas` → sync org → aparece en Asignar.
+
+Código:
+
+| Pieza | Path |
+|-------|------|
+| Perfiles | `lib/integrations/tiktok/bc-create-profiles.ts` |
+| Create API TikTok | `lib/integrations/tiktok/bc-advertiser-create.server.ts` |
+| Link Hecom | `lib/hecom/link-tiktok-cuenta.server.ts` |
+| Orquestación | `lib/hecom/create-tiktok-account-for-cliente.server.ts` |
+| Route | `POST /api/ad-accounts/tiktok/create` |
+| Modal | `features/ad-accounts/components/CreateTikTokAccountModal.client.tsx` |
+
+Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` · industry `291406`.
+
+### Smoke create (2026-09-12)
+
+| Prueba | Resultado |
+|--------|-----------|
+| Payload + industry inválida | `40002 Industry invalid` → path/permisos **OK** |
+| Create real | `40002 Unable to create… unusual activity in this Business Center` |
+
+**Bloqueo TikTok en el BC** (compliance / risk), no Holistic. Pedir a AM TikTok desbloqueo de altas en BM 300. La UI/API ya está lista; cuando TikTok abra, create funciona sin redeploy de lógica.
+
+---
+
 ## 8. Checklist “BM 300 listo para dar saldo”
 
 - [x] OAuth → token nuevo

@@ -2,6 +2,7 @@
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
 import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
+import { AdAccountsOpenCreateModalButton } from "@/features/ad-accounts/components/AdAccountsOpenCreateModalButton.client";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
 import { AdAccountsToolbar } from "@/features/ad-accounts/components/AdAccountsToolbar.client";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
@@ -13,7 +14,6 @@ import { getSearchParam } from "@/lib/search-params";
 import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
-import Link from "next/link";
 import { Suspense } from "react";
 
 interface AdAccountsPageProps {
@@ -66,6 +66,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const data = await getHecomClienteAdAccountsOverview(selected.id, "fast");
   const clienteName = data.cliente?.name ?? selected.name;
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
+  const accountCount = data.summary.totalAccounts;
 
   return (
     <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
@@ -75,7 +76,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         clienteName={clienteName}
         clienteId={selected.id}
         avatarUrl={data.cliente?.avatarUrl}
-        hideCreate
+        enableTikTokCreate
       />
 
       <CrmPanel
@@ -88,7 +89,9 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             initialSearch={search}
             initialStatus={status}
             initialIncludeArchived={false}
-            hideCreate
+            enableTikTokCreate
+            clienteName={clienteName}
+            currentAccountCount={accountCount}
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (
@@ -101,20 +104,17 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
               {t("panel.emptyTitle", { name: clienteName })}
             </p>
             <p className="mx-auto mt-2 max-w-lg text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              {t("panel.emptyBody", { name: clienteName })}
+              {t("panel.emptyBodyCreate", { name: clienteName })}
             </p>
-            <Link
-              href={routes.payments}
-              className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
-            >
-              {t("panel.emptyCta")}
-            </Link>
+            <AdAccountsOpenCreateModalButton className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]">
+              {t("panel.emptyCtaCreate")}
+            </AdAccountsOpenCreateModalButton>
           </div>
         ) : (
           <AdAccountsTable accounts={filteredAccounts} readOnly />
         )}
       </CrmPanel>
-      <AdAccountsMobileStickyCta hideCreate />
+      <AdAccountsMobileStickyCta enableTikTokCreate />
     </div>
   );
 }

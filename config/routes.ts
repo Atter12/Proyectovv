@@ -44,6 +44,7 @@ export const routes = {
       transactions: "/api/payments/transactions",
     },
     adAccounts: "/api/ad-accounts",
+    adAccountsTikTokCreate: "/api/ad-accounts/tiktok/create",
     support: {
       tickets: "/api/support/tickets",
     },

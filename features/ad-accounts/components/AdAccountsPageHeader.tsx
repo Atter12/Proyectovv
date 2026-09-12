@@ -17,6 +17,7 @@ interface AdAccountsPageHeaderProps {
   clienteId?: string;
   avatarUrl?: string | null;
   hideCreate?: boolean;
+  enableTikTokCreate?: boolean;
 }
 
 function accountStatusHint(
@@ -65,6 +66,7 @@ export async function AdAccountsPageHeader({
   clienteName,
   avatarUrl,
   hideCreate = false,
+  enableTikTokCreate = false,
 }: AdAccountsPageHeaderProps) {
   const t = await getTranslations("adAccounts");
   const { formatMoney, formatNumber } = await getAppFormatter();
@@ -115,7 +117,11 @@ export async function AdAccountsPageHeader({
             : undefined
         }
         meta={
-hecomScoped ? t("header.metaScoped") : t("header.metaPick")
+          hecomScoped
+            ? enableTikTokCreate
+              ? t("header.metaScopedCreate")
+              : t("header.metaScoped")
+            : t("header.metaPick")
         }
         actions={
           <>
@@ -125,9 +131,11 @@ hecomScoped ? t("header.metaScoped") : t("header.metaPick")
             <CrmHeroButton href={routes.overview} variant="secondary">
               {t("header.goOverview")}
             </CrmHeroButton>
-            {hideCreate ? null : (
+            {hideCreate && !enableTikTokCreate ? null : (
               <AdAccountsOpenCreateModalButton className="inline-flex h-10 items-center rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)]">
-                {t("header.create")}
+                {enableTikTokCreate
+                  ? t("header.createTikTok")
+                  : t("header.create")}
               </AdAccountsOpenCreateModalButton>
             )}
           </>
