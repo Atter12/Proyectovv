@@ -73,12 +73,35 @@ export async function createTikTokAccountForCliente(input: {
   );
   const organizationId = await resolveOrganizationIdForHecomCliente(clienteId);
 
-  const created = await createBcAdvertiserForCliente({
-    clienteName: cliente.name,
-    bmBucket: profile.bmBucket,
-    organizationId: organizationId ?? undefined,
-    sequence: existingCount + 1,
-  });
+  let created: Awaited<ReturnType<typeof createBcAdvertiserForCliente>>;
+  try {
+    created = await createBcAdvertiserForCliente({
+      clienteName: cliente.name,
+      bmBucket: profile.bmBucket,
+      organizationId: organizationId ?? undefined,
+      sequence: existingCount + 1,
+    });
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : "unknown";
+    if (/TIKTOK_BC_UNUSUAL_ACTIVITY|unusual activity/i.test(raw)) {
+      const clientMessage = raw
+        .replace(/^TIKTOK_BC_UNUSUAL_ACTIVITY:\s*/i, "")
+        .trim();
+      const prefill =
+        `Hola Holistic, soy ${cliente.name}. No puedo crear cuenta TikTok: TikTok API 40002 unusual activity en BM 300 (BC ${profile.bcId}). ¿Pueden escalarlo?`;
+      return {
+        ok: false,
+        needWhatsApp: true,
+        accountCount: existingCount,
+        limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+        whatsappUrl: buildHolisticWhatsAppUrl(prefill),
+        message:
+          clientMessage ||
+          "TikTok rechazó el alta (API 40002 · unusual activity). Escribinos por WhatsApp para escalarlo con TikTok.",
+      };
+    }
+    throw error;
+  }
 
   let hecomLinked = false;
   try {

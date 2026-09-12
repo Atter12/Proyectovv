@@ -95,23 +95,24 @@ export async function createBcAdvertiserForCliente(input: {
       tiktokRequestId: json.request_id ?? null,
     });
     if (/unusual activity/i.test(detail)) {
+      // Cliente: técnico + acción Holistic (no “tu AM”).
       throw new Error(
-        "TikTok bloqueó altas nuevas en este BM por “actividad inusual”. Pedile a tu AM de TikTok que revise BM 300 o probá más tarde.",
+        "TikTok_BC_UNUSUAL_ACTIVITY: TikTok rechazó el alta (API 40002 · unusual activity en el Business Center). No es un fallo de Holistic: el BC está en revisión de riesgo. Escribinos por WhatsApp para escalarlo. Tus cuentas actuales siguen operando.",
       );
     }
     if (/industry invalid/i.test(detail)) {
       throw new Error(
-        "TikTok rechazó la industria del perfil. Contactá a soporte Holistic.",
+        "TikTok rechazó la industria del perfil (API). Contactá a Holistic por WhatsApp.",
       );
     }
     if (/maximum number of advertiser/i.test(detail)) {
       throw new Error(
-        "Este Business Center llegó al tope de cuentas en TikTok. Pedí cupo a soporte.",
+        "Este Business Center llegó al tope de cuentas en TikTok (cuota BC). Contactá a Holistic por WhatsApp.",
       );
     }
     if (/qualification/i.test(detail)) {
       throw new Error(
-        "La qualification del BM no está lista en TikTok. Contactá a soporte.",
+        "La qualification del Business Center no está lista en TikTok. Contactá a Holistic por WhatsApp.",
       );
     }
     throw new Error(`No se pudo crear la cuenta en TikTok: ${detail}`);

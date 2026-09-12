@@ -858,11 +858,11 @@
     },
     "tiktokCreate": {
       "title": "Crear cuenta TikTok",
-      "subtitle": "Se crea en BM 300 a nombre de {name}. Luego aparece en Pagos → Asignar.",
+      "subtitle": "Se crea en el Business Center Holistic (BM 300, cash USD) a nombre de {name}. Luego la ves en Pagos → Asignar.",
       "bmLabel": "Business Manager",
       "bmHint": "Principal Holistic · cash USD",
       "quota": "Usadas {used} de {limit} · te quedan {remaining}",
-      "confirm": "Crear en BM 300",
+      "confirm": "Crear cuenta",
       "creating": "Creando en TikTok…",
       "successTitle": "Cuenta creada",
       "successHint": "Ya está mapeada. Asigná saldo desde Pagos cuando quieras.",
@@ -870,7 +870,8 @@
       "limitReached": "Llegaste al máximo de 2 cuentas. Pedí más por WhatsApp.",
       "whatsappCta": "WhatsApp Holistic",
       "whatsappPrefill": "Hola Holistic, soy {name}. Necesito más de 2 cuentas TikTok en Ads Holistic.",
-      "errGeneric": "No se pudo crear la cuenta. Intentá de nuevo o contactá soporte."
+      "errGeneric": "No se pudo crear la cuenta. Intentá de nuevo o contactá a Holistic por WhatsApp.",
+      "errUnusualActivity": "TikTok rechazó el alta (API 40002 · unusual activity en el Business Center). No es un fallo de Holistic: el BC está en revisión de riesgo. Escribinos por WhatsApp para escalarlo. Tus cuentas actuales siguen operando."
     },
     "status": {
       "active": "Activa",
