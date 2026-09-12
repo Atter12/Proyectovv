@@ -3,9 +3,11 @@ export const HECOM_BM_BUCKET_TO_BC: Record<string, string> = {
   "200": "7575005779271614480",
   "30": "7564426417577148433",
   "10": "7652451146933698576",
+  /** Bm Enterprise 300.0 USD · AGENCY · cash NON_SHARED (como BM200). */
+  "300": "7680955666005196801",
 };
 
-/** BC ID TikTok → bm_bucket Hecom ("10" | "30" | "200"). */
+/** BC ID TikTok → bm_bucket Hecom ("10" | "30" | "200" | "300"). */
 export function resolveBmBucketFromBcId(
   bcId: string | null | undefined,
 ): string | null {
@@ -17,8 +19,8 @@ export function resolveBmBucketFromBcId(
   return null;
 }
 
-/** BMs donde Holistic puede Asignar (cash BM200 o presupuesto crédito BM10/30). */
-export const SYSTEM_ALLOCATABLE_BM_BUCKETS = ["10", "30", "200"] as const;
+/** BMs donde Holistic puede Asignar (cash BM200/300 o presupuesto crédito BM10/30). */
+export const SYSTEM_ALLOCATABLE_BM_BUCKETS = ["10", "30", "200", "300"] as const;
 
 /** @deprecated Prefer SYSTEM_ALLOCATABLE_BM_BUCKETS — BM 200 = cash transfer. */
 export const SYSTEM_ALLOCATABLE_BM_BUCKET = "200";
@@ -34,7 +36,7 @@ export function parseBmBucketFromLabel(
   return null;
 }
 
-/** Cuentas BM 10 / 30 / 200 se pueden asignar desde Holistic (vía cash o presupuesto). */
+/** Cuentas BM 10 / 30 / 200 / 300 se pueden asignar desde Holistic. */
 export function isSystemAllocatableBmLabel(
   bmLabel: string | null | undefined,
 ): boolean {
@@ -51,6 +53,14 @@ export function isSharedCreditBmBucket(
 ): boolean {
   const b = String(bmBucket ?? "").trim();
   return b === "10" || b === "30";
+}
+
+/** BM 200 / 300: cash NON_SHARED → Asignar = /bc/transfer/. */
+export function isCashTransferBmBucket(
+  bmBucket: string | null | undefined,
+): boolean {
+  const b = String(bmBucket ?? "").trim();
+  return b === "200" || b === "300";
 }
 
 /** Etiquetas cortas de BM para UI (Cuentas ads, Pagos). */

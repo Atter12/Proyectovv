@@ -224,6 +224,91 @@ Refs: `features/support/mocks/support.mock.ts`, `app/(dashboard)/ad-accounts/pag
 
 ---
 
+## 5A. Seguridad — “¿hay que dar Admin al cliente?” (respuesta al supervisor)
+
+**Fecha nota:** 2026-09-12  
+**Miedo:** *“Para crear cuentas hay que dar permiso Admin y eso es peligroso.”*  
+**Veredicto:** el miedo es **parcialmente cierto sobre TikTok**, pero **falso sobre el cliente**. Admin lo necesita **Holistic (nuestro token / usuarios ops)**, **nunca** el anunciante final.
+
+### Qué dice TikTok (oficial)
+
+| Hecho | Fuente |
+|-------|--------|
+| Solo un **Admin del Business Center** puede **crear** ad accounts en ese BC | [Roles BC TikTok](https://ads.tiktok.com/resources/help/article/about-business-center-roles-and-permissions) · Create Ad Account = Admin Yes / Standard No |
+| Una agencia puede **crear advertisers bajo su Agency BC** a nombre del cliente; el BC **dueño** es el de la agencia | [Create ad accounts in BC — Scenario agency](https://ads.tiktok.com/resources/help/article/create-ad-accounts-in-business-center) |
+| Después se **asignan** miembros/partners al advertiser con rol acotado (Operator / Analyst), no hay que hacerlos Admin del BC | Misma guía TikTok |
+
+Traducción: **sí hace falta Admin… pero del BC de Holistic**, que **ya tenemos** (`TIKTOK_ACCESS_TOKEN` = ADMIN en BM10/30/200). Eso no implica invitar al cliente como Admin.
+
+### Modelo peligroso (el que el supervisor imagina) ❌
+
+```text
+Cliente → se une al BM Holistic como ADMIN
+       → crea cuentas a mano / con sus permisos
+```
+
+Riesgos reales: ve **todas** las cuentas del BM, puede invitar gente, mover assets, tocar finance, filtrar datos de otros clientes. **Holistic no debe hacer esto nunca.**
+
+### Modelo seguro Holistic (igual que agencia TikTok + lo que ya operamos) ✅
+
+```text
+Cliente (solo sesión Ads Holistic)
+   → botón "Crear / Solicitar cuenta"
+   → API Holistic (auth staff o cola + approve)
+   → servidor usa token AGENCY de Holistic (ADMIN en NUESTRO BM)
+   → POST /bc/advertiser/create/ bajo BC Holistic
+   → mapa Hecom (solo ese advertiser_id ↔ ese cliente)
+   → aparece en Asignar de ESA org
+```
+
+| Actor | ¿Admin del BM Holistic? | Qué puede hacer |
+|-------|-------------------------|-----------------|
+| Token / ops Holistic | **Sí** (ya hoy) | Create, fondeo, sync |
+| Cliente en Holistic SaaS | **No** | Pedir/crear vía UI; ver **solo** sus advertisers mapeados |
+| Cliente en TikTok Ads Manager | **No** (default) | Nada, o a lo sumo **Operator/Analyst en 1 advertiser** si ops lo invita a propósito |
+
+El create **no requiere** OAuth del cliente al BM. El cliente **no** “acepta permisos Admin” sobre nuestro BC.
+
+### Cómo lo hace Ecomdy (lo público, sin magia)
+
+Fuentes: [help Ecomdy — create agency ad account](https://ecomdymedia.freshdesk.com/support/solutions/articles/72000625879-to-create-tiktok-agency-ad-account), [ecomdymedia.com/tiktok-ads](https://ecomdymedia.com/tiktok-ads).
+
+1. Cliente se registra y **recarga wallet Ecomdy** (igual que cartera Holistic).  
+2. En UI Ecomdy el cliente dispara **create ad account**.  
+3. Por detrás es el **mismo endpoint** de agencia (`/bc/advertiser/create/`) u onboarding partner — **no** publican “haz Admin al cliente en nuestro BM”.  
+4. Su help también muestra un flujo **“Connect your TikTok Business Account”** (OAuth): ahí el cliente autoriza la **app Ecomdy** sobre **su** TikTok, no al revés. Eso es **otro** producto (vincular BC del cliente).  
+
+Para el caso “cuenta agency tipo `{Nombre} 200.0 USD - Agencia`” (lo que vendemos en Holistic), el patrón correcto es el **agency-owned**: cuenta nace en **nuestro** BM; el cliente opera desde el SaaS.
+
+### Controles que debemos exigir en diseño (para el supervisor)
+
+1. **Nunca** `bc/member/invite` con rol Admin al email del cliente.  
+2. Create solo con **token server-side** (env Vercel); cero Access-Token en browser.  
+3. API: solo staff (Fase A) o cola + approve (Fase B); rate limit por cliente.  
+4. Ownership solo por `advertiser_id` en Hecom (sin listar todo el BM al cliente).  
+5. Audit: `actor_user_id`, `request_id` TikTok, `bm_bucket`, `cliente_id`.  
+6. Si el cliente pide Ads Manager: invitar **Standard/Operator solo a ese advertiser**, no al BC.  
+7. BM nuevos (ej. **BM 300** cuando den acceso): mismo patrón — token ADMIN de Holistic en ese BC; cliente sigue sin Admin.
+
+### Frase corta para el supervisor
+
+> “TikTok exige Admin para crear cuentas, pero ese Admin es el de **nuestro** Business Center (token que ya usamos para Asignar). El cliente **nunca** se hace Admin del BM: solo usa Ads Holistic; nosotros creamos la cuenta bajo el BM de la agencia y se la mapeamos. Dar Admin al cliente sí sería peligroso — y **no** es el diseño.”
+
+### BM 300 (activo — Asignar)
+
+Ver doc dedicado: [`BM300_ASIGNAR.md`](./BM300_ASIGNAR.md).
+
+| Campo | Valor |
+|-------|--------|
+| BC ID | `7680955666005196801` |
+| Nombre | Bm Enterprise 300.0 USD |
+| Fondeo | Cash NON_SHARED (como BM200) |
+| Prioridad | Asignar / map Hecom antes que create |
+
+Cuando den el BC / token de **BM 300** (TQ): sumar fila a `HECOM_BM_BUCKET_TO_BC` + perfil create (tipo AGENCY/DIRECT, qual, área) igual que 10/30/200. La seguridad **no cambia**: Admin queda en el token Holistic de ese BM.
+
+---
+
 ## 6. UX propuesta (sin wireframes)
 
 ### Staff (Fase A)
@@ -257,6 +342,7 @@ Mejor: CTA create/solicitar según rol.
 | BM10 cuota llena | Create falla | UI disabled + ops disable viejos / AM TikTok |
 | BM10 DIRECT mal payload | Errors confusos | Omitir `qualification_info`; smoke CO/Bogota |
 | Self-serve abuse | Cuotas / spam | Fase B approve; rate limits |
+| Invitar cliente como Admin del BM | Leak multi-cliente / finance | **Prohibido por diseño** — ver §5A; solo Operator en 1 advertiser si hace falta |
 | Portfolio $0 BM10/30 | Cliente cree que puede gastar | Copy: “Crear ≠ fondear”; Asignar después |
 | `adAccounts:create` demo | Cuentas falsas | Gate nuevo; hide demo en Hecom scope |
 | Cache sync 5 min | No aparece al toque | `forceRefresh: true` |

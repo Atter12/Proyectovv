@@ -189,6 +189,8 @@ type ResolvedBcFunding =
 async function resolveBcPaymentPortfolioId(input: {
   bcId: string;
   organizationId?: string;
+  /** Si hay varios NON_SHARED, preferir el portfolio donde vive este advertiser. */
+  advertiserId?: string | null;
 }): Promise<string | null> {
   const { token: accessToken } = await resolveTikTokFinanceAccessToken(
     input.organizationId,
@@ -218,23 +220,120 @@ async function resolveBcPaymentPortfolioId(input: {
   }
 
   const rows = json.data?.payment_portfolios ?? json.data?.list ?? [];
-  const ids = rows
-    .map((row) => {
-      const raw = row.payment_portfolio_id;
-      return typeof raw === "string" ? raw.trim() : raw != null ? String(raw) : "";
-    })
-    .filter(Boolean);
+  const asId = (raw: unknown): string => {
+    // Nunca Number(): IDs TikTok pierden precisión en JS.
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+    if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
+    if (raw != null) return String(raw).trim();
+    return "";
+  };
+
+  const ids = rows.map((row) => asId(row.payment_portfolio_id)).filter(Boolean);
 
   if (ids.length === 0) return null;
-  if (ids.length === 1) return ids[0];
+  if (ids.length === 1) return ids[0]!;
+
+  const advertiserId = input.advertiserId?.trim();
+  if (advertiserId) {
+    // Match por nombre de portfolio del advertiser (evita ID numérico corrupto).
+    const snapUrl = new URL(apiUrl("/advertiser/balance/get/"));
+    snapUrl.searchParams.set("bc_id", input.bcId.trim());
+    snapUrl.searchParams.set(
+      "filtering",
+      JSON.stringify({ keyword: advertiserId }),
+    );
+    snapUrl.searchParams.set("page", "1");
+    snapUrl.searchParams.set("page_size", "20");
+    try {
+      const snapRes = await fetch(snapUrl.toString(), {
+        method: "GET",
+        headers: { "Access-Token": accessToken },
+        cache: "no-store",
+      });
+      const snapJson = (await snapRes.json()) as TikTokApiResponse<{
+        list?: Array<Record<string, unknown>>;
+        advertiser_account_list?: Array<Record<string, unknown>>;
+      }>;
+      const want = advertiserId;
+      const hit = [
+        ...(snapJson.data?.advertiser_account_list ?? []),
+        ...(snapJson.data?.list ?? []),
+      ].find(
+        (row) =>
+          String(row.advertiser_id ?? row.advertiserId ?? "") === want,
+      );
+      const portfolioName = hit
+        ? String(hit.payment_portfolio_name ?? "").trim()
+        : "";
+      if (portfolioName) {
+        const byName = rows.find(
+          (row) =>
+            String(row.payment_portfolio_name ?? "").trim() === portfolioName,
+        );
+        const id = byName ? asId(byName.payment_portfolio_id) : "";
+        if (id) {
+          console.info("[tiktok-bc] portfolio_resolved_by_advertiser", {
+            bcId: input.bcId,
+            advertiserId,
+            paymentPortfolioId: id,
+            paymentPortfolioName: portfolioName,
+          });
+          return id;
+        }
+      }
+    } catch {
+      // fallback abajo
+    }
+
+    // Fallback: probar cada portfolio string hasta encontrar el advertiser.
+    for (const portfolioId of ids) {
+      const probeUrl = new URL(apiUrl("/advertiser/balance/get/"));
+      probeUrl.searchParams.set("bc_id", input.bcId.trim());
+      probeUrl.searchParams.set("payment_portfolio_id", portfolioId);
+      probeUrl.searchParams.set(
+        "filtering",
+        JSON.stringify({ keyword: advertiserId }),
+      );
+      probeUrl.searchParams.set("page", "1");
+      probeUrl.searchParams.set("page_size", "10");
+      try {
+        const probeRes = await fetch(probeUrl.toString(), {
+          method: "GET",
+          headers: { "Access-Token": accessToken },
+          cache: "no-store",
+        });
+        const probeJson = (await probeRes.json()) as TikTokApiResponse<{
+          list?: Array<Record<string, unknown>>;
+          advertiser_account_list?: Array<Record<string, unknown>>;
+        }>;
+        const hit = [
+          ...(probeJson.data?.advertiser_account_list ?? []),
+          ...(probeJson.data?.list ?? []),
+        ].some(
+          (row) =>
+            String(row.advertiser_id ?? row.advertiserId ?? "") ===
+            advertiserId,
+        );
+        if (hit) {
+          console.info("[tiktok-bc] portfolio_resolved_by_probe", {
+            bcId: input.bcId,
+            advertiserId,
+            paymentPortfolioId: portfolioId,
+          });
+          return portfolioId;
+        }
+      } catch {
+        // siguiente
+      }
+    }
+  }
 
   const nonShared = rows.find(
     (row) => String(row.payment_portfolio_type ?? "") === "NON_SHARED",
   );
-  const preferred = nonShared?.payment_portfolio_id;
-  if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
-  if (preferred != null) return String(preferred);
-  return ids[0];
+  const preferred = nonShared ? asId(nonShared.payment_portfolio_id) : "";
+  if (preferred) return preferred;
+  return ids[0]!;
 }
 
 function resolveBcFundingSource(
@@ -324,6 +423,7 @@ export async function transferBcFundsToAdvertiser(
   const paymentPortfolioId = await resolveBcPaymentPortfolioId({
     bcId,
     organizationId: input.organizationId,
+    advertiserId,
   });
 
   // REFUND: cash sale del advertiser → BC. No exige cash disponible en el BM.
