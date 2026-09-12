@@ -27,6 +27,7 @@ const DEFAULT_HOLISTIC_BC_IDS = [
   "7575005779271614480", // BM Entreprise 200
   "7564426417577148433", // BM Entreprise 30
   "7652451146933698576", // BM 10.0 USD Nuevo
+  "7680955666005196801", // Bm Enterprise 300.0 USD
 ];
 
 export { HECOM_BM_BUCKET_TO_BC, resolveBmBucketFromBcId };
