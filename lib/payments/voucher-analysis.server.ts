@@ -36,6 +36,7 @@ async function analyzeWithOpenAi(input: {
   expectedAmount: number;
   expectedCurrency: ManualChargeCurrency;
   holderNames: string[];
+  strictCurrency?: boolean;
 }): Promise<VoucherAnalysisResult | null> {
   const apiKey = serverEnv.openAiApiKey?.trim();
   if (!apiKey) return null;
@@ -106,7 +107,7 @@ Beneficiarios válidos (parcial): ${input.holderNames.join(", ")}.`;
     const detectedCurrency =
       parsed.currency === "USD" || parsed.currency === "PEN"
         ? parsed.currency
-        : input.expectedCurrency;
+        : input.strictCurrency ? null : input.expectedCurrency;
     const detectedAmount =
       typeof parsed.amount === "number" && Number.isFinite(parsed.amount)
         ? parsed.amount
@@ -118,7 +119,7 @@ Beneficiarios válidos (parcial): ${input.holderNames.join(", ")}.`;
 
     const expectedCents = Math.round(input.expectedAmount * 100);
     const amountOk =
-      detectedAmount != null &&
+      detectedAmount != null && detectedCurrency != null &&
       amountsMatch(expectedCents, detectedAmount, detectedCurrency);
 
     const beneficiaryOk = parsed.beneficiary_matches !== false;
@@ -152,6 +153,8 @@ export async function analyzePaymentVoucher(input: {
   expectedAmount: number;
   expectedCurrency: ManualChargeCurrency;
   holderNames?: string[];
+  /** Opt-in for the support bot; ordinary manual-payment behavior stays unchanged. */
+  strictCurrency?: boolean;
 }): Promise<VoucherAnalysisResult> {
   const holders =
     input.holderNames?.length ?
@@ -164,6 +167,7 @@ export async function analyzePaymentVoucher(input: {
     expectedAmount: input.expectedAmount,
     expectedCurrency: input.expectedCurrency,
     holderNames: holders,
+    strictCurrency: input.strictCurrency,
   });
 
   if (fromAi) return fromAi;

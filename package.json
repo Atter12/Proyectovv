@@ -18,6 +18,9 @@
     "@clerk/nextjs": "^7.8.2",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
+    "imapflow": "2.0.2",
+    "mailauth": "4.13.3",
+    "mailparser": "3.9.26",
     "motion": "^12.42.2",
     "next": "16.2.10",
     "next-intl": "^4.14.3",
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/mailparser": "3.4.6",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -40,6 +44,11 @@
     "node": "24.x"
   },
   "overrides": {
+    "mailauth": {
+      "nodemailer": "10.0.9",
+      "undici": "8.10.2",
+      "joi": "18.2.9"
+    },
     "@emnapi/core": "1.11.3",
     "@emnapi/runtime": "1.11.3"
   }

@@ -10,6 +10,7 @@ import { ChatConversation } from "@/features/support/components/ChatConversation
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
 import { supportChatTimestampsNow } from "@/lib/support/chat-time";
 import { playSupportNotifySound } from "@/lib/support/notify-sound.client";
+import { useRechargeBot } from "@/features/support/hooks/useRechargeBot";
 
 interface SupportChatWidgetProps {
   isOpen: boolean;
@@ -79,6 +80,14 @@ export function SupportChatWidget({
   const [previewText, setPreviewText] = useState<string | null>(null);
   const lastSeenStaffMsgIdRef = useRef<string | null>(null);
   const backgroundSeededRef = useRef(false);
+  const appendRechargeMessages = useCallback((texts: string[], userText?: string) => {
+    setMessages((prev) => [
+      ...prev.filter((m) => m.id !== "support-greeting"),
+      ...(userText ? [{ id: `recharge-user-${crypto.randomUUID()}`, role: "user" as const, text: userText, ...supportChatTimestampsNow() }] : []),
+      ...texts.map((text) => ({ id: `recharge-bot-${crypto.randomUUID()}`, role: "bot" as const, text, ...supportChatTimestampsNow() })),
+    ]);
+  }, []);
+  const rechargeBot = useRechargeBot(appendRechargeMessages);
 
   // Keep greeting in sync when locale changes.
   useEffect(() => {
@@ -112,13 +121,11 @@ export function SupportChatWidget({
             `/api/support/tickets/${activeTicket.id}/messages`,
           );
           const msgs = messagesData.messages ?? [];
-          setMessages(
-            msgs.length > 0 ? msgs : [greetingMessage(greetingText)],
-          );
+          setMessages((prev) => [...(msgs.length > 0 ? msgs : [greetingMessage(greetingText)]), ...prev.filter((m) => m.id.startsWith("recharge-"))]);
           const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
           if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
         } else {
-          setMessages([greetingMessage(greetingText)]);
+          setMessages((prev) => [greetingMessage(greetingText), ...prev.filter((m) => m.id.startsWith("recharge-"))]);
         }
         setConversationLoaded(true);
       } catch (err) {
@@ -148,7 +155,8 @@ export function SupportChatWidget({
     fetchMessages: fetchLiveMessages,
     onMessages: (updater) => {
       setMessages((prev) => {
-        const next = updater(prev);
+        const localRecharge = prev.filter((m) => m.id.startsWith("recharge-"));
+        const next = [...updater(prev.filter((m) => !m.id.startsWith("recharge-"))), ...localRecharge];
         const msgs = next.length > 0 ? next : [greetingMessage(greetingText)];
         const lastStaff = [...msgs].reverse().find((m) => m.role === "bot");
         if (lastStaff) lastSeenStaffMsgIdRef.current = lastStaff.id;
@@ -255,6 +263,10 @@ export function SupportChatWidget({
     ]);
 
     try {
+      if (await rechargeBot.handle(text, files)) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
+        return;
+      }
       const formData = new FormData();
       if (text) formData.set("message", text);
       for (const file of files) formData.append("files", file);
