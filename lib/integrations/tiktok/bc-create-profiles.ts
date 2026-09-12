@@ -1,4 +1,3 @@
-import "server-only";
 import { HECOM_BM_BUCKET_TO_BC } from "@/lib/hecom/bm-bucket.shared";
 
 export type TikTokCreateBmBucket = "300" | "200" | "30";
