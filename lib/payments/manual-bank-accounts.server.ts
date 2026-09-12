@@ -16,25 +16,36 @@ export type ManualBankAccount = {
 const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
   {
     id: "bcp-pen",
-    label: "BCP · Cuenta corriente soles",
+    label: "BCP - Cuenta corriente soles",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
     accountNumber: "1947376966005",
     cci: "00219400737696600598",
     currencies: ["PEN"],
-    notes: "Transferencia o depósito en soles (PEN).",
+    notes: "Transferencia o deposito en soles (PEN).",
   },
   {
     id: "bcp-usd",
-    label: "BCP · Cuenta corriente dólares",
+    label: "BCP - Cuenta corriente dolares",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
     accountNumber: "1938022768168",
     cci: "00219300802276816813",
     currencies: ["USD"],
-    notes: "Transferencia o depósito en dólares (USD).",
+    notes: "Transferencia o deposito en dolares (USD).",
   },
 ];
+
+function sanitizeBankText(value: string): string {
+  return value
+    .replace(/\uFFFD/g, "")
+    .replace(/BCP\s*\?\s*/g, "BCP - ")
+    .replace(/dep\?sito/gi, "deposito")
+    .replace(/d\?lares/gi, "dolares")
+    .replace(/·/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 function parseAccountsFromEnv(): ManualBankAccount[] {
   const raw = serverEnv.manualPaymentBankAccountsJson?.trim();
@@ -62,13 +73,13 @@ function parseAccountsFromEnv(): ManualBankAccount[] {
 
       accounts.push({
         id,
-        label: String(row.label ?? id).trim(),
+        label: sanitizeBankText(String(row.label ?? id).trim()),
         bank: row.bank ? String(row.bank) : undefined,
         holder,
         accountNumber,
         cci: row.cci ? String(row.cci) : undefined,
         currencies: currencies.length ? currencies : ["PEN"],
-        notes: row.notes ? String(row.notes) : undefined,
+        notes: row.notes ? sanitizeBankText(String(row.notes)) : undefined,
       });
     }
 
