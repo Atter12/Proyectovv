@@ -644,6 +644,8 @@ export interface ManualPaymentIntentItem {
   /** Dominio Shopify si el cliente lo indicó al pagar Real Profit. */
   shopDomain: string | null;
   purpose: string | null;
+  /** bank | binance (pago manual). */
+  payMethod: "bank" | "binance" | null;
 }
 
 function getManualProofMeta(metadata: unknown): {
@@ -875,6 +877,10 @@ async function mapManualIntentRows(
         actorName: actor?.full_name ?? null,
         shopDomain: getString(metadata.shop_domain),
         purpose: getString(metadata.purpose),
+        payMethod: (() => {
+          const raw = getString(metadata.manual_pay_method)?.toLowerCase();
+          return raw === "binance" || raw === "bank" ? raw : null;
+        })(),
       };
     }),
   );

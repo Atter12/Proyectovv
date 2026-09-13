@@ -211,7 +211,9 @@ function VoucherCard({
                   ? "Real Profit COD · $20"
                   : intent.provider === "crypto"
                     ? "Cripto"
-                    : "Transferencia BCP"}
+                    : intent.payMethod === "binance"
+                      ? "Binance Pay"
+                      : "Transferencia BCP"}
               </p>
               <h3 className="mt-0.5 truncate text-base font-semibold text-[var(--auth-text)]">
                 {intent.hecomClienteName?.trim() ||

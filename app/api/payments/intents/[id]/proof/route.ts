@@ -90,6 +90,14 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Comprobante requerido." }, { status: 400 });
   }
 
+  const payMethodRaw = String(formData.get("payMethod") ?? "")
+    .trim()
+    .toLowerCase();
+  const payMethod =
+    payMethodRaw === "binance" || payMethodRaw === "bank"
+      ? payMethodRaw
+      : null;
+
   if (proof.size <= 0) {
     return NextResponse.json({ error: "El archivo está vacío." }, { status: 400 });
   }
@@ -132,6 +140,16 @@ export async function POST(request: Request, context: RouteContext) {
   const submittedAt = new Date().toISOString();
   const buffer = Buffer.from(await proof.arrayBuffer());
 
+  let intentMetadata = intent.metadata ?? {};
+  if (payMethod) {
+    intentMetadata = mergeMetadata(intentMetadata, {
+      manual_pay_method: payMethod,
+    });
+    await updatePaymentIntentRecord(intent.id, {
+      metadata: intentMetadata,
+    });
+  }
+
   let processResult: Awaited<ReturnType<typeof processManualVoucherUpload>> | null =
     null;
 
@@ -155,7 +173,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   if (!processResult) {
-    const metadata = mergeMetadata(intent.metadata, {
+    const metadata = mergeMetadata(intentMetadata, {
       manual_review_status: "pending_review",
       manual_proof: {
         bucket: PAYMENT_PROOFS_BUCKET,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { resolveHolisticUsdPenRate } from "@/lib/payments/fx-rate.server";
 import { getPublicManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
+import { getPublicManualBinancePayee } from "@/lib/payments/manual-binance.server";
 import { serverEnv } from "@/lib/env/env.server";
 
 export async function GET() {
@@ -19,6 +20,7 @@ export async function GET() {
     fxAsOf: fx.asOf,
     bankAccounts: getPublicManualBankAccounts("PEN"),
     bankAccountsUsd: getPublicManualBankAccounts("USD"),
+    binance: getPublicManualBinancePayee(),
     aiEnabled: Boolean(serverEnv.openAiApiKey?.trim()),
     trustUploadMode: serverEnv.manualVoucherTrustUpload,
   });

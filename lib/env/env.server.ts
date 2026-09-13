@@ -145,6 +145,8 @@ export const serverEnv = {
   ),
   /** JSON array de cuentas bancarias / Yape para pago manual. */
   manualPaymentBankAccountsJson: process.env.MANUAL_PAYMENT_BANK_ACCOUNTS ?? "",
+  /** Correo Binance Pay para pago manual (envío a email). */
+  manualPaymentBinanceEmail: process.env.MANUAL_PAYMENT_BINANCE_EMAIL ?? "",
 
   // --- Bot de recarga por Yape en el chat de soporte ------------------------
   /**

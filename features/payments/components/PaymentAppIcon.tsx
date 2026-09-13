@@ -14,6 +14,7 @@ export type PaymentAppKey =
   | "interbank"
   | "scotiabank"
   | "banco"
+  | "binance"
   | "generic";
 
 const APP_META: Record<
@@ -80,6 +81,12 @@ const APP_META: Record<
     hover: "",
     text: "text-white",
   },
+  binance: {
+    label: "Binance",
+    bg: "bg-[#F0B90B] hover:bg-[#d4a30a]",
+    hover: "",
+    text: "text-[#1E2026]",
+  },
   generic: {
     label: "Pagar",
     bg: "border border-[var(--border-subtle)] bg-white hover:bg-[var(--surface-soft)]",
@@ -105,6 +112,7 @@ export function resolvePaymentAppKey(
   if (raw.includes("bbva") || raw.includes("continental")) return "bbva";
   if (raw.includes("interbank") || raw.includes("ibk")) return "interbank";
   if (raw.includes("scotia")) return "scotiabank";
+  if (raw.includes("binance")) return "binance";
   if (raw.includes("banco") || raw.includes("bank")) return "banco";
   return "generic";
 }
@@ -212,6 +220,8 @@ function iconShell(app: PaymentAppKey): string {
       return "bg-[#EC111A]";
     case "banco":
       return "bg-[#1f2937]";
+    case "binance":
+      return "bg-[#F0B90B]";
     default:
       return "bg-[#e8e6e3]";
   }
@@ -219,6 +229,12 @@ function iconShell(app: PaymentAppKey): string {
 
 function Mark({ app }: { app: PaymentAppKey }) {
   switch (app) {
+    case "binance":
+      return (
+        <span className="text-[15px] font-black tracking-tight text-[#1E2026]">
+          B
+        </span>
+      );
     case "banco":
       return <BankBrandMark light />;
     default:
