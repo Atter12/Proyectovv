@@ -9,7 +9,6 @@ interface AuthSplitShellProps {
   caption: { title: string; sub?: string };
   topRight: { label: string; href: string; prompt?: string };
   accountLinkPosition?: "top" | "bottom";
-  imagePosition?: string;
 }
 
 function BrandLogo({ className }: { className?: string }) {
@@ -21,7 +20,7 @@ function BrandLogo({ className }: { className?: string }) {
 }
 
 /** Shared canvas for the entire public authentication journey. */
-export function AuthSplitShell({ children, caption, topRight, accountLinkPosition = "top", imagePosition = "50% 0%" }: AuthSplitShellProps) {
+export function AuthSplitShell({ children, caption, topRight, accountLinkPosition = "top" }: AuthSplitShellProps) {
   const accountLink = (
     <div className={`${styles.accountLink} ${accountLinkPosition === "bottom" ? styles.accountLinkBottom : ""}`}>
       {topRight.prompt ? <span className={styles.accountPrompt}>{topRight.prompt}</span> : null}
@@ -34,7 +33,7 @@ export function AuthSplitShell({ children, caption, topRight, accountLinkPositio
       <a href="#auth-content" className={styles.skipLink}>Ir al formulario</a>
       <aside className={styles.brandPanel} aria-label="Ads Holistic">
         <div className={styles.brandMedia}>
-          <Image src="/auth/holistic-studio-access.png" alt="" fill sizes="(min-width: 1024px) 52vw, 1px" loading="eager" fetchPriority="high" className={styles.brandArt} style={{ objectPosition: imagePosition }} />
+          <Image src="/auth/holistic-studio-access-square.png" alt="" fill sizes="(min-width: 1024px) 52vw, 1px" loading="eager" fetchPriority="high" className={styles.brandArt} />
         </div>
         <div className={styles.brandContent}>
           <BrandLogo className={styles.brandLink} />

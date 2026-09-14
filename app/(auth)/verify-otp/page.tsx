@@ -18,7 +18,6 @@ export default function VerifyOtpPage() {
   return (
     <AuthSplitShell
       topRight={{ label: "Volver al inicio", href: routes.login }}
-      imagePosition="52% 46%"
       caption={{
         title: "Revisa tu correo. El código llega en segundos.",
         sub: "Ads Holistic, la plataforma de Holistic Marketing.",

@@ -51,7 +51,7 @@ Plus Jakarta Sans, cargada mediante `--font-jakarta`. El título del login usa `
 
 ## Layout
 
-Desde 1024 px: dos columnas, margen y separación de 24 px. La columna visual limita su ancho al menor valor entre `46vw` y `calc(80dvh - 38.4px)`; el formulario ocupa el espacio restante. El panel permanece adherido a 24 px del borde superior, conserva la proporción `1122 / 1402`, usa altura automática y mínimo de altura cero. Así, la imagen se adapta también a la altura disponible. Su contenido interior lleva 28 px verticales y 32 px horizontales; desde 1280 px, 32 y 40 px. Desde 1440 px la separación entre columnas es de 40 px. Formulario centrado, ancho máximo de 580 px y pie inferior. En login, la invitación y el enlace «Crear cuenta» se centran debajo del formulario y su botón principal, tanto en escritorio como en móvil (`accountLinkPosition="bottom"`). Los demás flujos conservan el enlace en la navegación superior, posición predeterminada del shell.
+Desde 1024 px: dos columnas de `0.52fr` y `0.48fr`, margen y separación de 24 px. El panel visual permanece adherido a 24 px del borde superior, usa altura `calc(100dvh - 48px)`, máximo `calc((100vw - 72px) * .65)` y mínimo de altura cero, sin proporción fija. El límite por ancho evita recortar los teléfonos en escritorios estrechos. Su contenido interior lleva 28 px verticales y 32 px horizontales; desde 1280 px, 32 y 40 px. Desde 1440 px la separación entre columnas es de 40 px. Formulario centrado, ancho máximo de 580 px y pie inferior. En login, la invitación y el enlace «Crear cuenta» se centran debajo del formulario y su botón principal, tanto en escritorio como en móvil (`accountLinkPosition="bottom"`). Los demás flujos conservan el enlace en la navegación superior, posición predeterminada del shell.
 
 En móvil se oculta el panel visual y el logo pasa a la cabecera. En login, el texto previo a «Crear cuenta» permanece visible debajo del formulario; cuando el enlace está en la cabecera, ese texto aparece desde 640 px. Márgenes de 24 px, reducidos a 20 px bajo 375 px. Altura de campos y CTA: 56 px; 64 px desde 1280 px y 72 px desde 1440 px.
 
@@ -65,7 +65,7 @@ Controles rectangulares suavizados; avisos y recuperación ligeramente más redo
 
 ## Components
 
-Imagen decorativa definitiva: `public/auth/holistic-studio-access.png`, composición de estudio con una «h» naranja y dos teléfonos; ajuste `cover`, posición `50% 0%`, texto alternativo vacío. La logomarca independiente `public/brand/holistic-marketing-logo.png` enlaza al inicio; no reemplazarla por texto. En el panel visual ocupa el 25 % del ancho interior disponible, con mínimo de 120 px y máximo de 180 px.
+Imagen decorativa definitiva: `public/auth/holistic-studio-access-square.png` (1254 × 1254), composición de estudio con una «h» naranja y dos teléfonos, con fondo libre alrededor. Ajuste `cover`, posición `50% 50%` y texto alternativo vacío; el encuadre es común a todos los flujos, sin ajustes por ruta. La logomarca independiente `public/brand/holistic-marketing-logo.png` enlaza al inicio; no reemplazarla por texto. En el panel visual ocupa el 25 % del ancho interior disponible, con mínimo de 120 px y máximo de 180 px.
 
 Conservar validación nativa de correo, envío OTP, estado «Enviando código…», controles deshabilitados durante envío y errores accesibles. La recuperación de correo se despliega por nombre, permite seleccionar resultados y mantiene estados de búsqueda, vacío y error. Preservar la variante por contraseña y las rutas según configuración, incluido Clerk.
 

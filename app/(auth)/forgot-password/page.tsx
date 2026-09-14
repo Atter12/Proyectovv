@@ -18,7 +18,6 @@ export default function ForgotPasswordPage() {
   return (
     <AuthSplitShell
       topRight={{ label: "Volver al inicio", href: routes.login }}
-      imagePosition="30% 58%"
       caption={{
         title: "Te ayudamos a recuperar el acceso.",
         sub: "Ads Holistic, la plataforma de Holistic Marketing.",

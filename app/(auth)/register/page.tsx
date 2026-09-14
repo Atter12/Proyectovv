@@ -31,7 +31,6 @@ export default function RegisterPage() {
   return (
     <AuthSplitShell
       topRight={{ label: "Iniciar sesión", href: routes.login }}
-      imagePosition="40% 40%"
       caption={{
         title: "Una sola cartera para todas tus cuentas.",
         sub: "Ads Holistic, la plataforma de Holistic Marketing.",

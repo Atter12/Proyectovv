@@ -100,9 +100,10 @@
 @media (min-width: 480px) { .twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
 @media (min-width: 640px) { .formPanel { padding: 32px 48px; } .logo { width: 146px; } .accountPrompt { display: inline; } }
 @media (min-width: 1024px) {
-  .shell { grid-template-columns: minmax(0, min(46vw, calc(80dvh - 38.4px))) minmax(0, 1fr); padding: 24px; gap: 24px; }
-  .brandPanel { display: block; position: sticky; top: 24px; align-self: start; aspect-ratio: 1122 / 1402; height: auto; min-height: 0; overflow: hidden; border-radius: 24px; background: #e4dfd8; }
-  .brandArt { object-fit: cover; }
+  .shell { grid-template-columns: minmax(0, .52fr) minmax(0, .48fr); padding: 24px; gap: 24px; }
+  /* Cap the panel at a 4:5 ratio on narrow desktops to preserve the photo's subject margins. */
+  .brandPanel { display: block; position: sticky; top: 24px; align-self: start; height: calc(100dvh - 48px); max-height: calc((100vw - 72px) * .65); min-height: 0; overflow: hidden; border-radius: 24px; background: #e4dfd8; }
+  .brandArt { object-fit: cover; object-position: 50% 50%; }
   .brandContent { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 28px 32px; pointer-events: none; }
   .brandLink { align-self: flex-start; width: 25%; min-width: 120px; max-width: 180px; pointer-events: auto; }
   .brandLink .logo { width: 100%; }
