@@ -37,7 +37,7 @@ components:
 
 ## Overview
 
-Acceso directo al panel mediante correo y código: título «Entra a AdsHolistic.», explicación breve y acción «Recibir código». El lienzo cálido, la tipografía oscura y el naranja conectan formulario e imagen. El mensaje de negocio se limita a «Recarga en soles. Pauta en dólares.».
+Acceso directo al panel mediante correo y código: título «Entra a AdsHolistic.», explicación breve y acción «Recibir código». El lienzo cálido, la tipografía oscura y el naranja conectan formulario e imagen. El mensaje de negocio usa dos líneas: «Recarga en soles o dólares.» e «Impulsa tus campañas.». El caption respeta el salto de línea y permite ajustar el texto al ancho disponible.
 
 Esta referencia describe la implementación aprobada. La autoridad está en `components/AuthSplitShell.tsx`, `components/auth.module.css`, `components/LoginForm.client.tsx` y `app/(auth)/login/page.tsx`. Capturas de referencia: `.impeccable/review/desktop.png` (1588 × 992) y `mobile.png` (390 × 844), relativas a la raíz.
 

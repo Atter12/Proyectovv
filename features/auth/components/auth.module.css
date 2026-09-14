@@ -107,7 +107,7 @@
   .brandContent { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 28px 32px; pointer-events: none; }
   .brandLink { align-self: flex-start; width: 25%; min-width: 120px; max-width: 180px; pointer-events: auto; }
   .brandLink .logo { width: 100%; }
-  .brandCaption { max-width: 36ch; color: #37342f; font-size: clamp(16px, 1.45vw, 23px); line-height: 1.45; font-weight: 500; letter-spacing: -.035em; }
+  .brandCaption { max-width: 36ch; color: #37342f; font-size: clamp(16px, 1.45vw, 23px); line-height: 1.45; font-weight: 500; letter-spacing: -.035em; white-space: pre-line; }
   .formPanel { min-height: calc(100dvh - 48px); padding: 16px 24px 8px; }
   .mobileBrand { display: none; }
   .topbar { justify-content: flex-end; }

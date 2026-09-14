@@ -27,7 +27,7 @@ export default function LoginPage() {
       topRight={{ label: "Crear cuenta", href: routes.register, prompt: "¿Aún no tienes cuenta?" }}
       accountLinkPosition="bottom"
       caption={{
-        title: "Recarga en soles. Pauta en dólares.",
+        title: "Recarga en soles o dólares.\nImpulsa tus campañas.",
       }}
     >
       <Suspense fallback={<AuthCardFallback />}>
