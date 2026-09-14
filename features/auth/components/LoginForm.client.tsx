@@ -7,6 +7,8 @@ import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { AuthFormHeading, AuthNotice, AuthSubmitButton } from "./AuthFormUi";
+import styles from "./auth.module.css";
 
 function PasswordToggle({
   visible,
@@ -19,8 +21,9 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
+      className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+      aria-pressed={visible}
     >
       {visible ? (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -209,25 +212,23 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
   return (
     <div className="w-full">
-      <div className="mb-7">
-        <h1 className="font-display text-[1.85rem] font-bold leading-[1.13] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.1rem]">
-          Entra a Ads Holistic.
-        </h1>
-        <p className="mt-3 text-[15px] font-medium leading-[1.6] text-[var(--auth-text-muted)]">
+      <div className={styles.loginHeading}>
+        <AuthFormHeading title="Entra a AdsHolistic.">
           {otpMode
-            ? "Te enviamos un código a tu correo. No usamos contraseñas."
-            : "Entra a tu panel de anunciante."}
-        </p>
+            ? "Te enviaremos un código a tu correo."
+            : "Qué bueno verte de nuevo. Accede a tu panel de anunciante."}
+        </AuthFormHeading>
       </div>
 
       <form
         onSubmit={otpMode ? handleOtpSubmit : handlePasswordSubmit}
-        className="space-y-3.5"
+        className={styles.form}
+        aria-busy={loading}
       >
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            className={styles.fieldLabel}
           >
             Correo electrónico
           </label>
@@ -241,11 +242,15 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               id="email"
               type="email"
               autoComplete="email"
+              name="email"
+              autoCapitalize="none"
+              spellCheck={false}
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="tu@gmail.com"
+              placeholder="tu@correo.com"
               className={inputClassName}
+              disabled={loading}
             />
           </div>
           {otpMode ? (
@@ -256,20 +261,22 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 setLookupError(null);
                 setLookupHint(null);
               }}
-              className="mt-2.5 text-left text-[13px] font-semibold text-[#d1590c] underline-offset-2 hover:underline"
+              className={`${styles.textLink} ${styles.lookupToggle}`}
+              aria-expanded={lookupOpen}
+              aria-controls="email-lookup"
             >
-              ¿No sabes cuál es tu correo?
+              ¿No recuerdas tu correo?
             </button>
           ) : null}
         </div>
 
         {otpMode && lookupOpen ? (
-          <div className="rounded-[1.35rem] border border-[var(--auth-border)] bg-[var(--auth-accent-soft)]/55 px-4 py-4">
-            <p className="text-[13px] font-semibold text-[var(--auth-text)]">
+          <div id="email-lookup" className={styles.lookupPanel}>
+            <p className={styles.lookupPanelTitle}>
               Recuperar correo por nombre
             </p>
-            <p className="mt-1 text-[12.5px] leading-5 text-[var(--auth-text-muted)]">
-              Escribe tu nombre y apellido como figura en Hecom.
+            <p className={`${styles.helpText} mt-1`}>
+              Escribe tu nombre y apellido como figuran en tu cuenta.
             </p>
             <div className="mt-3.5 space-y-3">
               <div className="relative">
@@ -280,6 +287,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 </FieldIcon>
                 <input
                   id="lookup-name"
+                  aria-label="Nombre y apellido para recuperar tu correo"
                   autoComplete="name"
                   minLength={4}
                   value={lookupName}
@@ -315,7 +323,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                       <button
                         type="button"
                         onClick={() => applyLookupEmail(match.email)}
-                        className="flex w-full items-center justify-between gap-3 rounded-full border border-[var(--auth-input-border)] bg-white px-4 py-3 text-left transition-[border-color,background-color,box-shadow] hover:border-[var(--auth-accent)]/45 hover:bg-white hover:shadow-[0_8px_18px_rgb(255_120_31_/_0.12)]"
+                        className={styles.lookupMatch}
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-[13.5px] font-semibold text-[var(--auth-text)]">
@@ -338,7 +346,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 type="button"
                 onClick={() => void handleLookup()}
                 disabled={lookupLoading || lookupName.trim().length < 4}
-                className="auth-cta"
+                className={`${styles.secondaryButton} w-full`}
               >
                 {lookupLoading ? "Buscando…" : "Buscar mi correo"}
               </button>
@@ -351,16 +359,16 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             <div className="mb-2 flex items-center justify-between gap-3">
               <label
                 htmlFor="password"
-                className="block text-[12.5px] font-semibold text-[var(--auth-text)]"
+                className={styles.fieldLabel}
               >
                 Contraseña
               </label>
-              <a
+              <Link
                 href={routes.forgotPassword}
-                className="text-[13px] font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-accent)] hover:underline"
+                className={styles.textLink}
               >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </Link>
             </div>
             <div className="relative">
               <input
@@ -371,7 +379,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Tu contraseña"
-                className={cn(inputClassName, "pl-5 pr-12")}
+                className={cn(inputClassName, styles.passwordField)}
               />
               <PasswordToggle
                 visible={showPassword}
@@ -382,49 +390,28 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         )}
 
         {(error || magicError) && (
-          <p
-            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
-            role="alert"
-          >
+          <AuthNotice tone="error">
             {error ??
               "El enlace expiró o no es válido. Pide uno nuevo."}
-          </p>
+          </AuthNotice>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="auth-cta mt-2"
-        >
-          {loading
-            ? otpMode
-              ? "Enviando…"
-              : "Iniciando sesión…"
-            : "Entrar"}
-        </button>
+        <AuthSubmitButton loading={loading} loadingLabel={otpMode ? "Enviando código…" : "Iniciando sesión…"}>
+          {otpMode ? "Recibir código" : "Iniciar sesión"}
+        </AuthSubmitButton>
       </form>
 
-      {otpMode ? (
-        <p className="mt-6 text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
-          ¿Todavía no tienes cuenta?{" "}
-          <Link
-            href={routes.register}
-            className="font-semibold text-[#d1590c] hover:underline"
-          >
-            Crea la tuya
-          </Link>
-        </p>
-      ) : (
-        <p className="mt-6 text-center text-[13px] text-[var(--auth-text-muted)]">
+      {!otpMode ? (
+        <p className={styles.formFooter}>
           ¿Problemas?{" "}
-          <a
+          <Link
             href={routes.forgotPassword}
-            className="font-semibold text-[#d1590c] hover:underline"
+            className={styles.textLink}
           >
             Recuperar acceso
-          </a>
+          </Link>
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

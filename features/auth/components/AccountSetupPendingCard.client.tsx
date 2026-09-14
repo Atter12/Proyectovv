@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
-import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
+import { AuthFormHeading, AuthNotice } from "./AuthFormUi";
+import styles from "./auth.module.css";
 
 interface AccountSetupPendingCardProps {
   error?: string;
@@ -24,53 +22,41 @@ export function AccountSetupPendingCard({ error }: AccountSetupPendingCardProps)
   }
 
   return (
-    <Card className="w-full max-w-md" padding="lg">
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex justify-center">
-          <EcomdyLogo
-            size={160}
-            className="h-11 w-auto max-w-[180px] object-contain"
-          />
-        </div>
-        <h1 className="font-display text-xl font-medium text-[#141210]">
-          Configurando tu cuenta
-        </h1>
-        <p className="mt-2 text-sm text-[#6b645c]">
-          Tu correo ya está verificado. Estamos preparando tu organización y
-          cartera en {siteConfig.name}.
-        </p>
-      </div>
+    <div className="w-full">
+      <AuthFormHeading title="Preparando tu cuenta">
+        Tu correo ya está verificado. Estamos terminando de configurar tu
+        organización y tu cartera en Ads Holistic.
+      </AuthFormHeading>
 
-      <div className="space-y-3 rounded-xl bg-[var(--surface-soft)] p-4 text-sm text-[#6b645c]">
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700" role="alert">
-            {error}
-          </p>
+      <div className={styles.form}>
+        {error ? (
+          <AuthNotice tone="error">
+            No pudimos completar la configuración. Espera un momento y vuelve a
+            intentarlo.
+          </AuthNotice>
+        ) : (
+          <AuthNotice tone="info">
+            Este paso puede tardar unos momentos. Comprueba de nuevo para
+            continuar a tu panel.
+          </AuthNotice>
         )}
-        <p>Si esta pantalla no avanza en unos segundos:</p>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>Pulsa <strong>Reintentar</strong> para comprobar de nuevo.</li>
-          <li>
-            Confirma que las variables de Vercel incluyen <strong>SUPABASE_SERVICE_ROLE_KEY</strong> y que la base tiene las tablas de Supabase ya creadas.
-          </li>
-        </ul>
+
+        <button
+          type="button"
+          className="auth-cta"
+          disabled={refreshing}
+          aria-busy={refreshing}
+          onClick={handleRetry}
+        >
+          {refreshing ? "Comprobando tu cuenta…" : "Volver a comprobar"}
+        </button>
       </div>
 
-      <Button
-        type="button"
-        size="lg"
-        className="mt-6 w-full"
-        disabled={refreshing}
-        onClick={handleRetry}
-      >
-        {refreshing ? "Comprobando…" : "Reintentar"}
-      </Button>
-
-      <p className="mt-4 text-center text-sm text-[#6b645c]">
-        <Link href={routes.login} className="font-medium text-[var(--brand-primary-deep)] hover:text-[var(--brand-primary)]">
+      <p className={styles.formFooter}>
+        <Link href={routes.login} className={styles.textLink}>
           Volver al inicio de sesión
         </Link>
       </p>
-    </Card>
+    </div>
   );
 }

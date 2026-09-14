@@ -24,10 +24,9 @@ export default function LoginPage() {
 
   return (
     <AuthSplitShell
-      topRight={{ label: "Crear cuenta", href: routes.register }}
+      topRight={{ label: "Crear cuenta", href: routes.register, prompt: "¿Aún no tienes cuenta?" }}
       caption={{
         title: "Recarga en soles. Pauta en dólares.",
-        sub: "Ads Holistic, la plataforma de Holistic Marketing.",
       }}
     >
       <Suspense fallback={<AuthCardFallback />}>

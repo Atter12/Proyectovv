@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { AuthFormHeading, AuthNotice, AuthSubmitButton } from "./AuthFormUi";
+import styles from "./auth.module.css";
 
 interface RegisterFormValues {
   firstName: string;
@@ -175,21 +177,16 @@ export function RegisterForm() {
 
   return (
     <div className="w-full">
-      <div className="mb-7">
-        <h1 className="font-display text-[1.85rem] font-bold leading-[1.13] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[2.1rem]">
-          Crea tu cuenta en Ads Holistic.
-        </h1>
-        <p className="mt-3 text-[15px] font-medium leading-[1.6] text-[var(--auth-text-muted)]">
-          Con tu DNI y tu correo. Te llega un código y ya estás adentro.
-        </p>
-      </div>
+      <AuthFormHeading title="Crea tu cuenta">
+        Completa tus datos y tu DNI. Te enviaremos un código por correo para verificar tu cuenta.
+      </AuthFormHeading>
 
-      <form onSubmit={handleSubmit} className="space-y-3.5">
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <div>
+      <form onSubmit={handleSubmit} className={styles.form} aria-busy={loading}>
+        <div className={styles.twoColumns}>
+          <div className={styles.fieldGroup}>
             <label
               htmlFor="firstName"
-              className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+              className={styles.fieldLabel}
             >
               Nombres
             </label>
@@ -211,10 +208,10 @@ export function RegisterForm() {
             </div>
           </div>
 
-          <div>
+          <div className={styles.fieldGroup}>
             <label
               htmlFor="lastName"
-              className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+              className={styles.fieldLabel}
             >
               Apellidos
             </label>
@@ -237,10 +234,10 @@ export function RegisterForm() {
           </div>
         </div>
 
-        <div>
+        <div className={styles.fieldGroup}>
           <label
             htmlFor="dni"
-            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            className={styles.fieldLabel}
           >
             DNI
           </label>
@@ -270,10 +267,10 @@ export function RegisterForm() {
           </div>
         </div>
 
-        <div>
+        <div className={styles.fieldGroup}>
           <label
             htmlFor="phone"
-            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            className={styles.fieldLabel}
           >
             Teléfono
           </label>
@@ -300,10 +297,10 @@ export function RegisterForm() {
           </div>
         </div>
 
-        <div>
+        <div className={styles.fieldGroup}>
           <label
             htmlFor="email"
-            className="mb-2 block text-[12.5px] font-semibold text-[var(--auth-text)]"
+            className={styles.fieldLabel}
           >
             Correo electrónico
           </label>
@@ -320,44 +317,35 @@ export function RegisterForm() {
               required
               value={values.email}
               onChange={(event) => updateField("email", event.target.value)}
-              placeholder="tu@gmail.com"
+              placeholder="tu@correo.com"
               className={inputClassName}
             />
           </div>
         </div>
 
         {referralCode && (
-          <div className="rounded-2xl border border-[var(--auth-accent)]/30 bg-[var(--auth-accent-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--auth-text-muted)]">
-            Código referido:{" "}
+          <AuthNotice tone="info">
+            Código de referido:{" "}
             <span className="font-semibold text-[var(--auth-text)]">
               {referralCode}
             </span>
-          </div>
+          </AuthNotice>
         )}
 
         {error && (
-          <p
-            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
-            role="alert"
-          >
-            {error}
-          </p>
+          <AuthNotice tone="error" id="register-error">{error}</AuthNotice>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="auth-cta mt-2"
-        >
-          {loading ? "Creando cuenta…" : "Crear cuenta"}
-        </button>
+        <AuthSubmitButton loading={loading} loadingLabel="Creando cuenta…">
+          Crear cuenta
+        </AuthSubmitButton>
       </form>
 
-      <p className="mt-6 text-[13.5px] leading-6 text-[var(--auth-text-muted)]">
+      <p className={styles.formFooter}>
         ¿Ya tienes cuenta?{" "}
         <Link
           href={routes.login}
-          className="font-semibold text-[#d1590c] hover:underline"
+          className={styles.textLink}
         >
           Iniciar sesión
         </Link>

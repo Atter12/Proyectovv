@@ -7,6 +7,13 @@ import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import {
+  AuthCodeInput,
+  AuthFormHeading,
+  AuthNotice,
+  AuthSubmitButton,
+} from "./AuthFormUi";
+import styles from "./auth.module.css";
 
 type RecoveryStep = "request" | "verify" | "reset" | "done";
 
@@ -21,7 +28,7 @@ function PasswordToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--auth-text-soft)] transition-colors hover:bg-white/[0.05] hover:text-[var(--auth-text)]"
+      className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--auth-accent)]"
       aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
     >
       {visible ? (
@@ -38,25 +45,7 @@ function PasswordToggle({
   );
 }
 
-const inputClassName =
-  "h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-bg)]/80 px-3.5 text-[15px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)]/80 focus:bg-[var(--auth-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/25";
-
-const primaryButtonClassName =
-  "flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] text-[15px] font-semibold text-white transition-[background-color,box-shadow,transform] hover:bg-[var(--auth-accent-hover)] hover:shadow-[0_10px_28px_rgb(255_120_31_/_0.35)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none";
-
-function StepPill({ active, children }: { active: boolean; children: React.ReactNode }) {
-  return (
-    <span
-      className={cn(
-        "h-1.5 rounded-full transition-all",
-        active ? "w-8 bg-[var(--auth-accent)]" : "w-2 bg-white/20",
-      )}
-      aria-hidden
-    >
-      {children}
-    </span>
-  );
-}
+const inputClassName = cn("auth-field", styles.passwordField);
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -217,220 +206,133 @@ export function ForgotPasswordForm() {
     setLoading(false);
   }
 
+  const titles: Record<RecoveryStep, string> = {
+    request: "Recupera tu acceso",
+    verify: "Revisa tu correo",
+    reset: "Crea una nueva contraseña",
+    done: "Tu contraseña está lista",
+  };
+
   return (
-    <div className="auth-panel auth-enter relative w-full max-w-[420px] overflow-hidden rounded-2xl p-7 sm:p-8 lg:max-w-none">
-      <div
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--auth-accent)]/55 to-transparent"
-        aria-hidden
-      />
+    <div className="w-full">
+      <AuthFormHeading title={titles[step]}>
+        {step === "request" && "Escribe el correo de tu cuenta. Te enviaremos un código para restablecer tu contraseña."}
+        {step === "verify" && (
+          <>Enviamos un código de 6 dígitos a <strong className={styles.destinationEmail}>{normalizedEmail}</strong></>
+        )}
+        {step === "reset" && "Tu correo está verificado. Elige una contraseña de al menos 8 caracteres."}
+        {step === "done" && "Ya puedes volver a tu cuenta con tu nueva contraseña."}
+      </AuthFormHeading>
 
-      <div className="mb-6">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
-          Recuperación
+      {step !== "done" && (
+        <p className={cn(styles.helpText, "mb-5")} aria-live="polite">
+          Paso {step === "request" ? "1" : step === "verify" ? "2" : "3"} de 3
         </p>
-        <h1 className="font-display mt-2.5 text-[1.85rem] leading-none tracking-tight text-[var(--auth-text)] sm:text-[2rem]">
-          Restablecer contraseña
-        </h1>
-        <p className="mt-2 text-[15px] leading-6 text-[var(--auth-text-muted)]">
-          Verificamos tu correo con un código de 6 dígitos antes del cambio.
-        </p>
-      </div>
-
-      <div className="mb-5 flex items-center gap-1.5" aria-label="Progreso del flujo">
-        <StepPill active={["request", "verify", "reset", "done"].includes(step)}>1</StepPill>
-        <StepPill active={["verify", "reset", "done"].includes(step)}>2</StepPill>
-        <StepPill active={["reset", "done"].includes(step)}>3</StepPill>
-      </div>
+      )}
 
       {step === "request" && (
-        <form onSubmit={handleRequest} className="space-y-4">
-          <div>
-            <label
-              htmlFor="recovery-email"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Correo electrónico
-            </label>
+        <form onSubmit={handleRequest} className={styles.form}>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="recovery-email" className={styles.fieldLabel}>Correo electrónico</label>
             <input
               id="recovery-email"
               type="email"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="tu@empresa.com"
               className={inputClassName}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "recovery-error" : undefined}
             />
           </div>
-
-          {error && (
-            <p
-              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading} className={primaryButtonClassName}>
-            {loading ? "Enviando código…" : "Enviar código OTP"}
-          </button>
+          {error && <AuthNotice tone="error" id="recovery-error">{error}</AuthNotice>}
+          <AuthSubmitButton loading={loading} loadingLabel="Enviando código…">Enviar código</AuthSubmitButton>
         </form>
       )}
 
       {step === "verify" && (
-        <form onSubmit={handleVerify} className="space-y-4">
-          <div className="rounded-xl border border-[var(--auth-input-border)] bg-[var(--auth-control-bg)] px-3.5 py-3 text-[14px] text-[var(--auth-text-muted)]">
-            Enviamos el código a{" "}
-            <span className="font-semibold text-[var(--auth-text)]">{normalizedEmail}</span>.
-          </div>
-
-          <div>
-            <label
-              htmlFor="recovery-otp"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Código de 6 dígitos
-            </label>
-            <input
+        <form onSubmit={handleVerify} className={styles.form}>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="recovery-otp" className={styles.fieldLabel}>Código de 6 dígitos</label>
+            <AuthCodeInput
               id="recovery-otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              maxLength={6}
-              required
               value={otp}
-              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="123456"
-              className={cn(inputClassName, "text-center text-lg tracking-[0.35em]")}
+              onChange={setOtp}
+              disabled={loading}
+              invalid={Boolean(error)}
+              describedBy={error ? "recovery-error" : "recovery-code-help"}
             />
+            <p id="recovery-code-help" className={styles.helpText}>Puedes copiar y pegar el código completo.</p>
           </div>
-
-          {error && (
-            <p
-              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
-          {success && (
-            <p
-              className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3.5 py-2.5 text-[14px] leading-5 text-emerald-200"
-              role="status"
-            >
-              {success}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading} className={primaryButtonClassName}>
-            {loading ? "Verificando…" : "Verificar código"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resending}
-            className="w-full text-center text-[14px] font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)] disabled:opacity-50"
-          >
+          {error && <AuthNotice tone="error" id="recovery-error">{error}</AuthNotice>}
+          {success && <AuthNotice tone="success">{success}</AuthNotice>}
+          <AuthSubmitButton loading={loading} loadingLabel="Verificando código…">Verificar código</AuthSubmitButton>
+          <button type="button" onClick={handleResend} disabled={resending} className={styles.secondaryButton}>
             {resending ? "Reenviando…" : "Reenviar código"}
           </button>
         </form>
       )}
 
       {step === "reset" && (
-        <form onSubmit={handleResetPassword} className="space-y-4">
-          <div>
-            <label
-              htmlFor="new-password"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Nueva contraseña
-            </label>
+        <form onSubmit={handleResetPassword} className={styles.form}>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="new-password" className={styles.fieldLabel}>Nueva contraseña</label>
             <div className="relative">
               <input
                 id="new-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
+                minLength={8}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Mínimo 8 caracteres"
-                className={cn(inputClassName, "pr-11")}
+                className={inputClassName}
+                aria-describedby={error ? "recovery-error" : undefined}
               />
               <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((prev) => !prev)} />
             </div>
           </div>
-
-          <div>
-            <label
-              htmlFor="confirm-new-password"
-              className="mb-2 block text-[14px] font-medium text-[var(--auth-text-muted)]"
-            >
-              Confirmar nueva contraseña
-            </label>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="confirm-new-password" className={styles.fieldLabel}>Confirmar contraseña</label>
             <div className="relative">
               <input
                 id="confirm-new-password"
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
+                minLength={8}
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repite la nueva contraseña"
-                className={cn(inputClassName, "pr-11")}
+                placeholder="Repite tu nueva contraseña"
+                className={inputClassName}
+                aria-describedby={error ? "recovery-error" : undefined}
               />
-              <PasswordToggle
-                visible={showConfirmPassword}
-                onToggle={() => setShowConfirmPassword((prev) => !prev)}
-              />
+              <PasswordToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((prev) => !prev)} />
             </div>
           </div>
-
-          {error && (
-            <p
-              className="rounded-xl border border-[var(--auth-danger)]/20 bg-[var(--auth-danger)]/[0.08] px-3.5 py-2.5 text-[14px] leading-5 text-red-200"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
-          {success && (
-            <p
-              className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3.5 py-2.5 text-[14px] leading-5 text-emerald-200"
-              role="status"
-            >
-              {success}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading} className={primaryButtonClassName}>
-            {loading ? "Actualizando…" : "Cambiar contraseña"}
-          </button>
+          {error && <AuthNotice tone="error" id="recovery-error">{error}</AuthNotice>}
+          {success && <AuthNotice tone="success">{success}</AuthNotice>}
+          <AuthSubmitButton loading={loading} loadingLabel="Actualizando contraseña…">Guardar contraseña</AuthSubmitButton>
         </form>
       )}
 
       {step === "done" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-[14px] leading-6 text-emerald-100">
-            {success ?? "Contraseña actualizada correctamente."}
-          </div>
-          <Link href={routes.login} className={primaryButtonClassName}>
-            Ir al inicio de sesión
-          </Link>
+        <div className={styles.form}>
+          <AuthNotice tone="success">{success ?? "Contraseña actualizada correctamente."}</AuthNotice>
+          <Link href={routes.login} className="auth-cta">Iniciar sesión</Link>
         </div>
       )}
 
-      <div className="mt-6 border-t border-[var(--auth-divider)] pt-5 text-center text-[15px] text-[var(--auth-text-muted)]">
-        <Link
-          href={routes.login}
-          className="font-semibold text-[var(--auth-accent)] transition-colors hover:text-[var(--brand-accent)]"
-        >
-          Volver al inicio de sesión
-        </Link>
-      </div>
+      {step !== "done" && (
+        <div className={styles.formFooter}>
+          <Link href={routes.login} className={styles.textLink}>Volver al inicio de sesión</Link>
+        </div>
+      )}
     </div>
   );
 }

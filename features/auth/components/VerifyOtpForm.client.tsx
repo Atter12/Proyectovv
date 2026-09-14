@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
-import { cn } from "@/lib/cn";
+import {
+  AuthCodeInput,
+  AuthFormHeading,
+  AuthNotice,
+  AuthSubmitButton,
+} from "./AuthFormUi";
+import styles from "./auth.module.css";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 import {
@@ -17,9 +23,6 @@ async function assertAdminAccess(): Promise<boolean> {
   const response = await fetch(routes.api.auth.adminAccess, { cache: "no-store" });
   return response.ok;
 }
-
-const inputClassName =
-  "h-12 w-full rounded-full border border-[var(--auth-input-border)] bg-[var(--auth-bg)] px-5 text-center text-[18px] tracking-[0.35em] text-[var(--auth-text)] placeholder:tracking-[0.35em] placeholder:text-[var(--auth-text-soft)] transition-[border-color,box-shadow,background-color] hover:border-[var(--auth-input-border-hover)] focus:border-[var(--auth-accent)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/20";
 
 export function VerifyOtpForm() {
   const router = useRouter();
@@ -227,107 +230,71 @@ export function VerifyOtpForm() {
 
   return (
     <div className="w-full">
-      <div className="mb-7">
-        <h1 className="font-display text-[1.65rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--auth-text)] sm:text-[1.85rem]">
-          {isHecomFlow ? "Código o enlace" : "Verifica tu correo"}
-        </h1>
-        <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-          {isHecomFlow ? (
-            <>
-              Escribe el código de 6 dígitos que enviamos a{" "}
-              <span className="font-semibold text-[var(--auth-text)]">
-                {email || "tu correo"}
-              </span>
-              , o abre el enlace del mismo correo.
-            </>
-          ) : (
-            <>
-              Introduce el código de 6 dígitos enviado a{" "}
-              <span className="font-semibold text-[var(--auth-text)]">
-                {email || "tu correo"}
-              </span>
-            </>
-          )}
-        </p>
-      </div>
+      <AuthFormHeading title="Revisa tu correo">
+        Enviamos un código de 6 dígitos a
+        <strong className={styles.destinationEmail}>
+          {email || "tu correo electrónico"}
+        </strong>
+      </AuthFormHeading>
 
-      <form onSubmit={handleVerify} className="space-y-4">
-        <div>
-          <label
-            htmlFor="otp"
-            className="mb-2 block text-[13px] font-medium text-[var(--auth-text)]"
-          >
-            Código de verificación
+      <form onSubmit={handleVerify} className={styles.form}>
+        <div className={styles.fieldGroup}>
+          <label htmlFor="otp" className={styles.fieldLabel}>
+            Código de 6 dígitos
           </label>
-          <input
+          <AuthCodeInput
             id="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="\d{6}"
-            maxLength={6}
-            required
             value={otp}
-            onChange={(event) =>
-              setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            placeholder="123456"
-            className={inputClassName}
+            onChange={setOtp}
+            disabled={loading}
+            invalid={Boolean(error)}
+            describedBy={error ? "otp-error" : "otp-help"}
           />
+          <p id="otp-help" className={styles.helpText}>
+            {isHecomFlow
+              ? "También puedes entrar desde el enlace del mismo correo."
+              : "Copia y pega el código completo para verificar tu correo."}
+          </p>
         </div>
 
         {error && (
-          <p
-            className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-red-700"
-            role="alert"
-          >
-            {error}
-          </p>
+          <AuthNotice tone="error" id="otp-error">{error}</AuthNotice>
         )}
 
         {success && (
-          <p
-            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] font-medium leading-5 text-emerald-800"
-            role="status"
-          >
-            {success}
-          </p>
+          <AuthNotice tone="success">{success}</AuthNotice>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 flex h-12 w-full items-center justify-center rounded-[14px] bg-[#17150f] text-[15px] font-bold text-white  transition-[filter,transform] hover:brightness-[1.04] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
-        >
-          {loading ? "Verificando…" : "Verificar y continuar"}
-        </button>
+        <AuthSubmitButton loading={loading} loadingLabel="Verificando código…">
+          Verificar y continuar
+        </AuthSubmitButton>
       </form>
 
-      <div className="mt-6 space-y-3 text-center text-[14px]">
+      <div className={styles.formFooter}>
+        <p className={styles.muted}>¿No encuentras el correo? Revisa también spam.</p>
         <button
           type="button"
           onClick={handleResend}
           disabled={resending || resendCooldown > 0}
-          className={cn(
-            "font-semibold text-[var(--auth-accent)] transition-colors hover:brightness-110 disabled:opacity-50",
-          )}
+          className={styles.secondaryButton}
         >
           {resending
             ? "Reenviando…"
             : resendCooldown > 0
-              ? `Reenviar en ${resendCooldown}s`
-              : "Reenviar código y enlace"}
+              ? `Reenviar código en ${resendCooldown}s`
+              : "Reenviar código"}
         </button>
         {isHecomFlow ? (
-          <p className="text-[12px] leading-5 text-[var(--auth-text-soft)]">
-            Si pides otro código, usa solo el más reciente del correo.
+          <p className={styles.helpText}>
+            Si solicitas otro código, usa el más reciente.
           </p>
         ) : null}
-        <p className="text-[var(--auth-text-muted)]">
+        <p>
           <Link
             href={isAdminContext ? routes.adminLogin : routes.login}
-            className="font-medium text-[var(--auth-text-soft)] transition-colors hover:text-[var(--auth-text)]"
+            className={styles.textLink}
           >
-            Volver al inicio de sesión
+            Usar otro correo
           </Link>
         </p>
       </div>

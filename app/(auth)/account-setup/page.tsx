@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { AccountSetupPendingCard } from "@/features/auth/components/AccountSetupPendingCard.client";
+import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
 import { ensureAccountProvisionedForUser } from "@/lib/auth/account-provisioning.server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,11 +26,14 @@ export default async function AccountSetupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-slate-50 px-4 py-8 sm:px-6">
+    <AuthSplitShell
+      topRight={{ label: "Volver al inicio", href: routes.login }}
+      caption={{
+        title: "Tu próxima campaña empieza aquí.",
+        sub: "Tus cuentas publicitarias y tu cartera, en un solo lugar.",
+      }}
+    >
       <AccountSetupPendingCard error={result.error} />
-      <p className="mt-8 text-xs text-slate-400">
-        © {new Date().getFullYear()} {siteConfig.companyName}
-      </p>
-    </div>
+    </AuthSplitShell>
   );
 }
