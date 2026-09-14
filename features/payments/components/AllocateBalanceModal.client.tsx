@@ -303,7 +303,7 @@ export function AllocateBalanceModal({
           />
           {agencyBmFunding ? (
             <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
-              {t("allocateModal.minHint")}
+              {t("allocateModal.minHint", { amount: tiktokMinLabel })}
             </p>
           ) : (
             <p className="mt-1.5 text-[12px] leading-5 text-[#6b645c]">
