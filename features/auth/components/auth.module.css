@@ -98,12 +98,12 @@
 @media (min-width: 480px) { .twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
 @media (min-width: 640px) { .formPanel { padding: 32px 48px; } .logo { width: 146px; } .accountPrompt { display: inline; } }
 @media (min-width: 1024px) {
-  .shell { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); padding: 24px; gap: 24px; }
-  .brandPanel { display: block; position: sticky; top: 24px; height: calc(100dvh - 48px); min-height: 660px; overflow: hidden; border-radius: 24px; background: #e4dfd8; }
+  .shell { grid-template-columns: minmax(0, min(46vw, calc(80dvh - 38.4px))) minmax(0, 1fr); padding: 24px; gap: 24px; }
+  .brandPanel { display: block; position: sticky; top: 24px; align-self: start; aspect-ratio: 1122 / 1402; height: auto; min-height: 0; overflow: hidden; border-radius: 24px; background: #e4dfd8; }
   .brandArt { object-fit: cover; }
-  .brandContent { position: relative; z-index: 1; display: flex; height: 100%; flex-direction: column; justify-content: space-between; padding: 32px; pointer-events: none; }
-  .brandLink { align-self: flex-start; pointer-events: auto; }
-  .brandLink .logo { width: clamp(156px, 13vw, 204px); }
+  .brandContent { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 28px 32px; pointer-events: none; }
+  .brandLink { align-self: flex-start; width: 25%; min-width: 120px; max-width: 180px; pointer-events: auto; }
+  .brandLink .logo { width: 100%; }
   .brandCaption { max-width: 36ch; color: #37342f; font-size: clamp(16px, 1.45vw, 23px); line-height: 1.45; font-weight: 500; letter-spacing: -.035em; }
   .formPanel { min-height: calc(100dvh - 48px); padding: 16px 24px 8px; }
   .mobileBrand { display: none; }
@@ -111,7 +111,7 @@
   .main { padding-block: 48px 80px; }
 }
 @media (min-width: 1280px) {
-  .brandContent { padding: 40px; }
+  .brandContent { padding: 32px 40px; }
   .formPanel { padding-inline: 40px; }
   .loginHeading .heading { margin-bottom: 44px; }
   .loginHeading p { font-size: 18px; }
@@ -119,8 +119,7 @@
   .fieldLabel { font-size: 16px; }
 }
 @media (min-width: 1440px) {
-  .shell { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; }
-  .brandContent { padding: 44px 48px; }
+  .shell { gap: 40px; }
   .formPanel { padding-inline: 40px; }
   .loginHeading h1 { font-size: clamp(40px, 10cqw, 56px); }
   .loginHeading p { font-size: 22px; }

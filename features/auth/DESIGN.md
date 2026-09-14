@@ -51,7 +51,7 @@ Plus Jakarta Sans, cargada mediante `--font-jakarta`. El título del login usa `
 
 ## Layout
 
-Desde 1024 px: dos columnas (1.12:1), margen y separación de 24 px. El panel visual permanece adherido a 24 px del borde superior, con altura `100dvh - 48px` y mínimo de 660 px. Desde 1440 px: proporción 1.2:1 y separación de 40 px. Formulario centrado, ancho máximo de 580 px, navegación superior y pie inferior.
+Desde 1024 px: dos columnas, margen y separación de 24 px. La columna visual limita su ancho al menor valor entre `46vw` y `calc(80dvh - 38.4px)`; el formulario ocupa el espacio restante. El panel permanece adherido a 24 px del borde superior, conserva la proporción `1122 / 1402`, usa altura automática y mínimo de altura cero. Así, la imagen se adapta también a la altura disponible. Su contenido interior lleva 28 px verticales y 32 px horizontales; desde 1280 px, 32 y 40 px. Desde 1440 px la separación entre columnas es de 40 px. Formulario centrado, ancho máximo de 580 px, navegación superior y pie inferior.
 
 En móvil se oculta el panel visual y el logo pasa a la cabecera junto a «Crear cuenta». El texto previo a ese enlace aparece desde 640 px. Márgenes de 24 px, reducidos a 20 px bajo 375 px. Altura de campos y CTA: 56 px; 64 px desde 1280 px y 72 px desde 1440 px.
 
@@ -65,7 +65,7 @@ Controles rectangulares suavizados; avisos y recuperación ligeramente más redo
 
 ## Components
 
-Imagen decorativa definitiva: `public/auth/holistic-studio-access.png`, composición de estudio con una «h» naranja y dos teléfonos; ajuste `cover`, posición `50% 0%`, texto alternativo vacío. La logomarca independiente `public/brand/holistic-marketing-logo.png` enlaza al inicio; no reemplazarla por texto.
+Imagen decorativa definitiva: `public/auth/holistic-studio-access.png`, composición de estudio con una «h» naranja y dos teléfonos; ajuste `cover`, posición `50% 0%`, texto alternativo vacío. La logomarca independiente `public/brand/holistic-marketing-logo.png` enlaza al inicio; no reemplazarla por texto. En el panel visual ocupa el 25 % del ancho interior disponible, con mínimo de 120 px y máximo de 180 px.
 
 Conservar validación nativa de correo, envío OTP, estado «Enviando código…», controles deshabilitados durante envío y errores accesibles. La recuperación de correo se despliega por nombre, permite seleccionar resultados y mantiene estados de búsqueda, vacío y error. Preservar la variante por contraseña y las rutas según configuración, incluido Clerk.
 
