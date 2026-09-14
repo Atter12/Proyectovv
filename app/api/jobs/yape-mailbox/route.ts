@@ -16,7 +16,7 @@ function isAuthorized(request: Request): boolean {
 }
 
 /**
- * Lee la casilla del banco y acredita las recargas cuyo cobro haya llegado.
+ * Lee la casilla ops (Yape + BCP/Binance) y acredita recargas con doble prueba.
  *
  * Reemplaza al agente de escritorio: en produccion nadie deberia depender de
  * que una PC quede encendida para que los clientes reciban su saldo.

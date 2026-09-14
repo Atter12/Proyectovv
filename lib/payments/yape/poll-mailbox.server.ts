@@ -3,20 +3,21 @@ import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail } from "mailparser";
 import { serverEnv } from "@/lib/env/env.server";
 import { ingestYapeNotification } from "./match.server";
+import { ingestManualBankNotification } from "@/lib/payments/manual-bank-match/match.server";
+import {
+  looksLikeYapeNotification,
+  parseManualBankNotificationText,
+} from "@/lib/payments/manual-bank-match/parse-notification";
 
 /**
- * Lectura de la casilla del banco desde la propia app.
+ * Lectura de la casilla ops (BCP / Binance / Yape).
  *
- * El agente de escritorio sirve para probar, pero en producción no puede
- * depender de que alguien deje una PC encendida: si se apaga, las recargas
- * dejan de acreditarse sin que nadie se entere. Esto corre como cron en el
- * mismo despliegue que la app.
+ * - Avisos Yape → matcher del bot (Cobrana/chat).
+ * - Transferencias BCP y recepciones Binance → matcher de pago manual del panel.
  *
  * No guarda hasta dónde leyó. Cada corrida mira los últimos
  * YAPE_MAIL_LOOKBACK_MIN minutos y la deduplicación por huella descarta lo ya
- * procesado. Sin cursor no hay estado que se corrompa ni que restaurar, y si
- * el cron se saltea una corrida la siguiente igual alcanza los correos
- * pendientes mientras entren en la ventana.
+ * procesado.
  */
 
 export interface MailboxPollResult {
@@ -73,10 +74,37 @@ function htmlToText(html: string): string {
 }
 
 function senderAllowed(fromText: string): boolean {
-  const filters = serverEnv.yapeMailFromFilter;
+  const filters = [
+    ...serverEnv.yapeMailFromFilter,
+    ...serverEnv.manualMailFromFilter,
+  ];
   if (filters.length === 0) return true;
   const normalized = fromText.toLowerCase();
   return filters.some((allowed) => normalized.includes(allowed));
+}
+
+type MailRoute = "yape" | "manual_bank" | "skip";
+
+function classifyMailRoute(rawText: string): MailRoute {
+  if (looksLikeYapeNotification(rawText)) return "yape";
+
+  const parsed = parseManualBankNotificationText(rawText);
+  if (parsed.rail === "bcp_transfer" || parsed.rail === "binance") {
+    return "manual_bank";
+  }
+
+  // Fallback: si el filtro de remitente ya lo dejó pasar y parece inbound
+  // bancario genérico con monto, intentar manual (BCP a veces cambia el asunto).
+  if (
+    parsed.direction === "inbound" &&
+    parsed.amountCents !== null &&
+    parsed.currency !== null &&
+    !looksLikeYapeNotification(rawText)
+  ) {
+    return "manual_bank";
+  }
+
+  return "skip";
 }
 
 /**
@@ -170,19 +198,35 @@ export async function pollYapeMailbox(): Promise<MailboxPollResult> {
           ? htmlToText(parsed.html)
           : (parsed.text?.trim() ?? "");
         const rawText = `${parsed.subject ?? ""}\n${body}`;
+        const receivedAt = new Date(
+          parsed.date ?? message.internalDate ?? Date.now(),
+        ).toISOString();
+        const metadata = {
+          from: fromText,
+          subject: parsed.subject ?? null,
+          uid: message.uid,
+        };
 
-        const outcome = await ingestYapeNotification({
-          source: "email",
-          rawText,
-          receivedAt: new Date(
-            parsed.date ?? message.internalDate ?? Date.now(),
-          ).toISOString(),
-          metadata: {
-            from: fromText,
-            subject: parsed.subject ?? null,
-            uid: message.uid,
-          },
-        });
+        const route = classifyMailRoute(rawText);
+        if (route === "skip") {
+          result.skipped += 1;
+          continue;
+        }
+
+        const outcome =
+          route === "yape"
+            ? await ingestYapeNotification({
+                source: "email",
+                rawText,
+                receivedAt,
+                metadata,
+              })
+            : await ingestManualBankNotification({
+                source: "email",
+                rawText,
+                receivedAt,
+                metadata,
+              });
 
         if (outcome.result === "matched") result.matched += 1;
         else if (outcome.result === "unmatched") result.unmatched += 1;

@@ -173,10 +173,37 @@ export const serverEnv = {
   yapeMailFromFilter: splitCsv(process.env.YAPE_MAIL_FROM_FILTER).map((value) =>
     value.toLowerCase(),
   ),
+  /**
+   * Remitentes extra para abonos BCP/Binance del pago manual (misma casilla).
+   * - Si MANUAL_MAIL_FROM_FILTER está definido → se usa tal cual.
+   * - Si Yape no filtra remitentes → vacío (casilla abierta, no restringir).
+   * - Si Yape sí filtra → defaults BCP/Binance para no perder esos mails.
+   */
+  manualMailFromFilter: (() => {
+    if (Object.prototype.hasOwnProperty.call(process.env, "MANUAL_MAIL_FROM_FILTER")) {
+      return splitCsv(process.env.MANUAL_MAIL_FROM_FILTER).map((value) =>
+        value.toLowerCase(),
+      );
+    }
+    const yapeFilters = splitCsv(process.env.YAPE_MAIL_FROM_FILTER);
+    if (yapeFilters.length === 0) return [];
+    return [
+      "viabcp.com",
+      "bcp.com.pe",
+      "binance.com",
+      "mail.binance.com",
+      "noreply@binance",
+    ];
+  })(),
   /** Ventana que mira cada corrida del cron; holgada frente a su intervalo. */
   yapeMailLookbackMinutes: parseInteger(process.env.YAPE_MAIL_LOOKBACK_MIN, 30),
   /** Minutos que un monto en soles queda reservado y es cruzable. */
   yapeMatchWindowMinutes: parseInteger(process.env.YAPE_MATCH_WINDOW_MINUTES, 180),
+  /** Céntimos únicos en USD para BCP dólares / Binance (pago manual panel). */
+  manualUniqueUsdCents: parseBoolean(
+    process.env.MANUAL_UNIQUE_USD_CENTS,
+    parseBoolean(process.env.YAPE_UNIQUE_PEN_CENTS, true),
+  ),
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   openAiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
   /** Sin IA: auto-acredita al subir voucher (solo staging / demo; nunca en producción). */

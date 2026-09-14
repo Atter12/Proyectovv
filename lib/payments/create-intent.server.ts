@@ -35,6 +35,10 @@ import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 import { syncWalletDepositCobroBestEffort } from "@/lib/hecom/wallet-cobro-bridge.server";
+import {
+  reserveUniquePenAmount,
+  reserveUniqueUsdAmount,
+} from "@/lib/payments/manual-bank-match/reserve-amount.server";
 
 export interface CreatePaymentIntentRequest {
   /** Monto que el cliente quiere acreditar en cartera (neto USD). Se cobra bruto + fee. */
@@ -242,6 +246,29 @@ export async function createPaymentIntentForSession(
       throw new Error(
         "Con el tipo de cambio actual, el cargo en soles queda por debajo del mínimo de Yape (S/ 10). Aumenta el monto en USD.",
       );
+    }
+  }
+
+  // Pago manual del panel: céntimos únicos (BCP/Binance). Cobrana no: cobra el bruto exacto.
+  if (input.provider === "manual" && !isCobrana) {
+    if (chargeCurrency === "PEN") {
+      const reserved = await reserveUniquePenAmount(amountCents);
+      amountCents = reserved.amountCents;
+      manualQuoteMeta = {
+        ...manualQuoteMeta,
+        gross_pen_cents: amountCents,
+        pen_discriminator_cents: reserved.discriminatorCents,
+        unique_charge_cents: true,
+      };
+    } else {
+      const reserved = await reserveUniqueUsdAmount(amountCents);
+      amountCents = reserved.amountCents;
+      manualQuoteMeta = {
+        ...manualQuoteMeta,
+        gross_usd_cents: amountCents,
+        usd_discriminator_cents: reserved.discriminatorCents,
+        unique_charge_cents: true,
+      };
     }
   }
 

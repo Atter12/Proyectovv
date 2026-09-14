@@ -1,8 +1,11 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPaymentIntentByIdInternal, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
+import {
+  getPaymentIntentByIdInternal,
+  updatePaymentIntentRecord,
+} from "@/lib/payments/payment-intents.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
-import { mergeMetadata } from "@/lib/records";
+import { getString, isRecord, mergeMetadata } from "@/lib/records";
 import {
   analyzePaymentVoucher,
   hashVoucherBuffer,
@@ -17,6 +20,9 @@ import {
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
+import { completeManualBankConfirmedDeposit } from "@/lib/payments/manual-bank-match/confirm-deposit.server";
+import { MANUAL_DASHBOARD_SOURCE } from "@/lib/payments/manual-bank-match/source";
+import { pollYapeMailboxThrottled } from "@/lib/payments/yape/poll-mailbox.server";
 
 export type ProcessManualVoucherResult = {
   analysis: VoucherAnalysisResult;
@@ -28,7 +34,9 @@ export type ProcessManualVoucherResult = {
   rateLimitReason?: string | null;
 };
 
-function readChargeCurrency(metadata: Record<string, unknown> | null): ManualChargeCurrency {
+function readChargeCurrency(
+  metadata: Record<string, unknown> | null,
+): ManualChargeCurrency {
   const raw = metadata?.charge_currency;
   return raw === "PEN" ? "PEN" : "USD";
 }
@@ -45,13 +53,19 @@ function readExpectedChargeAmount(
   return { amount: amountCents / 100, currency: "USD" };
 }
 
-function readCreditUsdCents(metadata: Record<string, unknown> | null, fallback: number): number {
+function readCreditUsdCents(
+  metadata: Record<string, unknown> | null,
+  fallback: number,
+): number {
   const raw = metadata?.credit_amount_cents;
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-async function isDuplicateVoucherHash(hash: string, excludeIntentId: string): Promise<boolean> {
+async function isDuplicateVoucherHash(
+  hash: string,
+  excludeIntentId: string,
+): Promise<boolean> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("payment_intents")
@@ -135,7 +149,8 @@ export async function processManualVoucherUpload(input: {
   const rateLimits = await checkVoucherUploadRateLimits(input.organizationId);
   if (!rateLimits.uploadAllowed) {
     throw new VoucherRateLimitError(
-      rateLimits.reason ?? "Se enviaron demasiados comprobantes. Inténtalo más tarde.",
+      rateLimits.reason ??
+        "Se enviaron demasiados comprobantes. Inténtalo más tarde.",
     );
   }
 
@@ -173,13 +188,18 @@ export async function processManualVoucherUpload(input: {
     analysis.reason =
       "Este código de operación ya fue registrado en otro pago.";
   } else if (!rateLimits.autoApproveAllowed && rateLimits.reason) {
-    analysis.confirmed = false;
+    // Solo bloquea auto si no hay confirmación bancaria; el cierre dual lo
+    // reevalúa con la excepción de rate-limit (igual que Yape).
     analysis.needsReview = true;
-    analysis.reason = rateLimits.reason;
+    if (!getString(metadata.bank_confirmed_at)) {
+      analysis.confirmed = false;
+      analysis.reason = rateLimits.reason;
+    }
   }
 
   const submittedAt = new Date().toISOString();
-  // Siempre revisión de gerente: no acreditar sola la cartera.
+  // Guardamos el análisis real: es una de las dos pruebas. La IA sola nunca
+  // acredita; hace falta el mail de abono (completeManualBankConfirmedDeposit).
   const baseMeta = mergeMetadata(metadata, {
     manual_review_status: "pending_review",
     voucher_content_hash: contentHash,
@@ -196,12 +216,7 @@ export async function processManualVoucherUpload(input: {
       submitted_at: submittedAt,
       submitted_by: input.submittedBy,
     },
-    voucher_analysis: {
-      ...analysis,
-      // Aunque el OCR diga confirmed, el dinero solo entra con Aceptar del gerente.
-      confirmed: false,
-      needsReview: true,
-    },
+    voucher_analysis: analysis,
     voucher_analyzed_at: submittedAt,
     requires_manager_approval: true,
   });
@@ -211,46 +226,90 @@ export async function processManualVoucherUpload(input: {
     metadata: baseMeta,
   });
 
+  // Si el abono del banco/Binance llegó antes, cerramos ahora.
+  const bankNotificationId = getString(metadata.bank_confirmation_notification_id);
+  if (
+    analysis.confirmed &&
+    getString(metadata.bank_confirmed_at) &&
+    bankNotificationId &&
+    isRecord(metadata) &&
+    metadata.source === MANUAL_DASHBOARD_SOURCE
+  ) {
+    await completeManualBankConfirmedDeposit({
+      intentId: intent.id,
+      notificationId: bankNotificationId,
+      operationNumber: getString(metadata.bank_confirmation_operation_number),
+    });
+  } else if (analysis.confirmed) {
+    try {
+      await pollYapeMailboxThrottled();
+    } catch (error) {
+      console.warn("[manual-voucher] revisión inmediata del correo falló", error);
+    }
+  }
+
+  const fresh = await getPaymentIntentByIdInternal(intent.id);
+  const status = fresh?.status ?? "processing";
+  const autoApproved = status === "succeeded";
+
+  if (autoApproved) {
+    return {
+      analysis: {
+        ...analysis,
+        confirmed: true,
+        needsReview: false,
+      },
+      autoApproved: true,
+      status: "succeeded",
+      creditUsdCents,
+      security,
+      rateLimited: !rateLimits.uploadAllowed,
+      rateLimitReason: rateLimits.reason,
+    };
+  }
+
   await createNotificationBestEffort({
     organizationId: intent.organizationId,
     userId: intent.createdBy,
-    title: "Comprobante en revisión",
-    body:
-      analysis.reason ||
-      "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
+    title: analysis.confirmed
+      ? "Comprobante recibido"
+      : "Comprobante en revisión",
+    body: analysis.confirmed
+      ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
+      : analysis.reason ||
+        "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
     type: "payment_proof_uploaded",
     data: { payment_intent_id: intent.id, url: "/payments" },
   });
 
-  const chargeCurrency = expected.currency;
-  const chargeAmountCents =
-    chargeCurrency === "PEN"
-      ? Math.round(expected.amount * 100)
-      : intent.amountCents;
+  // Solo avisar a gerentes si la IA no validó (cola humana). Si validó y
+  // falta el mail, el cron/cierre dual lo completa sin spam a managers.
+  if (!analysis.confirmed) {
+    const chargeCurrency = expected.currency;
+    const chargeAmountCents =
+      chargeCurrency === "PEN"
+        ? Math.round(expected.amount * 100)
+        : intent.amountCents;
 
-  // Await: en Vercel el fire-and-forget a veces muere al cerrar la lambda.
-  const { notifyManagersManualPaymentPendingBestEffort } = await import(
-    "@/lib/email/manual-payment-notify.server"
-  );
-  await notifyManagersManualPaymentPendingBestEffort({
-    paymentIntentId: intent.id,
-    organizationId: intent.organizationId,
-    createdBy: intent.createdBy,
-    chargeAmountCents,
-    chargeCurrency,
-    creditUsdCents,
-    operationCode: normalizedOperationCode,
-    purpose:
-      typeof (intent.metadata as Record<string, unknown> | null)?.purpose ===
-      "string"
-        ? String((intent.metadata as Record<string, unknown>).purpose)
-        : null,
-  });
+    const { notifyManagersManualPaymentPendingBestEffort } = await import(
+      "@/lib/email/manual-payment-notify.server"
+    );
+    await notifyManagersManualPaymentPendingBestEffort({
+      paymentIntentId: intent.id,
+      organizationId: intent.organizationId,
+      createdBy: intent.createdBy,
+      chargeAmountCents,
+      chargeCurrency,
+      creditUsdCents,
+      operationCode: normalizedOperationCode,
+      purpose:
+        typeof metadata.purpose === "string" ? String(metadata.purpose) : null,
+    });
+  }
 
   return {
     analysis: {
       ...analysis,
-      confirmed: false,
       needsReview: true,
     },
     autoApproved: false,
