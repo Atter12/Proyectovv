@@ -8,6 +8,7 @@ interface AuthSplitShellProps {
   children: React.ReactNode;
   caption: { title: string; sub?: string };
   topRight: { label: string; href: string; prompt?: string };
+  accountLinkPosition?: "top" | "bottom";
   imagePosition?: string;
 }
 
@@ -20,7 +21,14 @@ function BrandLogo({ className }: { className?: string }) {
 }
 
 /** Shared canvas for the entire public authentication journey. */
-export function AuthSplitShell({ children, caption, topRight, imagePosition = "50% 0%" }: AuthSplitShellProps) {
+export function AuthSplitShell({ children, caption, topRight, accountLinkPosition = "top", imagePosition = "50% 0%" }: AuthSplitShellProps) {
+  const accountLink = (
+    <div className={`${styles.accountLink} ${accountLinkPosition === "bottom" ? styles.accountLinkBottom : ""}`}>
+      {topRight.prompt ? <span className={styles.accountPrompt}>{topRight.prompt}</span> : null}
+      <Link href={topRight.href} className={styles.topLink}>{topRight.label}</Link>
+    </div>
+  );
+
   return (
     <div className={`auth-shell ${styles.shell}`}>
       <a href="#auth-content" className={styles.skipLink}>Ir al formulario</a>
@@ -36,13 +44,13 @@ export function AuthSplitShell({ children, caption, topRight, imagePosition = "5
       <div className={styles.formPanel}>
         <header className={styles.topbar}>
           <BrandLogo className={styles.mobileBrand} />
-          <div className={styles.accountLink}>
-            {topRight.prompt ? <span className={styles.accountPrompt}>{topRight.prompt}</span> : null}
-            <Link href={topRight.href} className={styles.topLink}>{topRight.label}</Link>
-          </div>
+          {accountLinkPosition === "top" ? accountLink : null}
         </header>
         <main id="auth-content" className={styles.main} tabIndex={-1}>
-          <div className={styles.formContent}>{children}</div>
+          <div className={styles.formContent}>
+            {children}
+            {accountLinkPosition === "bottom" ? accountLink : null}
+          </div>
         </main>
         <footer className={styles.footer}>
           <span>© {new Date().getFullYear()} {siteConfig.companyName}</span>

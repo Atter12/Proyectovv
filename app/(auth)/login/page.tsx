@@ -25,6 +25,7 @@ export default function LoginPage() {
   return (
     <AuthSplitShell
       topRight={{ label: "Crear cuenta", href: routes.register, prompt: "¿Aún no tienes cuenta?" }}
+      accountLinkPosition="bottom"
       caption={{
         title: "Recarga en soles. Pauta en dólares.",
       }}

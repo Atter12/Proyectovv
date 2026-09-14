@@ -51,9 +51,9 @@ Plus Jakarta Sans, cargada mediante `--font-jakarta`. El título del login usa `
 
 ## Layout
 
-Desde 1024 px: dos columnas, margen y separación de 24 px. La columna visual limita su ancho al menor valor entre `46vw` y `calc(80dvh - 38.4px)`; el formulario ocupa el espacio restante. El panel permanece adherido a 24 px del borde superior, conserva la proporción `1122 / 1402`, usa altura automática y mínimo de altura cero. Así, la imagen se adapta también a la altura disponible. Su contenido interior lleva 28 px verticales y 32 px horizontales; desde 1280 px, 32 y 40 px. Desde 1440 px la separación entre columnas es de 40 px. Formulario centrado, ancho máximo de 580 px, navegación superior y pie inferior.
+Desde 1024 px: dos columnas, margen y separación de 24 px. La columna visual limita su ancho al menor valor entre `46vw` y `calc(80dvh - 38.4px)`; el formulario ocupa el espacio restante. El panel permanece adherido a 24 px del borde superior, conserva la proporción `1122 / 1402`, usa altura automática y mínimo de altura cero. Así, la imagen se adapta también a la altura disponible. Su contenido interior lleva 28 px verticales y 32 px horizontales; desde 1280 px, 32 y 40 px. Desde 1440 px la separación entre columnas es de 40 px. Formulario centrado, ancho máximo de 580 px y pie inferior. En login, la invitación y el enlace «Crear cuenta» se centran debajo del formulario y su botón principal, tanto en escritorio como en móvil (`accountLinkPosition="bottom"`). Los demás flujos conservan el enlace en la navegación superior, posición predeterminada del shell.
 
-En móvil se oculta el panel visual y el logo pasa a la cabecera junto a «Crear cuenta». El texto previo a ese enlace aparece desde 640 px. Márgenes de 24 px, reducidos a 20 px bajo 375 px. Altura de campos y CTA: 56 px; 64 px desde 1280 px y 72 px desde 1440 px.
+En móvil se oculta el panel visual y el logo pasa a la cabecera. En login, el texto previo a «Crear cuenta» permanece visible debajo del formulario; cuando el enlace está en la cabecera, ese texto aparece desde 640 px. Márgenes de 24 px, reducidos a 20 px bajo 375 px. Altura de campos y CTA: 56 px; 64 px desde 1280 px y 72 px desde 1440 px.
 
 ## Elevation & Depth
 
