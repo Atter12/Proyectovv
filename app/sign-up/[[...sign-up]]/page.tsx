@@ -13,7 +13,6 @@ export default function ClerkSignUpPage() {
     return (
       <AuthSplitShell
         topRight={{ label: "Iniciar sesión", href: routes.login }}
-        imagePosition="40% 40%"
         caption={{
           title: "Una sola cartera para todas tus cuentas.",
           sub: "Organiza tu inversión publicitaria con Ads Holistic.",
@@ -39,7 +38,6 @@ export default function ClerkSignUpPage() {
   return (
     <AuthSplitShell
       topRight={{ label: "Ya tengo cuenta", href: clerkRoutes.signIn }}
-      imagePosition="40% 40%"
       caption={{
         title: "Una sola cartera para todas tus cuentas.",
         sub: "Organiza tu inversión publicitaria con Ads Holistic.",
