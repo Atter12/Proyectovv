@@ -48,6 +48,8 @@ export interface AllocateWithTikTokInput {
    * haya recargado cartera. Acredita un puente contable en Holistic.
    */
   agencyBmFunding?: boolean;
+  /** Gerente/staff: no aplicar candado de crédito del cliente. */
+  staffBmFunding?: boolean;
   /**
    * Gerente: intenta jalar crédito de otro BM (ej. BM30 → BM10) vía Multi-tier BC
    * antes de subir presupuesto. Requiere TIKTOK_MULTI_TIER_BC_ENABLED + allowlist TikTok.
@@ -195,6 +197,7 @@ export async function allocateWithOptionalTikTokFunding(
     hecomClienteId,
     amountCents: input.amountCents,
     agencyBmFunding: Boolean(input.agencyBmFunding),
+    staffBmFunding: Boolean(input.staffBmFunding),
   });
 
   const idempotencyKey =

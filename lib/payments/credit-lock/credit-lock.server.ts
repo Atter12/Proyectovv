@@ -247,7 +247,9 @@ export async function reviewCreditLockRequest(input: {
 
 /**
  * Tope suave + tarjeta Stripe para fondeo a crédito (cash BM / cupo).
- * NO bloquea asignación desde cartera Holistic ya pagada (Stripe/Yape/BCP).
+ * NO bloquea:
+ * - asignación desde cartera Holistic ya pagada (Stripe/Yape/BCP)
+ * - recarga BM hecha por gerente/staff (ops Holistic)
  */
 export async function assertCreditLockAllowsAllocate(input: {
   organizationId: string;
@@ -255,10 +257,17 @@ export async function assertCreditLockAllowsAllocate(input: {
   amountCents: number;
   /** Solo se aplica el candado cuando el fondeo es a crédito BM, no cartera prepago. */
   agencyBmFunding?: boolean;
+  /**
+   * Gerente/staff fondeando desde BM: no exige pedido de crédito del cliente.
+   * El candado es para el flujo cliente-crédito + tarjeta, no para ops.
+   */
+  staffBmFunding?: boolean;
 }): Promise<void> {
   if (!CREDIT_STRIPE_LOCK_ENABLED) return;
   // Recarga ya pagada en cartera → el cliente puede asignar a TikTok sin candado.
   if (!input.agencyBmFunding) return;
+  // Ops Holistic recargan BM sin pasar por el pedido de crédito del cliente.
+  if (input.staffBmFunding) return;
 
   const hecomId = input.hecomClienteId?.trim();
   if (!hecomId) return;

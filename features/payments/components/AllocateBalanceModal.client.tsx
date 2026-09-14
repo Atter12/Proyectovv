@@ -126,6 +126,8 @@ export function AllocateBalanceModal({
   const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const walletAvailable = Math.max(0, Number(walletBalance) || 0);
   const alreadyOnAccount = Math.max(0, Number(targetAccount.balance) || 0);
+  const tiktokMinLabel = formatMoney(10);
+  const oneToOneExample = formatMoney(100);
 
   function resetAndClose() {
     setAmount("");
@@ -141,7 +143,7 @@ export function AllocateBalanceModal({
     }
 
     if (agencyBmFunding && parsedAmount < 10) {
-      setError(t("allocateModal.errMin10"));
+      setError(t("allocateModal.errMin10", { amount: tiktokMinLabel }));
       return;
     }
 
@@ -181,7 +183,7 @@ export function AllocateBalanceModal({
           : t("allocateModal.errGeneric");
       setError(
         friendlyAllocateError(raw, agencyBmFunding, {
-          errMin10: t("allocateModal.errMin10"),
+          errMin10: t("allocateModal.errMin10", { amount: tiktokMinLabel }),
           errWallet: t("allocateModal.errWallet"),
           errBmMapped: t("allocateModal.errBmMapped"),
           errAssignMapped: t("allocateModal.errAssignMapped"),
@@ -221,7 +223,7 @@ export function AllocateBalanceModal({
         </p>
         <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] leading-5 text-emerald-950">
           <span className="font-semibold">{t("allocateModal.oneToOne")}</span>{" "}
-          {t("allocateModal.oneToOneBody")}
+          {t("allocateModal.oneToOneBody", { amount: oneToOneExample })}
         </p>
         {agencyBmFunding ? (
           <p className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-5 text-sky-950">

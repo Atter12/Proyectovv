@@ -116,6 +116,7 @@ export async function POST(request: Request) {
       requestedBy: session.id,
       currency: body.currency ?? "USD",
       agencyBmFunding: wantsAgencyBm,
+      staffBmFunding: wantsAgencyBm && capabilities.isStaff,
       crossBmFunding: wantsAgencyBm ? Boolean(body.crossBmFunding) : false,
       crossBmSourceBcId: body.crossBmSourceBcId,
       idempotencyKey:
