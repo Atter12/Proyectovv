@@ -8,6 +8,7 @@ import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGat
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { CreditLockPanel } from "@/features/payments/components/CreditLockPanel.client";
+import { CREDIT_STRIPE_LOCK_ENABLED } from "@/lib/payments/credit-lock/credit-lock.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";

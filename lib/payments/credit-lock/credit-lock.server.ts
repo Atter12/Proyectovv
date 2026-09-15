@@ -28,8 +28,22 @@ import {
   type CreditLockApprovalStatus,
 } from "@/lib/payments/credit-lock/credit-lock.store.server";
 
-/** Candado anti-vivo: tarjeta on file + cobro al quitar con deuda. Independiente del calendario. */
-export const CREDIT_STRIPE_LOCK_ENABLED = true;
+function parseBoolean(value: string | undefined, fallback = false): boolean {
+  if (value == null || value.trim() === "") return fallback;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
+/**
+ * Crédito Holistic + candado Stripe. OFF por defecto hasta que gerencia lo active.
+ * Env: CREDIT_STRIPE_LOCK_ENABLED=true
+ */
+export const CREDIT_STRIPE_LOCK_ENABLED = parseBoolean(
+  process.env.CREDIT_STRIPE_LOCK_ENABLED,
+  false,
+);
 
 /** Mínimo Stripe USD (cents). Debajo: detach libre (deuda immaterial). */
 const STRIPE_MIN_CHARGE_CENTS = 50;

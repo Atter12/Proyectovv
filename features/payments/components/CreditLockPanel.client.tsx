@@ -70,6 +70,7 @@ export function CreditLockPanel({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [featureEnabled, setFeatureEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [detachLoading, setDetachLoading] = useState(false);
   const [reviewBusy, setReviewBusy] = useState<"approved" | "rejected" | null>(
@@ -88,9 +89,11 @@ export function CreditLockPanel({
     try {
       const data = await apiClient<{
         ok: boolean;
+        enabled?: boolean;
         paymentMethod: PaymentMethodState;
         cupo: CupoState;
       }>("/api/billing/payment-method");
+      setFeatureEnabled(data.enabled === true);
       setPaymentMethod(data.paymentMethod);
       setCupo(data.cupo);
       if (data.cupo?.requestedCreditUsd != null) {
@@ -141,6 +144,7 @@ export function CreditLockPanel({
   const canLinkCard = Boolean(cupo?.canLinkCard ?? status === "approved");
 
   if (!visible) return null;
+  if (!loading && !featureEnabled) return null;
 
   async function saveCupo(usd: number): Promise<CupoState> {
     const data = await apiClient<{ ok: boolean; cupo: CupoState }>(
