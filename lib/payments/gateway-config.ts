@@ -3,8 +3,8 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Stripe + Pago manual (BCP) + Yape/Plin (provider cobrana) cuando está configurado.
- * Culqi / Mercado Pago / Cripto ocultos.
+ * Stripe + Yape/Plin + Pago manual + Cripto (USDT / NOWPayments).
+ * Culqi / Mercado Pago ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   {
@@ -21,6 +21,11 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
     id: "manual",
     name: "Pago manual",
     description: "Transferencia BCP · comprobante en revisión",
+  },
+  {
+    id: "crypto",
+    name: "Cripto (USDT)",
+    description: "USDT TRC20 · pago automático con NOWPayments",
   },
 ];
 
