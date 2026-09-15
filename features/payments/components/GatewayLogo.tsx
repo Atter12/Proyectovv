@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 import type { PaymentGatewayId } from "@/types/payment";
 import { PaymentAppIcon } from "./PaymentAppIcon";
@@ -44,7 +45,7 @@ function shellClass(id: PaymentGatewayId) {
     case "mercadopago":
       return "bg-[#009EE3]";
     case "crypto":
-      return "bg-[#26A17B]";
+      return "bg-black";
     case "manual":
       return "bg-[#1f1c19]";
     default:
@@ -61,7 +62,7 @@ function GatewayMark({ id }: { id: PaymentGatewayId }) {
     case "mercadopago":
       return <MercadoPagoMark />;
     case "crypto":
-      return <UsdtMark />;
+      return <BinanceMark />;
     case "manual":
       return <ManualMark />;
     case "cobrana":
@@ -102,24 +103,18 @@ function MercadoPagoMark() {
   );
 }
 
-/** USDT / Tether T */
-function UsdtMark() {
+/** Binance brand asset for crypto recharges. */
+function BinanceMark() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[60%] w-[60%]" fill="none" aria-hidden>
-      <path
-        d="M5 7.1h14v2.05H13.1v8.75h-2.2V9.15H5V7.1Z"
-        fill="#fff"
-      />
-      <path
-        d="M4.2 5.4h15.6v1.35H4.2V5.4Z"
-        fill="#fff"
-      />
-      <path
-        d="M7.4 12.35c0-.55 2.05-1 4.6-1s4.6.45 4.6 1-2.05 1-4.6 1-4.6-.45-4.6-1Z"
-        fill="#fff"
-        opacity="0.45"
-      />
-    </svg>
+    <Image
+      src="/payment-methods/binance.png"
+      alt=""
+      width={52}
+      height={52}
+      unoptimized
+      draggable={false}
+      className="h-full w-full object-contain"
+    />
   );
 }
 
