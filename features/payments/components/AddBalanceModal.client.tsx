@@ -681,7 +681,9 @@ export function AddBalanceModal({
               description={
                 isCobrana
                   ? t("addBalance.cobranaConfirmHint")
-                  : t("addBalance.confirmDefaultHint")
+                  : selectedGateway === "crypto"
+                    ? t("addBalance.cryptoConfirmHint")
+                    : t("addBalance.confirmDefaultHint")
               }
               identityIcon={
                 <GatewayLogo gatewayId={selectedGateway} size="sm" />
@@ -825,7 +827,13 @@ export function AddBalanceModal({
                     ? t("addBalance.processing")
                     : isCobrana
                       ? t("addBalance.continueCobrana")
-                      : t("addBalance.payStripe")}
+                      : selectedGateway === "crypto"
+                        ? t("addBalance.payCrypto")
+                        : selectedGateway === "stripe"
+                          ? t("addBalance.payStripe")
+                          : t("reloadSection.reloadWith", {
+                              name: gatewayLabels[selectedGateway],
+                            })}
                 </Button>
               </PaymentModalFooter>
             </div>
