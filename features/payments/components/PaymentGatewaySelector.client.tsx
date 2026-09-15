@@ -23,7 +23,7 @@ export function PaymentGatewaySelector({
     <div
       role="radiogroup"
       aria-label={t("gatewaySelector.aria")}
-      className="grid gap-2 lg:grid-cols-[1fr_1.2fr_1fr]"
+      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
     >
       {gateways.map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
