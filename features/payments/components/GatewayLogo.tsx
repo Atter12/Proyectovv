@@ -28,7 +28,9 @@ export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
     <div
       className={cn(
         "flex shrink-0 items-center justify-center overflow-hidden shadow-[inset_0_0_0_1px_rgb(20_18_16_/_0.06)]",
-        gatewayId === "crypto" ? "rounded-full" : "rounded-xl",
+        gatewayId === "crypto" || gatewayId === "manual"
+          ? "rounded-full"
+          : "rounded-xl",
         SIZE[size],
         shellClass(gatewayId),
       )}
@@ -119,36 +121,16 @@ function BinanceMark() {
   );
 }
 
-/** Bank transfer — manual review */
+/** Bank facade with a pediment, columns, and steps for manual transfers. */
 function ManualMark() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[56%] w-[56%]" fill="none" aria-hidden>
-      <path
-        d="M4 10.25 12 4.8l8 5.45"
-        stroke="#fff"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 10.8v6.2h12v-6.2"
-        stroke="#fff"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.5 19.2h17"
-        stroke="#fff"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8.5 13.2v2.2M12 13.2v2.2M15.5 13.2v2.2"
-        stroke="#fff"
-        strokeWidth="1.65"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" className="h-[60%] w-[60%]" fill="#fff" aria-hidden>
+      <path d="M12 2 2 7.5V9h20V7.5L12 2Z" />
+      <rect x="4" y="11" width="3" height="6" rx="0.5" />
+      <rect x="10.5" y="11" width="3" height="6" rx="0.5" />
+      <rect x="17" y="11" width="3" height="6" rx="0.5" />
+      <rect x="3" y="18" width="18" height="2" rx="0.5" />
+      <rect x="1" y="21" width="22" height="2" rx="0.5" />
     </svg>
   );
 }
