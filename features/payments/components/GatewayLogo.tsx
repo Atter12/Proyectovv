@@ -27,7 +27,8 @@ export function GatewayLogo({ gatewayId, size = "md" }: GatewayLogoProps) {
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-[inset_0_0_0_1px_rgb(20_18_16_/_0.06)]",
+        "flex shrink-0 items-center justify-center overflow-hidden shadow-[inset_0_0_0_1px_rgb(20_18_16_/_0.06)]",
+        gatewayId === "crypto" ? "rounded-full" : "rounded-xl",
         SIZE[size],
         shellClass(gatewayId),
       )}
