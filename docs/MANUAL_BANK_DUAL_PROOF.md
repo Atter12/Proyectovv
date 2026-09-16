@@ -103,11 +103,24 @@ Backfill de los que quedaron mal: `node scripts/realign-hecom-cobro-periodos.mjs
 Aplicado el 16/09 sobre 9 cobros de 6 clientes.
 
 **Efecto contable a tener presente:** sacar un pago del mes de deuda que cubría
-deja ese mes con saldo pendiente otra vez. Ej.: los $660 de Jesús Fuentes salieron
-de agosto y entraron a setiembre, así que agosto vuelve a mostrar esa deuda. Y
-como el mes viejo queda abierto, el próximo pago de ese cliente lo vuelve a
-elegir Hecom — por eso la corrección tiene que quedar activa, no es de una sola
-pasada (verificado: un cobro de prueba del 16/09 cayó en `2026-05`).
+deja ese mes con saldo pendiente otra vez. Y como el mes viejo queda abierto,
+el próximo pago de ese cliente lo vuelve a elegir Hecom — por eso la corrección
+tiene que quedar activa, no es de una sola pasada (verificado: un cobro de
+prueba del 16/09 cayó en `2026-05`).
+
+El total por cliente no cambia, solo su reparto entre meses. Revisado el 16/09
+sobre los 7 clientes tocados: en 4 el mes viejo ya debía plata y sigue debiendo,
+pero en 3 el mes estaba cubierto y quedó con un pendiente que **ya está pagado**:
+
+| Cliente | Mes | Pendiente que muestra pero ya se pagó |
+|---------|-----|----------------------------------------|
+| Pablo Achamizo | 2026-07 | $89.91 |
+| Wilder Remolina | 2026-08 | $25.93 |
+| Williams Andrade | 2026-06 | $25.53 |
+
+Esos mismos clientes figuran con saldo a favor en `2026-09` por el espejo. Se
+decidió dejarlo así (gerencia, 16/09): prioriza ver la plata en el mes en que
+entró. Para deuda real usar el filtro **"Todos"**, que no se ve afectado.
 
 ## Env
 
