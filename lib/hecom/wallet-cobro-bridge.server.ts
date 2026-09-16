@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
+import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
 
 export type HolisticWalletCobroPayload = {
   clientId: string;
@@ -153,6 +154,68 @@ export async function postHolisticWalletCobroToHecom(
   }
 }
 
+/**
+ * Alinea `periodo_resumen` al mes de la fecha de pago.
+ *
+ * El endpoint de Hecom imputa el cobro al período más viejo que el cliente
+ * tiene sin cubrir, no al mes en que entró la plata: un pago del 12/09 de un
+ * cliente con deuda de agosto queda archivado en `2026-08`. Como el CRM filtra
+ * por período y no por fecha de pago, el pago parece no haberse registrado.
+ *
+ * Gerencia pidió que el cobro viva en el mes en que se pagó, así que después de
+ * crear el cobro lo re-archivamos. El mes sale de `cobros.fecha` (lo que el CRM
+ * muestra como fecha de pago) y no de `paid_at`, para no desfasarnos por la
+ * diferencia entre UTC y Lima en pagos cerca de medianoche.
+ *
+ * Best-effort: si falla, el cobro ya está creado; solo queda en el mes que
+ * eligió Hecom.
+ */
+export async function alignCobroPeriodoToPaymentMonth(
+  codigo: string,
+): Promise<{ changed: boolean; from?: string | null; to?: string }> {
+  if (process.env.HECOM_COBRO_PERIODO_ALIGN === "false") {
+    return { changed: false };
+  }
+  // Solo los cobros que crea esta integración.
+  if (!codigo.startsWith("AH-")) return { changed: false };
+
+  try {
+    const hecom = createHecomAdminClient();
+    const { data: cobro, error } = await hecom
+      .from("cobros")
+      .select("id, fecha, periodo_resumen")
+      .eq("codigo", codigo)
+      .maybeSingle();
+    if (error || !cobro?.fecha) return { changed: false };
+
+    const mesPago = String(cobro.fecha).slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(mesPago)) return { changed: false };
+    if (cobro.periodo_resumen === mesPago) return { changed: false };
+
+    const { error: upError } = await hecom
+      .from("cobros")
+      .update({ periodo_resumen: mesPago })
+      .eq("id", cobro.id);
+    if (upError) {
+      console.error("[hecom-cobro-bridge] periodo align failed", {
+        codigo,
+        error: upError.message,
+      });
+      return { changed: false };
+    }
+
+    console.info("[hecom-cobro-bridge] periodo alineado al mes de pago", {
+      codigo,
+      from: cobro.periodo_resumen,
+      to: mesPago,
+    });
+    return { changed: true, from: cobro.periodo_resumen, to: mesPago };
+  } catch (error) {
+    console.error("[hecom-cobro-bridge] periodo align error", error);
+    return { changed: false };
+  }
+}
+
 /** Best-effort tras depósito succeeded (Stripe / manual / Yape). Nunca lanza. */
 export async function syncWalletDepositCobroBestEffort(input: {
   hecomClienteId: string | null | undefined;
@@ -200,7 +263,10 @@ export async function syncWalletDepositCobroBestEffort(input: {
 
   if (!result.ok && !result.skipped) {
     console.error("[hecom-cobro-bridge] sync failed (non-blocking)", result);
-  } else if (result.created || result.idempotent) {
+    return result;
+  }
+
+  if (result.created || result.idempotent) {
     console.info("[hecom-cobro-bridge] sync ok", {
       paymentIntentId: input.paymentIntentId,
       provider,
@@ -209,5 +275,15 @@ export async function syncWalletDepositCobroBestEffort(input: {
       periodo: result.periodoResumen,
     });
   }
+
+  // El cobro tiene que quedar en el mes en que se pagó, no en el mes de deuda
+  // que elige Hecom.
+  if (result.ok && !result.dryRun && result.codigo) {
+    const aligned = await alignCobroPeriodoToPaymentMonth(result.codigo);
+    if (aligned.changed && aligned.to) {
+      return { ...result, periodoResumen: aligned.to };
+    }
+  }
+
   return result;
 }

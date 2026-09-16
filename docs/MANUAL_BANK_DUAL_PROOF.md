@@ -82,10 +82,32 @@ Antes de concluir que un cobro falta, revisar
 `periodo_resumen` que devolvió el bridge. Si tiene `ok: true`, el cobro existe y
 el tema es de período, no de sincronización.
 
-Para re-archivar un cobro puntual se actualiza `cobros.periodo_resumen` en Hecom
-(cambia los totales de ambos meses: baja el "cobrado" del mes viejo y sube el del
-nuevo). Si se quiere que **siempre** use el mes del pago, hay que tocar el
-endpoint en el repo de Hecom; desde acá no se puede.
+### Corrección automática (16/09)
+
+Gerencia definió que **el cobro tiene que vivir en el mes en que se pagó**. Como
+el endpoint de Hecom no lo permite, lo corregimos del lado nuestro: después de
+crear el cobro, `alignCobroPeriodoToPaymentMonth` reescribe
+`cobros.periodo_resumen` al mes de `cobros.fecha`.
+
+- Corre al final de `syncWalletDepositCobroBestEffort`, así aplica a los cinco
+  canales sin tocar cada uno.
+- El mes sale de `cobros.fecha` y no de `paid_at`: en pagos cerca de medianoche
+  UTC el día en Lima es otro y quedaríamos desfasados un mes.
+- Solo toca códigos `AH-*`. Los cobros que carga el equipo a mano nunca se tocan.
+- Best-effort e idempotente: si falla, el cobro ya está creado y solo queda en el
+  mes que eligió Hecom.
+- Kill switch: `HECOM_COBRO_PERIODO_ALIGN=false`.
+
+Backfill de los que quedaron mal: `node scripts/realign-hecom-cobro-periodos.mjs
+--dry-run` (muestra el impacto en el cobrado de cada mes antes de escribir).
+Aplicado el 16/09 sobre 9 cobros de 6 clientes.
+
+**Efecto contable a tener presente:** sacar un pago del mes de deuda que cubría
+deja ese mes con saldo pendiente otra vez. Ej.: los $660 de Jesús Fuentes salieron
+de agosto y entraron a setiembre, así que agosto vuelve a mostrar esa deuda. Y
+como el mes viejo queda abierto, el próximo pago de ese cliente lo vuelve a
+elegir Hecom — por eso la corrección tiene que quedar activa, no es de una sola
+pasada (verificado: un cobro de prueba del 16/09 cayó en `2026-05`).
 
 ## Env
 
