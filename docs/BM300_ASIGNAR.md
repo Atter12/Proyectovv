@@ -328,19 +328,41 @@ retirar una cuenta de circulación de forma definitiva, nunca para liberar.
 |------|--------|
 | Borrar un advertiser | ❌ No existe endpoint |
 | Sacarlo del BM (`/bc/asset/admin/delete/`) | ❌ `40000 This action isn't supported` (el BM es `OWNER_BC`) |
-| Renombrar por API | ❌ `/advertiser/update/` ignora `name` y `advertiser_name` (code 0, lista vacía) |
-| Reasignar a otro cliente | ✅ Solo remapear en Hecom |
+| Renombrar por API | ✅ `POST /advertiser/update/` con `{advertiser_id, name}` — **solo si está `STATUS_ENABLE`** |
+| Reasignar a otro cliente | ✅ Remapear en Hecom (+ renombrar al serial del nuevo dueño) |
 
-**Ojo con el nombre:** `resolveDisplayName` (`lib/hecom/ad-accounts.server.ts`)
-prioriza el nombre vivo de TikTok sobre el de Hecom. Al reasignar `prueba 301` a un
-cliente, el cliente verá “prueba 301”. Salidas: renombrar a mano en Ads Manager, o
-invertir esa prioridad en el código.
+**El rename es asíncrono.** Devuelve `code: 0` al instante pero tarda minutos en
+propagarse; `/advertiser/info/` y `/bc/asset/admin/get/` siguen devolviendo el nombre
+viejo un rato. No concluir “no funcionó” por leerlo de inmediato. En cuentas
+`STATUS_DISABLE` el rename se acepta pero no se aplica nunca.
 
-### Inventario libre en BM300 (2026-09-15)
+Importa porque `resolveDisplayName` (`lib/hecom/ad-accounts.server.ts`) prioriza el
+nombre vivo de TikTok sobre el de Hecom: al reciclar hay que renombrar en TikTok, no
+solo en Hecom, o el cliente verá el nombre de stock.
 
-7 activas reasignables: `prueba 300`, `prueba 301`, `sebas prueba 303`,
-`sebas prueba 304`, `Holistic Probe 300.0 USD - Agencia`,
-`PROALBA GROUP E.I.R.L.`, `Sebas LIBRE 300.O USD`.
+### Inventario real (2026-09-15)
+
+| BM | total | asignadas | stock libre | cliente sin mapear | muertas/baneadas |
+|----|-------|-----------|-------------|--------------------|------------------|
+| BM300 | 31 | 23 | **6** | 1 | 1 |
+| BM200 | 283 | 197 | **1** | 53 | 32 |
+| BM30 | 304 | 149 | 0 | 88 | 67 |
+| BM10 | 330 | 93 | 117 ⚠️ | 92 | 28 |
+| **TOTAL** | 948 | 462 | 124 | 234 | 128 |
+
+⚠️ Las 117 de BM10 están APPROVED pero **el BM10 tiene cash $0 y grant $0**: no se
+les puede asignar saldo. Inventario de papel (confirma el `bm10_no_spendable_balance`
+del reclaim de Dominic). Fondos por BM: BM300 `$49,753` cash · BM30 `$16,186` grant ·
+BM10 `$0`.
+
+**Listas de verdad para dar: 7** (6 BM300 + 1 BM200).
+
+Stock BM300: `prueba 300`, `prueba 301`, `sebas prueba 303`, `sebas prueba 304`,
+`Sebas LIBRE 300.O USD`, `Holistic Probe 300.0 USD - Agencia RENAME OK`.
+
+Las **234 “cliente sin mapear”** son cuentas con nombre de cliente que no están en
+`cliente_tiktok_cuentas` — no son stock, son backlog de mapeo (mismo caso que §4 con
+BM300). Esos clientes probablemente no ven sus cuentas en la plataforma.
 
 1 inservible: `Adriano Perez 300.0 USD - Agencia` (`7685982426154860565`) quedó en
 `STATUS_DISABLE` por el test del 15/09. No reciclable.
