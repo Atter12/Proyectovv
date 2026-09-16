@@ -502,15 +502,52 @@ Las dos consecuencias son distintas:
   **nuestro** panel esos clientes ven consumo en cero. Las otras 25 no tienen
   gasto en ningún lado, probablemente nunca gastaron.
 
-El arreglo es uno: **re-hacer la autorización OAuth del token de agencia**
-incluyendo los 6 BC (el BC300 hoy lo vemos como ADMIN, así que el permiso
-existe; lo que falta es la lista de advertisers). Con eso se destraba la
-facturación de BM300 y el panel de los 32 de BM10 de una sola vez. Y de paso
-conviene dejarlo como tarea recurrente: cada cuenta que se sume a un BM por
-fuera de nuestra API vuelve a quedar ciega hasta la próxima re-autorización.
+**No es que el token esté vencido ni que haya que renovarlo cada día.** El token
+largo de la Marketing API no expira por tiempo: sólo muere si se revoca o si el
+anunciante cancela la autorización. Y funciona: BM30, BM200 y BM10 responden
+`code 0`. El token de `.env.local` y el de producción son el mismo
+(`b5f112c7…2e48`), así que lo medido es el de prod.
+
+Lo que falta no es frescura, es **alcance**: la lista de cuentas queda fija en el
+momento en que se otorga el permiso, y lo que se crea después no entra solo.
+`/oauth2/advertiser/get/` es el endpoint que la devuelve — ahí están las 985.
+
+Y hay una prueba de que re-autorizar sin más no alcanza: fechando las cuentas
+ciegas por su ID, **las 32 de BM10 son de octubre 2025 a febrero 2026**, meses
+antes de la última autorización (la cuenta autorizada más nueva es del 10/09).
+O sea que ya existían cuando se dio el permiso y aun así quedaron fuera: no las
+incluyeron en la selección. Las 23 de BM300 son del 9 al 11/09, pegadas a la
+fecha de la autorización, así que ésas sí pueden ser cuestión de timing.
+
+> Las fechas salen de los bits altos del `advertiser_id` calibrados contra
+> `create_time` real, con ~1 día de deriva. Sirven para ubicar el mes, no para
+> discutir un día puntual. La brecha BM10 (meses) vs BM300 (días) es lo bastante
+> grande como para no depender de esa precisión.
+
+Así que el arreglo es re-hacer la autorización **seleccionando todas las cuentas
+de los 6 BC**, no sólo repetir el trámite. El permiso de BC ya está (vemos el
+BC300 como ADMIN); lo que falta es la lista de advertisers. Conviene además
+dejarlo como tarea recurrente: cada cuenta creada a mano en TikTok Manager
+queda ciega hasta la próxima autorización.
 
 Mientras no se re-autorice, **lo creado desde la plataforma sí se factura
-bien** — esas cuentas nacen autorizadas.
+bien** — esas cuentas nacen autorizadas. Son justo las 3 únicas de BM300 que el
+token ve.
+
+### 2.10 🟡 MEDIA · El BC300 ya tiene 12 cuentas que nadie mapeó
+
+El BC300 pasó de 23 a 35 cuentas. Las 12 nuevas no están en
+`cliente_tiktok_cuentas`, así que no tienen dueño en Hecom ni se facturan, y 9
+tampoco las ve el token:
+
+- **Ely Aguirre 302.0 a 306.0** — 5 cuentas creadas en las últimas ~24 h
+- **Sebas LIBRE 300.O USD**, **sebas prueba 303**, **sebas prueba 304**,
+  **PROALBA GROUP E.I.R.L.** — parecen pruebas de ops
+- Las 3 nuestras (Alexandra, Adriano, Holistic Probe), ya liberadas a propósito
+
+Las 5 de Ely son las que importan: si ya están gastando, ese consumo no le llega
+a nadie. Hay que mapearlas y revisar por qué se siguen creando a mano en vez de
+por la plataforma, que las dejaría autorizadas y mapeadas solas.
 
 ---
 
