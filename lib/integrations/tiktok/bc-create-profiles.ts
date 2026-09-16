@@ -66,9 +66,12 @@ export const TIKTOK_SELF_SERVE_ACCOUNT_LIMIT = 2;
 
 /**
  * Self-serve create en mantenimiento (TikTok BC bloqueado / ops).
- * `true` = UI amable + API rechaza altas. Volver a `false` cuando TikTok abra.
+ * `true` = UI amable + API rechaza altas.
+ *
+ * 2026-09-15: TikTok levantó el bloqueo de riesgo del BM300 (el `40002 unusual
+ * activity` del 12/09 ya no aparece; create real OK). Reactivado.
  */
-export const TIKTOK_SELF_SERVE_CREATE_MAINTENANCE = true;
+export const TIKTOK_SELF_SERVE_CREATE_MAINTENANCE = false;
 
 /** WhatsApp Holistic si el cliente pide más de 2. */
 export const HOLISTIC_WHATSAPP_E164 = "51933484150";

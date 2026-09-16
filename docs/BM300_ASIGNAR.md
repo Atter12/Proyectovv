@@ -238,14 +238,33 @@ Código:
 
 Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` · industry `291406`.
 
-### Smoke create (2026-09-12)
+### Smoke create (2026-09-12) — bloqueado
 
 | Prueba | Resultado |
 |--------|-----------|
 | Payload + industry inválida | `40002 Industry invalid` → path/permisos **OK** |
 | Create real | `40002 Unable to create… unusual activity in this Business Center` |
 
-**Bloqueo TikTok en el BC** (compliance / risk), no Holistic. Pedir a AM TikTok desbloqueo de altas en BM 300. La UI/API ya está lista; cuando TikTok abra, create funciona sin redeploy de lógica.
+**Bloqueo TikTok en el BC** (compliance / risk), no Holistic.
+
+### Recheck (2026-09-15) — DESBLOQUEADO
+
+TikTok levantó la revisión de riesgo sin que hiciéramos gestión con el AM.
+
+| Prueba | Resultado |
+|--------|-----------|
+| Probe industry inválida en BM 300 / 200 / 30 | los tres `Industry invalid` → create disponible |
+| Create real BM300 (industry 291406) | `code 0` · advertiser `7685958996607909908` |
+
+Ojo con el método: el probe de industry inválida **no** distingue el bloqueo de riesgo
+(el 12/09 también devolvía `Industry invalid` mientras el create real fallaba). Para
+saber si el BC está abierto hay que intentar un create real.
+
+La cuenta `7685958996607909908` (`Holistic Probe 300.0 USD - Agencia`) quedó como
+inventario interno sin mapear en Hecom. El regex `NOT_A_CLIENT` del script de mapeo la
+ignora por contener “holistic”, así que no se va a auto-asignar a nadie.
+
+Con esto se reactivó `TIKTOK_SELF_SERVE_CREATE_MAINTENANCE = false`.
 
 ---
 
@@ -261,7 +280,5 @@ Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` ·
 - [x] Smoke Asignar en cuenta APPROVED — ver §5 (mínimo $10, no $1)
 - [ ] Confirmar cash en Ads Manager en el primer Asignar real de cliente
 
-**BM 300 operativo para Asignar.** Único pendiente de plataforma: TikTok mantiene
-bloqueadas las **altas** de cuentas en este BC (`40002 unusual activity`, §7) —
-hay que escalarlo con el AM de TikTok. Asignar sobre las cuentas existentes no
-está afectado.
+**BM 300 operativo para Asignar y para crear cuentas.** El bloqueo de altas del
+12/09 se levantó (ver §7 · recheck 2026-09-15) y el self-serve quedó reactivado.
