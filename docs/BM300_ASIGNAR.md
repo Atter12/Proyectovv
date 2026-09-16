@@ -310,12 +310,23 @@ otro cliente la use. Solo ops, nunca el cliente.
 
 **Hacer:**
 
-1. Borrar la fila de `cliente_tiktok_cuentas` (Hecom) del cliente actual.
-2. Borrar / archivar la fila de `ad_accounts` de la org de ese cliente.
-3. Dejar el advertiser **intacto y `STATUS_ENABLE`** en TikTok.
+1. Renombrar en TikTok al nombre de stock (ver nota de `resolveDisplayName` abajo).
+2. Borrar la fila de `cliente_tiktok_cuentas` (Hecom) del cliente actual.
+3. Si `clientes.tiktok_advertiser_id` apunta a esa cuenta, **ponerlo a `null`**
+   (junto con `tiktok_advertiser_name`).
+4. Borrar / archivar la fila de `ad_accounts` de la org de ese cliente.
+5. Dejar el advertiser **intacto y `STATUS_ENABLE`** en TikTok.
 
-Guardas antes de tocar: saldo y gasto en `0`, y que no sea el
-`tiktok_advertiser_id` principal de la ficha.
+Guardas antes de tocar: saldo y gasto en `0` tanto en TikTok
+(`/advertiser/balance/get/`) como en el ledger (`v_ad_account_ledger_balances`).
+
+⚠️ El paso 3 no es opcional y al principio se pasó por alto. `resolveHecomAccounts`
+(`lib/hecom/ad-accounts.server.ts`) cae al `tiktok_advertiser_id` de la ficha cuando
+`cliente_tiktok_cuentas` queda vacío, así que borrar solo el mapeo deja la cuenta
+visible para el cliente. Y `linkTikTokCuentaToHecomCliente` **setea ese campo en el
+alta cuando estaba vacío**, por lo que la primera cuenta de un cliente siempre queda
+como principal. La guarda vieja (“que no sea la principal”) era incorrecta: en ese
+caso hay que limpiarla, no abortar.
 
 **NO hacer:** `POST /bc/advertiser/disable/`. Eso **mata la cuenta para siempre**
 — no existe `/bc/advertiser/enable/` (404), `/advertiser/update/` con status es
