@@ -334,17 +334,16 @@ Quiénes quedan en el punto ciego: **Jhonatan Matildo (17 cuentas, 300.0 a
 Eugenio. Varios de ellos sí se facturan por sus cuentas de BM10/30/200, así que
 el faltante es parcial y no se nota mirando la ficha.
 
-**No puedo medir cuánto es.** Nuestro `TIKTOK_ACCESS_TOKEN` tiene rol finance en
-el BC300 (por eso `/bc/transfer/` funciona y las recargas salen bien), pero los
-advertisers de ese BC no están autorizados a la app: tanto
-`/report/integrated/get/` como `/advertiser/balance/get/` devuelven
-`No permission to operate advertiser` para las 23, y `/bc/transaction/get/` del
-BC300 vuelve vacío. Hace falta que alguien con acceso al BC300 mire el gasto de
-setiembre en TikTok Manager, o autorizar esos advertisers al token.
+**La causa es el token, y está confirmada** (ver 2.9): el nuestro se autorizó
+antes de que existiera el BM300, así que esas cuentas no entran en su lista y no
+podemos leerles el gasto. No puedo medir cuánto es desde acá: hace falta que
+alguien con acceso al BC300 mire el gasto de setiembre en TikTok Manager, o
+re-autorizar el token.
 
 Dos preguntas para el otro equipo: ¿su sync tiene configurado el BC
-`7680955666005196801`? ¿Y con qué token lee, porque puede que el suyo sí vea
-esas cuentas?
+`7680955666005196801`? ¿Y con qué token lee? Porque el suyo **sí** ve cuentas
+que el nuestro no (hay 7 cuentas de BM10 fuera de nuestra lista que igual tienen
+gasto cargado en Hecom), así que puede que les alcance con agregar el BC.
 
 ### 1.10 🟡 MEDIA · 16 fichas sin ningún email
 
@@ -474,6 +473,44 @@ Josue Luna) y su deuda de setiembre no depende de esos pagos viejos.
 
 El riesgo sigue vivo sólo si se envía un mes viejo: ahí a esos 23 se les
 reclamaría plata que ya pagaron.
+
+### 2.9 🔴 ALTA · El token quedó viejo: 55 cuentas de 37 clientes son ciegas
+
+Un access token de TikTok lleva una lista fija de advertisers, la del momento en
+que se autorizó. **Las cuentas creadas después no entran solas.** El nuestro
+tiene 985 autorizadas, y así queda el cruce contra lo mapeado en Hecom:
+
+| BM | mapeadas | el token las ve | ciegas |
+|----|---------:|----------------:|-------:|
+| BM30 | 147 | 147 | 0 |
+| BM200 | 191 | 191 | 0 |
+| BM10 | 124 | 92 | **32** |
+| BM300 | 23 | 0 | **23** |
+
+El detalle que lo prueba: de las 35 cuentas del BC300, las **únicas 3** que el
+token ve son las tres que creamos por API desde la plataforma (Alexandra
+Villaizan, Adriano Perez, Holistic Probe). Lo que se crea por nuestra API queda
+autorizado solo; las 23 que ya existían, hechas a mano en TikTok Manager antes de
+que el token se generara, no.
+
+Las dos consecuencias son distintas:
+
+- **BM300 (23 cuentas, 5 clientes)** — no hay gasto en Hecom *y* el cliente no ve
+  consumo en nuestro panel. Es el faltante de facturación de 1.9.
+- **BM10 (32 cuentas, 32 clientes)** — 7 sí tienen gasto cargado en Hecom, o sea
+  que el token de Hecom las lee y las factura bien; el problema es solo que en
+  **nuestro** panel esos clientes ven consumo en cero. Las otras 25 no tienen
+  gasto en ningún lado, probablemente nunca gastaron.
+
+El arreglo es uno: **re-hacer la autorización OAuth del token de agencia**
+incluyendo los 6 BC (el BC300 hoy lo vemos como ADMIN, así que el permiso
+existe; lo que falta es la lista de advertisers). Con eso se destraba la
+facturación de BM300 y el panel de los 32 de BM10 de una sola vez. Y de paso
+conviene dejarlo como tarea recurrente: cada cuenta que se sume a un BM por
+fuera de nuestra API vuelve a quedar ciega hasta la próxima re-autorización.
+
+Mientras no se re-autorice, **lo creado desde la plataforma sí se factura
+bien** — esas cuentas nacen autorizadas.
 
 ---
 
