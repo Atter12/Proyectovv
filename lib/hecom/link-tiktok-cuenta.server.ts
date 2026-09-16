@@ -50,10 +50,12 @@ export async function linkTikTokCuentaToHecomCliente(
   }
 
   const hecom = createHecomAdminClient();
+  // `fee` es el % de comisión Hecom (5–10), no el tier del BM. Sin valor se deja
+  // null para que resolveFeePercentFromHecomCliente caiga al fee del cliente.
   const fee =
     input.fee != null && Number.isFinite(Number(input.fee))
       ? Number(input.fee)
-      : Number(bmBucket) || null;
+      : null;
 
   const { data: existing } = await hecom
     .from("cliente_tiktok_cuentas")

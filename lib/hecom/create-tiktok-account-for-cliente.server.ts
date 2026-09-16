@@ -110,7 +110,7 @@ export async function createTikTokAccountForCliente(input: {
       advertiserId: created.advertiserId,
       advertiserName: created.advertiserName,
       bmBucket: created.bmBucket,
-      fee: Number(created.bmBucket),
+      fee: cliente.tiktokDefaultFee,
     });
     hecomLinked = true;
   } catch (error) {

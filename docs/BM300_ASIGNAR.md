@@ -98,14 +98,7 @@ BM 300 **no** usa `increaseSharedBmAdvertiserBudget`. Usa el mismo flujo cash qu
 
 ---
 
-## 4. Gap crítico: mapa Hecom
-
-Hoy:
-
-```text
-TikTok BM300 → 27 advertisers
-Hecom cliente_tiktok_cuentas WHERE bm_bucket = '300' → 0 filas
-```
+## 4. Mapa Hecom (resuelto 2026-09-15)
 
 Sin fila Hecom:
 
@@ -113,17 +106,39 @@ Sin fila Hecom:
 2. Pagos → Asignar no la muestra (scope Hecom).
 3. El cash del BM queda sin “dueño” en producto.
 
-### Acción ops (antes de decir “listo clientes”)
-
-Para cada advertiser BM 300 a operar:
+### Estado
 
 ```text
-INSERT / upsert Hecom.cliente_tiktok_cuentas
-  client_id, advertiser_id, advertiser_name,
-  bm_bucket = '300', fee ≈ 300, sync_enabled = true
+TikTok BM300 → 27 advertisers
+Hecom cliente_tiktok_cuentas WHERE bm_bucket = '300' → 21 filas
 ```
 
-Luego en Holistic: sync approved + ensure org → aparece en Asignar.
+| Cliente Hecom | Cuentas | Nota |
+|---------------|---------|------|
+| Jonatan Matildo José | 17 | TikTok escribe “Jhonatan” · 2 suspendidas |
+| Ely Aguirre | 2 | |
+| Carla Juan de dios | 1 | |
+| Yolmer Eugenio | 1 | |
+
+Pendiente manual: `Piero Acasiete 300.0 / 301.0` — hay **dos fichas Hecom duplicadas**
+(`Piero Acasiete García`, `Piero Alexander Acasiete García`) con el mismo email.
+Hay que unificar la ficha antes de mapear.
+
+Ignoradas (internas / smoke): `sebas prueba 303/304`, `Sebas LIBRE 300.O USD`,
+`PROALBA GROUP E.I.R.L.`
+
+### Herramienta
+
+```bash
+node --env-file=.env.local scripts/map-bm300-advertisers.mjs          # audit
+node --env-file=.env.local scripts/map-bm300-advertisers.mjs --apply  # inserta match único
+```
+
+Inserta `bm_bucket='300'`, `sync_enabled=true` y `fee=null`.
+**`fee` es el % de comisión Hecom (5–10), no el tier del BM**: dejarlo en null hace
+que `resolveFeePercentFromHecomCliente` caiga al fee del cliente (default 10%).
+
+Luego en Holistic: sync approved + ensure org → aparece en Asignar (cache 5 min).
 
 ---
 
@@ -207,7 +222,8 @@ Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` ·
 - [x] Token en `.env.local`
 - [ ] Token en **Vercel Production** + redeploy ← **vos**
 - [x] Mapa `"300"` en código + cash path + portfolio por advertiser
-- [ ] Mapear advertisers en **Hecom** (`bm_bucket=300`)
+- [x] Mapear advertisers en **Hecom** (`bm_bucket=300`) — 21/27 · ver §4
+- [ ] Unificar fichas duplicadas de Piero Acasiete y mapear sus 2 cuentas
 - [ ] Sync → aparecen en Pagos
 - [ ] Smoke Asignar $1–5 en una cuenta APPROVED
 - [ ] Confirmar cash en Ads Manager
