@@ -448,10 +448,28 @@ reales son 6).
 
 ### 2.7 🟢 Los gastos que sí se importan cuadran al centavo
 
-Comparé `gastos` contra lo que TikTok reporta por cuenta (`/report/integrated/get/`,
-nivel advertiser) para las 15 cuentas más grandes de BM200 en setiembre. En el
-período cerrado 01–14/09 la diferencia es **$0.00 en las 15**: Catherine Burgos
-$1,900.67 vs $1,900.67, Jesus Fuentes $2,542.28 vs $2,542.28, y así.
+Barrido completo de las **487 cuentas mapeadas**, comparando `gastos` contra lo
+que TikTok reporta por cuenta (`/report/integrated/get/`, nivel advertiser) en el
+período cerrado **01/08 – 15/09**:
+
+| resultado | cuentas | gasto | cargo con fee |
+|-----------|--------:|------:|--------------:|
+| cuadran exacto | 427 | — | — |
+| gasto faltante | 5 | $196.00 | **$215.60** |
+| gasto de más | 0 | $0.00 | $0.00 |
+| ciegas (2.9) | 55 | sin dato | sin dato |
+
+Las 5 con faltante son chicas y cuatro son BM10: Dominic Velame $77.00, Pedro
+Jaime Tume $75.38, Joseph Carranza $47.06 (dos cuentas) y Hernán Lora $16.16
+(BM200). **El importador está sano**; el agujero de facturación real son las 55
+ciegas y BM300 (1.9, 2.9), no el sync.
+
+Ojo con un falso positivo al auditar caso por caso: si se compara TikTok desde
+julio contra `gastos`, aparecen faltantes que no existen. Hecom arranca el
+seguimiento por cuenta en `2026-08-01`, así que todo el consumo anterior sale
+como "no importado". A Jair Santiago le daba $160.79 de hueco y era exactamente
+su gasto de julio; agosto y setiembre le cuadran al centavo. **Comparar siempre
+desde 01/08.**
 
 Un primer corte hasta el 16/09 mostraba $238.42 sin facturar, pero era sólo el
 gasto del día en curso: el sync corre de madrugada (lo último cargado es
@@ -623,6 +641,28 @@ toque nada de eso.
 | `5df787d` | El cobro se archiva en el mes en que se pagó + backfill de 9 |
 | `b7f91fc` | Liberar cuenta ads también limpia `clientes.tiktok_advertiser_id` |
 | — | Borrada la fila duplicada del cobro de Catherine ($110 de más) |
+| — | Cargados 4 vouchers BCP de Jair Santiago que soporte nunca registró ($356.40) |
+
+### Los 4 vouchers de Jair Santiago
+
+Gerencia pasó cuatro comprobantes BCP de agosto que no estaban en `cobros`:
+S/186.56, S/186.56, S/186.62 y S/650.95 ($55.00 ×3 y $191.40, total **$356.40**).
+Fueron transferencias directas al banco después de abandonar el checkout — tiene
+tres intents Stripe de $55 cancelados el 26/08 —, así que no hay
+`payment_intent_id` y el puente no podía crearlos.
+
+Cargados como `C-VBCP-JAIR-0825/0826/0827/0828`, con la fecha del voucher,
+`periodo_resumen` del mes de pago y `metodo` "Transferencia BCP".
+
+Lo que valida que no eran un doble cobro: su gasto real en TikTok al 16/09 es
+$2,699.41, o sea $2,969.35 con fee. Pagó $2,625.38 registrados; sumando los
+vouchers da $2,981.78, **$12.43 de diferencia**. Si ya hubieran estado cargados
+quedaría un sobrante de $356 sin explicar. Queda agosto $376.26 a favor contra
+setiembre $176.21 en contra: el FIFO lo tapa y **no debe nada**.
+
+Esto es el patrón a buscar en otros clientes: pago real que nunca entró a
+`cobros` porque se hizo por fuera de la plataforma. No lo detecta ninguno de los
+scripts, porque del lado nuestro ese pago no existe.
 
 Scripts disponibles:
 
