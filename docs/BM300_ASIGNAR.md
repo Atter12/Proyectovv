@@ -300,3 +300,47 @@ Con esto se reactivó `TIKTOK_SELF_SERVE_CREATE_MAINTENANCE = false`.
 
 **BM 300 operativo para Asignar y para crear cuentas.** El bloqueo de altas del
 12/09 se levantó (ver §7 · recheck 2026-09-15) y el self-serve quedó reactivado.
+
+---
+
+## 9. “Liberar cuenta” — protocolo ops (2026-09-15)
+
+Cuando Victor dice **“libera esa cuenta”**, significa dejarla disponible para que
+otro cliente la use. Solo ops, nunca el cliente.
+
+**Hacer:**
+
+1. Borrar la fila de `cliente_tiktok_cuentas` (Hecom) del cliente actual.
+2. Borrar / archivar la fila de `ad_accounts` de la org de ese cliente.
+3. Dejar el advertiser **intacto y `STATUS_ENABLE`** en TikTok.
+
+Guardas antes de tocar: saldo y gasto en `0`, y que no sea el
+`tiktok_advertiser_id` principal de la ficha.
+
+**NO hacer:** `POST /bc/advertiser/disable/`. Eso **mata la cuenta para siempre**
+— no existe `/bc/advertiser/enable/` (404), `/advertiser/update/` con status es
+no-op, y re-disable responde `has been DISABLED already`. Disable es solo para
+retirar una cuenta de circulación de forma definitiva, nunca para liberar.
+
+### Límites conocidos
+
+| Cosa | Estado |
+|------|--------|
+| Borrar un advertiser | ❌ No existe endpoint |
+| Sacarlo del BM (`/bc/asset/admin/delete/`) | ❌ `40000 This action isn't supported` (el BM es `OWNER_BC`) |
+| Renombrar por API | ❌ `/advertiser/update/` ignora `name` y `advertiser_name` (code 0, lista vacía) |
+| Reasignar a otro cliente | ✅ Solo remapear en Hecom |
+
+**Ojo con el nombre:** `resolveDisplayName` (`lib/hecom/ad-accounts.server.ts`)
+prioriza el nombre vivo de TikTok sobre el de Hecom. Al reasignar `prueba 301` a un
+cliente, el cliente verá “prueba 301”. Salidas: renombrar a mano en Ads Manager, o
+invertir esa prioridad en el código.
+
+### Inventario libre en BM300 (2026-09-15)
+
+7 activas reasignables: `prueba 300`, `prueba 301`, `sebas prueba 303`,
+`sebas prueba 304`, `Holistic Probe 300.0 USD - Agencia`,
+`PROALBA GROUP E.I.R.L.`, `Sebas LIBRE 300.O USD`.
+
+1 inservible: `Adriano Perez 300.0 USD - Agencia` (`7685982426154860565`) quedó en
+`STATUS_DISABLE` por el test del 15/09. No reciclable.
