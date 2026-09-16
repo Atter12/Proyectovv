@@ -26,6 +26,44 @@ Sin comprobante → el mail marca `bank_confirmed_at` y espera.
    - texto Yape → matcher bot
    - transferencia BCP / Binance → matcher `manual-bank-match`
 4. Cliente sube voucher → si el mail ya matcheó, se acredita; si no, espera el cron.
+5. Al acreditar: `ensureHecomWalletCobroSyncedBestEffort` registra el cobro en Hecom.
+
+## Registrar en Hecom (Lo pagado) — obligatorio
+
+**Todo camino que deje un depósito en `succeeded` tiene que llamar a
+`ensureHecomWalletCobroSynced`** (`lib/hecom/ensure-wallet-cobro.server.ts`), o
+el pago acredita saldo en la cartera y nunca aparece en cobros de Hecom.
+
+Esto se rompió: `completeYapeConfirmedDeposit` y
+`completeManualBankConfirmedDeposit` acreditaban sin puentear (arreglado el
+16/09). Solo los caminos con webhook y la aprobación manual de gerencia
+registraban. Se notó recién porque los auto-abonos hasta ahora solo los habían
+usado pagos de prueba del equipo.
+
+Caminos que hoy puentean:
+
+| Camino | Archivo |
+|--------|---------|
+| Webhook (Stripe / Cobrana / crypto) | `create-intent.server.ts` → `processSuccessfulPaymentIntent` |
+| Aprobación manual de gerencia | `review-manual-payment.server.ts` |
+| Auto-abono Yape (bot) | `yape/confirm-deposit.server.ts` |
+| Auto-abono BCP / Binance | `manual-bank-match/confirm-deposit.server.ts` |
+| Cobro de deuda crédito | `credit-lock/credit-lock.server.ts` |
+
+Quedan fuera a propósito `allocate-with-tiktok` y `reclaim-with-tiktok`: son
+importes/devoluciones de saldo TikTok, no pagos del cliente.
+
+Curar faltantes: `node scripts/backfill-hecom-wallet-cobros.mjs --dry-run`
+(cubre los 4 canales; es idempotente por `codigo`).
+
+### `periodo_resumen`
+
+El endpoint de Hecom lo calcula **del mes de `paid_at`** e ignora cualquier
+período que le mandemos (probado el 16/09 contra el bridge en dry-run). Si un
+cobro aparece en un mes distinto al del pago, fue movido a mano en el CRM
+después — no lo hace la integración. Ojo al depurar: en el CRM las tablas
+filtran por **período**, no por fecha de pago, así que un cobro re-asignado a
+un mes anterior parece "no guardado" cuando en realidad está.
 
 ## Env
 

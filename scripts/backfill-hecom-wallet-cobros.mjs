@@ -1,12 +1,17 @@
 /**
- * Backfill bridge Hecom "Lo pagado" for Stripe wallet deposits.
+ * Backfill bridge Hecom "Lo pagado" para depósitos de cartera.
  *
- * Default: only rows missing hecom_cobro_sync.ok (or failed).
- * Updates payment_intents.metadata after each successful bridge call.
+ * Cubre todos los canales puenteados (stripe / manual / cobrana / crypto), no
+ * solo Stripe: los auto-abonos de Yape y de banco manual acreditaban saldo sin
+ * registrar el cobro, así que también hay que poder curarlos.
+ *
+ * Default: solo filas sin hecom_cobro_sync.ok (o fallidas).
+ * Actualiza payment_intents.metadata tras cada llamada exitosa al bridge.
  *
  * Usage:
  *   node scripts/backfill-hecom-wallet-cobros.mjs --dry-run
  *   node scripts/backfill-hecom-wallet-cobros.mjs --commit
+ *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --provider=manual
  *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --only=jesus
  *   node scripts/backfill-hecom-wallet-cobros.mjs --commit --all
  */
@@ -18,6 +23,11 @@ const doCommit = args.has("--commit");
 const includeAlreadyOk = args.has("--all");
 const onlyArg = process.argv.find((a) => a.startsWith("--only="));
 const only = onlyArg ? onlyArg.slice("--only=".length).toLowerCase() : null;
+const providerArg = process.argv.find((a) => a.startsWith("--provider="));
+const BRIDGED_PROVIDERS = ["stripe", "manual", "cobrana", "crypto"];
+const providers = providerArg
+  ? providerArg.slice("--provider=".length).toLowerCase().split(",")
+  : BRIDGED_PROVIDERS;
 
 const env = {};
 for (const line of fs.readFileSync(".env.local", "utf8").split(/\r?\n/)) {
@@ -71,49 +81,90 @@ const { data: pis, error } = await vv
     "id,amount_cents,currency,provider,metadata,succeeded_at,created_at",
   )
   .eq("status", "succeeded")
-  .eq("provider", "stripe")
+  .in("provider", providers)
   .order("created_at", { ascending: true });
 if (error) throw error;
 
+// Importes de saldo TikTok y cobros de deuda no son pagos del cliente.
+function esAjusteInterno(m) {
+  const source = String(m.source ?? "");
+  return (
+    /tiktok_balance_import|tiktok_reclaim|credito_detach/.test(source) ||
+    m.skip_wallet_credit === true
+  );
+}
+
 const rows = [];
+const sinCliente = [];
 for (const pi of pis ?? []) {
   const m = pi.metadata || {};
   const hecomId = m.hecom_cliente_id ? String(m.hecom_cliente_id) : "";
   const hecomName = m.hecom_cliente_name ? String(m.hecom_cliente_name) : "";
-  if (!hecomId) continue;
+  if (esAjusteInterno(m)) continue;
+  if (!includeAlreadyOk && syncOk(m)) continue;
+  if (!hecomId) {
+    sinCliente.push({
+      id: pi.id,
+      provider: pi.provider,
+      source: String(m.source ?? "-"),
+      monto: Number(pi.amount_cents) / 100,
+      fecha: (pi.succeeded_at || pi.created_at)?.slice?.(0, 10),
+    });
+    continue;
+  }
   if (only) {
     const re = NAME_FILTERS[only];
     if (!re || !re.test(hecomName)) continue;
   }
-  if (!includeAlreadyOk && syncOk(m)) continue;
 
   const credit =
     m.credit_amount_cents != null
       ? Number(m.credit_amount_cents)
       : Number(pi.amount_cents);
+  // Hecom opera en USD. En cargos PEN el amount_cents es soles, así que el
+  // bruto sale de gross_usd_cents (o del crédito) o mandaríamos soles como
+  // si fueran dólares.
+  const currency = String(pi.currency || "USD").toUpperCase();
+  const grossUsd =
+    m.gross_usd_cents != null && Number(m.gross_usd_cents) > 0
+      ? Number(m.gross_usd_cents)
+      : currency === "USD"
+        ? Number(pi.amount_cents)
+        : credit;
   const fee =
-    m.fee_amount_cents != null
+    m.fee_amount_cents != null && currency === "USD"
       ? Number(m.fee_amount_cents)
-      : Math.max(0, Number(pi.amount_cents) - credit);
+      : Math.max(0, grossUsd - credit);
 
   rows.push({
     client_id: hecomId,
-    client_name: hecomName,
+    client_name: hecomName || hecomId,
     payment_intent_id: pi.id,
-    monto_bruto: Number(pi.amount_cents) / 100,
+    provider: pi.provider,
+    monto_bruto: grossUsd / 100,
     monto_neto: credit / 100,
     fee_holistic: fee / 100,
-    currency: pi.currency || "USD",
+    currency: "USD",
     paid_at: pi.succeeded_at || pi.created_at,
     metadata: m,
   });
 }
 
 console.log(
-  `Mode: ${doCommit ? "COMMIT" : "DRY-RUN"} | missing/failed rows=${rows.length}` +
+  `Mode: ${doCommit ? "COMMIT" : "DRY-RUN"} | providers=${providers.join(",")} | missing/failed rows=${rows.length}` +
     (only ? ` | only=${only}` : "") +
     (includeAlreadyOk ? " | --all" : ""),
 );
+
+if (sinCliente.length) {
+  console.log(
+    `\n${sinCliente.length} pago(s) sin hecom_cliente_id — imposible puentear, revisar a mano:`,
+  );
+  for (const x of sinCliente) {
+    console.log(`  ${x.fecha} | $${x.monto} | ${x.provider}/${x.source} | pi=${x.id}`);
+  }
+  console.log("");
+}
 console.log(`URL: ${bridgeUrl}\n`);
 
 if (!rows.length) {
@@ -133,6 +184,7 @@ for (const r of rows) {
     monto_neto: r.monto_neto,
     fee_holistic: r.fee_holistic,
     currency: r.currency,
+    provider: r.provider,
     paid_at: r.paid_at,
     dry_run: !doCommit,
   };
@@ -158,7 +210,7 @@ for (const r of rows) {
   byClient.set(r.client_name, prev);
 
   console.log(
-    `${lineOk ? "OK" : "FAIL"} | ${r.client_name} | $${r.monto_bruto} | ${r.paid_at?.slice?.(0, 10) || "-"} | ${json.dry_run ? "dry" : json.created ? "created" : json.idempotent ? "idempotent" : "?"} | ${json.error || json.codigo || ""}`,
+    `${lineOk ? "OK" : "FAIL"} | ${r.client_name} | ${r.provider} | $${r.monto_bruto} | ${r.paid_at?.slice?.(0, 10) || "-"} | ${json.dry_run ? "dry" : json.created ? "created" : json.idempotent ? "idempotent" : "?"} | ${json.error || json.codigo || ""}${json.periodo_resumen ? " | periodo=" + json.periodo_resumen : ""}`,
   );
 
   if (doCommit && lineOk) {

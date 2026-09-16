@@ -7,6 +7,7 @@ import {
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeMetadata, isRecord, getString } from "@/lib/records";
+import { ensureHecomWalletCobroSyncedBestEffort } from "@/lib/hecom/ensure-wallet-cobro.server";
 import { RECHARGE_BOT_SOURCE } from "./recipient";
 
 /**
@@ -153,6 +154,20 @@ export async function completeBankConfirmedDeposit(input: {
       approval_source: "bank_notification",
       ledger_journal_id: journalId,
     }),
+  });
+
+  await ensureHecomWalletCobroSyncedBestEffort({
+    intent: {
+      id: intent.id,
+      amountCents: intent.amountCents,
+      currency: intent.currency,
+      provider: intent.provider,
+      metadata: intent.metadata as Record<string, unknown> | null,
+      providerReference,
+    },
+    providerReference,
+    ledgerJournalId: journalId,
+    succeededAt: confirmedAt,
   });
 
   const admin = createAdminClient();
