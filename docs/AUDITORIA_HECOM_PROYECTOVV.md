@@ -28,6 +28,23 @@ Corregido hoy: el doble cobro de $110 a Catherine Burgos (ver 1.1).
 Pendiente de definir entre los dos equipos: **con qué mes se archiva un cobro**
 (ver 1.2). Es lo único que queda abierto y afecta lo que el CRM muestra por mes.
 
+### ¿Se arregló el caso "pagó en setiembre y salía en agosto"?
+
+Sí, y está verificado para todos, no solo para Jan Alex:
+
+- Los **79 cobros automáticos** están en su mes de pago. Ninguno desalineado.
+- Los nuevos se alinean solos (`alignCobroPeriodoToPaymentMonth`), así que no
+  vuelve a pasar sin que nadie haga nada.
+- **Jan Alex**: su pago de $110 del 12/09 está en `2026-09`. Setiembre le muestra
+  $210 cobrados sobre $315.95 de deuda. Antes mostraba $100 y se le habría
+  pedido $215.95 teniendo ya $110 pagados — eso era el cobro de más.
+- Reconstruí el estado mes a mes de los 188 clientes antes y después del cambio:
+  **no creó ningún caso nuevo** de "mes pendiente que ya estaba pagado" (9 antes,
+  9 después) y mejoró uno. Detalle en `MANUAL_BANK_DUAL_PROOF.md`.
+
+Pero buscando eso aparecieron **otras tres cosas que sí hacen aparecer deuda que
+ya se pagó**, y ninguna viene de la integración: ver 1.6, 1.7 y 1.8.
+
 ---
 
 ## 0. Cómo se conectan los dos sistemas
@@ -176,7 +193,61 @@ entrar a la plataforma el email resuelve a una ficha ambigua. **Hay que definir
 cuál es la de login.** El caso Piero ya nos mostró el costo: cobros y cuentas
 repartidos entre dos fichas.
 
-### 1.5 🟡 MEDIA · 16 fichas sin ningún email
+### 1.6 🔴 ALTA · 142 cobros viejos no están atados al cliente ($129,917)
+
+Hasta junio de 2026 el cobro se ataba al **gasto** (`cobros.gasto_id`) y no al
+cliente: esas 142 filas tienen `client_id = null` y `periodo_resumen = null`.
+
+Son pagos reales de **23 clientes**. Se pueden atribuir sin ambigüedad siguiendo
+`gasto_id → gastos.client_id`, y el mes sale de `gastos.mes`.
+
+Si el CRM lee lo cobrado por `client_id`, **esos 23 clientes muestran
+$129,917.66 más de deuda de la que tienen**. Al contarlos, la deuda global baja
+de $372,777 a $242,860:
+
+| Cliente | Deuda que muestra si no se cuentan | Deuda real |
+|---------|-----------------------------------|-----------|
+| Alexis Ancalle | $17,109.31 | **$0** (sus cobros viejos son $17,110.28) |
+| Ely Aguirre | $65,731.42 | $25,352.96 |
+| Jerson Artezano | $48,309.76 | $9,528.40 |
+| Cainan Aguirre | $10,074.44 | $0 |
+| Yim Villar | $8,003.29 | $0 |
+| Renzo Cruz | $6,547.50 | $0 |
+| Dam Aguirre | $10,188.73 | $6,173.77 |
+
+**Lo primero que hay que confirmar del lado de Hecom: ¿el CRM los cuenta o no?**
+Si la ficha del cliente los muestra, no hay nada que hacer. Si no, hay que
+rellenarles `client_id` y `periodo_resumen` desde el gasto — y mientras eso no
+pase, no se le puede reclamar deuda a ninguno de esos 23.
+
+### 1.7 🔴 ALTA · Dos cobros archivados en un mes que todavía no llegó
+
+Un período futuro es siempre un tipeo, y deja el mes real pendiente:
+
+| Cliente | Monto | Pagado | Período | Debería ser |
+|---------|-------|--------|---------|-------------|
+| Daniel Hurtado | $1,345.86 | 2026-01-07 | `2026-12` | `2025-12` |
+| Yolmer Eugenio | $100.00 | 2026-09-07 | `2026-10` | `2026-09` |
+
+El de Daniel Hurtado se confirma solo: su único mes pendiente es `2025-12` por
+**exactamente $1,345.86**. Está cobrando de más por un dígito.
+
+Los dos son cobros manuales (`C-*`), así que no los toqué.
+
+### 1.8 🟡 MEDIA · 10 clientes con un mes pendiente que ya pagaron
+
+Son $636.55 en total y vienen del reparto de los cobros manuales entre meses, no
+de la integración. El más grande es **Patrick Oddar**: muestra $353.55 pendientes
+en `2026-09` teniendo $423.30 a favor en `2026-08`.
+
+El patrón típico es el cliente que paga adelantado: la plata queda en el mes en
+que pagó y el mes del gasto figura pendiente. Con la regla "mes en que entró la
+plata" esto va a pasar siempre, así que **para decidir si a alguien se le
+reclama hay que mirar el neto ("Todos"), no el mes suelto.**
+
+Lista completa: `node scripts/audit-hecom-saldos.mjs`, sección 2.
+
+### 1.9 🟡 MEDIA · 16 fichas sin ningún email
 
 No pueden entrar a la plataforma: el login busca por email en `clientes.emails`.
 Si se espera que entren, hay que cargarlo.
@@ -244,18 +315,21 @@ reales son 6).
 
 ## 3. Agenda de la auditoría conjunta
 
-Por orden de importancia:
+Por orden de plata en juego:
 
-1. **Con qué mes se archiva un cobro** (1.2). Es la única decisión de gerencia.
-   Hoy los automáticos y 449 manuales dicen cosas distintas, y de eso depende
-   cada total por mes del CRM.
-2. **`UNIQUE` en `cobros.codigo`** (1.1). Tres líneas y cierra el riesgo de que
+1. **¿El CRM cuenta los 142 cobros atados al gasto?** (1.6). $129,917 de 23
+   clientes. Si no los cuenta, les estamos mostrando deuda que ya pagaron.
+2. **Los 2 cobros con período futuro** (1.7). Uno solo, el de Daniel Hurtado,
+   son $1,345.86 de deuda que no existe.
+3. **Con qué mes se archiva un cobro** (1.2). La decisión de gerencia: hoy los
+   automáticos y 449 manuales dicen cosas distintas.
+4. **`UNIQUE` en `cobros.codigo`** (1.1). Tres líneas y cierra el riesgo de que
    un cliente vuelva a quedar cobrado doble. Ya pasó una vez.
-3. **Los 145 cobros sin `periodo_resumen`**: hoy no aparecen en ninguna vista
-   filtrada por mes.
-4. **Unificar `Arnold Cilloniz`** y definir la ficha de login de Frank Cari y
+5. **Los 145 cobros sin `periodo_resumen`** ($8,109 en Ely Aguirre, Alexis Cuba
+   y Jerson Artezano): no aparecen en ninguna vista filtrada por mes.
+6. **Unificar `Arnold Cilloniz`** y definir la ficha de login de Frank Cari y
    Fabian Hoyos (1.4).
-5. **Las 16 fichas sin email** (1.5): ¿tienen que poder entrar a la plataforma?
+7. **Las 16 fichas sin email** (1.9): ¿tienen que poder entrar a la plataforma?
 
 Lo que llevo resuelto de mi lado: los 93 pagos conciliados, el duplicado de
 Catherine borrado y los 79 automáticos alineados. No hace falta que el otro lado
@@ -284,6 +358,7 @@ Scripts disponibles:
 | Script | Para qué |
 |--------|----------|
 | `audit-cobros-conciliacion.mjs` | Conciliar pagos vs cobros (`--fix-duplicados` para borrar repetidos) |
+| `audit-hecom-saldos.mjs` | Deuda vs cobrado por cliente y mes; detecta meses pendientes ya pagados (`--cliente "nombre"` para el detalle) |
 | `audit-hecom-proyectovv.mjs` | Auditar el resto del borde (fichas, cuentas, ad_accounts) |
 | `backfill-hecom-wallet-cobros.mjs` | Curar pagos sin cobro (4 canales) |
 | `realign-hecom-cobro-periodos.mjs` | Re-archivar cobros `AH-*` a su mes de pago |

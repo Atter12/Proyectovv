@@ -108,19 +108,27 @@ el próximo pago de ese cliente lo vuelve a elegir Hecom — por eso la correcci
 tiene que quedar activa, no es de una sola pasada (verificado: un cobro de
 prueba del 16/09 cayó en `2026-05`).
 
-El total por cliente no cambia, solo su reparto entre meses. Revisado el 16/09
-sobre los 7 clientes tocados: en 4 el mes viejo ya debía plata y sigue debiendo,
-pero en 3 el mes estaba cubierto y quedó con un pendiente que **ya está pagado**:
+El total por cliente no cambia, solo su reparto entre meses.
 
-| Cliente | Mes | Pendiente que muestra pero ya se pagó |
-|---------|-----|----------------------------------------|
-| Pablo Achamizo | 2026-07 | $89.91 |
-| Wilder Remolina | 2026-08 | $25.93 |
-| Williams Andrade | 2026-06 | $25.53 |
+**Impacto medido (16/09, con `audit-hecom-saldos.mjs`):** se reconstruyó el
+estado mes a mes de los 188 clientes con los períodos originales y con los
+corregidos. La deuda se calcula como `gasto * (1 + fee/100)` agrupada por
+`gastos.mes`, y lo cobrado por `cobros.periodo_resumen`.
 
-Esos mismos clientes figuran con saldo a favor en `2026-09` por el espejo. Se
-decidió dejarlo así (gerencia, 16/09): prioriza ver la plata en el mes en que
-entró. Para deuda real usar el filtro **"Todos"**, que no se ve afectado.
+| Clientes con un mes pendiente que ya tenían pagado | Monto |
+|---|---|
+| Antes del cambio | 9 · $691.62 |
+| Después del cambio | 9 · $636.55 |
+
+**El cambio no creó ningún caso nuevo** y mejoró uno (Pablo Achamizo, de $105.80
+a $50.73). Los 9 casos son previos y vienen de los cobros manuales archivados en
+otro mes, no de la integración.
+
+El período original de cada cobro queda guardado en la app
+(`payment_intents.metadata.hecom_cobro_sync.periodo_resumen`), así que este
+antes/después se puede reconstruir cuando se quiera.
+
+Para deuda real usar el filtro **"Todos"**, que no se ve afectado por el período.
 
 ## Env
 
