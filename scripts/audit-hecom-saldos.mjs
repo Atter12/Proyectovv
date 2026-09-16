@@ -1,14 +1,22 @@
 /**
  * ¿A algún cliente le figura como deuda un mes que ya pagó? SOLO LECTURA.
  *
- * El CRM arma cada mes con dos fuentes distintas:
- *   deuda   = gastos del mes      (gasto * (1 + fee/100), agrupado por gastos.mes)
- *   cobrado = cobros del período  (agrupado por cobros.periodo_resumen)
+ * OJO — LOS MONTOS DE DEUDA DE ACÁ SON UNA APROXIMACIÓN, NO SIRVEN PARA COBRAR.
  *
- * Si un pago queda archivado en un mes distinto al de la deuda que cubre, el mes
- * de la deuda aparece pendiente y el otro con saldo a favor. La plata está, pero
- * el CRM la muestra en otro cajón — y ahí es donde se le puede pedir dos veces.
- * Eso es lo que este script busca.
+ * Hecom calcula la deuda del cliente con FIFO y arrastre: lo que sobra de un mes
+ * va a un pool y cubre líneas de otros meses, y las garantías Vigente también
+ * descuentan. Acá se hace una resta mes contra mes, que siempre da MÁS deuda de
+ * la real. La cifra que vale es la de la ficha (`api/credito-deuda-core.js`).
+ * Confirmado con el equipo de Hecom el 16/09: para Ely Aguirre esta resta da
+ * $25,352.96 y su deuda real es $10,232.81.
+ *
+ * Para qué sirve entonces: para encontrar **plata archivada en el mes
+ * equivocado**. Un pago que queda en un mes distinto al de la deuda que cubre
+ * deja ese mes pendiente y el otro a favor — y ahí es donde se le puede pedir
+ * dos veces al cliente. Eso es lo que este script detecta.
+ *
+ * Se cuentan los cobros atados al gasto (`gasto_id` sin `client_id`), porque el
+ * core de Hecom los imputa a la línea del gasto.
  *
  * Usage:
  *   node scripts/audit-hecom-saldos.mjs
@@ -217,7 +225,11 @@ if (!fantasmas.length) {
 }
 
 // ------------------------------------------------------- 3. deuda real
-console.log("\n=== 3. Clientes con deuda real (el neto no alcanza) ===");
+console.log("\n=== 3. Clientes que deben plata (montos APROXIMADOS) ===");
+console.log(
+  "No usar estos montos para cobrar: no incluyen garantías ni el arrastre FIFO,",
+);
+console.log("así que siempre dan de más. La cifra que vale es la de la ficha.");
 console.log(`${deudaReal.length} cliente(s)`);
 const top = deudaReal.sort((a, b) => a.neto - b.neto).slice(0, 15);
 for (const d of top) {

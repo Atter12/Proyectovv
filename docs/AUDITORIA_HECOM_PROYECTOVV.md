@@ -89,18 +89,40 @@ Proyectovv llama al puente dos veces a propósito para el mismo pago (ganador y
 perdedor del claim, ver `create-intent.server.ts`), justamente confiando en que
 el endpoint es idempotente. Esa suposición hoy no se cumple.
 
-**Pedido concreto:**
+**Respondido el 16/09:** confirmado que no hay ningún índice único en `cobros`
+(los que hay son sobre `fecha`, `created_at`, `periodo_resumen`, `client_id`,
+`gasto_id` y `(client_id, periodo)`).
 
-1. `CREATE UNIQUE INDEX ... ON cobros (codigo)` — o `UPSERT ... ON CONFLICT (codigo)`.
-2. Confirmar que ante conflicto el endpoint responde `ok: true, idempotent: true`
-   y no un error, porque si responde error nuestro lado lo marca como fallido y
-   lo reintenta.
+La buena noticia: **el endpoint ya está escrito esperando ese índice.** Hace
+SELECT por código y, si el INSERT falla, vuelve a buscar y responde
+`ok: true, idempotent: true` — justo lo que necesitábamos. Ese camino nunca se
+ejecuta porque la base no rechaza el duplicado. Creando el índice, el
+comportamiento aparece solo, sin tocar el endpoint.
+
+Se puede crear ya: hoy hay 0 códigos duplicados y 0 cobros sin código.
 
 Mientras no exista el índice, el chequeo queda en la auditoría:
 `audit-cobros-conciliacion.mjs` sección 1 los detecta, y con
 `--fix-duplicados` borra las filas de más (solo toca `AH-*`).
 
 ### 1.2 🔴 ALTA · Hoy convivimos con dos reglas de período distintas
+
+> **Respondido el 16/09.** Por diseño `periodo_resumen` es el mes de deuda más
+> antiguo sin cubrir (`resolvePeriodoResumen()`), y el mes del pago solo si el
+> cliente no debe nada. Una precisión suya: el endpoint **no ignora** el período
+> que le mandamos, **no lo acepta** — el body no tiene ese parámetro. Se puede
+> agregar como opcional.
+>
+> Y el dato que decide esto: **el desfase de los manuales no lo pone la
+> interfaz**, el panel guarda lo que escribió la persona. Por autor: annie 218
+> cobros ($545,200.88), branlyn 146 ($417,108.48), gian 62 ($76,260.10), sebas
+> 18 ($68,196.43). O sea que es una convención del equipo, no un bug.
+>
+> Nuestros 448 vs sus 449 cuadran exacto: la diferencia es de $100 y es el cobro
+> de Yolmer que corregí en el medio.
+>
+> Sobre mostrar saldo a favor: el core lo calcula (`poolRemaining`) pero ninguna
+> pantalla lo expone. Exponerlo es desarrollo nuevo.
 
 Esto es lo que hay que cerrar en la auditoría conjunta, porque es lo que hace que
 un pago "no aparezca" en el CRM.
@@ -174,51 +196,95 @@ nuestro parche con `HECOM_COBRO_PERIODO_ALIGN=false` y borramos el código.
 Ojo con el efecto: sacar el pago del mes de deuda deja ese mes pendiente otra
 vez. Ver `MANUAL_BANK_DUAL_PROOF.md` para los 3 casos concretos.
 
-### 1.4 🔴 ALTA · Fichas duplicadas
+### 1.4 🔴 ALTA · Fichas duplicadas — **la causa es nuestra** (ver 2.5)
 
-| DNI | Fichas | Nota |
-|-----|--------|------|
-| 71012732 | `Arnold Cilloniz` (9502038c) · `Arnold Cilloniz` (8e2c8278) | **a unificar** |
-| 75014958 | `[DUP] Piero Acasiete García` (0b45827e) · `Piero Alexander Acasiete García` (0bd95ba9) | ya resuelto, el `[DUP]` está neutralizado |
+**Arnold Cilloniz son tres fichas, no dos**, y la que tiene la historia no es
+ninguna de las que había mirado (mi chequeo por DNI no la ve, porque tiene DNI
+placeholder). Las tres comparten el teléfono `...941285114`:
 
-Y dos emails de login en dos fichas cada uno:
+| Ficha | DNI | Alta | Movimiento | Email |
+|-------|-----|------|-----------|-------|
+| `6e55c5d2` | `CL-M8HDPDZQ` | 02/05, del panel | **4 gastos · $1,565.76** | mkt.tiktokads.cl@ |
+| `9502038c` | 71012732 | 10/09 21:03, **alta nuestra** | vacía | arnold.cilloniz@ |
+| `8e2c8278` | 71012732 | 10/09 21:04, **alta nuestra** | vacía | cali.bobadilla.6@ |
 
-| Email | Fichas |
-|-------|--------|
-| `fcarimo.alexander@gmail.com` | `Frank Cari` · `Frank Cari - Mexico` |
-| `notcount9001@gmail.com` | `Fabian Hoyos - Ecuador` · `Fabian Hoyos - Colombia` |
+**Arnold hoy entra a la plataforma y no ve su historia**, porque su login cae en
+una ficha vacía. Lo coherente es pasar el DNI real a la ficha con movimiento y
+borrar las dos vacías, pero eso lo decide quien tenga el dato.
 
-Estos dos últimos parecen a propósito (misma persona, país distinto), pero al
-entrar a la plataforma el email resuelve a una ficha ambigua. **Hay que definir
-cuál es la de login.** El caso Piero ya nos mostró el costo: cobros y cuentas
-repartidos entre dos fichas.
+Y aparecieron dos duplicados más, que no son nuestros, detectados por teléfono
+(no por DNI, porque ambos lados tienen placeholder):
 
-### 1.6 🔴 ALTA · 142 cobros viejos no están atados al cliente ($129,917)
+| Fichas | Teléfono | Situación |
+|--------|----------|-----------|
+| `Maurycio Pury` · `Maurycio Puri` | ...997774640 | **las dos con movimiento** (10 gastos/8 cobros y 8 gastos/4 cobros). Hay que fusionar |
+| `Luis Alberto Moreno Reymundo` · `Luis Moreno` | ...912825839 | la historia está en la de DNI placeholder (20 gastos); la del DNI real está vacía |
 
-Hasta junio de 2026 el cobro se ataba al **gasto** (`cobros.gasto_id`) y no al
-cliente: esas 142 filas tienen `client_id = null` y `periodo_resumen = null`.
+**Los emails repetidos NO son duplicados.** Hecom confirmó que las dos fichas de
+cada par tienen movimiento real y distinto:
 
-Son pagos reales de **23 clientes**. Se pueden atribuir sin ambigüedad siguiendo
-`gasto_id → gastos.client_id`, y el mes sale de `gastos.mes`.
+| Par | Movimiento |
+|-----|-----------|
+| `Frank Cari` · `Frank Cari - Mexico` | 112 gastos ($7,671.55, saldo $329.20) · 22 gastos ($316.27, saldo $0) |
+| `Fabian Hoyos - Colombia` · `- Ecuador` | 97 gastos (saldo $743.36) · 127 gastos (saldo $0.04) |
 
-Si el CRM lee lo cobrado por `client_id`, **esos 23 clientes muestran
-$129,917.66 más de deuda de la que tienen**. Al contarlos, la deuda global baja
-de $372,777 a $242,860:
+Son operaciones distintas del mismo dueño y fusionarlas mezclaría cuentas. Lo
+que hay que resolver es **cómo desempata el login**, no la ficha.
 
-| Cliente | Deuda que muestra si no se cuentan | Deuda real |
-|---------|-----------------------------------|-----------|
-| Alexis Ancalle | $17,109.31 | **$0** (sus cobros viejos son $17,110.28) |
-| Ely Aguirre | $65,731.42 | $25,352.96 |
-| Jerson Artezano | $48,309.76 | $9,528.40 |
-| Cainan Aguirre | $10,074.44 | $0 |
-| Yim Villar | $8,003.29 | $0 |
-| Renzo Cruz | $6,547.50 | $0 |
-| Dam Aguirre | $10,188.73 | $6,173.77 |
+### 1.5 🟡 RESPONDIDO · Los 145 cobros sin `periodo_resumen`
 
-**Lo primero que hay que confirmar del lado de Hecom: ¿el CRM los cuenta o no?**
-Si la ficha del cliente los muestra, no hay nada que hacer. Si no, hay que
-rellenarles `client_id` y `periodo_resumen` desde el gasto — y mientras eso no
-pase, no se le puede reclamar deuda a ninguno de esos 23.
+Son los 142 del punto siguiente más 3 con `client_id`: Ely Aguirre ($5,000),
+Alexis Cuba ($1,817.69) y Jerson Artezano ($1,292).
+
+**No son invisibles en Crédito**: el core les asigna mes por respaldo — el del
+gasto si tienen `gasto_id`, y la fecha del cobro si no. Sí son invisibles en
+cualquier consulta que filtre por la columna `periodo_resumen`, que es
+exactamente lo que me pasó a mí.
+
+Criterio para rellenarlos: el mes del gasto cuando hay `gasto_id`, y el mes de la
+fecha de pago para los 3 que no lo tienen. Es lo que el core ya usa.
+
+### 1.6 🟡 RESPONDIDO · Los 142 cobros atados al gasto sí se cuentan (casi siempre)
+
+> Contestado por Hecom Club el 16/09, y verificado contra nuestros datos.
+
+Hasta junio el cobro se ataba al **gasto** (`cobros.gasto_id`) y no al cliente:
+142 filas con `client_id = null` y `periodo_resumen = null`, por $129,917.66 de
+23 clientes. No es un error de carga: **el formulario de cobro del panel fuerza
+`client_id = null` cuando el cobro se ata a un gasto** y deja el período vacío
+porque lo hereda del gasto.
+
+**La ficha de gerencia y la lista de deudores sí los cuentan**, porque el core
+los imputa a la línea del gasto sin mirar `client_id`. O sea que **no hay 23
+clientes a los que no se les pueda reclamar**, que era mi preocupación.
+
+Pero hay dos superficies que leen los cobros filtrando por `client_id` y por eso
+no los cuentan:
+
+1. **El link público del cliente** (`/api/credito-cliente-deuda-resumen`). A
+   Alexis Ancalle su propio link le muestra **$17,109.32 de deuda que ya pagó**.
+   Está vivo hoy y lo ve el cliente.
+2. **La fórmula de los envíos de WhatsApp** (`resumenMesCliente`). Sobre los 23
+   clientes pediría **$122,751.53 más** que la ficha, y 9 de ellos deben $0. Los
+   pagos a línea son de diciembre a marzo, así que un envío del mes corriente no
+   se rompe; sí se rompe si se cobra uno de esos meses viejos.
+
+Las dos correcciones son de una línea y son de su lado. Ellos probaron rellenar
+las 142 filas (`client_id` del gasto y `periodo_resumen` del mes del gasto) y la
+deuda FIFO **no cambia en ninguno de los 23**, así que es seguro.
+
+**Y me corrige un cálculo:** la deuda de Hecom es FIFO con arrastre (lo que sobra
+de un mes cubre líneas de otros) y las garantías Vigente descuentan ($60,925.34
+en 159 filas). Mi resta mes contra mes siempre da de más. Verificado:
+
+| Cliente | Mi resta simple | Mi resta menos garantías | Deuda real (ficha) |
+|---------|----------------|-------------------------|--------------------|
+| Alexis Ancalle | $17,109.31 | $0 | **$0** |
+| Ely Aguirre | $25,352.96 | $2,252.94 | **$10,232.81** |
+| Jerson Artezano | $9,528.40 | $5,183.78 | **$8,959.62** |
+
+La cifra que vale es la de la ficha. Ya marqué el script para que nadie use mis
+montos para cobrar.
 
 ### 1.7 ✅ RESUELTO · Dos cobros archivados en un mes que todavía no llegó
 
@@ -313,7 +379,44 @@ Importa por lo que aprendimos liberando la cuenta de Alexandra:
 `resolveHecomAccounts` cae a ese campo cuando el cliente no tiene mapeos, así que
 un principal desalineado puede mostrar u ocultar una cuenta que no corresponde.
 
-### 2.5 🔵 BAJA · 936 `ad_accounts` de orgs borradas
+### 2.5 🔴 ALTA · Nuestro alta por OTP duplica fichas (2 de 7)
+
+Esta es la causa de los duplicados de 1.4, y la encontré siguiendo el dato de
+Hecom de que las fichas vacías de Arnold las creó "un proceso del servidor".
+Ese proceso somos nosotros.
+
+`createHecomCliente` en `lib/hecom/clientes.server.ts` valida duplicados
+**solo por email**:
+
+```ts
+const existing = await findHecomClientesByEmail(email);
+if (existing.length > 0) return { ok: false, code: "duplicate_email" };
+```
+
+No mira DNI ni teléfono. Y `clientes.dni` no tiene restricción de unicidad en
+Hecom, así que nada lo frena en la base tampoco. La misma persona que se registra
+con otro correo se lleva una ficha nueva.
+
+**Resultado:** de las **7 fichas** que creó nuestro alta desde el 10/09,
+**2 son duplicados por DNI** (Arnold ×2, Piero ×2) y **5 quedaron sin ningún
+movimiento**. Arnold se registró dos veces en un minuto, con dos correos, y las
+dos veces le creamos ficha.
+
+Peor: su ficha real tiene **DNI placeholder** (`CL-M8HDPDZQ`) y otro email, así
+que validar por DNI tampoco lo habría atrapado. En Hecom **155 de 188 fichas
+tienen DNI `CL-*`**, pero casi todas tienen teléfono — y de hecho las tres fichas
+de Arnold comparten el teléfono. **El teléfono es la mejor llave para detectar
+que la persona ya existe.**
+
+**Cuidado con la solución fácil:** no se puede fusionar automático al encontrar
+un DNI o teléfono repetido. Los dos son datos que el usuario declara y nadie
+verifica, así que sumarle el email a una ficha existente permitiría entrar a la
+ficha de otro —con sus cuentas y su saldo— poniendo su DNI. Lo seguro es
+**rechazar el alta y derivar a soporte**, que revisa y agrega el email a mano.
+
+Queda pendiente de tu go porque define qué ve el cliente al registrarse.
+
+### 2.6 🔵 BAJA · 936 `ad_accounts` de orgs borradas
 
 Restos de importaciones de julio repartidos en 8 orgs que ya no existen. De 80
 revisadas, 1 con saldo y 0 con gasto. No se ven en ningún panel; sólo ensucian
@@ -322,33 +425,62 @@ reales son 6).
 
 ---
 
-## 3. Agenda de la auditoría conjunta
+## 3. Plan de aplicación coordinado
 
-Por orden de plata en juego:
+Hecom ya contestó las 7 preguntas (16/09). Lo que queda, con dueño claro para que
+nadie pise al otro:
 
-1. **¿El CRM cuenta los 142 cobros atados al gasto?** (1.6). $129,917 de 23
-   clientes. Si no los cuenta, les estamos mostrando deuda que ya pagaron.
-   **Es la primera pregunta**, antes de tocar nada: si la ficha ya los suma por
-   `gasto_id` no hay nada que hacer, y si no, hay que rellenarlos.
-2. **Con qué mes se archiva un cobro** (1.2). La decisión de gerencia: hoy los
-   automáticos y 449 manuales dicen cosas distintas.
-3. **`UNIQUE` en `cobros.codigo`** (1.1). Tres líneas y cierra el riesgo de que
-   un cliente vuelva a quedar cobrado doble. Ya pasó una vez.
-4. **Los 145 cobros sin `periodo_resumen`** ($8,109 en Ely Aguirre, Alexis Cuba
-   y Jerson Artezano): no aparecen en ninguna vista filtrada por mes.
-5. **Unificar `Arnold Cilloniz`** y definir la ficha de login de Frank Cari y
-   Fabian Hoyos (1.4).
-6. **Las 16 fichas sin email** (1.9): ¿tienen que poder entrar a la plataforma?
+### Decisiones que necesitan a Victor
 
-Ya resueltos de mi lado y sin nada que hacer del suyo: los 93 pagos conciliados,
-el doble cobro de Catherine, los 79 automáticos alineados y los 2 períodos
-futuros (1.7).
+| # | Qué | Impacto |
+|---|-----|---------|
+| D1 | **Con qué mes se archiva un cobro** (1.2) | Hoy los 79 automáticos usan el mes de pago y 448 manuales el mes que cubren, por $1,109,420. Hecom confirmó que el desfase **lo elige quien registra el cobro a mano**, no la interfaz |
+| D2 | **Qué ve el cliente si su DNI o teléfono ya existe** (2.6) | Define si rechazamos el alta y derivamos a soporte. No se puede fusionar automático: es un riesgo de entrar a la ficha de otro |
+| D3 | **Qué hacer con las 3 fichas de Arnold** y el par Maurycio Pury/Puri (1.4) | Arnold hoy no ve su historia al entrar |
+
+### Lo que aplica Hecom Club
+
+| # | Qué | Nota |
+|---|-----|------|
+| H1 | Que el link público del cliente cuente los pagos atados al gasto | A Alexis le muestra $17,109 que ya pagó. **Lo ve el cliente hoy** |
+| H2 | Lo mismo en la fórmula de WhatsApp | Pediría $122,751 de más sobre 23 clientes |
+| H3 | `UNIQUE` en `cobros.codigo` | Hay 0 duplicados y 0 sin código, así que entra sin limpieza previa. El endpoint **ya está escrito** para responder `idempotent: true` en el conflicto; hoy ese camino nunca corre |
+| H4 | `periodo_resumen` opcional en el body del endpoint | Sale de D1 |
+| H5 | Rellenar las 142 filas + las 3 sin período | Probado: no mueve la deuda FIFO de ninguno de los 23 |
+
+### Lo que aplico yo
+
+| # | Qué | Nota |
+|---|-----|------|
+| P1 | Validar DNI **y teléfono** en el alta OTP (2.6) | Sale de D2 |
+| P2 | Apagar nuestra corrección de período si D1 va al endpoint | `HECOM_COBRO_PERIODO_ALIGN=false` y borrar el código |
+| P3 | Las 6 cuentas duplicadas de Carranza y los 6 principales desalineados | Fuera de cobros |
+| P4 | Limpiar las 936 `ad_accounts` de orgs borradas | Fuera de cobros |
+
+### Ya cerrado, sin nada pendiente
+
+Los 93 pagos conciliados · el doble cobro de Catherine · los 79 automáticos
+alineados · los 2 períodos futuros (1.7) · el cobro huérfano `C-R1DPLOCPPY`
+(respondido: no es de la plataforma, ver 4).
+
+## 4. El pendiente que nos dejaron: `C-R1DPLOCPPY`
+
+$110 por Interbank, fecha 30/06, cargado por branlyn el 01/07, sin cliente y sin
+gasto. Es el único cobro de la tabla que no se le acredita a nadie.
+
+**No salió de la plataforma.** Nuestro pago más viejo es del **2026-07-06** y
+entre el 20/06 y el 05/07 no hay ningún pago registrado, de ningún monto. Además
+Interbank nunca fue un canal nuestro: manejamos Stripe, BCP, Yape y USDT.
+
+Es una transferencia que recibió el equipo directo, de antes de que existiera la
+plataforma. Hay que identificarla del extracto de Interbank del 30/06; desde acá
+no hay con qué cruzarla.
 
 Lo que llevo resuelto de mi lado: los 93 pagos conciliados, el duplicado de
 Catherine borrado y los 79 automáticos alineados. No hace falta que el otro lado
 toque nada de eso.
 
-## 4. Fuera de cobros, cuando haya go
+## 5. Fuera de cobros, cuando haya go
 
 1. Dejar una sola fila por cuenta en las 6 de Carranza (revisando antes cuál
    tiene el saldo).
@@ -357,7 +489,7 @@ toque nada de eso.
 
 ---
 
-## 5. Lo ya corregido el 16/09 (contexto)
+## 6. Lo ya corregido el 16/09 (contexto)
 
 | Commit | Qué |
 |--------|-----|
