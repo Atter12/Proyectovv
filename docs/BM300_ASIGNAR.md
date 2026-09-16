@@ -170,6 +170,24 @@ Cliente / staff elige cuenta BM 300
 
 Seguridad: el cliente **nunca** es Admin del BM. Solo el token agencia. Ver `ESTUDIO_CREAR_CUENTAS_CLIENTE_BM10_30_200.md` §5A.
 
+### Smoke Asignar (2026-09-15) — OK
+
+Sobre cuenta interna `Sebas LIBRE 300.O USD` (`7680959274004234261`):
+
+| Paso | Resultado |
+|------|-----------|
+| Resolver portfolio por advertiser | `Portfolio 4540` ✓ (no el del BM200 colgado en el mismo BC) |
+| RECHARGE $1 | `40002 amountToTransfer is less than transferableAmount` — **mínimo TikTok** |
+| RECHARGE $10 | `code 0` · advertiser 0 → 10 · BM cash 49753 → 49743 |
+| REFUND $10 | `code 0` · advertiser → 0 · BM cash → 49753 |
+
+El mínimo por operación ya tiene mensaje propio en `formatTransferError`
+(“Prueba con $10 o más”), así que no requiere cambio.
+
+Env producción verificado: `TIKTOK_ACCESS_TOKEN` (igual al local) y
+`TIKTOK_BC_FUNDING_ENABLED=true`. Sin ese flag, Asignar acredita el ledger Holistic
+pero no manda cash a TikTok.
+
 ---
 
 ## 6. Create cuentas en BM 300 (después de Asignar)
@@ -235,12 +253,15 @@ Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` ·
 
 - [x] OAuth → token nuevo
 - [x] Token en `.env.local`
-- [ ] Token en **Vercel Production** + redeploy ← **vos**
+- [x] Token en **Vercel Production** + `TIKTOK_BC_FUNDING_ENABLED=true`
 - [x] Mapa `"300"` en código + cash path + portfolio por advertiser
 - [x] Mapear advertisers en **Hecom** (`bm_bucket=300`) — 23/27 · ver §4
 - [x] Unificar fichas duplicadas de Piero Acasiete y mapear sus 2 cuentas
-- [ ] Sync → aparecen en Pagos
-- [ ] Smoke Asignar $1–5 en una cuenta APPROVED
-- [ ] Confirmar cash en Ads Manager
+- [x] Sync → aparecen en Pagos (verificado en prod con Piero: 2 cuentas visibles)
+- [x] Smoke Asignar en cuenta APPROVED — ver §5 (mínimo $10, no $1)
+- [ ] Confirmar cash en Ads Manager en el primer Asignar real de cliente
 
-Cuando Vercel tenga el token y Hecom tenga al menos 1 cuenta mapeada: **sí, listo para Asignar en BM 300**.
+**BM 300 operativo para Asignar.** Único pendiente de plataforma: TikTok mantiene
+bloqueadas las **altas** de cuentas en este BC (`40002 unusual activity`, §7) —
+hay que escalarlo con el AM de TikTok. Asignar sobre las cuentas existentes no
+está afectado.
