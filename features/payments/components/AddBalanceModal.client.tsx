@@ -21,6 +21,7 @@ import {
   DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 } from "@/lib/payments/deposit-fee";
 import { formatPenAmount } from "@/lib/payments/manual-deposit.shared";
+import { CRYPTO_MIN_USD } from "@/lib/payments/crypto-limits";
 import { COBRANA_YAPE_SERVICE_COMPANY } from "@/lib/payments/cobrana/service-brand";
 import { normalizeYapeDocument } from "@/lib/payments/cobrana/document";
 import type { PaymentGatewayId } from "@/types/payment";
@@ -160,6 +161,7 @@ export function AddBalanceModal({
 
   const isCobrana = selectedGateway === "cobrana";
   const isStripe = selectedGateway === "stripe";
+  const isCrypto = selectedGateway === "crypto";
   const stripeExtra = isStripe ? Math.max(0, stripeSurchargePercent) : 0;
   const chargeFeePercent = effectiveDepositFeePercent({
     holisticFeePercent: feePercent,
@@ -278,10 +280,14 @@ export function AddBalanceModal({
     };
   }, [open, step, paymentIntentId, paidConfirmed, router, parsedAmount]);
 
+  // La red TRC20 rechaza montos bajos, así que el piso sube con Cripto.
+  const minAmount = isCrypto ? CRYPTO_MIN_USD : MIN_AMOUNT;
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
-    parsedAmount >= MIN_AMOUNT &&
+    parsedAmount >= minAmount &&
     parsedAmount <= MAX_AMOUNT;
+  const belowCryptoMinimum =
+    isCrypto && Number.isFinite(parsedAmount) && parsedAmount < CRYPTO_MIN_USD;
   const isVoucher = isVoucherPaymentProvider(selectedGateway);
 
   const feePreview = useMemo(() => {
@@ -522,7 +528,7 @@ export function AddBalanceModal({
                   <Input
                     id="topup-amount"
                     type="number"
-                    min={MIN_AMOUNT}
+                    min={minAmount}
                     max={MAX_AMOUNT}
                     step="0.01"
                     placeholder="100.00"
@@ -538,6 +544,14 @@ export function AddBalanceModal({
                     role="alert"
                   >
                     {error}
+                  </p>
+                )}
+                {!error && belowCryptoMinimum && (
+                  <p
+                    className="mt-2 text-xs font-medium text-amber-700"
+                    role="alert"
+                  >
+                    {t("addBalance.cryptoMinAmount", { min: CRYPTO_MIN_USD })}
                   </p>
                 )}
               </div>

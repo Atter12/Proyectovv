@@ -8,6 +8,17 @@ import {
   type VerifiedWebhookEvent,
   type VerifyWebhookInput,
 } from "./types";
+import { CRYPTO_MIN_USD, isBelowCryptoMinimum } from "@/lib/payments/crypto-limits";
+
+export class CryptoAmountTooSmallError extends Error {
+  constructor(amountUsd: number) {
+    super(
+      `El pago con USDT (TRC20) requiere un mínimo de $${CRYPTO_MIN_USD}. ` +
+        `Solicitaste $${amountUsd.toFixed(2)}. Usa Yape, transferencia o sube el monto.`,
+    );
+    this.name = "CryptoAmountTooSmallError";
+  }
+}
 
 type NowPaymentsInvoiceResponse = {
   id?: string | number;
@@ -125,6 +136,13 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
     }
 
     const priceAmount = Number((input.amountCents / 100).toFixed(2));
+
+    // /invoice acepta montos bajo el mínimo de red y recién falla al generar el
+    // pago dentro de NOWPayments, con un error que el cliente no entiende.
+    if (isBelowCryptoMinimum(priceAmount)) {
+      throw new CryptoAmountTooSmallError(priceAmount);
+    }
+
     const body: Record<string, unknown> = {
       price_amount: priceAmount,
       price_currency: (input.currency || "USD").toLowerCase(),
@@ -133,7 +151,9 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
       ipn_callback_url: `${serverEnv.appUrl}/api/webhooks/payments/crypto`,
       success_url: `${serverEnv.appUrl}/payments?status=success`,
       cancel_url: `${serverEnv.appUrl}/payments?status=cancelled`,
-      is_fixed_rate: true,
+      // USDT es stablecoin: fijar el rate no cubre riesgo real y NOWPayments
+      // castiga con ventana de 10 min y mínimo ~$19 (vs 7 días y ~$12 sin él).
+      is_fixed_rate: false,
     };
 
     // Solo USDT (red configurada). Sin esto NOWPayments deja elegir BTC/ETH/etc.
