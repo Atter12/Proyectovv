@@ -145,14 +145,14 @@ export function CreateTikTokAccountModal({
                     {t("bmLabel")}
                   </p>
                   <p className="mt-1 text-[15px] font-semibold text-[#1c1917]">
-                    BM 300
+                    {t("bmName")}
                   </p>
                   <p className="mt-0.5 text-[12px] text-[#6f675f]">
                     {t("bmHint")}
                   </p>
                 </div>
                 <span className="inline-flex items-center rounded-md bg-[#ecfdf5] px-2 py-1 text-[10px] font-bold text-[#047857]">
-                  USD · cash
+                  USD
                 </span>
               </div>
               <div className="mt-4 border-t border-[#e4ddd6] pt-3 text-[12px] text-[#6f675f]">
