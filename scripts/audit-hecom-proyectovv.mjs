@@ -111,10 +111,22 @@ const PREFIX = {
 const porCodigo = new Map();
 for (const c of cobros) if (c.codigo) porCodigo.set(c.codigo, c);
 
-const esAjuste = (m) =>
-  /tiktok_balance_import|tiktok_reclaim|credito_detach/.test(
-    String(m?.source ?? ""),
-  ) || m?.skip_wallet_credit === true;
+/** Mismo criterio que la app (isAgencyBmBridgeIntent): no son pagos de cliente. */
+const esAjuste = (m) => {
+  const source = String(m?.source ?? "").trim();
+  const purpose = String(m?.purpose ?? "").trim();
+  return (
+    source === "agency_bm_bridge" ||
+    source === "tiktok_balance_import" ||
+    source === "tiktok_reclaim" ||
+    source === "credito_detach" ||
+    purpose === "staff_fund_from_bm" ||
+    purpose === "transfer_existing_tiktok_balance" ||
+    Boolean(String(m?.bridge_for_allocation ?? "").trim()) ||
+    Boolean(String(m?.agency_bm_bridge_journal_id ?? "").trim()) ||
+    m?.skip_wallet_credit === true
+  );
+};
 
 const succeeded = intents.filter((p) => p.status === "succeeded");
 const sinCobro = [];
