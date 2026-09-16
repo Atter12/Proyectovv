@@ -10,7 +10,10 @@
  * el CRM la muestra en otro cajón — y ahí es donde se le puede pedir dos veces.
  * Eso es lo que este script busca.
  *
- * Usage: node scripts/audit-hecom-saldos.mjs [--cliente "nombre"]
+ * Usage:
+ *   node scripts/audit-hecom-saldos.mjs
+ *   node scripts/audit-hecom-saldos.mjs --cliente "nombre"
+ *   node scripts/audit-hecom-saldos.mjs --fix-periodos-futuros
  */
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
@@ -18,6 +21,7 @@ import { createClient } from "@supabase/supabase-js";
 const argv = process.argv.slice(2);
 const soloCliente =
   argv.includes("--cliente") ? argv[argv.indexOf("--cliente") + 1] : null;
+const fixFuturos = argv.includes("--fix-periodos-futuros");
 
 const env = {};
 for (const line of fs.readFileSync(".env.local", "utf8").split(/\r?\n/)) {
@@ -263,6 +267,52 @@ if (!futuros.length) {
       `  ${quien} | ${usd(n(c.monto))} | pagado ${c.fecha} | período ${c.periodo_resumen} | ${c.codigo}`,
     );
   }
+
+  if (fixFuturos) {
+    console.log("\n  --- corrigiendo ---");
+    for (const c of futuros) {
+      const g = c.gasto_id ? gastoById.get(c.gasto_id) : null;
+      const clientId = c.client_id ?? g?.client_id;
+      const mesPago = String(c.fecha ?? "").slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(mesPago)) {
+        console.log(`  SKIP ${c.codigo}: no tiene fecha usable`);
+        continue;
+      }
+
+      // Dos tipeos posibles: se equivocaron en el mes (y el período real es el
+      // mes de pago) o en el año (y el período real es un año antes). Se elige
+      // el que deje cubierto un mes que hoy figura pendiente; si ninguno
+      // aplica, gana el mes de pago, que es la regla de gerencia.
+      const añoAntes = `${Number(c.periodo_resumen.slice(0, 4)) - 1}-${c.periodo_resumen.slice(5, 7)}`;
+      const pendienteEn = (m) => {
+        const celda = porCliente.get(clientId)?.meses.get(m);
+        if (!celda) return 0;
+        return celda.deuda - celda.cobrado;
+      };
+      const candidatos = [
+        { mes: mesPago, por: "mes de la fecha de pago" },
+        { mes: añoAntes, por: "el año estaba mal tipeado" },
+      ].filter((x) => x.mes <= hoyMes);
+
+      const elegido =
+        candidatos.find(
+          (x) => Math.abs(pendienteEn(x.mes) - n(c.monto)) < CENTAVOS,
+        ) ??
+        candidatos.find((x) => pendienteEn(x.mes) > CENTAVOS) ??
+        candidatos[0];
+
+      const { error } = await hecom
+        .from("cobros")
+        .update({ periodo_resumen: elegido.mes })
+        .eq("id", c.id)
+        .eq("periodo_resumen", c.periodo_resumen); // no pisar si cambió mientras corría
+      console.log(
+        error
+          ? `  FAIL ${c.codigo}: ${error.message}`
+          : `  ${nom.get(clientId)} | ${c.periodo_resumen} -> ${elegido.mes} (${elegido.por}; ese mes tenía ${usd(pendienteEn(elegido.mes))} pendientes)`,
+      );
+    }
+  }
 }
 
 // ---------------------------------------------- 6. detalle de un cliente
@@ -288,4 +338,8 @@ console.log(
     ? ">>> Nadie tiene un mes pendiente que ya haya pagado."
     : `${fantasmas.length} cliente(s) muestran pendiente un mes que ya pagaron. Revisar arriba antes de cobrarles.`,
 );
-console.log("\n(solo lectura: no se modificó nada)");
+console.log(
+  fixFuturos
+    ? "\n(se corrigieron los períodos futuros; el resto fue solo lectura)"
+    : "\n(solo lectura: no se modificó nada)",
+);

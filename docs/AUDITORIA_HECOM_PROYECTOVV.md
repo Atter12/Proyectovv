@@ -220,19 +220,28 @@ Si la ficha del cliente los muestra, no hay nada que hacer. Si no, hay que
 rellenarles `client_id` y `periodo_resumen` desde el gasto — y mientras eso no
 pase, no se le puede reclamar deuda a ninguno de esos 23.
 
-### 1.7 🔴 ALTA · Dos cobros archivados en un mes que todavía no llegó
+### 1.7 ✅ RESUELTO · Dos cobros archivados en un mes que todavía no llegó
 
-Un período futuro es siempre un tipeo, y deja el mes real pendiente:
+Un período futuro es siempre un tipeo, y deja el mes real pendiente. Corregidos
+el 16/09 con autorización de Victor:
 
-| Cliente | Monto | Pagado | Período | Debería ser |
-|---------|-------|--------|---------|-------------|
+| Cliente | Monto | Pagado | Estaba en | Quedó en |
+|---------|-------|--------|-----------|----------|
 | Daniel Hurtado | $1,345.86 | 2026-01-07 | `2026-12` | `2025-12` |
 | Yolmer Eugenio | $100.00 | 2026-09-07 | `2026-10` | `2026-09` |
 
-El de Daniel Hurtado se confirma solo: su único mes pendiente es `2025-12` por
-**exactamente $1,345.86**. Está cobrando de más por un dígito.
+Los dos tipeos eran distintos y por eso la corrección no es "mandarlo al mes de
+pago" a ciegas:
 
-Los dos son cobros manuales (`C-*`), así que no los toqué.
+- **Yolmer**: se equivocaron en el mes. El período real es el de la fecha de pago.
+- **Daniel**: se equivocaron en el **año** (`2026-12` por `2025-12`). Mandarlo al
+  mes de pago (`2026-01`) habría dejado `2025-12` pendiente igual, solo corriendo
+  la deuda fantasma de mes. Se confirma solo: su `2025-12` debía **exactamente
+  $1,345.86**. Después de corregir quedó en $0.00 y su ficha cuadra completa.
+
+El script elige entre los dos candidatos (mes de pago o año corregido) el que
+cubra un mes que figura pendiente, y si ninguno aplica usa el mes de pago:
+`node scripts/audit-hecom-saldos.mjs --fix-periodos-futuros`.
 
 ### 1.8 🟡 MEDIA · 10 clientes con un mes pendiente que ya pagaron
 
@@ -319,17 +328,21 @@ Por orden de plata en juego:
 
 1. **¿El CRM cuenta los 142 cobros atados al gasto?** (1.6). $129,917 de 23
    clientes. Si no los cuenta, les estamos mostrando deuda que ya pagaron.
-2. **Los 2 cobros con período futuro** (1.7). Uno solo, el de Daniel Hurtado,
-   son $1,345.86 de deuda que no existe.
-3. **Con qué mes se archiva un cobro** (1.2). La decisión de gerencia: hoy los
+   **Es la primera pregunta**, antes de tocar nada: si la ficha ya los suma por
+   `gasto_id` no hay nada que hacer, y si no, hay que rellenarlos.
+2. **Con qué mes se archiva un cobro** (1.2). La decisión de gerencia: hoy los
    automáticos y 449 manuales dicen cosas distintas.
-4. **`UNIQUE` en `cobros.codigo`** (1.1). Tres líneas y cierra el riesgo de que
+3. **`UNIQUE` en `cobros.codigo`** (1.1). Tres líneas y cierra el riesgo de que
    un cliente vuelva a quedar cobrado doble. Ya pasó una vez.
-5. **Los 145 cobros sin `periodo_resumen`** ($8,109 en Ely Aguirre, Alexis Cuba
+4. **Los 145 cobros sin `periodo_resumen`** ($8,109 en Ely Aguirre, Alexis Cuba
    y Jerson Artezano): no aparecen en ninguna vista filtrada por mes.
-6. **Unificar `Arnold Cilloniz`** y definir la ficha de login de Frank Cari y
+5. **Unificar `Arnold Cilloniz`** y definir la ficha de login de Frank Cari y
    Fabian Hoyos (1.4).
-7. **Las 16 fichas sin email** (1.9): ¿tienen que poder entrar a la plataforma?
+6. **Las 16 fichas sin email** (1.9): ¿tienen que poder entrar a la plataforma?
+
+Ya resueltos de mi lado y sin nada que hacer del suyo: los 93 pagos conciliados,
+el doble cobro de Catherine, los 79 automáticos alineados y los 2 períodos
+futuros (1.7).
 
 Lo que llevo resuelto de mi lado: los 93 pagos conciliados, el duplicado de
 Catherine borrado y los 79 automáticos alineados. No hace falta que el otro lado
