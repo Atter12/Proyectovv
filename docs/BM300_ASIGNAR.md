@@ -351,9 +351,22 @@ Ojo: de dos renames pedidos el 15/09 sobre la misma cuenta, el primero se aplic�
 segundo seguía sin reflejarse 20 min después, ambos con `code: 0`. **Siempre verificar
 el nombre después, no confiar en la respuesta.**
 
+En la liberación del 16/09 (`7685996814226685972`, creada ese mismo día) el rename a
+nombre de stock falló dos veces: `code: 0` con `data.list: []` y el nombre viejo
+intacto 9 min después. Hipótesis: en cuentas recién creadas el rename no se aplica.
+**Conclusión práctica: no bloquear la liberación por el nombre.** La cuenta queda
+funcionalmente libre igual, y el rename real se hace al reasignarla (o a mano en
+Ads Manager si la API sigue en no-op).
+
 Importa porque `resolveDisplayName` (`lib/hecom/ad-accounts.server.ts`) prioriza el
 nombre vivo de TikTok sobre el de Hecom: al reciclar hay que renombrar en TikTok, no
 solo en Hecom, o el cliente verá el nombre de stock.
+
+### Liberaciones hechas
+
+| Fecha | Advertiser | Cliente original | Estado |
+|-------|-----------|------------------|--------|
+| 16/09 | `7685996814226685972` | Alexandra Villaizan (test video) | Libre · sigue con el nombre viejo (rename no-op) |
 
 ### Inventario real (2026-09-15)
 
