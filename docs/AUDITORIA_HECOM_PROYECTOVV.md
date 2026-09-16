@@ -124,7 +124,8 @@ hoy los 79 automáticos dicen una cosa y 449 manuales dicen la otra.
   al lado del período, que era el problema original de Jan Alex.
 
 **No toqué ni un cobro manual.** Son del equipo y mover $1.1M entre meses es
-decisión de gerencia, no mía.
+decisión de gerencia, no mía. Victor lo dejó para resolverlo en la auditoría
+conjunta (16/09), así que hasta entonces los 449 quedan como están.
 
 Aparte, los **145 cobros sin `periodo_resumen`** quedan invisibles en cualquier
 vista por mes. Eso sí hay que rellenarlo con cualquiera de las dos reglas.
