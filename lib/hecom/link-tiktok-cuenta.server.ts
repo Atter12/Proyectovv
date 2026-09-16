@@ -16,17 +16,24 @@ export type LinkTikTokCuentaResult = {
   alreadyExisted: boolean;
 };
 
-/** Cuenta filas mapeadas del cliente (self-serve cap). */
+/**
+ * Cuenta filas mapeadas del cliente (self-serve cap).
+ * Con `bmBucket` cuenta solo las de ese BM — el serial del nombre es por BM.
+ */
 export async function countHecomTikTokAccountsForCliente(
   clientId: string,
+  bmBucket?: string | null,
 ): Promise<number> {
   const id = clientId.trim();
   if (!id) return 0;
   const hecom = createHecomAdminClient();
-  const { count, error } = await hecom
+  let query = hecom
     .from("cliente_tiktok_cuentas")
     .select("*", { count: "exact", head: true })
     .eq("client_id", id);
+  const bucket = String(bmBucket ?? "").trim();
+  if (bucket) query = query.eq("bm_bucket", bucket);
+  const { count, error } = await query;
   if (error) {
     console.warn("[hecom] count_tiktok_cuentas", { error: error.message });
     throw new Error("No se pudo leer las cuentas TikTok del cliente en Hecom.");

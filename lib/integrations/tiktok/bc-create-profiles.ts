@@ -11,9 +11,17 @@ export type TikTokBcCreateProfile = {
   registeredArea: string;
   timezone: string;
   currency: string;
-  nameSuffix: string;
+  /**
+   * Convención ops: el serial del nombre arranca en el tier del BM y sube 1 por
+   * cada cuenta que el cliente ya tiene en ese BM.
+   * Ej. BM300 → `Abel 300.0 USD - Agencia`, `Abel 301.0 USD - Agencia`, …
+   */
+  nameSerialBase: number;
   fundingMode: "cash_transfer" | "shared_budget";
 };
+
+/** Cola fija del nombre, después del serial. */
+const NAME_TAIL = "USD - Agencia";
 
 /** Perfiles Agency para create. BM 300 = principal (producto). */
 export const TIKTOK_BC_CREATE_PROFILES: Record<
@@ -29,7 +37,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
     registeredArea: "PE",
     timezone: "America/Lima",
     currency: "USD",
-    nameSuffix: "300.0 USD - Agencia",
+    nameSerialBase: 300,
     fundingMode: "cash_transfer",
   },
   "200": {
@@ -41,7 +49,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
     registeredArea: "PE",
     timezone: "America/Lima",
     currency: "USD",
-    nameSuffix: "200.0 USD - Agencia",
+    nameSerialBase: 200,
     fundingMode: "cash_transfer",
   },
   "30": {
@@ -53,7 +61,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
     registeredArea: "PE",
     timezone: "America/Lima",
     currency: "USD",
-    nameSuffix: "30.0 USD - Agencia",
+    nameSerialBase: 30,
     fundingMode: "shared_budget",
   },
 };
@@ -90,12 +98,15 @@ export function getTikTokBcCreateProfile(
   return TIKTOK_BC_CREATE_PROFILES[DEFAULT_TIKTOK_CREATE_BM];
 }
 
-/** Nombre estilo ops: `{Cliente} 300.0 USD - Agencia`. */
+/**
+ * Nombre estilo ops, con serial correlativo: `{Cliente} 300.0 USD - Agencia`,
+ * `{Cliente} 301.0 USD - Agencia`, …
+ */
 export function buildTikTokAdvertiserName(input: {
   clienteName: string;
   bmBucket: string;
-  /** Si ya existe el nombre base, agregar sufijo corto. */
-  sequence?: number;
+  /** Cuentas que el cliente ya tiene en ESE BM. 0 = primera → serial base. */
+  existingInBm?: number;
 }): string {
   const profile = getTikTokBcCreateProfile(input.bmBucket);
   const tokens = String(input.clienteName ?? "")
@@ -108,8 +119,8 @@ export function buildTikTokAdvertiserName(input: {
     .slice(0, 4)
     .join(" ");
   const base = tokens || "Cliente Holistic";
-  const seq =
-    input.sequence && input.sequence > 1 ? ` ${input.sequence}` : "";
-  const name = `${base}${seq} ${profile.nameSuffix}`.replace(/\s+/g, " ").trim();
+  const offset = Math.max(0, Math.trunc(input.existingInBm ?? 0));
+  const serial = profile.nameSerialBase + offset;
+  const name = `${base} ${serial}.0 ${NAME_TAIL}`.replace(/\s+/g, " ").trim();
   return name.slice(0, 100);
 }

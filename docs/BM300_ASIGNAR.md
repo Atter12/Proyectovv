@@ -238,6 +238,24 @@ Código:
 
 Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` · industry `291406`.
 
+### Naming (convención ops)
+
+El serial arranca en el tier del BM y sube 1 por cada cuenta que el cliente ya
+tiene **en ese BM**:
+
+```text
+Abel Quispe 300.0 USD - Agencia   ← 1ra
+Abel Quispe 301.0 USD - Agencia   ← 2da
+Abel Quispe 302.0 USD - Agencia   ← 3ra
+```
+
+Verificado contra el BM: Jonatan Matildo tiene 300→316, el próximo sale 317.0.
+En BM200 arranca en `200.0` y en BM30 en `30.0`.
+
+El conteo es **por bm_bucket** (`countHecomTikTokAccountsForCliente(id, bucket)`).
+Contar todas las cuentas del cliente saltaría seriales cuando tiene cuentas en
+varios BM. El cap self-serve de 2, en cambio, sí cuenta todas.
+
 ### Smoke create (2026-09-12) — bloqueado
 
 | Prueba | Resultado |

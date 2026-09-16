@@ -33,13 +33,14 @@ export async function createBcAdvertiserForCliente(input: {
   clienteName: string;
   bmBucket?: string | null;
   organizationId?: string;
-  sequence?: number;
+  /** Cuentas que el cliente ya tiene en ese BM (define el serial del nombre). */
+  existingInBm?: number;
 }): Promise<CreateBcAdvertiserResult> {
   const profile = getTikTokBcCreateProfile(input.bmBucket);
   const advertiserName = buildTikTokAdvertiserName({
     clienteName: input.clienteName,
     bmBucket: profile.bmBucket,
-    sequence: input.sequence,
+    existingInBm: input.existingInBm,
   });
 
   const { token: accessToken } = await resolveTikTokFinanceAccessToken(

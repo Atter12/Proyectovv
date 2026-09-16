@@ -73,13 +73,19 @@ export async function createTikTokAccountForCliente(input: {
   );
   const organizationId = await resolveOrganizationIdForHecomCliente(clienteId);
 
+  // El serial del nombre es correlativo por BM: 300.0, 301.0, 302.0…
+  const existingInBm = await countHecomTikTokAccountsForCliente(
+    clienteId,
+    profile.bmBucket,
+  );
+
   let created: Awaited<ReturnType<typeof createBcAdvertiserForCliente>>;
   try {
     created = await createBcAdvertiserForCliente({
       clienteName: cliente.name,
       bmBucket: profile.bmBucket,
       organizationId: organizationId ?? undefined,
-      sequence: existingCount + 1,
+      existingInBm,
     });
   } catch (error) {
     const raw = error instanceof Error ? error.message : "unknown";
