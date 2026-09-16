@@ -322,7 +322,31 @@ reclama hay que mirar el neto ("Todos"), no el mes suelto.**
 
 Lista completa: `node scripts/audit-hecom-saldos.mjs`, sección 2.
 
-### 1.9 🟡 MEDIA · 16 fichas sin ningún email
+### 1.9 🔴 ALTA · El importador de gastos no tiene BM300: ese consumo no se cobra
+
+En toda la tabla `gastos` **no hay una sola fila de BM300**. El campo `camp`
+llega como `Nombre|advertiser_id|BMxx` y sólo aparecen `BM30`, `BM200`, `BM10`
+(y 40 filas con un `BM` sin número). Las 23 cuentas de BM300 ya están mapeadas
+en `cliente_tiktok_cuentas` desde el 15/09, pero su gasto no entra a facturación.
+
+Quiénes quedan en el punto ciego: **Jhonatan Matildo (17 cuentas, 300.0 a
+316.0)**, Ely Aguirre (2), Piero Acasiete (2), Carla Juan de Dios y Yolmer
+Eugenio. Varios de ellos sí se facturan por sus cuentas de BM10/30/200, así que
+el faltante es parcial y no se nota mirando la ficha.
+
+**No puedo medir cuánto es.** Nuestro `TIKTOK_ACCESS_TOKEN` tiene rol finance en
+el BC300 (por eso `/bc/transfer/` funciona y las recargas salen bien), pero los
+advertisers de ese BC no están autorizados a la app: tanto
+`/report/integrated/get/` como `/advertiser/balance/get/` devuelven
+`No permission to operate advertiser` para las 23, y `/bc/transaction/get/` del
+BC300 vuelve vacío. Hace falta que alguien con acceso al BC300 mire el gasto de
+setiembre en TikTok Manager, o autorizar esos advertisers al token.
+
+Dos preguntas para el otro equipo: ¿su sync tiene configurado el BC
+`7680955666005196801`? ¿Y con qué token lee, porque puede que el suyo sí vea
+esas cuentas?
+
+### 1.10 🟡 MEDIA · 16 fichas sin ningún email
 
 No pueden entrar a la plataforma: el login busca por email en `clientes.emails`.
 Si se espera que entren, hay que cargarlo.
@@ -422,6 +446,34 @@ Restos de importaciones de julio repartidos en 8 orgs que ya no existen. De 80
 revisadas, 1 con saldo y 0 con gasto. No se ven en ningún panel; sólo ensucian
 las consultas por advertiser (fue lo que me hizo ver "194 duplicados" cuando los
 reales son 6).
+
+### 2.7 🟢 Los gastos que sí se importan cuadran al centavo
+
+Comparé `gastos` contra lo que TikTok reporta por cuenta (`/report/integrated/get/`,
+nivel advertiser) para las 15 cuentas más grandes de BM200 en setiembre. En el
+período cerrado 01–14/09 la diferencia es **$0.00 en las 15**: Catherine Burgos
+$1,900.67 vs $1,900.67, Jesus Fuentes $2,542.28 vs $2,542.28, y así.
+
+Un primer corte hasta el 16/09 mostraba $238.42 sin facturar, pero era sólo el
+gasto del día en curso: el sync corre de madrugada (lo último cargado es
+`stat_date=2026-09-15` a las 00:01) y no hay ninguna fila del día de hoy. No es
+un faltante, es el desfase normal de un día.
+
+Tampoco hay doble cobro: con la clave cuenta + campaña + día, **0 filas
+repetidas** en los tres BM. Totales por BM: BM30 $371,722, BM200 $144,739,
+BM10 $65,240, más $1,009,243 de 921 filas manuales viejas (`camp` tipo
+`CP 12 USD`, sin BM, previas al sync por API).
+
+### 2.8 🟢 El envío de WhatsApp de este mes no cotiza mal a nadie
+
+Los 142 cobros atados al gasto (1.6) pagan gastos de **2025-12 a 2026-03** — 127
+de ellos, $122,484, caen en `2026-01`. **No hay ninguno en agosto ni setiembre**,
+así que un envío del mes corriente no los toca. De los 23 clientes afectados,
+sólo 6 tienen gasto en setiembre (Cainan, Dam, Ely y Levi Aguirre, Renzo Cruz,
+Josue Luna) y su deuda de setiembre no depende de esos pagos viejos.
+
+El riesgo sigue vivo sólo si se envía un mes viejo: ahí a esos 23 se les
+reclamaría plata que ya pagaron.
 
 ---
 
