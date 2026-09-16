@@ -331,10 +331,14 @@ retirar una cuenta de circulación de forma definitiva, nunca para liberar.
 | Renombrar por API | ✅ `POST /advertiser/update/` con `{advertiser_id, name}` — **solo si está `STATUS_ENABLE`** |
 | Reasignar a otro cliente | ✅ Remapear en Hecom (+ renombrar al serial del nuevo dueño) |
 
-**El rename es asíncrono.** Devuelve `code: 0` al instante pero tarda minutos en
-propagarse; `/advertiser/info/` y `/bc/asset/admin/get/` siguen devolviendo el nombre
-viejo un rato. No concluir “no funcionó” por leerlo de inmediato. En cuentas
-`STATUS_DISABLE` el rename se acepta pero no se aplica nunca.
+**El rename es asíncrono y best-effort.** Devuelve `code: 0` al instante pero tarda
+en propagarse; `/advertiser/info/` y `/bc/asset/admin/get/` siguen devolviendo el
+nombre viejo. No concluir “no funcionó” por leerlo de inmediato. En cuentas
+`STATUS_DISABLE` se acepta pero no se aplica nunca.
+
+Ojo: de dos renames pedidos el 15/09 sobre la misma cuenta, el primero se aplicó y el
+segundo seguía sin reflejarse 20 min después, ambos con `code: 0`. **Siempre verificar
+el nombre después, no confiar en la respuesta.**
 
 Importa porque `resolveDisplayName` (`lib/hecom/ad-accounts.server.ts`) prioriza el
 nombre vivo de TikTok sobre el de Hecom: al reciclar hay que renombrar en TikTok, no
@@ -347,15 +351,35 @@ solo en Hecom, o el cliente verá el nombre de stock.
 | BM300 | 31 | 23 | **6** | 1 | 1 |
 | BM200 | 283 | 197 | **1** | 53 | 32 |
 | BM30 | 304 | 149 | 0 | 88 | 67 |
-| BM10 | 330 | 93 | 117 ⚠️ | 92 | 28 |
-| **TOTAL** | 948 | 462 | 124 | 234 | 128 |
+| BM10 | 330 | 93 | **117** | 92 | 28 |
+| **TOTAL** | 948 | 462 | **124** | 234 | 128 |
 
-⚠️ Las 117 de BM10 están APPROVED pero **el BM10 tiene cash $0 y grant $0**: no se
-les puede asignar saldo. Inventario de papel (confirma el `bm10_no_spendable_balance`
-del reclaim de Dominic). Fondos por BM: BM300 `$49,753` cash · BM30 `$16,186` grant ·
-BM10 `$0`.
+**Listas para dar: 124.** Los BM SHARED (10/30) también fondean — con línea de
+crédito, no cash.
 
-**Listas de verdad para dar: 7** (6 BM300 + 1 BM200).
+### Leer bien el balance de un BM (error cometido el 15/09)
+
+`/bc/balance/get/` **sin `payment_portfolio_id`** devuelve ceros engañosos en BM
+multi-PA. Y en BM SHARED el crédito **no está en `cash_balance` ni en
+`grant_balance`, sino en `account_balance`**. Resolver el portfolio con
+`/payment_portfolio/get/` antes de consultar.
+
+| BM | portfolio | tipo | cash | grant | **account (crédito)** |
+|----|-----------|------|------|-------|------------------------|
+| BM300 | Portfolio 4540 | NON_SHARED | $49,753 | $0 | $49,753 |
+| BM200 | BM Entreprise 200.0 | NON_SHARED | $21,073 | $5,136 | $26,210 |
+| BM30 | BM Entreprise 30.0 | SHARED | $0 | $16,186 | **$80,046** |
+| BM10 | PANAMERICANA OUTSOURCING | SHARED | $0 | $0 | **$42,868** |
+
+Evidencia de que BM10 fondea de verdad: 227 de sus 312 cuentas tienen presupuesto
+asignado, 75 con gasto real, **$43,810 asignados y $18,642 ya gastados**. La ruta es
+`increaseSharedBmAdvertiserBudget` (`/advertiser/update/`), que consume la línea de
+crédito — el cash es irrelevante ahí.
+
+Límite real de BM10: el presupuesto asignado ($43,810) ya roza la línea disponible
+($42,868), y el crédito es **compartido entre todas las cuentas**. Eso es lo que
+estaba detrás del `bm10_no_spendable_balance` de Dominic: no que el BM no sirva, sino
+que la línea estaba comprometida.
 
 Stock BM300: `prueba 300`, `prueba 301`, `sebas prueba 303`, `sebas prueba 304`,
 `Sebas LIBRE 300.O USD`, `Holistic Probe 300.0 USD - Agencia RENAME OK`.
