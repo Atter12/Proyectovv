@@ -56,14 +56,36 @@ importes/devoluciones de saldo TikTok, no pagos del cliente.
 Curar faltantes: `node scripts/backfill-hecom-wallet-cobros.mjs --dry-run`
 (cubre los 4 canales; es idempotente por `codigo`).
 
-### `periodo_resumen`
+### `periodo_resumen` — lo decide Hecom, no nosotros
 
-El endpoint de Hecom lo calcula **del mes de `paid_at`** e ignora cualquier
-período que le mandemos (probado el 16/09 contra el bridge en dry-run). Si un
-cobro aparece en un mes distinto al del pago, fue movido a mano en el CRM
-después — no lo hace la integración. Ojo al depurar: en el CRM las tablas
-filtran por **período**, no por fecha de pago, así que un cobro re-asignado a
-un mes anterior parece "no guardado" cuando en realidad está.
+El endpoint de Hecom asigna el período **según la deuda pendiente del cliente**:
+el pago va al período más viejo que ese cliente no tiene cubierto. No usa el mes
+de `paid_at` ni el mes actual, e **ignora cualquier período que le mandemos**
+(probado: `periodo_resumen` y `periodo` en el payload no tienen efecto).
+
+Prueba del 16/09, mismo `paid_at` para todos, solo cambiando cliente:
+
+| Cliente | Período asignado |
+|---------|------------------|
+| Jan Alex | 2026-09 |
+| Neojael Justo | 2026-06 |
+| Roberto Misajel | 2026-08 |
+| Catherine Burgos | 2026-09 |
+
+Consecuencia práctica: un cliente con deuda vieja paga hoy y el cobro aparece
+archivado meses atrás. Como en el CRM las tablas filtran por **período** y no por
+fecha de pago, **parece que el pago no se subió cuando en realidad sí está**.
+Pasó con Jan Alex el 16/09 (pago del 12/09 archivado en 2026-08).
+
+Antes de concluir que un cobro falta, revisar
+`payment_intents.metadata.hecom_cobro_sync`: guarda el `codigo` y el
+`periodo_resumen` que devolvió el bridge. Si tiene `ok: true`, el cobro existe y
+el tema es de período, no de sincronización.
+
+Para re-archivar un cobro puntual se actualiza `cobros.periodo_resumen` en Hecom
+(cambia los totales de ambos meses: baja el "cobrado" del mes viejo y sube el del
+nuevo). Si se quiere que **siempre** use el mes del pago, hay que tocar el
+endpoint en el repo de Hecom; desde acá no se puede.
 
 ## Env
 
