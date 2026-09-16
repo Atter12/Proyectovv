@@ -110,22 +110,31 @@ Sin fila Hecom:
 
 ```text
 TikTok BM300 → 27 advertisers
-Hecom cliente_tiktok_cuentas WHERE bm_bucket = '300' → 21 filas
+Hecom cliente_tiktok_cuentas WHERE bm_bucket = '300' → 23 filas
 ```
 
 | Cliente Hecom | Cuentas | Nota |
 |---------------|---------|------|
 | Jonatan Matildo José | 17 | TikTok escribe “Jhonatan” · 2 suspendidas |
 | Ely Aguirre | 2 | |
+| Piero Alexander Acasiete García | 2 | ficha unificada · ver abajo |
 | Carla Juan de dios | 1 | |
 | Yolmer Eugenio | 1 | |
 
-Pendiente manual: `Piero Acasiete 300.0 / 301.0` — hay **dos fichas Hecom duplicadas**
-(`Piero Acasiete García`, `Piero Alexander Acasiete García`) con el mismo email.
-Hay que unificar la ficha antes de mapear.
-
 Ignoradas (internas / smoke): `sebas prueba 303/304`, `Sebas LIBRE 300.O USD`,
 `PROALBA GROUP E.I.R.L.`
+
+### Unificación Piero Acasiete (2026-09-15)
+
+Dos fichas OTP del mismo DNI/teléfono creadas con 3 min de diferencia. Se consolidó
+en `0bd95ba9…` (`Piero Alexander Acasiete García`):
+
+- 2 cuentas BM300 mapeadas ahí.
+- Cobro `C-U3FL55ERFP` (S/ 55) movido desde la ficha duplicada.
+- Ambos correos (`alexander.garciacasiete@`, `aacasiete17.2002@`) quedan en la ficha
+  superviviente — el login busca por el array `emails`, así que migrarlos es obligatorio.
+- Duplicada `0b45827e…` renombrada `[DUP] …`, `emails = []` y sin `hecom_cliente_user_links`,
+  para que no aparezca en el picker de login. No se borró: conserva historial.
 
 ### Herramienta
 
@@ -137,6 +146,12 @@ node --env-file=.env.local scripts/map-bm300-advertisers.mjs --apply  # inserta 
 Inserta `bm_bucket='300'`, `sync_enabled=true` y `fee=null`.
 **`fee` es el % de comisión Hecom (5–10), no el tier del BM**: dejarlo en null hace
 que `resolveFeePercentFromHecomCliente` caiga al fee del cliente (default 10%).
+
+Escribir el tier en `fee` era un bug real: `linkTikTokCuentaToHecomCliente` usaba
+`Number(bmBucket)`, así que una cuenta creada en BM300 quedaba con **300 % de comisión**
+(`normalizeFeePercent` no tiene tope). Corregido en código + limpieza de 27 filas
+históricas con `fee=30` en `bm_bucket=30` (afectaban a Jose Murillo, Marko Villaizan y
+Renzo Solis, que no tienen `tiktok_default_fee` propio).
 
 Luego en Holistic: sync approved + ensure org → aparece en Asignar (cache 5 min).
 
@@ -222,8 +237,8 @@ Qual create BM300: `DISTRIBUCIONES EL CENTRO S.A.C.` · `7683165994143449109` ·
 - [x] Token en `.env.local`
 - [ ] Token en **Vercel Production** + redeploy ← **vos**
 - [x] Mapa `"300"` en código + cash path + portfolio por advertiser
-- [x] Mapear advertisers en **Hecom** (`bm_bucket=300`) — 21/27 · ver §4
-- [ ] Unificar fichas duplicadas de Piero Acasiete y mapear sus 2 cuentas
+- [x] Mapear advertisers en **Hecom** (`bm_bucket=300`) — 23/27 · ver §4
+- [x] Unificar fichas duplicadas de Piero Acasiete y mapear sus 2 cuentas
 - [ ] Sync → aparecen en Pagos
 - [ ] Smoke Asignar $1–5 en una cuenta APPROVED
 - [ ] Confirmar cash en Ads Manager
