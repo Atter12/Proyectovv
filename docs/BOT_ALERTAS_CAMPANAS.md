@@ -1,7 +1,7 @@
 # Bot de alertas y análisis de campañas TikTok
 
 **Estado:** propuesta · **no implementado**
-**Fecha:** 2026-09-15
+**Fecha:** 2026-09-15 · actualizado 2026-09-17
 **Origen:** pedido de ops (Annie): *“lo que muestras son las métricas tal cual se ven
 en Ads Manager, solo dentro de Ads Holistic. Lo que quiero es que el bot analice cada
 campaña con las métricas de TikTok Ads.”*
@@ -19,6 +19,7 @@ Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera ráp
 | ¿Falta LLM? | No. Ya hay OpenAI en producción (creativos + vouchers). |
 | ¿Qué falta de verdad? | **Persistencia** por campaña, motor de alertas y superficie donde mostrarlas. |
 | Quick win disponible | Hay señales por campaña **ya calculadas** que la UI nunca renderiza. |
+| ¿Dónde se ve? | **Profit** (cliente) + vista gerencia más detallada (score / crédito). |
 
 ---
 
@@ -134,6 +135,10 @@ Renderizar los `signals` que ya llegan al cliente en la sección de campañas de
 Profit. Cero migraciones, cero prompts. Sirve para validar con Annie si el
 formato de alerta es el que espera antes de construir el resto.
 
+Desde el día 1: el **cliente** ve las señales en su Profit; **gerencia**, al
+entrar “viendo como”, ve lo mismo. El panel ops + score de crédito llegan en
+Fase 2 (§3.5).
+
 ### Fase 1 — Persistir métricas por campaña
 
 ```sql
@@ -157,7 +162,7 @@ tendencia, y sin tendencia el análisis es solo una foto.
   con las reglas de la §2, ahora con acceso al histórico.
 - Tabla `campaign_alerts` con dedupe: no repetir la misma alerta de la misma
   campaña dentro de X horas.
-- Entrega vía `createNotificationBestEffort()` + panel en Profit.
+- Entrega vía `createNotificationBestEffort()` + panel en Profit (§3.5).
 
 ### Fase 3 — Capa LLM (la parte “bot”)
 
@@ -172,11 +177,64 @@ baja tokens, evita números inventados y hace la alerta auditable.
 
 ---
 
-## 4. Decisiones abiertas
+## 3.5 Dónde se ve · cliente vs gerencia (cerrado 2026-09-17)
 
-- **Quién ve las alertas:** ¿el cliente en su panel, gerencia, o ambos con distinto
-  nivel de detalle?
-- **Canal:** ¿campanita in-app (ya existe), WhatsApp, correo?
+**Superficie principal: Profit.** Ahí viven las métricas de campaña; el bot no
+abre otra pantalla para el día a día.
+
+### Cliente (su Profit)
+
+Ve **sus** rendimientos y alertas, en lenguaje claro:
+
+- saldo quemándose rápido
+- campaña que concentra gasto
+- ROAS / CTR flojos (cuando haya datos)
+- campanita in-app para no perderse lo crítico
+
+No ve el score interno ni el razonamiento de crédito. Solo lo que le sirve para
+operar campañas y recargar a tiempo.
+
+### Gerencia (más detallado)
+
+El mismo Profit **viendo como** el cliente, **más** una capa ops:
+
+| Capa | Para qué |
+|------|----------|
+| Profit “viendo como” | mismo contexto que el cliente, para hablarle con datos |
+| Panel / listado gerencia | todas las alertas críticas del día (quién quema saldo, quién está zombie) |
+| Campanita / inbox ops | aviso temprano sin entrar cliente por cliente |
+
+**Detalle extra que solo ve gerencia** (y alimenta el **score de crédito**):
+
+- ritmo de quema vs lo que recarga (¿pide crédito porque opera mal o porque escala?)
+- historial de alertas críticas (reincidencia)
+- concentración de gasto / campañas que no convierten
+- ratio “presupuesto adelantado / pagado” (casos tipo Ximena)
+- estabilidad de ROAS y pacing en ventanas 7d / 30d
+
+Idea: cuando gerencia evalúa dar o ampliar crédito, no mira solo “debe / no debe”.
+Mira un **resumen de riesgo operativo** sacado del mismo bot: si el cliente quema
+saldo sin control o tiene campañas sanas, el score sube o baja y la decisión de
+crédito es más fácil y defendible.
+
+```text
+cliente  →  Profit: alertas de rendimiento + campanita
+gerente  →  Profit (viendo como) + panel ops + score/crédito enriquecido
+```
+
+---
+
+## 4. Decisiones
+
+### Cerrado
+
+- **Quién ve qué:** cliente en Profit (rendimiento); gerencia con más detalle y
+  enlace al score de crédito (§3.5).
+- **Superficie:** Profit + campanita in-app; panel ops para gerencia.
+
+### Sigue abierto
+
+- **Canal extra:** ¿WhatsApp / correo además de in-app? (MVP = solo in-app)
 - **Umbrales:** los de la §2 son propuestas; ops debería calibrarlos.
 - **Alcance del MVP:** ¿arrancamos solo con la alerta de saldo (no necesita
   historial y es la que pidió gerencia) o esperamos la Fase 1 completa?
@@ -194,3 +252,4 @@ baja tokens, evita números inventados y hace la alerta auditable.
 | ROAS por campaña es **prorrateado**, no atribuido | no redactar alertas que afirmen ingresos por campaña como si fueran reales |
 | LLM inventando cifras | el modelo solo explica filas que ya pasaron por reglas; nunca calcula |
 | Costo OpenAI | pre-filtro determinista; solo campañas marcadas entran al prompt |
+| Cliente ve demasiado / se asusta | cliente = copy operativo; score y riesgo de crédito **solo gerencia** |
