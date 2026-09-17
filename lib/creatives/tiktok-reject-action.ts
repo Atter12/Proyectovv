@@ -12,7 +12,7 @@ export function classifyTikTokRejectReasons(
   if (!blob.trim()) return "generic";
 
   if (
-    /eliminad|expirad|inválid|invalid|deleted|expired|no.*(vídeo|video|imagen|image)|missing media|material/.test(
+    /unavailable|eliminad|expirad|inválid|invalid|deleted|expired|no.*(vídeo|video|imagen|image)|missing media|material/.test(
       blob,
     )
   ) {
@@ -34,3 +34,24 @@ export function classifyTikTokRejectReasons(
   }
   return "generic";
 }
+
+/** Una línea corta para el cliente (sin jerga UNAVAILABLE / códigos). */
+export function humanizeTikTokRejectReason(
+  reasons: string[],
+  fallback: string,
+): string {
+  const kind = classifyTikTokRejectReasons(reasons);
+  if (kind === "media_invalid") return fallback;
+  const first = reasons.find((r) => r.trim().length > 0)?.trim();
+  if (!first) return fallback;
+  // Quitar códigos técnicos entre paréntesis
+  const clean = first
+    .replace(/\s*\([^)]*(UNAVAILABLE|REJECT|AUDIT|CODE)[^)]*\)/gi, "")
+    .replace(/\bUNAVAILABLE\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (clean.length < 8) return fallback;
+  if (clean.length > 110) return `${clean.slice(0, 107)}…`;
+  return clean;
+}
+

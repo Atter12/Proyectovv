@@ -3,11 +3,9 @@ export function cleanCreativeDisplayName(raw: string | null | undefined): string
   const input = String(raw ?? "").trim();
   if (!input) return "Video";
 
-  // "VIDEO 1_xxxxx.mp4_VIDEO 1" → "VIDEO 1"
-  const videoDup = input.match(/^(VIDEO\s*\d+(?:\s*\d+)?)/i);
-  if (videoDup && /_VIDEO\s*\d+/i.test(input)) {
-    return videoDup[1].replace(/\s+/g, " ").trim().toUpperCase();
-  }
+  // "VIDEO 1_xxxxx.mp4_VIDEO 1" / "VIDEO 3 3" → "Video 1" / "Video 3"
+  const videoNum = input.match(/VIDEO\s*(\d+)/i);
+  if (videoNum) return `Video ${videoNum[1]}`;
 
   // "12_9p6HJ2yB.mp4_3" → "Video 12"
   const leadingNum = input.match(/^(\d+)_[A-Za-z0-9]+\.(mp4|mov|avi|webm)_/i);
@@ -25,7 +23,6 @@ export function cleanCreativeDisplayName(raw: string | null | undefined): string
     return noHash.replace(/\s+/g, " ");
   }
 
-  // Fallback: first readable chunk
   const chunk = beforeExt.split("_")[0]?.trim();
   if (chunk && chunk.length <= 32) return chunk;
   return input.slice(0, 40);

@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
 import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
-import { classifyTikTokRejectReasons } from "@/lib/creatives/tiktok-reject-action";
+import {
+  classifyTikTokRejectReasons,
+  humanizeTikTokRejectReason,
+} from "@/lib/creatives/tiktok-reject-action";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
@@ -67,7 +70,6 @@ export function AgentProDraftsPanel({
     };
   }, [drafts]);
 
-  // Default: Problemas when there are rejects (client inbox), else Por enviar / Todos.
   const [filter, setFilter] = useState<FilterId>("action");
   const activeFilter: FilterId =
     filter === "action" && counts.action === 0 && drafts.length > 0
@@ -128,9 +130,7 @@ export function AgentProDraftsPanel({
   }
 
   const panelTitle =
-    activeFilter === "action" || counts.action > 0
-      ? t("titleProblems")
-      : t("title");
+    counts.action > 0 ? t("titleProblems") : t("title");
   const panelSubtitle =
     counts.action > 0
       ? t("subtitleProblems", { count: counts.action })
@@ -138,6 +138,7 @@ export function AgentProDraftsPanel({
         ? t("subtitleEnabled")
         : t("subtitleDisabled");
 
+  const showFilters = counts.ready > 0 || activeFilter !== "action";
   const filters: { id: FilterId; label: string; count: number }[] = [
     { id: "action", label: t("filterAction"), count: counts.action },
     { id: "ready", label: t("filterReady"), count: counts.ready },
@@ -156,24 +157,6 @@ export function AgentProDraftsPanel({
         </p>
       ) : null}
 
-      {counts.action > 0 ? (
-        <div className="mx-4 mt-3 rounded-[1rem] border border-[#f0c4c4] bg-[linear-gradient(135deg,#fdf6f5_0%,#fff_75%)] px-3.5 py-3 sm:mx-5">
-          <p className="text-[14px] font-bold tracking-[-0.02em] text-[#9b2c2c]">
-            {t("inboxTitle", { count: counts.action })}
-          </p>
-          <p className="mt-1 text-[12px] leading-4 text-[#6b3f3f]">
-            {t("inboxBody")}
-          </p>
-        </div>
-      ) : drafts.length > 0 ? (
-        <div className="mx-4 mt-3 rounded-[1rem] border border-[#c5e4d2] bg-[#f3faf6] px-3.5 py-3 sm:mx-5">
-          <p className="text-[13px] font-semibold text-[#1f5c40]">
-            {t("allClearTitle")}
-          </p>
-          <p className="mt-0.5 text-[11px] text-[#2f6b4f]">{t("allClearBody")}</p>
-        </div>
-      ) : null}
-
       {error ? (
         <p
           className="mx-4 mt-3 rounded-lg bg-[#fef2f2] px-3 py-2 text-[12px] text-[#991b1b] sm:mx-5"
@@ -188,7 +171,7 @@ export function AgentProDraftsPanel({
         </p>
       ) : null}
 
-      {drafts.length > 0 ? (
+      {drafts.length > 0 && showFilters ? (
         <div className="mx-4 mt-3 flex gap-1.5 overflow-x-auto pb-0.5 sm:mx-5">
           {filters.map((f) => (
             <button
@@ -240,7 +223,7 @@ export function AgentProDraftsPanel({
           </button>
         </div>
       ) : (
-        <ul className="max-h-[36rem] space-y-3 overflow-y-auto p-3 sm:p-4">
+        <ul className="max-h-[36rem] divide-y divide-[rgb(20_18_16_/_0.06)] overflow-y-auto">
           {visible.map((draft) => {
             const title = draftTitle(draft);
             const rejected = isRejected(draft);
@@ -256,82 +239,40 @@ export function AgentProDraftsPanel({
               draft.discoverSource === "tiktok_ads_manager";
 
             if (rejected) {
+              const reasonLine = humanizeTikTokRejectReason(
+                draft.tiktokRejectReasons,
+                t(`simpleReason_${actionKind}`),
+              );
               return (
                 <li
                   key={draft.id}
-                  className="overflow-hidden rounded-[1.15rem] border border-[#e8a0a0] bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] ring-1 ring-[#f0c4c4]/35"
+                  className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
                 >
-                  <div className="border-b border-[#f0c4c4]/50 bg-[linear-gradient(90deg,#fdf6f5,#fff)] px-3.5 py-3 sm:px-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                          {title}
-                        </p>
-                        {draft.accountName ? (
-                          <p className="mt-1 truncate text-[11px] text-[var(--auth-text-muted)]">
-                            {draft.accountName}
-                          </p>
-                        ) : null}
-                      </div>
-                      <span className="rounded-md bg-[#fdeceb] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#9b2c2c] ring-1 ring-inset ring-[#f0c4c4]">
-                        {t("tiktokRejected")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 px-3.5 py-3 sm:px-4">
-                    <p className="text-[12px] font-semibold text-[#9b2c2c]">
-                      {t(`actionHint_${actionKind}`)}
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                      {title}
                     </p>
-
-                    {draft.tiktokRejectReasons.length > 0 ? (
-                      <ul className="space-y-1.5">
-                        {draft.tiktokRejectReasons.slice(0, 3).map((reason) => (
-                          <li
-                            key={reason.slice(0, 40)}
-                            className="text-[12px] leading-5 text-[#5c3a3a]"
-                          >
-                            · {reason}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-[12px] leading-5 text-[#6b3f3f]">
-                        {t("tiktokRejectNoReason")}
-                      </p>
-                    )}
-
-                    <div className="rounded-lg bg-[rgb(20_18_16_/_0.03)] px-3 py-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                        {t("nextStepLabel")}
-                      </p>
-                      <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text)]">
-                        {t(`nextStep_${actionKind}`)}
-                      </p>
-                    </div>
-
-                    {draft.hasActiveFix ? (
-                      <p className="rounded-xl border border-[#c5e4d2] bg-[#f3faf6] px-3 py-2.5 text-[12px] font-semibold text-[#1f5c40]">
-                        {t("fixInProgress")}
-                      </p>
-                    ) : (
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <Link
-                          href={`?fixDraft=${encodeURIComponent(draft.id)}${
-                            draft.adAccountId
-                              ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
-                              : ""
-                          }&fixLabel=${encodeURIComponent(title)}#creative-upload`}
-                          className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
-                        >
-                          {t(`cta_${actionKind}`)}
-                        </Link>
-                        <p className="text-center text-[10px] text-[#9a7a7a] sm:max-w-[8rem] sm:text-left">
-                          {t("noSupportHint")}
-                        </p>
-                      </div>
-                    )}
+                    <p className="mt-0.5 text-[12px] leading-4 text-[var(--auth-text-muted)]">
+                      {reasonLine}
+                    </p>
                   </div>
+
+                  {draft.hasActiveFix ? (
+                    <p className="shrink-0 rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
+                      {t("fixInProgress")}
+                    </p>
+                  ) : (
+                    <Link
+                      href={`?fixDraft=${encodeURIComponent(draft.id)}${
+                        draft.adAccountId
+                          ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
+                          : ""
+                      }&fixLabel=${encodeURIComponent(title)}#creative-upload`}
+                      className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
+                    >
+                      {t("ctaSimple")}
+                    </Link>
+                  )}
                 </li>
               );
             }
@@ -340,20 +281,16 @@ export function AgentProDraftsPanel({
               <li
                 key={draft.id}
                 className={cn(
-                  "overflow-hidden rounded-[1.15rem] border bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)]",
-                  failed
-                    ? "border-[#f0c4c4]"
-                    : canSend
-                      ? "border-[rgb(255_120_31_/_0.28)]"
-                      : "border-[rgb(20_18_16_/_0.08)]",
+                  "overflow-hidden border-b border-[rgb(20_18_16_/_0.06)] bg-white last:border-b-0",
+                  failed ? "bg-[#fdf8f7]" : null,
                 )}
               >
-                <div className="border-b border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.55)] px-3.5 py-2.5 sm:px-4">
+                <div className="px-4 py-3 sm:px-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[13px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                       {title}
                     </p>
-                    <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)] ring-1 ring-[rgb(20_18_16_/_0.08)]">
+                    <span className="rounded-md bg-[rgb(20_18_16_/_0.05)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
                       {failed
                         ? t("statusFailed")
                         : draft.status === "approved"
@@ -363,13 +300,8 @@ export function AgentProDraftsPanel({
                             : t("statusDraft")}
                     </span>
                   </div>
-                  {draft.accountName ? (
-                    <p className="mt-1 truncate text-[11px] text-[var(--auth-text-muted)]">
-                      {draft.accountName}
-                    </p>
-                  ) : null}
                   {draft.parentDraftId ? (
-                    <p className="mt-1.5 inline-flex max-w-full truncate rounded-md bg-[rgb(255_120_31_/_0.1)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-[var(--auth-accent)]">
+                    <p className="mt-1 text-[11px] font-medium text-[var(--auth-accent)]">
                       {t("fixOf", {
                         name: cleanCreativeDisplayName(
                           draft.parentLabel || t("briefFallback"),
@@ -377,29 +309,20 @@ export function AgentProDraftsPanel({
                       })}
                     </p>
                   ) : null}
-                </div>
-
-                <div className="space-y-2 px-3.5 py-3 sm:px-4">
                   {failed && draft.errorMessage ? (
-                    <p className="rounded-lg border border-[#f0c4c4] bg-[#fdf6f5] px-3 py-2 text-[12px] text-[#991b1b]">
+                    <p className="mt-2 text-[12px] text-[#991b1b]">
                       {draft.errorMessage}
                     </p>
                   ) : null}
-
                   {!isDiscovered && draft.brief.hookCopy ? (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                        {t("hook")}
-                      </p>
-                      <p className="mt-0.5 text-[13px] font-medium leading-5 text-[var(--auth-text)]">
-                        {draft.brief.hookCopy}
-                      </p>
-                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-[12px] text-[var(--auth-text-muted)]">
+                      {draft.brief.hookCopy}
+                    </p>
                   ) : null}
                 </div>
 
                 {canSend ? (
-                  <div className="flex flex-col gap-2 border-t border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_252_248)] px-3.5 py-3 sm:flex-row sm:px-4">
+                  <div className="flex flex-col gap-2 border-t border-[rgb(20_18_16_/_0.06)] px-4 py-3 sm:flex-row sm:px-5">
                     <Button
                       size="sm"
                       disabled={busyId === draft.id || !publishEnabled}
