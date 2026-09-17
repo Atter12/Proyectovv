@@ -146,6 +146,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
       bcId: string;
       statusKind: "approved" | "suspended" | "unknown";
       fromHecom: boolean;
+      rejectionReason: string | null;
     }
   >();
 
@@ -166,6 +167,7 @@ export async function syncApprovedAdAccountsForCliente(input: {
       ),
       statusKind,
       fromHecom: true,
+      rejectionReason: live?.rejectionReason?.trim() || null,
     });
   }
 
