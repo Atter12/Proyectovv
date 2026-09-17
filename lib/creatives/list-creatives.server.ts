@@ -331,7 +331,26 @@ export async function listOrganizationCreativeDrafts(
     .limit(scoped ? 150 : 40);
 
   // Migraciones 030/031 aún no aplicadas: ir degradando el select.
-  let draftsSource = draftsRaw;
+  // Tipado laxo: cada fallback trae menos columnas.
+  type DraftListRow = {
+    id: string;
+    status: string;
+    brief: unknown;
+    error_message: string | null;
+    created_at: string;
+    reviewed_at: string | null;
+    published_at: string | null;
+    creative_asset_id: string | null;
+    ad_account_id: string | null;
+    external_advertiser_id: string | null;
+    review_status?: string | null;
+    reject_reasons?: unknown;
+    secondary_status?: string | null;
+    parent_draft_id?: string | null;
+    discover_source?: string | null;
+    external_ad_id?: string | null;
+  };
+  let draftsSource = draftsRaw as DraftListRow[] | null;
   let listError = error;
   if (error && /discover_source|external_ad_id/i.test(error.message)) {
     const fallback = await admin
@@ -342,7 +361,7 @@ export async function listOrganizationCreativeDrafts(
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(scoped ? 150 : 40);
-    draftsSource = fallback.data;
+    draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
   if (listError && /parent_draft_id/i.test(listError.message)) {
@@ -354,7 +373,7 @@ export async function listOrganizationCreativeDrafts(
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(scoped ? 150 : 40);
-    draftsSource = fallback.data;
+    draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
   if (
@@ -369,7 +388,7 @@ export async function listOrganizationCreativeDrafts(
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(scoped ? 150 : 40);
-    draftsSource = fallback.data;
+    draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
 
