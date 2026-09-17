@@ -17,6 +17,8 @@ interface CreateTikTokAccountModalProps {
   onClose: () => void;
   clienteName: string;
   currentAccountCount: number;
+  /** Cupo del cliente; puede estar ampliado por gerencia. */
+  accountLimit?: number;
 }
 
 type CreateOk = {
@@ -42,6 +44,7 @@ export function CreateTikTokAccountModal({
   onClose,
   clienteName,
   currentAccountCount,
+  accountLimit = TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
 }: CreateTikTokAccountModalProps) {
   const t = useTranslations("adAccounts.tiktokCreate");
   const tCommon = useTranslations("common");
@@ -52,11 +55,8 @@ export function CreateTikTokAccountModal({
   const [success, setSuccess] = useState<CreateOk | null>(null);
 
   const maintenance = TIKTOK_SELF_SERVE_CREATE_MAINTENANCE;
-  const atLimit = currentAccountCount >= TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
-  const remaining = Math.max(
-    0,
-    TIKTOK_SELF_SERVE_ACCOUNT_LIMIT - currentAccountCount,
-  );
+  const atLimit = currentAccountCount >= accountLimit;
+  const remaining = Math.max(0, accountLimit - currentAccountCount);
 
   const handleClose = useCallback(() => {
     setLoading(false);
@@ -158,7 +158,7 @@ export function CreateTikTokAccountModal({
               <div className="mt-4 border-t border-[#e4ddd6] pt-3 text-[12px] text-[#6f675f]">
                 {t("quota", {
                   used: currentAccountCount,
-                  limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+                  limit: accountLimit,
                   remaining,
                 })}
               </div>

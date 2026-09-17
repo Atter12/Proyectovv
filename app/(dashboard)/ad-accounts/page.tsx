@@ -11,6 +11,7 @@ import { filterAdAccounts } from "@/lib/filter/ad-accounts";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { getSearchParam } from "@/lib/search-params";
+import { resolveTikTokSelfServeAccountLimit } from "@/lib/integrations/tiktok/bc-create-profiles";
 import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
@@ -67,6 +68,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const clienteName = data.cliente?.name ?? selected.name;
   const filteredAccounts = filterAdAccounts(data.accounts, { search, status });
   const accountCount = data.summary.totalAccounts;
+  const accountLimit = resolveTikTokSelfServeAccountLimit(selected.id);
 
   return (
     <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
@@ -92,6 +94,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             enableTikTokCreate
             clienteName={clienteName}
             currentAccountCount={accountCount}
+            accountLimit={accountLimit}
           />
         </Suspense>
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (

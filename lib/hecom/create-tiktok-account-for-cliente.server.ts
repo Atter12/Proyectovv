@@ -11,7 +11,7 @@ import {
   buildHolisticWhatsAppUrl,
   DEFAULT_TIKTOK_CREATE_BM,
   getTikTokBcCreateProfile,
-  TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+  resolveTikTokSelfServeAccountLimit,
   type TikTokCreateBmBucket,
 } from "@/lib/integrations/tiktok/bc-create-profiles";
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
@@ -54,17 +54,18 @@ export async function createTikTokAccountForCliente(input: {
   const cliente = await getHecomCliente(clienteId);
   if (!cliente) throw new Error("Cliente Hecom no encontrado.");
 
+  const accountLimit = resolveTikTokSelfServeAccountLimit(clienteId);
   const existingCount = await countHecomTikTokAccountsForCliente(clienteId);
-  if (existingCount >= TIKTOK_SELF_SERVE_ACCOUNT_LIMIT) {
+  if (existingCount >= accountLimit) {
     const prefill =
-      `Hola Holistic, soy ${cliente.name}. Ya tengo ${existingCount} cuentas TikTok en Ads Holistic y necesito crear una más (límite self-serve: ${TIKTOK_SELF_SERVE_ACCOUNT_LIMIT}).`;
+      `Hola Holistic, soy ${cliente.name}. Ya tengo ${existingCount} cuentas TikTok en Ads Holistic y necesito crear una más (límite self-serve: ${accountLimit}).`;
     return {
       ok: false,
       needWhatsApp: true,
       accountCount: existingCount,
-      limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+      limit: accountLimit,
       whatsappUrl: buildHolisticWhatsAppUrl(prefill),
-      message: `Podés crear hasta ${TIKTOK_SELF_SERVE_ACCOUNT_LIMIT} cuentas desde la app. Para más, escribinos por WhatsApp.`,
+      message: `Podés crear hasta ${accountLimit} cuentas desde la app. Para más, escribinos por WhatsApp.`,
     };
   }
 
@@ -99,7 +100,7 @@ export async function createTikTokAccountForCliente(input: {
         ok: false,
         needWhatsApp: true,
         accountCount: existingCount,
-        limit: TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
+        limit: accountLimit,
         whatsappUrl: buildHolisticWhatsAppUrl(prefill),
         message:
           clientMessage ||

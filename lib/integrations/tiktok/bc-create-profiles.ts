@@ -73,6 +73,44 @@ export const DEFAULT_TIKTOK_CREATE_BM: TikTokCreateBmBucket = "300";
 export const TIKTOK_SELF_SERVE_ACCOUNT_LIMIT = 2;
 
 /**
+ * Clientes con cupo ampliado, por pedido de gerencia.
+ *
+ * El cupo de 2 es la regla; esto son excepciones puntuales. Se resuelve en el
+ * server y viaja a la UI como prop, así que el modal muestra el cupo real.
+ *
+ * `TIKTOK_SELF_SERVE_ACCOUNT_LIMIT_OVERRIDES` permite sumar casos sin deploy,
+ * con formato `clienteId:limite,clienteId:limite`.
+ */
+const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
+  // Jesus Fuentes — 2026-09-16, autorizado por gerencia: 2 cuentas más.
+  "529cdfbf-8b74-44a6-afec-5212b6687a6e": 4,
+};
+
+function parseLimitOverridesEnv(): Record<string, number> {
+  const raw = process.env.TIKTOK_SELF_SERVE_ACCOUNT_LIMIT_OVERRIDES;
+  if (!raw) return {};
+  const out: Record<string, number> = {};
+  for (const pair of raw.split(",")) {
+    const [id, limit] = pair.split(":").map((part) => part.trim());
+    const parsed = Number(limit);
+    if (id && Number.isInteger(parsed) && parsed > 0) out[id] = parsed;
+  }
+  return out;
+}
+
+export function resolveTikTokSelfServeAccountLimit(
+  hecomClienteId: string | null | undefined,
+): number {
+  const id = String(hecomClienteId ?? "").trim();
+  if (!id) return TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
+  const override =
+    parseLimitOverridesEnv()[id] ?? SELF_SERVE_LIMIT_OVERRIDES[id];
+  return override && override > TIKTOK_SELF_SERVE_ACCOUNT_LIMIT
+    ? override
+    : TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
+}
+
+/**
  * Self-serve create en mantenimiento (TikTok BC bloqueado / ops).
  * `true` = UI amable + API rechaza altas.
  *

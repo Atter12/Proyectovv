@@ -27,6 +27,7 @@ interface AdAccountsToolbarProps {
   enableTikTokCreate?: boolean;
   clienteName?: string;
   currentAccountCount?: number;
+  accountLimit?: number;
 }
 
 export function AdAccountsToolbar({
@@ -36,6 +37,7 @@ export function AdAccountsToolbar({
   enableTikTokCreate = false,
   clienteName = "",
   currentAccountCount = 0,
+  accountLimit,
 }: AdAccountsToolbarProps) {
   const t = useTranslations("adAccounts");
   const router = useRouter();
@@ -152,6 +154,7 @@ export function AdAccountsToolbar({
           onClose={() => setModalOpen(false)}
           clienteName={clienteName}
           currentAccountCount={currentAccountCount}
+          accountLimit={accountLimit}
         />
       ) : null}
     </>
