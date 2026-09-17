@@ -1080,6 +1080,7 @@
     "signalsStaffHint": "Manager view · feeds credit decisions (burn, concentration, ROAS).",
     "signalsStaffBadge": "{warn} warn · {total} signals",
     "severityWarn": "Warn",
+    "severityCritical": "Critical",
     "severityInfo": "Info",
     "campaigns": "Campaigns",
     "campaignsSubtitle": "Ranking + TikTok performance",

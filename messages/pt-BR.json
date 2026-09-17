@@ -1080,6 +1080,7 @@
     "signalsStaffHint": "Vista gerência · alimenta o critério de crédito (queima, concentração, ROAS).",
     "signalsStaffBadge": "{warn} aviso · {total} sinais",
     "severityWarn": "Aviso",
+    "severityCritical": "Crítico",
     "severityInfo": "Info",
     "campaigns": "Campanhas",
     "campaignsSubtitle": "Ranking + performance TikTok",

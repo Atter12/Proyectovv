@@ -13,6 +13,7 @@ import {
   type HolisticDailyPoint,
 } from "@/lib/realprofit/holistic-spend.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
+import { buildBurnRateSignalsForCliente } from "@/lib/realprofit/burn-rate-signals.server";
 
 export type RpStoreSummary = {
   id: string;
@@ -70,8 +71,14 @@ export type ProfitPacingLabel =
   | "sin_base";
 
 export type ProfitSignal = {
-  kind: "concentration" | "pacing" | "silent" | "weak_roas" | "low_ctr";
-  severity: "info" | "warn";
+  kind:
+    | "burn_rate"
+    | "concentration"
+    | "pacing"
+    | "silent"
+    | "weak_roas"
+    | "low_ctr";
+  severity: "info" | "warn" | "critical";
   title: string;
   detail: string;
 };
@@ -975,6 +982,19 @@ export async function loadClienteProfitPromo(input: {
   const aboveBreakEven =
     roasEffective != null ? roasEffective >= breakEvenRoas : null;
 
+  const campaignSignals = buildSignals({
+    campaigns,
+    pacingLabel,
+    pacingRatio,
+    spendToday,
+    hasCodLink: linkedStores.length > 0,
+  });
+  const burnSignals = await buildBurnRateSignalsForCliente({
+    hecomClienteId: input.hecomClienteId,
+    spendTodayUsd: spendToday,
+  });
+  const signals = [...burnSignals, ...campaignSignals].slice(0, 8);
+
   const analysis: ProfitAnalysis = {
     from: range.from,
     to: range.to,
@@ -1008,13 +1028,7 @@ export async function loadClienteProfitPromo(input: {
     breakEvenRoas,
     aboveBreakEven,
     dataThroughDate,
-    signals: buildSignals({
-      campaigns,
-      pacingLabel,
-      pacingRatio,
-      spendToday,
-      hasCodLink: linkedStores.length > 0,
-    }),
+    signals,
     perf: summarizePerf(campaigns, {
       advertisersQueried: perf.advertisersQueried,
       advertisersOk: perf.advertisersOk,

@@ -51,7 +51,7 @@ type DailyPoint = { date: string; spend: number };
 
 type ProfitSignal = {
   kind: string;
-  severity: "info" | "warn";
+  severity: "info" | "warn" | "critical";
   title: string;
   detail: string;
 };
@@ -592,34 +592,49 @@ export function ProfitPageClient({
                 {isStaff ? (
                   <p className="rounded-lg bg-[#fff7f0] px-2.5 py-1 text-[11px] font-semibold text-[#c2410c]">
                     {t("signalsStaffBadge", {
-                      warn: analysis.signals.filter((s) => s.severity === "warn")
-                        .length,
+                      warn: analysis.signals.filter(
+                        (s) =>
+                          s.severity === "warn" || s.severity === "critical",
+                      ).length,
                       total: analysis.signals.length,
                     })}
                   </p>
                 ) : null}
               </div>
               <ul className="space-y-2">
-                {analysis.signals.map((signal, idx) => (
+                {analysis.signals.map((signal, idx) => {
+                  const tone =
+                    signal.severity === "critical"
+                      ? "critical"
+                      : signal.severity === "warn"
+                        ? "warn"
+                        : "info";
+                  return (
                   <li
                     key={`${signal.kind}-${idx}-${signal.title}`}
                     className={`rounded-xl border px-3.5 py-3 ${
-                      signal.severity === "warn"
-                        ? "border-[#ffd7b8] bg-[#fff7f0]"
-                        : "border-[#ece7e0] bg-[#faf8f5]"
+                      tone === "critical"
+                        ? "border-[#fecaca] bg-[#fef2f2]"
+                        : tone === "warn"
+                          ? "border-[#ffd7b8] bg-[#fff7f0]"
+                          : "border-[#ece7e0] bg-[#faf8f5]"
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
-                          signal.severity === "warn"
-                            ? "bg-[#ffedd5] text-[#c2410c]"
-                            : "bg-[#e7e0d8] text-[#5c564e]"
+                          tone === "critical"
+                            ? "bg-[#fee2e2] text-[#b91c1c]"
+                            : tone === "warn"
+                              ? "bg-[#ffedd5] text-[#c2410c]"
+                              : "bg-[#e7e0d8] text-[#5c564e]"
                         }`}
                       >
-                        {signal.severity === "warn"
-                          ? t("severityWarn")
-                          : t("severityInfo")}
+                        {tone === "critical"
+                          ? t("severityCritical")
+                          : tone === "warn"
+                            ? t("severityWarn")
+                            : t("severityInfo")}
                       </span>
                       {isStaff ? (
                         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
@@ -634,7 +649,8 @@ export function ProfitPageClient({
                       {signal.detail}
                     </p>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           ) : null}

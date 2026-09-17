@@ -1,12 +1,12 @@
 # Bot de alertas y análisis de campañas TikTok
 
-**Estado:** Fase 0 en deploy · señales visibles en Profit (cliente + gerencia)
+**Estado:** Fase 0 en deploy · quema de saldo (burn_rate) en Profit · señales visibles (cliente + gerencia)
 **Fecha:** 2026-09-15 · actualizado 2026-09-17
 **Origen:** pedido de ops (Annie): *“lo que muestras son las métricas tal cual se ven
 en Ads Manager, solo dentro de Ads Holistic. Lo que quiero es que el bot analice cada
 campaña con las métricas de TikTok Ads.”*
 
-Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera rápida”**.
+Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera rápida”** → `burn_rate` en Profit.
 
 ---
 
@@ -19,6 +19,7 @@ Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera ráp
 | ¿Falta LLM? | No. Ya hay OpenAI en producción (creativos + vouchers). |
 | ¿Qué falta de verdad? | Persistencia histórica, alerta de quema de saldo, panel ops, score. |
 | **Fase 0 (listo)** | `buildSignals()` ya se **renderiza** en Profit. Cliente ve alertas; gerencia ve kind + badge y hint de crédito. |
+| **Quema de saldo (listo MVP)** | `buildBurnRateSignalsForCliente()` · kind `burn_rate` · usa última `allocation_to_ad_account` + saldo ledger (+ spend tx o fallback). Severidad `warn` / `critical` / `info`. |
 | ¿Dónde se ve? | **Profit** (cliente) + vista gerencia más detallada (score / crédito). |
 
 ---
@@ -138,7 +139,19 @@ Renderizar los `signals` que ya llegan al cliente en Profit
 - **Gerencia (`isStaff`):** mismo bloque + badge de avisos + `kind` técnico + hint
   de que alimenta el criterio de crédito.
 
-Siguiente: Fase 1 (historial) + alerta “saldo quemado rápido”.
+Siguiente: Fase 1 (historial diario) + notificaciones / campanita. Panel ops cross-cliente.
+
+### Quema de saldo — MVP · **HECHO 2026-09-17**
+
+`lib/realprofit/burn-rate-signals.server.ts` enganchado en `loadClienteProfitPromo`.
+
+| Severidad | Condición |
+|-----------|-----------|
+| `warn` | ≥ 50 % de la última asignación en &lt; 6 h |
+| `critical` | ≥ 80 % en &lt; 3 h, o horas para vaciar &lt; 2 |
+| `info` | available ledger = 0 tras haber gastado |
+
+Sin cron todavía: se calcula al abrir Profit. Sin historial TikTok multi-día.
 
 ### Fase 1 — Persistir métricas por campaña
 
