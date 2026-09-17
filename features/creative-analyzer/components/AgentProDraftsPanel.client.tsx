@@ -5,21 +5,36 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
+import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
 import { classifyTikTokRejectReasons } from "@/lib/creatives/tiktok-reject-action";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { cn } from "@/lib/cn";
 
-type FilterId = "all" | "action" | "review" | "ready";
+type FilterId = "action" | "ready" | "all";
+
+function isRejected(d: CreativeDraftListItem) {
+  return d.status === "published" && d.tiktokReviewStatus === "rejected";
+}
+
+function isReady(d: CreativeDraftListItem) {
+  return (
+    d.status === "draft" || d.status === "approved" || d.status === "failed"
+  );
+}
+
+function draftTitle(d: CreativeDraftListItem) {
+  return cleanCreativeDisplayName(
+    d.brief.adName || d.brief.campaignName || d.assetName || "",
+  );
+}
 
 function reviewRank(d: CreativeDraftListItem): number {
-  if (d.status === "published" && d.tiktokReviewStatus === "rejected") return 0;
+  if (isRejected(d)) return 0;
   if (d.status === "failed") return 1;
-  if (d.status === "published" && d.tiktokReviewStatus === "pending") return 2;
-  if (d.status === "draft" || d.status === "approved") return 3;
-  if (d.status === "published" && d.tiktokReviewStatus === "approved") return 4;
-  return 5;
+  if (isReady(d)) return 2;
+  return 3;
 }
 
 export function AgentProDraftsPanel({
@@ -34,34 +49,32 @@ export function AgentProDraftsPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterId>("all");
-  const [expandedBrief, setExpandedBrief] = useState<Record<string, boolean>>(
-    {},
-  );
 
   const counts = useMemo(() => {
     let rejected = 0;
-    let pending = 0;
     let ready = 0;
+    let failed = 0;
     for (const d of drafts) {
-      if (d.status === "published" && d.tiktokReviewStatus === "rejected") {
-        rejected += 1;
-      } else if (
-        d.status === "published" &&
-        (d.tiktokReviewStatus === "pending" ||
-          d.tiktokReviewStatus === "unknown")
-      ) {
-        pending += 1;
-      } else if (
-        d.status === "draft" ||
-        d.status === "failed" ||
-        d.status === "approved"
-      ) {
-        ready += 1;
-      }
+      if (isRejected(d)) rejected += 1;
+      else if (d.status === "failed") failed += 1;
+      else if (isReady(d)) ready += 1;
     }
-    return { rejected, pending, ready, action: rejected };
+    return {
+      rejected,
+      ready,
+      failed,
+      action: rejected + failed,
+    };
   }, [drafts]);
+
+  // Default: Problemas when there are rejects (client inbox), else Por enviar / Todos.
+  const [filter, setFilter] = useState<FilterId>("action");
+  const activeFilter: FilterId =
+    filter === "action" && counts.action === 0 && drafts.length > 0
+      ? counts.ready > 0
+        ? "ready"
+        : "all"
+      : filter;
 
   const sorted = useMemo(
     () =>
@@ -76,62 +89,12 @@ export function AgentProDraftsPanel({
   );
 
   const visible = useMemo(() => {
-    if (filter === "all") return sorted;
-    return sorted.filter((d) => {
-      if (filter === "action") {
-        return (
-          (d.status === "published" && d.tiktokReviewStatus === "rejected") ||
-          d.status === "failed"
-        );
-      }
-      if (filter === "review") {
-        return (
-          d.status === "published" &&
-          (d.tiktokReviewStatus === "pending" ||
-            d.tiktokReviewStatus === "unknown")
-        );
-      }
-      return (
-        d.status === "draft" ||
-        d.status === "approved" ||
-        d.status === "failed"
-      );
-    });
-  }, [sorted, filter]);
-
-  function statusLabel(status: string) {
-    switch (status) {
-      case "draft":
-        return t("statusDraft");
-      case "approved":
-        return t("statusApproved");
-      case "rejected":
-        return t("statusRejected");
-      case "publishing":
-        return t("statusPublishing");
-      case "published":
-        return t("statusPublished");
-      case "failed":
-        return t("statusFailed");
-      default:
-        return status;
+    if (activeFilter === "all") return sorted;
+    if (activeFilter === "action") {
+      return sorted.filter((d) => isRejected(d) || d.status === "failed");
     }
-  }
-
-  function tiktokReviewLabel(status: string | null) {
-    switch (status) {
-      case "rejected":
-        return t("tiktokRejected");
-      case "approved":
-        return t("tiktokApproved");
-      case "pending":
-        return t("tiktokPending");
-      case "unknown":
-        return t("tiktokUnknown");
-      default:
-        return null;
-    }
-  }
+    return sorted.filter(isReady);
+  }, [sorted, activeFilter]);
 
   async function runAction(
     draftId: string,
@@ -150,13 +113,10 @@ export function AgentProDraftsPanel({
         method: "POST",
         body: JSON.stringify({ draftId, action, publish }),
       });
-      if (action === "reject") {
-        setMessage(t("rejectedMsg"));
-      } else if (res.published || action === "publish") {
+      if (action === "reject") setMessage(t("rejectedMsg"));
+      else if (res.published || action === "publish")
         setMessage(t("publishedMsg"));
-      } else {
-        setMessage(t("approvedMsg"));
-      }
+      else setMessage(t("approvedMsg"));
       router.refresh();
     } catch (err) {
       setError(
@@ -167,24 +127,25 @@ export function AgentProDraftsPanel({
     }
   }
 
+  const panelTitle =
+    activeFilter === "action" || counts.action > 0
+      ? t("titleProblems")
+      : t("title");
+  const panelSubtitle =
+    counts.action > 0
+      ? t("subtitleProblems", { count: counts.action })
+      : publishEnabled
+        ? t("subtitleEnabled")
+        : t("subtitleDisabled");
+
   const filters: { id: FilterId; label: string; count: number }[] = [
-    { id: "all", label: t("filterAll"), count: drafts.length },
-    {
-      id: "action",
-      label: t("filterAction"),
-      count: counts.rejected + drafts.filter((d) => d.status === "failed").length,
-    },
-    { id: "review", label: t("filterReview"), count: counts.pending },
+    { id: "action", label: t("filterAction"), count: counts.action },
     { id: "ready", label: t("filterReady"), count: counts.ready },
+    { id: "all", label: t("filterAll"), count: drafts.length },
   ];
 
   return (
-    <CrmPanel
-      title={t("title")}
-      subtitle={
-        publishEnabled ? t("subtitleEnabled") : t("subtitleDisabled")
-      }
-    >
+    <CrmPanel title={panelTitle} subtitle={panelSubtitle}>
       {!publishEnabled ? (
         <p className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950 sm:mx-5">
           {t("publishHintBefore")}
@@ -195,23 +156,21 @@ export function AgentProDraftsPanel({
         </p>
       ) : null}
 
-      {counts.rejected > 0 ? (
-        <div className="mx-4 mt-3 flex flex-col gap-2 rounded-[1rem] border border-[#f0c4c4] bg-[linear-gradient(135deg,#fdf6f5_0%,#fff_70%)] px-3.5 py-3 sm:mx-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[13px] font-bold tracking-[-0.02em] text-[#9b2c2c]">
-              {t("inboxTitle", { count: counts.rejected })}
-            </p>
-            <p className="mt-0.5 text-[11px] leading-4 text-[#6b3f3f]">
-              {t("inboxBody")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFilter("action")}
-            className="shrink-0 rounded-lg bg-[#9b2c2c] px-3 py-2 text-[12px] font-semibold text-white transition hover:brightness-110"
-          >
-            {t("inboxCta")}
-          </button>
+      {counts.action > 0 ? (
+        <div className="mx-4 mt-3 rounded-[1rem] border border-[#f0c4c4] bg-[linear-gradient(135deg,#fdf6f5_0%,#fff_75%)] px-3.5 py-3 sm:mx-5">
+          <p className="text-[14px] font-bold tracking-[-0.02em] text-[#9b2c2c]">
+            {t("inboxTitle", { count: counts.action })}
+          </p>
+          <p className="mt-1 text-[12px] leading-4 text-[#6b3f3f]">
+            {t("inboxBody")}
+          </p>
+        </div>
+      ) : drafts.length > 0 ? (
+        <div className="mx-4 mt-3 rounded-[1rem] border border-[#c5e4d2] bg-[#f3faf6] px-3.5 py-3 sm:mx-5">
+          <p className="text-[13px] font-semibold text-[#1f5c40]">
+            {t("allClearTitle")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-[#2f6b4f]">{t("allClearBody")}</p>
         </div>
       ) : null}
 
@@ -238,7 +197,7 @@ export function AgentProDraftsPanel({
               onClick={() => setFilter(f.id)}
               className={cn(
                 "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition",
-                filter === f.id
+                activeFilter === f.id
                   ? f.id === "action" && f.count > 0
                     ? "bg-[#9b2c2c] text-white"
                     : "bg-[var(--auth-text)] text-white"
@@ -246,14 +205,7 @@ export function AgentProDraftsPanel({
               )}
             >
               {f.label}
-              <span
-                className={cn(
-                  "tabular-nums",
-                  filter === f.id ? "opacity-80" : "text-[var(--auth-text-soft)]",
-                )}
-              >
-                {f.count}
-              </span>
+              <span className="tabular-nums opacity-80">{f.count}</span>
             </button>
           ))}
         </div>
@@ -277,7 +229,7 @@ export function AgentProDraftsPanel({
       ) : visible.length === 0 ? (
         <div className="px-4 py-8 text-center sm:px-5">
           <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">
-            {t("filterEmpty")}
+            {activeFilter === "action" ? t("noProblemsBody") : t("filterEmpty")}
           </p>
           <button
             type="button"
@@ -290,264 +242,159 @@ export function AgentProDraftsPanel({
       ) : (
         <ul className="max-h-[36rem] space-y-3 overflow-y-auto p-3 sm:p-4">
           {visible.map((draft) => {
-            const canSend =
-              draft.status === "draft" ||
-              draft.status === "failed" ||
-              draft.status === "approved";
+            const title = draftTitle(draft);
+            const rejected = isRejected(draft);
+            const failed = draft.status === "failed";
+            const canSend = isReady(draft);
             const canApproveOnly =
               draft.status === "draft" || draft.status === "failed";
             const canReject = draft.status === "draft";
-            const tiktokRejected =
-              draft.status === "published" &&
-              draft.tiktokReviewStatus === "rejected";
-            const tiktokPending =
-              draft.status === "published" &&
-              (draft.tiktokReviewStatus === "pending" ||
-                draft.tiktokReviewStatus === "unknown");
-            const tiktokApproved =
-              draft.status === "published" &&
-              draft.tiktokReviewStatus === "approved";
-            const tiktokLabel = tiktokReviewLabel(draft.tiktokReviewStatus);
             const actionKind = classifyTikTokRejectReasons(
               draft.tiktokRejectReasons,
             );
-            const showBrief =
-              !tiktokRejected || expandedBrief[draft.id] === true;
+            const isDiscovered =
+              draft.discoverSource === "tiktok_ads_manager";
+
+            if (rejected) {
+              return (
+                <li
+                  key={draft.id}
+                  className="overflow-hidden rounded-[1.15rem] border border-[#e8a0a0] bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] ring-1 ring-[#f0c4c4]/35"
+                >
+                  <div className="border-b border-[#f0c4c4]/50 bg-[linear-gradient(90deg,#fdf6f5,#fff)] px-3.5 py-3 sm:px-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                          {title}
+                        </p>
+                        {draft.accountName ? (
+                          <p className="mt-1 truncate text-[11px] text-[var(--auth-text-muted)]">
+                            {draft.accountName}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="rounded-md bg-[#fdeceb] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#9b2c2c] ring-1 ring-inset ring-[#f0c4c4]">
+                        {t("tiktokRejected")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 px-3.5 py-3 sm:px-4">
+                    <p className="text-[12px] font-semibold text-[#9b2c2c]">
+                      {t(`actionHint_${actionKind}`)}
+                    </p>
+
+                    {draft.tiktokRejectReasons.length > 0 ? (
+                      <ul className="space-y-1.5">
+                        {draft.tiktokRejectReasons.slice(0, 3).map((reason) => (
+                          <li
+                            key={reason.slice(0, 40)}
+                            className="text-[12px] leading-5 text-[#5c3a3a]"
+                          >
+                            · {reason}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[12px] leading-5 text-[#6b3f3f]">
+                        {t("tiktokRejectNoReason")}
+                      </p>
+                    )}
+
+                    <div className="rounded-lg bg-[rgb(20_18_16_/_0.03)] px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("nextStepLabel")}
+                      </p>
+                      <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text)]">
+                        {t(`nextStep_${actionKind}`)}
+                      </p>
+                    </div>
+
+                    {draft.hasActiveFix ? (
+                      <p className="rounded-xl border border-[#c5e4d2] bg-[#f3faf6] px-3 py-2.5 text-[12px] font-semibold text-[#1f5c40]">
+                        {t("fixInProgress")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Link
+                          href={`?fixDraft=${encodeURIComponent(draft.id)}${
+                            draft.adAccountId
+                              ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
+                              : ""
+                          }&fixLabel=${encodeURIComponent(title)}#creative-upload`}
+                          className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
+                        >
+                          {t(`cta_${actionKind}`)}
+                        </Link>
+                        <p className="text-center text-[10px] text-[#9a7a7a] sm:max-w-[8rem] sm:text-left">
+                          {t("noSupportHint")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            }
 
             return (
               <li
                 key={draft.id}
                 className={cn(
-                  "overflow-hidden rounded-[1.15rem] border bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] transition",
-                  tiktokRejected
-                    ? "border-[#e8a0a0] ring-1 ring-[#f0c4c4]/40"
-                    : tiktokPending
-                      ? "border-[#f0d9b0]"
-                      : tiktokApproved
-                        ? "border-[#c5e4d2]"
-                        : canSend
-                          ? "border-[rgb(255_120_31_/_0.28)]"
-                          : "border-[rgb(20_18_16_/_0.08)]",
+                  "overflow-hidden rounded-[1.15rem] border bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)]",
+                  failed
+                    ? "border-[#f0c4c4]"
+                    : canSend
+                      ? "border-[rgb(255_120_31_/_0.28)]"
+                      : "border-[rgb(20_18_16_/_0.08)]",
                 )}
               >
-                <div
-                  className={cn(
-                    "border-b border-[rgb(20_18_16_/_0.06)] px-3.5 py-2.5 sm:px-4",
-                    tiktokRejected
-                      ? "bg-[linear-gradient(90deg,#fdf6f5,#fff)]"
-                      : tiktokPending
-                        ? "bg-[linear-gradient(90deg,#fff7eb,#fff)]"
-                        : tiktokApproved
-                          ? "bg-[linear-gradient(90deg,#f3faf6,#fff)]"
-                          : "bg-[rgb(255_248_243_/_0.55)]",
-                  )}
-                >
+                <div className="border-b border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.55)] px-3.5 py-2.5 sm:px-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[13px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                      {draft.brief.campaignName ||
-                        draft.assetName ||
-                        t("briefFallback")}
+                      {title}
                     </p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {!tiktokRejected ? (
-                        <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)] ring-1 ring-[rgb(20_18_16_/_0.08)]">
-                          {statusLabel(draft.status)}
-                        </span>
-                      ) : null}
-                      {tiktokLabel ? (
-                        <span
-                          className={cn(
-                            "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ring-1 ring-inset",
-                            draft.tiktokReviewStatus === "rejected"
-                              ? "bg-[#fdeceb] text-[#9b2c2c] ring-[#f0c4c4]"
-                              : draft.tiktokReviewStatus === "approved"
-                                ? "bg-[#ecf7f0] text-[#1f5c40] ring-[#c5e4d2]"
-                                : "bg-[#fff7eb] text-[#92400e] ring-[#f0d9b0]",
-                          )}
-                        >
-                          {tiktokLabel}
-                        </span>
-                      ) : null}
-                      {draft.discoverSource === "tiktok_ads_manager" ? (
-                        <span className="rounded-md bg-[rgb(20_18_16_/_0.05)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)] ring-1 ring-[rgb(20_18_16_/_0.08)]">
-                          {t("fromAdsManager")}
-                        </span>
-                      ) : null}
-                    </div>
+                    <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)] ring-1 ring-[rgb(20_18_16_/_0.08)]">
+                      {failed
+                        ? t("statusFailed")
+                        : draft.status === "approved"
+                          ? t("statusApproved")
+                          : draft.status === "published"
+                            ? t("statusPublished")
+                            : t("statusDraft")}
+                    </span>
                   </div>
-                  <p className="mt-1 text-[11px] text-[var(--auth-text-muted)]">
-                    {[
-                      draft.accountName,
-                      draft.brief.objective,
-                      t("perDay", {
-                        amount: draft.brief.suggestedDailyBudgetUsd,
-                      }),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  {draft.accountName ? (
+                    <p className="mt-1 truncate text-[11px] text-[var(--auth-text-muted)]">
+                      {draft.accountName}
+                    </p>
+                  ) : null}
                   {draft.parentDraftId ? (
-                    <p className="mt-1.5 inline-flex max-w-full items-center truncate rounded-md bg-[rgb(255_120_31_/_0.1)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-[var(--auth-accent)]">
+                    <p className="mt-1.5 inline-flex max-w-full truncate rounded-md bg-[rgb(255_120_31_/_0.1)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-[var(--auth-accent)]">
                       {t("fixOf", {
-                        name: draft.parentLabel || t("briefFallback"),
+                        name: cleanCreativeDisplayName(
+                          draft.parentLabel || t("briefFallback"),
+                        ),
                       })}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="space-y-2.5 px-3.5 py-3 sm:px-4">
-                  {tiktokRejected ? (
-                    <div className="overflow-hidden rounded-[0.9rem] border border-[#f0c4c4] bg-[#fdf8f7]">
-                      <div className="border-b border-[#f0c4c4]/60 bg-[#faf0ee] px-3 py-2.5">
-                        <p className="text-[12px] font-bold text-[#9b2c2c]">
-                          {t("tiktokRejectTitle")}
-                        </p>
-                        <p className="mt-1 text-[11px] leading-4 text-[#6b3f3f]">
-                          {t(`actionHint_${actionKind}`)}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2.5 px-3 py-2.5">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9a7a7a]">
-                          {t("tiktokRejectReasonsLabel")}
-                        </p>
-                        {draft.tiktokRejectReasons.length > 0 ? (
-                          <ol className="space-y-2">
-                            {draft.tiktokRejectReasons.map((reason, i) => (
-                              <li
-                                key={`${i}-${reason.slice(0, 24)}`}
-                                className="flex gap-2.5 text-[12px] leading-5 text-[#5c3a3a]"
-                              >
-                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdeceb] text-[10px] font-bold text-[#9b2c2c]">
-                                  {i + 1}
-                                </span>
-                                <span>{reason}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        ) : (
-                          <p className="text-[12px] leading-5 text-[#6b3f3f]">
-                            {t("tiktokRejectNoReason")}
-                          </p>
-                        )}
-
-                        <div className="rounded-lg border border-[rgb(20_18_16_/_0.06)] bg-white/80 px-3 py-2">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                            {t("nextStepLabel")}
-                          </p>
-                          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text)]">
-                            {t(`nextStep_${actionKind}`)}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 pt-0.5 sm:flex-row sm:items-center">
-                          {draft.hasActiveFix ? (
-                            <p className="flex-1 rounded-xl border border-[#c5e4d2] bg-[#f3faf6] px-3 py-2.5 text-[12px] font-semibold text-[#1f5c40]">
-                              {t("fixInProgress")}
-                            </p>
-                          ) : (
-                            <Link
-                              href={`?fixDraft=${encodeURIComponent(draft.id)}${
-                                draft.adAccountId
-                                  ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
-                                  : ""
-                              }&fixLabel=${encodeURIComponent(
-                                draft.brief.campaignName ||
-                                  draft.assetName ||
-                                  t("briefFallback"),
-                              )}#creative-upload`}
-                              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-3 text-[12px] font-bold text-white transition hover:brightness-[1.05]"
-                            >
-                              {t(`cta_${actionKind}`)}
-                            </Link>
-                          )}
-                          <p className="text-center text-[10px] leading-4 text-[#9a7a7a] sm:max-w-[9.5rem] sm:text-left">
-                            {t("noSupportHint")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {tiktokPending ? (
-                    <div className="rounded-[0.9rem] border border-[#f0d9b0] bg-[#fffaf3] px-3 py-2.5">
-                      <p className="text-[12px] font-semibold text-[#92400e]">
-                        {t("tiktokPendingTitle")}
-                      </p>
-                      <p className="mt-1 text-[11px] leading-4 text-[#a16207]">
-                        {t("tiktokPendingHint")}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {tiktokApproved ? (
-                    <div className="rounded-[0.9rem] border border-[#c5e4d2] bg-[#f3faf6] px-3 py-2.5">
-                      <p className="text-[12px] font-semibold text-[#1f5c40]">
-                        {t("tiktokApprovedTitle")}
-                      </p>
-                      <p className="mt-1 text-[11px] leading-4 text-[#2f6b4f]">
-                        {t("tiktokApprovedHint")}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {draft.errorMessage && !tiktokRejected ? (
+                <div className="space-y-2 px-3.5 py-3 sm:px-4">
+                  {failed && draft.errorMessage ? (
                     <p className="rounded-lg border border-[#f0c4c4] bg-[#fdf6f5] px-3 py-2 text-[12px] text-[#991b1b]">
                       {draft.errorMessage}
                     </p>
                   ) : null}
 
-                  {tiktokRejected ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedBrief((prev) => ({
-                          ...prev,
-                          [draft.id]: !prev[draft.id],
-                        }))
-                      }
-                      className="text-[11px] font-semibold text-[var(--auth-text-muted)] hover:text-[var(--auth-text)] hover:underline"
-                    >
-                      {showBrief ? t("hideBrief") : t("showBrief")}
-                    </button>
-                  ) : null}
-
-                  {showBrief ? (
-                    <>
-                      {draft.brief.hookCopy ? (
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                            {t("hook")}
-                          </p>
-                          <p className="mt-0.5 text-[13px] font-medium leading-5 text-[var(--auth-text)]">
-                            {draft.brief.hookCopy}
-                          </p>
-                        </div>
-                      ) : null}
-                      {draft.brief.adText ? (
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                            {t("adText")}
-                          </p>
-                          <p className="mt-0.5 text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                            {draft.brief.adText}
-                          </p>
-                        </div>
-                      ) : null}
-                      {draft.brief.audience ? (
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                            {t("audience")}
-                          </p>
-                          <p className="mt-0.5 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-                            {draft.brief.audience}
-                          </p>
-                        </div>
-                      ) : null}
-                      <p className="text-[11px] text-[var(--auth-text-soft)]">
-                        {draft.brief.adgroupName} → {draft.brief.adName}
+                  {!isDiscovered && draft.brief.hookCopy ? (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("hook")}
                       </p>
-                    </>
+                      <p className="mt-0.5 text-[13px] font-medium leading-5 text-[var(--auth-text)]">
+                        {draft.brief.hookCopy}
+                      </p>
+                    </div>
                   ) : null}
                 </div>
 
