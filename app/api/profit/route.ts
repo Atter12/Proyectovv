@@ -4,6 +4,7 @@ import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,12 @@ export async function GET(request: Request) {
       { status: 400 },
     );
   }
+
+  const funding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const isStaff = funding.isStaff || funding.isSuperAdmin;
 
   const url = new URL(request.url);
   const range = defaultProfitDateRange();
@@ -40,7 +47,10 @@ export async function GET(request: Request) {
         process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() ||
         "https://www.realprofitcod.com",
       subscription,
-      ...data,
+      linkedStores: data.linkedStores,
+      snapshots: data.snapshots,
+      analysis: data.analysis,
+      staffOps: isStaff ? data.staffOps : undefined,
     });
   } catch (error) {
     return NextResponse.json(

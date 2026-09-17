@@ -20,6 +20,7 @@ Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera ráp
 | ¿Qué falta de verdad? | Persistencia histórica, alerta de quema de saldo, panel ops, score. |
 | **Fase 0 (listo)** | `buildSignals()` ya se **renderiza** en Profit. Cliente ve alertas; gerencia ve kind + badge y hint de crédito. |
 | **Quema de saldo (listo MVP)** | `buildBurnRateSignalsForCliente()` · kind `burn_rate` · usa última `allocation_to_ad_account` + saldo ledger (+ spend tx o fallback). Severidad `warn` / `critical` / `info`. |
+| **Detalle gerencia (listo)** | Bloque oscuro solo staff: cartera, ledger ads, última asignación, estado quema, pacing + `creditHint`. Cliente no lo ve. |
 | ¿Dónde se ve? | **Profit** (cliente) + vista gerencia más detallada (score / crédito). |
 
 ---

@@ -14,6 +14,10 @@ import {
 } from "@/lib/realprofit/holistic-spend.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 import { buildBurnRateSignalsForCliente } from "@/lib/realprofit/burn-rate-signals.server";
+import { loadProfitStaffOps } from "@/lib/realprofit/staff-ops-profit.server";
+import type { ProfitStaffOps } from "@/lib/realprofit/staff-ops-profit.server";
+
+export type { ProfitStaffOps };
 
 export type RpStoreSummary = {
   id: string;
@@ -828,6 +832,7 @@ export async function loadClienteProfitPromo(input: {
   linkedStores: RpStoreSummary[];
   snapshots: StoreProfitPromo[];
   analysis: ProfitAnalysis;
+  staffOps: ProfitStaffOps;
 }> {
   const range = {
     from: input.from?.trim() || defaultProfitDateRange().from,
@@ -994,6 +999,12 @@ export async function loadClienteProfitPromo(input: {
     spendTodayUsd: spendToday,
   });
   const signals = [...burnSignals, ...campaignSignals].slice(0, 8);
+  const staffOps = await loadProfitStaffOps({
+    hecomClienteId: input.hecomClienteId,
+    spendTodayUsd: spendToday,
+    pacingLabel,
+    burnSignals,
+  });
 
   const analysis: ProfitAnalysis = {
     from: range.from,
@@ -1041,5 +1052,6 @@ export async function loadClienteProfitPromo(input: {
     linkedStores,
     snapshots,
     analysis,
+    staffOps,
   };
 }

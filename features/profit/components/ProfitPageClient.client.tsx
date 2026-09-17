@@ -56,6 +56,25 @@ type ProfitSignal = {
   detail: string;
 };
 
+type StaffOps = {
+  walletAvailableUsd: number | null;
+  adLedgerAvailableUsd: number;
+  accountsWithLedgerBalance: number;
+  lastAllocation: {
+    accountLabel: string;
+    amountUsd: number;
+    hoursAgo: number;
+    at: string;
+  } | null;
+  burn: {
+    critical: number;
+    warn: number;
+    info: number;
+    status: "critical" | "warn" | "info" | "none";
+  };
+  creditHint: string;
+};
+
 type Analysis = {
   from: string;
   to: string;
@@ -220,6 +239,7 @@ export function ProfitPageClient({
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [staffOps, setStaffOps] = useState<StaffOps | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortAsc, setSortAsc] = useState(false);
@@ -272,12 +292,14 @@ export function ProfitPageClient({
         to?: string;
         snapshots?: Snapshot[];
         analysis?: Analysis;
+        staffOps?: StaffOps;
         subscription?: RpSubscription | null;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || t("loadError"));
       }
       setAnalysis(json.analysis ?? null);
+      setStaffOps(json.staffOps ?? null);
       setSnapshots(
         (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
       );
@@ -652,6 +674,119 @@ export function ProfitPageClient({
                   );
                 })}
               </ul>
+            </section>
+          ) : null}
+
+          {isStaff && staffOps ? (
+            <section className="space-y-3 rounded-2xl border border-[#1c1917]/10 bg-[#1c1917] p-5 text-white sm:p-6">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-white/55">
+                  {t("staffOpsLabel")}
+                </p>
+                <h2 className="mt-1 text-[1.1rem] font-bold">
+                  {t("staffOpsTitle")}
+                </h2>
+                <p className="mt-1 text-[13px] leading-5 text-white/75">
+                  {staffOps.creditHint}
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl bg-white/10 px-3.5 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+                    {t("staffOpsWallet")}
+                  </p>
+                  <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+                    {staffOps.walletAvailableUsd != null
+                      ? moneyUsd(staffOps.walletAvailableUsd)
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/10 px-3.5 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+                    {t("staffOpsAdLedger")}
+                  </p>
+                  <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+                    {moneyUsd(staffOps.adLedgerAvailableUsd)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-white/50">
+                    {t("staffOpsAccountsWithBal", {
+                      count: staffOps.accountsWithLedgerBalance,
+                    })}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/10 px-3.5 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+                    {t("staffOpsLastAlloc")}
+                  </p>
+                  {staffOps.lastAllocation ? (
+                    <>
+                      <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+                        {moneyUsd(staffOps.lastAllocation.amountUsd)}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-white/50">
+                        {staffOps.lastAllocation.accountLabel} ·{" "}
+                        {t("staffOpsHoursAgo", {
+                          hours: staffOps.lastAllocation.hoursAgo,
+                        })}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-[13px] text-white/70">
+                      {t("staffOpsNoAlloc")}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl bg-white/10 px-3.5 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+                    {t("staffOpsBurn")}
+                  </p>
+                  <p className="mt-1 text-[1.05rem] font-semibold">
+                    {staffOps.burn.status === "none"
+                      ? t("staffOpsBurnNone")
+                      : staffOps.burn.status === "critical"
+                        ? t("severityCritical")
+                        : staffOps.burn.status === "warn"
+                          ? t("severityWarn")
+                          : t("severityInfo")}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-white/50">
+                    {t("staffOpsBurnCounts", {
+                      critical: staffOps.burn.critical,
+                      warn: staffOps.burn.warn,
+                      info: staffOps.burn.info,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+                    {t("staffOpsSpendToday")}
+                  </p>
+                  <p className="mt-0.5 text-[14px] font-semibold tabular-nums">
+                    {moneyUsd(analysis?.spendToday ?? 0)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+                    {t("staffOpsSpend7d")}
+                  </p>
+                  <p className="mt-0.5 text-[14px] font-semibold tabular-nums">
+                    {moneyUsd(analysis?.spend7d ?? 0)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+                    {t("staffOpsPacing")}
+                  </p>
+                  <p className="mt-0.5 text-[14px] font-semibold">
+                    {analysis?.pacingLabel ?? "—"}
+                    {analysis?.pacingRatio != null
+                      ? ` · ${analysis.pacingRatio.toFixed(2)}×`
+                      : ""}
+                  </p>
+                </div>
+              </div>
             </section>
           ) : null}
 
