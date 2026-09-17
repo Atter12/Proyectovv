@@ -203,7 +203,7 @@ function formatRangeLabel(from: string, to: string, bcp47: string): string {
 
 export function ProfitPageClient({
   clienteName,
-  isStaff: _isStaff,
+  isStaff,
   initialFrom,
   initialTo,
 }: {
@@ -575,6 +575,70 @@ export function ProfitPageClient({
         <p className="text-[13px] text-[#8a8177]">{t("loadingAnalysis")}</p>
       ) : analysis ? (
         <>
+          {(analysis.signals?.length ?? 0) > 0 ? (
+            <section className="space-y-3 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                    {t("signals")}
+                  </p>
+                  <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
+                    {t("signalsTitle")}
+                  </h2>
+                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                    {isStaff ? t("signalsStaffHint") : t("signalsClientHint")}
+                  </p>
+                </div>
+                {isStaff ? (
+                  <p className="rounded-lg bg-[#fff7f0] px-2.5 py-1 text-[11px] font-semibold text-[#c2410c]">
+                    {t("signalsStaffBadge", {
+                      warn: analysis.signals.filter((s) => s.severity === "warn")
+                        .length,
+                      total: analysis.signals.length,
+                    })}
+                  </p>
+                ) : null}
+              </div>
+              <ul className="space-y-2">
+                {analysis.signals.map((signal, idx) => (
+                  <li
+                    key={`${signal.kind}-${idx}-${signal.title}`}
+                    className={`rounded-xl border px-3.5 py-3 ${
+                      signal.severity === "warn"
+                        ? "border-[#ffd7b8] bg-[#fff7f0]"
+                        : "border-[#ece7e0] bg-[#faf8f5]"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
+                          signal.severity === "warn"
+                            ? "bg-[#ffedd5] text-[#c2410c]"
+                            : "bg-[#e7e0d8] text-[#5c564e]"
+                        }`}
+                      >
+                        {signal.severity === "warn"
+                          ? t("severityWarn")
+                          : t("severityInfo")}
+                      </span>
+                      {isStaff ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
+                          {signal.kind}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1.5 text-[13px] font-semibold text-[#1c1917]">
+                      {signal.title}
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
+                      {signal.detail}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>

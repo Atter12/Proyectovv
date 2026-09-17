@@ -1,6 +1,6 @@
 # Bot de alertas y análisis de campañas TikTok
 
-**Estado:** propuesta · **no implementado**
+**Estado:** Fase 0 en deploy · señales visibles en Profit (cliente + gerencia)
 **Fecha:** 2026-09-15 · actualizado 2026-09-17
 **Origen:** pedido de ops (Annie): *“lo que muestras son las métricas tal cual se ven
 en Ads Manager, solo dentro de Ads Holistic. Lo que quiero es que el bot analice cada
@@ -17,8 +17,8 @@ Alerta insignia pedida por gerencia: **“se gastó todo el saldo de manera ráp
 | ¿Se puede? | **Sí.** La brecha es de integración, no de capacidades. |
 | ¿Faltan datos de TikTok? | No para el MVP. Ya se traen métricas por campaña. |
 | ¿Falta LLM? | No. Ya hay OpenAI en producción (creativos + vouchers). |
-| ¿Qué falta de verdad? | **Persistencia** por campaña, motor de alertas y superficie donde mostrarlas. |
-| Quick win disponible | Hay señales por campaña **ya calculadas** que la UI nunca renderiza. |
+| ¿Qué falta de verdad? | Persistencia histórica, alerta de quema de saldo, panel ops, score. |
+| **Fase 0 (listo)** | `buildSignals()` ya se **renderiza** en Profit. Cliente ve alertas; gerencia ve kind + badge y hint de crédito. |
 | ¿Dónde se ve? | **Profit** (cliente) + vista gerencia más detallada (score / crédito). |
 
 ---
@@ -129,15 +129,16 @@ hoy no se pueden calcular por falta de persistencia.
 
 ## 3. Arquitectura por fases
 
-### Fase 0 — Quick win (sin infra nueva)
+### Fase 0 — Quick win · **HECHO 2026-09-17**
 
-Renderizar los `signals` que ya llegan al cliente en la sección de campañas de
-Profit. Cero migraciones, cero prompts. Sirve para validar con Annie si el
-formato de alerta es el que espera antes de construir el resto.
+Renderizar los `signals` que ya llegan al cliente en Profit
+(`ProfitPageClient.client.tsx`). Cero migraciones, cero prompts.
 
-Desde el día 1: el **cliente** ve las señales en su Profit; **gerencia**, al
-entrar “viendo como”, ve lo mismo. El panel ops + score de crédito llegan en
-Fase 2 (§3.5).
+- **Cliente:** bloque “Alertas de rendimiento” encima del ranking de campañas.
+- **Gerencia (`isStaff`):** mismo bloque + badge de avisos + `kind` técnico + hint
+  de que alimenta el criterio de crédito.
+
+Siguiente: Fase 1 (historial) + alerta “saldo quemado rápido”.
 
 ### Fase 1 — Persistir métricas por campaña
 
