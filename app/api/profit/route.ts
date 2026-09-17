@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 
 export const runtime = "nodejs";
 
@@ -18,10 +24,14 @@ export async function GET(request: Request) {
     );
   }
 
-  const funding = resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const funding = withActAsClienteView(
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    actingAsCliente,
+  );
   const isStaff = funding.isStaff || funding.isSuperAdmin;
 
   const url = new URL(request.url);
