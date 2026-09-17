@@ -220,6 +220,150 @@ function formatRangeLabel(from: string, to: string, bcp47: string): string {
   return `${formatDayShort(from, bcp47)} → ${formatDayShort(to, bcp47)}`;
 }
 
+/** Evita mostrar solo el ID numérico como “nombre” de campaña. */
+function displayCampaignTitle(name: string, externalId: string): string {
+  const id = externalId.replace(/^name:/, "").trim();
+  const n = String(name ?? "").trim();
+  if (!n || n === id || /^\d{10,}$/.test(n)) {
+    return id ? `Campaña · …${id.slice(-6)}` : "Campaña sin nombre";
+  }
+  return n;
+}
+
+function StaffOpsPanel({
+  ops,
+  spendTodayUsd,
+  spend7dUsd,
+  pacingLabel,
+  pacingRatio,
+  fromLiveFallback,
+  t,
+}: {
+  ops: StaffOps;
+  spendTodayUsd: number;
+  spend7dUsd: number;
+  pacingLabel: string;
+  pacingRatio: number | null;
+  fromLiveFallback: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <section className="space-y-3 rounded-2xl border border-[#ff781f]/40 bg-[#1c1917] p-5 text-white shadow-[0_12px_40px_-18px_rgb(28_25_23_/_0.55)] sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ffb080]">
+            {t("staffOpsLabel")}
+          </p>
+          <h2 className="mt-1 text-[1.15rem] font-bold tracking-tight">
+            {t("staffOpsTitle")}
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-white/80">
+            {ops.creditHint}
+          </p>
+          {fromLiveFallback ? (
+            <p className="mt-1 text-[11px] font-medium text-[#ffb080]">
+              {t("staffOpsLiveFallback")}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl bg-white/10 px-3.5 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+            {t("staffOpsWallet")}
+          </p>
+          <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+            {ops.walletAvailableUsd != null
+              ? moneyUsd(ops.walletAvailableUsd)
+              : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white/10 px-3.5 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+            {t("staffOpsAdLedger")}
+          </p>
+          <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+            {moneyUsd(ops.adLedgerAvailableUsd)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-white/50">
+            {t("staffOpsAccountsWithBal", {
+              count: ops.accountsWithLedgerBalance,
+            })}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white/10 px-3.5 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+            {t("staffOpsLastAlloc")}
+          </p>
+          {ops.lastAllocation ? (
+            <>
+              <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
+                {moneyUsd(ops.lastAllocation.amountUsd)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-white/50">
+                {ops.lastAllocation.accountLabel} ·{" "}
+                {t("staffOpsHoursAgo", {
+                  hours: ops.lastAllocation.hoursAgo,
+                })}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-[13px] text-white/70">{t("staffOpsNoAlloc")}</p>
+          )}
+        </div>
+        <div className="rounded-xl bg-white/10 px-3.5 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+            {t("staffOpsBurn")}
+          </p>
+          <p className="mt-1 text-[1.05rem] font-semibold">
+            {ops.burn.status === "none"
+              ? t("staffOpsBurnNone")
+              : ops.burn.status === "critical"
+                ? t("severityCritical")
+                : ops.burn.status === "warn"
+                  ? t("severityWarn")
+                  : t("severityInfo")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-white/50">
+            {t("staffOpsBurnCounts", {
+              critical: ops.burn.critical,
+              warn: ops.burn.warn,
+              info: ops.burn.info,
+            })}
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+            {t("staffOpsSpendToday")}
+          </p>
+          <p className="mt-0.5 text-[14px] font-semibold tabular-nums text-[#ffb080]">
+            {moneyUsd(spendTodayUsd)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+            {t("staffOpsSpend7d")}
+          </p>
+          <p className="mt-0.5 text-[14px] font-semibold tabular-nums">
+            {moneyUsd(spend7dUsd)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+            {t("staffOpsPacing")}
+          </p>
+          <p className="mt-0.5 text-[14px] font-semibold">
+            {pacingLabel}
+            {pacingRatio != null ? ` · ${pacingRatio.toFixed(2)}×` : ""}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function ProfitPageClient({
   clienteName,
   isStaff,
@@ -445,6 +589,44 @@ export function ProfitPageClient({
     return { pacingRatio: ratio, pacingLabel: "normal" as const };
   }, [analysis, useLiveForToday, liveSpendTotal]);
 
+  const displaySignals = useMemo(() => {
+    const raw = analysis?.signals ?? [];
+    // Si hay gasto live, no mostrar "Sin gasto hoy" (snapshots pueden ir atrasados).
+    if (spendTodayDisplay > 0.05) {
+      return raw.filter((s) => s.kind !== "silent");
+    }
+    return raw;
+  }, [analysis?.signals, spendTodayDisplay]);
+
+  const staffOpsResolved = useMemo(() => {
+    if (!isStaff) return null;
+    if (staffOps) return { ops: staffOps, fromLiveFallback: false };
+    return {
+      ops: {
+        walletAvailableUsd: null,
+        adLedgerAvailableUsd: liveBalanceTotal,
+        accountsWithLedgerBalance: liveAccounts.length,
+        lastAllocation: null,
+        burn: { critical: 0, warn: 0, info: 0, status: "none" as const },
+        creditHint:
+          spendTodayDisplay > 0
+            ? `Gasto live hoy ${moneyUsd(spendTodayDisplay)} · saldo TikTok ~${moneyUsd(liveBalanceTotal)}. Ledger Holistic aún no cargó detalle de asignación.`
+            : "Sin gasto live hoy. Cuando asigne y gaste, aquí verás quema y crédito.",
+      },
+      fromLiveFallback: true,
+    };
+  }, [
+    isStaff,
+    staffOps,
+    liveBalanceTotal,
+    liveAccounts.length,
+    spendTodayDisplay,
+  ]);
+
+  const warnSignalCount = displaySignals.filter(
+    (s) => s.severity === "warn" || s.severity === "critical",
+  ).length;
+
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
@@ -568,6 +750,18 @@ export function ProfitPageClient({
         ) : null}
       </section>
 
+      {isStaff && staffOpsResolved ? (
+        <StaffOpsPanel
+          ops={staffOpsResolved.ops}
+          spendTodayUsd={spendTodayDisplay}
+          spend7dUsd={analysis?.spend7d ?? 0}
+          pacingLabel={displayPacing.pacingLabel}
+          pacingRatio={displayPacing.pacingRatio}
+          fromLiveFallback={staffOpsResolved.fromLiveFallback}
+          t={t}
+        />
+      ) : null}
+
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
         <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
           {t("calendarRangeTitle")}
@@ -597,7 +791,7 @@ export function ProfitPageClient({
         <p className="text-[13px] text-[#8a8177]">{t("loadingAnalysis")}</p>
       ) : analysis ? (
         <>
-          {(analysis.signals?.length ?? 0) > 0 ? (
+          {displaySignals.length > 0 ? (
             <section className="space-y-3 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
@@ -614,17 +808,14 @@ export function ProfitPageClient({
                 {isStaff ? (
                   <p className="rounded-lg bg-[#fff7f0] px-2.5 py-1 text-[11px] font-semibold text-[#c2410c]">
                     {t("signalsStaffBadge", {
-                      warn: analysis.signals.filter(
-                        (s) =>
-                          s.severity === "warn" || s.severity === "critical",
-                      ).length,
-                      total: analysis.signals.length,
+                      warn: warnSignalCount,
+                      total: displaySignals.length,
                     })}
                   </p>
                 ) : null}
               </div>
               <ul className="space-y-2">
-                {analysis.signals.map((signal, idx) => {
+                {displaySignals.map((signal, idx) => {
                   const tone =
                     signal.severity === "critical"
                       ? "critical"
@@ -632,161 +823,48 @@ export function ProfitPageClient({
                         ? "warn"
                         : "info";
                   return (
-                  <li
-                    key={`${signal.kind}-${idx}-${signal.title}`}
-                    className={`rounded-xl border px-3.5 py-3 ${
-                      tone === "critical"
-                        ? "border-[#fecaca] bg-[#fef2f2]"
-                        : tone === "warn"
-                          ? "border-[#ffd7b8] bg-[#fff7f0]"
-                          : "border-[#ece7e0] bg-[#faf8f5]"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
-                          tone === "critical"
-                            ? "bg-[#fee2e2] text-[#b91c1c]"
-                            : tone === "warn"
-                              ? "bg-[#ffedd5] text-[#c2410c]"
-                              : "bg-[#e7e0d8] text-[#5c564e]"
-                        }`}
-                      >
-                        {tone === "critical"
-                          ? t("severityCritical")
+                    <li
+                      key={`${signal.kind}-${idx}-${signal.title}`}
+                      className={`rounded-xl border px-3.5 py-3 ${
+                        tone === "critical"
+                          ? "border-[#fecaca] bg-[#fef2f2]"
                           : tone === "warn"
-                            ? t("severityWarn")
-                            : t("severityInfo")}
-                      </span>
-                      {isStaff ? (
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
-                          {signal.kind}
+                            ? "border-[#ffd7b8] bg-[#fff7f0]"
+                            : "border-[#ece7e0] bg-[#faf8f5]"
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
+                            tone === "critical"
+                              ? "bg-[#fee2e2] text-[#b91c1c]"
+                              : tone === "warn"
+                                ? "bg-[#ffedd5] text-[#c2410c]"
+                                : "bg-[#e7e0d8] text-[#5c564e]"
+                          }`}
+                        >
+                          {tone === "critical"
+                            ? t("severityCritical")
+                            : tone === "warn"
+                              ? t("severityWarn")
+                              : t("severityInfo")}
                         </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1.5 text-[13px] font-semibold text-[#1c1917]">
-                      {signal.title}
-                    </p>
-                    <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
-                      {signal.detail}
-                    </p>
-                  </li>
+                        {isStaff ? (
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
+                            {signal.kind}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1.5 text-[13px] font-semibold text-[#1c1917]">
+                        {signal.title}
+                      </p>
+                      <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
+                        {signal.detail}
+                      </p>
+                    </li>
                   );
                 })}
               </ul>
-            </section>
-          ) : null}
-
-          {isStaff && staffOps ? (
-            <section className="space-y-3 rounded-2xl border border-[#1c1917]/10 bg-[#1c1917] p-5 text-white sm:p-6">
-              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-white/55">
-                  {t("staffOpsLabel")}
-                </p>
-                <h2 className="mt-1 text-[1.1rem] font-bold">
-                  {t("staffOpsTitle")}
-                </h2>
-                <p className="mt-1 text-[13px] leading-5 text-white/75">
-                  {staffOps.creditHint}
-                </p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl bg-white/10 px-3.5 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
-                    {t("staffOpsWallet")}
-                  </p>
-                  <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
-                    {staffOps.walletAvailableUsd != null
-                      ? moneyUsd(staffOps.walletAvailableUsd)
-                      : "—"}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white/10 px-3.5 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
-                    {t("staffOpsAdLedger")}
-                  </p>
-                  <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
-                    {moneyUsd(staffOps.adLedgerAvailableUsd)}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-white/50">
-                    {t("staffOpsAccountsWithBal", {
-                      count: staffOps.accountsWithLedgerBalance,
-                    })}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white/10 px-3.5 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
-                    {t("staffOpsLastAlloc")}
-                  </p>
-                  {staffOps.lastAllocation ? (
-                    <>
-                      <p className="mt-1 text-[1.05rem] font-semibold tabular-nums">
-                        {moneyUsd(staffOps.lastAllocation.amountUsd)}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-white/50">
-                        {staffOps.lastAllocation.accountLabel} ·{" "}
-                        {t("staffOpsHoursAgo", {
-                          hours: staffOps.lastAllocation.hoursAgo,
-                        })}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="mt-1 text-[13px] text-white/70">
-                      {t("staffOpsNoAlloc")}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-white/10 px-3.5 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
-                    {t("staffOpsBurn")}
-                  </p>
-                  <p className="mt-1 text-[1.05rem] font-semibold">
-                    {staffOps.burn.status === "none"
-                      ? t("staffOpsBurnNone")
-                      : staffOps.burn.status === "critical"
-                        ? t("severityCritical")
-                        : staffOps.burn.status === "warn"
-                          ? t("severityWarn")
-                          : t("severityInfo")}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-white/50">
-                    {t("staffOpsBurnCounts", {
-                      critical: staffOps.burn.critical,
-                      warn: staffOps.burn.warn,
-                      info: staffOps.burn.info,
-                    })}
-                  </p>
-                </div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
-                    {t("staffOpsSpendToday")}
-                  </p>
-                  <p className="mt-0.5 text-[14px] font-semibold tabular-nums">
-                    {moneyUsd(analysis?.spendToday ?? 0)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
-                    {t("staffOpsSpend7d")}
-                  </p>
-                  <p className="mt-0.5 text-[14px] font-semibold tabular-nums">
-                    {moneyUsd(analysis?.spend7d ?? 0)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 px-3.5 py-2.5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
-                    {t("staffOpsPacing")}
-                  </p>
-                  <p className="mt-0.5 text-[14px] font-semibold">
-                    {analysis?.pacingLabel ?? "—"}
-                    {analysis?.pacingRatio != null
-                      ? ` · ${analysis.pacingRatio.toFixed(2)}×`
-                      : ""}
-                  </p>
-                </div>
-              </div>
             </section>
           ) : null}
 
@@ -1066,7 +1144,7 @@ export function ProfitPageClient({
                         >
                           <td className="sticky left-0 z-[1] max-w-[240px] bg-white px-3 py-2.5 hover:bg-[#fffaf6]">
                             <p className="truncate font-semibold text-[#1c1917]">
-                              {c.campaignName}
+                              {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
                             </p>
                             <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
                               {idShown ?? t("noId")}

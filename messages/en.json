@@ -1113,6 +1113,7 @@
     "staffOpsSpendToday": "Spend today",
     "staffOpsSpend7d": "Spend 7d",
     "staffOpsPacing": "Pacing",
+    "staffOpsLiveFallback": "Quick view from TikTok live — full ledger syncs when analysis loads.",
     "campaigns": "Campaigns",
     "campaignsSubtitle": "Ranking + TikTok performance",
     "allBm": "All",
