@@ -21,6 +21,8 @@ export type TikTokBcAdvertiser = {
   statusRaw: string | null;
   statusKind: TikTokBcAdvertiserStatusKind;
   bcId: string;
+  /** Motivo TikTok (`/advertiser/info/` → rejection_reason). Null si no aplica o no vino. */
+  rejectionReason?: string | null;
 };
 
 const DEFAULT_HOLISTIC_BC_IDS = [
@@ -251,7 +253,86 @@ function parseAssetRow(
     statusRaw,
     statusKind: classifyTikTokAdvertiserStatus(statusRaw),
     bcId,
+    rejectionReason: null,
   };
+}
+
+function normalizeRejectionReason(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }
+  return null;
+}
+
+/**
+ * Motivos de rechazo/castigo a nivel cuenta (STATUS_LIMIT, etc.).
+ * Batch ≤100. No desbloquea la cuenta: solo explica qué dijo TikTok.
+ */
+export async function fetchAdvertiserRejectionReasons(input: {
+  advertiserIds: string[];
+  organizationId?: string;
+}): Promise<Map<string, string | null>> {
+  const ids = [
+    ...new Set(
+      input.advertiserIds
+        .map((id) => String(id ?? "").trim())
+        .filter((id) => /^\d{10,19}$/.test(id)),
+    ),
+  ];
+  const out = new Map<string, string | null>();
+  if (ids.length === 0) return out;
+
+  let token: string;
+  try {
+    ({ token } = await resolveTikTokFinanceAccessToken(input.organizationId));
+  } catch (error) {
+    console.warn("[tiktok-bc] rejection_reason_token_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return out;
+  }
+
+  const fields = JSON.stringify([
+    "advertiser_id",
+    "name",
+    "status",
+    "rejection_reason",
+  ]);
+
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    try {
+      const json = await tiktokGet("/advertiser/info/", token, {
+        advertiser_ids: JSON.stringify(chunk),
+        fields,
+      });
+      const data = (json.data ?? {}) as Record<string, unknown>;
+      const list = Array.isArray(data.list)
+        ? (data.list as Record<string, unknown>[])
+        : Array.isArray(data)
+          ? (data as Record<string, unknown>[])
+          : [];
+      for (const row of list) {
+        const advertiserId = String(row.advertiser_id ?? "").trim();
+        if (!advertiserId) continue;
+        out.set(advertiserId, normalizeRejectionReason(row.rejection_reason));
+      }
+    } catch (error) {
+      console.warn("[tiktok-bc] rejection_reason_fetch_failed", {
+        chunkSize: chunk.length,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
+
+  return out;
 }
 
 async function tiktokGet(

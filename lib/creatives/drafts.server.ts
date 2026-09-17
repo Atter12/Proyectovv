@@ -139,6 +139,12 @@ async function runTikTokPublish(input: {
         published_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         error_message: null,
+        review_status: "pending",
+        reject_reasons: [],
+        secondary_status: null,
+        review_checked_at: null,
+        external_ad_id: published.adId,
+        discover_source: "holistic",
       })
       .eq("id", input.draft.id);
 

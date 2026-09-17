@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react";
+import { Suspense } from "react";
 import { after } from "next/server";
 import { getTranslations } from "next-intl/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
@@ -190,7 +190,7 @@ export default async function PaymentsPage({
           skipOrphanCleanup
           skipApprovedSync={isStripeReturn}
           creditSlot={
-            capabilities.canClientStripeFund ? (
+            CREDIT_STRIPE_LOCK_ENABLED && capabilities.canClientStripeFund ? (
               <CreditLockPanel
                 clienteName={cliente.name}
                 canReviewCredit={canReviewCredit}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, type DragEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -40,16 +40,31 @@ export function CreativeUploadPanel({
 }) {
   const t = useTranslations("creatives.upload");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState("");
   const [adAccountId, setAdAccountId] = useState(
     () => accounts.find((a) => a.status === "active")?.id ?? accounts[0]?.id ?? "",
   );
+  const [parentDraftId, setParentDraftId] = useState<string | null>(null);
+  const [fixLabel, setFixLabel] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fixDraft = searchParams.get("fixDraft")?.trim() || "";
+    const fixAccount = searchParams.get("fixAccount")?.trim() || "";
+    const label = searchParams.get("fixLabel")?.trim() || "";
+    if (!fixDraft) return;
+    setParentDraftId(fixDraft);
+    if (label) setFixLabel(label);
+    if (fixAccount && accounts.some((a) => a.id === fixAccount)) {
+      setAdAccountId(fixAccount);
+    }
+  }, [searchParams, accounts]);
 
   const pickFile = useCallback(
     (next: File | null) => {
@@ -69,6 +84,19 @@ export function CreativeUploadPanel({
     },
     [t],
   );
+
+  function clearFixMode() {
+    setParentDraftId(null);
+    setFixLabel(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("fixDraft");
+    params.delete("fixAccount");
+    params.delete("fixLabel");
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}#creative-upload` : "#creative-upload", {
+      scroll: false,
+    });
+  }
 
   function clearForm() {
     setName("");
@@ -106,6 +134,9 @@ export function CreativeUploadPanel({
           formData.append("advertiserId", selected.externalAccountId);
         }
       }
+      if (parentDraftId) {
+        formData.append("parentDraftId", parentDraftId);
+      }
 
       const response = await apiClient<CreativeUploadResponse>(
         "/api/creative-assets",
@@ -116,14 +147,20 @@ export function CreativeUploadPanel({
       );
 
       setSuccess(
-        t("success", {
-          name: response.asset.name,
-          status: response.job.status,
-        }),
+        parentDraftId
+          ? t("successFix", {
+              name: response.asset.name,
+              status: response.job.status,
+            })
+          : t("success", {
+              name: response.asset.name,
+              status: response.job.status,
+            }),
       );
       setName("");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (parentDraftId) clearFixMode();
       router.refresh();
     } catch (requestError) {
       setError(
@@ -179,22 +216,46 @@ export function CreativeUploadPanel({
     >
       <div className="border-b border-[rgb(20_18_16_/_0.06)] px-5 py-4 sm:px-6">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-          {t("step1")}
+          {parentDraftId ? t("step1Fix") : t("step1")}
         </p>
         <h2 className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
-          {t("subtitle")}
+          {parentDraftId ? t("subtitleFix") : t("subtitle")}
         </h2>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">
-          {t.rich("instructions", {
-            approved: (chunks) => (
-              <span className="font-semibold text-[var(--auth-text)]">
-                {chunks}
-              </span>
-            ),
-            clientSuffix: clienteName ? ` · ${clienteName}` : "",
-          })}
+          {parentDraftId
+            ? t("instructionsFix")
+            : t.rich("instructions", {
+                approved: (chunks) => (
+                  <span className="font-semibold text-[var(--auth-text)]">
+                    {chunks}
+                  </span>
+                ),
+                clientSuffix: clienteName ? ` · ${clienteName}` : "",
+              })}
         </p>
       </div>
+
+      {parentDraftId ? (
+        <div className="mx-5 mt-4 flex flex-col gap-2 rounded-[1rem] border border-[#f0c4c4] bg-[#fdf6f5] px-3.5 py-3 sm:mx-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[12px] font-bold text-[#9b2c2c]">
+              {t("fixBannerTitle")}
+            </p>
+            <p className="mt-0.5 truncate text-[12px] text-[#6b3f3f]">
+              {t("fixBannerBody", {
+                name: fixLabel || t("fixBannerFallback"),
+              })}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={clearFixMode}
+            className="shrink-0 text-[11px] font-semibold text-[#9b2c2c] hover:underline"
+          >
+            {t("fixBannerCancel")}
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(240px,0.8fr)]">
         <div className="px-5 py-4 sm:px-6 sm:py-5">
@@ -350,7 +411,11 @@ export function CreativeUploadPanel({
               disabled={loading}
               className="h-11 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] hover:brightness-[1.05]"
             >
-              {loading ? t("uploading") : t("uploadAnalyze")}
+              {loading
+                ? t("uploading")
+                : parentDraftId
+                  ? t("uploadAnalyzeFix")
+                  : t("uploadAnalyze")}
             </Button>
             <Button
               variant="outline"
@@ -365,15 +430,23 @@ export function CreativeUploadPanel({
 
         <aside className="border-t border-[rgb(20_18_16_/_0.06)] bg-[rgb(255_248_243_/_0.65)] px-5 py-4 sm:px-6 sm:py-5 lg:border-l lg:border-t-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--auth-text-soft)]">
-            {t("flowTitle")}
+            {parentDraftId ? t("flowTitleFix") : t("flowTitle")}
           </p>
           <ul className="mt-3 space-y-2.5">
-            {[
-              t("flowStep1"),
-              t("flowStep2"),
-              t("flowStep3"),
-              t("flowStep4"),
-            ].map((item) => (
+            {(parentDraftId
+              ? [
+                  t("flowFixStep1"),
+                  t("flowFixStep2"),
+                  t("flowFixStep3"),
+                  t("flowFixStep4"),
+                ]
+              : [
+                  t("flowStep1"),
+                  t("flowStep2"),
+                  t("flowStep3"),
+                  t("flowStep4"),
+                ]
+            ).map((item) => (
               <li
                 key={item}
                 className="flex items-start gap-2 text-[12px] font-medium leading-4 text-[var(--auth-text-muted)]"

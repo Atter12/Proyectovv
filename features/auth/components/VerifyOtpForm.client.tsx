@@ -84,75 +84,101 @@ export function VerifyOtpForm() {
       return;
     }
 
-    if (!/^\d{6}$/.test(otp.trim())) {
+    const code = otp.replace(/\D/g, "").slice(0, 6);
+    if (!/^\d{6}$/.test(code)) {
       setError("Introduce un código de 6 dígitos.");
       setLoading(false);
       return;
     }
 
-    const supabase = createClient();
-    let verifyError = (
-      await supabase.auth.verifyOtp({
-        email,
-        token: otp.trim(),
-        type: isHecomFlow ? "magiclink" : "email",
-      })
-    ).error;
-
-    // Fallback: algunos proyectos validan el OTP de magiclink como type email.
-    if (verifyError && isHecomFlow) {
-      verifyError = (
-        await supabase.auth.verifyOtp({
-          email,
-          token: otp.trim(),
-          type: "email",
-        })
-      ).error;
-    }
-
-    if (verifyError) {
-      setError(mapAuthErrorMessage(verifyError.message));
-      setLoading(false);
-      return;
-    }
-
-    const flow = searchParams.get("flow");
-    if (flow === "hecom") {
+    // Hecom (clientes + gerentes): verify + sesión + provision en un solo POST.
+    // Evita doble verifyOtp en el browser (a veces deja el código “ya usado”).
+    if (isHecomFlow) {
       try {
-        const provisionRes = await fetch(routes.api.auth.otpProvision, {
+        const response = await fetch(routes.api.auth.otpVerify, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, token: code }),
         });
-        const provisioned = (await provisionRes.json()) as {
+        const payload = (await response.json()) as {
+          error?: string;
           nextPath?: string;
           needsPicker?: boolean;
           accountReady?: boolean;
+          isStaff?: boolean;
         };
+
+        if (!response.ok) {
+          setError(
+            mapAuthErrorMessage(
+              payload.error ??
+                "No pudimos verificar el código. Pedí uno nuevo e intentá de nuevo.",
+            ),
+          );
+          setLoading(false);
+          return;
+        }
+
         if (isAdminContext) {
           const allowed = await assertAdminAccess();
           router.push(allowed ? adminDestination : routes.adminUnauthorized);
           router.refresh();
           return;
         }
-        if (provisioned.accountReady === false) {
+
+        if (payload.accountReady === false) {
           router.push(routes.accountSetup);
           router.refresh();
           return;
         }
-        if (provisioned.nextPath === routes.clientes || provisioned.needsPicker) {
+
+        if (
+          payload.nextPath === routes.clientes ||
+          payload.needsPicker ||
+          payload.isStaff
+        ) {
           router.push(routes.clientes);
           router.refresh();
           return;
         }
+
         const destination = resolveSafeNextPath(
           searchParams.get("next"),
-          routes.overview,
+          payload.nextPath && payload.nextPath.startsWith("/")
+            ? payload.nextPath
+            : routes.overview,
         );
         router.push(destination);
         router.refresh();
         return;
       } catch {
-        // El link Hecom se puede reintentar; no bloquear login.
+        setError(
+          "No pudimos verificar el código. Revisá tu conexión e intentá de nuevo.",
+        );
+        setLoading(false);
+        return;
       }
+    }
+
+    try {
+      const supabase = createClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "email",
+      });
+
+      if (verifyError) {
+        setError(mapAuthErrorMessage(verifyError.message));
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError(
+        "No pudimos verificar el código. Revisá tu conexión e intentá de nuevo.",
+      );
+      setLoading(false);
+      return;
     }
 
     if (isAdminContext) {

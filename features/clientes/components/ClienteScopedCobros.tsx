@@ -106,11 +106,8 @@ function maskEmail(email: string | null): string {
 
 export async function ClienteScopedCobros({
   data,
-  showHecomDebt = false,
 }: {
   data: HecomClienteDashboard;
-  /** Solo staff en vista ops. Cliente / “viendo como”: no mostrar deuda. */
-  showHecomDebt?: boolean;
 }) {
   const t = await getTranslations("cobros");
   const { bcp47 } = await getAppFormatter();
@@ -140,11 +137,7 @@ export async function ClienteScopedCobros({
       </header>
 
       <CrmMetricsStrip>
-        <div
-          className={`grid grid-cols-2 gap-px bg-[var(--auth-divider)] ${
-            showHecomDebt ? "sm:grid-cols-3" : "sm:grid-cols-2"
-          }`}
-        >
+        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-2">
           <div className="bg-white">
             <CrmMetricCell
               label={t("totalPaid")}
@@ -158,18 +151,6 @@ export async function ClienteScopedCobros({
               value={String(cobros.length)}
             />
           </div>
-          {showHecomDebt ? (
-            <div className="bg-white">
-              <CrmMetricCell
-                label={
-                  summary.saldoEstimado < 0 ? t("debt") : t("estimated")
-                }
-                value={moneyUsd(summary.saldoEstimado)}
-                hint={t("debtHint")}
-                emphasis={summary.saldoEstimado < 0 ? "primary" : "default"}
-              />
-            </div>
-          ) : null}
         </div>
       </CrmMetricsStrip>
 

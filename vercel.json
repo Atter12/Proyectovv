@@ -12,6 +12,14 @@
     {
       "path": "/api/jobs/creative-analysis",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/jobs/creative-ad-review",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/jobs/creative-ad-discover",
+      "schedule": "0 * * * *"
     }
   ]
 }

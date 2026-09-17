@@ -34,6 +34,7 @@ export const routes = {
       otpRegister: "/api/auth/otp/register",
       otpLookupEmail: "/api/auth/otp/lookup-email",
       otpProvision: "/api/auth/otp/provision",
+      otpVerify: "/api/auth/otp/verify",
     },
     onboarding: {
       status: "/api/onboarding/status",

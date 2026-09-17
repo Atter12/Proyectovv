@@ -10,6 +10,7 @@ import {
   listOrganizationCreativeAssets,
   listOrganizationCreativeDrafts,
 } from "@/lib/creatives/list-creatives.server";
+import { discoverRejectedAdsForOrganization } from "@/lib/creatives/discover-tiktok-ads.server";
 import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creative-publish.server";
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
@@ -94,14 +95,41 @@ export default async function CreativeAnalyzerPage() {
 
   const scopeOpts = {
     hecomClienteId: selected.id,
-    advertiserIds,
+    advertiserIds: [
+      ...new Set([
+        ...advertiserIds,
+        ...accounts
+          .map((a) => a.externalAccountId)
+          .filter((id): id is string => Boolean(id)),
+      ]),
+    ],
     adAccountIds: accounts.map((a) => a.id),
   };
+
+  // Descubrir ads rechazados en Ads Manager (aunque no se hayan publicado desde Holistic).
+  const discoverAdvertiserIds = scopeOpts.advertiserIds;
+  if (session.organizationId && discoverAdvertiserIds.length > 0) {
+    try {
+      await discoverRejectedAdsForOrganization({
+        organizationId: session.organizationId,
+        advertiserIds: discoverAdvertiserIds,
+        adAccountIds: accounts.map((a) => a.id),
+      });
+    } catch (error) {
+      console.warn("[creative-analyzer] discover_ads", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
 
   const [assets, drafts] = session.organizationId
     ? await Promise.all([
         listOrganizationCreativeAssets(session.organizationId, scopeOpts),
-        listOrganizationCreativeDrafts(session.organizationId, scopeOpts),
+        listOrganizationCreativeDrafts(session.organizationId, {
+          ...scopeOpts,
+          // Traer más filas para no perder rechazos descubiertos.
+          // (list interno ya limita; el scope filtra por advertiser)
+        }),
       ])
     : [[], []];
 

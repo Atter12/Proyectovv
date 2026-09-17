@@ -7,6 +7,7 @@ import {
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
 import {
+  fetchAdvertiserRejectionReasons,
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
   peekHolisticBcAdvertisersCache,
@@ -63,7 +64,10 @@ export function mapHecomTiktokToAdAccount(
   liveStatusKind: TikTokBcAdvertiserStatusKind = "unknown",
   liveName?: string | null,
   liveBcId?: string | null,
-  options?: { trustHecomMap?: boolean },
+  options?: {
+    trustHecomMap?: boolean;
+    rejectionReason?: string | null;
+  },
 ): AdAccount {
   const bmBucket = resolveAccountBmBucket(account.bmBucket, liveBcId);
   const label = resolveDisplayName({
@@ -129,6 +133,10 @@ export function mapHecomTiktokToAdAccount(
     timezone: "America/Lima",
     connectionLabel: "Hecom · TikTok Ads",
     isArchived: false,
+    tiktokRejectionReason:
+      statusKind === "suspended"
+        ? options?.rejectionReason?.trim() || null
+        : null,
   };
 }
 
@@ -321,7 +329,10 @@ async function getHecomClienteAdAccountsOverviewImpl(
         live?.statusKind ?? "unknown",
         live?.advertiserName,
         live?.bcId,
-        { trustHecomMap: true },
+        {
+          trustHecomMap: true,
+          rejectionReason: live?.rejectionReason ?? null,
+        },
       );
     })
     .filter((account) => Boolean(account.externalAccountId?.trim()));
@@ -356,13 +367,38 @@ async function getHecomClienteAdAccountsOverviewImpl(
   }
 
   // Mostrar activas, suspendidas (disabled) y pendientes. No ocultar baneadas.
-  const accounts = [...byExternalId.values()].sort((a, b) => {
+  let accounts = [...byExternalId.values()].sort((a, b) => {
     const order = (s: AdAccount["status"]) =>
       s === "active" ? 0 : s === "pending" ? 1 : s === "disabled" ? 2 : 3;
     const d = order(a.status) - order(b.status);
     if (d !== 0) return d;
     return a.name.localeCompare(b.name, "es");
   });
+
+  const firstActive = accounts.find((a) => a.status === "active") ?? null;
+  const suspendedIds = accounts
+    .filter((a) => a.status === "disabled")
+    .map((a) => a.externalAccountId?.trim() ?? "")
+    .filter(Boolean);
+
+  if (suspendedIds.length > 0) {
+    const reasons = await fetchAdvertiserRejectionReasons({
+      advertiserIds: suspendedIds,
+    }).catch(() => new Map<string, string | null>());
+
+    accounts = accounts.map((account) => {
+      if (account.status !== "disabled") return account;
+      const id = account.externalAccountId?.trim() ?? "";
+      const fetched = id ? reasons.get(id) : null;
+      return {
+        ...account,
+        tiktokRejectionReason:
+          fetched ?? account.tiktokRejectionReason ?? null,
+        alternativeAccountId: firstActive?.externalAccountId ?? null,
+        alternativeAccountName: firstActive?.name ?? null,
+      };
+    });
+  }
 
   console.info("[ad-accounts] overview", {
     clienteId,
@@ -375,6 +411,9 @@ async function getHecomClienteAdAccountsOverviewImpl(
     holisticFallback: hecomAccounts.length === 0 ? accounts.length : 0,
     active: accounts.filter((a) => a.status === "active").length,
     suspended: accounts.filter((a) => a.status === "disabled").length,
+    withRejectionReason: accounts.filter(
+      (a) => a.status === "disabled" && Boolean(a.tiktokRejectionReason),
+    ).length,
   });
 
   return {

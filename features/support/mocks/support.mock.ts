@@ -205,11 +205,12 @@ export const supportMock: SupportConfig = {
       categoryId: "cuentas",
       title: "¿Qué pasa si una cuenta está suspendida?",
       content:
-        "Significa que TikTok la tiene castigada/cerrada (o similar). Se muestra en la lista, pero no sirve para asignar/recargar. Usa otra cuenta Aprobada.",
+        "TikTok la tiene castigada o cerrada (STATUS_LIMIT / similar). En Cuentas ads ves el badge Suspendida y, cuando TikTok lo envía, el motivo. No sirve para Asignar ni recargar. Holistic no puede desbloquearla por API: la apelación es en Ads Manager.",
       bullets: [
-        "Badge rojo: Suspendida",
-        "No aparece para Asignar en Pagos",
-        "Si todas están suspendidas, avisa a soporte",
+        "Abrí Cuentas ads → fila Suspendida → leé el Motivo TikTok",
+        "Si tenés otra cuenta Activa: Pagos → Asignar / Recargar ahí",
+        "Para apelar: Ads Manager → Help → Account Suspension Appeal (1 sola, 180 días; no crees cuentas nuevas mientras revisan)",
+        "Si no tenés otra Activa: Soporte con el advertiser ID ya listo (no hace falta ticket vacío)",
       ],
     },
     {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -18,6 +18,7 @@ import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { AdAccountsEmptyState } from "./AdAccountsEmptyState";
 import { ConfigureAdAccountModal } from "./ConfigureAdAccountModal.client";
 import { AdAccountLiveBalanceCell } from "./AdAccountLiveBalanceCell.client";
+import { SuspendedAccountHelp } from "./SuspendedAccountHelp.client";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { buildGastosUrlForAdvertiser } from "@/lib/hecom/gastos-url";
 import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
@@ -412,6 +413,9 @@ export function AdAccountsTable({
                     <MetaChip>{account.thresholdInfo}</MetaChip>
                   )}
                 </div>
+                {account.status === "disabled" ? (
+                  <SuspendedAccountHelp account={account} />
+                ) : null}
                 <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px]">
                   {readOnly ? (
                     <div>
@@ -481,102 +485,113 @@ export function AdAccountsTable({
             <TableBody>
               {accounts.map((account) => {
                 const display = parseAccountDisplay(account, defaultName);
+                const colSpan = readOnly ? 6 : 8;
                 return (
-                  <TableRow
-                    key={account.id}
-                    className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
-                  >
-                    <TableCell className="max-w-[280px]">
-                      <AccountCell account={account} />
-                    </TableCell>
-                    <TableCell title={display.accountId ?? undefined}>
-                      <div className="flex flex-wrap gap-1.5">
-                        <MetaChip tone="mono">
-                          {shortId(display.accountId)}
-                        </MetaChip>
-                        {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusPill status={account.status} />
-                    </TableCell>
-                    {readOnly ? (
-                      <>
-                        <TableCell>
-                          <AdAccountLiveBalanceCell
-                            advertiserId={account.externalAccountId}
-                            metric={
-                              account.externalAccountId
-                                ? live.metricsByAdvertiser[account.externalAccountId]
-                                : undefined
-                            }
-                            loading={live.loading}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {display.fee ? (
-                            <MetaChip tone="fee">
-                              {t("table.fee")} {display.fee}%
-                            </MetaChip>
-                          ) : (
-                            <span className="text-[12px] text-[#5c564e]">
-                              {account.thresholdInfo}
-                            </span>
-                          )}
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell className="text-[12px] tabular-nums text-[#5c564e]">
-                          <div>
-                            {t("table.daily", {
-                              amount: formatMoney(account.dailyBudget),
-                            })}
-                          </div>
-                          <div className="text-[#9a9187]">
-                            {t("table.monthly", {
-                              amount: formatMoney(account.monthlyLimit),
-                            })}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
-                          {formatMoney(account.balance)}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={
-                              account.autoRecharge
-                                ? "text-[12px] font-semibold text-[#1f5c40]"
-                                : "text-[12px] text-[#7a736a]"
-                            }
-                          >
-                            {account.autoRecharge
-                              ? t("table.rechargeOn")
-                              : t("table.rechargeOff")}
-                          </span>
-                          <div className="mt-1">
+                  <Fragment key={account.id}>
+                    <TableRow
+                      className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
+                    >
+                      <TableCell className="max-w-[280px]">
+                        <AccountCell account={account} />
+                      </TableCell>
+                      <TableCell title={display.accountId ?? undefined}>
+                        <div className="flex flex-wrap gap-1.5">
+                          <MetaChip tone="mono">
+                            {shortId(display.accountId)}
+                          </MetaChip>
+                          {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <StatusPill status={account.status} />
+                      </TableCell>
+                      {readOnly ? (
+                        <>
+                          <TableCell>
+                            <AdAccountLiveBalanceCell
+                              advertiserId={account.externalAccountId}
+                              metric={
+                                account.externalAccountId
+                                  ? live.metricsByAdvertiser[
+                                      account.externalAccountId
+                                    ]
+                                  : undefined
+                              }
+                              loading={live.loading}
+                            />
+                          </TableCell>
+                          <TableCell>
                             {display.fee ? (
                               <MetaChip tone="fee">
                                 {t("table.fee")} {display.fee}%
                               </MetaChip>
                             ) : (
-                              <span className="text-[11px] text-[#9a9187]">
+                              <span className="text-[12px] text-[#5c564e]">
                                 {account.thresholdInfo}
                               </span>
                             )}
-                          </div>
-                        </TableCell>
-                      </>
-                    )}
-                    {!readOnly ? (
-                      <TableCell className="text-[12px] text-[#5c564e]">
-                        {account.timezone || "—"}
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell className="text-[12px] tabular-nums text-[#5c564e]">
+                            <div>
+                              {t("table.daily", {
+                                amount: formatMoney(account.dailyBudget),
+                              })}
+                            </div>
+                            <div className="text-[#9a9187]">
+                              {t("table.monthly", {
+                                amount: formatMoney(account.monthlyLimit),
+                              })}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1612]">
+                            {formatMoney(account.balance)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={
+                                account.autoRecharge
+                                  ? "text-[12px] font-semibold text-[#1f5c40]"
+                                  : "text-[12px] text-[#7a736a]"
+                              }
+                            >
+                              {account.autoRecharge
+                                ? t("table.rechargeOn")
+                                : t("table.rechargeOff")}
+                            </span>
+                            <div className="mt-1">
+                              {display.fee ? (
+                                <MetaChip tone="fee">
+                                  {t("table.fee")} {display.fee}%
+                                </MetaChip>
+                              ) : (
+                                <span className="text-[11px] text-[#9a9187]">
+                                  {account.thresholdInfo}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-[12px] text-[#5c564e]">
+                            {account.timezone || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell>
+                        <AccountActions account={account} />
                       </TableCell>
+                    </TableRow>
+                    {account.status === "disabled" ? (
+                      <TableRow
+                        className="border-b border-[rgb(20_18_16_/_0.05)] bg-[#fdf8f6] hover:bg-[#fdf8f6]"
+                      >
+                        <TableCell colSpan={colSpan} className="py-2">
+                          <SuspendedAccountHelp account={account} />
+                        </TableCell>
+                      </TableRow>
                     ) : null}
-                    <TableCell>
-                      <AccountActions account={account} />
-                    </TableCell>
-                  </TableRow>
+                  </Fragment>
                 );
               })}
             </TableBody>

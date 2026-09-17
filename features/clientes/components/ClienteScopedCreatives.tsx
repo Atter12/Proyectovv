@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
 import {
@@ -69,11 +70,14 @@ export async function ClienteScopedCreatives({
   publishEnabled: boolean;
 }) {
   const t = await getTranslations("creatives");
-  const { cliente, creativosClientes, creativosProyectos, summary } = data;
-  const published = creativosProyectos.filter((p) => p.published === true).length;
+  const { cliente, creativosClientes, creativosProyectos } = data;
   const analyzed = assets.filter((a) => a.insight).length;
   const pendingDrafts = drafts.filter(
     (d) => d.status === "draft" || d.status === "failed",
+  ).length;
+  const tiktokProblems = drafts.filter(
+    (d) =>
+      d.status === "published" && d.tiktokReviewStatus === "rejected",
   ).length;
   const activeStep = resolveActiveStep({ assets, drafts });
   const avgScore =
@@ -123,17 +127,31 @@ export async function ClienteScopedCreatives({
             value={String(pendingDrafts)}
           />
           <CrmMetricCell
-            label={t("metrics.hecom")}
-            value={String(summary.projectCount + published)}
-            emphasis="muted"
+            label={t("metrics.tiktokProblems")}
+            value={String(tiktokProblems)}
+            emphasis={tiktokProblems > 0 ? "primary" : "muted"}
+            className={
+              tiktokProblems > 0
+                ? "[&>p:last-of-type]:text-[#9b2c2c]"
+                : undefined
+            }
           />
         </div>
       </CrmMetricsStrip>
 
-      <CreativeUploadPanel
-        clienteName={cliente.name}
-        accounts={accounts}
-      />
+      <Suspense
+        fallback={
+          <div
+            id="creative-upload"
+            className="h-48 animate-pulse rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white"
+          />
+        }
+      >
+        <CreativeUploadPanel
+          clienteName={cliente.name}
+          accounts={accounts}
+        />
+      </Suspense>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <CreativeAssetsPanel assets={assets} />

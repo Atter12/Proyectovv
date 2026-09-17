@@ -23,8 +23,6 @@ export default async function CobrosPage() {
   const capabilities = withActAsClienteView(raw, actingAsCliente);
   const canChangeCliente =
     capabilities.isStaff || capabilities.isSuperAdmin || actingAsCliente;
-  const showHecomDebt =
-    (raw.isStaff || raw.isSuperAdmin) && !actingAsCliente;
 
   if (!selected) {
     return (
@@ -56,7 +54,7 @@ export default async function CobrosPage() {
 
   return (
     <div className={dashboardClasses.page}>
-      <ClienteScopedCobros data={data} showHecomDebt={showHecomDebt} />
+      <ClienteScopedCobros data={data} />
     </div>
   );
 }

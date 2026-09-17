@@ -7,6 +7,7 @@ import {
   type HecomTiktokAccount,
 } from "@/lib/hecom/clientes.server";
 import {
+  fetchAdvertiserRejectionReasons,
   listHolisticBcAdvertisers,
   listHolisticBcAdvertisersCachedFirst,
   resolveBcIdForHecomBucket,
@@ -245,6 +246,8 @@ export async function syncApprovedAdAccountsForCliente(input: {
           hecom_cliente_name: cliente.name,
           tiktok_status: "approved",
           from_hecom_map: row.fromHecom,
+          tiktok_rejection_reason: null,
+          tiktok_status_checked_at: new Date().toISOString(),
         };
 
     const { error } = await admin.from("ad_accounts").upsert(
@@ -287,7 +290,17 @@ export async function syncApprovedAdAccountsForCliente(input: {
     upserted += 1;
   }
 
+  const rejectionById = await fetchAdvertiserRejectionReasons({
+    advertiserIds: suspended.map((row) => row.advertiserId),
+    organizationId: input.organizationId,
+  }).catch(() => new Map<string, string | null>());
+
   for (const row of suspended) {
+    const existing = existingByAdvertiser.get(row.advertiserId);
+    const rejectionReason =
+      rejectionById.get(row.advertiserId) ??
+      row.rejectionReason ??
+      null;
     const { error } = await admin.from("ad_accounts").upsert(
       {
         organization_id: input.organizationId,
@@ -302,11 +315,14 @@ export async function syncApprovedAdAccountsForCliente(input: {
         created_by: input.userId ?? null,
         last_synced_at: new Date().toISOString(),
         metadata: {
+          ...(isRecord(existing?.metadata) ? existing.metadata : {}),
           source: "hecom_approved_sync",
           hecom_cliente_id: input.clienteId,
           hecom_cliente_name: cliente.name,
           tiktok_status: "suspended",
           from_hecom_map: row.fromHecom,
+          tiktok_rejection_reason: rejectionReason,
+          tiktok_status_checked_at: new Date().toISOString(),
         },
       },
       { onConflict: "organization_id,platform,external_account_id" },

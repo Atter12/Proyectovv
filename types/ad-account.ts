@@ -20,6 +20,11 @@ export interface AdAccount {
   timezone: string;
   connectionLabel: string;
   isArchived: boolean;
+  /** Motivo TikTok de castigo/suspensión (si la API lo devolvió). */
+  tiktokRejectionReason?: string | null;
+  /** Otra cuenta Activa del mismo cliente para seguir operando. */
+  alternativeAccountId?: string | null;
+  alternativeAccountName?: string | null;
 }
 
 export interface AdAccountsSummary {

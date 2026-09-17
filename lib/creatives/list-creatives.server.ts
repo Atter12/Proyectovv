@@ -7,6 +7,7 @@ import type {
   CreativeAgentBrief,
   CreativeDraftListItem,
   CreativePublishDraftStatus,
+  CreativeTikTokReviewStatus,
 } from "@/lib/creatives/types";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 
@@ -295,7 +296,26 @@ export async function listOrganizationCreativeDrafts(
       .map((id) => String(id ?? "").trim())
       .filter(Boolean),
   );
-  const scoped = Boolean(options?.hecomClienteId?.trim()) || advertiserSet.size > 0;
+  const hecomClienteId = options?.hecomClienteId?.trim() || null;
+
+  // Si hay cliente Hecom, resolver cuentas/advertisers desde DB (no depender solo del page).
+  if (hecomClienteId && (advertiserSet.size === 0 || adAccountSet.size === 0)) {
+    const { data: scopedAccounts } = await admin
+      .from("ad_accounts")
+      .select("id, external_account_id")
+      .eq("organization_id", organizationId)
+      .eq("platform", "tiktok")
+      .eq("metadata->>hecom_cliente_id", hecomClienteId)
+      .limit(150);
+    for (const row of scopedAccounts ?? []) {
+      const id = String(row.id ?? "").trim();
+      const adv = String(row.external_account_id ?? "").trim();
+      if (id) adAccountSet.add(id);
+      if (adv) advertiserSet.add(adv);
+    }
+  }
+
+  const scoped = Boolean(hecomClienteId) || advertiserSet.size > 0;
 
   if (scoped && advertiserSet.size === 0 && adAccountSet.size === 0) {
     return [];
@@ -304,26 +324,69 @@ export async function listOrganizationCreativeDrafts(
   const { data: draftsRaw, error } = await admin
     .from("creative_publish_drafts")
     .select(
-      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id",
+      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id, discover_source, external_ad_id",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
-    .limit(scoped ? 80 : 30);
+    .limit(scoped ? 150 : 40);
 
-  if (error || !draftsRaw?.length) {
-    if (error) console.warn("[creatives] list_drafts", error.message);
+  // Migraciones 030/031 aún no aplicadas: ir degradando el select.
+  let draftsSource = draftsRaw;
+  let listError = error;
+  if (error && /discover_source|external_ad_id/i.test(error.message)) {
+    const fallback = await admin
+      .from("creative_publish_drafts")
+      .select(
+        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(scoped ? 150 : 40);
+    draftsSource = fallback.data;
+    listError = fallback.error;
+  }
+  if (listError && /parent_draft_id/i.test(listError.message)) {
+    const fallback = await admin
+      .from("creative_publish_drafts")
+      .select(
+        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(scoped ? 150 : 40);
+    draftsSource = fallback.data;
+    listError = fallback.error;
+  }
+  if (
+    listError &&
+    /review_status|reject_reasons|secondary_status/i.test(listError.message)
+  ) {
+    const fallback = await admin
+      .from("creative_publish_drafts")
+      .select(
+        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id",
+      )
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(scoped ? 150 : 40);
+    draftsSource = fallback.data;
+    listError = fallback.error;
+  }
+
+  if (listError || !draftsSource?.length) {
+    if (listError) console.warn("[creatives] list_drafts", listError.message);
     return [];
   }
 
   const data = scoped
-    ? draftsRaw.filter((row) => {
+    ? draftsSource.filter((row) => {
         const accountId = String(row.ad_account_id ?? "").trim();
         const advertiserId = String(row.external_advertiser_id ?? "").trim();
         if (accountId && adAccountSet.has(accountId)) return true;
         if (advertiserId && advertiserSet.has(advertiserId)) return true;
         return false;
       })
-    : draftsRaw;
+    : draftsSource;
 
   if (!data.length) {
     return [];
@@ -360,8 +423,65 @@ export async function listOrganizationCreativeDrafts(
     (accountsRes.data ?? []).map((r) => [r.id, r.name]),
   );
 
+  const parentLabelById = new Map<string, string>();
+  for (const row of data) {
+    const brief = (row.brief ?? {}) as Partial<CreativeAgentBrief>;
+    const label =
+      String(brief.campaignName ?? "").trim() ||
+      (row.creative_asset_id
+        ? assetName.get(row.creative_asset_id as string)
+        : null) ||
+      "Brief";
+    parentLabelById.set(row.id as string, label);
+  }
+
+  const activeFixParents = new Set<string>();
+  for (const row of data) {
+    const parentId = String(
+      (row as { parent_draft_id?: string | null }).parent_draft_id ?? "",
+    ).trim();
+    if (!parentId) continue;
+    const st = String(row.status ?? "");
+    if (
+      st === "draft" ||
+      st === "approved" ||
+      st === "publishing" ||
+      st === "published" ||
+      st === "failed"
+    ) {
+      // Hijo rechazado de nuevo no cuenta como fix activo.
+      const childReview = String(
+        (row as { review_status?: string | null }).review_status ?? "",
+      );
+      if (st === "published" && childReview === "rejected") continue;
+      activeFixParents.add(parentId);
+    }
+  }
+
   return data.map((row) => {
     const brief = (row.brief ?? {}) as Partial<CreativeAgentBrief>;
+    const rejectRaw = row.reject_reasons;
+    const tiktokRejectReasons = Array.isArray(rejectRaw)
+      ? rejectRaw.map((item) => String(item ?? "").trim()).filter(Boolean)
+      : [];
+    const reviewRaw = String(row.review_status ?? "").trim();
+    const tiktokReviewStatus = (
+      ["pending", "approved", "rejected", "unknown"].includes(reviewRaw)
+        ? reviewRaw
+        : null
+    ) as CreativeTikTokReviewStatus | null;
+    const parentDraftId =
+      String(
+        (row as { parent_draft_id?: string | null }).parent_draft_id ?? "",
+      ).trim() || null;
+    const discoverRaw = String(
+      (row as { discover_source?: string | null }).discover_source ?? "",
+    ).trim();
+    const discoverSource =
+      discoverRaw === "holistic" || discoverRaw === "tiktok_ads_manager"
+        ? discoverRaw
+        : null;
+
     return {
       id: row.id as string,
       status: row.status as CreativePublishDraftStatus,
@@ -371,6 +491,7 @@ export async function listOrganizationCreativeDrafts(
       accountName: row.ad_account_id
         ? (accountName.get(row.ad_account_id as string) ?? null)
         : null,
+      adAccountId: (row.ad_account_id as string | null) ?? null,
       externalAdvertiserId:
         (row.external_advertiser_id as string | null) ?? null,
       brief: {
@@ -392,6 +513,16 @@ export async function listOrganizationCreativeDrafts(
       createdAt: row.created_at as string,
       reviewedAt: (row.reviewed_at as string | null) ?? null,
       publishedAt: (row.published_at as string | null) ?? null,
+      tiktokReviewStatus,
+      tiktokRejectReasons,
+      tiktokSecondaryStatus:
+        (row.secondary_status as string | null)?.trim() || null,
+      parentDraftId,
+      parentLabel: parentDraftId
+        ? (parentLabelById.get(parentDraftId) ?? null)
+        : null,
+      hasActiveFix: activeFixParents.has(row.id as string),
+      discoverSource,
     };
   });
 }

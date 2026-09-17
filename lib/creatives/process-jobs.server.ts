@@ -48,6 +48,7 @@ async function createAgentDraft(input: {
   accountName: string | null;
   insight: CreativeAnalysisInsight;
   requestedBy: string | null;
+  parentDraftId: string | null;
 }) {
   const brief = await buildAgentBriefWithOpenAi({
     assetName: input.assetName,
@@ -66,6 +67,7 @@ async function createAgentDraft(input: {
     status: "draft",
     brief,
     requested_by: input.requestedBy,
+    parent_draft_id: input.parentDraftId,
   });
 }
 
@@ -224,6 +226,12 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
     accountName = acc?.name ?? null;
   }
 
+  const parentDraftIdRaw = job.input?.parent_draft_id;
+  const parentDraftId =
+    typeof parentDraftIdRaw === "string" && parentDraftIdRaw.trim()
+      ? parentDraftIdRaw.trim()
+      : null;
+
   await createAgentDraft({
     organizationId: job.organization_id,
     assetId: asset.id,
@@ -234,6 +242,7 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
     accountName,
     insight,
     requestedBy: job.requested_by,
+    parentDraftId,
   });
 
   return { ok: true };

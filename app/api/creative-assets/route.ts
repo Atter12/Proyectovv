@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   const requestedName = formData.get("name");
   const adAccountIdRaw = formData.get("adAccountId");
   const advertiserIdRaw = formData.get("advertiserId");
+  const parentDraftIdRaw = formData.get("parentDraftId");
   if (!(asset instanceof File)) {
     return NextResponse.json({ error: "Archivo creativo requerido." }, { status: 400 });
   }
@@ -140,6 +141,55 @@ export async function POST(request: Request) {
       account.external_account_id?.trim() || externalAdvertiserId;
   }
 
+  let parentDraftId: string | null =
+    typeof parentDraftIdRaw === "string" && parentDraftIdRaw.trim()
+      ? parentDraftIdRaw.trim()
+      : null;
+
+  if (parentDraftId) {
+    const { data: parent, error: parentError } = await admin
+      .from("creative_publish_drafts")
+      .select(
+        "id, status, review_status, ad_account_id, external_advertiser_id, brief",
+      )
+      .eq("id", parentDraftId)
+      .eq("organization_id", session.organizationId)
+      .maybeSingle<{
+        id: string;
+        status: string;
+        review_status: string | null;
+        ad_account_id: string | null;
+        external_advertiser_id: string | null;
+        brief: Record<string, unknown> | null;
+      }>();
+
+    if (parentError || !parent) {
+      return NextResponse.json(
+        { error: "No encontramos el anuncio rechazado a corregir." },
+        { status: 400 },
+      );
+    }
+    if (
+      parent.status !== "published" ||
+      parent.review_status !== "rejected"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Solo se puede vincular una corrección a un anuncio rechazado por TikTok.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Prefiere la misma cuenta del rechazo si el cliente no eligió otra.
+    if (!adAccountId && parent.ad_account_id) {
+      adAccountId = parent.ad_account_id;
+      externalAdvertiserId =
+        parent.external_advertiser_id?.trim() || externalAdvertiserId;
+    }
+  }
+
   const safeFileName = sanitizeFileName(asset.name);
   const displayName =
     typeof requestedName === "string" && requestedName.trim()
@@ -181,6 +231,7 @@ export async function POST(request: Request) {
         source: "dashboard",
         original_file_name: asset.name,
         agent_pro: true,
+        ...(parentDraftId ? { parent_draft_id: parentDraftId } : {}),
       },
       created_by: session.id,
     })
@@ -204,11 +255,12 @@ export async function POST(request: Request) {
       provider: "openai",
       job_kind: "analyze",
       input: {
-        source: "dashboard_upload",
+        source: parentDraftId ? "dashboard_fix_upload" : "dashboard_upload",
         storage_bucket: CREATIVE_ASSETS_BUCKET,
         storage_path: storagePath,
         ad_account_id: adAccountId,
         external_advertiser_id: externalAdvertiserId,
+        ...(parentDraftId ? { parent_draft_id: parentDraftId } : {}),
       },
       requested_by: session.id,
     })
@@ -238,14 +290,17 @@ export async function POST(request: Request) {
       path: storagePath,
       ad_account_id: adAccountId,
       external_advertiser_id: externalAdvertiserId,
+      parent_draft_id: parentDraftId,
     },
   });
 
   await createNotificationBestEffort({
     organizationId: session.organizationId,
     userId: session.id,
-    title: "Creativo subido",
-    body: "Análisis IA en curso (Agent Pro).",
+    title: parentDraftId ? "Corrección subida" : "Creativo subido",
+    body: parentDraftId
+      ? "Análisis IA de la corrección en curso (Agent Pro)."
+      : "Análisis IA en curso (Agent Pro).",
     type: "creative_asset_uploaded",
     data: { creative_asset_id: creativeAsset.id, job_id: job.id, url: "/creative-analyzer" },
   });

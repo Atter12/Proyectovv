@@ -6,15 +6,22 @@ const AUTH_ERROR_MAP: Array<[RegExp, string]> = [
   [/invalid email/i, "El correo electrónico no es válido."],
   [/espera \d+s antes/i, "Espera unos segundos antes de pedir otro código."],
   [
-    /token has expired|otp.*expired|expired.*otp/i,
-    "Ese código ya no sirve. Pide uno nuevo (el anterior deja de valer al reenviar).",
+    /token has expired|otp.*expired|expired.*otp|otp_expired/i,
+    "Ese código ya no sirve. Pedí uno nuevo (el anterior deja de valer al reenviar).",
   ],
   [
-    /invalid.*otp|otp.*invalid|token.*invalid/i,
-    "Código incorrecto. Revisa los 6 dígitos o pide uno nuevo.",
+    /invalid.*otp|otp.*invalid|token.*invalid|otp_disabled/i,
+    "Código incorrecto o ya usado. Revisá los 6 dígitos o pedí uno nuevo.",
   ],
-  [/rate limit|too many requests/i, "Demasiados intentos. Espera un momento e inténtalo de nuevo."],
-  [/network|fetch failed/i, "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo."],
+  [/rate limit|too many requests/i, "Demasiados intentos. Esperá un momento e intentá de nuevo."],
+  [
+    /network|fetch failed|failed to fetch|load failed|connection/i,
+    "No pudimos verificar el código. Revisá tu conexión e intentá de nuevo.",
+  ],
+  [
+    /no pudimos verificar el código/i,
+    "No pudimos verificar el código. Pedí uno nuevo e intentá de nuevo.",
+  ],
 ];
 
 export function mapAuthErrorMessage(message: string): string {
