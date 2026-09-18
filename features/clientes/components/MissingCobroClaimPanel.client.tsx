@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
@@ -72,6 +72,7 @@ export function MissingCobroClaimPanel({
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingIntentId, setPendingIntentId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ClaimForm>(() => ({
     amountUsd: "",
@@ -150,6 +151,7 @@ export function MissingCobroClaimPanel({
       setSuccess(t("missingCobro.success"));
       setOpen(false);
       setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setForm((f) => ({
         ...f,
         amountUsd: "",
@@ -335,17 +337,50 @@ export function MissingCobroClaimPanel({
                 }
               />
             </label>
-            <label className="block text-[12px]">
+            <div className="block text-[12px]">
               <span className="font-medium text-[var(--auth-text)]">
                 {t("missingCobro.voucher")}
               </span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={[
+                  "mt-1.5 flex w-full items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3.5 text-left transition",
+                  file
+                    ? "border-emerald-400 bg-emerald-50"
+                    : "border-[#ff781f]/70 bg-[#fff8f1] hover:border-[#ff781f] hover:bg-[#fff1e6]",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[18px]",
+                    file
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-[#ff781f] text-white",
+                  ].join(" ")}
+                  aria-hidden
+                >
+                  {file ? "✓" : "↑"}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold text-[var(--auth-text)]">
+                    {file ? file.name : t("missingCobro.voucherPick")}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-[var(--auth-text-muted)]">
+                    {file
+                      ? t("missingCobro.voucherReady")
+                      : t("missingCobro.voucherHint")}
+                  </span>
+                </span>
+              </button>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*,application/pdf"
-                className="mt-1 block w-full text-[12px]"
+                className="sr-only"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
-            </label>
+            </div>
 
             {error ? (
               <p className="text-[12px] text-red-600" role="alert">
