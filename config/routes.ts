@@ -15,6 +15,7 @@ export const routes = {
   payments: "/payments",
   paymentsManual: "/payments/manual",
   paymentsProfit: "/payments/profit",
+  paymentsMissingCobros: "/payments/missing-cobros",
   cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",

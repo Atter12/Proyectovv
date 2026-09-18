@@ -23,6 +23,7 @@ import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import { completeManualBankConfirmedDeposit } from "@/lib/payments/manual-bank-match/confirm-deposit.server";
 import { MANUAL_DASHBOARD_SOURCE } from "@/lib/payments/manual-bank-match/source";
 import { pollYapeMailboxThrottled } from "@/lib/payments/yape/poll-mailbox.server";
+import { isMissingCobroPurpose } from "@/lib/payments/missing-cobro.shared";
 
 export type ProcessManualVoucherResult = {
   analysis: VoucherAnalysisResult;
@@ -166,9 +167,15 @@ export async function processManualVoucherUpload(input: {
 
   const duplicateHash = await isDuplicateVoucherHash(contentHash, intent.id);
   const normalizedOperationCode = normalizeOperationCode(analysis.operationCode);
+  const claimedOperationCode = normalizeOperationCode(
+    typeof metadata.claimed_operation_code === "string"
+      ? metadata.claimed_operation_code
+      : null,
+  );
+  const opCodeForDedupe = normalizedOperationCode ?? claimedOperationCode;
   const duplicateOperationCode =
-    normalizedOperationCode != null
-      ? await isDuplicateOperationCode(normalizedOperationCode, intent.id)
+    opCodeForDedupe != null
+      ? await isDuplicateOperationCode(opCodeForDedupe, intent.id)
       : false;
 
   const security: VoucherSecurityFlags = {
@@ -200,12 +207,11 @@ export async function processManualVoucherUpload(input: {
   const submittedAt = new Date().toISOString();
   // Guardamos el análisis real: es una de las dos pruebas. La IA sola nunca
   // acredita; hace falta el mail de abono (completeManualBankConfirmedDeposit).
+  const resolvedOpCode = normalizedOperationCode ?? claimedOperationCode;
   const baseMeta = mergeMetadata(metadata, {
     manual_review_status: "pending_review",
     voucher_content_hash: contentHash,
-    ...(normalizedOperationCode
-      ? { voucher_operation_code: normalizedOperationCode }
-      : {}),
+    ...(resolvedOpCode ? { voucher_operation_code: resolvedOpCode } : {}),
     voucher_security: security,
     manual_proof: {
       bucket: "payment-proofs",
@@ -226,9 +232,13 @@ export async function processManualVoucherUpload(input: {
     metadata: baseMeta,
   });
 
-  // Si el abono del banco/Binance llegó antes, cerramos ahora.
+  const isMissingCobro = isMissingCobroPurpose(metadata);
+
+  // Cobro faltante: nunca auto-cierra con mail bancario ni acredita cartera.
+  // Si el abono del banco/Binance llegó antes, cerramos ahora (solo wallet dashboard).
   const bankNotificationId = getString(metadata.bank_confirmation_notification_id);
   if (
+    !isMissingCobro &&
     analysis.confirmed &&
     getString(metadata.bank_confirmed_at) &&
     bankNotificationId &&
@@ -240,7 +250,7 @@ export async function processManualVoucherUpload(input: {
       notificationId: bankNotificationId,
       operationNumber: getString(metadata.bank_confirmation_operation_number),
     });
-  } else if (analysis.confirmed) {
+  } else if (!isMissingCobro && analysis.confirmed) {
     try {
       await pollYapeMailboxThrottled();
     } catch (error) {
@@ -250,7 +260,7 @@ export async function processManualVoucherUpload(input: {
 
   const fresh = await getPaymentIntentByIdInternal(intent.id);
   const status = fresh?.status ?? "processing";
-  const autoApproved = status === "succeeded";
+  const autoApproved = !isMissingCobro && status === "succeeded";
 
   if (autoApproved) {
     return {
@@ -274,17 +284,26 @@ export async function processManualVoucherUpload(input: {
     title: analysis.confirmed
       ? "Comprobante recibido"
       : "Comprobante en revisión",
-    body: analysis.confirmed
-      ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
-      : analysis.reason ||
-        "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
+    body: isMissingCobro
+      ? analysis.confirmed
+        ? "Recibimos tu comprobante. Gerencia lo revisará para registrarlo en Lo pagado (no recarga cartera)."
+        : analysis.reason ||
+          "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado."
+      : analysis.confirmed
+        ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
+        : analysis.reason ||
+          "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
     type: "payment_proof_uploaded",
-    data: { payment_intent_id: intent.id, url: "/payments" },
+    data: {
+      payment_intent_id: intent.id,
+      url: isMissingCobro ? "/cobros" : "/payments",
+    },
   });
 
   // Solo avisar a gerentes si la IA no validó (cola humana). Si validó y
   // falta el mail, el cron/cierre dual lo completa sin spam a managers.
-  if (!analysis.confirmed) {
+  // Cobro faltante: siempre avisar (nunca auto-aprueba).
+  if (!analysis.confirmed || isMissingCobro) {
     const chargeCurrency = expected.currency;
     const chargeAmountCents =
       chargeCurrency === "PEN"
@@ -300,8 +319,8 @@ export async function processManualVoucherUpload(input: {
       createdBy: intent.createdBy,
       chargeAmountCents,
       chargeCurrency,
-      creditUsdCents,
-      operationCode: normalizedOperationCode,
+      creditUsdCents: isMissingCobro ? 0 : creditUsdCents,
+      operationCode: normalizedOperationCode ?? claimedOperationCode,
       purpose:
         typeof metadata.purpose === "string" ? String(metadata.purpose) : null,
     });
@@ -314,7 +333,7 @@ export async function processManualVoucherUpload(input: {
     },
     autoApproved: false,
     status: "processing",
-    creditUsdCents,
+    creditUsdCents: isMissingCobro ? 0 : creditUsdCents,
     security,
     rateLimited: !rateLimits.uploadAllowed,
     rateLimitReason: rateLimits.reason,

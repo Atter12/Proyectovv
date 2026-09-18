@@ -34,16 +34,6 @@ export async function AdAccountsSummaryCards({
       accent: "bg-[#c45a18]",
       valueClass: "text-[#1a1612]",
     },
-    {
-      label: t("summary.suspended"),
-      value: formatNumber(summary.disabledAccounts ?? 0),
-      hint: t("summary.suspendedHint"),
-      accent: "bg-[#c53030]",
-      valueClass:
-        (summary.disabledAccounts ?? 0) > 0
-          ? "text-[#9b2c2c]"
-          : "text-[#1a1612]",
-    },
   ];
 
   return (
@@ -51,18 +41,9 @@ export async function AdAccountsSummaryCards({
       aria-label={t("summary.aria")}
       className="overflow-hidden rounded-[1.15rem] border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] shadow-[0_10px_28px_rgb(20_18_16_/_0.04)]"
     >
-      <div className="grid divide-y divide-[rgb(20_18_16_/_0.06)] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
-        {items.map((item, index) => (
-          <div
-            key={item.label}
-            className={`relative px-4 py-4 sm:px-5 ${
-              index % 2 === 0 ? "sm:border-r sm:border-[rgb(20_18_16_/_0.06)]" : ""
-            } ${
-              index < 2 ? "sm:border-b sm:border-[rgb(20_18_16_/_0.06)] xl:border-b-0" : ""
-            } ${
-              index < items.length - 1 ? "xl:border-r xl:border-[rgb(20_18_16_/_0.06)]" : ""
-            }`}
-          >
+      <div className="grid divide-y divide-[rgb(20_18_16_/_0.06)] sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-[rgb(20_18_16_/_0.06)]">
+        {items.map((item) => (
+          <div key={item.label} className="relative px-4 py-4 sm:px-5">
             <span
               aria-hidden
               className={`absolute inset-y-3 left-0 w-[3px] rounded-r-full ${item.accent}`}

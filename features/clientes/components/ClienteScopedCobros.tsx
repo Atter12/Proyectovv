@@ -6,6 +6,7 @@ import {
   CrmPanel,
 } from "@/components/dashboard/crm-ui";
 import { CobroComprobantePreview } from "@/features/clientes/components/CobroComprobantePreview.client";
+import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
 import { formatHecomFecha } from "@/lib/hecom/gasto-label";
 import {
   moneyUsd,
@@ -14,6 +15,9 @@ import {
 } from "@/lib/hecom/cliente-dashboard.server";
 import { routes } from "@/config/routes";
 import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
+import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
+import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
+import type { ManualPaymentIntentItem } from "@/services/payments.service";
 
 function formatPeriodoResumen(value: string | null, bcp47: string): string {
   if (!value) return "—";
@@ -113,6 +117,14 @@ export async function ClienteScopedCobros({
   const { bcp47 } = await getAppFormatter();
   const { cliente, summary, cobros } = data;
 
+  let claims: ManualPaymentIntentItem[] = [];
+  try {
+    claims = await listMissingCobroClaimsForCliente(cliente.id);
+  } catch {
+    claims = [];
+  }
+  const periodos = listRecentPeriodos(6);
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--auth-divider)] pb-4">
@@ -135,6 +147,8 @@ export async function ClienteScopedCobros({
           {t("goPayments")}
         </Link>
       </header>
+
+      <MissingCobroClaimPanel periodos={periodos} initialClaims={claims} />
 
       <CrmMetricsStrip>
         <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-2">

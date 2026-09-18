@@ -646,6 +646,11 @@ export interface ManualPaymentIntentItem {
   purpose: string | null;
   /** bank | binance (pago manual). */
   payMethod: "bank" | "binance" | null;
+  /** Período Hecom AAAA-MM (cobro faltante). */
+  periodoResumen: string | null;
+  claimedPaymentFecha: string | null;
+  claimedMetodo: string | null;
+  claimedOperationCode: string | null;
 }
 
 function getManualProofMeta(metadata: unknown): {
@@ -713,6 +718,9 @@ function isClientManualVoucherIntent(row: DbPaymentIntentRow): boolean {
   // Real Profit COD tiene su propia cola: /payments/profit
   if (getString(metadata.purpose) === "realprofit_cod") return false;
   if (getString(metadata.source) === "profit_subscribe") return false;
+  // Cobro faltante (Lo pagado) tiene su cola: /payments/missing-cobros
+  if (getString(metadata.purpose) === "hecom_missing_cobro") return false;
+  if (getString(metadata.source) === "lo_pagado_missing_cobro") return false;
 
   const source = getString(metadata.source);
   // Permitir source null solo en legados revertidos con rastro de voucher.
@@ -881,6 +889,12 @@ async function mapManualIntentRows(
           const raw = getString(metadata.manual_pay_method)?.toLowerCase();
           return raw === "binance" || raw === "bank" ? raw : null;
         })(),
+        periodoResumen: getString(metadata.periodo_resumen),
+        claimedPaymentFecha: getString(metadata.claimed_payment_fecha),
+        claimedMetodo: getString(metadata.claimed_metodo),
+        claimedOperationCode:
+          getString(metadata.claimed_operation_code) ??
+          getString(metadata.voucher_operation_code),
       };
     }),
   );
@@ -1050,6 +1064,123 @@ export async function listRealProfitVoucherReviewsForStaff(options?: {
   const pending = await mapManualIntentRows(pendingRows, { signProofs: true });
 
   return { pending, recent: [], pendingCount: pending.length, scope };
+}
+
+function isMissingCobroVoucherIntent(row: DbPaymentIntentRow): boolean {
+  const metadata = isRecord(row.metadata) ? row.metadata : {};
+  if (isAgencyBmBridgeIntent(metadata)) return false;
+  if (getString(metadata.purpose) !== "hecom_missing_cobro") return false;
+
+  const proof = getManualProofMeta(row.metadata);
+  const hasProof = Boolean(proof.path || proof.fileName);
+  const review = getString(metadata.manual_review_status);
+  return (
+    hasProof &&
+    (review === "pending_review" ||
+      review === "approved" ||
+      review === "rejected" ||
+      review === "awaiting_proof")
+  );
+}
+
+/**
+ * Staff: cola de claims “cobro faltante” (Lo pagado) — sin acreditar cartera.
+ */
+export async function listMissingCobroReviewsForStaff(options?: {
+  hecomClienteId?: string | null;
+}): Promise<{
+  pending: ManualPaymentIntentItem[];
+  recent: ManualPaymentIntentItem[];
+  pendingCount: number;
+  scope: "all" | "cliente";
+}> {
+  const hecomClienteId = options?.hecomClienteId?.trim() || null;
+  const scope: "all" | "cliente" = hecomClienteId ? "cliente" : "all";
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  let query = admin
+    .from("payment_intents")
+    .select(
+      "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
+    )
+    .eq("provider", "manual")
+    .in("status", [
+      "processing",
+      "succeeded",
+      "failed",
+      "requires_payment",
+      "created",
+    ])
+    .filter("metadata->>purpose", "eq", "hecom_missing_cobro")
+    .order("created_at", { ascending: false })
+    .limit(hecomClienteId ? 80 : 200);
+
+  if (hecomClienteId) {
+    query = query.filter(
+      "metadata->>hecom_cliente_id",
+      "eq",
+      hecomClienteId,
+    );
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[payments] listMissingCobroReviewsForStaff", error.message);
+    return { pending: [], recent: [], pendingCount: 0, scope };
+  }
+
+  const pendingRows = ((data ?? []) as DbPaymentIntentRow[])
+    .filter(isMissingCobroVoucherIntent)
+    .filter((row) => {
+      const review = getManualIntentReviewStatus(row);
+      const proof = getManualProofMeta(row.metadata);
+      return (
+        review === "pending_review" && Boolean(proof.path || proof.fileName)
+      );
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
+    .slice(0, hecomClienteId ? 20 : 60);
+
+  const pending = await mapManualIntentRows(pendingRows, { signProofs: true });
+
+  return { pending, recent: [], pendingCount: pending.length, scope };
+}
+
+/** Cliente / scoped: sus claims de cobro faltante (historial corto). */
+export async function listMissingCobroClaimsForCliente(
+  hecomClienteId: string,
+): Promise<ManualPaymentIntentItem[]> {
+  const id = hecomClienteId.trim();
+  if (!id) return [];
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select(
+      "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
+    )
+    .eq("provider", "manual")
+    .filter("metadata->>purpose", "eq", "hecom_missing_cobro")
+    .filter("metadata->>hecom_cliente_id", "eq", id)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
+  if (error) {
+    console.error("[payments] listMissingCobroClaimsForCliente", error.message);
+    return [];
+  }
+
+  return mapManualIntentRows((data ?? []) as DbPaymentIntentRow[], {
+    signProofs: false,
+  });
 }
 
 /** @deprecated Usar getPaymentPageCore + getPaymentTransactions */

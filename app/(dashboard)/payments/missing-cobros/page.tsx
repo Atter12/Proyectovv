@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { ManualVoucherReviewHost } from "@/features/payments/components/ManualVoucherReviewHost";
+import { MissingCobroVoucherReviewHost } from "@/features/payments/components/MissingCobroVoucherReviewHost";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
-import { getActingAsCliente, getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 
-export default async function ManualPaymentsReviewPage({
+export default async function MissingCobrosReviewPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -49,29 +52,33 @@ export default async function ManualPaymentsReviewPage({
     <div className={dashboardClasses.page}>
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
-          Gerente · Finanzas
+          Gerente · Lo pagado
           {hecomClienteId ? " · Filtro cliente" : " · Todos los clientes"}
         </p>
         <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
-          Pagos manuales
+          Cobros faltantes
         </h1>
         <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
-          Solo pagos{" "}
+          El cliente reportó un pago que no está en Hecom. Al{" "}
           <strong className="font-semibold text-[var(--auth-text)]">
-            manuales (BCP)
+            aceptar
           </strong>{" "}
-          pendientes de todos los clientes. Acepta o rechaza aquí.
+          se crea el cobro en ese mes —{" "}
+          <strong className="font-semibold text-[var(--auth-text)]">
+            no acredita cartera
+          </strong>
+          .
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {hecomClienteId ? (
             <>
-              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-200/80">
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900 ring-1 ring-sky-200/80">
                 Filtrado
                 {clienteName ? `: ${clienteName}` : ""}
               </span>
               <Link
-                href={routes.paymentsManual}
+                href={routes.paymentsMissingCobros}
                 className="text-xs font-semibold text-[var(--brand-primary)] underline-offset-2 hover:underline"
               >
                 Ver todos los clientes
@@ -79,28 +86,22 @@ export default async function ManualPaymentsReviewPage({
             </>
           ) : selected?.id ? (
             <Link
-              href={`${routes.paymentsManual}?cliente=${encodeURIComponent(selected.id)}`}
+              href={`${routes.paymentsMissingCobros}?cliente=${encodeURIComponent(selected.id)}`}
               className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
             >
               Filtrar solo {selected.name}
             </Link>
           ) : null}
           <Link
-            href={routes.paymentsProfit}
+            href={routes.paymentsManual}
             className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
           >
-            Ir a Pagos Profit
-          </Link>
-          <Link
-            href={routes.paymentsMissingCobros}
-            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
-          >
-            Ir a Cobros faltantes
+            Ir a Pagos manuales (cartera)
           </Link>
         </div>
       </header>
 
-      <ManualVoucherReviewHost
+      <MissingCobroVoucherReviewHost
         staffMode
         hecomClienteId={hecomClienteId}
         clienteName={clienteName ?? selected?.name}

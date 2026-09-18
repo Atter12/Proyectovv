@@ -35,7 +35,7 @@ function VoucherCard({
 }: {
   intent: ManualPaymentIntentItem;
   canReview: boolean;
-  product?: "wallet" | "realprofit";
+  product?: "wallet" | "realprofit" | "missing_cobro";
 }) {
   const t = useTranslations("payments");
   const router = useRouter();
@@ -45,6 +45,7 @@ function VoucherCard({
   const [rejectReason, setRejectReason] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isRealProfit = product === "realprofit";
+  const isMissingCobro = product === "missing_cobro";
   const proofIsImage = isImageMime(intent.proofMimeType, intent.proofFileName);
 
   const reviewLabels = {
@@ -57,7 +58,7 @@ function VoucherCard({
 
   const chargeCurrency =
     intent.currency.toUpperCase() === "PEN" ? "PEN" : "USD";
-  const feePercent = isRealProfit ? 0 : (intent.feePercent ?? 10);
+  const feePercent = isRealProfit || isMissingCobro ? 0 : (intent.feePercent ?? 10);
   const fxRate = intent.fxRateUsdPen ?? 3.48;
   const defaultAmount =
     intent.detectedAmount != null && intent.detectedAmount > 0
@@ -67,11 +68,14 @@ function VoucherCard({
   const [amountInput, setAmountInput] = useState(
     () => String(Math.round(defaultAmount * 100) / 100),
   );
+  const [periodoInput, setPeriodoInput] = useState(
+    () => intent.periodoResumen ?? "",
+  );
 
   const parsedAmount = Number.parseFloat(amountInput.replace(",", "."));
   const quote = useMemo(() => {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
-    if (isRealProfit) {
+    if (isRealProfit || isMissingCobro) {
       return {
         grossChargeCents: Math.round(parsedAmount * 100),
         creditUsdCents: 0,
@@ -90,7 +94,7 @@ function VoucherCard({
       feePercent,
       fxRateUsdPen: fxRate,
     });
-  }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit]);
+  }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit, isMissingCobro]);
 
   const showActions =
     canReview && intent.reviewStatus === "pending_review";
@@ -100,6 +104,13 @@ function VoucherCard({
       setError(t("voucherReview.errAmount"));
       return;
     }
+    if (isMissingCobro) {
+      const periodo = periodoInput.trim();
+      if (!/^\d{4}-\d{2}$/.test(periodo)) {
+        setError(t("voucherReview.errPeriod"));
+        return;
+      }
+    }
     setBusy("approve");
     setError(null);
     try {
@@ -107,6 +118,9 @@ function VoucherCard({
         method: "POST",
         body: JSON.stringify({
           adjustedGrossChargeCents: quote.grossChargeCents,
+          ...(isMissingCobro
+            ? { adjustedPeriodoResumen: periodoInput.trim() }
+            : {}),
         }),
       });
       router.refresh();
@@ -207,13 +221,15 @@ function VoucherCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-muted)]">
-                {isRealProfit
-                  ? "Real Profit COD · $20"
-                  : intent.provider === "crypto"
-                    ? "Cripto"
-                    : intent.payMethod === "binance"
-                      ? "Binance Pay"
-                      : "Transferencia BCP"}
+                {isMissingCobro
+                  ? "Cobro faltante · Lo pagado"
+                  : isRealProfit
+                    ? "Real Profit COD · $20"
+                    : intent.provider === "crypto"
+                      ? "Cripto"
+                      : intent.payMethod === "binance"
+                        ? "Binance Pay"
+                        : "Transferencia BCP"}
               </p>
               <h3 className="mt-0.5 truncate text-base font-semibold text-[var(--auth-text)]">
                 {intent.hecomClienteName?.trim() ||
@@ -223,6 +239,15 @@ function VoucherCard({
               <p className="text-xs text-[var(--auth-muted)]">
                 {intent.actorEmail ?? intent.actorName ?? "—"}
               </p>
+              {isMissingCobro && intent.periodoResumen ? (
+                <p className="mt-0.5 text-[11px] font-semibold text-sky-800">
+                  Mes pedido: {intent.periodoResumen}
+                  {intent.claimedPaymentFecha
+                    ? ` · Fecha voucher: ${intent.claimedPaymentFecha}`
+                    : ""}
+                  {intent.claimedMetodo ? ` · ${intent.claimedMetodo}` : ""}
+                </p>
+              ) : null}
               {intent.shopDomain ? (
                 <p className="mt-0.5 font-mono text-[11px] text-[var(--auth-muted)]">
                   Tienda: {intent.shopDomain}
@@ -286,7 +311,15 @@ function VoucherCard({
                     : ""}
                 </p>
                 <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-muted)]">
-                  {isRealProfit ? (
+                  {isMissingCobro ? (
+                    <p>
+                      Al aceptar:{" "}
+                      <span className="font-semibold text-[var(--auth-text)]">
+                        registra cobro en Hecom
+                      </span>{" "}
+                      (no acredita cartera).
+                    </p>
+                  ) : isRealProfit ? (
                     <p>
                       Al aceptar:{" "}
                       <span className="font-semibold text-[var(--auth-text)]">
@@ -319,6 +352,17 @@ function VoucherCard({
                     </>
                   )}
                 </div>
+                {isMissingCobro ? (
+                  <label className="mt-3 block text-xs font-medium text-[var(--auth-muted)]">
+                    Período Hecom (AAAA-MM)
+                    <input
+                      type="month"
+                      value={periodoInput}
+                      onChange={(e) => setPeriodoInput(e.target.value)}
+                      className="mt-1 w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm font-semibold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#ff781f]"
+                    />
+                  </label>
+                ) : null}
               </>
             ) : (
               <>
@@ -378,8 +422,11 @@ function VoucherCard({
           {showActions ? (
             <div className="mt-auto space-y-2 border-t border-[var(--auth-divider)] pt-3">
               <p className="text-[11px] text-[var(--auth-muted)]">
-                Revisa el monto de la boleta, ajústalo si es necesario y luego
-                acepta. El saldo se acredita en la cartera y el registro pasa a Lo pagado.
+                {isMissingCobro
+                  ? "Revisa monto y mes, ajústalos si el voucher no cuadra, y acepta. Solo crea el cobro en Hecom — no toca la cartera."
+                  : isRealProfit
+                    ? "Revisa el voucher y acepta para activar Real Profit COD."
+                    : "Revisa el monto de la boleta, ajústalo si es necesario y luego acepta. El saldo se acredita en la cartera y el registro pasa a Lo pagado."}
               </p>
               {!rejectOpen ? (
                 <div className="flex flex-wrap gap-2">
@@ -483,8 +530,8 @@ interface ManualVoucherReviewSectionProps {
   mode: "staff" | "client";
   /** Cola de todos los clientes (copy de gerente). */
   globalQueue?: boolean;
-  /** wallet = recarga cartera; realprofit = +$20 COD */
-  product?: "wallet" | "realprofit";
+  /** wallet = recarga cartera; realprofit = +$20 COD; missing_cobro = Hecom only */
+  product?: "wallet" | "realprofit" | "missing_cobro";
 }
 
 export function ManualVoucherReviewSection({
@@ -533,6 +580,7 @@ export function ManualVoucherReviewSection({
   if (pending.length === 0) return null;
 
   const isRealProfit = product === "realprofit";
+  const isMissingCobro = product === "missing_cobro";
 
   return (
     <section
@@ -544,13 +592,17 @@ export function ManualVoucherReviewSection({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold text-[var(--auth-text)]">
-              {isRealProfit
+              {isMissingCobro
                 ? globalQueue
-                  ? "Pagos Profit pendientes"
-                  : "Pendientes Profit"
-                : globalQueue
-                  ? "Pagos manuales pendientes"
-                  : "Pendientes"}
+                  ? "Cobros faltantes pendientes"
+                  : "Pendientes · cobro faltante"
+                : isRealProfit
+                  ? globalQueue
+                    ? "Pagos Profit pendientes"
+                    : "Pendientes Profit"
+                  : globalQueue
+                    ? "Pagos manuales pendientes"
+                    : "Pendientes"}
             </h2>
             {pendingCount > 0 ? (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">
@@ -559,13 +611,17 @@ export function ManualVoucherReviewSection({
             ) : null}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
-            {isRealProfit
-              ? t("voucherReview.staffRealProfit")
-              : "Solo boletas BCP por aceptar o rechazar"}
+            {isMissingCobro
+              ? "Reportes desde Lo pagado: al aceptar se crea el cobro en Hecom (sin cartera)"
+              : isRealProfit
+                ? t("voucherReview.staffRealProfit")
+                : "Solo boletas BCP por aceptar o rechazar"}
             {globalQueue ? t("voucherReview.staffGlobal") : ""}.
-            {isRealProfit
-              ? " Al aceptar se activa COD y se vincula la tienda (sin cartera ads)."
-              : " Edita el monto de la boleta si no coincide y luego acepta."}
+            {isMissingCobro
+              ? " Puedes corregir monto y mes antes de aceptar."
+              : isRealProfit
+                ? " Al aceptar se activa COD y se vincula la tienda (sin cartera ads)."
+                : " Edita el monto de la boleta si no coincide y luego acepta."}
           </p>
         </div>
       </div>

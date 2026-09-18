@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode, Fragment } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -18,7 +18,6 @@ import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { AdAccountsEmptyState } from "./AdAccountsEmptyState";
 import { ConfigureAdAccountModal } from "./ConfigureAdAccountModal.client";
 import { AdAccountLiveBalanceCell } from "./AdAccountLiveBalanceCell.client";
-import { SuspendedAccountHelp } from "./SuspendedAccountHelp.client";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { buildGastosUrlForAdvertiser } from "@/lib/hecom/gastos-url";
 import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
@@ -26,7 +25,7 @@ import type { AdAccount, AdAccountStatus } from "@/types/ad-account";
 const statusStyles: Record<AdAccountStatus, string> = {
   active: "bg-[#ecf7f0] text-[#1f5c40] ring-[#c5e4d2]",
   pending: "bg-[#fff7eb] text-[#92400e] ring-[#f0d9b0]",
-  disabled: "bg-[#fdeceb] text-[#9b2c2c] ring-[#f0c4c4]",
+  disabled: "bg-[#f3eee8] text-[#7a736a] ring-[#e4ddd4]",
   review: "bg-[#f0f4f8] text-[#334e68] ring-[#d3dde8]",
   archived: "bg-[#f3eee8] text-[#7a736a] ring-[#e4ddd4]",
 };
@@ -34,7 +33,7 @@ const statusStyles: Record<AdAccountStatus, string> = {
 const statusDot: Record<AdAccountStatus, string> = {
   active: "bg-[#2f7a57]",
   pending: "bg-[#d97706]",
-  disabled: "bg-[#c53030]",
+  disabled: "bg-[#a39a90]",
   review: "bg-[#486581]",
   archived: "bg-[#a39a90]",
 };
@@ -413,9 +412,6 @@ export function AdAccountsTable({
                     <MetaChip>{account.thresholdInfo}</MetaChip>
                   )}
                 </div>
-                {account.status === "disabled" ? (
-                  <SuspendedAccountHelp account={account} />
-                ) : null}
                 <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px]">
                   {readOnly ? (
                     <div>
@@ -485,10 +481,9 @@ export function AdAccountsTable({
             <TableBody>
               {accounts.map((account) => {
                 const display = parseAccountDisplay(account, defaultName);
-                const colSpan = readOnly ? 6 : 8;
                 return (
-                  <Fragment key={account.id}>
                     <TableRow
+                      key={account.id}
                       className="border-b border-[rgb(20_18_16_/_0.05)] transition-colors hover:bg-[#faf7f3]"
                     >
                       <TableCell className="max-w-[280px]">
@@ -582,16 +577,6 @@ export function AdAccountsTable({
                         <AccountActions account={account} />
                       </TableCell>
                     </TableRow>
-                    {account.status === "disabled" ? (
-                      <TableRow
-                        className="border-b border-[rgb(20_18_16_/_0.05)] bg-[#fdf8f6] hover:bg-[#fdf8f6]"
-                      >
-                        <TableCell colSpan={colSpan} className="py-2">
-                          <SuspendedAccountHelp account={account} />
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                  </Fragment>
                 );
               })}
             </TableBody>

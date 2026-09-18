@@ -10,6 +10,11 @@ import {
   rejectRealProfitSubscriptionPayment,
 } from "@/lib/realprofit/subscription.server";
 import { autoLinkRpStoreForCliente } from "@/lib/realprofit/profit-snapshot.server";
+import {
+  isMissingCobroPurpose,
+  normalizePeriodoResumen,
+} from "@/lib/payments/missing-cobro.shared";
+import { ensureHecomMissingCobroFromClaim } from "@/lib/hecom/ensure-missing-cobro.server";
 
 export type ManualReviewActor = {
   id: string;
@@ -73,6 +78,8 @@ function revalidateManualPaymentPaths(paymentIntentId: string) {
   revalidatePath("/payments");
   revalidatePath("/payments/manual");
   revalidatePath("/payments/profit");
+  revalidatePath("/payments/missing-cobros");
+  revalidatePath("/cobros");
   revalidatePath("/profit");
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${paymentIntentId}`);
@@ -200,10 +207,183 @@ async function approveRealProfitCodVoucher(input: {
   };
 }
 
+async function approveMissingCobroClaim(input: {
+  intent: IntentRow;
+  actor: ManualReviewActor;
+  notes?: string | null;
+  approvedFrom: "admin_panel" | "dashboard";
+  adjustedGrossChargeCents?: number | null;
+  adjustedPeriodoResumen?: string | null;
+}): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
+  const { intent } = input;
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+  const hecomClienteId = String(meta.hecom_cliente_id ?? "").trim();
+  if (!hecomClienteId) {
+    throw new Error("Claim de cobro faltante sin hecom_cliente_id.");
+  }
+
+  let amountCents = intent.amount_cents;
+  let workingMeta = { ...meta };
+
+  if (
+    input.adjustedGrossChargeCents != null &&
+    Number.isFinite(input.adjustedGrossChargeCents) &&
+    input.adjustedGrossChargeCents > 0
+  ) {
+    amountCents = Math.round(input.adjustedGrossChargeCents);
+    workingMeta = {
+      ...workingMeta,
+      gross_amount_cents: amountCents,
+      gross_usd_cents: amountCents,
+      credit_amount_cents: 0,
+      fee_amount_cents: 0,
+      amount_adjusted_by: input.actor.id,
+      amount_adjusted_by_email: input.actor.email,
+      amount_adjusted_at: new Date().toISOString(),
+      original_amount_cents: intent.amount_cents,
+    };
+  }
+
+  const periodoRaw =
+    input.adjustedPeriodoResumen ??
+    (typeof workingMeta.periodo_resumen === "string"
+      ? workingMeta.periodo_resumen
+      : "");
+  const periodo = normalizePeriodoResumen(periodoRaw);
+  if (!periodo) {
+    throw new Error("Período inválido. Usa AAAA-MM (ej. 2026-09).");
+  }
+  workingMeta.periodo_resumen = periodo;
+
+  const fecha =
+    typeof workingMeta.claimed_payment_fecha === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(workingMeta.claimed_payment_fecha)
+      ? workingMeta.claimed_payment_fecha
+      : new Date().toISOString().slice(0, 10);
+
+  const metodo =
+    typeof workingMeta.claimed_metodo === "string"
+      ? workingMeta.claimed_metodo
+      : "Interbank";
+  const opCode =
+    typeof workingMeta.claimed_operation_code === "string"
+      ? workingMeta.claimed_operation_code
+      : typeof workingMeta.voucher_operation_code === "string"
+        ? workingMeta.voucher_operation_code
+        : null;
+
+  const cobro = await ensureHecomMissingCobroFromClaim({
+    hecomClienteId,
+    paymentIntentId: intent.id,
+    montoUsd: amountCents / 100,
+    periodoResumen: periodo,
+    fecha,
+    metodo,
+    operationCode: opCode,
+    notas: input.notes ?? null,
+    approvedByEmail: input.actor.email,
+  });
+
+  if (!cobro.ok) {
+    throw new Error(
+      cobro.reason
+        ? `No se pudo registrar el cobro en Hecom: ${cobro.reason}`
+        : "No se pudo registrar el cobro en Hecom.",
+    );
+  }
+
+  const admin = createAdminClient();
+  const succeededAt = new Date().toISOString();
+  const providerReference =
+    intent.provider_reference ?? `${intent.provider}:${intent.id}`;
+
+  if (amountCents !== intent.amount_cents) {
+    const { error: adjustError } = await admin
+      .from("payment_intents")
+      .update({
+        amount_cents: amountCents,
+        currency: "USD",
+        updated_at: succeededAt,
+        metadata: workingMeta,
+      })
+      .eq("id", intent.id)
+      .neq("status", "succeeded");
+    if (adjustError) throw new Error(adjustError.message);
+  }
+
+  await admin
+    .from("payment_intents")
+    .update({
+      status: "succeeded",
+      provider_reference: providerReference,
+      succeeded_at: succeededAt,
+      updated_at: succeededAt,
+      metadata: mergeJsonMetadata(workingMeta, {
+        manual_review_status: "approved",
+        approved_by: input.actor.id,
+        approved_by_email: input.actor.email,
+        approved_at: succeededAt,
+        approval_notes: input.notes ?? null,
+        approval_source: input.approvedFrom,
+        skip_wallet_credit: true,
+        hecom_missing_cobro_sync: {
+          ok: cobro.ok,
+          created: cobro.created,
+          idempotent: cobro.idempotent,
+          cobro_id: cobro.cobroId,
+          codigo: cobro.codigo,
+          periodo_resumen: periodo,
+          at: succeededAt,
+        },
+      }),
+    })
+    .eq("id", intent.id);
+
+  await notify({
+    organizationId: intent.organization_id,
+    userId: intent.created_by,
+    title: "Pago registrado en Lo pagado",
+    body: `Tu comprobante fue aceptado. Ya figura el cobro de $${(amountCents / 100).toFixed(2)} en ${periodo}.`,
+    type: "payment_approved",
+    data: {
+      payment_intent_id: intent.id,
+      purpose: "hecom_missing_cobro",
+      codigo: cobro.codigo,
+      url: "/cobros",
+    },
+  });
+
+  await insertAudit({
+    organizationId: intent.organization_id,
+    actorUserId: input.actor.id,
+    action:
+      input.approvedFrom === "dashboard"
+        ? "payments.missing_cobro.approved"
+        : "admin.missing_cobro.approved",
+    entityType: "payment_intent",
+    entityId: intent.id,
+    metadata: {
+      amount_cents: amountCents,
+      periodo_resumen: periodo,
+      hecom_cobro_id: cobro.cobroId,
+      codigo: cobro.codigo,
+      notes: input.notes ?? null,
+    },
+  });
+
+  revalidateManualPaymentPaths(intent.id);
+  return {
+    journalId: "",
+    creditUsdCents: 0,
+    grossChargeCents: amountCents,
+  };
+}
+
 /**
  * Aprueba voucher y acredita saldo disponible en cartera (no asigna a TikTok).
  * Opcionalmente ajusta el monto cobrado real (ej. boleta 173.71 vs esperado 179.92).
  * Si `metadata.purpose === realprofit_cod`: activa entitlement COD y NO acredita cartera.
+ * Si `metadata.purpose === hecom_missing_cobro`: solo inserta cobro Hecom (sin cartera).
  */
 export async function approveManualVoucherPayment(input: {
   paymentIntentId: string;
@@ -212,6 +392,8 @@ export async function approveManualVoucherPayment(input: {
   approvedFrom: "admin_panel" | "dashboard";
   /** Centavos en la moneda de cobro (PEN o USD) leídos de la boleta. */
   adjustedGrossChargeCents?: number | null;
+  /** Período Hecom AAAA-MM (solo claims de cobro faltante). */
+  adjustedPeriodoResumen?: string | null;
 }): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
   const intent = await loadVoucherIntent(input.paymentIntentId);
   if (intent.status === "succeeded") {
@@ -236,6 +418,17 @@ export async function approveManualVoucherPayment(input: {
 
   const admin = createAdminClient();
   const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+
+  if (isMissingCobroPurpose(meta)) {
+    return approveMissingCobroClaim({
+      intent,
+      actor: input.actor,
+      notes: input.notes,
+      approvedFrom: input.approvedFrom,
+      adjustedGrossChargeCents: input.adjustedGrossChargeCents,
+      adjustedPeriodoResumen: input.adjustedPeriodoResumen,
+    });
+  }
 
   if (isRealProfitCodPurpose(meta)) {
     return approveRealProfitCodVoucher({

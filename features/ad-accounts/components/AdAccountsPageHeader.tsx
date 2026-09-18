@@ -27,11 +27,10 @@ function accountStatusHint(
 ) {
   const total = summary.totalAccounts;
   const active = summary.activeAccounts;
-  const suspended = summary.disabledAccounts ?? 0;
   const pending = summary.pendingSetup ?? 0;
 
   if (total === 0) return t("header.noMapped");
-  if (suspended === 0 && pending === 0 && active === total) {
+  if (pending === 0 && active === total) {
     return t("header.allInCampaign");
   }
 
@@ -43,13 +42,6 @@ function accountStatusHint(
       }),
     );
   }
-  if (suspended > 0) {
-    parts.push(
-      t(suspended === 1 ? "header.suspendedOne" : "header.suspendedMany", {
-        count: formatNumber(suspended),
-      }),
-    );
-  }
   if (pending > 0) {
     parts.push(
       t(pending === 1 ? "header.pendingOne" : "header.pendingMany", {
@@ -57,7 +49,7 @@ function accountStatusHint(
       }),
     );
   }
-  return parts.join(" · ");
+  return parts.length > 0 ? parts.join(" · ") : t("header.allInCampaign");
 }
 
 export async function AdAccountsPageHeader({
@@ -70,7 +62,6 @@ export async function AdAccountsPageHeader({
 }: AdAccountsPageHeaderProps) {
   const t = await getTranslations("adAccounts");
   const { formatMoney, formatNumber } = await getAppFormatter();
-  const suspended = summary.disabledAccounts ?? 0;
   const pending = summary.pendingSetup ?? 0;
   const statusHint = accountStatusHint(summary, t, formatNumber);
 
@@ -87,15 +78,6 @@ export async function AdAccountsPageHeader({
       emphasis: "primary",
     },
   ];
-
-  if (suspended > 0) {
-    metricItems.push({
-      label: t("header.suspended"),
-      value: formatNumber(suspended),
-      hint: t("header.suspendedHint"),
-      emphasis: "muted",
-    });
-  }
 
   if (pending > 0) {
     metricItems.push({

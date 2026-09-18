@@ -70,7 +70,7 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
   chargeCurrency: string;
   creditUsdCents: number;
   operationCode?: string | null;
-  /** realprofit_cod → cola /payments/profit */
+  /** realprofit_cod → /payments/profit; hecom_missing_cobro → /payments/missing-cobros */
   purpose?: string | null;
 }): Promise<void> {
   const managers = resolveManualPaymentManagerEmails();
@@ -91,31 +91,40 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
     );
     const creditUsdLabel = formatMoney(input.creditUsdCents / 100, "USD");
     const isRealProfit = input.purpose === "realprofit_cod";
+    const isMissingCobro = input.purpose === "hecom_missing_cobro";
     const base = serverEnv.appUrl.replace(/\/$/, "");
-    const adminUrl = isRealProfit
-      ? `${base}/payments/profit`
-      : `${base}/payments/manual`;
+    const adminUrl = isMissingCobro
+      ? `${base}/payments/missing-cobros`
+      : isRealProfit
+        ? `${base}/payments/profit`
+        : `${base}/payments/manual`;
 
     const template = manualPaymentPendingManagerTemplate({
       appName: serverEnv.appName,
       clientEmail,
       clientName,
       amountLabel,
-      creditUsdLabel: isRealProfit
-        ? "Real Profit COD (sin cartera)"
-        : creditUsdLabel,
+      creditUsdLabel: isMissingCobro
+        ? "Cobro faltante (sin cartera · Lo pagado)"
+        : isRealProfit
+          ? "Real Profit COD (sin cartera)"
+          : creditUsdLabel,
       paymentIntentId: input.paymentIntentId,
       adminUrl,
       operationCode: input.operationCode ?? null,
     });
 
-    const subject = isRealProfit
-      ? `[Acción] Profit COD $20 por revisar · ${clientName || clientEmail || "cliente"}`
-      : `[Acción] ${template.subject}`;
+    const subject = isMissingCobro
+      ? `[Acción] Cobro faltante por revisar · ${clientName || clientEmail || "cliente"}`
+      : isRealProfit
+        ? `[Acción] Profit COD $20 por revisar · ${clientName || clientEmail || "cliente"}`
+        : `[Acción] ${template.subject}`;
 
-    const templateKey = isRealProfit
-      ? "payment.realprofit.pending_manager"
-      : "payment.manual.pending_manager";
+    const templateKey = isMissingCobro
+      ? "payment.missing_cobro.pending_manager"
+      : isRealProfit
+        ? "payment.realprofit.pending_manager"
+        : "payment.manual.pending_manager";
 
     // Un correo por gerente (no batch). Gmail suele enterrar los TO múltiples.
     const results = await Promise.allSettled(

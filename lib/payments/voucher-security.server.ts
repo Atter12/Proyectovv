@@ -56,20 +56,41 @@ export async function isDuplicateOperationCode(
   if (!normalized) return false;
 
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("payment_intents")
-    .select("id, status")
-    .eq("provider", "manual")
-    .contains("metadata", { voucher_operation_code: normalized })
-    .in("status", ["succeeded", "processing"])
-    .limit(10);
+  const statuses = ["succeeded", "processing", "requires_payment", "created"] as const;
 
-  if (error) {
-    console.error("[voucher-security] operation code duplicate check failed", error.message);
-    return false;
+  const [byOcr, byClaim] = await Promise.all([
+    admin
+      .from("payment_intents")
+      .select("id")
+      .eq("provider", "manual")
+      .contains("metadata", { voucher_operation_code: normalized })
+      .in("status", [...statuses])
+      .neq("id", excludeIntentId)
+      .limit(1),
+    admin
+      .from("payment_intents")
+      .select("id")
+      .eq("provider", "manual")
+      .contains("metadata", { claimed_operation_code: normalized })
+      .in("status", [...statuses])
+      .neq("id", excludeIntentId)
+      .limit(1),
+  ]);
+
+  if (byOcr.error) {
+    console.error(
+      "[voucher-security] operation code duplicate check failed",
+      byOcr.error.message,
+    );
+  }
+  if (byClaim.error) {
+    console.error(
+      "[voucher-security] claimed operation code duplicate check failed",
+      byClaim.error.message,
+    );
   }
 
-  return (data ?? []).some((row) => row.id !== excludeIntentId);
+  return Boolean(byOcr.data?.length || byClaim.data?.length);
 }
 
 export async function checkVoucherUploadRateLimits(
