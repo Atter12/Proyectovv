@@ -174,193 +174,209 @@ export function MissingCobroClaimPanel({
   }
 
   return (
-    <section className="space-y-3 rounded-2xl border border-[var(--auth-divider)] bg-white p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 max-w-2xl">
-          <h3 className="text-[14px] font-semibold text-[var(--auth-text)]">
-            {t("missingCobro.title")}
-          </h3>
-          <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            {t("missingCobro.body")}
-          </p>
+    <section className="space-y-3">
+      <div
+        className={[
+          "relative overflow-hidden rounded-2xl border border-[var(--auth-divider)]",
+          "bg-gradient-to-br from-[#fff8f1] via-white to-[#f4f7fb]",
+          "p-4 sm:p-5",
+        ].join(" ")}
+      >
+        <div
+          className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#ff781f]/10 blur-2xl"
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#b45309]">
+              {t("missingCobro.eyebrow")}
+            </p>
+            <h3 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.125rem]">
+              {t("missingCobro.title")}
+            </h3>
+            <p className="mt-1.5 text-[13px] leading-5 text-[var(--auth-text-muted)]">
+              {t("missingCobro.body")}
+            </p>
+            <p className="mt-2 text-[11px] leading-4 text-[var(--auth-text-soft)]">
+              {t("missingCobro.noWalletHint")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="shrink-0 self-start sm:self-center"
+            onClick={() => {
+              setOpen((v) => !v);
+              setError(null);
+              setSuccess(null);
+            }}
+          >
+            {open ? t("missingCobro.cancel") : t("missingCobro.cta")}
+          </Button>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => {
-            setOpen((v) => !v);
-            setError(null);
-            setSuccess(null);
-          }}
-        >
-          {open ? t("missingCobro.cancel") : t("missingCobro.cta")}
-        </Button>
+
+        {success ? (
+          <p className="relative mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
+            {success}
+          </p>
+        ) : null}
+
+        {open ? (
+          <div className="relative mt-4 space-y-3 rounded-xl border border-[var(--auth-divider)] bg-white/90 p-3 shadow-sm sm:p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.period")}
+                </span>
+                <select
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.periodoResumen}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, periodoResumen: e.target.value }))
+                  }
+                >
+                  {periodos.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.paymentDate")}
+                </span>
+                <input
+                  type="date"
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.paymentFecha}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, paymentFecha: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.amountUsd")}
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  inputMode="decimal"
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.amountUsd}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                  }
+                  placeholder="188.73"
+                />
+              </label>
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.amountPenOptional")}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.amountPen}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, amountPen: e.target.value }))
+                  }
+                  placeholder="636.38"
+                />
+              </label>
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.method")}
+                </span>
+                <select
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.metodo}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, metodo: e.target.value }))
+                  }
+                >
+                  {METODOS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-[12px]">
+                <span className="font-medium text-[var(--auth-text)]">
+                  {t("missingCobro.opCode")}
+                </span>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  value={form.operationCode}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, operationCode: e.target.value }))
+                  }
+                  placeholder="01048566"
+                />
+              </label>
+            </div>
+            <label className="block text-[12px]">
+              <span className="font-medium text-[var(--auth-text)]">
+                {t("missingCobro.notes")}
+              </span>
+              <textarea
+                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                rows={2}
+                value={form.notes}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, notes: e.target.value }))
+                }
+              />
+            </label>
+            <label className="block text-[12px]">
+              <span className="font-medium text-[var(--auth-text)]">
+                {t("missingCobro.voucher")}
+              </span>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="mt-1 block w-full text-[12px]"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+
+            {error ? (
+              <p className="text-[12px] text-red-600" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleCreateAndUpload()}
+              >
+                {busy
+                  ? uploading
+                    ? t("missingCobro.uploading")
+                    : t("missingCobro.creating")
+                  : t("missingCobro.submit")}
+              </Button>
+              {pendingIntentId ? (
+                <span className="self-center font-mono text-[10px] text-[var(--auth-muted)]">
+                  {pendingIntentId.slice(0, 8)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {success ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
-          {success}
-        </p>
-      ) : null}
-
-      {open ? (
-        <div className="space-y-3 rounded-xl border border-[var(--auth-divider)] bg-[var(--auth-bg)]/40 p-3 sm:p-4">
-          <p className="text-[11px] font-medium text-amber-900">
-            {t("missingCobro.noWalletHint")}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.period")}
-              </span>
-              <select
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.periodoResumen}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, periodoResumen: e.target.value }))
-                }
-              >
-                {periodos.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.paymentDate")}
-              </span>
-              <input
-                type="date"
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.paymentFecha}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, paymentFecha: e.target.value }))
-                }
-              />
-            </label>
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.amountUsd")}
-              </span>
-              <input
-                type="number"
-                min="1"
-                step="0.01"
-                inputMode="decimal"
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.amountUsd}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, amountUsd: e.target.value }))
-                }
-                placeholder="188.73"
-              />
-            </label>
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.amountPenOptional")}
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.amountPen}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, amountPen: e.target.value }))
-                }
-                placeholder="636.38"
-              />
-            </label>
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.method")}
-              </span>
-              <select
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.metodo}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, metodo: e.target.value }))
-                }
-              >
-                {METODOS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
-                {t("missingCobro.opCode")}
-              </span>
-              <input
-                type="text"
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-                value={form.operationCode}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, operationCode: e.target.value }))
-                }
-                placeholder="01048566"
-              />
-            </label>
-          </div>
-          <label className="block text-[12px]">
-            <span className="font-medium text-[var(--auth-text)]">
-              {t("missingCobro.notes")}
-            </span>
-            <textarea
-              className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
-              rows={2}
-              value={form.notes}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, notes: e.target.value }))
-              }
-            />
-          </label>
-          <label className="block text-[12px]">
-            <span className="font-medium text-[var(--auth-text)]">
-              {t("missingCobro.voucher")}
-            </span>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              className="mt-1 block w-full text-[12px]"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
-
-          {error ? (
-            <p className="text-[12px] text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleCreateAndUpload()}
-            >
-              {busy
-                ? uploading
-                  ? t("missingCobro.uploading")
-                  : t("missingCobro.creating")
-                : t("missingCobro.submit")}
-            </Button>
-            {pendingIntentId ? (
-              <span className="self-center font-mono text-[10px] text-[var(--auth-muted)]">
-                {pendingIntentId.slice(0, 8)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
       {claims.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-2xl border border-[var(--auth-divider)] bg-white p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
             {t("missingCobro.myReports")}
           </p>

@@ -705,13 +705,17 @@ export async function rejectManualVoucherPayment(input: {
   await notify({
     organizationId: intent.organization_id,
     userId: intent.created_by,
-    title:
-      intent.provider === "crypto"
+    title: isMissingCobroPurpose(intent.metadata)
+      ? "Comprobante rechazado"
+      : intent.provider === "crypto"
         ? "Pago cripto rechazado"
         : "Pago manual rechazado",
     body: reason,
     type: "payment_rejected",
-    data: { payment_intent_id: intent.id, url: "/payments" },
+    data: {
+      payment_intent_id: intent.id,
+      url: isMissingCobroPurpose(intent.metadata) ? "/cobros" : "/payments",
+    },
   });
 
   await insertAudit({
@@ -719,8 +723,12 @@ export async function rejectManualVoucherPayment(input: {
     actorUserId: input.actor.id,
     action:
       input.rejectedFrom === "dashboard"
-        ? "payments.manual_payment.rejected"
-        : "admin.manual_payment.rejected",
+        ? isMissingCobroPurpose(intent.metadata)
+          ? "payments.missing_cobro.rejected"
+          : "payments.manual_payment.rejected"
+        : isMissingCobroPurpose(intent.metadata)
+          ? "admin.missing_cobro.rejected"
+          : "admin.manual_payment.rejected",
     entityType: "payment_intent",
     entityId: intent.id,
     severity: "warning",
@@ -729,6 +737,9 @@ export async function rejectManualVoucherPayment(input: {
       amount_cents: intent.amount_cents,
       currency: intent.currency,
       rejected_from: input.rejectedFrom,
+      purpose: isMissingCobroPurpose(intent.metadata)
+        ? "hecom_missing_cobro"
+        : null,
     },
   });
 
