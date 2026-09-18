@@ -25,6 +25,7 @@ import type {
   CreativeAssetListItem,
   CreativeDraftListItem,
 } from "@/lib/creatives/types";
+import { latestPolicyOrClaimsKind } from "@/lib/creatives/tiktok-reject-action";
 
 function platformLabel(platform: string | null) {
   if (!platform) return null;
@@ -93,6 +94,17 @@ export async function ClienteScopedCreatives({
         )
       : null;
 
+  const repeatRejectKind = latestPolicyOrClaimsKind(
+    drafts
+      .filter(
+        (d) => d.status === "published" && d.tiktokReviewStatus === "rejected",
+      )
+      .map((d) => ({
+        reasons: d.tiktokRejectReasons,
+        at: d.publishedAt ?? d.createdAt,
+      })),
+  );
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <CrmScopeHero
@@ -153,6 +165,7 @@ export async function ClienteScopedCreatives({
         <CreativeUploadPanel
           clienteName={cliente.name}
           accounts={accounts}
+          repeatRejectKind={repeatRejectKind}
         />
       </Suspense>
 

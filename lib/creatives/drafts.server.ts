@@ -5,6 +5,12 @@ import {
   publishCreativeDraftToTikTok,
 } from "@/lib/integrations/tiktok/creative-publish.server";
 import type { CreativeAgentBrief } from "@/lib/creatives/types";
+import {
+  classifyTikTokRejectReasons,
+  countRecentSameKindRejects,
+  REJECT_REPEAT_LIMIT,
+  repeatRejectBlockMessage,
+} from "@/lib/creatives/tiktok-reject-action";
 
 export async function rejectCreativeDraft(input: {
   organizationId: string;
@@ -30,6 +36,47 @@ export async function rejectCreativeDraft(input: {
   if (!data) throw new Error("Borrador no encontrado o ya revisado.");
 }
 
+async function assertNotRepeatReject(input: {
+  admin: ReturnType<typeof createAdminClient>;
+  organizationId: string;
+  advertiserId: string;
+}): Promise<void> {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await input.admin
+    .from("creative_publish_drafts")
+    .select("reject_reasons, review_checked_at, updated_at, published_at")
+    .eq("organization_id", input.organizationId)
+    .eq("external_advertiser_id", input.advertiserId)
+    .eq("review_status", "rejected")
+    .gte("updated_at", since)
+    .limit(40);
+
+  if (error) {
+    console.warn("[creatives] repeat_reject_check", error.message);
+    return;
+  }
+
+  const recent = (data ?? []).map((row) => {
+    const reasons = Array.isArray(row.reject_reasons)
+      ? row.reject_reasons.map((item) => String(item ?? ""))
+      : [];
+    const at =
+      (typeof row.review_checked_at === "string" && row.review_checked_at) ||
+      (typeof row.published_at === "string" && row.published_at) ||
+      (typeof row.updated_at === "string" && row.updated_at) ||
+      new Date().toISOString();
+    return { kind: classifyTikTokRejectReasons(reasons), at };
+  });
+
+  const kinds = ["policy", "claims", "media_invalid", "generic"] as const;
+  for (const kind of kinds) {
+    const count = countRecentSameKindRejects({ kind, recent });
+    if (count >= REJECT_REPEAT_LIMIT) {
+      throw new Error(repeatRejectBlockMessage(kind, count));
+    }
+  }
+}
+
 async function runTikTokPublish(input: {
   organizationId: string;
   draftId: string;
@@ -40,6 +87,7 @@ async function runTikTokPublish(input: {
     creative_asset_id: string | null;
     ad_account_id: string | null;
     external_advertiser_id: string | null;
+    parent_draft_id?: string | null;
   };
 }): Promise<{
   status: string;
@@ -79,6 +127,14 @@ async function runTikTokPublish(input: {
       throw new Error(
         "Falta advertiser_id de TikTok. Vincula una cuenta Aprobada al subir el creativo.",
       );
+    }
+
+    if (!input.draft.parent_draft_id) {
+      await assertNotRepeatReject({
+        admin,
+        organizationId: input.organizationId,
+        advertiserId,
+      });
     }
     if (!input.draft.creative_asset_id) {
       throw new Error("El borrador no tiene creativo asociado.");
@@ -177,7 +233,7 @@ export async function approveCreativeDraft(input: {
   const { data: draft, error } = await admin
     .from("creative_publish_drafts")
     .select(
-      "id, status, brief, creative_asset_id, ad_account_id, external_advertiser_id",
+      "id, status, brief, creative_asset_id, ad_account_id, external_advertiser_id, parent_draft_id",
     )
     .eq("id", input.draftId)
     .eq("organization_id", input.organizationId)
@@ -188,6 +244,7 @@ export async function approveCreativeDraft(input: {
       creative_asset_id: string | null;
       ad_account_id: string | null;
       external_advertiser_id: string | null;
+      parent_draft_id: string | null;
     }>();
 
   if (error) throw new Error(error.message);
@@ -241,7 +298,7 @@ export async function publishApprovedCreativeDraft(input: {
   const { data: draft, error } = await admin
     .from("creative_publish_drafts")
     .select(
-      "id, status, brief, creative_asset_id, ad_account_id, external_advertiser_id",
+      "id, status, brief, creative_asset_id, ad_account_id, external_advertiser_id, parent_draft_id",
     )
     .eq("id", input.draftId)
     .eq("organization_id", input.organizationId)
@@ -252,6 +309,7 @@ export async function publishApprovedCreativeDraft(input: {
       creative_asset_id: string | null;
       ad_account_id: string | null;
       external_advertiser_id: string | null;
+      parent_draft_id: string | null;
     }>();
 
   if (error) throw new Error(error.message);

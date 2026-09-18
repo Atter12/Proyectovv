@@ -60,6 +60,9 @@ export type CreativeAssetListItem = {
   jobStatus: string | null;
   jobId: string | null;
   insight: CreativeAnalysisInsight | null;
+  previewUrl: string | null;
+  posterUrl: string | null;
+  mediaKind: "video" | "image" | null;
 };
 
 export type CreativeDraftListItem = {
@@ -84,4 +87,7 @@ export type CreativeDraftListItem = {
   hasActiveFix: boolean;
   /** Origen: Holistic vs descubierto en Ads Manager. */
   discoverSource: "holistic" | "tiktok_ads_manager" | null;
+  previewUrl: string | null;
+  posterUrl: string | null;
+  mediaKind: "video" | "image" | null;
 };

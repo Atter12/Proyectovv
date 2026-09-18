@@ -10,8 +10,53 @@ import type {
   CreativeTikTokReviewStatus,
 } from "@/lib/creatives/types";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
+import { mediaKindFrom } from "@/lib/creatives/tiktok-media-preview";
 
 export type { CreativeDraftListItem };
+
+const PREVIEW_TTL_SECONDS = 60 * 60;
+
+async function signedUrlById(
+  admin: ReturnType<typeof createAdminClient>,
+  rows: Array<{
+    id: string;
+    bucket: string | null;
+    path: string | null;
+  }>,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const byBucket = new Map<string, Array<{ id: string; path: string }>>();
+  for (const row of rows) {
+    const bucket = row.bucket?.trim() ?? "";
+    const path = row.path?.trim() ?? "";
+    if (!bucket || !path) continue;
+    const list = byBucket.get(bucket) ?? [];
+    list.push({ id: row.id, path });
+    byBucket.set(bucket, list);
+  }
+
+  await Promise.all(
+    [...byBucket.entries()].map(async ([bucket, items]) => {
+      const { data, error } = await admin.storage
+        .from(bucket)
+        .createSignedUrls(
+          items.map((item) => item.path),
+          PREVIEW_TTL_SECONDS,
+        );
+      if (error || !data) return;
+      data.forEach((item, index) => {
+        const id = items[index]?.id;
+        if (id && item.signedUrl) out.set(id, item.signedUrl);
+      });
+    }),
+  );
+  return out;
+}
+
+function httpUrl(value: unknown): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^https?:\/\//i.test(text) ? text : null;
+}
 
 export async function listCreativeAccountOptions(
   organizationId: string,
@@ -192,7 +237,7 @@ export async function listOrganizationCreativeAssets(
   const { data: assetsRaw, error } = await admin
     .from("creative_assets")
     .select(
-      "id, name, asset_type, mime_type, status, created_at, ad_account_id, external_advertiser_id",
+      "id, name, asset_type, mime_type, status, created_at, ad_account_id, external_advertiser_id, storage_bucket, storage_path, thumbnail_url, public_url",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
@@ -272,14 +317,35 @@ export async function listOrganizationCreativeAssets(
     (accountsRes.data ?? []).map((row) => [row.id, row.name]),
   );
 
+  const signedByAsset = await signedUrlById(
+    admin,
+    assets.map((asset) => ({
+      id: asset.id as string,
+      bucket: (asset.storage_bucket as string | null) ?? null,
+      path: (asset.storage_path as string | null) ?? null,
+    })),
+  );
+
   return assets.map((asset) => {
     const job = latestJobByAsset.get(asset.id as string) ?? null;
     const result = job ? resultByJob.get(job.id) : null;
+    const mimeType = (asset.mime_type as string | null) ?? null;
+    const assetType = asset.asset_type as string;
+    const signed = signedByAsset.get(asset.id as string) ?? null;
+    const poster =
+      httpUrl(asset.thumbnail_url) ??
+      (mimeType?.startsWith("image/") || assetType === "image"
+        ? signed
+        : null);
+    const preview =
+      signed ??
+      httpUrl(asset.public_url) ??
+      poster;
     return {
       id: asset.id as string,
       name: asset.name as string,
-      assetType: asset.asset_type as string,
-      mimeType: (asset.mime_type as string | null) ?? null,
+      assetType,
+      mimeType,
       status: asset.status as string,
       createdAt: asset.created_at as string,
       adAccountId: (asset.ad_account_id as string | null) ?? null,
@@ -304,6 +370,14 @@ export async function listOrganizationCreativeAssets(
             },
           )
         : null,
+      previewUrl: preview,
+      posterUrl: poster ?? (mimeType?.startsWith("video/") ? null : preview),
+      mediaKind: mediaKindFrom({
+        mimeType,
+        assetType,
+        previewUrl: preview,
+        posterUrl: poster,
+      }),
     };
   });
 }
@@ -366,7 +440,7 @@ export async function listOrganizationCreativeDrafts(
   const { data: draftsRaw, error } = await admin
     .from("creative_publish_drafts")
     .select(
-      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id, discover_source, external_ad_id",
+      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id, discover_source, external_ad_id, publish_result",
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
@@ -391,6 +465,7 @@ export async function listOrganizationCreativeDrafts(
     parent_draft_id?: string | null;
     discover_source?: string | null;
     external_ad_id?: string | null;
+    publish_result?: unknown;
   };
   let draftsSource = draftsRaw as DraftListRow[] | null;
   let listError = error;
@@ -470,15 +545,37 @@ export async function listOrganizationCreativeDrafts(
 
   const [assetsRes, accountsRes] = await Promise.all([
     assetIds.length
-      ? admin.from("creative_assets").select("id, name").in("id", assetIds)
+      ? admin
+          .from("creative_assets")
+          .select(
+            "id, name, asset_type, mime_type, storage_bucket, storage_path, thumbnail_url, public_url",
+          )
+          .in("id", assetIds)
       : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
     accountIds.length
       ? admin.from("ad_accounts").select("id, name").in("id", accountIds)
       : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
   ]);
 
-  const assetName = new Map(
-    (assetsRes.data ?? []).map((r) => [r.id, r.name]),
+  const assetRows = (assetsRes.data ?? []) as Array<{
+    id: string;
+    name: string;
+    asset_type?: string | null;
+    mime_type?: string | null;
+    storage_bucket?: string | null;
+    storage_path?: string | null;
+    thumbnail_url?: string | null;
+    public_url?: string | null;
+  }>;
+  const assetName = new Map(assetRows.map((r) => [r.id, r.name]));
+  const assetById = new Map(assetRows.map((r) => [r.id, r]));
+  const signedDraftAssets = await signedUrlById(
+    admin,
+    assetRows.map((row) => ({
+      id: row.id,
+      bucket: row.storage_bucket ?? null,
+      path: row.storage_path ?? null,
+    })),
   );
   const accountName = new Map(
     (accountsRes.data ?? []).map((r) => [r.id, r.name]),
@@ -542,6 +639,27 @@ export async function listOrganizationCreativeDrafts(
       discoverRaw === "holistic" || discoverRaw === "tiktok_ads_manager"
         ? discoverRaw
         : null;
+    const publishResult =
+      row.publish_result && typeof row.publish_result === "object"
+        ? (row.publish_result as Record<string, unknown>)
+        : {};
+    const linked = row.creative_asset_id
+      ? assetById.get(row.creative_asset_id as string)
+      : undefined;
+    const signed = row.creative_asset_id
+      ? (signedDraftAssets.get(row.creative_asset_id as string) ?? null)
+      : null;
+    const posterUrl =
+      httpUrl(publishResult.poster_url) ??
+      httpUrl(linked?.thumbnail_url) ??
+      (linked?.mime_type?.startsWith("image/") || linked?.asset_type === "image"
+        ? signed
+        : null);
+    const previewUrl =
+      httpUrl(publishResult.preview_url) ??
+      signed ??
+      httpUrl(linked?.public_url) ??
+      posterUrl;
 
     return {
       id: row.id as string,
@@ -570,6 +688,14 @@ export async function listOrganizationCreativeDrafts(
         : null,
       hasActiveFix: activeFixParents.has(row.id as string),
       discoverSource,
+      previewUrl,
+      posterUrl,
+      mediaKind: mediaKindFrom({
+        mimeType: linked?.mime_type ?? null,
+        assetType: linked?.asset_type ?? null,
+        previewUrl,
+        posterUrl,
+      }),
     };
   });
 }

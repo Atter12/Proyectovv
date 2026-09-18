@@ -91,7 +91,9 @@ function normalizeReviewStatus(input: {
 }): TikTokAdReviewStatus {
   const raw = (input.reviewStatusRaw ?? "").toUpperCase();
   if (
-    /REJECT|DENY|FAIL|UNAVAILABLE|NOT_APPROVE|AUDIT_DENY/.test(raw) ||
+    /AUDIT_DENY|PARTIAL_AUDIT|REVIEW_REJECT|REJECT|DENY|FAIL|UNAVAILABLE|NOT_APPROVE|NOT_PASS|DISAPPROVE|PUNISH/.test(
+      raw,
+    ) ||
     input.rejectReasons.length > 0
   ) {
     if (input.isApproved === true && input.rejectReasons.length === 0) {
@@ -355,7 +357,7 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       cur.reasons.push(
         ...extractRejectReasons(row.reject_info ?? row.appeal_reject_reasons),
       );
-      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE/i.test(status)) {
+      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(status)) {
         cur.rejected = true;
       }
       bySp.set(spId, cur);
@@ -372,7 +374,7 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       const status = String(row.review_status ?? "").trim();
       if (status) cur.statuses.push(status);
       cur.reasons.push(...extractRejectReasons(row.reject_info));
-      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE/i.test(status)) {
+      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(status)) {
         cur.rejected = true;
       }
       bySp.set(spId, cur);

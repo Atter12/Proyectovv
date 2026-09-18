@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import type { CreativeAssetListItem } from "@/lib/creatives/types";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
+import { CreativeMediaTile } from "@/features/creative-analyzer/components/CreativeMediaTile";
 import { cn } from "@/lib/cn";
 
 function ScoreRing({
@@ -117,6 +118,15 @@ export function CreativeAssetsPanel({
                 className="rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-white p-3.5 shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] sm:p-4"
               >
                 <div className="flex gap-3.5">
+                  {asset.previewUrl || asset.posterUrl ? (
+                    <CreativeMediaTile
+                      previewUrl={asset.previewUrl}
+                      posterUrl={asset.posterUrl}
+                      mediaKind={asset.mediaKind}
+                      label={asset.name}
+                      playLabel={t("playVideo")}
+                    />
+                  ) : null}
                   {insight ? (
                     <ScoreRing score={insight.overallScore} scoreLabel={t("score")} />
                   ) : (

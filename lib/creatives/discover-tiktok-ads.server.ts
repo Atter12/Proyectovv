@@ -1,11 +1,15 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { listAdvertiserAds } from "@/lib/integrations/tiktok/ad-list.server";
+import { listAdvertiserAds, fetchAdMediaPreviews } from "@/lib/integrations/tiktok/ad-list.server";
 import {
   fetchAdReviewInfo,
   fetchSmartPlusAdReviewInfo,
 } from "@/lib/integrations/tiktok/ad-review.server";
 import type { CreativeAgentBrief } from "@/lib/creatives/types";
+import { looksLikeRejectedAdStatus } from "@/lib/creatives/tiktok-reject-action";
+
+const REVIEW_PROBLEM_FALLBACK =
+  "TikTok no publicó este anuncio (problema de revisión). Cambia el video antes de subir otro.";
 
 /** Evita re-pegarle a TikTok en cada navegación/refresh (por org+advertisers). */
 const DISCOVER_TTL_MS = 3 * 60 * 1000;
@@ -55,6 +59,8 @@ async function upsertRejectedDraft(input: {
   smartPlusAdId: string | null;
   secondaryStatus: string | null;
   rejectReasons: string[];
+  posterUrl?: string | null;
+  previewUrl?: string | null;
 }): Promise<boolean> {
   const now = new Date().toISOString();
   const publishResult = {
@@ -66,6 +72,8 @@ async function upsertRejectedDraft(input: {
     smart_plus_ad_id: input.smartPlusAdId,
     source: "tiktok_ads_manager",
     discovered_at: now,
+    poster_url: input.posterUrl ?? null,
+    preview_url: input.previewUrl ?? null,
   };
   const brief = stubBrief({
     adName: input.adName,
@@ -166,6 +174,9 @@ export async function discoverRejectedAdsForAdvertisers(input: {
 
   for (const advertiserId of advertiserIds) {
     const meta = input.advertiserAccountMap.get(advertiserId);
+    const pending: Array<
+      Omit<Parameters<typeof upsertRejectedDraft>[0], "admin" | "organizationId" | "advertiserId" | "adAccountId" | "accountName">
+    > = [];
     try {
       const allAds = await listAdvertiserAds({
         organizationId: input.organizationId,
@@ -205,16 +216,14 @@ export async function discoverRejectedAdsForAdvertisers(input: {
           });
 
           for (const [spId, snap] of reviews) {
-            if (snap.reviewStatus !== "rejected") continue;
             const ad = smartMap.get(spId);
             if (!ad) continue;
+            const secondary = snap.secondaryStatus ?? ad.secondaryStatus;
+            const rejectedByApi = snap.reviewStatus === "rejected";
+            const rejectedByStatus = looksLikeRejectedAdStatus(secondary);
+            if (!rejectedByApi && !rejectedByStatus) continue;
             rejected += 1;
-            await upsertRejectedDraft({
-              admin,
-              organizationId: input.organizationId,
-              advertiserId,
-              adAccountId: meta?.adAccountId ?? null,
-              accountName: meta?.accountName ?? null,
+            pending.push({
               // Clave estable: smart_plus_ad_id (un ad container, muchos creatives).
               externalAdId: spId,
               adName: ad.adName,
@@ -223,10 +232,28 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               videoId: ad.videoId,
               imageIds: ad.imageIds,
               smartPlusAdId: spId,
-              secondaryStatus: snap.secondaryStatus ?? ad.secondaryStatus,
-              rejectReasons: snap.rejectReasons,
+              secondaryStatus: secondary,
+              rejectReasons:
+                snap.rejectReasons.length > 0
+                  ? snap.rejectReasons
+                  : [REVIEW_PROBLEM_FALLBACK],
             });
-            upserted += 1;
+          }
+          for (const [spId, ad] of smartMap) {
+            if (reviews.has(spId)) continue;
+            if (!looksLikeRejectedAdStatus(ad.secondaryStatus)) continue;
+            rejected += 1;
+            pending.push({
+              externalAdId: spId,
+              adName: ad.adName,
+              campaignId: ad.campaignId,
+              adgroupId: ad.adgroupId,
+              videoId: ad.videoId,
+              imageIds: ad.imageIds,
+              smartPlusAdId: spId,
+              secondaryStatus: ad.secondaryStatus,
+              rejectReasons: [REVIEW_PROBLEM_FALLBACK],
+            });
           }
         } catch (error) {
           errors.push(
@@ -251,14 +278,12 @@ export async function discoverRejectedAdsForAdvertisers(input: {
           });
           for (const ad of classicAds) {
             const snap = reviews.get(ad.adId);
-            if (snap?.reviewStatus !== "rejected") continue;
+            const secondary = snap?.secondaryStatus ?? ad.secondaryStatus;
+            const rejectedByApi = snap?.reviewStatus === "rejected";
+            const rejectedByStatus = looksLikeRejectedAdStatus(secondary);
+            if (!rejectedByApi && !rejectedByStatus) continue;
             rejected += 1;
-            await upsertRejectedDraft({
-              admin,
-              organizationId: input.organizationId,
-              advertiserId,
-              adAccountId: meta?.adAccountId ?? null,
-              accountName: meta?.accountName ?? null,
+            pending.push({
               externalAdId: ad.adId,
               adName: ad.adName,
               campaignId: ad.campaignId,
@@ -266,10 +291,12 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               videoId: ad.videoId,
               imageIds: ad.imageIds,
               smartPlusAdId: null,
-              secondaryStatus: snap.secondaryStatus ?? ad.secondaryStatus,
-              rejectReasons: snap.rejectReasons,
+              secondaryStatus: secondary,
+              rejectReasons:
+                snap && snap.rejectReasons.length > 0
+                  ? snap.rejectReasons
+                  : [REVIEW_PROBLEM_FALLBACK],
             });
-            upserted += 1;
           }
         } catch (error) {
           const msg = error instanceof Error ? error.message : "error";
@@ -277,6 +304,49 @@ export async function discoverRejectedAdsForAdvertisers(input: {
           if (!/Smart Plus/i.test(msg)) {
             errors.push(`${advertiserId}: classic ${msg}`);
           }
+        }
+      }
+
+      if (pending.length > 0) {
+        let previews = new Map<
+          string,
+          { posterUrl: string | null; previewUrl: string | null }
+        >();
+        try {
+          previews = await fetchAdMediaPreviews({
+            organizationId: input.organizationId,
+            advertiserId,
+            videoIds: pending
+              .map((item) => item.videoId)
+              .filter((id): id is string => Boolean(id)),
+            imageIds: pending.flatMap((item) => item.imageIds),
+          });
+        } catch (error) {
+          errors.push(
+            `${advertiserId}: preview ${
+              error instanceof Error ? error.message : "error"
+            }`,
+          );
+        }
+        for (const item of pending) {
+          const fromVideo = item.videoId
+            ? previews.get(item.videoId)
+            : undefined;
+          const fromImage = item.imageIds
+            .map((id) => previews.get(id))
+            .find(Boolean);
+          const media = fromVideo ?? fromImage ?? null;
+          const ok = await upsertRejectedDraft({
+            admin,
+            organizationId: input.organizationId,
+            advertiserId,
+            adAccountId: meta?.adAccountId ?? null,
+            accountName: meta?.accountName ?? null,
+            ...item,
+            posterUrl: media?.posterUrl ?? null,
+            previewUrl: media?.previewUrl ?? null,
+          });
+          if (ok) upserted += 1;
         }
       }
     } catch (error) {

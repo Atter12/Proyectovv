@@ -12,6 +12,7 @@ import {
 } from "@/lib/creatives/tiktok-reject-action";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
+import { CreativeMediaTile } from "@/features/creative-analyzer/components/CreativeMediaTile";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { cn } from "@/lib/cn";
 
@@ -77,9 +78,20 @@ export function AgentProDraftsPanel({
   useEffect(() => {
     if (!expectDiscoverRefresh) return;
     if (softRefreshDone.current) return;
-    if (counts.rejected > 0) return;
+    if (counts.rejected > 0) {
+      const missingMedia = drafts.some(
+        (d) =>
+          isRejected(d) && !d.previewUrl && !d.posterUrl,
+      );
+      if (!missingMedia) return;
+    }
     if (typeof window === "undefined") return;
-    const storageKey = "creatives:discover-soft-refresh";
+    const missingMedia =
+      counts.rejected > 0 &&
+      drafts.some((d) => isRejected(d) && !d.previewUrl && !d.posterUrl);
+    const storageKey = missingMedia
+      ? "creatives:media-soft-refresh"
+      : "creatives:discover-soft-refresh";
     try {
       if (sessionStorage.getItem(storageKey) === "1") {
         softRefreshDone.current = true;
@@ -98,7 +110,7 @@ export function AgentProDraftsPanel({
       router.refresh();
     }, 10_000);
     return () => window.clearTimeout(timer);
-  }, [expectDiscoverRefresh, counts.rejected, router]);
+  }, [expectDiscoverRefresh, counts.rejected, drafts, router]);
 
   const [filter, setFilter] = useState<FilterId>("action");
   const activeFilter: FilterId =
@@ -253,7 +265,7 @@ export function AgentProDraftsPanel({
           </button>
         </div>
       ) : (
-        <ul className="max-h-[36rem] divide-y divide-[rgb(20_18_16_/_0.06)] overflow-y-auto">
+        <ul className="max-h-[40rem] space-y-2 overflow-y-auto p-3 sm:p-4">
           {visible.map((draft) => {
             const title = draftTitle(draft);
             const rejected = isRejected(draft);
@@ -276,15 +288,27 @@ export function AgentProDraftsPanel({
               return (
                 <li
                   key={draft.id}
-                  className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
+                  className="flex flex-col gap-3 rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-3.5 py-3.5 shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    <CreativeMediaTile
+                      previewUrl={draft.previewUrl}
+                      posterUrl={draft.posterUrl}
+                      mediaKind={draft.mediaKind ?? (draft.previewUrl ? "video" : null)}
+                      label={title}
+                      playLabel={t("playVideo")}
+                    />
+                    <div className="min-w-0">
                     <p className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                       {title}
                     </p>
                     <p className="mt-0.5 text-[12px] leading-4 text-[var(--auth-text-muted)]">
                       {reasonLine}
                     </p>
+                    <p className="mt-1 text-[12px] font-medium leading-4 text-[#9a3412]">
+                      {t(`fixHint_${actionKind}`)}
+                    </p>
+                    </div>
                   </div>
 
                   {draft.hasActiveFix ? (
@@ -311,7 +335,7 @@ export function AgentProDraftsPanel({
               <li
                 key={draft.id}
                 className={cn(
-                  "overflow-hidden border-b border-[rgb(20_18_16_/_0.06)] bg-white last:border-b-0",
+                  "overflow-hidden rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-white shadow-[0_8px_20px_rgb(20_18_16_/_0.03)]",
                   failed ? "bg-[#fdf8f7]" : null,
                 )}
               >

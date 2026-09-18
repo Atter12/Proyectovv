@@ -77,14 +77,14 @@ function mapAdRow(row: Record<string, unknown>): TikTokListedAd | null {
   };
 }
 
+import { looksLikeRejectedAdStatus } from "@/lib/creatives/tiktok-reject-action";
+import {
+  mapTikTokMediaPreviewRows,
+  type TikTokMediaPreview,
+} from "@/lib/creatives/tiktok-media-preview";
+
 /** Heurística: secondary_status sugiere rechazo / no entrega por review. */
-export function looksLikeRejectedAdStatus(secondaryStatus: string | null): boolean {
-  const raw = (secondaryStatus ?? "").toUpperCase();
-  if (!raw) return false;
-  return /AUDIT_DENY|REJECT|DENIED|NOT_APPROVE|UNAVAILABLE|NOT_DELIVER/.test(
-    raw,
-  );
-}
+export { looksLikeRejectedAdStatus };
 
 /**
  * Lista anuncios del advertiser (paginado).
@@ -157,5 +157,59 @@ export async function listAdvertiserAds(input: {
     if (list.length === 0 || page >= totalPage) break;
   }
 
+  return out;
+}
+
+function chunkIds(ids: string[], size: number): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    out.push(ids.slice(i, i + size));
+  }
+  return out;
+}
+
+/**
+ * Cover + preview de videos/imágenes ya subidos a TikTok.
+ * No lanza: si falla, el anuncio se muestra igual sin miniatura.
+ */
+export async function fetchAdMediaPreviews(input: {
+  organizationId?: string;
+  advertiserId: string;
+  videoIds: string[];
+  imageIds: string[];
+}): Promise<Map<string, TikTokMediaPreview>> {
+  const advertiserId = input.advertiserId.trim();
+  const videoIds = [...new Set(input.videoIds.map((id) => id.trim()).filter(Boolean))];
+  const imageIds = [...new Set(input.imageIds.map((id) => id.trim()).filter(Boolean))];
+  const out = new Map<string, TikTokMediaPreview>();
+  if (!advertiserId || (videoIds.length === 0 && imageIds.length === 0)) {
+    return out;
+  }
+
+  const { token } = await resolveTikTokFinanceAccessToken(input.organizationId);
+
+  async function pull(path: string, key: string, ids: string[]) {
+    for (const chunk of chunkIds(ids, 20)) {
+      try {
+        const json = await tiktokGet<{ list?: unknown }>({
+          path,
+          accessToken: token,
+          query: {
+            advertiser_id: advertiserId,
+            [key]: JSON.stringify(chunk),
+          },
+        });
+        if (json.code !== undefined && json.code !== 0) continue;
+        for (const [id, preview] of mapTikTokMediaPreviewRows(json.data?.list)) {
+          out.set(id, preview);
+        }
+      } catch {
+        /* miniatura opcional */
+      }
+    }
+  }
+
+  await pull("/file/video/ad/info/", "video_ids", videoIds);
+  await pull("/file/image/ad/info/", "image_ids", imageIds);
   return out;
 }

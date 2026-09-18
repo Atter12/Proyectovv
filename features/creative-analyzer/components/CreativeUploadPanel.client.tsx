@@ -34,9 +34,12 @@ function fileKind(file: File): "image" | "video" | "pdf" | "other" {
 export function CreativeUploadPanel({
   clienteName,
   accounts = [],
+  repeatRejectKind = null,
 }: {
   clienteName?: string;
   accounts?: CreativeAccountOption[];
+  /** Último rechazo de la cuenta: avisa antes de subir otro igual. */
+  repeatRejectKind?: "policy" | "claims" | null;
 }) {
   const t = useTranslations("creatives.upload");
   const router = useRouter();
@@ -49,10 +52,21 @@ export function CreativeUploadPanel({
   const [parentDraftId, setParentDraftId] = useState<string | null>(null);
   const [fixLabel, setFixLabel] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   useEffect(() => {
     const fixDraft = searchParams.get("fixDraft")?.trim() || "";
@@ -235,6 +249,18 @@ export function CreativeUploadPanel({
         </p>
       </div>
 
+      {!parentDraftId && repeatRejectKind ? (
+        <div className="mx-5 mt-4 rounded-[1rem] border border-amber-300 bg-amber-50 px-3.5 py-3 sm:mx-6">
+          <p className="text-[13px] font-semibold text-amber-950">
+            {t(
+              repeatRejectKind === "policy"
+                ? "repeatWarnPolicy"
+                : "repeatWarnClaims",
+            )}
+          </p>
+        </div>
+      ) : null}
+
       {parentDraftId ? (
         <div className="mx-5 mt-4 flex flex-col gap-2 rounded-[1rem] border border-[#f0c4c4] bg-[#fdf6f5] px-3.5 py-3 sm:mx-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -343,6 +369,29 @@ export function CreativeUploadPanel({
               >
                 {file ? (
                   <div className="flex items-start gap-3">
+                    {previewUrl && (kind === "video" || kind === "image") ? (
+                      <div
+                        className="h-28 w-[4.6rem] shrink-0 overflow-hidden rounded-xl bg-black/80"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {kind === "video" ? (
+                          <video
+                            src={previewUrl}
+                            className="h-full w-full object-cover"
+                            muted
+                            playsInline
+                            controls
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={previewUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
+                    ) : null}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[var(--auth-text)]">
                         {file.name}
