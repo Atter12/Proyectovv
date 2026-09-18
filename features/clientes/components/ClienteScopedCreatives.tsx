@@ -62,12 +62,15 @@ export async function ClienteScopedCreatives({
   assets,
   drafts,
   publishEnabled,
+  expectDiscoverRefresh = false,
 }: {
   data: HecomClienteDashboard;
   accounts: CreativeAccountOption[];
   assets: CreativeAssetListItem[];
   drafts: CreativeDraftListItem[];
   publishEnabled: boolean;
+  /** Soft refresh once so background TikTok discovery can land. */
+  expectDiscoverRefresh?: boolean;
 }) {
   const t = await getTranslations("creatives");
   const { cliente, creativosClientes, creativosProyectos } = data;
@@ -158,6 +161,7 @@ export async function ClienteScopedCreatives({
         <AgentProDraftsPanel
           drafts={drafts}
           publishEnabled={publishEnabled}
+          expectDiscoverRefresh={expectDiscoverRefresh}
         />
       </div>
 

@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { ClienteScopedCreatives } from "@/features/clientes/components/ClienteScopedCreatives";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
@@ -15,7 +16,11 @@ import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creati
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 
+const ENTRY_ASSET_LIMIT = 50;
+const ENTRY_DRAFT_LIMIT = 60;
+
 export default async function CreativeAnalyzerPage() {
+  const t0 = Date.now();
   const session = await requirePermission("creativeAnalyzer:read");
   const funding = resolvePaymentsFundingCapabilities({
     email: session.email,
@@ -33,7 +38,14 @@ export default async function CreativeAnalyzerPage() {
     );
   }
 
-  const data = await getHecomClienteDashboard(selected.id);
+  const tDashboard = Date.now();
+  const data = await getHecomClienteDashboard(selected.id, {
+    includeCampaignSpend: false,
+    includeDailySpend: false,
+    includeCreativos: true,
+  });
+  const dashboardMs = Date.now() - tDashboard;
+
   if (!data) {
     return (
       <div className={dashboardClasses.page}>
@@ -42,96 +54,156 @@ export default async function CreativeAnalyzerPage() {
     );
   }
 
-  let syncAdvertiserIds: string[] = [];
-  if (session.organizationId) {
-    try {
-      const sync = await syncApprovedAdAccountsForCliente({
-        organizationId: session.organizationId,
-        clienteId: selected.id,
-        userId: session.id,
-        forceRefresh: false,
-      });
-      syncAdvertiserIds = sync.approvedAdvertiserIds;
-      const ids =
-        sync.approvedAdvertiserIds.length > 0
-          ? sync.approvedAdvertiserIds
-          : data.accounts
-              .map((a) => a.advertiserId)
-              .filter((id): id is string => Boolean(id));
-      if (ids.length > 0) {
-        await ensureAdvertisersInOrganizationForAllocation({
-          organizationId: session.organizationId,
-          clienteId: selected.id,
-          clienteName: data.cliente.name,
-          userId: session.id,
-          advertisers: ids.map((advertiserId) => ({
-            advertiserId,
-            name:
-              data.accounts.find((a) => a.advertiserId === advertiserId)
-                ?.advertiserName ?? null,
-          })),
-        });
-      }
-    } catch (error) {
-      console.warn("[creative-analyzer] account_sync", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
-    }
-  }
-
   const hecomAdvertiserIds = data.accounts
     .map((a) => a.advertiserId)
     .filter((id): id is string => Boolean(id));
-  const advertiserIds = [
-    ...new Set([...syncAdvertiserIds, ...hecomAdvertiserIds]),
-  ];
 
+  const tAccounts = Date.now();
   const accounts = session.organizationId
     ? await listCreativeAccountOptions(session.organizationId, {
         hecomClienteId: selected.id,
-        advertiserIds,
+        advertiserIds: hecomAdvertiserIds,
       })
     : [];
+  const accountsMs = Date.now() - tAccounts;
+
+  const advertiserIds = [
+    ...new Set([
+      ...hecomAdvertiserIds,
+      ...accounts
+        .map((a) => a.externalAccountId)
+        .filter((id): id is string => Boolean(id)),
+    ]),
+  ];
 
   const scopeOpts = {
     hecomClienteId: selected.id,
-    advertiserIds: [
-      ...new Set([
-        ...advertiserIds,
-        ...accounts
-          .map((a) => a.externalAccountId)
-          .filter((id): id is string => Boolean(id)),
-      ]),
-    ],
+    advertiserIds,
     adAccountIds: accounts.map((a) => a.id),
   };
 
-  // Descubrir ads rechazados en Ads Manager (aunque no se hayan publicado desde Holistic).
-  const discoverAdvertiserIds = scopeOpts.advertiserIds;
-  if (session.organizationId && discoverAdvertiserIds.length > 0) {
-    try {
-      await discoverRejectedAdsForOrganization({
-        organizationId: session.organizationId,
-        advertiserIds: discoverAdvertiserIds,
-        adAccountIds: accounts.map((a) => a.id),
-      });
-    } catch (error) {
-      console.warn("[creative-analyzer] discover_ads", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
-    }
-  }
-
+  const tLists = Date.now();
   const [assets, drafts] = session.organizationId
     ? await Promise.all([
-        listOrganizationCreativeAssets(session.organizationId, scopeOpts),
+        listOrganizationCreativeAssets(session.organizationId, {
+          ...scopeOpts,
+          limit: ENTRY_ASSET_LIMIT,
+        }),
         listOrganizationCreativeDrafts(session.organizationId, {
           ...scopeOpts,
-          // Traer más filas para no perder rechazos descubiertos.
-          // (list interno ya limita; el scope filtra por advertiser)
+          limit: ENTRY_DRAFT_LIMIT,
         }),
       ])
     : [[], []];
+  const listsMs = Date.now() - tLists;
+  const totalMs = Date.now() - t0;
+
+  console.info("[creative-analyzer] entry_timing", {
+    clienteId: selected.id,
+    dashboardMs,
+    accountsMs,
+    listsMs,
+    totalMs,
+    advertisers: advertiserIds.length,
+    assets: assets.length,
+    drafts: drafts.length,
+  });
+
+  // Sync BC + ensure + discovery TikTok: fuera del path crítico (after).
+  if (session.organizationId) {
+    const organizationId = session.organizationId;
+    const clienteId = selected.id;
+    const clienteName = data.cliente.name;
+    const userId = session.id;
+    const accountRows = accounts.map((a) => ({
+      id: a.id,
+      externalAccountId: a.externalAccountId,
+      name: a.name,
+    }));
+    const hecomAccountNames = new Map(
+      data.accounts
+        .filter((a) => a.advertiserId)
+        .map((a) => [a.advertiserId as string, a.advertiserName ?? null]),
+    );
+
+    after(async () => {
+      const bg0 = Date.now();
+      let syncAdvertiserIds: string[] = [];
+      try {
+        const sync = await syncApprovedAdAccountsForCliente({
+          organizationId,
+          clienteId,
+          userId,
+          forceRefresh: false,
+        });
+        syncAdvertiserIds = sync.approvedAdvertiserIds;
+      } catch (error) {
+        console.warn("[creative-analyzer] bg_account_sync", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+      }
+
+      const bgAdvertiserIds = [
+        ...new Set([
+          ...syncAdvertiserIds,
+          ...hecomAdvertiserIds,
+          ...accountRows
+            .map((a) => a.externalAccountId)
+            .filter((id): id is string => Boolean(id)),
+        ]),
+      ];
+
+      if (bgAdvertiserIds.length > 0) {
+        try {
+          await ensureAdvertisersInOrganizationForAllocation({
+            organizationId,
+            clienteId,
+            clienteName,
+            userId,
+            advertisers: bgAdvertiserIds.map((advertiserId) => ({
+              advertiserId,
+              name:
+                hecomAccountNames.get(advertiserId) ??
+                accountRows.find((a) => a.externalAccountId === advertiserId)
+                  ?.name ??
+                null,
+            })),
+          });
+        } catch (error) {
+          console.warn("[creative-analyzer] bg_ensure_advertisers", {
+            error: error instanceof Error ? error.message : "unknown",
+          });
+        }
+      }
+
+      const discoverIds =
+        bgAdvertiserIds.length > 0 ? bgAdvertiserIds : advertiserIds;
+      if (discoverIds.length === 0) return;
+
+      const discover0 = Date.now();
+      try {
+        const result = await discoverRejectedAdsForOrganization({
+          organizationId,
+          advertiserIds: discoverIds,
+          adAccountIds: accountRows.map((a) => a.id),
+        });
+        console.info("[creative-analyzer] bg_discover", {
+          discoverMs: Date.now() - discover0,
+          bgTotalMs: Date.now() - bg0,
+          advertisers: result.advertisers,
+          listed: result.listed,
+          upserted: result.upserted,
+          rejected: result.rejected,
+          skippedByTtl: result.skippedByTtl === true,
+        });
+      } catch (error) {
+        console.warn("[creative-analyzer] bg_discover", {
+          error: error instanceof Error ? error.message : "unknown",
+          discoverMs: Date.now() - discover0,
+        });
+      }
+    });
+  }
 
   return (
     <div className={dashboardClasses.page}>
@@ -141,6 +213,7 @@ export default async function CreativeAnalyzerPage() {
         assets={assets}
         drafts={drafts}
         publishEnabled={isTikTokCreativePublishEnabled()}
+        expectDiscoverRefresh={advertiserIds.length > 0}
       />
     </div>
   );

@@ -7,6 +7,10 @@ import {
 } from "@/lib/integrations/tiktok/ad-review.server";
 import type { CreativeAgentBrief } from "@/lib/creatives/types";
 
+/** Evita re-pegarle a TikTok en cada navegación/refresh (por org+advertisers). */
+const DISCOVER_TTL_MS = 3 * 60 * 1000;
+const discoverTtlCache = new Map<string, number>();
+
 type AccountRow = {
   id: string;
   external_account_id: string | null;
@@ -295,7 +299,11 @@ export async function discoverRejectedAdsForOrganization(input: {
   organizationId: string;
   advertiserIds: string[];
   adAccountIds?: string[];
-}): Promise<Awaited<ReturnType<typeof discoverRejectedAdsForAdvertisers>>> {
+}): Promise<
+  Awaited<ReturnType<typeof discoverRejectedAdsForAdvertisers>> & {
+    skippedByTtl?: boolean;
+  }
+> {
   const admin = createAdminClient();
   const advertiserIds = [
     ...new Set(input.advertiserIds.map((id) => id.trim()).filter(Boolean)),
@@ -307,6 +315,25 @@ export async function discoverRejectedAdsForOrganization(input: {
       upserted: 0,
       rejected: 0,
       errors: [],
+    };
+  }
+
+  const ttlKey = [
+    input.organizationId,
+    ...advertiserIds.slice().sort(),
+  ].join("|");
+  const cachedAt = discoverTtlCache.get(ttlKey);
+  if (
+    cachedAt != null &&
+    Date.now() - cachedAt < DISCOVER_TTL_MS
+  ) {
+    return {
+      advertisers: advertiserIds.length,
+      listed: 0,
+      upserted: 0,
+      rejected: 0,
+      errors: [],
+      skippedByTtl: true,
     };
   }
 
@@ -339,8 +366,10 @@ export async function discoverRejectedAdsForOrganization(input: {
     });
   }
 
-  return discoverRejectedAdsForAdvertisers({
+  const result = await discoverRejectedAdsForAdvertisers({
     organizationId: input.organizationId,
     advertiserAccountMap: map,
   });
+  discoverTtlCache.set(ttlKey, Date.now());
+  return result;
 }

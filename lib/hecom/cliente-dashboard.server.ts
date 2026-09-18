@@ -821,8 +821,7 @@ export const getHecomClienteDashboard = cache(
       const cfg = getHecomSupabaseConfig();
 
       if (cfg.configured) {
-        const financeLite =
-          !includeCampaignSpend && !includeCreativos && !includeDailySpend;
+        const financeLite = !includeCampaignSpend && !includeDailySpend;
         const live = await loadLiveFinance(clienteId, {
           includeCreativos,
           lite: financeLite,

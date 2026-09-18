@@ -108,23 +108,47 @@ function insightFromResult(row: {
   summary?: string | null;
 }): CreativeAnalysisInsight {
   const raw = row.raw_output ?? {};
+  const clip = (s: string, n = 220) =>
+    s.length > n ? `${s.slice(0, n - 1)}…` : s;
+  const clipList = (items: string[], max = 4) =>
+    items.slice(0, max).map((h) => clip(String(h), 160));
   return {
     overallScore: Number(row.overall_score ?? 0),
     clarityScore: Number(row.clarity_score ?? 0),
     brandScore: Number(row.brand_score ?? 0),
     complianceScore: Number(row.compliance_score ?? 0),
-    summary: String(raw.summary ?? row.summary ?? ""),
+    summary: clip(String(raw.summary ?? row.summary ?? "")),
     hooks: Array.isArray(raw.hooks)
-      ? raw.hooks.map((h) => String(h))
+      ? clipList(raw.hooks.map((h) => String(h)))
       : [],
     policyRisks: Array.isArray(row.detected_issues)
-      ? row.detected_issues.map((h) => String(h))
+      ? clipList(row.detected_issues.map((h) => String(h)))
       : Array.isArray(raw.policy_risks)
-        ? (raw.policy_risks as unknown[]).map((h) => String(h))
+        ? clipList((raw.policy_risks as unknown[]).map((h) => String(h)))
         : [],
-    whyItMayPerform: String(raw.why_it_may_perform ?? ""),
+    whyItMayPerform: clip(String(raw.why_it_may_perform ?? "")),
     recommendations: Array.isArray(row.recommendations)
-      ? row.recommendations.map((h) => String(h))
+      ? clipList(row.recommendations.map((h) => String(h)))
+      : [],
+  };
+}
+
+function slimBriefForList(brief: Partial<CreativeAgentBrief>): CreativeAgentBrief {
+  const clip = (s: string, n = 180) =>
+    s.length > n ? `${s.slice(0, n - 1)}…` : s;
+  return {
+    objective: String(brief.objective ?? "TRAFFIC"),
+    audience: clip(String(brief.audience ?? "")),
+    hookCopy: clip(String(brief.hookCopy ?? "")),
+    adText: clip(String(brief.adText ?? ""), 280),
+    callToAction: String(brief.callToAction ?? "SHOP_NOW"),
+    campaignName: clip(String(brief.campaignName ?? ""), 120),
+    adgroupName: clip(String(brief.adgroupName ?? ""), 120),
+    adName: clip(String(brief.adName ?? ""), 120),
+    suggestedDailyBudgetUsd: Number(brief.suggestedDailyBudgetUsd ?? 20),
+    landingPageUrl: brief.landingPageUrl ?? null,
+    notes: Array.isArray(brief.notes)
+      ? brief.notes.slice(0, 4).map((n) => clip(String(n), 120))
       : [],
   };
 }
@@ -135,6 +159,8 @@ export async function listOrganizationCreativeAssets(
     hecomClienteId?: string | null;
     advertiserIds?: string[] | null;
     adAccountIds?: string[] | null;
+    /** Cap de filas en entrada (default: 120 scoped / 40). */
+    limit?: number;
   },
 ): Promise<CreativeAssetListItem[]> {
   if (!organizationId) return [];
@@ -156,6 +182,13 @@ export async function listOrganizationCreativeAssets(
     return [];
   }
 
+  const fetchLimit =
+    typeof options?.limit === "number" && options.limit > 0
+      ? Math.min(Math.floor(options.limit), 120)
+      : scoped
+        ? 120
+        : 40;
+
   const { data: assetsRaw, error } = await admin
     .from("creative_assets")
     .select(
@@ -163,7 +196,7 @@ export async function listOrganizationCreativeAssets(
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
-    .limit(scoped ? 120 : 40);
+    .limit(fetchLimit);
 
   if (error || !assetsRaw?.length) {
     if (error) console.warn("[creatives] list_assets", error.message);
@@ -200,7 +233,7 @@ export async function listOrganizationCreativeAssets(
       .eq("organization_id", organizationId)
       .in("creative_asset_id", assetIds)
       .order("created_at", { ascending: false })
-      .limit(120),
+      .limit(Math.min(fetchLimit, 120)),
     accountIds.length
       ? admin
           .from("ad_accounts")
@@ -281,6 +314,8 @@ export async function listOrganizationCreativeDrafts(
     hecomClienteId?: string | null;
     advertiserIds?: string[] | null;
     adAccountIds?: string[] | null;
+    /** Cap de filas en entrada (default: 150 scoped / 40). */
+    limit?: number;
   },
 ): Promise<CreativeDraftListItem[]> {
   if (!organizationId) return [];
@@ -321,6 +356,13 @@ export async function listOrganizationCreativeDrafts(
     return [];
   }
 
+  const fetchLimit =
+    typeof options?.limit === "number" && options.limit > 0
+      ? Math.min(Math.floor(options.limit), 150)
+      : scoped
+        ? 150
+        : 40;
+
   const { data: draftsRaw, error } = await admin
     .from("creative_publish_drafts")
     .select(
@@ -328,7 +370,7 @@ export async function listOrganizationCreativeDrafts(
     )
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
-    .limit(scoped ? 150 : 40);
+    .limit(fetchLimit);
 
   // Migraciones 030/031 aún no aplicadas: ir degradando el select.
   // Tipado laxo: cada fallback trae menos columnas.
@@ -360,7 +402,7 @@ export async function listOrganizationCreativeDrafts(
       )
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
-      .limit(scoped ? 150 : 40);
+      .limit(fetchLimit);
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
@@ -372,7 +414,7 @@ export async function listOrganizationCreativeDrafts(
       )
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
-      .limit(scoped ? 150 : 40);
+      .limit(fetchLimit);
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
@@ -387,7 +429,7 @@ export async function listOrganizationCreativeDrafts(
       )
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
-      .limit(scoped ? 150 : 40);
+      .limit(fetchLimit);
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
@@ -513,21 +555,7 @@ export async function listOrganizationCreativeDrafts(
       adAccountId: (row.ad_account_id as string | null) ?? null,
       externalAdvertiserId:
         (row.external_advertiser_id as string | null) ?? null,
-      brief: {
-        objective: String(brief.objective ?? "TRAFFIC"),
-        audience: String(brief.audience ?? ""),
-        hookCopy: String(brief.hookCopy ?? ""),
-        adText: String(brief.adText ?? ""),
-        callToAction: String(brief.callToAction ?? "SHOP_NOW"),
-        campaignName: String(brief.campaignName ?? ""),
-        adgroupName: String(brief.adgroupName ?? ""),
-        adName: String(brief.adName ?? ""),
-        suggestedDailyBudgetUsd: Number(brief.suggestedDailyBudgetUsd ?? 20),
-        landingPageUrl: brief.landingPageUrl ?? null,
-        notes: Array.isArray(brief.notes)
-          ? brief.notes.map((n) => String(n))
-          : [],
-      },
+      brief: slimBriefForList(brief),
       errorMessage: (row.error_message as string | null) ?? null,
       createdAt: row.created_at as string,
       reviewedAt: (row.reviewed_at as string | null) ?? null,

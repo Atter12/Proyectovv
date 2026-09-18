@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -43,15 +43,19 @@ function reviewRank(d: CreativeDraftListItem): number {
 export function AgentProDraftsPanel({
   drafts,
   publishEnabled,
+  expectDiscoverRefresh = false,
 }: {
   drafts: CreativeDraftListItem[];
   publishEnabled: boolean;
+  /** Una sola refresh diferida si hay advertisers y aún no hay rechazos TikTok. */
+  expectDiscoverRefresh?: boolean;
 }) {
   const t = useTranslations("creatives.drafts");
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const softRefreshDone = useRef(false);
 
   const counts = useMemo(() => {
     let rejected = 0;
@@ -69,6 +73,32 @@ export function AgentProDraftsPanel({
       action: rejected + failed,
     };
   }, [drafts]);
+
+  useEffect(() => {
+    if (!expectDiscoverRefresh) return;
+    if (softRefreshDone.current) return;
+    if (counts.rejected > 0) return;
+    if (typeof window === "undefined") return;
+    const storageKey = "creatives:discover-soft-refresh";
+    try {
+      if (sessionStorage.getItem(storageKey) === "1") {
+        softRefreshDone.current = true;
+        return;
+      }
+    } catch {
+      /* private mode */
+    }
+    softRefreshDone.current = true;
+    const timer = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(storageKey, "1");
+      } catch {
+        /* ignore */
+      }
+      router.refresh();
+    }, 10_000);
+    return () => window.clearTimeout(timer);
+  }, [expectDiscoverRefresh, counts.rejected, router]);
 
   const [filter, setFilter] = useState<FilterId>("action");
   const activeFilter: FilterId =
