@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { cn } from "@/lib/cn";
 import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
+import { ShopCartLink } from "@/features/shop/ShopCartLink.client";
 
 const NAV = [
   { href: "#soluciones", label: "Soluciones" },
@@ -72,9 +73,10 @@ export function NsxNav() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-2 xl:flex">
+        <div className="hidden items-center gap-1 xl:flex">
+          <ShopCartLink />
           <NsxBtnSecondary href={routes.login}>Iniciar sesión</NsxBtnSecondary>
-          <NsxBtnPrimary href={routes.register}>Registrarme</NsxBtnPrimary>
+          <NsxBtnPrimary href={routes.shop}>Comprar</NsxBtnPrimary>
         </div>
 
         <button
@@ -110,11 +112,17 @@ export function NsxNav() {
             ))}
           </ul>
           <div className="mt-2 space-y-2 border-t border-[var(--nsx-stroke)] pt-3">
+            <div className="flex items-center justify-between px-1">
+              <ShopCartLink />
+              <a href={routes.shop} className="text-[0.95rem] font-semibold text-[var(--nsx-secondary)]">
+                Comprar
+              </a>
+            </div>
             <NsxBtnPrimary
-              href={routes.register}
+              href={routes.shop}
               className="w-full justify-center"
             >
-              Registrarme
+              Comprar
             </NsxBtnPrimary>
             <NsxBtnSecondary
               href={routes.login}

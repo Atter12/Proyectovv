@@ -42,10 +42,11 @@ export function NsxFooter() {
         </div>
         <nav className="nsx-footer-nav" aria-label="Pie de página">
           <a href="#soluciones">Soluciones</a>
-          <a href="#proceso">Proceso</a>
-          <a href="#nosotros">Nosotros</a>
-          <a href="#producto">Producto</a>
-          <a href="#resultados">Resultados</a>
+          <Link href={routes.shop}>Comprar</Link>
+          <Link href={routes.cart}>Carrito</Link>
+          <Link href={routes.terms}>Términos y condiciones</Link>
+          <Link href={routes.returns}>Cambios y devoluciones</Link>
+          <Link href={routes.complaints}>Libro de reclamaciones</Link>
           <Link href={routes.login}>Iniciar sesión</Link>
           <Link href={routes.register}>Registrarme</Link>
         </nav>
