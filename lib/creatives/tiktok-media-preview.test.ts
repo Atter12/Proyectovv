@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   mapTikTokMediaPreviewRows,
   mediaKindFrom,
+  findNestedVideoId,
 } from "./tiktok-media-preview.ts";
 
 test("toma cover y preview de TikTok y descarta urls raras", () => {
@@ -41,4 +42,17 @@ test("el tipo de medio sale del archivo o de tener preview", () => {
     "image",
   );
   assert.equal(mediaKindFrom({}), null);
+});
+
+test("el video de Smart+ está dentro de creative_list", () => {
+  assert.equal(
+    findNestedVideoId({
+      smart_plus_ad_id: "sp1",
+      creative_list: [
+        { creative_info: { video_info: { video_id: "v-real" } } },
+      ],
+    }),
+    "v-real",
+  );
+  assert.equal(findNestedVideoId({ ad_name: "Video 1" }), null);
 });

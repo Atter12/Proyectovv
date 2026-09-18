@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { listAdvertiserAds, fetchAdMediaPreviews } from "@/lib/integrations/tiktok/ad-list.server";
+import { listAdvertiserAds, fetchAdMediaPreviews, fetchSmartPlusVideoIds } from "@/lib/integrations/tiktok/ad-list.server";
 import {
   fetchAdReviewInfo,
   fetchSmartPlusAdReviewInfo,
@@ -308,6 +308,21 @@ export async function discoverRejectedAdsForAdvertisers(input: {
       }
 
       if (pending.length > 0) {
+        const smartVideoIds = await fetchSmartPlusVideoIds({
+          organizationId: input.organizationId,
+          advertiserId,
+          smartPlusAdIds: pending
+            .map((item) => item.smartPlusAdId)
+            .filter((id): id is string => Boolean(id)),
+        }).catch(() => new Map<string, string>());
+        const resolved = pending.map((item) => ({
+          ...item,
+          videoId:
+            item.videoId ||
+            (item.smartPlusAdId
+              ? (smartVideoIds.get(item.smartPlusAdId) ?? null)
+              : null),
+        }));
         let previews = new Map<
           string,
           { posterUrl: string | null; previewUrl: string | null }
@@ -316,10 +331,10 @@ export async function discoverRejectedAdsForAdvertisers(input: {
           previews = await fetchAdMediaPreviews({
             organizationId: input.organizationId,
             advertiserId,
-            videoIds: pending
+            videoIds: resolved
               .map((item) => item.videoId)
               .filter((id): id is string => Boolean(id)),
-            imageIds: pending.flatMap((item) => item.imageIds),
+            imageIds: resolved.flatMap((item) => item.imageIds),
           });
         } catch (error) {
           errors.push(
@@ -328,7 +343,7 @@ export async function discoverRejectedAdsForAdvertisers(input: {
             }`,
           );
         }
-        for (const item of pending) {
+        for (const item of resolved) {
           const fromVideo = item.videoId
             ? previews.get(item.videoId)
             : undefined;

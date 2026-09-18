@@ -79,6 +79,7 @@ function mapAdRow(row: Record<string, unknown>): TikTokListedAd | null {
 
 import { looksLikeRejectedAdStatus } from "@/lib/creatives/tiktok-reject-action";
 import {
+  findNestedVideoId,
   mapTikTokMediaPreviewRows,
   type TikTokMediaPreview,
 } from "@/lib/creatives/tiktok-media-preview";
@@ -211,5 +212,44 @@ export async function fetchAdMediaPreviews(input: {
 
   await pull("/file/video/ad/info/", "video_ids", videoIds);
   await pull("/file/image/ad/info/", "image_ids", imageIds);
+  return out;
+}
+
+/** Smart+ guarda el video dentro de creative_list, no en ad/get. */
+export async function fetchSmartPlusVideoIds(input: {
+  organizationId?: string;
+  advertiserId: string;
+  smartPlusAdIds: string[];
+}): Promise<Map<string, string>> {
+  const advertiserId = input.advertiserId.trim();
+  const ids = [
+    ...new Set(input.smartPlusAdIds.map((id) => id.trim()).filter(Boolean)),
+  ];
+  const out = new Map<string, string>();
+  if (!advertiserId || ids.length === 0) return out;
+
+  const { token } = await resolveTikTokFinanceAccessToken(input.organizationId);
+  for (const chunk of chunkIds(ids, 20)) {
+    try {
+      const json = await tiktokGet<{ list?: Array<Record<string, unknown>> }>({
+        path: "/smart_plus/ad/get/",
+        accessToken: token,
+        query: {
+          advertiser_id: advertiserId,
+          filtering: JSON.stringify({ smart_plus_ad_ids: chunk }),
+          page: "1",
+          page_size: String(Math.max(chunk.length, 1)),
+        },
+      });
+      if (json.code !== undefined && json.code !== 0) continue;
+      for (const row of json.data?.list ?? []) {
+        const spId = String(row.smart_plus_ad_id ?? row.ad_id ?? "").trim();
+        const videoId = findNestedVideoId(row);
+        if (spId && videoId) out.set(spId, videoId);
+      }
+    } catch {
+      /* la portada es opcional */
+    }
+  }
   return out;
 }

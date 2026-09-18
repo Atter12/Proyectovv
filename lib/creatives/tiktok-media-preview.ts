@@ -49,3 +49,34 @@ export function mediaKindFrom(input: {
   if (input.previewUrl) return "video";
   return "image";
 }
+
+const VIDEO_NEST_KEYS = [
+  "creative_list",
+  "creative_info",
+  "video_info",
+  "media_info_list",
+  "media_info",
+  "creatives",
+];
+
+/** video_id dentro de creative_list de Smart+, no un id suelto. */
+export function findNestedVideoId(value: unknown, depth = 0): string | null {
+  if (depth > 8 || value == null) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findNestedVideoId(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const direct = String(row.video_id ?? "").trim();
+  if (direct) return direct;
+  for (const key of VIDEO_NEST_KEYS) {
+    if (!(key in row)) continue;
+    const found = findNestedVideoId(row[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
