@@ -35,7 +35,7 @@
     "paymentsManual": "Pagos manuales",
     "paymentsProfit": "Pagos Profit",
     "paymentsMissingCobros": "Cobros faltantes",
-    "cobros": "Lo pagado",
+    "cobros": "Vouchers",
     "gastos": "Gastos",
     "affiliates": "Afiliados",
     "creativeAnalyzer": "Creativos",
@@ -1049,8 +1049,8 @@
     "title": "Membresía"
   },
   "cobros": {
-    "module": "Historial Hecom",
-    "title": "Lo pagado · {name}",
+    "module": "Vouchers",
+    "title": "Vouchers · {name}",
     "goPayments": "Ir a Pagos →",
     "totalPaid": "Total pagado",
     "records": "Registros",

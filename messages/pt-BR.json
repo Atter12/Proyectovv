@@ -35,7 +35,7 @@
     "paymentsManual": "Pagamentos manuais",
     "paymentsProfit": "Pagamentos Profit",
     "paymentsMissingCobros": "Cobranças faltantes",
-    "cobros": "Histórico pago",
+    "cobros": "Vouchers",
     "gastos": "Gastos",
     "affiliates": "Afiliados",
     "creativeAnalyzer": "Criativos",
@@ -1049,8 +1049,8 @@
     "title": "Assinatura"
   },
   "cobros": {
-    "module": "Histórico Hecom",
-    "title": "Pago · {name}",
+    "module": "Vouchers",
+    "title": "Vouchers · {name}",
     "goPayments": "Ir para Pagamentos →",
     "totalPaid": "Total pago",
     "records": "Registros",

@@ -28,7 +28,7 @@ export default async function CobrosPage() {
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Lo pagado"
+          section="Vouchers"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>
@@ -45,7 +45,7 @@ export default async function CobrosPage() {
     return (
       <div className={dashboardClasses.page}>
         <PickClienteEmpty
-          section="Lo pagado"
+          section="Vouchers"
           mode={canChangeCliente ? "staff" : "cliente"}
         />
       </div>

@@ -35,7 +35,7 @@
     "paymentsManual": "Manual payments",
     "paymentsProfit": "Profit payments",
     "paymentsMissingCobros": "Missing payments",
-    "cobros": "Paid history",
+    "cobros": "Vouchers",
     "gastos": "Spend",
     "affiliates": "Affiliates",
     "creativeAnalyzer": "Creatives",
@@ -1049,8 +1049,8 @@
     "title": "Membership"
   },
   "cobros": {
-    "module": "Hecom history",
-    "title": "Paid · {name}",
+    "module": "Vouchers",
+    "title": "Vouchers · {name}",
     "goPayments": "Go to Payments →",
     "totalPaid": "Total paid",
     "records": "Records",
