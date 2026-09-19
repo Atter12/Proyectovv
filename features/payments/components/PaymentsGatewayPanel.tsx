@@ -5,6 +5,7 @@ import { formatMoney } from "@/lib/format-money";
 import { scopeAllocationAccountsToHecomAdvertisers } from "@/lib/payments/scope-hecom-accounts";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
+import { fetchAdvertiserStatusKinds } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import { resolvePaymentsFundingCapabilities, withActAsClienteView } from "@/lib/payments/funding-roles.server";
 import {
   buildAdvertiserEnsureList,
@@ -208,6 +209,23 @@ export async function PaymentsGatewayPanel({
       .filter((a) => a.status === "disabled")
       .map((a) => a.externalAccountId?.trim())
       .filter((id): id is string => Boolean(id && hecomIdSet.has(id)));
+    try {
+      const kinds = await fetchAdvertiserStatusKinds({
+        advertiserIds: [...hecomIdSet],
+        organizationId: opsOrganizationId,
+      });
+      for (const [advertiserId, kind] of kinds) {
+        if (kind !== "suspended" || !hecomIdSet.has(advertiserId)) continue;
+        if (!suspendedIds.includes(advertiserId)) suspendedIds.push(advertiserId);
+      }
+      if (kinds.size > 0) {
+        approvedIds = approvedIds.filter((id) => !suspendedIds.includes(id));
+      }
+    } catch (error) {
+      console.warn("[payments] live_status_skip", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
     if (ensureIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
         organizationId: opsOrganizationId,
@@ -368,20 +386,6 @@ export async function PaymentsGatewayPanel({
 
   const hasClienteScope = hecomAdvertiserIds != null || Boolean(hecomClienteId);
 
-  // IDs del cliente: aprobadas + suspendidas (sync BM) + overview ads.
-  const clienteAdvIds = [
-    ...new Set(
-      [
-        ...(hecomAdvertiserIds ?? []),
-        ...approvedIds,
-        ...suspendedIds,
-        ...(adsAccounts ?? [])
-          .map((a) => a.externalAccountId?.trim())
-          .filter((id): id is string => Boolean(id)),
-      ].map((id) => id.trim()),
-    ),
-  ];
-
   const markSuspended = (
     accounts: PaymentAccountAllocation[],
   ): PaymentAccountAllocation[] =>
@@ -402,26 +406,7 @@ export async function PaymentsGatewayPanel({
       : pool,
   ).filter((account) => account.status !== "disabled");
 
-  // Suspendida CON saldo Holistic: se queda en la misma tabla con “Recuperar”.
-  // Sin saldo → sale de Pagos (solo vive en Cuentas ads).
-  const reclaimableInTable = markSuspended(
-    hasClienteScope
-      ? scopeAllocationAccountsToHecomAdvertisers(pool, clienteAdvIds)
-      : pool,
-  ).filter(
-    (account) =>
-      account.status === "disabled" && Number(account.balance) > 0,
-  );
-
-  const seenIds = new Set(fundableAccounts.map((a) => a.id));
-  const scopedAccounts = sortPaymentAccounts([
-    ...reclaimableInTable.filter((a) => {
-      if (seenIds.has(a.id)) return false;
-      seenIds.add(a.id);
-      return true;
-    }),
-    ...fundableAccounts,
-  ]);
+  const scopedAccounts = sortPaymentAccounts(fundableAccounts);
 
   return (
     <PaymentsFundingModeProvider capabilities={capabilities}>

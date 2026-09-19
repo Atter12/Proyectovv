@@ -335,6 +335,72 @@ export async function fetchAdvertiserRejectionReasons(input: {
   return out;
 }
 
+/**
+ * Estado real de TikTok para la tabla de Asignar.
+ * Si un ID no tiene permiso, se saca y se reintenta el resto (un ID malo tumba el lote).
+ */
+export async function fetchAdvertiserStatusKinds(input: {
+  advertiserIds: string[];
+  organizationId?: string;
+}): Promise<Map<string, TikTokBcAdvertiserStatusKind>> {
+  const pending = [
+    ...new Set(
+      input.advertiserIds
+        .map((id) => String(id ?? "").trim())
+        .filter((id) => /^\d{10,19}$/.test(id)),
+    ),
+  ];
+  const out = new Map<string, TikTokBcAdvertiserStatusKind>();
+  if (pending.length === 0) return out;
+
+  let token: string;
+  try {
+    ({ token } = await resolveTikTokFinanceAccessToken(input.organizationId));
+  } catch (error) {
+    console.warn("[tiktok-bc] advertiser_status_token_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return out;
+  }
+
+  const fields = JSON.stringify(["advertiser_id", "name", "status"]);
+  let guard = pending.length + 2;
+  while (pending.length > 0 && guard > 0) {
+    guard -= 1;
+    const chunk = pending.splice(0, 80);
+    try {
+      const json = await tiktokGet("/advertiser/info/", token, {
+        advertiser_ids: JSON.stringify(chunk),
+        fields,
+      });
+      const data = (json.data ?? {}) as Record<string, unknown>;
+      const list = Array.isArray(data.list)
+        ? (data.list as Record<string, unknown>[])
+        : [];
+      for (const row of list) {
+        const advertiserId = String(row.advertiser_id ?? "").trim();
+        if (!advertiserId) continue;
+        out.set(advertiserId, classifyTikTokAdvertiserStatus(String(row.status ?? "")));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown";
+      const denied = message.match(/advertiser:\s*(\d{10,19})/i)?.[1];
+      if (denied) {
+        for (const id of chunk) {
+          if (id !== denied) pending.unshift(id);
+        }
+        continue;
+      }
+      console.warn("[tiktok-bc] advertiser_status_fetch_failed", {
+        chunkSize: chunk.length,
+        error: message,
+      });
+    }
+  }
+
+  return out;
+}
+
 async function tiktokGet(
   path: string,
   accessToken: string,
