@@ -716,6 +716,10 @@ export async function listOrganizationCreativeDrafts(
       adAccountId: (row.ad_account_id as string | null) ?? null,
       externalAdvertiserId:
         (row.external_advertiser_id as string | null) ?? null,
+      externalAdId:
+        String(
+          (row as { external_ad_id?: string | null }).external_ad_id ?? "",
+        ).trim() || null,
       brief: slimBriefForList(brief),
       errorMessage: (row.error_message as string | null) ?? null,
       createdAt: row.created_at as string,

@@ -72,6 +72,7 @@ export type CreativeDraftListItem = {
   accountName: string | null;
   adAccountId: string | null;
   externalAdvertiserId: string | null;
+  externalAdId: string | null;
   brief: CreativeAgentBrief;
   errorMessage: string | null;
   createdAt: string;

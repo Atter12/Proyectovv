@@ -13,6 +13,7 @@ import {
 } from "@/lib/creatives/list-creatives.server";
 import { discoverRejectedAdsForOrganization } from "@/lib/creatives/discover-tiktok-ads.server";
 import { fillMissingRejectFixHints } from "@/lib/creatives/reject-fix-hint.server";
+import { hydrateRejectedCards } from "@/lib/creatives/hydrate-rejected.server";
 import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creative-publish.server";
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
@@ -103,8 +104,22 @@ export default async function CreativeAnalyzerPage() {
       ])
     : [[], [], []];
   const seen = new Set(rejectedDrafts.map((d) => d.id));
+  let rejectedReady = rejectedDrafts;
+  if (session.organizationId && rejectedDrafts.length > 0) {
+    try {
+      rejectedReady = await hydrateRejectedCards(
+        session.organizationId,
+        rejectedDrafts,
+      );
+      await fillMissingRejectFixHints(rejectedReady);
+    } catch (error) {
+      console.warn("[creative-analyzer] hydrate_rejected", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
   const drafts = [
-    ...rejectedDrafts,
+    ...rejectedReady,
     ...readyDrafts.filter((d) => !seen.has(d.id)),
   ];
   const listsMs = Date.now() - tLists;

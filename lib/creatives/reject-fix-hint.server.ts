@@ -37,7 +37,7 @@ Video: ${input.adName || "sin nombre"}
 Motivo de TikTok: ${input.reasons.filter(Boolean).join(" | ") || "sin motivo detallado"}
 
 Devuelve SOLO JSON:
-{ "fix": "una frase en español, máximo 160 caracteres, qué cambiar en el video o el texto para que TikTok lo acepte" }`;
+{ "fix": "texto de anuncio recomendado en español, máximo 100 caracteres, listo para pegar en TikTok. Sin la promesa que causó el rechazo." }`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -143,7 +143,7 @@ export async function fillMissingRejectFixHints(
     (d) =>
       d.status === "published" &&
       d.tiktokReviewStatus === "rejected" &&
-      !d.rejectFixHint,
+      !String(d.rejectFixHint ?? "").startsWith("COPY|"),
   );
   if (pending.length === 0) return 0;
 
@@ -157,14 +157,16 @@ export async function fillMissingRejectFixHints(
         reasons: draft.tiktokRejectReasons,
       });
       if (!fix) return false;
+      const stored = `COPY|${fix}`;
       const { error } = await admin
         .from("creative_publish_drafts")
-        .update({ reject_fix_hint: fix })
+        .update({ reject_fix_hint: stored })
         .eq("id", draft.id);
       if (error) {
         console.warn("[reject-fix-hint] save", error.message);
         return false;
       }
+      draft.rejectFixHint = stored;
       return true;
     }),
   );

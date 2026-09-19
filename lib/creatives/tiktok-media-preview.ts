@@ -80,3 +80,39 @@ export function findNestedVideoId(value: unknown, depth = 0): string | null {
   }
   return null;
 }
+
+const TEXT_NEST_KEYS = [
+  "creative_list",
+  "creative_info",
+  "ad_configuration",
+  "media_info_list",
+  "creatives",
+];
+
+/** Texto del anuncio dentro del payload Smart+. */
+export function findNestedAdText(value: unknown, depth = 0): string | null {
+  if (depth > 8 || value == null) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findNestedAdText(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const direct = String(row.ad_text ?? row.title ?? "").trim();
+  if (direct.length >= 4) return direct.slice(0, 200);
+  if (Array.isArray(row.ad_texts)) {
+    const first = row.ad_texts
+      .map((item) => String(item ?? "").trim())
+      .find((item) => item.length >= 4);
+    if (first) return first.slice(0, 200);
+  }
+  for (const key of TEXT_NEST_KEYS) {
+    if (!(key in row)) continue;
+    const found = findNestedAdText(row[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+}

@@ -9,7 +9,6 @@ import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
 import {
   classifyTikTokRejectReasons,
   clientFixAction,
-  humanizeTikTokRejectReason,
 } from "@/lib/creatives/tiktok-reject-action";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
@@ -283,61 +282,100 @@ export function AgentProDraftsPanel({
               draft.discoverSource === "tiktok_ads_manager";
 
             if (rejected) {
-              const reasonLine = humanizeTikTokRejectReason(
-                draft.tiktokRejectReasons,
-                t(`simpleReason_${actionKind}`),
-              );
+              const recommended = String(draft.rejectFixHint ?? "").startsWith(
+                "COPY|",
+              )
+                ? draft.rejectFixHint?.slice("COPY|".length).trim() || null
+                : null;
+              const why = draft.tiktokRejectReasons
+                .map((reason) =>
+                  reason
+                    .replace(/\bUNAVAILABLE\b/gi, "no disponible")
+                    .replace(/\s+/g, " ")
+                    .trim(),
+                )
+                .filter((reason) => reason.length > 8)
+                .slice(0, 2);
+              const description = draft.brief.adText.trim();
+              const canUpload = clientFixAction(actionKind) !== "fix_page";
               return (
                 <li
                   key={draft.id}
-                  className="flex flex-col gap-3 rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-3.5 py-3.5 shadow-[0_8px_20px_rgb(20_18_16_/_0.03)] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  className="rounded-[1.1rem] border border-[rgb(20_18_16_/_0.08)] bg-white px-3.5 py-3.5 shadow-[0_8px_20px_rgb(20_18_16_/_0.03)]"
                 >
-                  <div className="flex min-w-0 flex-1 gap-3">
+                  <div className="flex gap-3">
                     <CreativeMediaTile
                       previewUrl={draft.previewUrl}
                       posterUrl={draft.posterUrl}
-                      mediaKind={draft.mediaKind ?? (draft.previewUrl ? "video" : null)}
+                      mediaKind={
+                        draft.mediaKind ?? (draft.previewUrl ? "video" : null)
+                      }
                       label={title}
                       playLabel={t("playVideo")}
+                      size="poster"
                     />
-                    <div className="min-w-0">
-                    <p className="text-[14px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                      {title}
-                    </p>
-                    <p className="mt-0.5 text-[12px] leading-4 text-[var(--auth-text-muted)]">
-                      {reasonLine}
-                    </p>
-                    <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                      {t("fixLabel")}
-                    </p>
-                    <p className="mt-0.5 text-[12px] font-medium leading-4 text-[#9a3412]">
-                      {draft.rejectFixHint || t(`fixHint_${actionKind}`)}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                        {title}
+                      </p>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("descLabel")}
+                      </p>
+                      <p className="mt-0.5 text-[13px] leading-5 text-[var(--auth-text)]">
+                        {description || t("noAdText")}
+                      </p>
                     </div>
                   </div>
 
-                  {draft.hasActiveFix ? (
-                    <p className="shrink-0 rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
-                      {t("fixInProgress")}
-                    </p>
-                  ) : clientFixAction(actionKind) === "fix_page" ? (
-                    <p className="shrink-0 max-w-[14rem] text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
-                      {t("ctaPage")}
-                    </p>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                    {t("whyLabel")}
+                  </p>
+                  {why.length > 0 ? (
+                    <ul className="mt-1 space-y-1">
+                      {why.map((line) => (
+                        <li
+                          key={line.slice(0, 48)}
+                          className="text-[12px] leading-5 text-[#5c3a3a]"
+                        >
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
-                    <Link
-                      href={`?fixDraft=${encodeURIComponent(draft.id)}${
-                        draft.adAccountId
-                          ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
-                          : ""
-                      }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
-                      className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
-                    >
-                      {clientFixAction(actionKind) === "new_file"
-                        ? t("ctaFile")
-                        : t("ctaHook")}
-                    </Link>
+                    <p className="mt-1 text-[12px] leading-5 text-[#5c3a3a]">
+                      {t(`simpleReason_${actionKind}`)}
+                    </p>
                   )}
+
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                    {t("recommendedLabel")}
+                  </p>
+                  <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
+                    {recommended || t("aiPending")}
+                  </p>
+
+                  <div className="mt-3">
+                    {draft.hasActiveFix ? (
+                      <p className="rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
+                        {t("fixInProgress")}
+                      </p>
+                    ) : canUpload ? (
+                      <Link
+                        href={`?fixDraft=${encodeURIComponent(draft.id)}${
+                          draft.adAccountId
+                            ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
+                            : ""
+                        }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
+                        className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
+                      >
+                        {t("ctaUpload")}
+                      </Link>
+                    ) : (
+                      <p className="text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
+                        {t("ctaPage")}
+                      </p>
+                    )}
+                  </div>
                 </li>
               );
             }

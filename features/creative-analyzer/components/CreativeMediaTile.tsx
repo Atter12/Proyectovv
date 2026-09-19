@@ -16,33 +16,35 @@ export function CreativeMediaTile({
   mediaKind: "video" | "image" | null;
   label: string;
   playLabel: string;
-  size?: "card" | "row";
+  size?: "card" | "row" | "poster";
 }) {
-  const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const still = posterUrl || (mediaKind === "image" ? previewUrl : null);
-  const canPlay = mediaKind === "video" && Boolean(previewUrl) && !failed;
+  const canPlay = Boolean(previewUrl) && !failed;
+  const showVideo = size === "poster" ? canPlay : playing && canPlay;
 
   return (
     <div
       className={cn(
         "relative shrink-0 overflow-hidden rounded-xl bg-[rgb(20_18_16_/_0.06)]",
-        size === "card" ? "h-[7.25rem] w-[4.6rem]" : "h-14 w-14 rounded-lg",
+        size === "poster"
+          ? "h-44 w-28"
+          : size === "card"
+            ? "h-[7.25rem] w-[4.6rem]"
+            : "h-14 w-14 rounded-lg",
       )}
     >
-      {playing && canPlay && previewUrl ? (
+      {showVideo && previewUrl ? (
         <video
           src={previewUrl}
           poster={posterUrl ?? undefined}
           className="h-full w-full object-cover"
           controls
-          autoPlay
           muted
           playsInline
-          onError={() => {
-            setPlaying(false);
-            setFailed(true);
-          }}
+          preload="metadata"
+          onError={() => setFailed(true)}
         />
       ) : still && !failed ? (
         <button
