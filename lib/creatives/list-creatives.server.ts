@@ -650,7 +650,7 @@ export async function listOrganizationCreativeDrafts(
     }
   }
 
-  const mapped = data.map((row) => {
+  const mapped: CreativeDraftListItem[] = data.map((row) => {
     const brief = (row.brief ?? {}) as Partial<CreativeAgentBrief>;
     const rejectRaw = row.reject_reasons;
     const tiktokRejectReasons = Array.isArray(rejectRaw)
@@ -669,10 +669,12 @@ export async function listOrganizationCreativeDrafts(
     const discoverRaw = String(
       (row as { discover_source?: string | null }).discover_source ?? "",
     ).trim();
-    const discoverSource =
-      discoverRaw === "holistic" || discoverRaw === "tiktok_ads_manager"
-        ? discoverRaw
-        : null;
+    const discoverSource: CreativeDraftListItem["discoverSource"] =
+      discoverRaw === "holistic"
+        ? "holistic"
+        : discoverRaw === "tiktok_ads_manager"
+          ? "tiktok_ads_manager"
+          : null;
     const publishResult =
       row.publish_result && typeof row.publish_result === "object"
         ? (row.publish_result as Record<string, unknown>)
