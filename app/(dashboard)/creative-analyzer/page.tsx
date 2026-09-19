@@ -12,12 +12,13 @@ import {
   listOrganizationCreativeDrafts,
 } from "@/lib/creatives/list-creatives.server";
 import { discoverRejectedAdsForOrganization } from "@/lib/creatives/discover-tiktok-ads.server";
+import { fillMissingRejectFixHints } from "@/lib/creatives/reject-fix-hint.server";
 import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creative-publish.server";
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 
 const ENTRY_ASSET_LIMIT = 50;
-const ENTRY_DRAFT_LIMIT = 60;
+const RECENT_REJECT_LIMIT = 8;
 
 export default async function CreativeAnalyzerPage() {
   const t0 = Date.now();
@@ -83,7 +84,7 @@ export default async function CreativeAnalyzerPage() {
   };
 
   const tLists = Date.now();
-  const [assets, drafts] = session.organizationId
+  const [assets, rejectedDrafts, readyDrafts] = session.organizationId
     ? await Promise.all([
         listOrganizationCreativeAssets(session.organizationId, {
           ...scopeOpts,
@@ -91,10 +92,21 @@ export default async function CreativeAnalyzerPage() {
         }),
         listOrganizationCreativeDrafts(session.organizationId, {
           ...scopeOpts,
-          limit: ENTRY_DRAFT_LIMIT,
+          recentRejected: true,
+          limit: RECENT_REJECT_LIMIT,
+        }),
+        listOrganizationCreativeDrafts(session.organizationId, {
+          ...scopeOpts,
+          statusIn: ["draft", "approved", "failed", "publishing"],
+          limit: 8,
         }),
       ])
-    : [[], []];
+    : [[], [], []];
+  const seen = new Set(rejectedDrafts.map((d) => d.id));
+  const drafts = [
+    ...rejectedDrafts,
+    ...readyDrafts.filter((d) => !seen.has(d.id)),
+  ];
   const listsMs = Date.now() - tLists;
   const totalMs = Date.now() - t0;
 
@@ -200,6 +212,27 @@ export default async function CreativeAnalyzerPage() {
         console.warn("[creative-analyzer] bg_discover", {
           error: error instanceof Error ? error.message : "unknown",
           discoverMs: Date.now() - discover0,
+        });
+      }
+
+      try {
+        const freshRejected = await listOrganizationCreativeDrafts(
+          organizationId,
+          {
+            hecomClienteId: clienteId,
+            advertiserIds: discoverIds,
+            adAccountIds: accountRows.map((a) => a.id),
+            recentRejected: true,
+            limit: RECENT_REJECT_LIMIT,
+          },
+        );
+        const filled = await fillMissingRejectFixHints(freshRejected);
+        if (filled > 0) {
+          console.info("[creative-analyzer] reject_fix_hints", { filled });
+        }
+      } catch (error) {
+        console.warn("[creative-analyzer] reject_fix_hints", {
+          error: error instanceof Error ? error.message : "unknown",
         });
       }
     });

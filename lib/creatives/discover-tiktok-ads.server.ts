@@ -96,6 +96,7 @@ async function upsertRejectedDraft(input: {
         reject_reasons: input.rejectReasons,
         secondary_status: input.secondaryStatus,
         review_checked_at: now,
+        reviewed_at: now,
         updated_at: now,
         ad_account_id: input.adAccountId,
         external_advertiser_id: input.advertiserId,
@@ -125,6 +126,7 @@ async function upsertRejectedDraft(input: {
     reject_reasons: input.rejectReasons,
     secondary_status: input.secondaryStatus,
     review_checked_at: now,
+    reviewed_at: now,
     published_at: now,
   });
   if (error) {

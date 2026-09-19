@@ -51,6 +51,7 @@ export function CreativeUploadPanel({
   );
   const [parentDraftId, setParentDraftId] = useState<string | null>(null);
   const [fixLabel, setFixLabel] = useState<string | null>(null);
+  const [fixKind, setFixKind] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -72,9 +73,11 @@ export function CreativeUploadPanel({
     const fixDraft = searchParams.get("fixDraft")?.trim() || "";
     const fixAccount = searchParams.get("fixAccount")?.trim() || "";
     const label = searchParams.get("fixLabel")?.trim() || "";
+    const kind = searchParams.get("fixKind")?.trim() || "";
     if (!fixDraft) return;
     setParentDraftId(fixDraft);
     if (label) setFixLabel(label);
+    setFixKind(kind || null);
     if (fixAccount && accounts.some((a) => a.id === fixAccount)) {
       setAdAccountId(fixAccount);
     }
@@ -102,10 +105,12 @@ export function CreativeUploadPanel({
   function clearFixMode() {
     setParentDraftId(null);
     setFixLabel(null);
+    setFixKind(null);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("fixDraft");
     params.delete("fixAccount");
     params.delete("fixLabel");
+    params.delete("fixKind");
     const qs = params.toString();
     router.replace(qs ? `?${qs}#creative-upload` : "#creative-upload", {
       scroll: false,
@@ -268,9 +273,11 @@ export function CreativeUploadPanel({
               {t("fixBannerTitle")}
             </p>
             <p className="mt-0.5 truncate text-[12px] text-[#6b3f3f]">
-              {t("fixBannerBody", {
-                name: fixLabel || t("fixBannerFallback"),
-              })}
+              {fixKind === "claims" || fixKind === "policy"
+                ? t("fixBannerHook")
+                : t("fixBannerBody", {
+                    name: fixLabel || t("fixBannerFallback"),
+                  })}
             </p>
           </div>
           <button

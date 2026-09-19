@@ -79,6 +79,8 @@ export type CreativeDraftListItem = {
   publishedAt: string | null;
   tiktokReviewStatus: CreativeTikTokReviewStatus | null;
   tiktokRejectReasons: string[];
+  /** Frase cacheada de cómo pasar review. Null hasta que OpenAI la escribe. */
+  rejectFixHint: string | null;
   tiktokSecondaryStatus: string | null;
   /** Draft rechazado que esta versión corrige. */
   parentDraftId: string | null;
@@ -90,4 +92,6 @@ export type CreativeDraftListItem = {
   previewUrl: string | null;
   posterUrl: string | null;
   mediaKind: "video" | "image" | null;
+  /** TikTok video_id. Sirve para no listar el mismo archivo muchas veces. */
+  videoId: string | null;
 };

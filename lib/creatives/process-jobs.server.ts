@@ -5,6 +5,7 @@ import {
   buildAgentBriefWithOpenAi,
   creativeAnalyzePromptVersion,
 } from "@/lib/creatives/analyze-creative.server";
+import { sameRejectWarning } from "@/lib/creatives/reject-fix-hint.server";
 import type { CreativeAnalysisInsight } from "@/lib/creatives/types";
 
 async function downloadAssetBuffer(input: {
@@ -58,6 +59,26 @@ async function createAgentDraft(input: {
   if (!brief) return;
 
   const admin = createAdminClient();
+  if (input.parentDraftId) {
+    const { data: parent } = await admin
+      .from("creative_publish_drafts")
+      .select("reject_reasons")
+      .eq("id", input.parentDraftId)
+      .eq("organization_id", input.organizationId)
+      .maybeSingle<{ reject_reasons: unknown }>();
+    const reasons = Array.isArray(parent?.reject_reasons)
+      ? parent.reject_reasons.map((item) => String(item ?? "")).filter(Boolean)
+      : [];
+    const warning = await sameRejectWarning({
+      parentReasons: reasons,
+      assetName: input.assetName,
+      summary: input.insight.summary,
+      policyRisks: input.insight.policyRisks,
+    });
+    if (warning) {
+      brief.notes = [`SAME_FAIL: ${warning}`, ...brief.notes].slice(0, 4);
+    }
+  }
   await admin.from("creative_publish_drafts").insert({
     organization_id: input.organizationId,
     creative_asset_id: input.assetId,

@@ -11,6 +11,7 @@ import type {
 } from "@/lib/creatives/types";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import { mediaKindFrom } from "@/lib/creatives/tiktok-media-preview";
+import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
 
 export type { CreativeDraftListItem };
 
@@ -193,7 +194,7 @@ function slimBriefForList(brief: Partial<CreativeAgentBrief>): CreativeAgentBrie
     suggestedDailyBudgetUsd: Number(brief.suggestedDailyBudgetUsd ?? 20),
     landingPageUrl: brief.landingPageUrl ?? null,
     notes: Array.isArray(brief.notes)
-      ? brief.notes.slice(0, 4).map((n) => clip(String(n), 120))
+      ? brief.notes.slice(0, 4).map((n) => clip(String(n), 220))
       : [],
   };
 }
@@ -390,6 +391,10 @@ export async function listOrganizationCreativeDrafts(
     adAccountIds?: string[] | null;
     /** Cap de filas en entrada (default: 150 scoped / 40). */
     limit?: number;
+    /** Solo publicados rechazados, los más nuevos. Tope 8. */
+    recentRejected?: boolean;
+    /** Estados Holistic (borrador / aprobado / fallido). */
+    statusIn?: string[] | null;
   },
 ): Promise<CreativeDraftListItem[]> {
   if (!organizationId) return [];
@@ -430,21 +435,58 @@ export async function listOrganizationCreativeDrafts(
     return [];
   }
 
-  const fetchLimit =
-    typeof options?.limit === "number" && options.limit > 0
+  const recentRejected = options?.recentRejected === true;
+  const statusIn = (options?.statusIn ?? [])
+    .map((s) => String(s ?? "").trim())
+    .filter(Boolean);
+
+  const fetchLimit = recentRejected
+    ? 40
+    : typeof options?.limit === "number" && options.limit > 0
       ? Math.min(Math.floor(options.limit), 150)
       : scoped
         ? 150
         : 40;
 
-  const { data: draftsRaw, error } = await admin
-    .from("creative_publish_drafts")
-    .select(
-      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id, discover_source, external_ad_id, publish_result",
-    )
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false })
-    .limit(fetchLimit);
+  const scopeOr = (() => {
+    if (!scoped) return "";
+    const parts: string[] = [];
+    if (advertiserSet.size > 0) {
+      parts.push(
+        `external_advertiser_id.in.(${[...advertiserSet].join(",")})`,
+      );
+    }
+    if (adAccountSet.size > 0) {
+      parts.push(`ad_account_id.in.(${[...adAccountSet].join(",")})`);
+    }
+    return parts.join(",");
+  })();
+
+  const LIST_COLUMNS =
+    "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id, discover_source, external_ad_id, publish_result, reject_fix_hint";
+
+  function draftQuery(columns: string) {
+    let query = admin
+      .from("creative_publish_drafts")
+      .select(columns)
+      .eq("organization_id", organizationId);
+    if (recentRejected) {
+      query = query.eq("status", "published").eq("review_status", "rejected");
+    } else if (statusIn.length > 0) {
+      query = query.in("status", statusIn);
+    }
+    if (scopeOr) query = query.or(scopeOr);
+    if (recentRejected) {
+      query = query
+        .order("reviewed_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+    return query.limit(fetchLimit);
+  }
+
+  const { data: draftsRaw, error } = await draftQuery(LIST_COLUMNS);
 
   // Migraciones 030/031 aún no aplicadas: ir degradando el select.
   // Tipado laxo: cada fallback trae menos columnas.
@@ -466,30 +508,27 @@ export async function listOrganizationCreativeDrafts(
     discover_source?: string | null;
     external_ad_id?: string | null;
     publish_result?: unknown;
+    reject_fix_hint?: string | null;
   };
   let draftsSource = draftsRaw as DraftListRow[] | null;
   let listError = error;
-  if (error && /discover_source|external_ad_id/i.test(error.message)) {
-    const fallback = await admin
-      .from("creative_publish_drafts")
-      .select(
-        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id",
-      )
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+  const columnsWithoutHint = LIST_COLUMNS.replace(", reject_fix_hint", "");
+  if (listError && /reject_fix_hint/i.test(listError.message)) {
+    const fallback = await draftQuery(columnsWithoutHint);
+    draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
+    listError = fallback.error;
+  }
+  if (listError && /discover_source|external_ad_id/i.test(listError.message)) {
+    const fallback = await draftQuery(
+      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status, parent_draft_id",
+    );
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
   if (listError && /parent_draft_id/i.test(listError.message)) {
-    const fallback = await admin
-      .from("creative_publish_drafts")
-      .select(
-        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status",
-      )
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+    const fallback = await draftQuery(
+      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id, review_status, reject_reasons, secondary_status",
+    );
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
@@ -497,14 +536,9 @@ export async function listOrganizationCreativeDrafts(
     listError &&
     /review_status|reject_reasons|secondary_status/i.test(listError.message)
   ) {
-    const fallback = await admin
-      .from("creative_publish_drafts")
-      .select(
-        "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id",
-      )
-      .eq("organization_id", organizationId)
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+    const fallback = await draftQuery(
+      "id, status, brief, error_message, created_at, reviewed_at, published_at, creative_asset_id, ad_account_id, external_advertiser_id",
+    );
     draftsSource = (fallback.data ?? null) as DraftListRow[] | null;
     listError = fallback.error;
   }
@@ -616,7 +650,7 @@ export async function listOrganizationCreativeDrafts(
     }
   }
 
-  return data.map((row) => {
+  const mapped = data.map((row) => {
     const brief = (row.brief ?? {}) as Partial<CreativeAgentBrief>;
     const rejectRaw = row.reject_reasons;
     const tiktokRejectReasons = Array.isArray(rejectRaw)
@@ -661,6 +695,13 @@ export async function listOrganizationCreativeDrafts(
       httpUrl(linked?.public_url) ??
       posterUrl;
 
+    const videoId =
+      String(publishResult.video_id ?? "").trim() ||
+      (Array.isArray(publishResult.image_ids)
+        ? String(publishResult.image_ids[0] ?? "").trim()
+        : "") ||
+      null;
+
     return {
       id: row.id as string,
       status: row.status as CreativePublishDraftStatus,
@@ -680,6 +721,10 @@ export async function listOrganizationCreativeDrafts(
       publishedAt: (row.published_at as string | null) ?? null,
       tiktokReviewStatus,
       tiktokRejectReasons,
+      rejectFixHint:
+        String(
+          (row as { reject_fix_hint?: string | null }).reject_fix_hint ?? "",
+        ).trim() || null,
       tiktokSecondaryStatus:
         (row.secondary_status as string | null)?.trim() || null,
       parentDraftId,
@@ -696,6 +741,23 @@ export async function listOrganizationCreativeDrafts(
         previewUrl,
         posterUrl,
       }),
+      videoId,
     };
   });
+
+  if (!recentRejected) return mapped;
+
+  const seen = new Set<string>();
+  const unique: CreativeDraftListItem[] = [];
+  for (const item of mapped) {
+    const name = cleanCreativeDisplayName(
+      item.brief.adName || item.assetName || "",
+    );
+    const key = item.videoId || name.toLowerCase() || item.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+    if (unique.length >= 8) break;
+  }
+  return unique;
 }

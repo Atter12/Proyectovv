@@ -52,21 +52,41 @@ export function repeatRejectBlockMessage(
         ? "promesas que TikTok no permite"
         : kind === "media_invalid"
           ? "un video que TikTok no puede usar"
-          : "el mismo problema";
+          : kind === "landing"
+            ? "la página de destino"
+            : "el mismo problema";
   return `TikTok ya rechazó ${count} anuncios por ${what} en los últimos 7 días. No publiques otro igual: cambia el video y súbelo como corrección.`;
 }
 
 export type TikTokRejectActionKind =
   | "media_invalid"
+  | "landing"
   | "policy"
   | "claims"
   | "generic";
+
+/** Qué tiene que hacer el cliente. La página no se arregla subiendo otro video. */
+export function clientFixAction(
+  kind: TikTokRejectActionKind,
+): "new_file" | "change_hook" | "fix_page" {
+  if (kind === "media_invalid") return "new_file";
+  if (kind === "landing") return "fix_page";
+  return "change_hook";
+}
 
 export function classifyTikTokRejectReasons(
   reasons: string[],
 ): TikTokRejectActionKind {
   const blob = reasons.join(" \n ").toLowerCase();
   if (!blob.trim()) return "generic";
+
+  if (
+    /landing|p[aá]gina de destino|destination|privacy policy|pol[ií]tica de privacidad|precio no|price mismatch|el sitio|the website|url de destino/.test(
+      blob,
+    )
+  ) {
+    return "landing";
+  }
 
   if (
     /unavailable|eliminad|expirad|inválid|invalid|deleted|expired|no.*(vídeo|video|imagen|image)|missing media|material/.test(

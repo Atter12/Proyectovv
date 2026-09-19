@@ -8,6 +8,7 @@ import type { CreativeDraftListItem } from "@/lib/creatives/types";
 import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
 import {
   classifyTikTokRejectReasons,
+  clientFixAction,
   humanizeTikTokRejectReason,
 } from "@/lib/creatives/tiktok-reject-action";
 import { Button } from "@/components/ui/Button";
@@ -78,20 +79,20 @@ export function AgentProDraftsPanel({
   useEffect(() => {
     if (!expectDiscoverRefresh) return;
     if (softRefreshDone.current) return;
-    if (counts.rejected > 0) {
-      const missingMedia = drafts.some(
-        (d) =>
-          isRejected(d) && !d.previewUrl && !d.posterUrl,
-      );
-      if (!missingMedia) return;
-    }
+    const missingHint = drafts.some(
+      (d) => isRejected(d) && !d.rejectFixHint,
+    );
+    const missingMedia = drafts.some(
+      (d) => isRejected(d) && !d.previewUrl && !d.posterUrl,
+    );
+    if (counts.rejected > 0 && !missingHint && !missingMedia) return;
     if (typeof window === "undefined") return;
-    const missingMedia =
-      counts.rejected > 0 &&
-      drafts.some((d) => isRejected(d) && !d.previewUrl && !d.posterUrl);
-    const storageKey = missingMedia
-      ? "creatives:media-soft-refresh"
-      : "creatives:discover-soft-refresh";
+    const storageKey =
+      counts.rejected === 0
+        ? "creatives:discover-soft-refresh"
+        : missingHint
+          ? "creatives:hint-soft-refresh"
+          : "creatives:media-soft-refresh";
     try {
       if (sessionStorage.getItem(storageKey) === "1") {
         softRefreshDone.current = true;
@@ -108,7 +109,7 @@ export function AgentProDraftsPanel({
         /* ignore */
       }
       router.refresh();
-    }, 10_000);
+    }, 12_000);
     return () => window.clearTimeout(timer);
   }, [expectDiscoverRefresh, counts.rejected, drafts, router]);
 
@@ -172,15 +173,16 @@ export function AgentProDraftsPanel({
   }
 
   const panelTitle =
-    counts.action > 0 ? t("titleProblems") : t("title");
+    counts.rejected > 0 ? t("titleRecent") : t("title");
   const panelSubtitle =
-    counts.action > 0
-      ? t("subtitleProblems", { count: counts.action })
+    counts.rejected > 0
+      ? t("subtitleRecent")
       : publishEnabled
         ? t("subtitleEnabled")
         : t("subtitleDisabled");
 
-  const showFilters = counts.ready > 0 || activeFilter !== "action";
+  const showFilters =
+    counts.rejected === 0 && (counts.ready > 0 || activeFilter !== "action");
   const filters: { id: FilterId; label: string; count: number }[] = [
     { id: "action", label: t("filterAction"), count: counts.action },
     { id: "ready", label: t("filterReady"), count: counts.ready },
@@ -305,8 +307,11 @@ export function AgentProDraftsPanel({
                     <p className="mt-0.5 text-[12px] leading-4 text-[var(--auth-text-muted)]">
                       {reasonLine}
                     </p>
-                    <p className="mt-1 text-[12px] font-medium leading-4 text-[#9a3412]">
-                      {t(`fixHint_${actionKind}`)}
+                    <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                      {t("fixLabel")}
+                    </p>
+                    <p className="mt-0.5 text-[12px] font-medium leading-4 text-[#9a3412]">
+                      {draft.rejectFixHint || t(`fixHint_${actionKind}`)}
                     </p>
                     </div>
                   </div>
@@ -315,16 +320,22 @@ export function AgentProDraftsPanel({
                     <p className="shrink-0 rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
                       {t("fixInProgress")}
                     </p>
+                  ) : clientFixAction(actionKind) === "fix_page" ? (
+                    <p className="shrink-0 max-w-[14rem] text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
+                      {t("ctaPage")}
+                    </p>
                   ) : (
                     <Link
                       href={`?fixDraft=${encodeURIComponent(draft.id)}${
                         draft.adAccountId
                           ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
                           : ""
-                      }&fixLabel=${encodeURIComponent(title)}#creative-upload`}
+                      }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
                       className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
                     >
-                      {t("ctaSimple")}
+                      {clientFixAction(actionKind) === "new_file"
+                        ? t("ctaFile")
+                        : t("ctaHook")}
                     </Link>
                   )}
                 </li>
@@ -366,6 +377,13 @@ export function AgentProDraftsPanel({
                   {failed && draft.errorMessage ? (
                     <p className="mt-2 text-[12px] text-[#991b1b]">
                       {draft.errorMessage}
+                    </p>
+                  ) : null}
+                  {draft.brief.notes.find((n) => n.startsWith("SAME_FAIL:")) ? (
+                    <p className="mt-2 rounded-lg bg-[#fdf6f5] px-3 py-2 text-[12px] font-medium leading-4 text-[#9b2c2c]">
+                      {draft.brief.notes
+                        .find((n) => n.startsWith("SAME_FAIL:"))
+                        ?.replace(/^SAME_FAIL:\s*/, "")}
                     </p>
                   ) : null}
                   {!isDiscovered && draft.brief.hookCopy ? (
