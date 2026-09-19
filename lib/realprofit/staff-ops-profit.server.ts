@@ -3,6 +3,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import type { BurnRateSignal } from "@/lib/realprofit/burn-rate-signals.server";
+import {
+  computeClienteScore,
+  type ClienteScore,
+  type ClienteScoreInput,
+} from "@/lib/realprofit/client-score";
+
+export type ProfitStaffCollections = {
+  failed45d: number | null;
+  intents45d: number | null;
+  openTickets: number | null;
+};
 
 export type ProfitStaffOps = {
   walletAvailableUsd: number | null;
@@ -21,7 +32,15 @@ export type ProfitStaffOps = {
     status: "critical" | "warn" | "info" | "none";
   };
   creditHint: string;
+  collections: ProfitStaffCollections;
+  /** null solo si el loader falló antes de poder armar el score. */
+  score: ClienteScore | null;
 };
+
+type ScoreSlice = Omit<
+  ClienteScoreInput,
+  "burnStatus" | "failedPayments45d" | "paymentIntents45d" | "openTickets"
+>;
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -33,15 +52,41 @@ function hoursBetween(fromIso: string, to = new Date()): number {
   return Math.max(0, (to.getTime() - fromMs) / 3_600_000);
 }
 
-function emptyOps(hint: string): ProfitStaffOps {
+const emptyCollections: ProfitStaffCollections = {
+  failed45d: null,
+  intents45d: null,
+  openTickets: null,
+};
+
+function withScore(
+  ops: Omit<ProfitStaffOps, "score">,
+  score: ScoreSlice,
+): ProfitStaffOps {
   return {
-    walletAvailableUsd: null,
-    adLedgerAvailableUsd: 0,
-    accountsWithLedgerBalance: 0,
-    lastAllocation: null,
-    burn: { critical: 0, warn: 0, info: 0, status: "none" },
-    creditHint: hint,
+    ...ops,
+    score: computeClienteScore({
+      ...score,
+      burnStatus: ops.burn.status,
+      failedPayments45d: ops.collections.failed45d,
+      paymentIntents45d: ops.collections.intents45d,
+      openTickets: ops.collections.openTickets,
+    }),
   };
+}
+
+function emptyOps(hint: string, score: ScoreSlice): ProfitStaffOps {
+  return withScore(
+    {
+      walletAvailableUsd: null,
+      adLedgerAvailableUsd: 0,
+      accountsWithLedgerBalance: 0,
+      lastAllocation: null,
+      burn: { critical: 0, warn: 0, info: 0, status: "none" },
+      creditHint: hint,
+      collections: emptyCollections,
+    },
+    score,
+  );
 }
 
 /**
@@ -53,10 +98,14 @@ export async function loadProfitStaffOps(input: {
   spendTodayUsd: number;
   pacingLabel: string;
   burnSignals: BurnRateSignal[];
+  score: ScoreSlice;
 }): Promise<ProfitStaffOps> {
   const hecomClienteId = input.hecomClienteId.trim();
   if (!hecomClienteId) {
-    return emptyOps("Sin cliente Hecom — no hay ledger de cartera.");
+    return emptyOps(
+      "Sin cliente Hecom — no hay ledger de cartera.",
+      input.score,
+    );
   }
 
   try {
@@ -65,12 +114,15 @@ export async function loadProfitStaffOps(input: {
     if (!organizationId) {
       return emptyOps(
         "Sin org Holistic vinculada — no hay ledger de cartera para este cliente.",
+        input.score,
       );
     }
 
     const admin = createAdminClient();
+    const since45d = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ data: accounts }, wallet] = await Promise.all([
+    const [{ data: accounts }, wallet, paymentsRes, ticketsRes] =
+      await Promise.all([
       admin
         .from("ad_accounts")
         .select("id, name, external_account_id")
@@ -79,7 +131,38 @@ export async function loadProfitStaffOps(input: {
         .eq("metadata->>hecom_cliente_id", hecomClienteId)
         .limit(40),
       getWalletLedgerBalance(organizationId).catch(() => null),
+      admin
+        .from("payment_intents")
+        .select("status")
+        .eq("organization_id", organizationId)
+        .gte("created_at", since45d)
+        .limit(150),
+      admin
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId)
+        .in("status", ["open", "pending"]),
     ]);
+
+    let collections: ProfitStaffCollections = { ...emptyCollections };
+    if (!paymentsRes.error) {
+      const rows = (paymentsRes.data ?? []) as Array<{ status?: string }>;
+      const failed = rows.filter((row) => {
+        const status = String(row.status ?? "").toLowerCase();
+        return status === "failed" || status === "cancelled";
+      }).length;
+      collections = {
+        ...collections,
+        failed45d: failed,
+        intents45d: rows.length,
+      };
+    }
+    if (!ticketsRes.error) {
+      collections = {
+        ...collections,
+        openTickets: ticketsRes.count ?? 0,
+      };
+    }
 
     const rows = (accounts ?? []) as Array<{
       id: string;
@@ -187,16 +270,20 @@ export async function loadProfitStaffOps(input: {
         "Sin alerta de quema. Para crédito mira pacing + concentración + deuda Hecom aparte.";
     }
 
-    return {
-      walletAvailableUsd: wallet
-        ? round2(wallet.availableBalanceCents / 100)
-        : null,
-      adLedgerAvailableUsd: round2(adLedgerAvailableUsd),
-      accountsWithLedgerBalance,
-      lastAllocation,
-      burn,
-      creditHint,
-    };
+    return withScore(
+      {
+        walletAvailableUsd: wallet
+          ? round2(wallet.availableBalanceCents / 100)
+          : null,
+        adLedgerAvailableUsd: round2(adLedgerAvailableUsd),
+        accountsWithLedgerBalance,
+        lastAllocation,
+        burn,
+        creditHint,
+        collections,
+      },
+      input.score,
+    );
   } catch (error) {
     console.error("[profit-staff-ops] failed", {
       hecomClienteId,
@@ -204,6 +291,7 @@ export async function loadProfitStaffOps(input: {
     });
     return emptyOps(
       "No se pudo leer el ledger ahora. Usa el gasto live de arriba para decidir.",
+      input.score,
     );
   }
 }

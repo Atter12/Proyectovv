@@ -999,11 +999,31 @@ export async function loadClienteProfitPromo(input: {
     spendTodayUsd: spendToday,
   });
   const signals = [...burnSignals, ...campaignSignals].slice(0, 8);
+  const perfSummary = summarizePerf(campaigns, {
+    advertisersQueried: perf.advertisersQueried,
+    advertisersOk: perf.advertisersOk,
+    fetchedAt: perf.fetchedAt,
+    error: perf.error,
+  });
   const staffOps = await loadProfitStaffOps({
     hecomClienteId: input.hecomClienteId,
     spendTodayUsd: spendToday,
     pacingLabel,
     burnSignals,
+    score: {
+      spend7d,
+      spend30d,
+      pacingLabel,
+      avgCtr: perfSummary.avgCtr,
+      clicks: perfSummary.clicks,
+      conversions: perfSummary.conversions,
+      impressions: perfSummary.impressions,
+      hasCodLink: linkedStores.length > 0,
+      aboveBreakEven,
+      warnKinds: signals
+        .filter((signal) => signal.severity !== "info")
+        .map((signal) => signal.kind),
+    },
   });
 
   const analysis: ProfitAnalysis = {
@@ -1040,12 +1060,7 @@ export async function loadClienteProfitPromo(input: {
     aboveBreakEven,
     dataThroughDate,
     signals,
-    perf: summarizePerf(campaigns, {
-      advertisersQueried: perf.advertisersQueried,
-      advertisersOk: perf.advertisersOk,
-      fetchedAt: perf.fetchedAt,
-      error: perf.error,
-    }),
+    perf: perfSummary,
   };
 
   return {

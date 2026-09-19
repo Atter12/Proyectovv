@@ -8,6 +8,7 @@ import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRan
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
+import type { ClienteScore } from "@/lib/realprofit/client-score";
 
 function limaTodayYmd(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -73,6 +74,7 @@ type StaffOps = {
     status: "critical" | "warn" | "info" | "none";
   };
   creditHint: string;
+  score: ClienteScore | null;
 };
 
 type Analysis = {
@@ -230,6 +232,237 @@ function displayCampaignTitle(name: string, externalId: string): string {
   return n;
 }
 
+const SCORE_RING = 2 * Math.PI * 46;
+
+function scoreInk(verdict: ClienteScore["verdict"] | undefined) {
+  switch (verdict) {
+    case "good":
+      return {
+        stroke: "#6ee7b7",
+        glow: "bg-emerald-400/25",
+        chip: "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/35",
+      };
+    case "ok":
+      return {
+        stroke: "#ffb080",
+        glow: "bg-[#ff781f]/30",
+        chip: "bg-[#ff781f]/15 text-[#ffe0cc] ring-1 ring-[#ffb080]/40",
+      };
+    case "watch":
+      return {
+        stroke: "#fcd34d",
+        glow: "bg-amber-300/20",
+        chip: "bg-amber-300/15 text-amber-100 ring-1 ring-amber-200/35",
+      };
+    case "risk":
+      return {
+        stroke: "#fca5a5",
+        glow: "bg-red-400/25",
+        chip: "bg-red-400/15 text-red-100 ring-1 ring-red-300/40",
+      };
+    default:
+      return {
+        stroke: "rgba(255,255,255,0.45)",
+        glow: "bg-white/10",
+        chip: "bg-white/10 text-white/70 ring-1 ring-white/15",
+      };
+  }
+}
+
+function useCountUp(target: number | null) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (target == null || reduce) {
+      const frame = requestAnimationFrame(() => setShown(target ?? 0));
+      return () => cancelAnimationFrame(frame);
+    }
+    const start = performance.now();
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / 820);
+      const eased = 1 - (1 - t) ** 3;
+      setShown(Math.round(target * eased));
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return shown;
+}
+
+function ScoreDial({
+  value,
+  verdict,
+}: {
+  value: number | null;
+  verdict: ClienteScore["verdict"];
+}) {
+  const ink = scoreInk(verdict);
+  const shown = useCountUp(value);
+  const pct = value == null ? 0 : Math.max(0, Math.min(100, value));
+  return (
+    <div className="relative h-[128px] w-[128px] shrink-0">
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90" aria-hidden>
+        <circle
+          cx="60"
+          cy="60"
+          r="46"
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="8"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r="46"
+          fill="none"
+          stroke={ink.stroke}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={SCORE_RING}
+          strokeDashoffset={SCORE_RING * (1 - pct / 100)}
+          className="transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span
+          className="text-[2.05rem] font-bold leading-none tabular-nums tracking-tight"
+          style={{ color: ink.stroke }}
+        >
+          {value == null ? "—" : shown}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FactorMeter({
+  points,
+  delayMs,
+}: {
+  points: number | null;
+  delayMs: number;
+}) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setWidth(points ?? 8));
+    return () => cancelAnimationFrame(frame);
+  }, [points]);
+  const tone =
+    points == null
+      ? "bg-white/25"
+      : points >= 70
+        ? "bg-emerald-400"
+        : points >= 45
+          ? "bg-amber-300"
+          : "bg-red-400";
+  return (
+    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div
+        className={`h-full rounded-full ${tone} motion-reduce:transition-none`}
+        style={{
+          width: `${width}%`,
+          transition: "width 720ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transitionDelay: `${delayMs}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
+function scoreVerdictLabel(
+  verdict: ClienteScore["verdict"],
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (verdict) {
+    case "good":
+      return t("scoreVerdictGood");
+    case "ok":
+      return t("scoreVerdictOk");
+    case "watch":
+      return t("scoreVerdictWatch");
+    case "risk":
+      return t("scoreVerdictRisk");
+    default:
+      return t("scoreVerdictNoBase");
+  }
+}
+
+function scoreHint(
+  verdict: ClienteScore["verdict"],
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (verdict) {
+    case "good":
+      return t("scoreHintGood");
+    case "ok":
+      return t("scoreHintOk");
+    case "watch":
+      return t("scoreHintWatch");
+    case "risk":
+      return t("scoreHintRisk");
+    default:
+      return t("scoreHintNoBase");
+  }
+}
+
+function scoreFactorLabel(
+  id: ClienteScore["factors"][number]["id"],
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (id) {
+    case "ads":
+      return t("scoreFactorAds");
+    case "credit":
+      return t("scoreFactorCredit");
+    case "collections":
+      return t("scoreFactorCollections");
+    default:
+      return t("scoreFactorTickets");
+  }
+}
+
+function scoreNoteLabel(
+  note: ClienteScore["factors"][number]["note"],
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (note) {
+    case "ads_none":
+      return t("scoreNoteAdsNone");
+    case "ads_strong":
+      return t("scoreNoteAdsStrong");
+    case "ads_mid":
+      return t("scoreNoteAdsMid");
+    case "ads_weak":
+      return t("scoreNoteAdsWeak");
+    case "credit_ok":
+      return t("scoreNoteCreditOk");
+    case "credit_watch":
+      return t("scoreNoteCreditWatch");
+    case "credit_risk":
+      return t("scoreNoteCreditRisk");
+    case "collections_unknown":
+      return t("scoreNoteCollectionsUnknown");
+    case "collections_none":
+      return t("scoreNoteCollectionsNone");
+    case "collections_clean":
+      return t("scoreNoteCollectionsClean");
+    case "collections_one":
+      return t("scoreNoteCollectionsOne");
+    case "collections_many":
+      return t("scoreNoteCollectionsMany");
+    case "tickets_unknown":
+      return t("scoreNoteTicketsUnknown");
+    case "tickets_clear":
+      return t("scoreNoteTicketsClear");
+    default:
+      return t("scoreNoteTicketsOpen");
+  }
+}
+
 function StaffOpsPanel({
   ops,
   spendTodayUsd,
@@ -247,17 +480,84 @@ function StaffOpsPanel({
   fromLiveFallback: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const score = ops.score;
+  const ink = scoreInk(score?.verdict);
   return (
-    <section className="space-y-3 rounded-2xl border border-[#ff781f]/40 bg-[#1c1917] p-5 text-white shadow-[0_12px_40px_-18px_rgb(28_25_23_/_0.55)] sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <section className="relative overflow-hidden rounded-2xl border border-[#ff781f]/40 bg-[#1c1917] p-5 text-white shadow-[0_18px_50px_-22px_rgb(28_25_23_/_0.7)] sm:p-6">
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full blur-3xl ${ink.glow}`}
+      />
+      <div className="relative space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          {score ? (
+            <ScoreDial value={score.score} verdict={score.verdict} />
+          ) : (
+            <div className="grid h-[128px] w-[128px] shrink-0 place-items-center rounded-full border border-dashed border-white/20 text-[13px] text-white/50">
+              …
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ffb080]">
+              {t("staffOpsLabel")}
+            </p>
+            <h2 className="mt-1 text-[1.2rem] font-bold tracking-tight">
+              {t("scoreTitle")}
+            </h2>
+            {score ? (
+              <>
+                <p
+                  className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-bold ${ink.chip} ${
+                    score.verdict === "risk"
+                      ? "animate-pulse motion-reduce:animate-none"
+                      : ""
+                  }`}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: ink.stroke }}
+                  />
+                  {scoreVerdictLabel(score.verdict, t)}
+                </p>
+                <p className="mt-2 max-w-lg text-[14px] leading-5 text-white/80">
+                  {scoreHint(score.verdict, t)}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-[13px] text-white/70">{t("scorePending")}</p>
+            )}
+          </div>
+        </div>
+
+        {score ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {score.factors.map((factor, index) => (
+              <div
+                key={factor.id}
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
+                    {scoreFactorLabel(factor.id, t)}
+                  </p>
+                  <p className="text-[13px] font-semibold tabular-nums">
+                    {factor.points ?? "—"}
+                  </p>
+                </div>
+                <FactorMeter points={factor.points} delayMs={index * 90} />
+                <p className="mt-1.5 text-[12px] leading-4 text-white/65">
+                  {scoreNoteLabel(factor.note, t)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <div>
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ffb080]">
-            {t("staffOpsLabel")}
-          </p>
-          <h2 className="mt-1 text-[1.15rem] font-bold tracking-tight">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white/40">
             {t("staffOpsTitle")}
-          </h2>
-          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-white/80">
+          </p>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-white/75">
             {ops.creditHint}
           </p>
           {fromLiveFallback ? (
@@ -266,7 +566,6 @@ function StaffOpsPanel({
             </p>
           ) : null}
         </div>
-      </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl bg-white/10 px-3.5 py-3">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/50">
@@ -359,6 +658,7 @@ function StaffOpsPanel({
             {pacingRatio != null ? ` · ${pacingRatio.toFixed(2)}×` : ""}
           </p>
         </div>
+      </div>
       </div>
     </section>
   );
@@ -612,6 +912,7 @@ export function ProfitPageClient({
           spendTodayDisplay > 0
             ? `Gasto live hoy ${moneyUsd(spendTodayDisplay)} · saldo TikTok ~${moneyUsd(liveBalanceTotal)}. Ledger Holistic aún no cargó detalle de asignación.`
             : "Sin gasto live hoy. Cuando asigne y gaste, aquí verás quema y crédito.",
+        score: null,
       },
       fromLiveFallback: true,
     };
