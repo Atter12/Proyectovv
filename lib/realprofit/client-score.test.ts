@@ -37,13 +37,13 @@ test("sin gasto no inventa un buen cliente", () => {
   assert.equal(score.score, null);
 });
 
-test("gasto sano, sin quema y cobros limpios es buen cliente", () => {
+test("gasto sano, sin quema y cobros limpios queda en verde", () => {
   const score = computeClienteScore(base());
-  assert.equal(score.verdict, "good");
-  assert.ok((score.score ?? 0) >= 78);
+  assert.equal(score.verdict, "green");
+  assert.ok((score.score ?? 100) <= 29);
 });
 
-test("quema crítica y cobros fallidos bajan a riesgo u ojo", () => {
+test("quema crítica y cobros fallidos suben a naranja o rojo", () => {
   const score = computeClienteScore(
     base({
       avgCtr: 0.15,
@@ -59,8 +59,8 @@ test("quema crítica y cobros fallidos bajan a riesgo u ojo", () => {
       openTickets: 3,
     }),
   );
-  assert.ok(score.verdict === "risk" || score.verdict === "watch");
-  assert.ok((score.score ?? 100) < 60);
+  assert.ok(score.verdict === "orange" || score.verdict === "red");
+  assert.ok((score.score ?? 0) >= 60);
   const credit = score.factors.find((f) => f.id === "credit");
   assert.equal(credit?.note, "credit_risk");
 });

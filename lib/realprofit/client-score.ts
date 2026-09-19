@@ -1,9 +1,15 @@
 /**
- * Score de cliente solo para gerencia. Determinista: no usa LLM.
- * 0–100. Sin gasto TikTok no se califica (no inventar “buen cliente”).
+ * Semáforo de riesgo solo para gerencia. Determinista: no usa LLM.
+ * El número es riesgo, no “qué tan buen cliente”: 0–29 verde, 30–59 amarillo,
+ * 60–79 naranja, 80–100 rojo. Sin gasto TikTok no se califica.
  */
 
-export type ClienteScoreVerdict = "good" | "ok" | "watch" | "risk" | "no_base";
+export type ClienteScoreVerdict =
+  | "green"
+  | "yellow"
+  | "orange"
+  | "red"
+  | "no_base";
 
 export type ClienteScoreFactorId = "ads" | "credit" | "collections" | "tickets";
 
@@ -145,11 +151,12 @@ function scoreTickets(input: ClienteScoreInput): ClienteScoreFactor {
   return { id: "tickets", points, note };
 }
 
-function verdictFor(score: number): ClienteScoreVerdict {
-  if (score >= 78) return "good";
-  if (score >= 60) return "ok";
-  if (score >= 42) return "watch";
-  return "risk";
+/** Riesgo alto = peor. Los cortes son los del semáforo de gerencia. */
+function verdictFor(risk: number): ClienteScoreVerdict {
+  if (risk <= 29) return "green";
+  if (risk <= 59) return "yellow";
+  if (risk <= 79) return "orange";
+  return "red";
 }
 
 export function computeClienteScore(input: ClienteScoreInput): ClienteScore {
@@ -174,9 +181,10 @@ export function computeClienteScore(input: ClienteScoreInput): ClienteScore {
   ].filter((row) => row.weight > 0);
 
   const weightSum = weighted.reduce((sum, row) => sum + row.weight, 0);
-  const score = clamp(
+  const health = clamp(
     weighted.reduce((sum, row) => sum + (row.points * row.weight) / weightSum, 0),
   );
+  const risk = clamp(100 - health);
 
-  return { score, verdict: verdictFor(score), factors };
+  return { score: risk, verdict: verdictFor(risk), factors };
 }

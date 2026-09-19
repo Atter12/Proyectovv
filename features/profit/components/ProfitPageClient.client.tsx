@@ -236,35 +236,40 @@ const SCORE_RING = 2 * Math.PI * 46;
 
 function scoreInk(verdict: ClienteScore["verdict"] | undefined) {
   switch (verdict) {
-    case "good":
+    case "green":
       return {
         stroke: "#6ee7b7",
         glow: "bg-emerald-400/25",
         chip: "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/35",
+        action: "bg-[#e7f8ef] text-[#14532d]",
       };
-    case "ok":
-      return {
-        stroke: "#ffb080",
-        glow: "bg-[#ff781f]/30",
-        chip: "bg-[#ff781f]/15 text-[#ffe0cc] ring-1 ring-[#ffb080]/40",
-      };
-    case "watch":
+    case "yellow":
       return {
         stroke: "#fcd34d",
         glow: "bg-amber-300/20",
         chip: "bg-amber-300/15 text-amber-100 ring-1 ring-amber-200/35",
+        action: "bg-[#fff6d8] text-[#854d0e]",
       };
-    case "risk":
+    case "orange":
+      return {
+        stroke: "#ffb080",
+        glow: "bg-[#ff781f]/30",
+        chip: "bg-[#ff781f]/15 text-[#ffe0cc] ring-1 ring-[#ffb080]/40",
+        action: "bg-[#fff1e6] text-[#9a3412]",
+      };
+    case "red":
       return {
         stroke: "#fca5a5",
         glow: "bg-red-400/25",
         chip: "bg-red-400/15 text-red-100 ring-1 ring-red-300/40",
+        action: "bg-[#fee2e2] text-[#991b1b]",
       };
     default:
       return {
         stroke: "rgba(255,255,255,0.45)",
         glow: "bg-white/10",
         chip: "bg-white/10 text-white/70 ring-1 ring-white/15",
+        action: "bg-white/10 text-white/70",
       };
   }
 }
@@ -296,9 +301,11 @@ function useCountUp(target: number | null) {
 function ScoreDial({
   value,
   verdict,
+  caption,
 }: {
   value: number | null;
   verdict: ClienteScore["verdict"];
+  caption: string;
 }) {
   const ink = scoreInk(verdict);
   const shown = useCountUp(value);
@@ -333,6 +340,9 @@ function ScoreDial({
           style={{ color: ink.stroke }}
         >
           {value == null ? "—" : shown}
+        </span>
+        <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+          {caption}
         </span>
       </div>
     </div>
@@ -378,14 +388,14 @@ function scoreVerdictLabel(
   t: ReturnType<typeof useTranslations>,
 ): string {
   switch (verdict) {
-    case "good":
-      return t("scoreVerdictGood");
-    case "ok":
-      return t("scoreVerdictOk");
-    case "watch":
-      return t("scoreVerdictWatch");
-    case "risk":
-      return t("scoreVerdictRisk");
+    case "green":
+      return t("scoreVerdictGreen");
+    case "yellow":
+      return t("scoreVerdictYellow");
+    case "orange":
+      return t("scoreVerdictOrange");
+    case "red":
+      return t("scoreVerdictRed");
     default:
       return t("scoreVerdictNoBase");
   }
@@ -396,16 +406,34 @@ function scoreHint(
   t: ReturnType<typeof useTranslations>,
 ): string {
   switch (verdict) {
-    case "good":
-      return t("scoreHintGood");
-    case "ok":
-      return t("scoreHintOk");
-    case "watch":
-      return t("scoreHintWatch");
-    case "risk":
-      return t("scoreHintRisk");
+    case "green":
+      return t("scoreHintGreen");
+    case "yellow":
+      return t("scoreHintYellow");
+    case "orange":
+      return t("scoreHintOrange");
+    case "red":
+      return t("scoreHintRed");
     default:
       return t("scoreHintNoBase");
+  }
+}
+
+function scoreActionLabel(
+  verdict: ClienteScore["verdict"],
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (verdict) {
+    case "green":
+      return t("scoreActionGreen");
+    case "yellow":
+      return t("scoreActionYellow");
+    case "orange":
+      return t("scoreActionOrange");
+    case "red":
+      return t("scoreActionRed");
+    default:
+      return t("scoreActionNoBase");
   }
 }
 
@@ -491,7 +519,11 @@ function StaffOpsPanel({
       <div className="relative space-y-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           {score ? (
-            <ScoreDial value={score.score} verdict={score.verdict} />
+            <ScoreDial
+              value={score.score}
+              verdict={score.verdict}
+              caption={t("scoreDialLabel")}
+            />
           ) : (
             <div className="grid h-[128px] w-[128px] shrink-0 place-items-center rounded-full border border-dashed border-white/20 text-[13px] text-white/50">
               …
@@ -504,23 +536,47 @@ function StaffOpsPanel({
             <h2 className="mt-1 text-[1.2rem] font-bold tracking-tight">
               {t("scoreTitle")}
             </h2>
+            <p className="mt-1 max-w-lg text-[12.5px] leading-5 text-white/55">
+              {t("scoreSubtitle")}
+            </p>
             {score ? (
               <>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      ["green", "scoreBandGreen"],
+                      ["yellow", "scoreBandYellow"],
+                      ["orange", "scoreBandOrange"],
+                      ["red", "scoreBandRed"],
+                    ] as const
+                  ).map(([band, rangeKey]) => {
+                    const active = score.verdict === band;
+                    const bandInk = scoreInk(band);
+                    return (
+                      <span
+                        key={band}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                          active
+                            ? bandInk.chip
+                            : "bg-white/5 text-white/35 ring-1 ring-white/10"
+                        }`}
+                      >
+                        {scoreVerdictLabel(band, t)} {t(rangeKey)}
+                      </span>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 max-w-lg text-[14px] leading-5 text-white/80">
+                  {scoreHint(score.verdict, t)}
+                </p>
                 <p
-                  className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-bold ${ink.chip} ${
-                    score.verdict === "risk"
+                  className={`mt-3 inline-flex rounded-lg px-3 py-1.5 text-[13px] font-semibold ${ink.action} ${
+                    score.verdict === "red"
                       ? "animate-pulse motion-reduce:animate-none"
                       : ""
                   }`}
                 >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: ink.stroke }}
-                  />
-                  {scoreVerdictLabel(score.verdict, t)}
-                </p>
-                <p className="mt-2 max-w-lg text-[14px] leading-5 text-white/80">
-                  {scoreHint(score.verdict, t)}
+                  {scoreActionLabel(score.verdict, t)}
                 </p>
               </>
             ) : (
