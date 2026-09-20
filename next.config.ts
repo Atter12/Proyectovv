@@ -20,8 +20,11 @@ const contentSecurityPolicy = [
     ...clerkCspHosts.styles,
   ].join(" "),
   [
-    "img-src 'self' data: blob: https://cdn.simpleicons.org https://images.unsplash.com https://*.supabase.co",
+    "img-src 'self' data: blob: https://cdn.simpleicons.org https://images.unsplash.com https://*.supabase.co https://*.tiktokcdn.com https://*.tiktok.com https://*.ibyteimg.com https://*.byteimg.com",
     ...clerkCspHosts.images,
+  ].join(" "),
+  [
+    "media-src 'self' blob: https://*.tiktokcdn.com https://*.tiktok.com https://*.ibyteimg.com https://*.byteimg.com https://*.supabase.co",
   ].join(" "),
   ["font-src 'self' data:", ...clerkCspHosts.fonts].join(" "),
   [
