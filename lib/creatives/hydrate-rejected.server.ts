@@ -6,7 +6,6 @@ import {
 } from "@/lib/integrations/tiktok/ad-list.server";
 import { fetchSmartPlusAdReviewInfo } from "@/lib/integrations/tiktok/ad-review.server";
 import { normalizeMediaUrls } from "@/lib/creatives/tiktok-media-preview";
-import { REJECT_REC_PREFIX } from "@/lib/creatives/reject-recommendation";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
 
 /**
@@ -153,9 +152,7 @@ export async function hydrateRejectedCards(
         }
         if (review?.suggestions?.length) {
           row.tiktokSuggestions = review.suggestions;
-          if (!row.rejectFixHint?.startsWith(REJECT_REC_PREFIX)) {
-            row.rejectFixHint = `${REJECT_REC_PREFIX}${review.suggestions[0]!.slice(0, 160)}`;
-          }
+          // No pisar la recomendación IA con el copy genérico de TikTok.
         }
         if (review?.appealStatus) {
           row.appealStatus = review.appealStatus;
@@ -194,12 +191,7 @@ export async function hydrateRejectedCards(
         if (review?.rejectReasons?.length) {
           updatePayload.reject_reasons = review.rejectReasons;
         }
-        if (
-          review?.suggestions?.length &&
-          !String(current?.reject_fix_hint ?? "").startsWith(REJECT_REC_PREFIX)
-        ) {
-          updatePayload.reject_fix_hint = `${REJECT_REC_PREFIX}${review.suggestions[0]!.slice(0, 160)}`;
-        }
+        // La recomendación IA la llena fillMissingRejectFixHints (no el tip de TikTok).
 
         const { error } = await admin
           .from("creative_publish_drafts")

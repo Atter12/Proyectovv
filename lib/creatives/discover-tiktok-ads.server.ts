@@ -128,11 +128,6 @@ async function upsertRejectedDraft(input: {
         ad_account_id: input.adAccountId,
         external_advertiser_id: input.advertiserId,
         publish_result: mergedPublish,
-        ...(input.suggestions && input.suggestions.length > 0
-          ? {
-              reject_fix_hint: `REC|${input.suggestions[0]!.slice(0, 160)}`,
-            }
-          : {}),
         ...(existing.discover_source === "tiktok_ads_manager" ||
         !existing.discover_source
           ? { brief, discover_source: "tiktok_ads_manager" }
@@ -156,10 +151,6 @@ async function upsertRejectedDraft(input: {
     publish_result: publishResult,
     review_status: "rejected",
     reject_reasons: input.rejectReasons,
-    reject_fix_hint:
-      input.suggestions && input.suggestions.length > 0
-        ? `REC|${input.suggestions[0]!.slice(0, 160)}`
-        : null,
     secondary_status: input.secondaryStatus,
     review_checked_at: now,
     reviewed_at: now,

@@ -97,7 +97,11 @@ export function AgentProDraftsPanel({
     if (!expectDiscoverRefresh) return;
     if (softRefreshDone.current) return;
     const missingHint = drafts.some(
-      (d) => isRejected(d) && !d.rejectFixHint,
+      (d) =>
+        isRejected(d) &&
+        (!d.rejectFixHint ||
+          !String(d.rejectFixHint).includes('"plan"') ||
+          /Modifica el producto o servicio/i.test(String(d.rejectFixHint))),
     );
     const missingMedia = drafts.some(
       (d) => isRejected(d) && !d.previewUrl && !d.posterUrl,
@@ -206,7 +210,7 @@ export function AgentProDraftsPanel({
     }
   }
 
-  async function onAppeal(draftId: string) {
+  async function onAppeal(draftId: string, reason: string) {
     setBusyId(draftId);
     setError(null);
     setMessage(null);
@@ -215,8 +219,7 @@ export function AgentProDraftsPanel({
         method: "POST",
         body: JSON.stringify({
           draftId,
-          reason:
-            "Revisé el creativo y la página de destino. Solicito una nueva revisión del anuncio.",
+          reason,
         }),
       });
       setMessage(t("appealSent"));
@@ -357,14 +360,13 @@ export function AgentProDraftsPanel({
                 t(`simpleReason_${actionKind}`);
               const description = draft.brief.adText.trim();
               const canUpload = clientFixAction(actionKind) !== "fix_page";
-              const tiktokTip = draft.tiktokSuggestions?.[0]?.trim() || null;
               const howto =
-                tiktokTip ||
-                recommended ||
-                t(`fixHint_${actionKind}`);
-              const appealStatus = (
-                draft.appealStatus || ""
-              ).toUpperCase();
+                recommended?.plan || t(`fixHint_${actionKind}`);
+              const suggestedAd = recommended?.adText || null;
+              const appealCopy =
+                recommended?.appeal ||
+                "Revisé el creativo y la página de destino. Solicito una nueva revisión del anuncio.";
+              const appealStatus = (draft.appealStatus || "").toUpperCase();
               const canAppeal =
                 Boolean(draft.externalAdId) &&
                 (appealStatus === "NOT_APPEALED" || appealStatus === "");
@@ -454,7 +456,21 @@ export function AgentProDraftsPanel({
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
                     {howto}
                   </p>
-                  {actionKind === "claims" || actionKind === "policy" ? (
+                  {suggestedAd ? (
+                    <>
+                      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("aiAdTextLabel")}
+                      </p>
+                      <p className="mt-0.5 text-[13px] leading-5 text-[var(--auth-text)]">
+                        “{suggestedAd}”
+                      </p>
+                    </>
+                  ) : null}
+                  {recommended?.appeal ? (
+                    <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+                      {t("appealReadyHint")}
+                    </p>
+                  ) : actionKind === "claims" || actionKind === "policy" ? (
                     <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
                       {t("appealHintWeak")}
                     </p>
@@ -491,7 +507,7 @@ export function AgentProDraftsPanel({
                           <button
                             type="button"
                             disabled={busyId === draft.id}
-                            onClick={() => void onAppeal(draft.id)}
+                            onClick={() => void onAppeal(draft.id, appealCopy)}
                             className="inline-flex h-10 items-center justify-center rounded-xl border border-[rgb(20_18_16_/_0.12)] bg-white px-4 text-[13px] font-bold text-[var(--auth-text)] transition hover:bg-[rgb(20_18_16_/_0.03)] disabled:opacity-60"
                           >
                             {t("ctaAppeal")}
