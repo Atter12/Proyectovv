@@ -6,6 +6,8 @@ export type TikTokMediaPreview = {
 function httpUrl(value: unknown): string | null {
   const text = typeof value === "string" ? value.trim() : "";
   if (!/^https?:\/\//i.test(text)) return null;
+  // Mixed content: portadas TikTok a veces vienen en http://
+  if (text.startsWith("http://")) return `https://${text.slice(7)}`;
   return text;
 }
 

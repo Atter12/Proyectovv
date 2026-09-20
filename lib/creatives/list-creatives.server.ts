@@ -59,7 +59,9 @@ async function signedUrlById(
 
 function httpUrl(value: unknown): string | null {
   const text = typeof value === "string" ? value.trim() : "";
-  return /^https?:\/\//i.test(text) ? text : null;
+  if (!/^https?:\/\//i.test(text)) return null;
+  if (text.startsWith("http://")) return `https://${text.slice(7)}`;
+  return text;
 }
 
 export async function listCreativeAccountOptions(

@@ -390,7 +390,7 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       const rejectReasons = [...new Set(cur.reasons)].slice(0, 12);
       if (cur.rejected && rejectReasons.length === 0) {
         rejectReasons.push(
-          "TikTok ya no tiene este video (borrado, expirado o rechazado). No hay más detalle del motivo: hay que subir el archivo de nuevo.",
+          "TikTok sacó este anuncio del aire y no dejó el motivo detallado (video borrado, expirado o rechazado).",
         );
       }
       out.set(spId, {

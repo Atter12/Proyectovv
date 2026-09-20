@@ -329,9 +329,11 @@ export function AgentProDraftsPanel({
                       label={title}
                       playLabel={t("playVideo")}
                       emptyLabel={
-                        actionKind === "media_invalid"
-                          ? t("mediaGone")
-                          : t("noPreview")
+                        draft.posterUrl || draft.previewUrl
+                          ? undefined
+                          : actionKind === "media_invalid"
+                            ? t("mediaGone")
+                            : t("noPreview")
                       }
                       size="poster"
                     />

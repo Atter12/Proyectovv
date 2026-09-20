@@ -7,6 +7,13 @@ import {
   isLikelyVideoUrl,
 } from "@/lib/creatives/tiktok-media-preview";
 
+function toHttps(url: string | null | undefined): string | null {
+  const text = String(url ?? "").trim();
+  if (!text) return null;
+  if (text.startsWith("http://")) return `https://${text.slice(7)}`;
+  return text;
+}
+
 export function CreativeMediaTile({
   previewUrl,
   posterUrl,
@@ -26,22 +33,33 @@ export function CreativeMediaTile({
   closeLabel?: string;
   size?: "card" | "row" | "poster";
 }) {
-  const [failed, setFailed] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  const playable =
-    previewUrl &&
-    !isLikelyImageUrl(previewUrl) &&
-    (mediaKind === "video" || isLikelyVideoUrl(previewUrl))
-      ? previewUrl
-      : null;
-  const still =
-    posterUrl ||
-    (mediaKind === "image" ? previewUrl : null) ||
-    (previewUrl && isLikelyImageUrl(previewUrl) ? previewUrl : null);
+  const rawPreview = toHttps(previewUrl);
+  const rawPoster = toHttps(posterUrl);
 
-  const canPlay = Boolean(playable) && !failed;
-  const showVideo = size === "poster" ? canPlay : playing && canPlay;
+  const playable =
+    rawPreview &&
+    !videoFailed &&
+    !isLikelyImageUrl(rawPreview) &&
+    (mediaKind === "video" || isLikelyVideoUrl(rawPreview) || mediaKind == null)
+      ? rawPreview
+      : null;
+
+  const still =
+    (!imageFailed && rawPoster) ||
+    (!imageFailed && mediaKind === "image" ? rawPreview : null) ||
+    (!imageFailed && rawPreview && isLikelyImageUrl(rawPreview)
+      ? rawPreview
+      : null) ||
+    null;
+
+  const canPlay = Boolean(playable);
+  // Nunca auto-montar <video>: las URLs firmadas de TikTok suelen expirar
+  // y un onError borraba también la portada.
+  const showVideo = playing && canPlay;
 
   return (
     <div
@@ -60,12 +78,16 @@ export function CreativeMediaTile({
           poster={still ?? undefined}
           className="h-full w-full object-cover"
           controls
+          autoPlay
           muted
           playsInline
           preload="metadata"
-          onError={() => setFailed(true)}
+          onError={() => {
+            setVideoFailed(true);
+            setPlaying(false);
+          }}
         />
-      ) : still && !failed ? (
+      ) : still ? (
         <button
           type="button"
           className="group relative h-full w-full"
@@ -79,7 +101,7 @@ export function CreativeMediaTile({
             src={still}
             alt=""
             className="h-full w-full object-cover"
-            onError={() => setFailed(true)}
+            onError={() => setImageFailed(true)}
           />
           {canPlay ? (
             <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition group-hover:bg-black/35">

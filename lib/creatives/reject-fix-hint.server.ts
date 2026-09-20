@@ -21,25 +21,43 @@ function clip(text: string): string {
   return `${clean.slice(0, HINT_MAX - 1).trim()}…`;
 }
 
+function shortCreativeLabel(adName: string): string | null {
+  const raw = adName.replace(/\s+/g, " ").trim();
+  if (!raw) return null;
+  const videoNum = raw.match(/VIDEO\s*(\d+)/i);
+  if (videoNum) return `Video ${videoNum[1]}`;
+  if (/USD\s*-?\s*Agencia/i.test(raw) || /\d+\.\d+\s*USD/i.test(raw)) {
+    return null;
+  }
+  if (raw.length > 36) return `${raw.slice(0, 33).trim()}…`;
+  return raw;
+}
+
 function fallbackRecommendation(input: {
   kind: ReturnType<typeof classifyTikTokRejectReasons>;
   adName: string;
   accountName: string | null;
 }): string {
-  const who = input.accountName?.trim() || input.adName || "tu producto";
+  const label = shortCreativeLabel(input.adName);
   if (input.kind === "media_invalid") {
-    return `Exportá ${who} otra vez como archivo nuevo y subilo acá. El mismo archivo no pasa.`;
+    return label
+      ? `Exportá ${label} de nuevo (archivo fresco) y subilo acá. El mismo archivo no pasa.`
+      : `Exportá el video de nuevo (archivo fresco) y subilo acá. El mismo archivo no pasa.`;
   }
   if (input.kind === "landing") {
     return `Dejá el video. Revisá la página: mismo producto, mismo precio y política de privacidad.`;
   }
   if (input.kind === "claims") {
-    return `Probá: “Conocé ${who}. Envío rápido. Pedí el tuyo hoy.” Sin cura ni garantía.`;
+    return label
+      ? `Probá un texto corto sin cura ni garantía, tipo: “Conocé ${label}. Pedí el tuyo hoy.”`
+      : `Cambiá el texto: sin cura, sin garantía ni antes/después. Después subí la corrección.`;
   }
   if (input.kind === "policy") {
     return `Suavizá el inicio del video y el texto. Evitá la frase que TikTok marcó y subí la corrección.`;
   }
-  return `Subí una versión nueva de ${who} y cambiá el texto del anuncio antes de reenviar.`;
+  return label
+    ? `Subí una versión nueva de ${label} y cambiá el texto del anuncio antes de reenviar.`
+    : `Subí una versión nueva del video y cambiá el texto del anuncio antes de reenviar.`;
 }
 
 export async function suggestRejectFixHint(input: {
@@ -216,7 +234,11 @@ export async function fillMissingRejectFixHints(
       return false;
     }
     const raw = String(d.rejectFixHint ?? "");
-    return !raw.startsWith(REJECT_REC_PREFIX);
+    if (!raw.startsWith(REJECT_REC_PREFIX)) return true;
+    // Hints viejos que metían el nombre de la cuenta (ej. "Jesus … USD - Agencia").
+    const body = raw.slice(REJECT_REC_PREFIX.length);
+    if (/\d+\.\d+\s*USD|Agencia|Exportá\s+Jesus/i.test(body)) return true;
+    return false;
   });
   if (pending.length === 0) return 0;
 
