@@ -19,6 +19,10 @@ export type TikTokAdReviewSnapshot = {
   adId: string;
   reviewStatus: TikTokAdReviewStatus;
   rejectReasons: string[];
+  /** Sugerencias de TikTok (cómo corregir). */
+  suggestions: string[];
+  /** NOT_APPEALED | APPEALING | APPEAL_APPROVED | APPEAL_REJECTED | ... */
+  appealStatus: string | null;
   secondaryStatus: string | null;
   isApproved: boolean | null;
 };
@@ -48,46 +52,87 @@ async function tiktokGet<T>(input: {
   return (await response.json()) as TikTokApiResponse<T>;
 }
 
-function pushReason(out: string[], value: unknown) {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed) out.push(trimmed);
+function pushUnique(out: string[], value: string, maxLen = 320) {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  if (!trimmed || trimmed.length < 4) return;
+  const clipped =
+    trimmed.length > maxLen ? `${trimmed.slice(0, maxLen - 1).trim()}…` : trimmed;
+  if (
+    out.some((x) => x === clipped || x.includes(clipped) || clipped.includes(x))
+  ) {
     return;
   }
-  if (Array.isArray(value)) {
-    for (const item of value) pushReason(out, item);
-    return;
-  }
-  if (value && typeof value === "object") {
-    const row = value as Record<string, unknown>;
+  out.push(clipped);
+}
+
+/** Extrae motivos + sugerencias del reject_info Smart+ (con include_reject_info). */
+export function extractRejectInfoBlocks(value: unknown): {
+  reasons: string[];
+  suggestions: string[];
+} {
+  const reasons: string[] = [];
+  const suggestions: string[] = [];
+
+  function walk(node: unknown) {
+    if (node == null) return;
+    if (typeof node === "string") {
+      pushUnique(reasons, node);
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    if (typeof node !== "object") return;
+    const row = node as Record<string, unknown>;
+
+    if (Array.isArray(row.reasons)) {
+      for (const item of row.reasons) {
+        if (typeof item === "string") pushUnique(reasons, item);
+      }
+    } else if (typeof row.reasons === "string") {
+      pushUnique(reasons, row.reasons);
+    }
+
     for (const key of [
       "reason",
-      "reasons",
       "reason_text",
       "reject_reason",
-      "reject_reason_tips",
-      "suggestion",
-      "suggestions",
-      "forbidden_content",
-      "forbidden_words",
+      "specification",
       "policy_text",
-      "policy_title",
-      "content",
-      "description",
-      "msg",
-      "message",
-      "detail",
-      "details",
+      "forbidden_content",
     ]) {
-      if (row[key] != null) pushReason(out, row[key]);
+      if (typeof row[key] === "string") pushUnique(reasons, row[key] as string);
+    }
+
+    for (const key of ["suggestion", "suggestions"]) {
+      if (typeof row[key] === "string") {
+        pushUnique(suggestions, row[key] as string, 280);
+      } else if (Array.isArray(row[key])) {
+        for (const item of row[key] as unknown[]) {
+          if (typeof item === "string") pushUnique(suggestions, item, 280);
+        }
+      }
+    }
+
+    for (const key of [
+      "reject_info",
+      "appeal_reject_reasons",
+      "rejection_info",
+    ]) {
+      if (row[key] != null) walk(row[key]);
     }
   }
+
+  walk(value);
+  return {
+    reasons: reasons.slice(0, 8),
+    suggestions: suggestions.slice(0, 4),
+  };
 }
 
 function extractRejectReasons(value: unknown): string[] {
-  const out: string[] = [];
-  pushReason(out, value);
-  return [...new Set(out)].slice(0, 12);
+  return extractRejectInfoBlocks(value).reasons;
 }
 
 function normalizeReviewStatus(input: {
@@ -196,9 +241,10 @@ export async function fetchAdReviewInfo(input: {
           : typeof isApprovedRaw === "string"
             ? /^(true|1|yes|pass)$/i.test(isApprovedRaw)
             : null;
-      const rejectReasons = extractRejectReasons(
+      const blocks = extractRejectInfoBlocks(
         row.reject_info ?? row.reject_reasons ?? row.rejection_info,
       );
+      const rejectReasons = blocks.reasons;
       const reviewStatusRaw = String(
         row.review_status ?? row.status ?? row.audit_status ?? "",
       ).trim() || null;
@@ -212,6 +258,11 @@ export async function fetchAdReviewInfo(input: {
         adId,
         reviewStatus,
         rejectReasons,
+        suggestions: blocks.suggestions,
+        appealStatus:
+          typeof row.appeal_status === "string"
+            ? row.appeal_status.trim() || null
+            : null,
         secondaryStatus: null,
         isApproved,
       });
@@ -321,6 +372,11 @@ export async function fetchSmartPlusAdReviewInfo(input: {
           advertiser_id: advertiserId,
           smart_plus_ad_ids: JSON.stringify(chunk),
           lang: input.lang ?? "es",
+          // Sin esto TikTok solo manda UNAVAILABLE y reject_info=null.
+          extra_info_setting: JSON.stringify({
+            include_reject_info: true,
+            include_violation_frame: true,
+          }),
         },
       });
       if (json.code === 0) break;
@@ -347,7 +403,13 @@ export async function fetchSmartPlusAdReviewInfo(input: {
 
     const bySp = new Map<
       string,
-      { reasons: string[]; rejected: boolean; statuses: string[] }
+      {
+        reasons: string[];
+        suggestions: string[];
+        rejected: boolean;
+        statuses: string[];
+        appealStatus: string | null;
+      }
     >();
 
     for (const row of adInfos) {
@@ -355,15 +417,26 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       if (!spId) continue;
       const cur = bySp.get(spId) ?? {
         reasons: [],
+        suggestions: [],
         rejected: false,
         statuses: [],
+        appealStatus: null,
       };
       const status = String(row.review_status ?? "").trim();
       if (status) cur.statuses.push(status);
-      cur.reasons.push(
-        ...extractRejectReasons(row.reject_info ?? row.appeal_reject_reasons),
+      if (typeof row.appeal_status === "string" && row.appeal_status.trim()) {
+        cur.appealStatus = row.appeal_status.trim();
+      }
+      const blocks = extractRejectInfoBlocks(
+        row.reject_info ?? row.appeal_reject_reasons,
       );
-      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(status)) {
+      cur.reasons.push(...blocks.reasons);
+      cur.suggestions.push(...blocks.suggestions);
+      if (
+        /UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(
+          status,
+        )
+      ) {
         cur.rejected = true;
       }
       bySp.set(spId, cur);
@@ -374,20 +447,29 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       if (!spId) continue;
       const cur = bySp.get(spId) ?? {
         reasons: [],
+        suggestions: [],
         rejected: false,
         statuses: [],
+        appealStatus: null,
       };
       const status = String(row.review_status ?? "").trim();
       if (status) cur.statuses.push(status);
-      cur.reasons.push(...extractRejectReasons(row.reject_info));
-      if (/UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(status)) {
+      const blocks = extractRejectInfoBlocks(row.reject_info);
+      cur.reasons.push(...blocks.reasons);
+      cur.suggestions.push(...blocks.suggestions);
+      if (
+        /UNAVAILABLE|REJECT|DENY|FAIL|NOT_APPROVE|PARTIAL_AUDIT|PUNISH|NOT_PASS|DISAPPROVE/i.test(
+          status,
+        )
+      ) {
         cur.rejected = true;
       }
       bySp.set(spId, cur);
     }
 
     for (const [spId, cur] of bySp) {
-      const rejectReasons = [...new Set(cur.reasons)].slice(0, 12);
+      const rejectReasons = [...new Set(cur.reasons)].slice(0, 8);
+      const suggestions = [...new Set(cur.suggestions)].slice(0, 4);
       if (cur.rejected && rejectReasons.length === 0) {
         rejectReasons.push(
           "TikTok sacó este anuncio del aire y no dejó el motivo detallado (video borrado, expirado o rechazado).",
@@ -401,6 +483,8 @@ export async function fetchSmartPlusAdReviewInfo(input: {
             ? "approved"
             : "pending",
         rejectReasons,
+        suggestions,
+        appealStatus: cur.appealStatus,
         secondaryStatus: cur.statuses[0] ?? null,
         isApproved: cur.rejected ? false : true,
       });

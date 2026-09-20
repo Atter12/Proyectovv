@@ -4,12 +4,13 @@ import {
   fetchAdMediaPreviews,
   fetchSmartPlusCreativeMeta,
 } from "@/lib/integrations/tiktok/ad-list.server";
+import { fetchSmartPlusAdReviewInfo } from "@/lib/integrations/tiktok/ad-review.server";
 import { normalizeMediaUrls } from "@/lib/creatives/tiktok-media-preview";
+import { REJECT_REC_PREFIX } from "@/lib/creatives/reject-recommendation";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
 
 /**
- * Refresca poster/preview firmados de TikTok (caducan en horas).
- * Sin esto la card queda en “VIDEO” aunque exista video_id.
+ * Refresca poster/preview firmados + motivos reales de TikTok (include_reject_info).
  */
 export async function hydrateRejectedCards(
   organizationId: string,
@@ -60,6 +61,28 @@ export async function hydrateRejectedCards(
       });
     }
 
+    let reviews = new Map<
+      string,
+      {
+        rejectReasons: string[];
+        suggestions: string[];
+        appealStatus: string | null;
+      }
+    >();
+    try {
+      reviews = await fetchSmartPlusAdReviewInfo({
+        organizationId,
+        advertiserId,
+        smartPlusAdIds: adIds,
+        lang: "es",
+      });
+    } catch (error) {
+      console.warn("[hydrate-rejected] review_info", {
+        advertiserId,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
     const videoIds = [
       ...new Set(
         rows
@@ -97,11 +120,15 @@ export async function hydrateRejectedCards(
       rows: rows.length,
       videoIds: videoIds.length,
       previews: previews.size,
+      reviews: reviews.size,
     });
 
     await Promise.all(
       rows.map(async (row) => {
         const extra = row.externalAdId ? meta.get(row.externalAdId) : undefined;
+        const review = row.externalAdId
+          ? reviews.get(row.externalAdId)
+          : undefined;
         const videoId = extra?.videoId || row.videoId;
         const raw = videoId ? previews.get(videoId) : undefined;
         const media = raw
@@ -112,7 +139,6 @@ export async function hydrateRejectedCards(
           : null;
         const adText = extra?.adText?.trim() || row.brief.adText || "";
 
-        // Actualizar en memoria para el paint actual (URLs firmadas frescas).
         if (media?.previewUrl || media?.posterUrl) {
           row.previewUrl = media.previewUrl ?? row.previewUrl;
           row.posterUrl = media.posterUrl ?? row.posterUrl;
@@ -122,36 +148,62 @@ export async function hydrateRejectedCards(
         if (adText && !row.brief.adText) {
           row.brief = { ...row.brief, adText };
         }
-
-        if (!media?.previewUrl && !media?.posterUrl && !adText && !videoId) {
-          return;
+        if (review?.rejectReasons?.length) {
+          row.tiktokRejectReasons = review.rejectReasons;
+        }
+        if (review?.suggestions?.length) {
+          row.tiktokSuggestions = review.suggestions;
+          if (!row.rejectFixHint?.startsWith(REJECT_REC_PREFIX)) {
+            row.rejectFixHint = `${REJECT_REC_PREFIX}${review.suggestions[0]!.slice(0, 160)}`;
+          }
+        }
+        if (review?.appealStatus) {
+          row.appealStatus = review.appealStatus;
         }
 
         const { data: current } = await admin
           .from("creative_publish_drafts")
-          .select("publish_result, brief")
+          .select("publish_result, brief, reject_fix_hint")
           .eq("id", row.id)
           .maybeSingle<{
             publish_result: Record<string, unknown> | null;
             brief: Record<string, unknown> | null;
+            reject_fix_hint: string | null;
           }>();
 
         const publish: Record<string, unknown> = {
           ...(current?.publish_result ?? {}),
         };
         if (videoId) publish.video_id = videoId;
-        // Nunca borrar URLs previas con null si el refresh falló.
         if (media?.posterUrl) publish.poster_url = media.posterUrl;
         if (media?.previewUrl) publish.preview_url = media.previewUrl;
+        if (review?.appealStatus) publish.appeal_status = review.appealStatus;
+        if (review?.suggestions?.length) {
+          publish.tiktok_suggestions = review.suggestions;
+        }
 
         const brief = {
           ...(current?.brief ?? {}),
           ...(adText ? { adText, ad_text: adText } : {}),
         };
 
+        const updatePayload: Record<string, unknown> = {
+          publish_result: publish,
+          brief,
+        };
+        if (review?.rejectReasons?.length) {
+          updatePayload.reject_reasons = review.rejectReasons;
+        }
+        if (
+          review?.suggestions?.length &&
+          !String(current?.reject_fix_hint ?? "").startsWith(REJECT_REC_PREFIX)
+        ) {
+          updatePayload.reject_fix_hint = `${REJECT_REC_PREFIX}${review.suggestions[0]!.slice(0, 160)}`;
+        }
+
         const { error } = await admin
           .from("creative_publish_drafts")
-          .update({ publish_result: publish, brief })
+          .update(updatePayload)
           .eq("id", row.id);
         if (error) {
           console.warn("[hydrate-rejected] save", {

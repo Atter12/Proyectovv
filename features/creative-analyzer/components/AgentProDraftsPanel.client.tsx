@@ -102,14 +102,31 @@ export function AgentProDraftsPanel({
     const missingMedia = drafts.some(
       (d) => isRejected(d) && !d.previewUrl && !d.posterUrl,
     );
-    if (counts.rejected > 0 && !missingHint && !missingMedia) return;
+    const thinReasons = drafts.some(
+      (d) =>
+        isRejected(d) &&
+        d.tiktokRejectReasons.every((r) =>
+          /no dejó el motivo|material no disponible|problema de revisión/i.test(
+            r,
+          ),
+        ),
+    );
+    if (
+      counts.rejected > 0 &&
+      !missingHint &&
+      !missingMedia &&
+      !thinReasons
+    )
+      return;
     if (typeof window === "undefined") return;
     const storageKey =
       counts.rejected === 0
         ? "creatives:discover-soft-refresh"
-        : missingHint
-          ? "creatives:hint-soft-refresh"
-          : "creatives:media-soft-refresh";
+        : thinReasons
+          ? "creatives:reasons-soft-refresh"
+          : missingHint
+            ? "creatives:hint-soft-refresh"
+            : "creatives:media-soft-refresh";
     try {
       if (sessionStorage.getItem(storageKey) === "1") {
         softRefreshDone.current = true;
@@ -183,6 +200,30 @@ export function AgentProDraftsPanel({
     } catch (err) {
       setError(
         err instanceof ApiClientError ? err.message : t("updateError"),
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onAppeal(draftId: string) {
+    setBusyId(draftId);
+    setError(null);
+    setMessage(null);
+    try {
+      await apiClient<{ ok: boolean }>("/api/creative-drafts/appeal", {
+        method: "POST",
+        body: JSON.stringify({
+          draftId,
+          reason:
+            "Revisé el creativo y la página de destino. Solicito una nueva revisión del anuncio.",
+        }),
+      });
+      setMessage(t("appealSent"));
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError ? err.message : t("appealError"),
       );
     } finally {
       setBusyId(null);
@@ -301,14 +342,35 @@ export function AgentProDraftsPanel({
 
             if (rejected) {
               const recommended = parseRejectRecommendation(draft.rejectFixHint);
+              const whyLines = draft.tiktokRejectReasons
+                .map((reason) =>
+                  reason
+                    .replace(/\(\s*UNAVAILABLE\s*\)/gi, "")
+                    .replace(/\bUNAVAILABLE\b/gi, "")
+                    .replace(/\s+/g, " ")
+                    .trim(),
+                )
+                .filter((reason) => reason.length > 12)
+                .slice(0, 3);
               const whyPrimary =
                 extractPrimaryRejectReason(draft.tiktokRejectReasons) ||
                 t(`simpleReason_${actionKind}`);
               const description = draft.brief.adText.trim();
               const canUpload = clientFixAction(actionKind) !== "fix_page";
+              const tiktokTip = draft.tiktokSuggestions?.[0]?.trim() || null;
               const howto =
+                tiktokTip ||
                 recommended ||
                 t(`fixHint_${actionKind}`);
+              const appealStatus = (
+                draft.appealStatus || ""
+              ).toUpperCase();
+              const canAppeal =
+                Boolean(draft.externalAdId) &&
+                (appealStatus === "NOT_APPEALED" || appealStatus === "");
+              const appealing = /APPEALING|IN_APPEAL|PENDING/i.test(
+                appealStatus,
+              );
               return (
                 <li
                   key={draft.id}
@@ -328,6 +390,7 @@ export function AgentProDraftsPanel({
                       }
                       label={title}
                       playLabel={t("playVideo")}
+                      closeLabel={t("closeVideo")}
                       emptyLabel={
                         draft.posterUrl || draft.previewUrl
                           ? undefined
@@ -366,39 +429,75 @@ export function AgentProDraftsPanel({
                   <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
                     {t("whyLabel")}
                   </p>
-                  <p className="mt-1 text-[13px] leading-5 text-[#5c3a3a]">
-                    {whyPrimary}
-                  </p>
+                  {whyLines.length > 0 ? (
+                    <ul className="mt-1 space-y-1.5">
+                      {whyLines.map((line) => (
+                        <li
+                          key={line.slice(0, 64)}
+                          className="text-[13px] leading-5 text-[#5c3a3a]"
+                        >
+                          {line.length > 220
+                            ? `${line.slice(0, 217).trim()}…`
+                            : line}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-[13px] leading-5 text-[#5c3a3a]">
+                      {whyPrimary}
+                    </p>
+                  )}
 
                   <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                    {actionKind === "media_invalid" || actionKind === "landing"
-                      ? t("howtoLabel")
-                      : t("recommendedLabel")}
+                    {t("howtoLabel")}
                   </p>
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
                     {howto}
                   </p>
+                  {actionKind === "claims" || actionKind === "policy" ? (
+                    <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+                      {t("appealHintWeak")}
+                    </p>
+                  ) : null}
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {draft.hasActiveFix ? (
                       <p className="rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
                         {t("fixInProgress")}
                       </p>
-                    ) : canUpload ? (
-                      <Link
-                        href={`?fixDraft=${encodeURIComponent(draft.id)}${
-                          draft.adAccountId
-                            ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
-                            : ""
-                        }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
-                        className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
-                      >
-                        {t("ctaUpload")}
-                      </Link>
                     ) : (
-                      <p className="text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
-                        {t("ctaPage")}
-                      </p>
+                      <>
+                        {canUpload ? (
+                          <Link
+                            href={`?fixDraft=${encodeURIComponent(draft.id)}${
+                              draft.adAccountId
+                                ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
+                                : ""
+                            }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
+                            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
+                          >
+                            {t("ctaUpload")}
+                          </Link>
+                        ) : (
+                          <p className="text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
+                            {t("ctaPage")}
+                          </p>
+                        )}
+                        {appealing ? (
+                          <span className="inline-flex h-10 items-center rounded-xl bg-[rgb(20_18_16_/_0.05)] px-3 text-[12px] font-semibold text-[var(--auth-text-muted)]">
+                            {t("appealPending")}
+                          </span>
+                        ) : canAppeal ? (
+                          <button
+                            type="button"
+                            disabled={busyId === draft.id}
+                            onClick={() => void onAppeal(draft.id)}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-[rgb(20_18_16_/_0.12)] bg-white px-4 text-[13px] font-bold text-[var(--auth-text)] transition hover:bg-[rgb(20_18_16_/_0.03)] disabled:opacity-60"
+                          >
+                            {t("ctaAppeal")}
+                          </button>
+                        ) : null}
+                      </>
                     )}
                   </div>
                 </li>

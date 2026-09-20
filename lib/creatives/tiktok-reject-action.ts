@@ -96,7 +96,7 @@ export function classifyTikTokRejectReasons(
     return "media_invalid";
   }
   if (
-    /claim|engaños|misleading|exager|garant|cura|medical|salud|health|before.?after/.test(
+    /claim|engaños|misleading|exager|garant|cura|medical|salud|health|before.?after|p[eé]rdida de peso|bajar de peso|weight.?loss|quema de grasa|metabolismo|suplemento/i.test(
       blob,
     )
   ) {

@@ -82,6 +82,10 @@ export type CreativeDraftListItem = {
   tiktokRejectReasons: string[];
   /** Frase cacheada de cómo pasar review. Null hasta que OpenAI la escribe. */
   rejectFixHint: string | null;
+  /** Sugerencias crudas de TikTok (si vinieron en review_info). */
+  tiktokSuggestions: string[];
+  /** NOT_APPEALED | APPEALING | ... desde Smart+ review. */
+  appealStatus: string | null;
   tiktokSecondaryStatus: string | null;
   /** Draft rechazado que esta versión corrige. */
   parentDraftId: string | null;

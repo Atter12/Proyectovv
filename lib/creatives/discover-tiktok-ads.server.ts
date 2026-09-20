@@ -60,6 +60,8 @@ async function upsertRejectedDraft(input: {
   smartPlusAdId: string | null;
   secondaryStatus: string | null;
   rejectReasons: string[];
+  suggestions?: string[];
+  appealStatus?: string | null;
   posterUrl?: string | null;
   previewUrl?: string | null;
   adText?: string | null;
@@ -76,6 +78,8 @@ async function upsertRejectedDraft(input: {
     discovered_at: now,
     poster_url: input.posterUrl ?? null,
     preview_url: input.previewUrl ?? null,
+    appeal_status: input.appealStatus ?? null,
+    tiktok_suggestions: input.suggestions ?? [],
   };
   const brief = stubBrief({
     adName: input.adName,
@@ -91,6 +95,26 @@ async function upsertRejectedDraft(input: {
     .maybeSingle<{ id: string; discover_source: string | null }>();
 
   if (existing?.id) {
+    const { data: currentPub } = await input.admin
+      .from("creative_publish_drafts")
+      .select("publish_result")
+      .eq("id", existing.id)
+      .maybeSingle<{ publish_result: Record<string, unknown> | null }>();
+    const mergedPublish = {
+      ...(currentPub?.publish_result ?? {}),
+      ...publishResult,
+      // No pisar media fresca con null.
+      poster_url:
+        publishResult.poster_url ??
+        (currentPub?.publish_result as { poster_url?: string } | null)
+          ?.poster_url ??
+        null,
+      preview_url:
+        publishResult.preview_url ??
+        (currentPub?.publish_result as { preview_url?: string } | null)
+          ?.preview_url ??
+        null,
+    };
     const { error } = await input.admin
       .from("creative_publish_drafts")
       .update({
@@ -103,7 +127,12 @@ async function upsertRejectedDraft(input: {
         updated_at: now,
         ad_account_id: input.adAccountId,
         external_advertiser_id: input.advertiserId,
-        publish_result: publishResult,
+        publish_result: mergedPublish,
+        ...(input.suggestions && input.suggestions.length > 0
+          ? {
+              reject_fix_hint: `REC|${input.suggestions[0]!.slice(0, 160)}`,
+            }
+          : {}),
         ...(existing.discover_source === "tiktok_ads_manager" ||
         !existing.discover_source
           ? { brief, discover_source: "tiktok_ads_manager" }
@@ -127,6 +156,10 @@ async function upsertRejectedDraft(input: {
     publish_result: publishResult,
     review_status: "rejected",
     reject_reasons: input.rejectReasons,
+    reject_fix_hint:
+      input.suggestions && input.suggestions.length > 0
+        ? `REC|${input.suggestions[0]!.slice(0, 160)}`
+        : null,
     secondary_status: input.secondaryStatus,
     review_checked_at: now,
     reviewed_at: now,
@@ -243,6 +276,8 @@ export async function discoverRejectedAdsForAdvertisers(input: {
                 snap.rejectReasons.length > 0
                   ? snap.rejectReasons
                   : [REVIEW_PROBLEM_FALLBACK],
+              suggestions: snap.suggestions,
+              appealStatus: snap.appealStatus,
             });
           }
           for (const [spId, ad] of smartMap) {
@@ -260,6 +295,8 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               secondaryStatus: ad.secondaryStatus,
               adText: ad.adText,
               rejectReasons: [REVIEW_PROBLEM_FALLBACK],
+              suggestions: [],
+              appealStatus: null,
             });
           }
         } catch (error) {
@@ -304,6 +341,8 @@ export async function discoverRejectedAdsForAdvertisers(input: {
                 snap && snap.rejectReasons.length > 0
                   ? snap.rejectReasons
                   : [REVIEW_PROBLEM_FALLBACK],
+              suggestions: snap?.suggestions ?? [],
+              appealStatus: snap?.appealStatus ?? null,
             });
           }
         } catch (error) {

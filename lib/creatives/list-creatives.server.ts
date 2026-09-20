@@ -740,6 +740,13 @@ export async function listOrganizationCreativeDrafts(
         String(
           (row as { reject_fix_hint?: string | null }).reject_fix_hint ?? "",
         ).trim() || null,
+      tiktokSuggestions: Array.isArray(publishResult.tiktok_suggestions)
+        ? publishResult.tiktok_suggestions
+            .map((item) => String(item ?? "").trim())
+            .filter(Boolean)
+        : [],
+      appealStatus:
+        String(publishResult.appeal_status ?? "").trim() || null,
       tiktokSecondaryStatus:
         (row.secondary_status as string | null)?.trim() || null,
       parentDraftId,
