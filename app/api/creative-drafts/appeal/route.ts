@@ -87,6 +87,7 @@ export async function POST(request: Request) {
     ...(draft.publish_result ?? {}),
     appeal_status: "APPEALING",
     appealed_at: new Date().toISOString(),
+    appeal_reason_sent: reason.slice(0, 512),
   };
   await admin
     .from("creative_publish_drafts")

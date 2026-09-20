@@ -362,13 +362,20 @@ export function AgentProDraftsPanel({
               const canUpload = clientFixAction(actionKind) !== "fix_page";
               const howto =
                 recommended?.plan || t(`fixHint_${actionKind}`);
-              const suggestedAd = recommended?.adText || null;
-              const appealCopy =
-                recommended?.appeal ||
-                "Revisé el creativo y la página de destino. Solicito una nueva revisión del anuncio.";
+              const suggestedAd =
+                recommended?.adText &&
+                !/Video\s*\d+/i.test(recommended.adText)
+                  ? recommended.adText
+                  : null;
+              const appealCopy = recommended?.appeal?.trim() || null;
+              const weightBan = /p[eé]rdida de peso|bajar de peso|weight|grasa|metabolismo|sector prohibido|suplement/i.test(
+                draft.tiktokRejectReasons.join(" "),
+              );
               const appealStatus = (draft.appealStatus || "").toUpperCase();
               const canAppeal =
                 Boolean(draft.externalAdId) &&
+                Boolean(appealCopy) &&
+                !weightBan &&
                 (appealStatus === "NOT_APPEALED" || appealStatus === "");
               const appealing = /APPEALING|IN_APPEAL|PENDING/i.test(
                 appealStatus,
@@ -466,17 +473,19 @@ export function AgentProDraftsPanel({
                       </p>
                     </>
                   ) : null}
-                  {recommended?.appeal ? (
+                  {recommended?.appeal && !weightBan ? (
                     <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
-                      {t("appealReadyHint")}
+                      {t("appealAfterFixHint")}
                     </p>
-                  ) : actionKind === "claims" || actionKind === "policy" ? (
+                  ) : weightBan ||
+                    actionKind === "claims" ||
+                    actionKind === "policy" ? (
                     <p className="mt-1 text-[11px] leading-4 text-[var(--auth-text-muted)]">
                       {t("appealHintWeak")}
                     </p>
                   ) : null}
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-col gap-2">
                     {draft.hasActiveFix ? (
                       <p className="rounded-lg bg-[#f3faf6] px-3 py-2 text-[12px] font-semibold text-[#1f5c40]">
                         {t("fixInProgress")}
@@ -490,9 +499,9 @@ export function AgentProDraftsPanel({
                                 ? `&fixAccount=${encodeURIComponent(draft.adAccountId)}`
                                 : ""
                             }&fixLabel=${encodeURIComponent(title)}&fixKind=${encodeURIComponent(actionKind)}#creative-upload`}
-                            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-bold text-white transition hover:brightness-[1.05]"
+                            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[14px] font-bold text-white transition hover:brightness-[1.05] sm:w-auto"
                           >
-                            {t("ctaUpload")}
+                            {t("ctaUploadFirst")}
                           </Link>
                         ) : (
                           <p className="text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
@@ -500,17 +509,27 @@ export function AgentProDraftsPanel({
                           </p>
                         )}
                         {appealing ? (
-                          <span className="inline-flex h-10 items-center rounded-xl bg-[rgb(20_18_16_/_0.05)] px-3 text-[12px] font-semibold text-[var(--auth-text-muted)]">
-                            {t("appealPending")}
-                          </span>
-                        ) : canAppeal ? (
+                          <div className="rounded-lg bg-[rgb(20_18_16_/_0.04)] px-3 py-2">
+                            <p className="text-[12px] font-semibold text-[var(--auth-text)]">
+                              {t("appealPending")}
+                            </p>
+                            <p className="mt-0.5 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+                              {t("appealHowExplain")}
+                            </p>
+                          </div>
+                        ) : canAppeal && appealCopy ? (
                           <button
                             type="button"
                             disabled={busyId === draft.id}
-                            onClick={() => void onAppeal(draft.id, appealCopy)}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-[rgb(20_18_16_/_0.12)] bg-white px-4 text-[13px] font-bold text-[var(--auth-text)] transition hover:bg-[rgb(20_18_16_/_0.03)] disabled:opacity-60"
+                            onClick={() => {
+                              const ok = window.confirm(
+                                `${t("appealConfirmTitle")}\n\n${appealCopy}\n\n${t("appealConfirmBody")}`,
+                              );
+                              if (ok) void onAppeal(draft.id, appealCopy);
+                            }}
+                            className="inline-flex h-9 items-center justify-center self-start text-[12px] font-semibold text-[var(--auth-text-muted)] underline-offset-2 hover:underline disabled:opacity-60"
                           >
-                            {t("ctaAppeal")}
+                            {t("ctaAppealLater")}
                           </button>
                         ) : null}
                       </>

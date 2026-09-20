@@ -31,15 +31,38 @@ function clip(text: string, max: number): string {
   return `${clean.slice(0, max - 1).trim()}…`;
 }
 
-function shortCreativeLabel(adName: string): string | null {
-  const raw = adName.replace(/\s+/g, " ").trim();
-  if (!raw) return null;
-  const videoNum = raw.match(/VIDEO\s*(\d+)/i);
-  if (videoNum) return `Video ${videoNum[1]}`;
-  if (/USD\s*-?\s*Agencia/i.test(raw) || /\d+\.\d+\s*USD/i.test(raw)) {
-    return null;
+/** Nombre legible para copy — nunca "Video 3". */
+function productLabelForCopy(input: {
+  adName: string;
+  accountName?: string | null;
+  reasons?: string[];
+}): string | null {
+  const fromReasons = (input.reasons ?? []).join(" ");
+  const brandInReason = fromReasons.match(
+    /\b([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚáéíóúñ]{2,}(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚáéíóúñ]{2,})?)\b/,
+  );
+  // MenLab / nombres de producto en el motivo
+  const menlab = fromReasons.match(/\bMenLab\b/i);
+  if (menlab) return "MenLab";
+
+  const account = String(input.accountName ?? "")
+    .replace(/\d+(\.\d+)?\s*USD.*$/i, "")
+    .replace(/\s*-\s*Agencia\s*$/i, "")
+    .replace(/_/g, " ")
+    .trim();
+  if (
+    account &&
+    account.length >= 3 &&
+    account.length <= 28 &&
+    !/^video\s*\d+/i.test(account)
+  ) {
+    return account.split(/\s+/).slice(0, 2).join(" ");
   }
-  if (raw.length > 36) return `${raw.slice(0, 33).trim()}…`;
+
+  const raw = String(input.adName ?? "").replace(/\s+/g, " ").trim();
+  if (/^VIDEO\s*\d+/i.test(raw) || !raw) return null;
+  if (/USD\s*-?\s*Agencia/i.test(raw)) return null;
+  if (raw.length > 28) return `${raw.slice(0, 25).trim()}…`;
   return raw;
 }
 
@@ -58,36 +81,39 @@ function looksWeightBan(reasons: string[]): boolean {
 function fallbackRecommendation(input: {
   kind: ReturnType<typeof classifyTikTokRejectReasons>;
   adName: string;
+  accountName?: string | null;
   reasons: string[];
 }): RejectRecommendation {
-  const label = shortCreativeLabel(input.adName);
+  const label = productLabelForCopy({
+    adName: input.adName,
+    accountName: input.accountName,
+    reasons: input.reasons,
+  });
   const sexual = looksSexualFlag(input.reasons);
   const weight = looksWeightBan(input.reasons);
 
-  if (sexual && !weight) {
+  if (weight || input.kind === "claims") {
     return {
-      plan: "TikTok a veces marca gym/cuerpo como ‘sexual’ por error. Apelá con el texto de abajo; si no pasa, subí una toma más amplia sin zoom al cuerpo.",
+      plan: "1) Subí un video nuevo sin metabolismo, grasa ni ‘bajar de peso’. 2) Pegá el texto sugerido. Apelar casi no gana en este caso.",
+      adText: label
+        ? `${label}: calidad y envío rápido. Pedí el tuyo hoy.`
+        : "Calidad que se nota. Envío rápido. Pedí el tuyo hoy.",
+      appeal: null,
+    };
+  }
+
+  if (sexual) {
+    return {
+      plan: "1) Preferí subir una toma más amplia (menos zoom al cuerpo). 2) Si el video es solo gym sin sexo, recién ahí apelá.",
       adText: null,
       appeal:
         "El creativo es de entrenamiento en gimnasio, sin contenido sexual ni lenguaje sugerente. Solicito revisión: el rechazo parece un falso positivo.",
     };
   }
 
-  if (weight || input.kind === "claims") {
-    return {
-      plan: "Apelar casi no gana en pérdida de peso. Subí un video nuevo sin metabolismo/grasa/bajar de peso y usá el texto sugerido.",
-      adText: label
-        ? `Conocé ${label}. Envío rápido. Pedí el tuyo hoy.`
-        : "Producto listo para vos. Envío rápido. Pedí el tuyo hoy.",
-      appeal: null,
-    };
-  }
-
   if (input.kind === "media_invalid") {
     return {
-      plan: label
-        ? `Exportá ${label} de nuevo (archivo fresco) y subilo acá. El mismo archivo no pasa.`
-        : "Exportá el video de nuevo (archivo fresco) y subilo acá. El mismo archivo no pasa.",
+      plan: "Subí el archivo de nuevo (export fresco). El mismo archivo no pasa. Después podés reenviar.",
       adText: null,
       appeal: null,
     };
@@ -95,14 +121,14 @@ function fallbackRecommendation(input: {
 
   if (input.kind === "landing") {
     return {
-      plan: "Dejá el video. Arreglá la página: mismo producto, mismo precio y política de privacidad visible.",
+      plan: "Primero arreglá la página (producto, precio, privacidad). Otro video no lo soluciona.",
       adText: null,
       appeal: null,
     };
   }
 
   return {
-    plan: "Cambiá el inicio del video y el texto según el motivo, y subí la corrección acá.",
+    plan: "Primero subí un creativo corregido según el motivo. Apelar es el último paso si TikTok se equivocó.",
     adText: null,
     appeal: null,
   };
@@ -131,6 +157,7 @@ export async function suggestRejectFixHint(input: {
     return fallbackRecommendation({
       kind,
       adName: input.adName,
+      accountName: input.accountName,
       reasons: input.reasons,
     });
   }
@@ -138,29 +165,35 @@ export async function suggestRejectFixHint(input: {
   const seed = (input.draftId ?? input.adName).slice(-6);
   const sexual = looksSexualFlag(input.reasons);
   const weight = looksWeightBan(input.reasons);
+  const productHint =
+    productLabelForCopy({
+      adName: input.adName,
+      accountName: input.accountName,
+      reasons: input.reasons,
+    }) || "el producto (sin inventar marca)";
 
-  const prompt = `Sos estratega de TikTok Ads (ecom Latam). NO copies el texto de Ads Manager.
-Tu valor: decir qué hacer en la práctica + un ad text seguro + (si aplica) texto de apelación.
+  const prompt = `Sos estratega de TikTok Ads (ecom Latam). NO copies Ads Manager.
+Orden de valor: 1) CORREGIR (subir otro video / texto) 2) apelar SOLO si es falso positivo.
 
 Reglas:
-- NO inventes categoría (nada de “suplementos naturales / bienestar”) si no está en los datos.
-- Si el motivo es pérdida de peso / sector prohibido: di claro que APELAR casi no sirve; priorizá video/texto nuevos SIN metabolismo, grasa, bajar de peso, antes/después.
-- Si el motivo es “sexual/sugerente” pero el video puede ser gym/fitness sin sexo: tratá como posible FALSO POSITIVO. Dale plan + appeal listo. No digas que el video es pornográfico.
-- Variante ${seed}: cada respuesta distinta.
-- Español claro, cliente de a pie.
+- NUNCA uses "Video 1/2/3" como nombre de producto en adText.
+- Producto sugerido a mencionar si hace falta: ${productHint}
+- NO inventes “suplementos naturales / bienestar” genérico.
+- Si pérdida de peso / sector prohibido: plan = corregir primero; appeal vacío. Ad text sin metabolismo/grasa/bajar de peso.
+- Si marca “sexual” y puede ser gym: plan = corregir toma O apelar después; appeal listo para falso positivo.
+- Variante ${seed}. Español claro.
 
 Cuenta: ${input.accountName?.trim() || "sin cuenta"}
-Video: ${input.adName || "sin nombre"}
+Video archivo: ${input.adName || "sin nombre"}
 Texto actual: ${input.adText?.trim() || "no hay"}
 Motivos TikTok: ${input.reasons.filter(Boolean).join(" | ") || "sin detalle"}
-Tips TikTok (NO copies literal): ${(input.tiktokSuggestions ?? []).join(" | ") || "ninguno"}
 Flags: sexual=${sexual} weightBan=${weight} kind=${kind}
 
-Devuelve SOLO JSON:
+JSON SOLO:
 {
-  "plan": "máx 160 caracteres. Qué hacer HOY (subir otro / apelar / cambiar landing). Accionable, no legalese.",
-  "adText": "máx 90 caracteres listos para pegar, o vacío si no aplica",
-  "appeal": "máx 200 caracteres para el botón Apelar, o vacío si no conviene apelar"
+  "plan": "máx 160 chars. Empezá por la corrección (subir otro). Apelar al final solo si aplica.",
+  "adText": "máx 90 chars listos para pegar (sin Video N), o vacío",
+  "appeal": "máx 200 chars solo si conviene apelar (falso positivo). Vacío en sector prohibido."
 }`;
 
   try {
@@ -189,6 +222,7 @@ Devuelve SOLO JSON:
       return fallbackRecommendation({
         kind,
         adName: input.adName,
+        accountName: input.accountName,
         reasons: input.reasons,
       });
     }
@@ -204,12 +238,13 @@ Devuelve SOLO JSON:
       return fallbackRecommendation({
         kind,
         adName: input.adName,
+        accountName: input.accountName,
         reasons: input.reasons,
       });
     }
     if (
-      /suplementos?\s+naturales|bienestar\s+diario|mejorar\s+tu\s+bienestar/i.test(
-        plan,
+      /suplementos?\s+naturales|bienestar\s+diario|mejorar\s+tu\s+bienestar|Conocé Video\s*\d+/i.test(
+        `${plan} ${String(parsed.adText ?? "")}`,
       ) &&
       !/suplement|bienestar/i.test(
         [input.adName, input.accountName, input.adText].join(" "),
@@ -218,17 +253,28 @@ Devuelve SOLO JSON:
       return fallbackRecommendation({
         kind,
         adName: input.adName,
+        accountName: input.accountName,
         reasons: input.reasons,
       });
     }
-    const adText =
+    let adText =
       typeof parsed.adText === "string" && parsed.adText.trim().length >= 8
         ? clip(parsed.adText, AD_MAX)
         : null;
-    const appeal =
+    if (adText && /Video\s*\d+/i.test(adText)) {
+      adText = fallbackRecommendation({
+        kind,
+        adName: input.adName,
+        accountName: input.accountName,
+        reasons: input.reasons,
+      }).adText;
+    }
+    let appeal =
       typeof parsed.appeal === "string" && parsed.appeal.trim().length >= 8
         ? clip(parsed.appeal, APPEAL_MAX)
         : null;
+    // Sector prohibido: no empujar apelación
+    if (weight) appeal = null;
     return { plan, adText, appeal };
   } catch (error) {
     console.warn(
@@ -238,6 +284,7 @@ Devuelve SOLO JSON:
     return fallbackRecommendation({
       kind,
       adName: input.adName,
+      accountName: input.accountName,
       reasons: input.reasons,
     });
   }
@@ -311,11 +358,28 @@ export async function fillMissingRejectFixHints(
     const raw = String(d.rejectFixHint ?? "");
     if (!raw.startsWith(REJECT_REC_PREFIX)) return true;
     if (isEchoTikTokHint(raw, d.tiktokSuggestions)) return true;
+    if (/Conocé Video\s*\d+/i.test(raw)) return true;
     // Formato viejo plano (sin JSON) + motivos reales → regenerar con IA rica.
     const body = raw.slice(REJECT_REC_PREFIX.length).trim();
+    if (body.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(body) as { adText?: string; plan?: string };
+        if (
+          /Video\s*\d+/i.test(
+            `${parsed.adText ?? ""} ${parsed.plan ?? ""}`,
+          )
+        ) {
+          return true;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     if (!body.startsWith("{") && d.tiktokRejectReasons.length > 0) {
       if (
-        /no dejó el motivo|Exportá Video|modifica el producto/i.test(body) ||
+        /no dejó el motivo|Exportá Video|modifica el producto|Conocé Video/i.test(
+          body,
+        ) ||
         looksSexualFlag(d.tiktokRejectReasons) ||
         looksWeightBan(d.tiktokRejectReasons)
       ) {
