@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { listAdvertiserAds, fetchAdMediaPreviews, fetchSmartPlusVideoIds } from "@/lib/integrations/tiktok/ad-list.server";
+import { listAdvertiserAds, fetchAdMediaPreviews, fetchSmartPlusVideoIds, fetchSmartPlusCreativeMeta } from "@/lib/integrations/tiktok/ad-list.server";
 import {
   fetchAdReviewInfo,
   fetchSmartPlusAdReviewInfo,
@@ -24,13 +24,14 @@ type AccountRow = {
 function stubBrief(input: {
   adName: string;
   accountName: string | null;
+  adText?: string | null;
 }): CreativeAgentBrief {
   const label = input.adName.slice(0, 80) || "Anuncio TikTok";
   return {
     objective: "TRAFFIC",
     audience: "",
     hookCopy: "",
-    adText: "",
+    adText: (input.adText ?? "").trim().slice(0, 100),
     callToAction: "LEARN_MORE",
     campaignName: label,
     adgroupName: label,
@@ -61,6 +62,7 @@ async function upsertRejectedDraft(input: {
   rejectReasons: string[];
   posterUrl?: string | null;
   previewUrl?: string | null;
+  adText?: string | null;
 }): Promise<boolean> {
   const now = new Date().toISOString();
   const publishResult = {
@@ -78,6 +80,7 @@ async function upsertRejectedDraft(input: {
   const brief = stubBrief({
     adName: input.adName,
     accountName: input.accountName,
+    adText: input.adText,
   });
 
   const { data: existing } = await input.admin
@@ -235,6 +238,7 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               imageIds: ad.imageIds,
               smartPlusAdId: spId,
               secondaryStatus: secondary,
+              adText: ad.adText,
               rejectReasons:
                 snap.rejectReasons.length > 0
                   ? snap.rejectReasons
@@ -254,6 +258,7 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               imageIds: ad.imageIds,
               smartPlusAdId: spId,
               secondaryStatus: ad.secondaryStatus,
+              adText: ad.adText,
               rejectReasons: [REVIEW_PROBLEM_FALLBACK],
             });
           }
@@ -294,6 +299,7 @@ export async function discoverRejectedAdsForAdvertisers(input: {
               imageIds: ad.imageIds,
               smartPlusAdId: null,
               secondaryStatus: secondary,
+              adText: ad.adText,
               rejectReasons:
                 snap && snap.rejectReasons.length > 0
                   ? snap.rejectReasons
@@ -317,12 +323,32 @@ export async function discoverRejectedAdsForAdvertisers(input: {
             .map((item) => item.smartPlusAdId)
             .filter((id): id is string => Boolean(id)),
         }).catch(() => new Map<string, string>());
+        const smartMeta = await fetchSmartPlusCreativeMeta({
+          organizationId: input.organizationId,
+          advertiserId,
+          smartPlusAdIds: pending
+            .map((item) => item.smartPlusAdId)
+            .filter((id): id is string => Boolean(id)),
+        }).catch(
+          () =>
+            new Map<
+              string,
+              { videoId: string | null; adText: string | null }
+            >(),
+        );
         const resolved = pending.map((item) => ({
           ...item,
           videoId:
             item.videoId ||
             (item.smartPlusAdId
-              ? (smartVideoIds.get(item.smartPlusAdId) ?? null)
+              ? (smartMeta.get(item.smartPlusAdId)?.videoId ??
+                smartVideoIds.get(item.smartPlusAdId) ??
+                null)
+              : null),
+          adText:
+            item.adText ||
+            (item.smartPlusAdId
+              ? (smartMeta.get(item.smartPlusAdId)?.adText ?? null)
               : null),
         }));
         let previews = new Map<
@@ -353,6 +379,9 @@ export async function discoverRejectedAdsForAdvertisers(input: {
             .map((id) => previews.get(id))
             .find(Boolean);
           const media = fromVideo ?? fromImage ?? null;
+          const fromMeta = item.smartPlusAdId
+            ? smartMeta.get(item.smartPlusAdId)
+            : undefined;
           const ok = await upsertRejectedDraft({
             admin,
             organizationId: input.organizationId,
@@ -360,6 +389,8 @@ export async function discoverRejectedAdsForAdvertisers(input: {
             adAccountId: meta?.adAccountId ?? null,
             accountName: meta?.accountName ?? null,
             ...item,
+            videoId: item.videoId || fromMeta?.videoId || null,
+            adText: item.adText || fromMeta?.adText || null,
             posterUrl: media?.posterUrl ?? null,
             previewUrl: media?.previewUrl ?? null,
           });

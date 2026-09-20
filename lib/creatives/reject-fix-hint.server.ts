@@ -1,11 +1,17 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env/env.server";
+import { classifyTikTokRejectReasons } from "@/lib/creatives/tiktok-reject-action";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
+import {
+  REJECT_REC_PREFIX,
+  parseRejectRecommendation,
+} from "@/lib/creatives/reject-recommendation";
 
-const HINT_MAX = 180;
+export { parseRejectRecommendation, REJECT_REC_PREFIX };
 
-/** Solo estos casos no se “arreglan”. El resto (incluido ecom gris) sí. */
+const HINT_MAX = 160;
+
 const HARD_STOP =
   /\b(arma de fuego|firearms?|explosiv|bomba|coca[ií]na|hero[ií]na|fentanilo|metanfetamina|pornograf[ií]a infantil|contenido sexual de menores|child sexual)\b/i;
 
@@ -15,29 +21,69 @@ function clip(text: string): string {
   return `${clean.slice(0, HINT_MAX - 1).trim()}…`;
 }
 
+function fallbackRecommendation(input: {
+  kind: ReturnType<typeof classifyTikTokRejectReasons>;
+  adName: string;
+  accountName: string | null;
+}): string {
+  const who = input.accountName?.trim() || input.adName || "tu producto";
+  if (input.kind === "media_invalid") {
+    return `Exportá ${who} otra vez como archivo nuevo y subilo acá. El mismo archivo no pasa.`;
+  }
+  if (input.kind === "landing") {
+    return `Dejá el video. Revisá la página: mismo producto, mismo precio y política de privacidad.`;
+  }
+  if (input.kind === "claims") {
+    return `Probá: “Conocé ${who}. Envío rápido. Pedí el tuyo hoy.” Sin cura ni garantía.`;
+  }
+  if (input.kind === "policy") {
+    return `Suavizá el inicio del video y el texto. Evitá la frase que TikTok marcó y subí la corrección.`;
+  }
+  return `Subí una versión nueva de ${who} y cambiá el texto del anuncio antes de reenviar.`;
+}
+
 export async function suggestRejectFixHint(input: {
   adName: string;
   reasons: string[];
+  accountName?: string | null;
+  adText?: string | null;
+  draftId?: string;
 }): Promise<string | null> {
+  const kind = classifyTikTokRejectReasons(input.reasons);
   const blob = [input.adName, ...input.reasons].join(" \n ");
   if (HARD_STOP.test(blob)) {
     return "Este caso no se corrige desde Creativos. Habla con tu gestor.";
   }
 
+  if (kind === "media_invalid" || kind === "landing") {
+    return fallbackRecommendation({
+      kind,
+      adName: input.adName,
+      accountName: input.accountName ?? null,
+    });
+  }
+
   const apiKey = serverEnv.openAiApiKey?.trim();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return fallbackRecommendation({
+      kind,
+      adName: input.adName,
+      accountName: input.accountName ?? null,
+    });
+  }
 
-  const prompt = `Sos coach de TikTok Ads para una agencia de ecom en Latam.
-El cliente quiere que ESTE anuncio pase la revisión. Tu trabajo es ayudarlo, no juzgar el producto.
-Productos grises, suplementos, claims agresivos o “black” de ecom: igual das el arreglo concreto.
-No sermonees. No digas "no vendas esto". No te niegues.
-Límite: no ayudes con armas, drogas ilícitas ni contenido sexual de menores (eso no viene en este brief).
+  const seed = (input.draftId ?? input.adName).slice(-6);
+  const prompt = `Sos copywriter de TikTok Ads para ecom Latam. Ayudás a pasar review.
+NO inventes categoría de producto (nada de suplementos, bienestar, etc.) si no aparece en los datos.
+Usá el nombre de la cuenta o del video. Cada respuesta debe ser distinta (variante ${seed}).
 
+Cuenta: ${input.accountName?.trim() || "sin cuenta"}
 Video: ${input.adName || "sin nombre"}
-Motivo de TikTok: ${input.reasons.filter(Boolean).join(" | ") || "sin motivo detallado"}
+Texto actual: ${input.adText?.trim() || "no hay"}
+Motivo TikTok: ${input.reasons.filter(Boolean).join(" | ") || "sin detalle"}
 
 Devuelve SOLO JSON:
-{ "fix": "texto de anuncio recomendado en español, máximo 100 caracteres, listo para pegar en TikTok. Sin la promesa que causó el rechazo." }`;
+{ "fix": "máximo 100 caracteres en español. Si el rechazo es claim/policy: un ad text listo para pegar, sin promesas de cura/garantía/antes-después. Si no sabés el producto, usá el nombre de la cuenta. Nunca digas 'suplementos naturales' ni 'bienestar' genérico." }`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -48,7 +94,7 @@ Devuelve SOLO JSON:
       },
       body: JSON.stringify({
         model: serverEnv.openAiVisionModel,
-        temperature: 0.2,
+        temperature: 0.7,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: prompt }],
       }),
@@ -62,22 +108,50 @@ Devuelve SOLO JSON:
         "[reject-fix-hint] openai",
         data.error?.message ?? response.status,
       );
-      return null;
+      return fallbackRecommendation({
+        kind,
+        adName: input.adName,
+        accountName: input.accountName ?? null,
+      });
     }
     const raw = data.choices?.[0]?.message?.content ?? "";
     const parsed = JSON.parse(raw) as { fix?: unknown };
     const fix = typeof parsed.fix === "string" ? clip(parsed.fix) : "";
-    return fix.length >= 8 ? fix : null;
+    if (fix.length < 8) {
+      return fallbackRecommendation({
+        kind,
+        adName: input.adName,
+        accountName: input.accountName ?? null,
+      });
+    }
+    if (
+      /suplementos?\s+naturales|bienestar\s+diario|mejorar\s+tu\s+bienestar/i.test(
+        fix,
+      ) &&
+      !/suplement|bienestar/i.test(
+        [input.adName, input.accountName, input.adText].join(" "),
+      )
+    ) {
+      return fallbackRecommendation({
+        kind,
+        adName: input.adName,
+        accountName: input.accountName ?? null,
+      });
+    }
+    return fix;
   } catch (error) {
     console.warn(
       "[reject-fix-hint] failed",
       error instanceof Error ? error.message : "unknown",
     );
-    return null;
+    return fallbackRecommendation({
+      kind,
+      adName: input.adName,
+      accountName: input.accountName ?? null,
+    });
   }
 }
 
-/** Si el archivo nuevo caería por el mismo motivo, una frase. Si no, null. */
 export async function sameRejectWarning(input: {
   parentReasons: string[];
   assetName: string;
@@ -95,10 +169,9 @@ Video nuevo: ${input.assetName}
 Resumen IA: ${input.summary}
 Riesgos detectados: ${input.policyRisks.join(" | ") || "ninguno"}
 
-Si el video nuevo sigue teniendo EL MISMO problema (mismo claim, mismo antes/después, mismo archivo inválido, misma página), devolvé:
-{ "same": true, "warning": "una frase en español, máximo 140 caracteres, qué sigue mal" }
-Si cambió lo suficiente para intentar de nuevo, devolvé { "same": false, "warning": "" }.
-No juzgues el producto. Solo decí si va a caer por lo mismo.`;
+Si el video nuevo sigue teniendo EL MISMO problema, devolvé:
+{ "same": true, "warning": "una frase en español, máximo 140 caracteres" }
+Si no, { "same": false, "warning": "" }.`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -135,16 +208,16 @@ No juzgues el producto. Solo decí si va a caer por lo mismo.`;
   }
 }
 
-/** Rellena reject_fix_hint solo en filas que aún no lo tienen. */
 export async function fillMissingRejectFixHints(
   drafts: CreativeDraftListItem[],
 ): Promise<number> {
-  const pending = drafts.filter(
-    (d) =>
-      d.status === "published" &&
-      d.tiktokReviewStatus === "rejected" &&
-      !String(d.rejectFixHint ?? "").startsWith("COPY|"),
-  );
+  const pending = drafts.filter((d) => {
+    if (d.status !== "published" || d.tiktokReviewStatus !== "rejected") {
+      return false;
+    }
+    const raw = String(d.rejectFixHint ?? "");
+    return !raw.startsWith(REJECT_REC_PREFIX);
+  });
   if (pending.length === 0) return 0;
 
   const admin = createAdminClient();
@@ -155,9 +228,12 @@ export async function fillMissingRejectFixHints(
       const fix = await suggestRejectFixHint({
         adName: name,
         reasons: draft.tiktokRejectReasons,
+        accountName: draft.accountName,
+        adText: draft.brief.adText,
+        draftId: draft.id,
       });
       if (!fix) return false;
-      const stored = `COPY|${fix}`;
+      const stored = `${REJECT_REC_PREFIX}${fix}`;
       const { error } = await admin
         .from("creative_publish_drafts")
         .update({ reject_fix_hint: stored })

@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
-import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
+import { cleanCreativeDisplayName, creativeCardTitle } from "@/lib/creatives/clean-display-name";
 import {
   classifyTikTokRejectReasons,
   clientFixAction,
 } from "@/lib/creatives/tiktok-reject-action";
+import { parseRejectRecommendation } from "@/lib/creatives/reject-recommendation";
 import { Button } from "@/components/ui/Button";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { CreativeMediaTile } from "@/features/creative-analyzer/components/CreativeMediaTile";
@@ -29,9 +30,24 @@ function isReady(d: CreativeDraftListItem) {
 }
 
 function draftTitle(d: CreativeDraftListItem) {
-  return cleanCreativeDisplayName(
-    d.brief.adName || d.brief.campaignName || d.assetName || "",
-  );
+  return creativeCardTitle({
+    adName: d.brief.adName,
+    campaignName: d.brief.campaignName,
+    assetName: d.assetName,
+    adText: d.brief.adText,
+  });
+}
+
+function formatDraftWhen(iso: string | null, locale: string): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function reviewRank(d: CreativeDraftListItem): number {
@@ -52,6 +68,7 @@ export function AgentProDraftsPanel({
   expectDiscoverRefresh?: boolean;
 }) {
   const t = useTranslations("creatives.drafts");
+  const locale = useLocale();
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -282,11 +299,7 @@ export function AgentProDraftsPanel({
               draft.discoverSource === "tiktok_ads_manager";
 
             if (rejected) {
-              const recommended = String(draft.rejectFixHint ?? "").startsWith(
-                "COPY|",
-              )
-                ? draft.rejectFixHint?.slice("COPY|".length).trim() || null
-                : null;
+              const recommended = parseRejectRecommendation(draft.rejectFixHint);
               const why = draft.tiktokRejectReasons
                 .map((reason) =>
                   reason
@@ -312,12 +325,30 @@ export function AgentProDraftsPanel({
                       }
                       label={title}
                       playLabel={t("playVideo")}
+                      emptyLabel={
+                        actionKind === "media_invalid"
+                          ? t("mediaGone")
+                          : t("noPreview")
+                      }
                       size="poster"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
+                      <p className="line-clamp-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                         {title}
                       </p>
+                      {draft.accountName || draft.publishedAt || draft.createdAt ? (
+                        <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--auth-text-muted)]">
+                          {[
+                            draft.accountName,
+                            formatDraftWhen(
+                              draft.publishedAt || draft.createdAt,
+                              locale,
+                            ),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      ) : null}
                       <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
                         {t("descLabel")}
                       </p>
@@ -348,7 +379,9 @@ export function AgentProDraftsPanel({
                   )}
 
                   <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                    {t("recommendedLabel")}
+                    {actionKind === "media_invalid"
+                      ? t("howtoLabel")
+                      : t("recommendedLabel")}
                   </p>
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
                     {recommended || t("aiPending")}
@@ -389,6 +422,19 @@ export function AgentProDraftsPanel({
                 )}
               >
                 <div className="px-4 py-3 sm:px-5">
+                  <div className="flex gap-3">
+                    <CreativeMediaTile
+                      previewUrl={draft.previewUrl}
+                      posterUrl={draft.posterUrl}
+                      mediaKind={
+                        draft.mediaKind ?? (draft.previewUrl ? "video" : null)
+                      }
+                      label={title}
+                      playLabel={t("playVideo")}
+                      closeLabel={t("closeVideo")}
+                      size="row"
+                    />
+                    <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 truncate text-[13px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
                       {title}
@@ -429,6 +475,8 @@ export function AgentProDraftsPanel({
                       {draft.brief.hookCopy}
                     </p>
                   ) : null}
+                    </div>
+                  </div>
                 </div>
 
                 {canSend ? (

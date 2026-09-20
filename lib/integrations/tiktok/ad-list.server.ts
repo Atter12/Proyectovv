@@ -18,6 +18,7 @@ export type TikTokListedAd = {
   operationStatus: string | null;
   videoId: string | null;
   imageIds: string[];
+  adText: string | null;
   smartPlusAdId: string | null;
   campaignAutomationType: string | null;
 };
@@ -56,6 +57,12 @@ function mapAdRow(row: Record<string, unknown>): TikTokListedAd | null {
     : typeof imageRaw === "string" && imageRaw.trim()
       ? [imageRaw.trim()]
       : [];
+  const textRaw = row.ad_text ?? row.ad_texts;
+  const adText = Array.isArray(textRaw)
+    ? String(textRaw[0] ?? "").trim() || null
+    : typeof textRaw === "string" && textRaw.trim()
+      ? textRaw.trim().slice(0, 200)
+      : null;
   return {
     adId,
     adName: String(row.ad_name ?? row.name ?? adId).trim() || adId,
@@ -71,6 +78,7 @@ function mapAdRow(row: Record<string, unknown>): TikTokListedAd | null {
         : null,
     videoId: String(row.video_id ?? "").trim() || null,
     imageIds,
+    adText,
     smartPlusAdId: String(row.smart_plus_ad_id ?? "").trim() || null,
     campaignAutomationType:
       String(row.campaign_automation_type ?? "").trim() || null,
@@ -135,6 +143,8 @@ export async function listAdvertiserAds(input: {
           "operation_status",
           "video_id",
           "image_ids",
+          "ad_text",
+          "ad_texts",
           "smart_plus_ad_id",
           "campaign_automation_type",
         ]),

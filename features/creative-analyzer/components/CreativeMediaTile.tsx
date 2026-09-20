@@ -9,6 +9,8 @@ export function CreativeMediaTile({
   mediaKind,
   label,
   playLabel,
+  emptyLabel,
+  closeLabel: _closeLabel,
   size = "card",
 }: {
   previewUrl: string | null;
@@ -16,6 +18,8 @@ export function CreativeMediaTile({
   mediaKind: "video" | "image" | null;
   label: string;
   playLabel: string;
+  emptyLabel?: string;
+  closeLabel?: string;
   size?: "card" | "row" | "poster";
 }) {
   const [failed, setFailed] = useState(false);
@@ -71,8 +75,15 @@ export function CreativeMediaTile({
           ) : null}
         </button>
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-          {mediaKind === "video" ? "Video" : "—"}
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-center">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+            {mediaKind === "video" || size === "poster" ? "Video" : "—"}
+          </span>
+          {emptyLabel ? (
+            <span className="text-[9px] leading-3 text-[var(--auth-text-muted)]">
+              {emptyLabel}
+            </span>
+          ) : null}
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ import { discoverRejectedAdsForOrganization } from "@/lib/creatives/discover-tik
 import { fillMissingRejectFixHints } from "@/lib/creatives/reject-fix-hint.server";
 import { hydrateRejectedCards } from "@/lib/creatives/hydrate-rejected.server";
 import { isTikTokCreativePublishEnabled } from "@/lib/integrations/tiktok/creative-publish.server";
+import { fetchAdvertiserStatusKinds } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import { ensureAdvertisersInOrganizationForAllocation } from "@/services/payments.service";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 
@@ -68,6 +69,22 @@ export default async function CreativeAnalyzerPage() {
       })
     : [];
   const accountsMs = Date.now() - tAccounts;
+  const liveStatus = session.organizationId
+    ? await fetchAdvertiserStatusKinds({
+        organizationId: session.organizationId,
+        advertiserIds: accounts
+          .map((a) => a.externalAccountId)
+          .filter((id): id is string => Boolean(id)),
+      })
+    : new Map<string, "approved" | "suspended" | "unknown">();
+  const uploadAccounts =
+    liveStatus.size === 0
+      ? accounts
+      : accounts.filter((account) => {
+          const id = account.externalAccountId?.trim();
+          if (!id) return true;
+          return liveStatus.get(id) !== "suspended";
+        });
 
   const advertiserIds = [
     ...new Set([
@@ -257,7 +274,7 @@ export default async function CreativeAnalyzerPage() {
     <div className={dashboardClasses.page}>
       <ClienteScopedCreatives
         data={data}
-        accounts={accounts}
+        accounts={uploadAccounts}
         assets={assets}
         drafts={drafts}
         publishEnabled={isTikTokCreativePublishEnabled()}
