@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import {
+  isLikelyImageUrl,
+  isLikelyVideoUrl,
+} from "@/lib/creatives/tiktok-media-preview";
 
 export function CreativeMediaTile({
   previewUrl,
@@ -24,8 +28,19 @@ export function CreativeMediaTile({
 }) {
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const still = posterUrl || (mediaKind === "image" ? previewUrl : null);
-  const canPlay = Boolean(previewUrl) && !failed;
+
+  const playable =
+    previewUrl &&
+    !isLikelyImageUrl(previewUrl) &&
+    (mediaKind === "video" || isLikelyVideoUrl(previewUrl))
+      ? previewUrl
+      : null;
+  const still =
+    posterUrl ||
+    (mediaKind === "image" ? previewUrl : null) ||
+    (previewUrl && isLikelyImageUrl(previewUrl) ? previewUrl : null);
+
+  const canPlay = Boolean(playable) && !failed;
   const showVideo = size === "poster" ? canPlay : playing && canPlay;
 
   return (
@@ -39,10 +54,10 @@ export function CreativeMediaTile({
             : "h-14 w-14 rounded-lg",
       )}
     >
-      {showVideo && previewUrl ? (
+      {showVideo && playable ? (
         <video
-          src={previewUrl}
-          poster={posterUrl ?? undefined}
+          src={playable}
+          poster={still ?? undefined}
           className="h-full w-full object-cover"
           controls
           muted

@@ -4,7 +4,7 @@ import {
   fetchAdMediaPreviews,
   fetchSmartPlusCreativeMeta,
 } from "@/lib/integrations/tiktok/ad-list.server";
-import { mediaKindFrom } from "@/lib/creatives/tiktok-media-preview";
+import { normalizeMediaUrls } from "@/lib/creatives/tiktok-media-preview";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
 
 /** Trae video y texto de TikTok para las filas que se van a mostrar. */
@@ -58,16 +58,18 @@ export async function hydrateRejectedCards(
       rows.map(async (row) => {
         const extra = row.externalAdId ? meta.get(row.externalAdId) : undefined;
         const videoId = extra?.videoId || row.videoId;
-        const media = videoId ? previews.get(videoId) : undefined;
+        const raw = videoId ? previews.get(videoId) : undefined;
+        const media = raw
+          ? normalizeMediaUrls({
+              previewUrl: raw.previewUrl,
+              posterUrl: raw.posterUrl,
+            })
+          : null;
         const adText = extra?.adText?.trim() || row.brief.adText || "";
         if (media?.previewUrl || media?.posterUrl) {
-          row.previewUrl = media.previewUrl ?? row.previewUrl;
+          row.previewUrl = media.previewUrl;
           row.posterUrl = media.posterUrl ?? row.posterUrl;
-          row.mediaKind = mediaKindFrom({
-            previewUrl: row.previewUrl,
-            posterUrl: row.posterUrl,
-            assetType: "video",
-          });
+          row.mediaKind = media.mediaKind;
         }
         if (videoId) row.videoId = videoId;
         if (adText && !row.brief.adText) {
@@ -86,7 +88,9 @@ export async function hydrateRejectedCards(
           ...(current?.publish_result ?? {}),
           ...(videoId ? { video_id: videoId } : {}),
           ...(media?.posterUrl ? { poster_url: media.posterUrl } : {}),
-          ...(media?.previewUrl ? { preview_url: media.previewUrl } : {}),
+          ...(media?.previewUrl
+            ? { preview_url: media.previewUrl }
+            : { preview_url: null }),
         };
         const brief = {
           ...(current?.brief ?? {}),

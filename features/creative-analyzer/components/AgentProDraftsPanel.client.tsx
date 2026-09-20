@@ -9,6 +9,7 @@ import { cleanCreativeDisplayName, creativeCardTitle } from "@/lib/creatives/cle
 import {
   classifyTikTokRejectReasons,
   clientFixAction,
+  extractPrimaryRejectReason,
 } from "@/lib/creatives/tiktok-reject-action";
 import { parseRejectRecommendation } from "@/lib/creatives/reject-recommendation";
 import { Button } from "@/components/ui/Button";
@@ -300,17 +301,14 @@ export function AgentProDraftsPanel({
 
             if (rejected) {
               const recommended = parseRejectRecommendation(draft.rejectFixHint);
-              const why = draft.tiktokRejectReasons
-                .map((reason) =>
-                  reason
-                    .replace(/\bUNAVAILABLE\b/gi, "no disponible")
-                    .replace(/\s+/g, " ")
-                    .trim(),
-                )
-                .filter((reason) => reason.length > 8)
-                .slice(0, 2);
+              const whyPrimary =
+                extractPrimaryRejectReason(draft.tiktokRejectReasons) ||
+                t(`simpleReason_${actionKind}`);
               const description = draft.brief.adText.trim();
               const canUpload = clientFixAction(actionKind) !== "fix_page";
+              const howto =
+                recommended ||
+                t(`fixHint_${actionKind}`);
               return (
                 <li
                   key={draft.id}
@@ -321,7 +319,12 @@ export function AgentProDraftsPanel({
                       previewUrl={draft.previewUrl}
                       posterUrl={draft.posterUrl}
                       mediaKind={
-                        draft.mediaKind ?? (draft.previewUrl ? "video" : null)
+                        draft.mediaKind ??
+                        (draft.posterUrl && !draft.previewUrl
+                          ? "image"
+                          : draft.previewUrl
+                            ? "video"
+                            : null)
                       }
                       label={title}
                       playLabel={t("playVideo")}
@@ -361,30 +364,17 @@ export function AgentProDraftsPanel({
                   <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
                     {t("whyLabel")}
                   </p>
-                  {why.length > 0 ? (
-                    <ul className="mt-1 space-y-1">
-                      {why.map((line) => (
-                        <li
-                          key={line.slice(0, 48)}
-                          className="text-[12px] leading-5 text-[#5c3a3a]"
-                        >
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-[12px] leading-5 text-[#5c3a3a]">
-                      {t(`simpleReason_${actionKind}`)}
-                    </p>
-                  )}
+                  <p className="mt-1 text-[13px] leading-5 text-[#5c3a3a]">
+                    {whyPrimary}
+                  </p>
 
                   <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                    {actionKind === "media_invalid"
+                    {actionKind === "media_invalid" || actionKind === "landing"
                       ? t("howtoLabel")
                       : t("recommendedLabel")}
                   </p>
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
-                    {recommended || t("aiPending")}
+                    {howto}
                   </p>
 
                   <div className="mt-3">

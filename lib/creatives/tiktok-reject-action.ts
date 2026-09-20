@@ -112,16 +112,44 @@ export function classifyTikTokRejectReasons(
   return "generic";
 }
 
+/** Motivo principal en español, sin el tutorial largo de Ads Manager. */
+export function extractPrimaryRejectReason(reasons: string[]): string | null {
+  const cleaned = reasons
+    .map((reason) =>
+      reason
+        .replace(/\(\s*UNAVAILABLE\s*\)/gi, "")
+        .replace(/\bUNAVAILABLE\b/gi, "")
+        .replace(/\(\s*\)/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((reason) => reason.length > 12);
+
+  const primary = cleaned.find(
+    (reason) =>
+      !/^modifica o elimina/i.test(reason) &&
+      !/^para enviar una prueba/i.test(reason) &&
+      !/^si quieres saber más/i.test(reason) &&
+      !/inicia sesión en tiktok ads manager/i.test(reason),
+  );
+  const pick = primary || cleaned[0];
+  if (!pick) return null;
+  const sentence = pick.split(/\n+/)[0]?.trim() || pick;
+  if (sentence.length > 220) return `${sentence.slice(0, 217).trim()}…`;
+  return sentence;
+}
+
 /** Una línea corta para el cliente (sin jerga UNAVAILABLE / códigos). */
 export function humanizeTikTokRejectReason(
   reasons: string[],
   fallback: string,
 ): string {
+  const primary = extractPrimaryRejectReason(reasons);
+  if (primary) return primary.length > 110 ? `${primary.slice(0, 107)}…` : primary;
   const kind = classifyTikTokRejectReasons(reasons);
   if (kind === "media_invalid") return fallback;
   const first = reasons.find((r) => r.trim().length > 0)?.trim();
   if (!first) return fallback;
-  // Quitar códigos técnicos entre paréntesis
   const clean = first
     .replace(/\s*\([^)]*(UNAVAILABLE|REJECT|AUDIT|CODE)[^)]*\)/gi, "")
     .replace(/\bUNAVAILABLE\b/gi, "")

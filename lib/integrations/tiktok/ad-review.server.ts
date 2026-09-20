@@ -63,15 +63,21 @@ function pushReason(out: string[], value: unknown) {
     for (const key of [
       "reason",
       "reasons",
+      "reason_text",
       "reject_reason",
+      "reject_reason_tips",
       "suggestion",
       "suggestions",
       "forbidden_content",
+      "forbidden_words",
       "policy_text",
+      "policy_title",
       "content",
       "description",
       "msg",
       "message",
+      "detail",
+      "details",
     ]) {
       if (row[key] != null) pushReason(out, row[key]);
     }
@@ -384,7 +390,7 @@ export async function fetchSmartPlusAdReviewInfo(input: {
       const rejectReasons = [...new Set(cur.reasons)].slice(0, 12);
       if (cur.rejected && rejectReasons.length === 0) {
         rejectReasons.push(
-          "TikTok marcó material no disponible (UNAVAILABLE). Suele ser video rechazado, expirado o eliminado.",
+          "TikTok ya no tiene este video (borrado, expirado o rechazado). No hay más detalle del motivo: hay que subir el archivo de nuevo.",
         );
       }
       out.set(spId, {

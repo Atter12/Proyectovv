@@ -10,8 +10,11 @@ import type {
   CreativeTikTokReviewStatus,
 } from "@/lib/creatives/types";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
-import { mediaKindFrom } from "@/lib/creatives/tiktok-media-preview";
 import { cleanCreativeDisplayName } from "@/lib/creatives/clean-display-name";
+import {
+  mediaKindFrom,
+  normalizeMediaUrls,
+} from "@/lib/creatives/tiktok-media-preview";
 
 export type { CreativeDraftListItem };
 
@@ -691,11 +694,15 @@ export async function listOrganizationCreativeDrafts(
       (linked?.mime_type?.startsWith("image/") || linked?.asset_type === "image"
         ? signed
         : null);
-    const previewUrl =
+    const rawPreview =
       httpUrl(publishResult.preview_url) ??
       signed ??
       httpUrl(linked?.public_url) ??
-      posterUrl;
+      null;
+    const media = normalizeMediaUrls({
+      previewUrl: rawPreview,
+      posterUrl: posterUrl ?? (rawPreview && !signed ? rawPreview : null),
+    });
 
     const videoId =
       String(publishResult.video_id ?? "").trim() ||
@@ -739,14 +746,16 @@ export async function listOrganizationCreativeDrafts(
         : null,
       hasActiveFix: activeFixParents.has(row.id as string),
       discoverSource,
-      previewUrl,
-      posterUrl,
-      mediaKind: mediaKindFrom({
-        mimeType: linked?.mime_type ?? null,
-        assetType: linked?.asset_type ?? null,
-        previewUrl,
-        posterUrl,
-      }),
+      previewUrl: media.previewUrl,
+      posterUrl: media.posterUrl,
+      mediaKind:
+        media.mediaKind ??
+        mediaKindFrom({
+          mimeType: linked?.mime_type ?? null,
+          assetType: linked?.asset_type ?? null,
+          previewUrl: media.previewUrl,
+          posterUrl: media.posterUrl,
+        }),
       videoId,
     };
   });

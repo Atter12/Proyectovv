@@ -27,3 +27,25 @@ export function cleanCreativeDisplayName(raw: string | null | undefined): string
   if (chunk && chunk.length <= 32) return chunk;
   return input.slice(0, 40);
 }
+
+/** Título de card: si el archivo solo dice "Video 3", usa el texto del anuncio. */
+export function creativeCardTitle(input: {
+  adName?: string | null;
+  campaignName?: string | null;
+  assetName?: string | null;
+  adText?: string | null;
+}): string {
+  const cleaned = cleanCreativeDisplayName(
+    input.adName || input.campaignName || input.assetName || "",
+  );
+  if (/^video\s+\d+$/i.test(cleaned)) {
+    const line = String(input.adText ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (line.length >= 12) {
+      const short = line.length > 48 ? `${line.slice(0, 45)}…` : line;
+      return `${short} · ${cleaned}`;
+    }
+  }
+  return cleaned;
+}

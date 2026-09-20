@@ -21,14 +21,31 @@ export function mapTikTokMediaPreviewRows(
     const rec = row as Record<string, unknown>;
     const id = String(rec.video_id ?? rec.image_id ?? "").trim();
     if (!id) continue;
-    const poster =
+    const cover =
       httpUrl(rec.video_cover_url) ??
       httpUrl(rec.poster_url) ??
       httpUrl(rec.image_url);
-    const preview =
-      httpUrl(rec.preview_url) ?? httpUrl(rec.video_url) ?? poster;
-    if (!poster && !preview) continue;
-    out.set(id, { posterUrl: poster, previewUrl: preview });
+    const previewCandidate =
+      httpUrl(rec.video_url) ??
+      httpUrl(rec.url) ??
+      httpUrl(rec.preview_url);
+    const normalized = normalizeMediaUrls({
+      previewUrl: previewCandidate,
+      posterUrl: cover,
+    });
+    // Si solo vino una imagen de cover/preview, guardarla como poster.
+    if (
+      !normalized.posterUrl &&
+      previewCandidate &&
+      isLikelyImageUrl(previewCandidate)
+    ) {
+      normalized.posterUrl = previewCandidate;
+    }
+    if (!normalized.posterUrl && !normalized.previewUrl) continue;
+    out.set(id, {
+      posterUrl: normalized.posterUrl,
+      previewUrl: normalized.previewUrl,
+    });
   }
 
   return out;
@@ -45,9 +62,58 @@ export function mediaKindFrom(input: {
   const kind = (input.assetType ?? "").toLowerCase();
   if (mime.startsWith("video/") || kind === "video") return "video";
   if (mime.startsWith("image/") || kind === "image") return "image";
+  if (input.previewUrl && isLikelyImageUrl(input.previewUrl)) return "image";
+  if (input.posterUrl && !input.previewUrl) return "image";
+  if (input.previewUrl && isLikelyVideoUrl(input.previewUrl)) return "video";
   if (input.previewUrl && input.previewUrl !== input.posterUrl) return "video";
   if (input.previewUrl) return "video";
   return "image";
+}
+
+/** CDN de portada / imagen (no sirve como <video>). */
+export function isLikelyImageUrl(url: string | null | undefined): boolean {
+  const u = String(url ?? "").toLowerCase();
+  if (!u) return false;
+  if (/\.(jpe?g|png|webp|gif|bmp)(\?|$)/i.test(u)) return true;
+  return /ibyteimg\.com|byteimg\.com|image\.tiktokcdn|\/(?:image|cover|poster)\//i.test(
+    u,
+  );
+}
+
+export function isLikelyVideoUrl(url: string | null | undefined): boolean {
+  const u = String(url ?? "").toLowerCase();
+  if (!u) return false;
+  if (isLikelyImageUrl(u)) return false;
+  if (/\.(mp4|mov|webm|m3u8)(\?|$)/i.test(u)) return true;
+  return /tiktokcdn\.com|\/video\//i.test(u);
+}
+
+/** Si TikTok dio una imagen como preview_url, úsala de poster y no como video. */
+export function normalizeMediaUrls(input: {
+  previewUrl: string | null;
+  posterUrl: string | null;
+}): {
+  previewUrl: string | null;
+  posterUrl: string | null;
+  mediaKind: "video" | "image" | null;
+} {
+  let preview = input.previewUrl;
+  let poster = input.posterUrl;
+
+  if (preview && isLikelyImageUrl(preview)) {
+    poster = poster || preview;
+    preview = null;
+  } else if (preview && !isLikelyVideoUrl(preview)) {
+    // URL rara: mejor portada que un <video> vacío.
+    poster = poster || preview;
+    preview = null;
+  }
+
+  const mediaKind = mediaKindFrom({
+    previewUrl: preview,
+    posterUrl: poster,
+  });
+  return { previewUrl: preview, posterUrl: poster, mediaKind };
 }
 
 const VIDEO_NEST_KEYS = [
