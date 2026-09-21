@@ -1,6 +1,8 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
+import { getPaymentIntentByIdInternal } from "@/lib/payments/payment-intents.server";
+import { buildWalletFunding, type WalletFunding, type WalletFundingIntent } from "@/lib/hecom/wallet-funding";
 
 export type HolisticWalletCobroPayload = {
   clientId: string;
@@ -15,6 +17,9 @@ export type HolisticWalletCobroPayload = {
   paidAt?: string | null;
   receiptUrl?: string | null;
   dryRun?: boolean;
+  funding?: WalletFunding;
+  /** A prior successful sync proves the receipt existed; enrich only. */
+  fundingOnly?: boolean;
 };
 
 export type HolisticWalletCobroResult = {
@@ -29,6 +34,8 @@ export type HolisticWalletCobroResult = {
   periodoResumen?: string | null;
   status: number;
   raw?: unknown;
+  fundingVersion?: number;
+  fundingPersisted?: boolean;
 };
 
 function bridgeConfigured(): boolean {
@@ -102,6 +109,8 @@ export async function postHolisticWalletCobroToHecom(
     paid_at: input.paidAt || new Date().toISOString(),
     receipt_url: input.receiptUrl || undefined,
     dry_run: Boolean(input.dryRun),
+    ...(input.funding ? { funding: input.funding } : {}),
+    ...(input.fundingOnly ? { funding_only: true } : {}),
   };
 
   try {
@@ -143,6 +152,8 @@ export async function postHolisticWalletCobroToHecom(
       periodoResumen:
         raw.periodo_resumen != null ? String(raw.periodo_resumen) : null,
       raw,
+      fundingVersion: raw.funding_version === 1 ? 1 : undefined,
+      fundingPersisted: raw.funding_persisted === true,
     };
   } catch (error) {
     console.error("[hecom-cobro-bridge] network", error);
@@ -226,6 +237,9 @@ export async function syncWalletDepositCobroBestEffort(input: {
   currency?: string;
   paidAt?: string | null;
   provider: string;
+  /** Fresh authoritative intent supplied by ensure; direct callers are loaded here. */
+  sourceIntent?: WalletFundingIntent;
+  ledgerJournalId?: string;
 }): Promise<HolisticWalletCobroResult | null> {
   const provider = String(input.provider || "").toLowerCase();
   if (!["stripe", "manual", "cobrana", "crypto"].includes(provider)) {
@@ -245,10 +259,30 @@ export async function syncWalletDepositCobroBestEffort(input: {
     };
   }
 
-  const bruto = input.amountCents / 100;
-  const neto =
-    input.creditCents != null ? input.creditCents / 100 : undefined;
-  const fee = input.feeCents != null ? input.feeCents / 100 : undefined;
+  let intent: WalletFundingIntent | null;
+  try {
+    intent = input.sourceIntent ?? await getPaymentIntentByIdInternal(input.paymentIntentId);
+  } catch {
+    return { ok: false, skipped: true, reason: "funding_source_unavailable", status: 0 };
+  }
+  if (!intent) return { ok: false, skipped: true, reason: "funding_source_unavailable", status: 0 };
+  const funding = buildWalletFunding(intent, {
+    clientId, paymentIntentId: input.paymentIntentId, provider,
+    ledgerJournalId: input.ledgerJournalId,
+  });
+  if (!funding) return { ok: false, skipped: true, reason: "funding_identity_or_amount_invalid", status: 0 };
+  const previousSync = intent.metadata?.hecom_cobro_sync;
+  const fundingOnly = Boolean(previousSync && typeof previousSync === "object" &&
+    ((previousSync as { funding_only?: boolean }).funding_only === true ||
+      ((previousSync as { ok?: boolean }).ok === true &&
+        (previousSync as { skipped?: boolean }).skipped !== true)));
+
+  // USD quote is frozen on the intent. Never send PEN as USD or the current fee.
+  const bruto = funding.gross_cents / 100;
+  const neto = funding.mode === "wallet_topup" ? funding.wallet_credit_cents / 100 : undefined;
+  // Legacy display fields remain conservative; authoritative split is versioned.
+  const fee = funding.mode === "wallet_topup" && funding.fee_holistic_percent !== null
+    ? funding.holistic_fee_cents / 100 : undefined;
 
   const result = await postHolisticWalletCobroToHecom({
     clientId,
@@ -256,9 +290,11 @@ export async function syncWalletDepositCobroBestEffort(input: {
     montoBruto: bruto,
     montoNeto: neto,
     feeHolistic: fee,
-    currency: (input.currency || "USD").toUpperCase(),
+    currency: "USD",
     provider,
     paidAt: input.paidAt,
+    funding,
+    fundingOnly,
   });
 
   if (!result.ok && !result.skipped) {
@@ -276,9 +312,9 @@ export async function syncWalletDepositCobroBestEffort(input: {
     });
   }
 
-  // El cobro tiene que quedar en el mes en que se pagó, no en el mes de deuda
-  // que elige Hecom.
-  if (result.ok && !result.dryRun && result.codigo) {
+  // Only newly created receipts may be aligned. A metadata enrichment must
+  // preserve the existing receipt's amount, client, date and accounting period.
+  if (result.ok && result.created && !result.dryRun && result.codigo) {
     const aligned = await alignCobroPeriodoToPaymentMonth(result.codigo);
     if (aligned.changed && aligned.to) {
       return { ...result, periodoResumen: aligned.to };

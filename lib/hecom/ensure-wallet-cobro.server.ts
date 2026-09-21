@@ -1,18 +1,25 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import {
   getPaymentIntentByIdInternal,
   mergePaymentIntentMetadata,
 } from "@/lib/payments/payment-intents.server";
 import { syncWalletDepositCobroBestEffort } from "@/lib/hecom/wallet-cobro-bridge.server";
+import { buildWalletFunding } from "@/lib/hecom/wallet-funding";
 
 function hecomCobroAlreadyOk(
   meta: Record<string, unknown> | null | undefined,
+  fingerprint: string | null,
 ): boolean {
   const sync = meta?.hecom_cobro_sync;
   return Boolean(
     sync &&
       typeof sync === "object" &&
-      (sync as { ok?: boolean }).ok === true,
+      (sync as { ok?: boolean }).ok === true &&
+      (sync as { skipped?: boolean }).skipped !== true &&
+      (sync as { funding_version?: number }).funding_version === 1 &&
+      fingerprint !== null &&
+      (sync as { funding_fingerprint?: string }).funding_fingerprint === fingerprint,
   );
 }
 
@@ -44,66 +51,33 @@ export async function ensureHecomWalletCobroSynced(input: {
     ...(fresh?.metadata ?? input.intent.metadata ?? {}),
   } as Record<string, unknown>;
 
-  if (hecomCobroAlreadyOk(meta)) return;
-
-  const creditRaw = meta.credit_amount_cents;
-  const feeRaw = meta.fee_amount_cents;
-  const grossUsdRaw = meta.gross_usd_cents;
-  const creditCents =
-    typeof creditRaw === "number"
-      ? creditRaw
-      : typeof creditRaw === "string"
-        ? Number(creditRaw)
-        : null;
-  const feeCentsMeta =
-    typeof feeRaw === "number"
-      ? feeRaw
-      : typeof feeRaw === "string"
-        ? Number(feeRaw)
-        : null;
-  const grossUsdCents =
-    typeof grossUsdRaw === "number"
-      ? grossUsdRaw
-      : typeof grossUsdRaw === "string"
-        ? Number(grossUsdRaw)
-        : null;
   const hecomClienteId =
     typeof meta.hecom_cliente_id === "string" ? meta.hecom_cliente_id : null;
+  const sourceIntent = { ...(fresh ?? input.intent), metadata: meta };
+  const provider = (fresh?.provider ?? input.intent.provider).toLowerCase();
+  const funding = hecomClienteId ? buildWalletFunding(sourceIntent, {
+    clientId: hecomClienteId, paymentIntentId: input.intent.id, provider,
+    ledgerJournalId: input.ledgerJournalId,
+  }) : null;
+  const fingerprint = funding ? createHash("sha256").update(JSON.stringify(funding)).digest("hex") : null;
+  if (hecomCobroAlreadyOk(meta, fingerprint)) return;
+  const previousSync = meta.hecom_cobro_sync;
+  const fundingOnly = Boolean(previousSync && typeof previousSync === "object" &&
+    ((previousSync as { funding_only?: boolean }).funding_only === true ||
+      ((previousSync as { ok?: boolean }).ok === true &&
+        (previousSync as { skipped?: boolean }).skipped !== true)));
 
   const paidAt = input.succeededAt ?? new Date().toISOString();
-  const intentCurrency = (
-    fresh?.currency ?? input.intent.currency
-  ).toUpperCase();
-  // Hecom Lo pagado opera en USD (crédito cartera), aunque el cargo sea PEN.
-  const amountCentsForHecom =
-    Number.isFinite(grossUsdCents as number) && (grossUsdCents as number) > 0
-      ? (grossUsdCents as number)
-      : intentCurrency === "USD"
-        ? (fresh?.amountCents ?? input.intent.amountCents)
-        : Number.isFinite(creditCents as number)
-          ? (creditCents as number)
-          : fresh?.amountCents ?? input.intent.amountCents;
-  const feeCentsForHecom =
-    Number.isFinite(feeCentsMeta as number) && intentCurrency === "USD"
-      ? (feeCentsMeta as number)
-      : Number.isFinite(creditCents as number) &&
-          Number.isFinite(amountCentsForHecom)
-        ? Math.max(0, amountCentsForHecom - (creditCents as number))
-        : feeCentsMeta;
 
   const cobroSync = await syncWalletDepositCobroBestEffort({
     hecomClienteId,
     paymentIntentId: input.intent.id,
-    amountCents: amountCentsForHecom,
-    creditCents: Number.isFinite(creditCents as number)
-      ? (creditCents as number)
-      : null,
-    feeCents: Number.isFinite(feeCentsForHecom as number)
-      ? (feeCentsForHecom as number)
-      : null,
+    amountCents: sourceIntent.amountCents,
     currency: "USD",
     paidAt,
-    provider: fresh?.provider ?? input.intent.provider,
+    provider,
+    sourceIntent,
+    ledgerJournalId: input.ledgerJournalId,
   });
 
   await mergePaymentIntentMetadata(input.intent.id, {
@@ -125,8 +99,17 @@ export async function ensureHecomWalletCobroSynced(input: {
           periodo_resumen: cobroSync.periodoResumen ?? null,
           at: new Date().toISOString(),
           healed: input.claimed === false || input.claimed == null,
+          // Keep evidence of prior existence through failures (including 404).
+          // A later retry must not recreate a removed receipt or relabel it.
+          ...(fundingOnly ? { funding_only: true } : {}),
+          ...(cobroSync.ok && !cobroSync.skipped && cobroSync.fundingVersion === 1 &&
+              cobroSync.fundingPersisted === true && fingerprint
+            ? { funding_version: 1, funding_fingerprint: fingerprint }
+            : {}),
         }
-      : null,
+      : fundingOnly
+        ? { ok: false, skipped: true, reason: "sync_result_missing", funding_only: true }
+        : null,
   });
 }
 
