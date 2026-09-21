@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import {
-  getActingAsCliente,
-  getSelectedHecomCliente,
-} from "@/lib/hecom/selected-cliente.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 import {
   resolvePaymentsFundingCapabilities,
-  withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
 
 export const runtime = "nodejs";
@@ -24,15 +20,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const actingAsCliente = await getActingAsCliente(session.id);
-  const funding = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
-      email: session.email,
-      role: session.role,
-    }),
-    actingAsCliente,
-  );
-  const isStaff = funding.isStaff || funding.isSuperAdmin;
+  const rawFunding = resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  // Act-as-cliente no debe ocultar staffOps/score: el gerente entra a revisar.
+  const isStaff = rawFunding.isStaff || rawFunding.isSuperAdmin;
 
   const url = new URL(request.url);
   const range = defaultProfitDateRange();

@@ -470,6 +470,8 @@ function scoreNoteLabel(
       return t("scoreNoteCreditOk");
     case "credit_watch":
       return t("scoreNoteCreditWatch");
+    case "credit_burn_fast":
+      return t("scoreNoteCreditBurnFast");
     case "credit_risk":
       return t("scoreNoteCreditRisk");
     case "collections_unknown":

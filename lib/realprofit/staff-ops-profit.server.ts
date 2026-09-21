@@ -10,8 +10,12 @@ import {
 } from "@/lib/realprofit/client-score";
 
 export type ProfitStaffCollections = {
+  /** @deprecated alias de failedDeposits90d para UI vieja. */
   failed45d: number | null;
+  /** @deprecated alias de deposits90d + failed. */
   intents45d: number | null;
+  deposits90d: number | null;
+  failedDeposits90d: number | null;
   openTickets: number | null;
 };
 
@@ -39,7 +43,12 @@ export type ProfitStaffOps = {
 
 type ScoreSlice = Omit<
   ClienteScoreInput,
-  "burnStatus" | "failedPayments45d" | "paymentIntents45d" | "openTickets"
+  | "burnStatus"
+  | "deposits90d"
+  | "failedDeposits90d"
+  | "openTickets"
+  | "allocated90dUsd"
+  | "spent90dUsd"
 >;
 
 function round2(n: number) {
@@ -52,29 +61,53 @@ function hoursBetween(fromIso: string, to = new Date()): number {
   return Math.max(0, (to.getTime() - fromMs) / 3_600_000);
 }
 
+const HOLISTIC_PAYMENT_PROVIDERS = new Set([
+  "cobrana",
+  "yape",
+  "manual",
+  "manual_bcp",
+  "bcp",
+  "bank_transfer",
+  "transfer",
+  "voucher",
+]);
+
 const emptyCollections: ProfitStaffCollections = {
   failed45d: null,
   intents45d: null,
+  deposits90d: null,
+  failedDeposits90d: null,
   openTickets: null,
 };
 
 function withScore(
   ops: Omit<ProfitStaffOps, "score">,
-  score: ScoreSlice,
+  score: ScoreSlice & {
+    allocated90dUsd: number | null;
+    spent90dUsd: number | null;
+  },
 ): ProfitStaffOps {
   return {
     ...ops,
     score: computeClienteScore({
       ...score,
       burnStatus: ops.burn.status,
-      failedPayments45d: ops.collections.failed45d,
-      paymentIntents45d: ops.collections.intents45d,
+      deposits90d: ops.collections.deposits90d,
+      failedDeposits90d: ops.collections.failedDeposits90d,
       openTickets: ops.collections.openTickets,
+      allocated90dUsd: score.allocated90dUsd,
+      spent90dUsd: score.spent90dUsd,
     }),
   };
 }
 
-function emptyOps(hint: string, score: ScoreSlice): ProfitStaffOps {
+function emptyOps(
+  hint: string,
+  score: ScoreSlice & {
+    allocated90dUsd?: number | null;
+    spent90dUsd?: number | null;
+  },
+): ProfitStaffOps {
   return withScore(
     {
       walletAvailableUsd: null,
@@ -85,7 +118,11 @@ function emptyOps(hint: string, score: ScoreSlice): ProfitStaffOps {
       creditHint: hint,
       collections: emptyCollections,
     },
-    score,
+    {
+      ...score,
+      allocated90dUsd: score.allocated90dUsd ?? null,
+      spent90dUsd: score.spent90dUsd ?? null,
+    },
   );
 }
 
@@ -96,6 +133,8 @@ function emptyOps(hint: string, score: ScoreSlice): ProfitStaffOps {
 export async function loadProfitStaffOps(input: {
   hecomClienteId: string;
   spendTodayUsd: number;
+  /** Gasto Holistic/TikTok 90d para el pilar crédito (si ya lo tienes). */
+  spend90dUsd?: number | null;
   pacingLabel: string;
   burnSignals: BurnRateSignal[];
   score: ScoreSlice;
@@ -119,10 +158,19 @@ export async function loadProfitStaffOps(input: {
     }
 
     const admin = createAdminClient();
-    const since45d = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const since90d = new Date(
+      Date.now() - 90 * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
-    const [{ data: accounts }, wallet, paymentsRes, ticketsRes] =
-      await Promise.all([
+    const [
+      { data: accounts },
+      wallet,
+      depositsRes,
+      paymentsRes,
+      ticketsRes,
+      allocs90Res,
+      spendTxRes,
+    ] = await Promise.all([
       admin
         .from("ad_accounts")
         .select("id, name, external_account_id")
@@ -132,29 +180,78 @@ export async function loadProfitStaffOps(input: {
         .limit(40),
       getWalletLedgerBalance(organizationId).catch(() => null),
       admin
-        .from("payment_intents")
-        .select("status")
+        .from("ledger_journals")
+        .select("id, status")
         .eq("organization_id", organizationId)
-        .gte("created_at", since45d)
-        .limit(150),
+        .eq("journal_type", "deposit_confirmed")
+        .gte("created_at", since90d)
+        .limit(200),
+      admin
+        .from("payment_intents")
+        .select("status, provider")
+        .eq("organization_id", organizationId)
+        .gte("created_at", since90d)
+        .limit(200),
       admin
         .from("support_tickets")
         .select("id", { count: "exact", head: true })
         .eq("organization_id", organizationId)
         .in("status", ["open", "pending"]),
+      admin
+        .from("ledger_journals")
+        .select("amount_cents, status, source_id")
+        .eq("organization_id", organizationId)
+        .eq("journal_type", "allocation_to_ad_account")
+        .gte("created_at", since90d)
+        .limit(300),
+      admin
+        .from("ad_spend_transactions")
+        .select("amount_cents, ad_account_id")
+        .eq("organization_id", organizationId)
+        .gte("occurred_at", since90d)
+        .limit(500),
     ]);
 
     let collections: ProfitStaffCollections = { ...emptyCollections };
-    if (!paymentsRes.error) {
-      const rows = (paymentsRes.data ?? []) as Array<{ status?: string }>;
-      const failed = rows.filter((row) => {
-        const status = String(row.status ?? "").toLowerCase();
-        return status === "failed" || status === "cancelled";
-      }).length;
+
+    // Cobros: depósitos Holistic reales + fallos de vías Holistic (no cancelled Stripe).
+    if (!depositsRes.error) {
+      const depositRows = (depositsRes.data ?? []) as Array<{
+        status?: string;
+      }>;
+      const deposits90d = depositRows.filter(
+        (row) => String(row.status ?? "").toLowerCase() !== "reversed",
+      ).length;
+
+      let failedDeposits90d = 0;
+      if (!paymentsRes.error) {
+        const payRows = (paymentsRes.data ?? []) as Array<{
+          status?: string;
+          provider?: string | null;
+        }>;
+        failedDeposits90d = payRows.filter((row) => {
+          const status = String(row.status ?? "").toLowerCase();
+          if (status !== "failed") return false;
+          const provider = String(row.provider ?? "")
+            .trim()
+            .toLowerCase();
+          // Sin provider o vía Holistic: cuenta. Stripe/abandoned cancelled ya filtrados.
+          if (!provider) return true;
+          if (HOLISTIC_PAYMENT_PROVIDERS.has(provider)) return true;
+          // stripe/culqi failed sí cuentan si no hay depósitos (cliente que sí usa card)
+          if (deposits90d === 0 && (provider === "stripe" || provider === "culqi")) {
+            return true;
+          }
+          return false;
+        }).length;
+      }
+
       collections = {
         ...collections,
-        failed45d: failed,
-        intents45d: rows.length,
+        deposits90d,
+        failedDeposits90d,
+        failed45d: failedDeposits90d,
+        intents45d: deposits90d + failedDeposits90d,
       };
     }
     if (!ticketsRes.error) {
@@ -170,6 +267,7 @@ export async function loadProfitStaffOps(input: {
       external_account_id: string | null;
     }>;
     const ids = rows.map((r) => r.id);
+    const idSet = new Set(ids);
     const labelById = new Map(
       rows.map((r) => [
         r.id,
@@ -182,6 +280,10 @@ export async function loadProfitStaffOps(input: {
     let adLedgerAvailableUsd = 0;
     let accountsWithLedgerBalance = 0;
     let lastAllocation: ProfitStaffOps["lastAllocation"] = null;
+    let allocated90dUsd: number | null = null;
+    // Preferir gasto ledger Holistic (asignado). El gasto TikTok total 90d puede
+    // incluir cupo BM previo y distorsionar el ratio crédito.
+    let spent90dUsd: number | null = null;
 
     if (ids.length > 0) {
       const [{ data: balances }, { data: allocs }] = await Promise.all([
@@ -235,6 +337,61 @@ export async function loadProfitStaffOps(input: {
       }
     }
 
+    // Crédito 90d: asignaciones a cuentas del cliente.
+    if (!allocs90Res.error) {
+      const allocRows = (allocs90Res.data ?? []) as Array<{
+        amount_cents?: number;
+        status?: string;
+        source_id?: string | null;
+      }>;
+      allocated90dUsd = round2(
+        allocRows.reduce((sum, row) => {
+          if (String(row.status ?? "").toLowerCase() === "reversed") return sum;
+          const sourceId = String(row.source_id ?? "");
+          if (idSet.size > 0 && sourceId && !idSet.has(sourceId)) return sum;
+          return sum + Math.max(0, Number(row.amount_cents) || 0) / 100;
+        }, 0),
+      );
+    }
+
+    // Gasto ledger 90d (lo que Holistic descontó de asignaciones).
+    if (!spendTxRes.error) {
+      const spendRows = (spendTxRes.data ?? []) as Array<{
+        amount_cents?: number;
+        ad_account_id?: string | null;
+      }>;
+      const ledgerSpend = round2(
+        spendRows.reduce((sum, row) => {
+          const adId = String(row.ad_account_id ?? "");
+          if (idSet.size > 0 && adId && !idSet.has(adId)) return sum;
+          return sum + Math.max(0, Number(row.amount_cents) || 0) / 100;
+        }, 0),
+      );
+      if (ledgerSpend > 0) {
+        spent90dUsd = ledgerSpend;
+      } else if (
+        input.spend90dUsd != null &&
+        Number.isFinite(input.spend90dUsd) &&
+        allocated90dUsd != null &&
+        allocated90dUsd > 0
+      ) {
+        // Sin sync de spend: acotar al asignado para no inventar sobreuso BM.
+        spent90dUsd = round2(
+          Math.min(Math.max(0, input.spend90dUsd), allocated90dUsd),
+        );
+      } else if (
+        input.spend90dUsd != null &&
+        Number.isFinite(input.spend90dUsd)
+      ) {
+        spent90dUsd = round2(Math.max(0, input.spend90dUsd));
+      }
+    } else if (
+      input.spend90dUsd != null &&
+      Number.isFinite(input.spend90dUsd)
+    ) {
+      spent90dUsd = round2(Math.max(0, input.spend90dUsd));
+    }
+
     const burn = {
       critical: input.burnSignals.filter((s) => s.severity === "critical")
         .length,
@@ -256,6 +413,14 @@ export async function loadProfitStaffOps(input: {
     } else if (burn.status === "warn") {
       creditHint =
         "Ojo: está quemando asignación más rápido de lo normal. Revisa antes de dar más cupo.";
+    } else if (
+      allocated90dUsd != null &&
+      spent90dUsd != null &&
+      allocated90dUsd > 0 &&
+      spent90dUsd / allocated90dUsd > 1.2
+    ) {
+      creditHint =
+        "En 90d gastó más de lo asignado por Holistic. Revisa cupo BM / saldo TikTok previo antes de dar más crédito.";
     } else if (!lastAllocation) {
       creditHint =
         "Sin asignaciones Holistic recientes — no hay señal de quema (burn_rate). El gasto puede venir de crédito BM / saldo TikTok previo.";
@@ -282,7 +447,11 @@ export async function loadProfitStaffOps(input: {
         creditHint,
         collections,
       },
-      input.score,
+      {
+        ...input.score,
+        allocated90dUsd,
+        spent90dUsd,
+      },
     );
   } catch (error) {
     console.error("[profit-staff-ops] failed", {

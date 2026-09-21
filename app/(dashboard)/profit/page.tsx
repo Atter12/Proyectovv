@@ -8,7 +8,6 @@ import {
 } from "@/lib/hecom/selected-cliente.server";
 import {
   resolvePaymentsFundingCapabilities,
-  withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
 
 export default async function ProfitPage({
@@ -22,10 +21,9 @@ export default async function ProfitPage({
     email: session.email,
     role: session.role,
   });
-  // “Viendo como cliente” = misma UI que el cliente (sin panel SOLO GERENCIA).
-  const funding = withActAsClienteView(rawFunding, actingAsCliente);
-  const canPickCliente =
-    rawFunding.isStaff || rawFunding.isSuperAdmin || actingAsCliente;
+  // Rol real del gerente: el score debe verse aunque esté “viendo como” cliente.
+  const isStaffViewer = rawFunding.isStaff || rawFunding.isSuperAdmin;
+  const canPickCliente = isStaffViewer || actingAsCliente;
   const mode = canPickCliente ? "staff" : "cliente";
   const selected = await getSelectedHecomCliente(session.id);
   const params = (await searchParams) ?? {};
@@ -44,7 +42,7 @@ export default async function ProfitPage({
     <div className={dashboardClasses.page}>
       <ProfitPageClient
         clienteName={selected.name}
-        isStaff={funding.isStaff || funding.isSuperAdmin}
+        isStaff={isStaffViewer}
         initialFrom={initialFrom}
         initialTo={initialTo}
       />

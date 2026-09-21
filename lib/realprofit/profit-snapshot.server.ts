@@ -843,6 +843,7 @@ export async function loadClienteProfitPromo(input: {
   const yesterday = shiftYmd(today, -1);
   const from7 = shiftYmd(today, -6);
   const from30 = shiftYmd(today, -29);
+  const from90 = shiftYmd(today, -89);
   const prev7From = shiftYmd(today, -13);
   const prev7To = shiftYmd(today, -7);
   const rangeLen = Math.max(1, daysInclusive(range.from, range.to));
@@ -850,7 +851,7 @@ export async function loadClienteProfitPromo(input: {
   const prevRangeFrom = shiftYmd(prevRangeTo, -(rangeLen - 1));
 
   const loadFrom = minYmd(
-    minYmd(range.from, from30),
+    minYmd(range.from, from90),
     minYmd(prev7From, prevRangeFrom),
   );
   const loadTo = maxYmd(range.to, today);
@@ -885,23 +886,39 @@ export async function loadClienteProfitPromo(input: {
     maxAdvertisers: 12,
   });
 
+  const uiCoversScoreWindow = range.from === from30 && range.to === today;
+  const scorePerfPromise = uiCoversScoreWindow
+    ? perfPromise
+    : fetchCampaignPerformanceForAdvertisers({
+        advertiserIds,
+        from: from30,
+        to: today,
+        maxAdvertisers: 12,
+      });
+
   // No bloquear Profit más de ~14s por reportes TikTok.
-  const perf = await Promise.race([
-    perfPromise,
-    new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
-      (resolve) =>
-        setTimeout(
-          () =>
-            resolve({
-              rows: [],
-              fetchedAt: new Date().toISOString(),
-              advertisersQueried: advertiserIds.length,
-              advertisersOk: 0,
-              error: "Timeout consultando performance TikTok.",
-            }),
-          14_000,
-        ),
-    ),
+  const emptyPerf = {
+    rows: [] as Awaited<
+      ReturnType<typeof fetchCampaignPerformanceForAdvertisers>
+    >["rows"],
+    fetchedAt: new Date().toISOString(),
+    advertisersQueried: advertiserIds.length,
+    advertisersOk: 0,
+    error: "Timeout consultando performance TikTok.",
+  };
+  const [perf, scorePerf] = await Promise.all([
+    Promise.race([
+      perfPromise,
+      new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
+        (resolve) => setTimeout(() => resolve({ ...emptyPerf }), 14_000),
+      ),
+    ]),
+    Promise.race([
+      scorePerfPromise,
+      new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
+        (resolve) => setTimeout(() => resolve({ ...emptyPerf }), 14_000),
+      ),
+    ]),
   ]);
 
   const inRange = sliceHolisticSpend(wide, range.from, range.to);
@@ -910,6 +927,7 @@ export async function loadClienteProfitPromo(input: {
   const spend7d = sliceHolisticSpend(wide, from7, today).adSpend;
   const spendPrev7d = sliceHolisticSpend(wide, prev7From, prev7To).adSpend;
   const spend30d = sliceHolisticSpend(wide, from30, today).adSpend;
+  const spend90d = sliceHolisticSpend(wide, from90, today).adSpend;
   const spendPrevRange = sliceHolisticSpend(
     wide,
     prevRangeFrom,
@@ -1005,19 +1023,36 @@ export async function loadClienteProfitPromo(input: {
     fetchedAt: perf.fetchedAt,
     error: perf.error,
   });
+  // Semáforo: performance anclada a 30d (no al filtro Hoy / rango UI).
+  const scoreMerged = mergeCampaignsWithTikTokPerf({
+    holisticCampaigns: sliceHolisticSpend(wide, from30, today).byCampaign,
+    perfRows: scorePerf.rows,
+  });
+  const scoreCampaigns = buildCampaignsFromSpend({
+    collectedRevenue: 0,
+    adSpend: spend30d,
+    rows: scoreMerged,
+  });
+  const scorePerfSummary = summarizePerf(scoreCampaigns, {
+    advertisersQueried: scorePerf.advertisersQueried,
+    advertisersOk: scorePerf.advertisersOk,
+    fetchedAt: scorePerf.fetchedAt,
+    error: scorePerf.error,
+  });
   const staffOps = await loadProfitStaffOps({
     hecomClienteId: input.hecomClienteId,
     spendTodayUsd: spendToday,
+    spend90dUsd: spend90d,
     pacingLabel,
     burnSignals,
     score: {
       spend7d,
       spend30d,
       pacingLabel,
-      avgCtr: perfSummary.avgCtr,
-      clicks: perfSummary.clicks,
-      conversions: perfSummary.conversions,
-      impressions: perfSummary.impressions,
+      avgCtr: scorePerfSummary.avgCtr,
+      clicks: scorePerfSummary.clicks,
+      conversions: scorePerfSummary.conversions,
+      impressions: scorePerfSummary.impressions,
       hasCodLink: linkedStores.length > 0,
       aboveBreakEven,
       warnKinds: signals
