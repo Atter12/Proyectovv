@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import type { BurnRateSignal } from "@/lib/realprofit/burn-rate-signals.server";
+import { isAgencyCreditCliente } from "@/lib/hecom/is-agency-credit-cliente.server";
 import {
   computeClienteScore,
   type ClienteScore,
@@ -85,6 +86,7 @@ function withScore(
   score: ScoreSlice & {
     allocated90dUsd: number | null;
     spent90dUsd: number | null;
+    agencyCredit?: boolean;
   },
 ): ProfitStaffOps {
   return {
@@ -97,6 +99,7 @@ function withScore(
       openTickets: ops.collections.openTickets,
       allocated90dUsd: score.allocated90dUsd,
       spent90dUsd: score.spent90dUsd,
+      agencyCredit: score.agencyCredit === true,
     }),
   };
 }
@@ -435,6 +438,12 @@ export async function loadProfitStaffOps(input: {
         "Sin alerta de quema. Para crédito mira pacing + concentración + deuda Hecom aparte.";
     }
 
+    const agencyCredit = await isAgencyCreditCliente(hecomClienteId);
+    if (agencyCredit && burn.status !== "critical" && burn.status !== "warn") {
+      creditHint =
+        "Crédito agencia (ficha Hecom): el tope automático no baja el cupo de TikTok Manager.";
+    }
+
     return withScore(
       {
         walletAvailableUsd: wallet
@@ -451,6 +460,7 @@ export async function loadProfitStaffOps(input: {
         ...input.score,
         allocated90dUsd,
         spent90dUsd,
+        agencyCredit,
       },
     );
   } catch (error) {

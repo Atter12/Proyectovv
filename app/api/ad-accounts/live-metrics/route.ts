@@ -4,6 +4,7 @@ import { assertHecomClienteAccess } from "@/lib/hecom/assert-cliente-access.serv
 import { getHecomAdAccountsLiveMetrics } from "@/lib/hecom/ad-account-live.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { isAdsHolisticCliente } from "@/lib/hecom/is-ads-holistic-cliente.server";
+import { isAgencyCreditCliente } from "@/lib/hecom/is-agency-credit-cliente.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { enforceSharedBudgetCapsForLiveAccounts } from "@/lib/payments/enforce-shared-budget-cap.server";
 import { isTikTokBcFundingEnabled } from "@/lib/integrations/tiktok/bc-finance.server";
@@ -46,10 +47,18 @@ export async function GET(request: Request) {
       reason?: string;
     }> = [];
 
-    // BM 10/30 Ads Holistic: cupo TikTok = ledger (como cash BM200).
-    // No tocar clientes solo-Hecom/agencia (sin login/pagos Holistic).
+    // BM 10/30 Ads Holistic prepago: cupo TikTok = ledger (como cash BM200).
+    // No tocar solo-Hecom ni crédito agencia (ficha Hecom con credito_form_slug).
     const adsHolistic = await isAdsHolisticCliente(selected.id);
-    if (isTikTokBcFundingEnabled() && accounts.length > 0 && adsHolistic) {
+    const agencyCredit = adsHolistic
+      ? await isAgencyCreditCliente(selected.id)
+      : false;
+    if (
+      isTikTokBcFundingEnabled() &&
+      accounts.length > 0 &&
+      adsHolistic &&
+      !agencyCredit
+    ) {
       const clienteOrgId =
         (await resolveOrganizationIdForHecomCliente(selected.id)) ??
         session.organizationId;
@@ -77,6 +86,7 @@ export async function GET(request: Request) {
       cached: !fresh,
       adsHolisticClient: adsHolistic,
       ...result,
+      agencyCredit,
       accounts,
       budgetCaps,
     });

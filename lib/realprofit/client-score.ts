@@ -27,6 +27,7 @@ export type ClienteScoreNote =
   | "credit_watch"
   | "credit_risk"
   | "credit_burn_fast"
+  | "credit_agency"
   | "collections_unknown"
   | "collections_none"
   | "collections_clean"
@@ -82,6 +83,11 @@ export type ClienteScoreInput = {
   failedDeposits90d: number | null;
   /** null = no se pudo leer support_tickets. */
   openTickets: number | null;
+  /**
+   * Ficha Hecom de crédito agencia. El cupo de Manager no es hueco de prepago.
+   * Default false: si no se sabe, el score de prepago no cambia.
+   */
+  agencyCredit?: boolean;
 };
 
 function clamp(n: number): number {
@@ -125,6 +131,10 @@ function scoreAds(input: ClienteScoreInput): ClienteScoreFactor {
 }
 
 function scoreCredit(input: ClienteScoreInput): ClienteScoreFactor {
+  if (input.agencyCredit) {
+    return { id: "credit", points: 78, note: "credit_agency" };
+  }
+
   const allocated = input.allocated90dUsd;
   const spent = input.spent90dUsd;
 

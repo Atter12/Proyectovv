@@ -19,6 +19,7 @@ import {
   transferBcFundsToAdvertiser,
 } from "@/lib/integrations/tiktok/bc-finance.server";
 import { enforceSharedBudgetCapForAdvertiser } from "@/lib/payments/enforce-shared-budget-cap.server";
+import { isAgencyCreditCliente } from "@/lib/hecom/is-agency-credit-cliente.server";
 import {
   assertSharedBmSpendableBeforeAllocate,
   attemptCrossBmCreditPull,
@@ -494,8 +495,11 @@ export async function allocateWithOptionalTikTokFunding(
     throw allocateError;
   }
 
-  // BM10/30: cupo TikTok = gastado + ledger (mismo criterio que BM200 cash).
-  if (canFund && useSharedBudgetPath && bcId && advertiserId) {
+  // BM10/30 prepago: cupo TikTok = gastado + ledger.
+  // Crédito agencia: no rebajar el presupuesto que puso Manager.
+  const agencyCredit =
+    hecomClienteId != null && (await isAgencyCreditCliente(hecomClienteId));
+  if (canFund && useSharedBudgetPath && bcId && advertiserId && !agencyCredit) {
     try {
       const snap = await getAdvertiserBudgetSnapshot({
         bcId,

@@ -129,3 +129,18 @@ test("publicidad usa 30d: sin gasto 30d pero con 7d aún califica", () => {
   assert.notEqual(score.score, null);
   assert.notEqual(score.factors.find((f) => f.id === "ads")?.points, null);
 });
+
+test("crédito agencia no se castiga por gastar más de lo asignado en Holistic", () => {
+  const score = computeClienteScore(
+    base({
+      agencyCredit: true,
+      allocated90dUsd: 100,
+      spent90dUsd: 900,
+      burnStatus: "none",
+    }),
+  );
+  assert.equal(
+    score.factors.find((f) => f.id === "credit")?.note,
+    "credit_agency",
+  );
+});
