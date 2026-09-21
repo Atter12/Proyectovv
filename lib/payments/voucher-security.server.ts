@@ -93,6 +93,53 @@ export async function isDuplicateOperationCode(
   return Boolean(byOcr.data?.length || byClaim.data?.length);
 }
 
+/** Intento abierto que ya guardó este código (para retomar un voucher a medias). */
+export async function findOperationCodeIntent(
+  operationCode: string,
+): Promise<{
+  id: string;
+  status: string;
+  amountCents: number;
+  metadata: Record<string, unknown>;
+} | null> {
+  const normalized = normalizeOperationCode(operationCode);
+  if (!normalized) return null;
+
+  const admin = createAdminClient();
+  const statuses = ["succeeded", "processing", "requires_payment", "created"] as const;
+  const select = "id,status,amount_cents,metadata";
+
+  const [byOcr, byClaim] = await Promise.all([
+    admin
+      .from("payment_intents")
+      .select(select)
+      .eq("provider", "manual")
+      .contains("metadata", { voucher_operation_code: normalized })
+      .in("status", [...statuses])
+      .limit(1),
+    admin
+      .from("payment_intents")
+      .select(select)
+      .eq("provider", "manual")
+      .contains("metadata", { claimed_operation_code: normalized })
+      .in("status", [...statuses])
+      .limit(1),
+  ]);
+
+  const row = byOcr.data?.[0] ?? byClaim.data?.[0];
+  if (!row?.id) return null;
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  return {
+    id: String(row.id),
+    status: String(row.status ?? ""),
+    amountCents: Number(row.amount_cents ?? 0) || 0,
+    metadata,
+  };
+}
+
 export async function checkVoucherUploadRateLimits(
   organizationId: string,
 ): Promise<VoucherRateLimitResult> {

@@ -142,7 +142,7 @@ export function MissingCobroClaimPanel({
       setUploading(true);
 
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("proof", file);
       await apiClient(`/api/payments/intents/${created.paymentIntentId}/proof`, {
         method: "POST",
         body: fd,

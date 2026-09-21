@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { getPaymentIntentById, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
+import { getPaymentIntentById, getPaymentIntentByIdInternal, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
+import { isMissingCobroPurpose } from "@/lib/payments/missing-cobro.shared";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
 import { processManualVoucherUpload, VoucherRateLimitError } from "@/lib/payments/process-manual-voucher.server";
@@ -42,19 +44,43 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (
     !hasPermission(session.permissions, "wallet:deposit") &&
-    !hasPermission(session.permissions, "payments:create")
+    !hasPermission(session.permissions, "payments:create") &&
+    !hasPermission(session.permissions, "payments:read")
   ) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
-  if (!session.organizationId) {
+  const { id } = await context.params;
+  let intent = session.organizationId
+    ? await getPaymentIntentById(id, session.organizationId)
+    : null;
+  if (!intent) {
+    const internal = await getPaymentIntentByIdInternal(id);
+    const meta = (internal?.metadata ?? {}) as Record<string, unknown>;
+    if (internal && isMissingCobroPurpose(meta)) {
+      const selected = await getSelectedHecomCliente(session.id);
+      if (selected?.id && selected.id === String(meta.hecom_cliente_id ?? "")) {
+        intent = internal;
+      }
+    }
+  }
+  if (!intent) {
+    return NextResponse.json({ error: "Intención no encontrada." }, { status: 404 });
+  }
+
+  const organizationId = intent.organizationId || session.organizationId;
+  if (!organizationId) {
     return NextResponse.json({ error: "Organización no disponible." }, { status: 400 });
   }
 
-  const { id } = await context.params;
-  const intent = await getPaymentIntentById(id, session.organizationId);
-  if (!intent) {
-    return NextResponse.json({ error: "Intención no encontrada." }, { status: 404 });
+  const canFund =
+    hasPermission(session.permissions, "wallet:deposit") ||
+    hasPermission(session.permissions, "payments:create");
+  const missingCobro = isMissingCobroPurpose(
+    (intent.metadata ?? {}) as Record<string, unknown>,
+  );
+  if (!canFund && !missingCobro) {
+    return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
   if (!isVoucherPaymentProvider(intent.provider)) {
@@ -85,10 +111,11 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Formulario inválido." }, { status: 400 });
   }
 
-  const proof = formData.get("proof");
-  if (!(proof instanceof File)) {
+  const proofField = formData.get("proof") ?? formData.get("file");
+  if (!(proofField instanceof File)) {
     return NextResponse.json({ error: "Comprobante requerido." }, { status: 400 });
   }
+  const proof = proofField;
 
   const payMethodRaw = String(formData.get("payMethod") ?? "")
     .trim()
@@ -118,7 +145,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const admin = createAdminClient();
   const safeName = sanitizeFileName(proof.name);
-  const storagePath = `${session.organizationId}/${intent.id}/${Date.now()}-${safeName}`;
+  const storagePath = `${organizationId}/${intent.id}/${Date.now()}-${safeName}`;
   const { error: uploadError } = await admin.storage
     .from(PAYMENT_PROOFS_BUCKET)
     .upload(storagePath, proof, {
@@ -157,7 +184,7 @@ export async function POST(request: Request, context: RouteContext) {
     try {
       processResult = await processManualVoucherUpload({
         paymentIntentId: intent.id,
-        organizationId: session.organizationId,
+        organizationId,
         buffer,
         mimeType: proof.type || "application/octet-stream",
         fileName: safeName,
@@ -192,7 +219,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     await createNotificationBestEffort({
-      organizationId: session.organizationId,
+      organizationId,
       userId: session.id,
       title: "Comprobante enviado",
       body: "Comprobante en revisión. Te avisamos cuando se acredite.",
@@ -209,7 +236,7 @@ export async function POST(request: Request, context: RouteContext) {
     );
     await notifyManagersManualPaymentPendingBestEffort({
       paymentIntentId: intent.id,
-      organizationId: session.organizationId!,
+      organizationId: organizationId,
       createdBy: session.id,
       chargeAmountCents: intent.amountCents,
       chargeCurrency: intent.currency,
@@ -231,7 +258,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   await admin.from("audit_logs").insert({
-    organization_id: session.organizationId,
+    organization_id: organizationId,
     actor_user_id: session.id,
     action: "payment_intent.proof_uploaded",
     entity_type: "payment_intent",

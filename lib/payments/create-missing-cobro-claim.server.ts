@@ -16,7 +16,7 @@ import {
   normalizePeriodoResumen,
 } from "@/lib/payments/missing-cobro.shared";
 import {
-  isDuplicateOperationCode,
+  findOperationCodeIntent,
   normalizeOperationCode,
 } from "@/lib/payments/voucher-security.server";
 
@@ -114,6 +114,80 @@ async function countPendingMissingClaims(
   }).length;
 }
 
+function claimHasUploadedProof(metadata: Record<string, unknown>): boolean {
+  const proof = metadata.manual_proof;
+  if (!proof || typeof proof !== "object") return false;
+  const path = (proof as Record<string, unknown>).path;
+  return typeof path === "string" && path.length > 0;
+}
+
+async function resumeOwnOpenMissingClaim(
+  existing: {
+    id: string;
+    status: string;
+    amountCents: number;
+    metadata: Record<string, unknown>;
+  },
+  input: {
+    hecomClienteId: string;
+    amountCents: number;
+    periodo: string;
+    fecha: string;
+    metodo: string;
+    notes: string | null;
+    amountPen: number | null;
+  },
+): Promise<{
+  paymentIntentId: string;
+  status: string;
+  amountCents: number;
+  currency: string;
+  periodoResumen: string;
+} | null> {
+  const meta = existing.metadata;
+  const sameClient = String(meta.hecom_cliente_id ?? "") === input.hecomClienteId;
+  const purpose = String(meta.purpose ?? "");
+  const review = String(meta.manual_review_status ?? "");
+  const stillOpen =
+    sameClient &&
+    purpose === MISSING_COBRO_PURPOSE &&
+    !claimHasUploadedProof(meta) &&
+    (existing.status === "requires_payment" || existing.status === "created") &&
+    (review === "awaiting_proof" || review === "");
+  if (!stillOpen) return null;
+
+  if (existing.amountCents !== input.amountCents) {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("payment_intents")
+      .update({
+        amount_cents: input.amountCents,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+  }
+
+  await mergePaymentIntentMetadata(existing.id, {
+    periodo_resumen: input.periodo,
+    claimed_payment_fecha: input.fecha,
+    claimed_metodo: input.metodo,
+    claimed_notes: input.notes,
+    claimed_amount_pen: input.amountPen,
+    gross_amount_cents: input.amountCents,
+    gross_usd_cents: input.amountCents,
+    manual_review_status: "awaiting_proof",
+  });
+
+  return {
+    paymentIntentId: existing.id,
+    status: "requires_payment",
+    amountCents: input.amountCents,
+    currency: "USD",
+    periodoResumen: input.periodo,
+  };
+}
+
 export type CreateMissingCobroClaimInput = {
   session: SessionUser;
   hecomClienteId: string;
@@ -185,8 +259,32 @@ export async function createMissingCobroClaim(
       : null;
 
   if (opCode) {
-    const dup = await isDuplicateOperationCode(opCode, "00000000-0000-0000-0000-000000000000");
-    if (dup) {
+    const existing = await findOperationCodeIntent(opCode);
+    if (existing) {
+      const resumed = await resumeOwnOpenMissingClaim(existing, {
+        hecomClienteId: input.hecomClienteId,
+        amountCents,
+        periodo,
+        fecha,
+        metodo,
+        notes,
+        amountPen,
+      });
+      if (resumed) return resumed;
+      const meta = existing.metadata;
+      const sameClient =
+        String(meta.hecom_cliente_id ?? "") === input.hecomClienteId;
+      const review = String(meta.manual_review_status ?? "");
+      if (
+        sameClient &&
+        (review === "pending_review" ||
+          review === "approved" ||
+          existing.status === "succeeded")
+      ) {
+        throw new Error(
+          "Este voucher ya está en revisión o ya fue registrado. No hace falta enviarlo otra vez.",
+        );
+      }
       throw new Error(
         "Este código de operación ya fue usado en otro pago. Si crees que es un error, escribe a soporte.",
       );
