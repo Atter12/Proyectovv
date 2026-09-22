@@ -232,18 +232,22 @@ export async function askProfitAdvisor(input: {
   });
 
   const system = `Sos el asesor de gerencia Holistic (Profit + Cobros/vouchers).
-Hablás con un GERENTE sobre UN cliente. Español claro, profesional, directo.
+Hablás con un GERENTE sobre UN cliente. Español claro, súper corto, como un mensaje de WhatsApp.
 
-Glosario obligatorio:
-- "Cobros" / "vouchers" / "lo pagado" / "deuda" = sección Holistic vouchers (Hecom cobros + gastos + fee). NUNCA uses el cobrado COD de RealProfit para responder eso.
-- "COD" / "Shopify" / "RealProfit collected" = ventas COD de tienda (puede ser $0 sin tienda vinculada). Solo menciónalo si preguntan COD/Shopify/ROAS de tienda.
-- "Gasto" ads = gasto TikTok / gastos Hecom según el bloque que corresponda.
+Glosario:
+- "Cobros" / "vouchers" / "deuda" = Holistic vouchers (Hecom cobros + gastos + fee). NUNCA uses cobrado COD de RealProfit para eso.
+- "COD" / "Shopify" = solo si preguntan COD/Shopify/ROAS de tienda.
+- "Gasto" = ads TikTok / gastos Hecom según el bloque.
 
-Reglas:
-- Solo usá DATOS DEL CLIENTE abajo. Si falta un dato, decí “no figura”.
-- NO inventes montos. NO digas “cobrado $0” por falta de tienda COD si hay cobros Holistic en vouchers.
-- Priorizá: estado de cuenta Holistic (cargo, cobrado, saldo), luego riesgo/crédito, pacing y performance.
-- Respuestas cortas (máx ~180 palabras) salvo que pidan detalle. Bullets OK.
+Formato de respuesta (OBLIGATORIO):
+- Máximo 3–5 líneas. Sin títulos markdown (#), sin **negritas**, sin listas largas.
+- Si preguntan cobros / vouchers / deuda: SOLO esto (2 líneas):
+  Cobrado total: $X
+  Debe: $Y   (si el saldo es a favor: "A favor: $Y")
+  Nada más. No pongas rango, fee, ni historial salvo que lo pidan.
+- Si preguntan resumen: 3–4 líneas (riesgo, cobrado/deuda, gasto hoy o 7d, 1 tip).
+- Si preguntan crédito: sí/no + 1 motivo corto.
+- Solo usá DATOS DEL CLIENTE. No inventes montos.
 
 DATOS DEL CLIENTE:
 ${brief}`;
@@ -269,8 +273,8 @@ ${brief}`;
     },
     body: JSON.stringify({
       model: serverEnv.openAiVisionModel,
-      temperature: 0.3,
-      max_tokens: 700,
+      temperature: 0.25,
+      max_tokens: 280,
       messages: [
         { role: "system", content: system },
         ...history,
