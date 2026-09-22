@@ -157,7 +157,7 @@ async function downloadStoredVideo(input: {
 
 function cachedTranscriptText(
   publish: Record<string, unknown>,
-): string | null | undefined {
+): string | undefined {
   if (typeof publish.transcript === "string" && publish.transcript_at) {
     return publish.transcript.replace(/\s+/g, " ").trim();
   }
