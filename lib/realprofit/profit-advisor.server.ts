@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
+import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 
@@ -19,6 +20,22 @@ function pct(n: number | null | undefined): string {
   return `${sign}${n.toFixed(0)}%`;
 }
 
+function ymdKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const raw = value.trim();
+  const iso = raw.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (!dmy) return null;
+  return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+}
+
+function inRange(fecha: string | null | undefined, from: string, to: string) {
+  const key = ymdKey(fecha);
+  if (!key) return false;
+  return key >= from && key <= to;
+}
+
 /**
  * Contexto compacto para el asesor de gerencia (OpenAI).
  * Solo hechos del cliente seleccionado — sin inventar.
@@ -32,11 +49,21 @@ export async function buildProfitAdvisorBrief(input: {
   const range = defaultProfitDateRange();
   const from = input.from?.trim() || range.from;
   const to = input.to?.trim() || range.to;
-  const data = await loadClienteProfitPromo({
-    hecomClienteId: input.hecomClienteId,
-    from,
-    to,
-  });
+
+  const [data, dashboard] = await Promise.all([
+    loadClienteProfitPromo({
+      hecomClienteId: input.hecomClienteId,
+      from,
+      to,
+    }),
+    getHecomClienteDashboard(input.hecomClienteId, {
+      fullFinance: true,
+      includeCampaignSpend: false,
+      includeCreativos: false,
+      includeDailySpend: true,
+    }).catch(() => null),
+  ]);
+
   const a = data.analysis;
   const ops = data.staffOps;
   const score = ops.score;
@@ -68,13 +95,79 @@ export async function buildProfitAdvisorBrief(input: {
 
   const lines: string[] = [
     `Cliente: ${input.clienteName} (id ${input.hecomClienteId})`,
-    `Rango análisis: ${from} → ${to}`,
+    `Rango UI Profit: ${from} → ${to}`,
     "",
-    "## Gasto / pacing",
+  ];
+
+  // Holistic vouchers FIRST — this is what gerencia means by cobros/gastos.
+  if (dashboard) {
+    const s = dashboard.summary;
+    const gastosInRange = dashboard.gastos.filter((g) =>
+      inRange(g.fecha, from, to),
+    );
+    const cobrosInRange = dashboard.cobros.filter((c) =>
+      inRange(c.fecha, from, to),
+    );
+    const gastoRange = gastosInRange.reduce((sum, g) => sum + g.gasto, 0);
+    const feeRange = gastosInRange.reduce((sum, g) => {
+      const pctFee =
+        g.fee != null && Number.isFinite(g.fee)
+          ? g.fee
+          : s.depositFeePercent;
+      return sum + (pctFee > 0 ? g.gasto * (pctFee / 100) : 0);
+    }, 0);
+    const cobroRange = cobrosInRange.reduce((sum, c) => sum + c.monto, 0);
+    const cargoRange = Math.round((gastoRange + feeRange) * 100) / 100;
+    const saldoRange = Math.round((cobroRange - cargoRange) * 100) / 100;
+
+    const recentCobros = [...dashboard.cobros]
+      .sort((x, y) => String(y.fecha ?? "").localeCompare(String(x.fecha ?? "")))
+      .slice(0, 12)
+      .map((c) => ({
+        fecha: c.fecha,
+        monto: Number(c.monto.toFixed(2)),
+        metodo: c.metodo,
+        notas: c.notas?.slice(0, 80) ?? null,
+        vouchers: c.comprobanteUrls.length,
+      }));
+    const recentGastos = [...dashboard.gastos]
+      .sort((x, y) => String(y.fecha ?? "").localeCompare(String(x.fecha ?? "")))
+      .slice(0, 10)
+      .map((g) => ({
+        fecha: g.fecha,
+        gasto: Number(g.gasto.toFixed(2)),
+        fee: g.fee,
+        camp: g.camp,
+      }));
+
+    lines.push(
+      "## Holistic vouchers / estado de cuenta (FUENTE PRINCIPAL de cobros y gastos)",
+      "Esto es lo mismo que Cobros → vouchers en Holistic (tablas Hecom gastos + cobros).",
+      `Fuente datos: ${dashboard.source}`,
+      `TOTAL cargado (gasto+fee histórico listado): ${money(s.cargoTotal)} · gasto ${money(s.gastoTotal)} · fee ${money(s.feeTotal)}`,
+      `TOTAL cobrado (cobros Holistic / vouchers): ${money(s.cobroTotal)}`,
+      `Saldo estimado (cobrado − cargo): ${money(s.saldoEstimado)} ${s.saldoEstimado < -0.01 ? "(cliente debe)" : s.saldoEstimado > 0.01 ? "(a favor del cliente)" : "(casi cuadrado)"}`,
+      `Fee Holistic: ${s.depositFeePercent}% (${s.depositFeeSource})`,
+      `En el rango ${from}→${to}: gasto ${money(gastoRange)} · fee ~${money(feeRange)} · cargo ${money(cargoRange)} · cobrado ${money(cobroRange)} · saldo rango ${money(saldoRange)}`,
+      `Filas: ${dashboard.cobros.length} cobros · ${dashboard.gastos.length} gastos (listado)`,
+      `Últimos cobros (voucher): ${JSON.stringify(recentCobros)}`,
+      `Últimos gastos: ${JSON.stringify(recentGastos)}`,
+      "",
+    );
+  } else {
+    lines.push(
+      "## Holistic vouchers / estado de cuenta",
+      "No se pudo cargar el dashboard Hecom (gastos/cobros). NO digas que cobró $0 por COD; decí que faltan vouchers Holistic.",
+      "",
+    );
+  }
+
+  lines.push(
+    "## Gasto TikTok live / pacing (Profit)",
     `Hoy: ${money(a.spendToday)} (${pct(a.spendTodayDeltaPct)} vs ayer)`,
     `7d: ${money(a.spend7d)} (${pct(a.spend7dDeltaPct)} vs 7d previo)`,
     `30d: ${money(a.spend30d)}`,
-    `En rango: ${money(a.spendInRange)} (${pct(a.spendRangeDeltaPct)} vs periodo previo)`,
+    `En rango Profit: ${money(a.spendInRange)} (${pct(a.spendRangeDeltaPct)} vs periodo previo)`,
     `Pacing: ${a.pacingLabel} (ratio ${a.pacingRatio?.toFixed(2) ?? "n/d"})`,
     `Días con actividad: ${a.daysWithActivity}`,
     `Datos hasta: ${a.dataThroughDate ?? "n/d"}`,
@@ -84,15 +177,14 @@ export async function buildProfitAdvisorBrief(input: {
       ? `Imp ${a.perf.impressions} · Clicks ${a.perf.clicks} · Conv ${a.perf.conversions} · CTR ${a.perf.avgCtr?.toFixed(2) ?? "n/d"}% · CPC ${money(a.perf.avgCpc)} · CPM ${money(a.perf.avgCpm)}`
       : `Perf no disponible${a.perf.error ? `: ${a.perf.error}` : ""}`,
     "",
-    "## COD / cobrado (tiendas)",
+    "## COD Shopify / RealProfit (OPCIONAL — NO es cobros Holistic)",
+    "Si preguntan 'cobros' o 'vouchers', IGNORÁ esta sección salvo que digan COD/Shopify/RealProfit.",
     `Tienda vinculada COD: ${a.hasCodLink ? "sí" : "no"}`,
-    `Cobrado collected: ${money(a.collectedRevenue)} · Órdenes: ${a.ordersCollected}`,
+    `Cobrado collected (órdenes COD): ${money(a.collectedRevenue)} · Órdenes: ${a.ordersCollected}`,
     `ROAS collected: ${a.roasCollected?.toFixed(2) ?? "n/d"} · ROAS efectivo: ${a.roasEffective?.toFixed(2) ?? "n/d"}`,
-    `Break-even ROAS (ads+fee ${a.feePercent}%): ${a.breakEvenRoas.toFixed(2)} · Sobre BE: ${a.aboveBreakEven == null ? "n/d" : a.aboveBreakEven ? "sí" : "no"}`,
-    `CPA collected: ${money(a.cpaCollected)} · Ticket medio: ${money(a.avgOrderCollected)}`,
     stores.length
       ? `Tiendas: ${JSON.stringify(stores)}`
-      : "Sin tiendas RealProfit vinculadas en snapshot.",
+      : "Sin tiendas RealProfit vinculadas (normal si el cliente no usa COD).",
     "",
     "## Crédito / ops (gerencia)",
     `Cartera Holistic: ${money(ops.walletAvailableUsd)}`,
@@ -102,7 +194,7 @@ export async function buildProfitAdvisorBrief(input: {
       : "Sin asignación reciente registrada",
     `Burn: ${ops.burn.status} (crit ${ops.burn.critical} / warn ${ops.burn.warn} / info ${ops.burn.info})`,
     `Hint crédito: ${ops.creditHint}`,
-    `Cobros 90d depósitos: ${ops.collections.deposits90d ?? "n/d"} · fallidos: ${ops.collections.failedDeposits90d ?? "n/d"} · tickets abiertos: ${ops.collections.openTickets ?? "n/d"}`,
+    `Depósitos wallet 90d (conteo): ${ops.collections.deposits90d ?? "n/d"} · fallidos: ${ops.collections.failedDeposits90d ?? "n/d"} · tickets abiertos: ${ops.collections.openTickets ?? "n/d"}`,
     "",
     "## Semáforo de riesgo",
     score
@@ -114,7 +206,7 @@ export async function buildProfitAdvisorBrief(input: {
     "",
     "## Top campañas por gasto",
     topCampaigns.length ? JSON.stringify(topCampaigns) : "Sin campañas con gasto",
-  ];
+  );
 
   return { brief: lines.join("\n"), from, to };
 }
@@ -139,13 +231,19 @@ export async function askProfitAdvisor(input: {
     to: input.to,
   });
 
-  const system = `Sos el asesor de gerencia Holistic para Real Profit / TikTok Ads.
-Hablás con un GERENTE que está mirando la ficha de un cliente. Español claro, profesional, directo.
-Solo usá los DATOS DEL CLIENTE que te paso abajo. Si falta un dato, decí “no figura en el snapshot”.
-NO inventes montos, ROAS, cobros ni tickets. NO des consejos ilegales.
-Priorizá: cómo va el cliente (riesgo), gasto/pacing, cobros, crédito, rendimiento (CTR/ROAS), qué hacer ahora.
-Respuestas cortas (máx ~180 palabras) salvo que pidan detalle. Usá bullets cuando ayude.
-Si preguntan algo fuera de este cliente (otros clientes, política interna secreta), redirigí a lo que sí tenés.
+  const system = `Sos el asesor de gerencia Holistic (Profit + Cobros/vouchers).
+Hablás con un GERENTE sobre UN cliente. Español claro, profesional, directo.
+
+Glosario obligatorio:
+- "Cobros" / "vouchers" / "lo pagado" / "deuda" = sección Holistic vouchers (Hecom cobros + gastos + fee). NUNCA uses el cobrado COD de RealProfit para responder eso.
+- "COD" / "Shopify" / "RealProfit collected" = ventas COD de tienda (puede ser $0 sin tienda vinculada). Solo menciónalo si preguntan COD/Shopify/ROAS de tienda.
+- "Gasto" ads = gasto TikTok / gastos Hecom según el bloque que corresponda.
+
+Reglas:
+- Solo usá DATOS DEL CLIENTE abajo. Si falta un dato, decí “no figura”.
+- NO inventes montos. NO digas “cobrado $0” por falta de tienda COD si hay cobros Holistic en vouchers.
+- Priorizá: estado de cuenta Holistic (cargo, cobrado, saldo), luego riesgo/crédito, pacing y performance.
+- Respuestas cortas (máx ~180 palabras) salvo que pidan detalle. Bullets OK.
 
 DATOS DEL CLIENTE:
 ${brief}`;
@@ -171,7 +269,7 @@ ${brief}`;
     },
     body: JSON.stringify({
       model: serverEnv.openAiVisionModel,
-      temperature: 0.35,
+      temperature: 0.3,
       max_tokens: 700,
       messages: [
         { role: "system", content: system },
