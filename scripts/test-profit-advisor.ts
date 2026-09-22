@@ -70,7 +70,7 @@ async function main() {
   console.log("Cliente:", match.name, `(${match.id})`);
 
   const { askProfitAdvisor } = await import(
-    "../lib/realprofit/profit-advisor.server.ts"
+    "../lib/realprofit/profit-advisor.server"
   );
 
   const questions = [
