@@ -1,6 +1,16 @@
 /** Prefijo cacheado de recomendaciones IA (cliente + servidor). */
 export const REJECT_REC_PREFIX = "REC|";
 
+export const REJECT_EDIT_FOCI = [
+  "video",
+  "ad_text",
+  "both",
+  "appeal",
+  "landing",
+] as const;
+
+export type RejectEditFocus = (typeof REJECT_EDIT_FOCI)[number];
+
 export type RejectRecommendation = {
   /** Qué hacer, en lenguaje de cliente (no copiar Ads Manager). */
   plan: string;
@@ -8,7 +18,26 @@ export type RejectRecommendation = {
   adText: string | null;
   /** Texto corto para apelar cuando TikTok se equivoca. */
   appeal: string | null;
+  /** Dónde está el arreglo, según el audio transcrito y el motivo. */
+  editFocus: RejectEditFocus | null;
+  /** Qué sacar o cambiar en lo que se dice en el video. */
+  videoFix: string | null;
+  /** Frase literal del voiceover que choca con el rechazo. */
+  quote: string | null;
 };
+
+function asFocus(value: unknown): RejectEditFocus | null {
+  return typeof value === "string" &&
+    (REJECT_EDIT_FOCI as readonly string[]).includes(value)
+    ? (value as RejectEditFocus)
+    : null;
+}
+
+function asShort(value: unknown, min: number): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/\s+/g, " ").trim();
+  return text.length >= min ? text : null;
+}
 
 function asObject(raw: string): RejectRecommendation | null {
   try {
@@ -17,14 +46,11 @@ function asObject(raw: string): RejectRecommendation | null {
     if (plan.length < 8) return null;
     return {
       plan,
-      adText:
-        typeof parsed.adText === "string" && parsed.adText.trim().length >= 8
-          ? parsed.adText.trim()
-          : null,
-      appeal:
-        typeof parsed.appeal === "string" && parsed.appeal.trim().length >= 8
-          ? parsed.appeal.trim()
-          : null,
+      adText: asShort(parsed.adText, 8),
+      appeal: asShort(parsed.appeal, 8),
+      editFocus: asFocus(parsed.editFocus),
+      videoFix: asShort(parsed.videoFix, 8),
+      quote: asShort(parsed.quote, 4),
     };
   } catch {
     return null;
@@ -43,9 +69,23 @@ export function parseRejectRecommendation(
     if (!body) return null;
     if (body.startsWith("{")) return asObject(body);
     // Formato viejo: solo una frase
-    return { plan: body, adText: null, appeal: null };
+    return {
+      plan: body,
+      adText: null,
+      appeal: null,
+      editFocus: null,
+      videoFix: null,
+      quote: null,
+    };
   }
-  return { plan: text, adText: null, appeal: null };
+  return {
+    plan: text,
+    adText: null,
+    appeal: null,
+    editFocus: null,
+    videoFix: null,
+    quote: null,
+  };
 }
 
 export function encodeRejectRecommendation(
@@ -55,6 +95,9 @@ export function encodeRejectRecommendation(
     plan: rec.plan,
     ...(rec.adText ? { adText: rec.adText } : {}),
     ...(rec.appeal ? { appeal: rec.appeal } : {}),
+    ...(rec.editFocus ? { editFocus: rec.editFocus } : {}),
+    ...(rec.videoFix ? { videoFix: rec.videoFix } : {}),
+    ...(rec.quote ? { quote: rec.quote } : {}),
   })}`;
 }
 

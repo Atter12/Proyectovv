@@ -2,7 +2,7 @@ import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import type { CreativeAnalysisInsight } from "@/lib/creatives/types";
 
-const PROMPT_VERSION = "creative-analyze-v1";
+const PROMPT_VERSION = "creative-analyze-v2";
 
 function clampScore(n: unknown, fallback = 50): number {
   const v = typeof n === "number" ? n : Number(n);
@@ -27,13 +27,13 @@ export async function analyzeCreativeWithOpenAi(input: {
   mimeType: string;
   assetName: string;
   assetType: string;
+  /** Voiceover de Whisper. No reemplaza lo visual; sí los claims hablados. */
+  transcript?: string | null;
 }): Promise<CreativeAnalysisInsight | null> {
   const apiKey = serverEnv.openAiApiKey?.trim();
   if (!apiKey) return null;
 
   const isImage = input.mimeType.startsWith("image/");
-  const base64 = input.buffer.toString("base64");
-  const dataUrl = `data:${input.mimeType};base64,${base64}`;
 
   const prompt = `Sos un analista senior de creativos TikTok Ads (Latam ecom).
 Evalúa este creativo "${input.assetName}" (tipo ${input.assetType}).
@@ -49,19 +49,26 @@ Devuelve SOLO JSON válido:
   "why_it_may_perform": "por qué puede rendir",
   "recommendations": ["mejoras accionables"]
 }
-Sé concreto y comercial. Si es PDF/video sin frames, infiere por nombre y contexto.`;
+Sé concreto y comercial. Si hay transcript, usalo para claims, CTA y riesgos de policy. No inventes frases que no estén ahí. Lo visual (zoom, texto en pantalla) no está en el audio.`;
 
   const content: Array<
     | { type: "text"; text: string }
     | { type: "image_url"; image_url: { url: string } }
   > = [{ type: "text", text: prompt }];
 
+  const spoken = String(input.transcript ?? "").replace(/\s+/g, " ").trim();
   if (isImage) {
+    const dataUrl = `data:${input.mimeType};base64,${input.buffer.toString("base64")}`;
     content.push({ type: "image_url", image_url: { url: dataUrl } });
+  } else if (spoken) {
+    content[0] = {
+      type: "text",
+      text: `${prompt}\n\nTRANSCRIPT (voiceover, Whisper): ${spoken.slice(0, 1500)}\nArchivo: ${input.mimeType} (${Math.round(input.buffer.length / 1024)} KB). No hay frames: juzgá lo dicho, no lo que se ve.`,
+    };
   } else {
     content[0] = {
       type: "text",
-      text: `${prompt}\n\nNota: el archivo es ${input.mimeType} (${Math.round(input.buffer.length / 1024)} KB). Analiza por nombre/tipo; no hay frame embebido.`,
+      text: `${prompt}\n\nNota: el archivo es ${input.mimeType} (${Math.round(input.buffer.length / 1024)} KB). Sin frames ni transcript. Analiza por nombre/tipo.`,
     };
   }
 

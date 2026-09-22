@@ -3,11 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env/env.server";
 import { classifyTikTokRejectReasons } from "@/lib/creatives/tiktok-reject-action";
 import type { CreativeDraftListItem } from "@/lib/creatives/types";
+import { ensureDraftTranscript } from "@/lib/creatives/transcribe-video.server";
 import {
   REJECT_REC_PREFIX,
   encodeRejectRecommendation,
   isEchoTikTokHint,
   parseRejectRecommendation,
+  type RejectEditFocus,
   type RejectRecommendation,
 } from "@/lib/creatives/reject-recommendation";
 
@@ -21,6 +23,9 @@ export {
 const PLAN_MAX = 180;
 const AD_MAX = 100;
 const APPEAL_MAX = 220;
+const VIDEO_FIX_MAX = 160;
+const QUOTE_MAX = 80;
+const TRANSCRIPT_MAX = 1500;
 
 const HARD_STOP =
   /\b(arma de fuego|firearms?|explosiv|bomba|coca[ií]na|hero[ií]na|fentanilo|metanfetamina|pornograf[ií]a infantil|contenido sexual de menores|child sexual)\b/i;
@@ -78,6 +83,24 @@ function looksWeightBan(reasons: string[]): boolean {
   );
 }
 
+function focusForKind(
+  kind: ReturnType<typeof classifyTikTokRejectReasons>,
+  reasons: string[],
+): RejectEditFocus {
+  if (kind === "landing") return "landing";
+  if (kind === "media_invalid") return "video";
+  if (looksWeightBan(reasons) || kind === "claims") return "both";
+  if (looksSexualFlag(reasons)) return "video";
+  return "both";
+}
+
+function blankSpoken(): Pick<
+  RejectRecommendation,
+  "videoFix" | "quote"
+> {
+  return { videoFix: null, quote: null };
+}
+
 function fallbackRecommendation(input: {
   kind: ReturnType<typeof classifyTikTokRejectReasons>;
   adName: string;
@@ -92,6 +115,8 @@ function fallbackRecommendation(input: {
   const sexual = looksSexualFlag(input.reasons);
   const weight = looksWeightBan(input.reasons);
 
+  const editFocus = focusForKind(input.kind, input.reasons);
+
   if (weight || input.kind === "claims") {
     return {
       plan: "1) Subí un video nuevo sin metabolismo, grasa ni ‘bajar de peso’. 2) Pegá el texto sugerido. Apelar casi no gana en este caso.",
@@ -99,6 +124,8 @@ function fallbackRecommendation(input: {
         ? `${label}: calidad y envío rápido. Pedí el tuyo hoy.`
         : "Calidad que se nota. Envío rápido. Pedí el tuyo hoy.",
       appeal: null,
+      editFocus,
+      ...blankSpoken(),
     };
   }
 
@@ -108,6 +135,8 @@ function fallbackRecommendation(input: {
       adText: null,
       appeal:
         "El creativo es de entrenamiento en gimnasio, sin contenido sexual ni lenguaje sugerente. Solicito revisión: el rechazo parece un falso positivo.",
+      editFocus,
+      ...blankSpoken(),
     };
   }
 
@@ -116,6 +145,8 @@ function fallbackRecommendation(input: {
       plan: "Subí el archivo de nuevo (export fresco). El mismo archivo no pasa. Después podés reenviar.",
       adText: null,
       appeal: null,
+      editFocus,
+      ...blankSpoken(),
     };
   }
 
@@ -124,6 +155,8 @@ function fallbackRecommendation(input: {
       plan: "Primero arreglá la página (producto, precio, privacidad). Otro video no lo soluciona.",
       adText: null,
       appeal: null,
+      editFocus: "landing",
+      ...blankSpoken(),
     };
   }
 
@@ -131,6 +164,8 @@ function fallbackRecommendation(input: {
     plan: "Primero subí un creativo corregido según el motivo. Apelar es el último paso si TikTok se equivocó.",
     adText: null,
     appeal: null,
+    editFocus,
+    ...blankSpoken(),
   };
 }
 
@@ -141,6 +176,7 @@ export async function suggestRejectFixHint(input: {
   adText?: string | null;
   draftId?: string;
   tiktokSuggestions?: string[] | null;
+  transcript?: string | null;
 }): Promise<RejectRecommendation | null> {
   const kind = classifyTikTokRejectReasons(input.reasons);
   const blob = [input.adName, ...input.reasons].join(" \n ");
@@ -149,6 +185,8 @@ export async function suggestRejectFixHint(input: {
       plan: "Este caso no se corrige desde Creativos. Habla con tu gestor.",
       adText: null,
       appeal: null,
+      editFocus: null,
+      ...blankSpoken(),
     };
   }
 
@@ -162,6 +200,7 @@ export async function suggestRejectFixHint(input: {
     });
   }
 
+  const transcript = clip(String(input.transcript ?? ""), TRANSCRIPT_MAX);
   const seed = (input.draftId ?? input.adName).slice(-6);
   const sexual = looksSexualFlag(input.reasons);
   const weight = looksWeightBan(input.reasons);
@@ -187,13 +226,24 @@ Cuenta: ${input.accountName?.trim() || "sin cuenta"}
 Video archivo: ${input.adName || "sin nombre"}
 Texto actual: ${input.adText?.trim() || "no hay"}
 Motivos TikTok: ${input.reasons.filter(Boolean).join(" | ") || "sin detalle"}
+TRANSCRIPT (voiceover): ${transcript || "no hay (mudo, sin archivo o no se pudo transcribir)"}
 Flags: sexual=${sexual} weightBan=${weight} kind=${kind}
+
+Si hay transcript:
+- Citá en "quote" la frase literal que choca con el motivo (máx 80). Vacío si no hay frase.
+- "videoFix": qué sacar o cambiar de lo que se dice (máx 140). Vacío si el problema no está en el audio.
+- "editFocus": "video" si el problema está en lo dicho; "ad_text" si solo en la descripción; "both" si en los dos; "appeal" SOLO si el transcript NO respalda el rechazo (falso positivo); "landing" si el problema es la página.
+Si NO hay transcript, igual devolvé editFocus según el motivo; quote y videoFix vacíos.
+No inventes frases que no estén en el transcript.
 
 JSON SOLO:
 {
   "plan": "máx 160 chars. Empezá por la corrección (subir otro). Apelar al final solo si aplica.",
   "adText": "máx 90 chars listos para pegar (sin Video N), o vacío",
-  "appeal": "máx 200 chars solo si conviene apelar (falso positivo). Vacío en sector prohibido."
+  "appeal": "máx 200 chars solo si conviene apelar (falso positivo). Vacío en sector prohibido.",
+  "editFocus": "video | ad_text | both | appeal | landing",
+  "videoFix": "qué cambiar en el video, o vacío",
+  "quote": "frase literal del audio, o vacío"
 }`;
 
   try {
@@ -231,6 +281,9 @@ JSON SOLO:
       plan?: unknown;
       adText?: unknown;
       appeal?: unknown;
+      editFocus?: unknown;
+      videoFix?: unknown;
+      quote?: unknown;
     };
     const plan =
       typeof parsed.plan === "string" ? clip(parsed.plan, PLAN_MAX) : "";
@@ -275,7 +328,31 @@ JSON SOLO:
         : null;
     // Sector prohibido: no empujar apelación
     if (weight) appeal = null;
-    return { plan, adText, appeal };
+    const allowed = new Set([
+      "video",
+      "ad_text",
+      "both",
+      "appeal",
+      "landing",
+    ]);
+    let editFocus: RejectEditFocus = allowed.has(String(parsed.editFocus))
+      ? (parsed.editFocus as RejectEditFocus)
+      : focusForKind(kind, input.reasons);
+    if (weight && editFocus === "appeal") editFocus = "both";
+    if (kind === "landing") editFocus = "landing";
+    const videoFix =
+      transcript &&
+      typeof parsed.videoFix === "string" &&
+      parsed.videoFix.trim().length >= 8
+        ? clip(parsed.videoFix, VIDEO_FIX_MAX)
+        : null;
+    const quote =
+      transcript &&
+      typeof parsed.quote === "string" &&
+      parsed.quote.trim().length >= 4
+        ? clip(parsed.quote, QUOTE_MAX)
+        : null;
+    return { plan, adText, appeal, editFocus, videoFix, quote };
   } catch (error) {
     console.warn(
       "[reject-fix-hint] failed",
@@ -295,6 +372,7 @@ export async function sameRejectWarning(input: {
   assetName: string;
   summary: string;
   policyRisks: string[];
+  transcript?: string | null;
 }): Promise<string | null> {
   const apiKey = serverEnv.openAiApiKey?.trim();
   if (!apiKey) return null;
@@ -304,6 +382,7 @@ export async function sameRejectWarning(input: {
   const prompt = `Compará un anuncio que TikTok ya rechazó con el video nuevo que el cliente quiere reenviar.
 Motivo anterior: ${parent}
 Video nuevo: ${input.assetName}
+Lo que se dice en el video nuevo: ${input.transcript?.trim() || "sin transcript"}
 Resumen IA: ${input.summary}
 Riesgos detectados: ${input.policyRisks.join(" | ") || "ninguno"}
 
@@ -363,7 +442,11 @@ export async function fillMissingRejectFixHints(
     const body = raw.slice(REJECT_REC_PREFIX.length).trim();
     if (body.startsWith("{")) {
       try {
-        const parsed = JSON.parse(body) as { adText?: string; plan?: string };
+        const parsed = JSON.parse(body) as {
+          adText?: string;
+          plan?: string;
+          editFocus?: string;
+        };
         if (
           /Video\s*\d+/i.test(
             `${parsed.adText ?? ""} ${parsed.plan ?? ""}`,
@@ -371,6 +454,7 @@ export async function fillMissingRejectFixHints(
         ) {
           return true;
         }
+        if (!parsed.editFocus) return true;
       } catch {
         /* ignore */
       }
@@ -395,6 +479,10 @@ export async function fillMissingRejectFixHints(
     pending.slice(0, 8).map(async (draft) => {
       const name =
         draft.brief.adName || draft.brief.campaignName || draft.assetName || "";
+      const transcript = await ensureDraftTranscript({
+        draftId: draft.id,
+        previewUrl: draft.previewUrl,
+      });
       const fix = await suggestRejectFixHint({
         adName: name,
         reasons: draft.tiktokRejectReasons,
@@ -402,6 +490,7 @@ export async function fillMissingRejectFixHints(
         adText: draft.brief.adText,
         draftId: draft.id,
         tiktokSuggestions: draft.tiktokSuggestions,
+        transcript,
       });
       if (!fix) return false;
       const stored = encodeRejectRecommendation(fix);

@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import {
-  CrmMetricCell,
-  CrmMetricsStrip,
-  CrmPanel,
-} from "@/components/dashboard/crm-ui";
+import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { CobroComprobantePreview } from "@/features/clientes/components/CobroComprobantePreview.client";
 import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
+import { VoucherAccountStatement } from "@/features/clientes/components/VoucherAccountStatement.client";
 import { formatHecomFecha } from "@/lib/hecom/gasto-label";
 import {
   moneyUsd,
@@ -115,7 +112,7 @@ export async function ClienteScopedCobros({
 }) {
   const t = await getTranslations("cobros");
   const { bcp47 } = await getAppFormatter();
-  const { cliente, summary, cobros } = data;
+  const { cliente, summary, cobros, gastos } = data;
 
   let claims: ManualPaymentIntentItem[] = [];
   try {
@@ -136,8 +133,7 @@ export async function ClienteScopedCobros({
             {t("title", { name: cliente.name })}
           </h2>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            Cada fila es un pago en Hecom. La fecha de pago es la real; “Ingreso
-            CRM” es cuándo se cargó al sistema (en syncs puede diferir).
+            Arriba ves gastos, cobros y cuánto debes. Abajo queda cada pago con su voucher.
           </p>
         </div>
         <Link
@@ -150,23 +146,21 @@ export async function ClienteScopedCobros({
 
       <MissingCobroClaimPanel periodos={periodos} initialClaims={claims} />
 
-      <CrmMetricsStrip>
-        <div className="grid grid-cols-2 gap-px bg-[var(--auth-divider)] sm:grid-cols-2">
-          <div className="bg-white">
-            <CrmMetricCell
-              label={t("totalPaid")}
-              value={moneyUsd(summary.cobroTotal)}
-              emphasis="primary"
-            />
-          </div>
-          <div className="bg-white">
-            <CrmMetricCell
-              label={t("records")}
-              value={String(cobros.length)}
-            />
-          </div>
-        </div>
-      </CrmMetricsStrip>
+      <VoucherAccountStatement
+        feePercent={summary.depositFeePercent}
+        capped={gastos.length >= 4000 || cobros.length >= 800}
+        gastos={gastos.map((row) => ({
+          fecha: row.fecha,
+          gasto: row.gasto,
+          fee: row.fee,
+          camp: row.camp,
+        }))}
+        cobros={cobros.map((row) => ({
+          fecha: row.fecha,
+          monto: row.monto,
+          metodo: row.metodo,
+        }))}
+      />
 
       <CrmPanel
         title={t("historyTitle")}

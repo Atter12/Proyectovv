@@ -674,7 +674,7 @@ async function resolveDailySpend(
 
 async function loadLiveFinance(
   clientId: string,
-  options: { includeCreativos?: boolean; lite?: boolean } = {},
+  options: { includeCreativos?: boolean; lite?: boolean; full?: boolean } = {},
 ): Promise<{
   gastos: HecomGastoRow[];
   cobros: HecomCobroRow[];
@@ -683,8 +683,9 @@ async function loadLiveFinance(
 } | null> {
   const includeCreativos = options.includeCreativos !== false;
   const lite = options.lite === true;
-  const gastosLimit = lite ? 400 : 1500;
-  const cobrosLimit = lite ? 25 : 80;
+  const full = options.full === true;
+  const gastosLimit = full ? 4000 : lite ? 400 : 1500;
+  const cobrosLimit = full ? 800 : lite ? 25 : 80;
   try {
     const hecom = createHecomAdminClient();
     const financeQueries = [
@@ -791,11 +792,14 @@ export const getHecomClienteDashboard = cache(
       includeCreativos?: boolean;
       /** Pagos solo necesita KPIs de cobros/gastos: salta snapshots + ventana 30d. */
       includeDailySpend?: boolean;
+      /** Vouchers: más filas para el estado de cuenta (deuda real). */
+      fullFinance?: boolean;
     } = {},
   ): Promise<HecomClienteDashboard | null> => {
     const includeCampaignSpend = options.includeCampaignSpend !== false;
     const includeCreativos = options.includeCreativos !== false;
     const includeDailySpend = options.includeDailySpend !== false;
+    const fullFinance = options.fullFinance === true;
     try {
       const cliente = await getHecomCliente(clienteId);
       if (!cliente) return null;
@@ -821,10 +825,12 @@ export const getHecomClienteDashboard = cache(
       const cfg = getHecomSupabaseConfig();
 
       if (cfg.configured) {
-        const financeLite = !includeCampaignSpend && !includeDailySpend;
+        const financeLite =
+          !fullFinance && !includeCampaignSpend && !includeDailySpend;
         const live = await loadLiveFinance(clienteId, {
           includeCreativos,
           lite: financeLite,
+          full: fullFinance,
         });
         if (live) {
           const gastos = sortGastosByDateDesc(

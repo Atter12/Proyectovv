@@ -463,6 +463,31 @@ export function AgentProDraftsPanel({
                   <p className="mt-0.5 text-[13px] font-medium leading-5 text-[#9a3412]">
                     {howto}
                   </p>
+                  {recommended?.editFocus ? (
+                    <p className="mt-1 text-[12px] font-semibold leading-4 text-[var(--auth-text)]">
+                      {t(`editFocus_${recommended.editFocus}`)}
+                    </p>
+                  ) : null}
+                  {recommended?.quote ? (
+                    <>
+                      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("videoSaysLabel")}
+                      </p>
+                      <p className="mt-0.5 text-[13px] leading-5 text-[var(--auth-text)]">
+                        “{recommended.quote}”
+                      </p>
+                    </>
+                  ) : null}
+                  {recommended?.videoFix ? (
+                    <>
+                      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        {t("videoFixLabel")}
+                      </p>
+                      <p className="mt-0.5 text-[13px] leading-5 text-[#9a3412]">
+                        {recommended.videoFix}
+                      </p>
+                    </>
+                  ) : null}
                   {suggestedAd ? (
                     <>
                       <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">

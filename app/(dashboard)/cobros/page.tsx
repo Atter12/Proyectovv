@@ -39,6 +39,7 @@ export default async function CobrosPage() {
     includeCampaignSpend: false,
     includeCreativos: false,
     includeDailySpend: false,
+    fullFinance: true,
   });
 
   if (!data) {

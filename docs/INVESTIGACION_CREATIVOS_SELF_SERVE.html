@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Investigación — Creativos self-serve frente a TikTok Ads Manager</title>
+  <style>
+    :root {
+      --ink: #1a1714;
+      --muted: #5c534c;
+      --line: #e6e0d8;
+      --accent: #c45c26;
+      --paper: #fbf8f4;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .page {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 40px 72px;
+    }
+    .cover {
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 28px;
+      margin-bottom: 36px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 12px;
+    }
+    h1 {
+      font-size: 28px;
+      line-height: 1.2;
+      margin: 0 0 14px;
+      letter-spacing: -0.02em;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+    .meta strong { color: var(--ink); }
+    h2 {
+      font-size: 18px;
+      margin: 36px 0 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 15px;
+      margin: 22px 0 8px;
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { margin: 0 0 14px; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; }
+    .abstract {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      padding: 16px 18px;
+      margin: 20px 0 8px;
+    }
+    .abstract p:last-child { margin-bottom: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      font-size: 13.5px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f3eee7;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f3eee7;
+      color: var(--muted);
+    }
+    .tag.ok { background: #e8f5ee; color: #1f5c40; }
+    .flow {
+      background: #fff;
+      border: 1px dashed var(--line);
+      padding: 14px 16px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12.5px;
+      white-space: pre-wrap;
+      margin: 12px 0 18px;
+    }
+    .footer-note {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .print-hint {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #1a1714;
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 13px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .print-hint button {
+      border: 0;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    @media print {
+      .print-hint { display: none !important; }
+      body { background: #fff; font-size: 12.5px; }
+      .page { max-width: none; padding: 0; }
+      h2 { break-after: avoid; }
+      table, .abstract, .flow { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-hint">
+    <span>Informe de investigación · listo para PDF (Ctrl+P → Guardar como PDF)</span>
+    <button type="button" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+
+  <main class="page">
+    <header class="cover">
+      <p class="eyebrow">Investigación aplicada · Producto + APIs</p>
+      <h1>Self-serve de creativos rechazados: reemplazar TikTok Ads Manager desde Creativos (Holistic)</h1>
+      <p class="meta">
+        <strong>Proyecto:</strong> Proyectovv / módulo Creativos<br />
+        <strong>Periodo:</strong> septiembre 2026<br />
+        <strong>Enfoque:</strong> review Smart+, motivos reales, preview, IA de corrección y apelación vía Marketing API
+      </p>
+    </header>
+
+    <section class="abstract">
+      <h3 style="margin-top:0">Resumen</h3>
+      <p>
+        El cliente de ecom Latam suele enterarse del rechazo de un anuncio solo en
+        <strong>TikTok Ads Manager</strong>, con fricción alta y tickets a soporte.
+        Esta investigación implementó un flujo <strong>self-serve en Creativos</strong>:
+        descubrir rechazos Smart+, mostrar preview del video, motivos reales de policy,
+        recomendación IA (no solo el tip genérico de TikTok) y, cuando aplica,
+        apelación por API — priorizando <strong>corregir antes de apelar</strong>.
+      </p>
+    </section>
+
+    <h2>1. Problema de investigación</h2>
+    <p>
+      Cuando TikTok baja o rechaza un creativo, el usuario típico pregunta:
+      “¿por qué me lo negaron?” y “¿qué hago?”. La respuesta estaba atrapada en Ads Manager
+      (motivos largos, material UNAVAILABLE, sin preview usable en nuestra UI).
+    </p>
+    <ul>
+      <li><strong>Hipótesis:</strong> con la Marketing API + IA se puede replicar (y mejorar) la experiencia de revisión sin abrir Ads Manager.</li>
+      <li><strong>No-objetivo:</strong> suspensión de cuenta / BM (otro epic); aquí el foco es <em>rechazo de material/anuncio</em>.</li>
+    </ul>
+
+    <h2>2. Objetivos</h2>
+    <ol>
+      <li>Listar solo los rechazos recientes del cliente (inbox accionable).</li>
+      <li>Mostrar video/portada usable (no placeholder vacío).</li>
+      <li>Exponer motivos de policy reales en español.</li>
+      <li>Dar un “qué hacer” propio (IA), distinto del copy genérico de TikTok.</li>
+      <li>Orden de producto: <strong>1) corregir (subir otro)</strong> → <strong>2) apelar solo si tiene sentido</strong>.</li>
+    </ol>
+
+    <h2>3. Metodología</h2>
+    <h3>3.1 Fuentes TikTok</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th>Uso en la investigación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/smart_plus/ad/review_info/</code></td>
+          <td>Estado UNAVAILABLE + <code>reject_info</code> (requiere <code>include_reject_info: true</code>)</td>
+        </tr>
+        <tr>
+          <td><code>/file/video/ad/info/</code></td>
+          <td>Portada y preview firmados (caducan; hay que refrescar)</td>
+        </tr>
+        <tr>
+          <td><code>/smart_plus/ad/appeal/</code></td>
+          <td>Misma cola de apelación que Ads Manager</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.2 Hallazgos técnicos clave</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Síntoma</th>
+          <th>Causa raíz</th>
+          <th>Solución</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>UI decía “no hay más detalle”</td>
+          <td>API sin <code>extra_info_setting.include_reject_info</code></td>
+          <td>Pedir reject_info + suggestion/specification</td>
+        </tr>
+        <tr>
+          <td>Miniatura en gris / “VIDEO”</td>
+          <td>CSP bloqueaba <code>tiktokcdn</code>; URLs firmadas vencidas; <code>http://</code> en portadas</td>
+          <td>Abrir CSP + hydrate de media + HTTPS</td>
+        </tr>
+        <tr>
+          <td>“Qué hacer” = Ads Manager</td>
+          <td>Se pegaba el tip genérico de TikTok</td>
+          <td>IA con plan / ad text / appeal propios</td>
+        </tr>
+        <tr>
+          <td>Apelar de entrada</td>
+          <td>CTA al mismo nivel que corregir</td>
+          <td>Corregir primero; apelar secundario + confirmación</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. Caso observado (cuenta de prueba)</h2>
+    <p>
+      En anuncios Smart+ con status <span class="tag">UNAVAILABLE</span>, al pedir
+      <code>include_reject_info</code> aparecieron motivos reales, por ejemplo:
+    </p>
+    <ul>
+      <li>Sector prohibido — pérdida de peso / metabolismo / quema de grasa (landing + creativo).</li>
+      <li>Flags de contenido “sexual/sugerente” que en gimnasio pueden ser <strong>falso positivo</strong>.</li>
+    </ul>
+    <p>
+      Conclusión de producto: en sector prohibido <strong>apelar casi no gana</strong>;
+      la vía útil es video/texto nuevos sin esas claims. En falso positivo sexual,
+      sí tiene sentido apelar con texto argumentado.
+    </p>
+
+    <h2>5. Flujo resultante (Creativos)</h2>
+    <div class="flow">Descubrir rechazos Smart+ (TTL)
+   → Hydrate: media fresca + motivos reales
+   → Card: preview (zoom + sonido) · por qué · qué hacer (IA)
+   → CTA 1: Subir video corregido
+   → CTA 2 (opcional): Apelar si TikTok se equivocó
+        (confirmación con el texto exacto enviado por API)</div>
+
+    <h2>6. Resultados (antes → después)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Dimensión</th>
+          <th>Antes</th>
+          <th>Después</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Motivo</td>
+          <td>“Material no disponible”</td>
+          <td>Policy real (peso, sexual, landing…)</td>
+        </tr>
+        <tr>
+          <td>Preview</td>
+          <td>Placeholder vacío</td>
+          <td>Portada + lightbox con audio</td>
+        </tr>
+        <tr>
+          <td>Acción</td>
+          <td>Tip genérico / confusión</td>
+          <td>Plan IA + texto sugerido + orden corregir→apelar</td>
+        </tr>
+        <tr>
+          <td>Apelación</td>
+          <td>Solo en Ads Manager</td>
+          <td>Self-serve vía API (misma cola)</td>
+        </tr>
+        <tr>
+          <td>Soporte</td>
+          <td>Tickets “¿por qué me rechazaron?”</td>
+          <td>Cliente ve y actúa en Creativos</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><span class="tag ok">Estado</span> Prototipo usable en producción (main); iterativo, pero ya en la dirección deseada.</p>
+
+    <h2>7. Limitaciones</h2>
+    <ul>
+      <li>URLs de preview firmadas caducan: dependen del refresh en cada carga.</li>
+      <li>QPS de TikTok: hay que paginar / sleep en sync masivo.</li>
+      <li>Apelar no modifica el creativo; si la policy es dura (sector prohibido), no “gana” sola.</li>
+      <li>La IA no debe inventar categoría de producto; usa cuenta / motivos / texto real.</li>
+    </ul>
+
+    <h2>8. Conclusiones</h2>
+    <ol>
+      <li>Sí se puede acercar (y en parte superar) Ads Manager para el caso “video rechazado” desde Creativos.</li>
+      <li>El valor no está en copiar el tip de TikTok, sino en <strong>traducir el rechazo a una acción</strong> (corregir vs apelar).</li>
+      <li>La investigación confirma: <em>dato API incompleto</em> + <em>CSP/media</em> + <em>UX de CTAs</em> eran los tres bloqueos principales.</li>
+    </ol>
+
+    <h2>9. Próximos pasos (investigación / producto)</h2>
+    <ul>
+      <li>Cachear portadas en storage propio (menos dependencia de firmas TikTok).</li>
+      <li>Medir tasa: corrección subida vs apelación vs re-rechazo.</li>
+      <li>Separar aún más “cuenta suspendida” vs “creativo rechazado” en la narrativa al cliente.</li>
+    </ul>
+
+    <div class="footer-note">
+      Documento generado para presentación de investigación · módulo Creativos (Proyectovv).<br />
+      Para PDF: botón superior o Ctrl+P → destino “Guardar como PDF” · márgenes normales · sin encabezados del navegador si preferís.
+    </div>
+  </main>
+</body>
+</html>

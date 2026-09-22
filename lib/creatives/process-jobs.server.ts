@@ -6,6 +6,7 @@ import {
   creativeAnalyzePromptVersion,
 } from "@/lib/creatives/analyze-creative.server";
 import { sameRejectWarning } from "@/lib/creatives/reject-fix-hint.server";
+import { transcribeVideoBuffer } from "@/lib/creatives/transcribe-video.server";
 import type { CreativeAnalysisInsight } from "@/lib/creatives/types";
 
 async function downloadAssetBuffer(input: {
@@ -50,6 +51,7 @@ async function createAgentDraft(input: {
   insight: CreativeAnalysisInsight;
   requestedBy: string | null;
   parentDraftId: string | null;
+  transcript: string | null;
 }) {
   const brief = await buildAgentBriefWithOpenAi({
     assetName: input.assetName,
@@ -74,6 +76,7 @@ async function createAgentDraft(input: {
       assetName: input.assetName,
       summary: input.insight.summary,
       policyRisks: input.insight.policyRisks,
+      transcript: input.transcript,
     });
     if (warning) {
       brief.notes = [`SAME_FAIL: ${warning}`, ...brief.notes].slice(0, 4);
@@ -167,11 +170,24 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
     return { ok: false, error: "Download failed." };
   }
 
+  const mimeType = asset.mime_type || downloaded.mimeType;
+  const isVideo =
+    mimeType.startsWith("video/") || asset.asset_type === "video";
+  const spoken = isVideo
+    ? await transcribeVideoBuffer({
+        buffer: downloaded.buffer,
+        mimeType,
+        filename: asset.name,
+      })
+    : null;
+  const transcript = spoken?.text?.trim() || null;
+
   const insight = await analyzeCreativeWithOpenAi({
     buffer: downloaded.buffer,
-    mimeType: asset.mime_type || downloaded.mimeType,
+    mimeType,
     assetName: asset.name,
     assetType: asset.asset_type,
+    transcript,
   });
 
   if (!insight) {
@@ -200,6 +216,7 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
           hooks: insight.hooks,
           policy_risks: insight.policyRisks,
           why_it_may_perform: insight.whyItMayPerform,
+          transcript,
         },
         score: insight.overallScore,
         summary: insight.summary,
@@ -264,6 +281,7 @@ export async function processCreativeAnalysisJob(jobId: string): Promise<{
     insight,
     requestedBy: job.requested_by,
     parentDraftId,
+    transcript,
   });
 
   return { ok: true };

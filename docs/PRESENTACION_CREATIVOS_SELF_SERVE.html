@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Creativos Holistic — Presentación (no técnica)</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap");
+
+    :root {
+      --ink: #1c1916;
+      --muted: #6b635c;
+      --paper: #fffaf4;
+      --panel: #ffffff;
+      --line: #e8dfd4;
+      --accent: #c45c26;
+      --accent-soft: #f3e4d8;
+      --ok: #2f6b4f;
+      --bad: #a33b2b;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #111;
+      color: var(--ink);
+      font-family: Manrope, "Segoe UI", sans-serif;
+    }
+
+    .deck {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .slide {
+      display: none;
+      height: 100vh;
+      width: 100vw;
+      padding: 48px 64px 72px;
+      background:
+        radial-gradient(1200px 600px at 90% -10%, #f6e7d8 0%, transparent 55%),
+        linear-gradient(180deg, #fffaf4 0%, #f7f1ea 100%);
+      position: relative;
+    }
+    .slide.active { display: grid; }
+    .slide.cover {
+      background:
+        linear-gradient(105deg, rgba(28,25,22,0.82) 0%, rgba(28,25,22,0.35) 48%, rgba(28,25,22,0.15) 100%),
+        url("presentacion-creativos/slide-portada.png") center/cover no-repeat;
+      color: #fffaf4;
+    }
+    .slide.cover .eyebrow { color: #f0c9ae; }
+    .slide.cover .sub { color: rgba(255,250,244,0.88); }
+    .slide.cover .hint { color: rgba(255,250,244,0.55); }
+
+    .inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      width: 100%;
+      align-self: center;
+    }
+
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 14px;
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(36px, 5vw, 58px);
+      line-height: 1.08;
+      margin: 0 0 18px;
+      letter-spacing: -0.02em;
+      max-width: 14ch;
+    }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(28px, 3.6vw, 42px);
+      line-height: 1.15;
+      margin: 0 0 14px;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-size: clamp(17px, 1.6vw, 22px);
+      line-height: 1.45;
+      color: var(--muted);
+      max-width: 38ch;
+      margin: 0;
+      font-weight: 500;
+    }
+    .hint {
+      position: absolute;
+      left: 64px;
+      bottom: 28px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pager {
+      position: absolute;
+      right: 64px;
+      bottom: 28px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .slide.cover .pager { color: rgba(255,250,244,0.7); }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .split.rev { grid-template-columns: 0.95fr 1.05fr; }
+    .visual {
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(28,25,22,0.08);
+      box-shadow: 0 18px 50px rgba(28,25,22,0.1);
+      background: #fff;
+    }
+    .visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+      vertical-align: middle;
+    }
+
+    .bullets {
+      list-style: none;
+      padding: 0;
+      margin: 22px 0 0;
+    }
+    .bullets li {
+      position: relative;
+      padding: 12px 0 12px 28px;
+      font-size: 18px;
+      line-height: 1.4;
+      border-bottom: 1px solid var(--line);
+      font-weight: 500;
+    }
+    .bullets li:last-child { border-bottom: 0; }
+    .bullets li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 1.15em;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      transform: translateY(-50%);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-top: 28px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 22px 18px;
+    }
+    .card .tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .card.bad .tag { background: #f8e4e0; color: var(--bad); }
+    .card.ok .tag { background: #e5f0e9; color: var(--ok); }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      font-family: Fraunces, Georgia, serif;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    .big-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .step {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px 18px;
+      min-height: 160px;
+    }
+    .step .n {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-family: Fraunces, Georgia, serif;
+    }
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .quote {
+      margin-top: 26px;
+      padding: 22px 24px;
+      background: var(--accent-soft);
+      border-radius: 16px;
+      font-size: 20px;
+      line-height: 1.4;
+      font-weight: 600;
+      max-width: 46ch;
+    }
+
+    .nav-btns {
+      position: fixed;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 20;
+    }
+    .nav-btns button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(28,25,22,0.15);
+      background: rgba(255,250,244,0.92);
+      color: var(--ink);
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .nav-btns button:hover { background: #fff; }
+
+    .toolbar {
+      position: fixed;
+      left: 24px;
+      top: 24px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+    }
+    .toolbar button {
+      border: 1px solid rgba(28,25,22,0.12);
+      background: rgba(255,250,244,0.94);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    @media (max-width: 900px) {
+      .slide { padding: 28px 22px 64px; }
+      .split, .split.rev, .compare, .big-steps {
+        grid-template-columns: 1fr;
+      }
+      .hint, .pager { left: 22px; right: 22px; }
+      .pager { text-align: right; }
+      .nav-btns { display: none; }
+      h1 { max-width: none; }
+    }
+
+    @media print {
+      @page { size: landscape; margin: 0; }
+      html, body { height: auto; background: #fff; }
+      .deck { overflow: visible; }
+      .slide {
+        display: grid !important;
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+        width: 100vw;
+      }
+      .nav-btns, .toolbar, .hint { display: none !important; }
+      .pager { color: var(--muted) !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+  <div class="nav-btns">
+    <button type="button" aria-label="Anterior" onclick="go(-1)">↑</button>
+    <button type="button" aria-label="Siguiente" onclick="go(1)">↓</button>
+  </div>
+
+  <div class="deck" id="deck">
+
+    <!-- 1 -->
+    <section class="slide cover active">
+      <div class="inner">
+        <p class="eyebrow">Investigación Holistic · Creativos</p>
+        <h1>Que el cliente se arregle solo</h1>
+        <p class="sub">Sin pedirle a soporte que “mire el Ads Manager”.</p>
+      </div>
+      <p class="hint">Flechas ↑ ↓ o clic · Imprimir / PDF arriba a la izquierda</p>
+      <p class="pager">01 / 08</p>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <div class="inner split">
+        <div>
+          <p class="eyebrow">El problema</p>
+          <h2>Un anuncio rechazado = confusión</h2>
+          <p class="sub">La persona no sabe qué pasó, qué tocar, ni si conviene apelar.</p>
+          <ul class="bullets">
+            <li>Tiene que ir a TikTok Ads Manager</li>
+            <li>Lee mensajes difíciles de entender</li>
+            <li>Termina escribiendo a soporte</li>
+          </ul>
+        </div>
+        <div class="visual">
+          <img src="presentacion-creativos/slide-problema.png" alt="Persona confundida frente a rechazos en Ads Manager" />
+        </div>
+      </div>
+      <p class="pager">02 / 08</p>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">Qué queríamos</p>
+        <h2>Todo dentro de Holistic</h2>
+        <p class="sub">Ver el video, entender el rechazo y saber el siguiente paso — sin salir de Creativos.</p>
+        <div class="compare">
+          <div class="card bad">
+            <span class="tag">Antes</span>
+            <h3>“Avisá a soporte”</h3>
+            <p>El cliente se queda trabado y alguien del equipo tiene que revisar a mano.</p>
+          </div>
+          <div class="card ok">
+            <span class="tag">Ahora</span>
+            <h3>“Yo me lo arreglo”</h3>
+            <p>Ve el creativo, lee el motivo claro y sigue un plan simple para corregirlo.</p>
+          </div>
+        </div>
+      </div>
+      <p class="pager">03 / 08</p>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <div class="inner split rev">
+        <div class="visual">
+          <img src="presentacion-creativos/slide-solucion.png" alt="Inbox de Creativos con motivo y plan claro" />
+        </div>
+        <div>
+          <p class="eyebrow">La solución</p>
+          <h2>Una bandeja de creativos rechazados</h2>
+          <ul class="bullets">
+            <li>Preview del video (con zoom y sonido)</li>
+            <li>Motivo real del rechazo, en español claro</li>
+            <li>Plan de IA: qué corregir primero</li>
+            <li>Apelar solo si hace falta</li>
+          </ul>
+        </div>
+      </div>
+      <p class="pager">04 / 08</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">Cómo se usa</p>
+        <h2>Cuatro pasos, sin misterio</h2>
+        <div class="visual" style="margin-top:22px">
+          <img src="presentacion-creativos/slide-flujo.png" alt="Flujo: ver, entender, corregir, apelar" />
+        </div>
+        <div class="big-steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Ver</h3>
+            <p>Abre el creativo y revisa el video completo.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Entender</h3>
+            <p>Lee por qué TikTok lo rechazó, en palabras simples.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Corregir</h3>
+            <p>Sigue el plan y sube una versión mejor.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>Apelar</h3>
+            <p>Solo si el rechazo parece un error claro.</p>
+          </div>
+        </div>
+      </div>
+      <p class="pager">05 / 08</p>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">Regla de oro</p>
+        <h2>Primero corregir. Después apelar.</h2>
+        <div class="compare">
+          <div class="card ok">
+            <span class="tag">Sí conviene</span>
+            <h3>Subir de nuevo</h3>
+            <p>Si el video tiene algo que se puede cambiar (texto, imagen, tono, claim), lo correcto es corregir y publicar otra vez.</p>
+          </div>
+          <div class="card bad">
+            <span class="tag">Cuidado</span>
+            <h3>Apelar a ciegas</h3>
+            <p>Apelar sin cambiar nada casi nunca ayuda. Gasta tiempo y no mejora el creativo.</p>
+          </div>
+        </div>
+        <div class="quote">
+          “La apelación no es el atajo. El creativo bueno sí lo es.”
+        </div>
+      </div>
+      <p class="pager">06 / 08</p>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">Qué cambia para el negocio</p>
+        <h2>Menos tickets. Más autonomía.</h2>
+        <div class="compare">
+          <div class="card">
+            <span class="tag" style="background:#f3e4d8;color:#c45c26">Cliente</span>
+            <h3>Resuelve solo</h3>
+            <p>Ve qué falló y qué hacer. No necesita esperar respuesta de soporte para el 80% de los casos.</p>
+          </div>
+          <div class="card">
+            <span class="tag" style="background:#f3e4d8;color:#c45c26">Equipo</span>
+            <h3>Soporte más liviano</h3>
+            <p>Menos “mirame este rechazo”. El equipo entra solo cuando el caso es raro o grave.</p>
+          </div>
+        </div>
+        <ul class="bullets" style="max-width:52ch">
+          <li>Menos fricción operativa</li>
+          <li>Mejor aprendizaje del anunciante</li>
+          <li>Creativos más limpios a la segunda</li>
+        </ul>
+      </div>
+      <p class="pager">07 / 08</p>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">Cierre</p>
+        <h2>Ya estamos llegando al punto</h2>
+        <p class="sub">Creativos deja de ser “solo subir” y pasa a ser “arreglar rechazos sin salir de Holistic”.</p>
+        <div class="quote">
+          De Ads Manager confuso → a una bandeja clara: ver, entender, corregir, y recién ahí apelar.
+        </div>
+        <ul class="bullets" style="max-width:48ch; margin-top:28px">
+          <li>Listo para mostrar en demo</li>
+          <li>Pensado para gente de negocio, no solo tech</li>
+          <li>Siguiente: usarlo con clientes reales y medir tickets</li>
+        </ul>
+      </div>
+      <p class="pager">08 / 08</p>
+    </section>
+
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    let i = 0;
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+    }
+    function go(d) { show(i + d); }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        go(1);
+      }
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        go(-1);
+      }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+    });
+
+    let touchY = null;
+    window.addEventListener("touchstart", (e) => {
+      touchY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    window.addEventListener("touchend", (e) => {
+      if (touchY == null) return;
+      const dy = touchY - e.changedTouches[0].screenY;
+      if (Math.abs(dy) > 50) go(dy > 0 ? 1 : -1);
+      touchY = null;
+    }, { passive: true });
+  </script>
+</body>
+</html>

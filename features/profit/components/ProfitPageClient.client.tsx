@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
+import { ProfitAdvisorBot } from "@/features/profit/components/ProfitAdvisorBot.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
@@ -1121,6 +1122,10 @@ export function ProfitPageClient({
           fromLiveFallback={staffOpsResolved.fromLiveFallback}
           t={t}
         />
+      ) : null}
+
+      {isStaff ? (
+        <ProfitAdvisorBot clienteName={clienteName} from={from} to={to} />
       ) : null}
 
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
