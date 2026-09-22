@@ -25,17 +25,17 @@ function plainReply(text: string): string {
 
 function TypingDots({ label }: { label: string }) {
   return (
-    <p
-      className="inline-flex items-center gap-2 text-[12px] tracking-wide text-[#8a8177]"
+    <div
+      className="mr-auto inline-flex items-center gap-2 rounded-full border border-[#f2dccd] bg-[#fff7f0] px-3 py-2 text-[12px] tracking-wide text-[#a54a1d]"
       aria-live="polite"
     >
       <span className="flex items-center gap-1" aria-hidden>
-        <span className="h-1 w-1 animate-pulse rounded-full bg-[#8a8177]" />
-        <span className="h-1 w-1 animate-pulse rounded-full bg-[#8a8177] [animation-delay:180ms]" />
-        <span className="h-1 w-1 animate-pulse rounded-full bg-[#8a8177] [animation-delay:360ms]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d] [animation-delay:160ms]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d] [animation-delay:320ms]" />
       </span>
-      <span className="italic">{label}</span>
-    </p>
+      <span>{label}</span>
+    </div>
   );
 }
 
@@ -108,15 +108,24 @@ export function ProfitAdvisorBot({
   return (
     <section
       id="profit-advisor"
-      className="overflow-hidden rounded-2xl border border-[#e6e1da] bg-white"
+      className="relative overflow-hidden rounded-[1.4rem] border border-[#eadfd5] bg-[#fffdfb] shadow-[0_20px_60px_-36px_rgb(92_52_31_/_0.48)]"
       aria-label={t("advisorTitle")}
     >
-      <header className="flex items-end justify-between gap-4 border-b border-[#efeae3] px-6 py-5">
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#9a9187]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#ff781f]/10 blur-3xl"
+      />
+      <header className="relative flex items-center gap-4 border-b border-[#eee3da] bg-[linear-gradient(120deg,#fff8f2_0%,#fffdfb_55%,#f8efe8_100%)] px-6 py-5">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#1c1917] shadow-[0_8px_22px_-12px_rgb(28_25_23_/_0.75)]">
+          <span className="text-[11px] font-black tracking-tight text-[#ff8a45]">
+            AI
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#cf5a20]">
             {t("advisorEyebrow")}
           </p>
-          <h2 className="mt-1.5 text-[1.15rem] font-medium tracking-[-0.02em] text-[#1c1917]">
+          <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.025em] text-[#1c1917]">
             {t("advisorTitle")}
           </h2>
           <p className="mt-1 max-w-lg text-[12.5px] leading-5 text-[#6b645c]">
@@ -127,21 +136,21 @@ export function ProfitAdvisorBot({
 
       <div
         ref={scrollerRef}
-        className="flex max-h-[min(48vh,400px)] min-h-[220px] flex-col gap-4 overflow-y-auto px-6 py-5"
+        className="relative flex max-h-[min(48vh,400px)] min-h-[220px] flex-col gap-4 overflow-y-auto bg-[linear-gradient(180deg,#fffdfb_0%,#fffaf6_100%)] px-6 py-5"
       >
         {turns.length === 0 ? (
-          <div className="space-y-4">
+          <div className="rounded-2xl border border-[#f0e5dc] bg-white/80 p-4 shadow-[0_10px_24px_-22px_rgb(28_25_23_/_0.5)]">
             <p className="max-w-md text-[13.5px] leading-6 text-[#3f3a35]">
               {t("advisorWelcome", { name: clienteName })}
             </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {SUGGESTION_KEYS.map((key) => (
                 <button
                   key={key}
                   type="button"
                   disabled={busy}
                   onClick={() => void ask(t(key))}
-                  className="text-left text-[12.5px] text-[#1c1917] underline decoration-[#d6cfc6] underline-offset-[5px] transition hover:decoration-[#1c1917] disabled:opacity-40"
+                  className="rounded-full border border-[#eadfd5] bg-[#fffaf6] px-3 py-1.5 text-left text-[12px] font-semibold text-[#5c3b2b] transition hover:border-[#ed6b2d]/50 hover:bg-[#fff1e7] disabled:opacity-40"
                 >
                   {t(key)}
                 </button>
@@ -154,14 +163,14 @@ export function ProfitAdvisorBot({
           turn.role === "user" ? (
             <p
               key={`${turn.role}-${i}`}
-              className="ml-auto max-w-[80%] text-right text-[13px] leading-5 text-[#6b645c]"
+              className="ml-auto max-w-[82%] rounded-2xl rounded-br-md bg-[#1c1917] px-3.5 py-2.5 text-[13px] leading-5 text-white shadow-[0_9px_22px_-17px_rgb(28_25_23_/_0.9)]"
             >
               {turn.content}
             </p>
           ) : (
             <p
               key={`${turn.role}-${i}`}
-              className="max-w-[34rem] whitespace-pre-wrap border-l border-[#1c1917] pl-3 text-[13.5px] leading-6 text-[#1c1917]"
+              className="max-w-[34rem] whitespace-pre-wrap rounded-2xl rounded-bl-md border border-[#eedfd4] bg-white px-4 py-3 text-[13.5px] leading-6 text-[#2a2622] shadow-[0_10px_24px_-22px_rgb(28_25_23_/_0.6)]"
             >
               {turn.content}
             </p>
@@ -177,13 +186,13 @@ export function ProfitAdvisorBot({
       </div>
 
       <form
-        className="border-t border-[#efeae3] px-6 py-4"
+        className="relative border-t border-[#eee3da] bg-white px-5 py-4 sm:px-6"
         onSubmit={(e) => {
           e.preventDefault();
           void ask(input);
         }}
       >
-        <div className="flex items-end gap-4">
+        <div className="flex items-end gap-3 rounded-2xl border border-[#e9ded4] bg-[#fffaf6] px-3 py-2 transition focus-within:border-[#ed6b2d]/55 focus-within:bg-white focus-within:ring-4 focus-within:ring-[#ff781f]/[0.07]">
           <textarea
             ref={inputRef}
             value={input}
@@ -192,7 +201,7 @@ export function ProfitAdvisorBot({
             maxLength={800}
             disabled={busy}
             placeholder={t("advisorPlaceholder")}
-            className="max-h-28 min-h-[40px] flex-1 resize-none border-0 bg-transparent py-2 text-[13.5px] text-[#1c1917] outline-none placeholder:text-[#b3aaa1] disabled:opacity-50"
+            className="max-h-28 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[13.5px] text-[#1c1917] outline-none placeholder:text-[#a79e95] disabled:opacity-50"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -203,12 +212,12 @@ export function ProfitAdvisorBot({
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="mb-1 shrink-0 text-[12px] font-medium uppercase tracking-[0.16em] text-[#1c1917] transition hover:text-[#c45c26] disabled:text-[#c8c0b8]"
+            className="mb-0.5 inline-flex h-9 shrink-0 items-center rounded-xl bg-[#ed6b2d] px-4 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_8px_18px_-12px_rgb(237_107_45_/_0.8)] transition hover:bg-[#d95b22] disabled:bg-[#e8ddd5] disabled:text-[#aaa096] disabled:shadow-none"
           >
             {t("advisorSend")}
           </button>
         </div>
-        <p className="mt-1 text-[10px] tracking-wide text-[#b3aaa1]">
+        <p className="mt-2 px-1 text-[10px] tracking-wide text-[#aaa096]">
           {t("advisorFootnote")}
         </p>
       </form>
