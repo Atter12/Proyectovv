@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
+import { getHecomAdAccountsLiveMetrics } from "@/lib/hecom/ad-account-live.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
@@ -50,7 +51,7 @@ export async function buildProfitAdvisorBrief(input: {
   const from = input.from?.trim() || range.from;
   const to = input.to?.trim() || range.to;
 
-  const [data, dashboard] = await Promise.all([
+  const [data, dashboard, live] = await Promise.all([
     loadClienteProfitPromo({
       hecomClienteId: input.hecomClienteId,
       from,
@@ -62,6 +63,7 @@ export async function buildProfitAdvisorBrief(input: {
       includeCreativos: false,
       includeDailySpend: true,
     }).catch(() => null),
+    getHecomAdAccountsLiveMetrics(input.hecomClienteId, "fast").catch(() => null),
   ]);
 
   const a = data.analysis;
@@ -93,13 +95,62 @@ export async function buildProfitAdvisorBrief(input: {
       orders: s.ordersCollected,
     }));
 
+  let cobroTotalHol: number | null = null;
+  let debeAbs: number | null = null;
+  let aFavorAbs: number | null = null;
+  let cargoTotal: number | null = null;
+  let gastoTotalHist: number | null = null;
+  let gastoHoyHecom: number | null = null;
+  let gasto7dHecom: number | null = null;
+
+  if (dashboard) {
+    const s = dashboard.summary;
+    cobroTotalHol = s.cobroTotal;
+    cargoTotal = s.cargoTotal;
+    gastoTotalHist = s.gastoTotal;
+    gastoHoyHecom = s.gastoHoy;
+    gasto7dHecom = s.gasto7d;
+    if (s.saldoEstimado < -0.004) debeAbs = Math.abs(s.saldoEstimado);
+    else if (s.saldoEstimado > 0.004) aFavorAbs = s.saldoEstimado;
+  }
+
+  // Misma cifra que el panel de gerencia “Gasto hoy” (live TikTok si hay).
+  const liveSpendToday =
+    live?.accounts.reduce((sum, row) => sum + (row.spendTodayUsd ?? 0), 0) ??
+    null;
+  const gastoHoyProfit = a.spendToday;
+  const gastoHoyMostrar =
+    liveSpendToday != null && liveSpendToday > 0.004
+      ? liveSpendToday
+      : Number.isFinite(gastoHoyProfit) && gastoHoyProfit > 0
+        ? gastoHoyProfit
+        : (gastoHoyHecom ?? gastoHoyProfit);
+
   const lines: string[] = [
     `Cliente: ${input.clienteName} (id ${input.hecomClienteId})`,
     `Rango UI Profit: ${from} → ${to}`,
     "",
+    "## NUMEROS LISTOS (copiá estos; no inventes ni pongas $0 si acá hay valor)",
+    `Cobrado total vouchers: ${money(cobroTotalHol)}`,
+    debeAbs != null
+      ? `Debe: ${money(debeAbs)}`
+      : aFavorAbs != null
+        ? `A favor: ${money(aFavorAbs)}`
+        : "Debe: $0.00 (cuadrado)",
+    `Cargo total (gasto+fee histórico): ${money(cargoTotal)}`,
+    `Gasto ads histórico (Hecom): ${money(gastoTotalHist)}`,
+    `Gasto hoy (TikTok live — PRIORIDAD, igual que el panel): ${money(gastoHoyMostrar)}`,
+    `Gasto hoy snapshot Profit: ${money(gastoHoyProfit)} · Hecom: ${money(gastoHoyHecom)}`,
+    live
+      ? `Live sync: ${live.accounts.length} cuentas · ${live.updatedAt}`
+      : "Live TikTok: no disponible",
+    `Gasto 7d (Profit — PRIORIDAD): ${money(a.spend7d)} · Hecom 7d: ${money(gasto7dHecom)}`,
+    `Gasto 30d Profit: ${money(a.spend30d)}`,
+    `Cartera: ${money(ops.walletAvailableUsd)} · Ledger cuentas: ${money(ops.adLedgerAvailableUsd)}`,
+    `Riesgo: ${score ? `${score.score ?? "n/d"} (${score.verdict})` : "n/d"}`,
+    "",
   ];
 
-  // Holistic vouchers FIRST — this is what gerencia means by cobros/gastos.
   if (dashboard) {
     const s = dashboard.summary;
     const gastosInRange = dashboard.gastos.filter((g) =>
@@ -111,9 +162,7 @@ export async function buildProfitAdvisorBrief(input: {
     const gastoRange = gastosInRange.reduce((sum, g) => sum + g.gasto, 0);
     const feeRange = gastosInRange.reduce((sum, g) => {
       const pctFee =
-        g.fee != null && Number.isFinite(g.fee)
-          ? g.fee
-          : s.depositFeePercent;
+        g.fee != null && Number.isFinite(g.fee) ? g.fee : s.depositFeePercent;
       return sum + (pctFee > 0 ? g.gasto * (pctFee / 100) : 0);
     }, 0);
     const cobroRange = cobrosInRange.reduce((sum, c) => sum + c.monto, 0);
@@ -122,90 +171,62 @@ export async function buildProfitAdvisorBrief(input: {
 
     const recentCobros = [...dashboard.cobros]
       .sort((x, y) => String(y.fecha ?? "").localeCompare(String(x.fecha ?? "")))
-      .slice(0, 12)
+      .slice(0, 8)
       .map((c) => ({
         fecha: c.fecha,
         monto: Number(c.monto.toFixed(2)),
         metodo: c.metodo,
-        notas: c.notas?.slice(0, 80) ?? null,
-        vouchers: c.comprobanteUrls.length,
-      }));
-    const recentGastos = [...dashboard.gastos]
-      .sort((x, y) => String(y.fecha ?? "").localeCompare(String(x.fecha ?? "")))
-      .slice(0, 10)
-      .map((g) => ({
-        fecha: g.fecha,
-        gasto: Number(g.gasto.toFixed(2)),
-        fee: g.fee,
-        camp: g.camp,
       }));
 
     lines.push(
-      "## Holistic vouchers / estado de cuenta (FUENTE PRINCIPAL de cobros y gastos)",
-      "Esto es lo mismo que Cobros → vouchers en Holistic (tablas Hecom gastos + cobros).",
-      `Fuente datos: ${dashboard.source}`,
-      `TOTAL cargado (gasto+fee histórico listado): ${money(s.cargoTotal)} · gasto ${money(s.gastoTotal)} · fee ${money(s.feeTotal)}`,
-      `TOTAL cobrado (cobros Holistic / vouchers): ${money(s.cobroTotal)}`,
-      `Saldo estimado (cobrado − cargo): ${money(s.saldoEstimado)} ${s.saldoEstimado < -0.01 ? "(cliente debe)" : s.saldoEstimado > 0.01 ? "(a favor del cliente)" : "(casi cuadrado)"}`,
-      `Fee Holistic: ${s.depositFeePercent}% (${s.depositFeeSource})`,
-      `En el rango ${from}→${to}: gasto ${money(gastoRange)} · fee ~${money(feeRange)} · cargo ${money(cargoRange)} · cobrado ${money(cobroRange)} · saldo rango ${money(saldoRange)}`,
-      `Filas: ${dashboard.cobros.length} cobros · ${dashboard.gastos.length} gastos (listado)`,
-      `Últimos cobros (voucher): ${JSON.stringify(recentCobros)}`,
-      `Últimos gastos: ${JSON.stringify(recentGastos)}`,
+      "## Holistic vouchers (detalle)",
+      `Fuente: ${dashboard.source}`,
+      `Fee: ${s.depositFeePercent}% (${s.depositFeeSource})`,
+      `En rango ${from}→${to}: gasto ${money(gastoRange)} · cargo ${money(cargoRange)} · cobrado ${money(cobroRange)} · saldo rango ${money(saldoRange)}`,
+      `Últimos cobros: ${JSON.stringify(recentCobros)}`,
       "",
     );
   } else {
     lines.push(
-      "## Holistic vouchers / estado de cuenta",
-      "No se pudo cargar el dashboard Hecom (gastos/cobros). NO digas que cobró $0 por COD; decí que faltan vouchers Holistic.",
+      "## Holistic vouchers",
+      "No se pudo cargar Hecom. No digas cobrado $0 por COD.",
       "",
     );
   }
 
   lines.push(
-    "## Gasto TikTok live / pacing (Profit)",
+    "## Gasto TikTok live / pacing",
     `Hoy: ${money(a.spendToday)} (${pct(a.spendTodayDeltaPct)} vs ayer)`,
     `7d: ${money(a.spend7d)} (${pct(a.spend7dDeltaPct)} vs 7d previo)`,
     `30d: ${money(a.spend30d)}`,
-    `En rango Profit: ${money(a.spendInRange)} (${pct(a.spendRangeDeltaPct)} vs periodo previo)`,
     `Pacing: ${a.pacingLabel} (ratio ${a.pacingRatio?.toFixed(2) ?? "n/d"})`,
-    `Días con actividad: ${a.daysWithActivity}`,
-    `Datos hasta: ${a.dataThroughDate ?? "n/d"}`,
     "",
     "## Performance TikTok",
     a.perf.available
-      ? `Imp ${a.perf.impressions} · Clicks ${a.perf.clicks} · Conv ${a.perf.conversions} · CTR ${a.perf.avgCtr?.toFixed(2) ?? "n/d"}% · CPC ${money(a.perf.avgCpc)} · CPM ${money(a.perf.avgCpm)}`
+      ? `Imp ${a.perf.impressions} · Clicks ${a.perf.clicks} · Conv ${a.perf.conversions} · CTR ${a.perf.avgCtr?.toFixed(2) ?? "n/d"}%`
       : `Perf no disponible${a.perf.error ? `: ${a.perf.error}` : ""}`,
     "",
-    "## COD Shopify / RealProfit (OPCIONAL — NO es cobros Holistic)",
-    "Si preguntan 'cobros' o 'vouchers', IGNORÁ esta sección salvo que digan COD/Shopify/RealProfit.",
-    `Tienda vinculada COD: ${a.hasCodLink ? "sí" : "no"}`,
-    `Cobrado collected (órdenes COD): ${money(a.collectedRevenue)} · Órdenes: ${a.ordersCollected}`,
-    `ROAS collected: ${a.roasCollected?.toFixed(2) ?? "n/d"} · ROAS efectivo: ${a.roasEffective?.toFixed(2) ?? "n/d"}`,
-    stores.length
-      ? `Tiendas: ${JSON.stringify(stores)}`
-      : "Sin tiendas RealProfit vinculadas (normal si el cliente no usa COD).",
+    "## COD Shopify (NO es cobros Holistic)",
+    `Tienda COD: ${a.hasCodLink ? "sí" : "no"} · collected ${money(a.collectedRevenue)} · órdenes ${a.ordersCollected}`,
+    stores.length ? `Tiendas: ${JSON.stringify(stores)}` : "Sin tienda RealProfit.",
     "",
-    "## Crédito / ops (gerencia)",
-    `Cartera Holistic: ${money(ops.walletAvailableUsd)}`,
-    `Saldo ledger cuentas: ${money(ops.adLedgerAvailableUsd)} (${ops.accountsWithLedgerBalance} con saldo)`,
+    "## Crédito / ops",
+    `Cartera ${money(ops.walletAvailableUsd)} · ledger ${money(ops.adLedgerAvailableUsd)} (${ops.accountsWithLedgerBalance} cta)`,
     ops.lastAllocation
-      ? `Última asignación: ${money(ops.lastAllocation.amountUsd)} → ${ops.lastAllocation.accountLabel} hace ${ops.lastAllocation.hoursAgo.toFixed(1)} h`
-      : "Sin asignación reciente registrada",
-    `Burn: ${ops.burn.status} (crit ${ops.burn.critical} / warn ${ops.burn.warn} / info ${ops.burn.info})`,
-    `Hint crédito: ${ops.creditHint}`,
-    `Depósitos wallet 90d (conteo): ${ops.collections.deposits90d ?? "n/d"} · fallidos: ${ops.collections.failedDeposits90d ?? "n/d"} · tickets abiertos: ${ops.collections.openTickets ?? "n/d"}`,
+      ? `Última asignación ${money(ops.lastAllocation.amountUsd)} → ${ops.lastAllocation.accountLabel} hace ${ops.lastAllocation.hoursAgo.toFixed(1)} h`
+      : "Sin asignación reciente",
+    `Burn: ${ops.burn.status} · hint: ${ops.creditHint}`,
     "",
-    "## Semáforo de riesgo",
+    "## Semáforo",
     score
-      ? `Score ${score.score ?? "n/d"} / 100 · verdict ${score.verdict} · factores ${JSON.stringify(score.factors)}`
-      : "Score no disponible",
+      ? `Score ${score.score ?? "n/d"} · ${score.verdict} · ${JSON.stringify(score.factors)}`
+      : "n/d",
     "",
     "## Señales",
     signals.length ? JSON.stringify(signals) : "Sin señales",
     "",
-    "## Top campañas por gasto",
-    topCampaigns.length ? JSON.stringify(topCampaigns) : "Sin campañas con gasto",
+    "## Top campañas",
+    topCampaigns.length ? JSON.stringify(topCampaigns) : "Sin campañas",
   );
 
   return { brief: lines.join("\n"), from, to };
@@ -231,23 +252,28 @@ export async function askProfitAdvisor(input: {
     to: input.to,
   });
 
-  const system = `Sos el asesor de gerencia Holistic (Profit + Cobros/vouchers).
-Hablás con un GERENTE sobre UN cliente. Español claro, súper corto, como un mensaje de WhatsApp.
+  const system = `Sos el asesor de gerencia Holistic. Español claro, corto, tipo WhatsApp.
 
 Glosario:
-- "Cobros" / "vouchers" / "deuda" = Holistic vouchers (Hecom cobros + gastos + fee). NUNCA uses cobrado COD de RealProfit para eso.
-- "COD" / "Shopify" = solo si preguntan COD/Shopify/ROAS de tienda.
-- "Gasto" = ads TikTok / gastos Hecom según el bloque.
+- Cobros / vouchers / deuda = números de "NUMEROS LISTOS" (vouchers Holistic). Nunca uses COD Shopify.
+- Gasto hoy = PRIORIDAD "TikTok live" de NUMEROS LISTOS (igual al panel). Nunca digas $0 si esa línea tiene otro valor.
+- Gasto 7d = Profit 7d de NUMEROS LISTOS.
+- COD Shopify = solo si preguntan COD/Shopify.
 
-Formato de respuesta (OBLIGATORIO):
-- Máximo 3–5 líneas. Sin títulos markdown (#), sin **negritas**, sin listas largas.
-- Si preguntan cobros / vouchers / deuda: SOLO esto (2 líneas):
+Formato:
+- Sin markdown (# ni **). Máx 6 líneas.
+- Solo cobros: 
   Cobrado total: $X
-  Debe: $Y   (si el saldo es a favor: "A favor: $Y")
-  Nada más. No pongas rango, fee, ni historial salvo que lo pidan.
-- Si preguntan resumen: 3–4 líneas (riesgo, cobrado/deuda, gasto hoy o 7d, 1 tip).
-- Si preguntan crédito: sí/no + 1 motivo corto.
-- Solo usá DATOS DEL CLIENTE. No inventes montos.
+  Debe: $Y
+- Si piden gastos + cobrado + deuda (o “dame el resumen de plata”):
+  Cobrado total: $X
+  Debe: $Y
+  Gasto hoy: $Z
+  Gasto 7d: $W
+  (opcional 1 línea: Cargo histórico $… o pacing)
+- Resumen general: riesgo + cobrado/deuda + gasto hoy/7d + 1 tip.
+- Crédito: sí/no + 1 motivo.
+- Solo DATOS DEL CLIENTE. No inventes.
 
 DATOS DEL CLIENTE:
 ${brief}`;
@@ -273,8 +299,8 @@ ${brief}`;
     },
     body: JSON.stringify({
       model: serverEnv.openAiVisionModel,
-      temperature: 0.25,
-      max_tokens: 280,
+      temperature: 0.2,
+      max_tokens: 320,
       messages: [
         { role: "system", content: system },
         ...history,
