@@ -583,9 +583,35 @@ function StaffOpsPanel({
                 >
                   {scoreActionLabel(score.verdict, t)}
                 </p>
+                <a
+                  href="#profit-advisor"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#ff781f] px-3.5 py-2 text-[12px] font-bold text-[#1c1917] transition hover:brightness-110"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-5 w-5 place-items-center rounded-full bg-[#1c1917] text-[9px] font-black text-[#ff781f]"
+                  >
+                    AI
+                  </span>
+                  {t("advisorOpen")}
+                </a>
               </>
             ) : (
-              <p className="mt-2 text-[13px] text-white/70">{t("scorePending")}</p>
+              <>
+                <p className="mt-2 text-[13px] text-white/70">{t("scorePending")}</p>
+                <a
+                  href="#profit-advisor"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#ff781f] px-3.5 py-2 text-[12px] font-bold text-[#1c1917] transition hover:brightness-110"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-5 w-5 place-items-center rounded-full bg-[#1c1917] text-[9px] font-black text-[#ff781f]"
+                  >
+                    AI
+                  </span>
+                  {t("advisorOpen")}
+                </a>
+              </>
             )}
           </div>
         </div>
