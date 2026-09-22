@@ -1,0 +1,25 @@
+{
+  "name": "adsholistic-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shell iOS (Capacitor) de Ads Holistic. Carga la web de producción.",
+  "scripts": {
+    "sync": "cap sync ios",
+    "open:ios": "cap open ios",
+    "copy": "cap copy ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/push-notifications": "8.1.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2",
+    "@types/node": "^24.13.6",
+    "typescript": "^5.9.2"
+  }
+}
