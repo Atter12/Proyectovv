@@ -339,7 +339,8 @@ JSON SOLO:
       ? (parsed.editFocus as RejectEditFocus)
       : focusForKind(kind, input.reasons);
     if (weight && editFocus === "appeal") editFocus = "both";
-    if (kind === "landing") editFocus = "landing";
+    // landing / media_invalid ya salieron antes; no forzar focus aquí.
+    if (editFocus === "landing") editFocus = focusForKind(kind, input.reasons);
     const videoFix =
       transcript &&
       typeof parsed.videoFix === "string" &&
