@@ -363,7 +363,7 @@ export function VoucherAccountStatement({
                 <div
                   key={bucket.key}
                   className="flex min-w-0 flex-1 flex-col items-center"
-                  title={`${formatDay(byMonth ? `${bucket.key}-01` : bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)} · ${t("legendPaid")} ${moneyUsd(bucket.paid)}`}
+                  title={`${formatDay(view.byMonth ? `${bucket.key}-01` : bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)} · ${t("legendPaid")} ${moneyUsd(bucket.paid)}`}
                 >
                   <div className="flex h-24 w-full items-end justify-center gap-0.5">
                     <span
