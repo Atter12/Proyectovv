@@ -72,6 +72,8 @@ async function notify(input: {
     type: input.type,
     data: input.data ?? {},
   });
+  const { maybePushForNotification } = await import("@/lib/push/send-web-push.server");
+  await maybePushForNotification(input);
 }
 
 function revalidateManualPaymentPaths(paymentIntentId: string) {

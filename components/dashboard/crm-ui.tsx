@@ -57,21 +57,21 @@ export function CrmMetricCell({
 }) {
   const valueClass =
     emphasis === "primary"
-      ? "text-[1.5rem] font-bold leading-none text-[var(--auth-text)] sm:text-[1.625rem]"
+      ? "text-[1.35rem] font-bold leading-none text-[var(--auth-text)] sm:text-[1.625rem]"
       : emphasis === "muted"
-        ? "text-[1.25rem] font-semibold leading-none text-[var(--auth-text-muted)]"
-        : "text-[1.375rem] font-semibold leading-none text-[var(--auth-text)]";
+        ? "text-[1.15rem] font-semibold leading-none text-[var(--auth-text-muted)] sm:text-[1.25rem]"
+        : "text-[1.2rem] font-semibold leading-none text-[var(--auth-text)] sm:text-[1.375rem]";
 
   return (
     <div
-      className={`min-w-0 px-4 py-3.5 sm:px-5 sm:py-4 ${
+      className={`min-w-0 px-3 py-3 sm:px-5 sm:py-4 ${
         align === "center" ? "text-center" : "text-left"
       } ${className}`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+      <p className="break-words text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-[var(--auth-text-soft)] sm:tracking-[0.08em]">
         {label}
       </p>
-      <p className={`mt-1.5 tabular-nums tracking-[-0.03em] ${valueClass}`}>{value}</p>
+      <p className={`mt-1.5 break-words tabular-nums tracking-[-0.03em] ${valueClass}`}>{value}</p>
       {hint ? (
         <p className="mt-1.5 text-[11px] leading-snug text-[var(--auth-text-muted)]">{hint}</p>
       ) : null}
@@ -186,7 +186,7 @@ export function CrmScopeHero({
                 </p>
                 {badge}
               </div>
-              <h1 className="mt-1 text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
+        <h1 className="mt-1 break-words text-[1.125rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.25rem]">
                 {title}
               </h1>
               {cliente?.biz || meta ? (

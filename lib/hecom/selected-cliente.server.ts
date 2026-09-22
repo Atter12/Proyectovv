@@ -6,7 +6,7 @@ export const HECOM_CLIENTE_COOKIE_NAME = "vv_hecom_cliente_name";
 export const HECOM_CLIENTE_COOKIE_OWNER = "vv_hecom_cliente_owner";
 export const HECOM_ACT_AS_CLIENTE_COOKIE = "vv_hecom_act_as_cliente";
 
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 400;
 
 export type SelectedHecomCliente = {
   id: string;

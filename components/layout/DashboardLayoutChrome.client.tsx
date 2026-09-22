@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
 import { DashboardTopbar } from "./DashboardTopbar";
-import { cn } from "@/lib/cn";
 import type { User } from "@/types/user";
 import type { SidebarSelectedCliente } from "./SidebarWalletCard.client";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ActingAsClienteBanner } from "./ActingAsClienteBanner.client";
+import { HomeScreenAppBanner } from "@/features/push/HomeScreenAppBanner.client";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -61,39 +61,35 @@ export function DashboardLayoutChrome({
         />
       )}
 
-      <div
-        id="dashboard-mobile-sidebar"
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[min(300px,90vw)] transition-transform duration-200 ease-out lg:hidden",
-          sidebarOpen
-            ? "translate-x-0 pointer-events-auto"
-            : "-translate-x-full pointer-events-none",
-        )}
-        role="dialog"
-        aria-modal={sidebarOpen}
-        aria-hidden={!sidebarOpen}
-        aria-label={t("navAria")}
-      >
-        <div className="relative h-full overflow-hidden rounded-r-[1.25rem] border-r border-[var(--auth-border)] shadow-[8px_0_40px_-12px_rgb(28_25_23_/_0.28)]">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            aria-label={t("closeMenu")}
-            className="absolute right-2.5 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <DashboardMobileSidebar
-            onNavigate={() => setSidebarOpen(false)}
-            className="h-full w-full"
-            selectedCliente={selectedCliente}
-            persona={persona}
-            actingAsCliente={actingAsCliente}
-          />
+      {sidebarOpen ? (
+        <div
+          id="dashboard-mobile-sidebar"
+          className="fixed inset-y-0 left-0 z-50 w-[min(300px,90vw)] lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("navAria")}
+        >
+          <div className="relative h-full overflow-hidden rounded-r-[1.25rem] border-r border-[var(--auth-border)] shadow-[8px_0_40px_-12px_rgb(28_25_23_/_0.28)]">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label={t("closeMenu")}
+              className="absolute right-2.5 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--auth-text-muted)] transition-colors hover:bg-[var(--auth-bg)] hover:text-[var(--auth-text)]"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <DashboardMobileSidebar
+              onNavigate={() => setSidebarOpen(false)}
+              className="h-full w-full"
+              selectedCliente={selectedCliente}
+              persona={persona}
+              actingAsCliente={actingAsCliente}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[248px]">
         <DashboardTopbar
@@ -104,7 +100,7 @@ export function DashboardLayoutChrome({
           persona={persona}
           actingAsCliente={actingAsCliente}
         />
-        <main className="app-content mx-auto min-w-0 w-full max-w-[1280px] flex-1 px-4 py-5 pb-20 sm:px-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8">
+        <main className="app-content mx-auto w-full min-w-0 max-w-[1280px] flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8">
           {actingAsCliente && selectedCliente ? (
             <ActingAsClienteBanner clienteName={selectedCliente.name} />
           ) : null}
@@ -113,6 +109,7 @@ export function DashboardLayoutChrome({
       </div>
 
       <FloatingSupportStack persona={persona} />
+      <HomeScreenAppBanner />
     </>
   );
 }

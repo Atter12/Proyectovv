@@ -88,7 +88,7 @@ export function LocaleSwitcherTopbar() {
             d="M3.6 9h16.8M3.6 15h16.8M12 3c2.5 2.7 3.75 5.7 3.75 9S14.5 18.3 12 21c-2.5-2.7-3.75-5.7-3.75-9S9.5 5.7 12 3z"
           />
         </svg>
-        <span className="text-[12px] font-bold tracking-wide text-[var(--auth-text)]">
+        <span className="hidden text-[12px] font-bold tracking-wide text-[var(--auth-text)] sm:inline">
           {LOCALE_SHORT[locale]}
         </span>
       </button>

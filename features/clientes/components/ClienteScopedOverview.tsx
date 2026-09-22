@@ -104,7 +104,7 @@ export async function ClienteScopedOverview({
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
               {t("spendToday")}
             </p>
-            <p className="mt-1 text-[1.65rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.85rem]">
+            <p className="mt-1 break-words text-[1.65rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.85rem]">
               {moneyUsd(summary.gastoHoy)}
             </p>
             <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
@@ -195,7 +195,7 @@ async function OverviewMetricsStrip({
           emphasis="primary"
         />
       </div>
-      <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)]">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)] [&>*]:min-w-0">
         <CrmMetricCell
           className="hidden sm:block"
           label={t("spendToday")}
@@ -309,7 +309,7 @@ async function DailySpendPanel({
       subtitle={t("dailySpend.subtitle", { days: series.length })}
       className="shadow-none"
       action={
-        <div className="flex items-center gap-4 text-left sm:text-right">
+        <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4 sm:text-right">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
               {t("dailySpend.today")}

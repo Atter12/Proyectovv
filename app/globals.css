@@ -203,7 +203,10 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   scroll-behavior: smooth;
 }
 
@@ -213,7 +216,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01" on, "cv11" on;
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
+  overscroll-behavior-x: none;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1076,6 +1081,15 @@ body {
 }
 
 /* ─── CRM shell (oddo → Holistic) ───────────────── */
+.dashboard-canvas .grid > * {
+  min-width: 0;
+}
+
+.overflow-x-auto,
+.scrollbar-thin {
+  touch-action: pan-x pan-y;
+}
+
 .app-topbar {
   border-bottom: 1px solid var(--auth-border);
   background: rgb(255 255 255 / 0.92);

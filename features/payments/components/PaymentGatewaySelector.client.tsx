@@ -51,7 +51,7 @@ export function PaymentGatewaySelector({
               onSelect(gateway.id);
             }}
             className={cn(
-              "relative flex min-h-20 items-start gap-3 rounded-xl border px-4 py-3.5 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]",
+              "relative flex min-h-20 w-full min-w-0 items-start gap-3 rounded-xl border px-3.5 py-3.5 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99] sm:px-4",
               inMaintenance
                 ? "cursor-not-allowed border-[var(--auth-border)] bg-[#f7f5f2] opacity-80"
                 : isSelected

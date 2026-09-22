@@ -155,6 +155,18 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
         total: managers.length,
       });
     }
+
+    const { sendWebPushToEmails } = await import("@/lib/push/send-web-push.server");
+    const who = clientName || clientEmail || "Un cliente";
+    await sendWebPushToEmails(managers, {
+      title: "Nueva recarga por revisar",
+      body: `${who} envió un comprobante de ${amountLabel}.`,
+      url: isMissingCobro
+        ? "/payments/missing-cobros"
+        : isRealProfit
+          ? "/payments/profit"
+          : "/payments/manual",
+    });
   } catch (error) {
     console.error("[email] manual pending manager notify failed", error);
   }

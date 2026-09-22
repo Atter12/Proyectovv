@@ -86,6 +86,8 @@ export const serverEnv = {
   apiBaseUrl: process.env.API_BASE_URL ?? "",
   apiKey: process.env.API_KEY ?? "",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
   nodeEnv,
   isProduction,
 

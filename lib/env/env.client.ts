@@ -5,4 +5,5 @@ export const clientEnv = {
   paymentsEnabled: process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== "false",
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
   mercadoPagoPublicKey: process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY ?? "",
+  vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
 } as const;

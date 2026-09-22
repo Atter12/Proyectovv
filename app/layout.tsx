@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Caveat, Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
@@ -54,13 +54,28 @@ const caveat = Caveat({
   adjustFontFallback: true,
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#fcfbf9",
+};
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
+  applicationName: "Ads Holistic",
+  appleWebApp: {
+    capable: true,
+    title: "Ads Holistic",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
-      { url: "/icon.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     shortcut: "/favicon.png",
     apple: "/apple-icon.png",

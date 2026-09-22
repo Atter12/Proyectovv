@@ -22,6 +22,8 @@ export async function createNotificationBestEffort(
       type: input.type ?? "info",
       data: input.data ?? {},
     });
+    const { maybePushForNotification } = await import("@/lib/push/send-web-push.server");
+    await maybePushForNotification(input);
   } catch (error) {
     console.error("[notifications] no se pudo crear la notificación", error);
   }

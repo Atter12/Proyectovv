@@ -44,7 +44,7 @@ export function DashboardTopbar({
   const canPickClients = persona !== "cliente" || actingAsCliente;
 
   return (
-    <header className="app-topbar sticky top-0 z-20 flex h-14 min-h-[56px] items-center justify-between gap-2 px-3.5 sm:h-16 sm:min-h-[64px] sm:gap-3 sm:px-5 lg:px-6">
+    <header className="app-topbar sticky top-0 z-20 flex h-[calc(3.5rem+env(safe-area-inset-top))] w-full max-w-full items-center justify-between gap-2 overflow-x-clip px-3.5 pt-[env(safe-area-inset-top)] sm:h-[calc(4rem+env(safe-area-inset-top))] sm:gap-3 sm:px-5 lg:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
         <button
           type="button"
@@ -101,7 +101,7 @@ export function DashboardTopbar({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
         {persona === "cliente" ? <LocaleSwitcherTopbar /> : null}
         <NotificationsDropdown />
         <DashboardUserMenu user={user} persona={persona} />
