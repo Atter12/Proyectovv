@@ -23,7 +23,7 @@ export function WalletSummaryActions({
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row-reverse sm:items-center">
       <Button
         onClick={dispatchPaymentsOpenAddBalanceModal}
-        className="h-11 w-full rounded-xl bg-[#ff781f] text-[13px] font-semibold text-white hover:brightness-[1.05] sm:w-auto"
+        className="h-11 w-full rounded-xl bg-[#d47840] text-[13px] font-semibold text-white hover:brightness-[1.05] sm:w-auto"
       >
         {t("walletCard.reload")}
       </Button>

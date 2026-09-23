@@ -47,7 +47,7 @@ export function PaymentModalHeader({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white text-[#6f675f] transition-colors hover:bg-[#f7f2ed] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf6]"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white text-[#6f675f] transition-colors hover:bg-[#f7f2ed] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf6]"
           aria-label={tCommon("close")}
         >
           <CloseIcon />
@@ -78,7 +78,7 @@ export function PaymentModalHeader({
               <span
                 className={cn(
                   "block h-1 rounded-full transition-colors",
-                  reached ? "bg-[#ff781f]" : "bg-[#e5ddd5]",
+                  reached ? "bg-[#d47840]" : "bg-[#e5ddd5]",
                 )}
               />
               <span
@@ -87,7 +87,7 @@ export function PaymentModalHeader({
                   current
                     ? "text-[#1c1917]"
                     : reached
-                      ? "text-[#c65113]"
+                      ? "text-[#a85a32]"
                       : "text-[#8a8177]",
                 )}
               >

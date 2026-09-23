@@ -414,8 +414,8 @@ export function ManualPaymentModal({
                       onClick={() => setChargeCurrency(c)}
                       className={`h-11 rounded-xl border text-sm font-semibold transition ${
                         chargeCurrency === c
-                          ? "border-[#ff781f] bg-[#fff1e8] text-[#c45a18]"
-                          : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#ff781f]/40"
+                          ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
+                          : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#d47840]/40"
                       }`}
                     >
                       {c === "PEN"
@@ -453,7 +453,7 @@ export function ManualPaymentModal({
                     <span className="font-semibold text-[#1c1917]">
                       {t("manualModal.totalTransfer")}
                     </span>
-                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
+                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#c96a35]">
                       {chargeLabel}
                     </span>
                   </div>
@@ -485,7 +485,7 @@ export function ManualPaymentModal({
                 <Button
                   onClick={handleCreateIntent}
                   disabled={!isValidAmount || loading}
-                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                 >
                   {loading ? t("addBalance.processing") : t("manualModal.seePayMethods")}
                 </Button>
@@ -586,7 +586,7 @@ export function ManualPaymentModal({
                           <button
                             type="button"
                             onClick={() => void copyText(config.binance!.email)}
-                            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                           >
                             {t("addBalance.copy")}
                           </button>
@@ -656,7 +656,7 @@ export function ManualPaymentModal({
                             <button
                               type="button"
                               onClick={() => void copyText(bank.accountNumber)}
-                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                             >
                               {t("addBalance.copy")}
                             </button>
@@ -674,7 +674,7 @@ export function ManualPaymentModal({
                               <button
                                 type="button"
                                 onClick={() => void copyText(bank.cci!)}
-                                className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#c65113] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                                className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                               >
                                 {t("addBalance.copy")}
                               </button>
@@ -701,7 +701,7 @@ export function ManualPaymentModal({
                   {tCommon("back")}
                 </Button>
                 <Button
-                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={() => setStep("voucher")}
                 >
                   {t("manualModal.paidUpload")}
@@ -733,7 +733,7 @@ export function ManualPaymentModal({
                 className={`mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 transition ${
                   proofFile
                     ? "border-emerald-400 bg-emerald-50"
-                    : "border-[#ece7e0] bg-[#faf8f5] hover:border-[#ff781f]/50"
+                    : "border-[#ece7e0] bg-[#faf8f5] hover:border-[#d47840]/50"
                 }`}
                 onClick={() => fileInputRef.current?.click()}
                 onKeyDown={(e) => {
@@ -809,7 +809,7 @@ export function ManualPaymentModal({
                 </Button>
                 <Button
                   disabled={!proofFile}
-                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={handleSubmitVoucher}
                 >
                   {t("manualModal.verify")}
@@ -833,7 +833,7 @@ export function ManualPaymentModal({
               onClose={resetAndClose}
             />
             <div className="flex flex-col items-center px-6 py-12 text-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#ff781f]/20 border-t-[#ff781f]" />
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840]" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
                 {t("manualModal.analyzingWait")}
               </p>
@@ -873,7 +873,7 @@ export function ManualPaymentModal({
               </div>
               <PaymentModalFooter>
                 <Button
-                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={resetAndClose}
                 >
                   {t("manualModal.done")}
@@ -905,7 +905,7 @@ export function ManualPaymentModal({
               </div>
               <PaymentModalFooter>
                 <Button
-                  className="h-11 w-full rounded-xl bg-[#ff781f] px-6 hover:bg-[#e85a1c] sm:w-auto"
+                  className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={resetAndClose}
                 >
                   {t("manualModal.understood")}

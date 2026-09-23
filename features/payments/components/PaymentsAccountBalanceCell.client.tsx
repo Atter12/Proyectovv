@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import { useTranslations } from "next-intl";
 import { formatMoney } from "@/lib/format-money";
@@ -101,7 +101,7 @@ export function PaymentsAccountBalanceCell({
               ? formatMoney(creditUsd)
               : hasLedger
                 ? formatMoney(ledger)
-                : "â€”"}
+                : "—"}
           </p>
           <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
             {creditUsd != null
@@ -109,7 +109,7 @@ export function PaymentsAccountBalanceCell({
               : t("accountBalance.assignedHolistic")}
             {metric?.error ? (
               <span className="ml-1 text-amber-700" title={metric.error}>
-                Â· {t("accountBalance.noData")}
+                · {t("accountBalance.noData")}
               </span>
             ) : null}
           </p>
@@ -118,7 +118,7 @@ export function PaymentsAccountBalanceCell({
           <p className="shrink-0 text-right text-[10px] leading-4 text-[#9a9187]">
             {t("accountBalance.spendToday")}
             <br />
-            <span className="font-semibold tabular-nums text-[#c45a18]">
+            <span className="font-semibold tabular-nums text-[#a85a32]">
               {formatMoney(spendToday)}
             </span>
           </p>
@@ -168,7 +168,7 @@ export function PaymentsAccountBalanceCell({
       {!compact && agencyBmFunding && spendToday != null ? (
         <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
           {t("accountBalance.spendToday")}{" "}
-          <span className="font-medium tabular-nums text-[#c45a18]">
+          <span className="font-medium tabular-nums text-[#a85a32]">
             {formatMoney(spendToday)}
           </span>
         </p>

@@ -1963,8 +1963,8 @@
     }
   },
   "onboarding": {
-    "title": "Empieza con Default",
-    "titleProgress": "{done}/{total} Empieza con Default",
+    "title": "Guía de inicio",
+    "titleProgress": "{done}/{total}",
     "guide": "Guía",
     "showGuide": "Mostrar guía de progreso",
     "expandGuide": "Expandir guía de progreso",

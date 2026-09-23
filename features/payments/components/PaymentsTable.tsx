@@ -189,8 +189,8 @@ export function PaymentsTable({
           <Button
             className={
               mobile
-                ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
-                : "font-semibold text-[#c45a18]"
+                ? "h-11 w-full rounded-lg bg-[var(--brand-primary)] text-[13px] font-semibold hover:bg-[var(--brand-primary-deep)]"
+                : "font-semibold text-[var(--brand-primary-deep)]"
             }
             variant={mobile ? undefined : "ghost"}
             size={mobile ? undefined : "sm"}
@@ -217,7 +217,7 @@ export function PaymentsTable({
             <Button
               className={
                 mobile
-                  ? "h-11 w-full rounded-lg border border-[#c45a18] bg-white text-[13px] font-semibold text-[#c45a18] hover:bg-[#fff7f2]"
+                  ? "h-11 w-full rounded-lg border border-[var(--brand-primary-deep)] bg-white text-[13px] font-semibold text-[var(--brand-primary-deep)] hover:bg-[var(--admin-accent-soft)]"
                   : "font-semibold text-[#8a8178]"
               }
               variant={mobile ? undefined : "ghost"}
@@ -244,8 +244,8 @@ export function PaymentsTable({
           <Button
             className={
               mobile
-                ? "h-11 w-full rounded-lg bg-[#e85a1c] text-[13px] font-semibold hover:bg-[#d14e16]"
-                : "font-semibold text-[#c45a18]"
+                ? "h-11 w-full rounded-lg bg-[var(--brand-primary)] text-[13px] font-semibold hover:bg-[var(--brand-primary-deep)]"
+                : "font-semibold text-[var(--brand-primary-deep)]"
             }
             variant={mobile ? undefined : "ghost"}
             size={mobile ? undefined : "sm"}
@@ -265,8 +265,8 @@ export function PaymentsTable({
             type="button"
             className={
               mobile
-                ? "w-full text-center text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
-                : "px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[#c45a18] hover:underline"
+                ? "w-full text-center text-[12px] font-medium text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
+                : "px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[var(--brand-primary-deep)] hover:underline"
             }
             onClick={() => onEditTikTokIds(account)}
           >

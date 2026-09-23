@@ -167,7 +167,7 @@ function VoucherCard({
               <button
                 type="button"
                 onClick={() => setLightboxOpen(true)}
-                className="group relative flex h-full min-h-[200px] w-full cursor-zoom-in items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/50"
+                className="group relative flex h-full min-h-[200px] w-full cursor-zoom-in items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/50"
                 title="Ampliar comprobante"
                 aria-label="Ampliar comprobante"
               >
@@ -204,7 +204,7 @@ function VoucherCard({
                   href={intent.proofSignedUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm font-semibold text-[#ff781f] underline underline-offset-2"
+                  className="text-sm font-semibold text-[#d47840] underline underline-offset-2"
                 >
                   {t("voucherReview.openProof")}
                 </a>
@@ -281,11 +281,11 @@ function VoucherCard({
                     min="0.01"
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
-                    className="w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-lg font-bold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#ff781f]"
+                    className="w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-lg font-bold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#d47840]"
                   />
                   <button
                     type="button"
-                    className="text-xs font-semibold text-[#ff781f] underline-offset-2 hover:underline"
+                    className="text-xs font-semibold text-[#d47840] underline-offset-2 hover:underline"
                     onClick={() =>
                       setAmountInput(
                         String(Math.round(intent.amount * 100) / 100),
@@ -359,7 +359,7 @@ function VoucherCard({
                       type="month"
                       value={periodoInput}
                       onChange={(e) => setPeriodoInput(e.target.value)}
-                      className="mt-1 w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm font-semibold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#ff781f]"
+                      className="mt-1 w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm font-semibold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#d47840]"
                     />
                   </label>
                 ) : null}
@@ -455,7 +455,7 @@ function VoucherCard({
                       <button
                         type="button"
                         onClick={() => setLightboxOpen(true)}
-                        className="inline-flex h-8 items-center px-2 text-xs font-semibold text-[#ff781f] underline-offset-2 hover:underline"
+                        className="inline-flex h-8 items-center px-2 text-xs font-semibold text-[#d47840] underline-offset-2 hover:underline"
                       >
                         Ampliar foto
                       </button>
@@ -464,7 +464,7 @@ function VoucherCard({
                         href={intent.proofSignedUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-8 items-center px-2 text-xs font-semibold text-[#ff781f] underline-offset-2 hover:underline"
+                        className="inline-flex h-8 items-center px-2 text-xs font-semibold text-[#d47840] underline-offset-2 hover:underline"
                       >
                         Ver original
                       </a>
@@ -478,7 +478,7 @@ function VoucherCard({
                     onChange={(e) => setRejectReason(e.target.value)}
                     rows={2}
                     placeholder="Motivo visible para el cliente…"
-                    className="w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm outline-none focus:border-[#ff781f]"
+                    className="w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm outline-none focus:border-[#d47840]"
                   />
                   <div className="flex flex-wrap gap-2">
                     <Button

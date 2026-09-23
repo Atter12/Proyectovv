@@ -9,8 +9,8 @@ export const criticalCss = `
   --auth-text:#0f172a;
   --auth-text-muted:#475569;
   --auth-text-soft:#64748b;
-  --auth-accent:#ff781f;
-  --auth-accent-soft:rgb(255 120 31 / 0.14);
+  --auth-accent:#d47840;
+  --auth-accent-soft:rgb(212 120 64 / 0.14);
   --auth-divider:rgb(15 23 42 / 0.08);
   --auth-control-border:rgb(15 23 42 / 0.12);
   --auth-control-hover:#f1f5f9;

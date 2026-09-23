@@ -375,7 +375,7 @@ export function CreditLockPanel({
               <span
                 className={cn(
                   "block h-1 rounded-full",
-                  i <= Math.min(step, 2) ? "bg-[#ff781f]" : "bg-[#e5ddd5]",
+                  i <= Math.min(step, 2) ? "bg-[#d47840]" : "bg-[#e5ddd5]",
                 )}
               />
               <span
@@ -417,8 +417,8 @@ export function CreditLockPanel({
                         className={cn(
                           "h-10 rounded-xl border px-3.5 text-[13px] font-semibold tabular-nums transition-colors",
                           selected
-                            ? "border-[#ff781f] bg-[#fff4eb] text-[#c65113]"
-                            : "border-[#e7dfd7] bg-white text-[#1c1917] hover:border-[#ff781f]/50",
+                            ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
+                            : "border-[#e7dfd7] bg-white text-[#1c1917] hover:border-[#d47840]/50",
                         )}
                       >
                         ${amount}
@@ -456,7 +456,7 @@ export function CreditLockPanel({
                     <p className="text-[10px] text-[#6f675f]">
                       {t("creditLock.idealCard")}
                     </p>
-                    <p className="mt-0.5 font-semibold tabular-nums text-[#c65113]">
+                    <p className="mt-0.5 font-semibold tabular-nums text-[#a85a32]">
                       {formatMoney(preview.recommended, "USD")}+
                     </p>
                   </div>
@@ -531,7 +531,7 @@ export function CreditLockPanel({
                 type="button"
                 disabled={busy || !preview}
                 onClick={() => void handleRequest()}
-                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? t("creditLock.sending") : t("creditLock.requestCta")}
               </button>
@@ -591,7 +591,7 @@ export function CreditLockPanel({
                     type="button"
                     disabled={busy}
                     onClick={() => void handleLinkCard()}
-                    className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {busy ? t("creditLock.openingStripe") : t("creditLock.registerCard")}
                   </button>

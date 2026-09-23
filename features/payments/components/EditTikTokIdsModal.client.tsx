@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
@@ -95,7 +95,7 @@ export function EditTikTokIdsModal({
           />
           <button
             type="button"
-            className="mt-2 text-[12px] font-medium text-[#c45a18] underline-offset-2 hover:underline"
+            className="mt-2 text-[12px] font-medium text-[#a85a32] underline-offset-2 hover:underline"
             onClick={() => setAdvertiserId(BRANLYN_206)}
           >
             {t("editTikTok.useBranlyn")}

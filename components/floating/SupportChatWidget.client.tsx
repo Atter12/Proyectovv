@@ -323,7 +323,7 @@ export function SupportChatWidget({
         <button
           type="button"
           onClick={openChat}
-          className="max-w-[min(280px,calc(100vw-5rem))] rounded-2xl border border-[var(--border-subtle)] bg-white px-3 py-2.5 text-left shadow-xl shadow-black/15 ring-1 ring-black/5 transition hover:bg-[rgb(255_120_31_/_0.04)]"
+          className="max-w-[min(280px,calc(100vw-5rem))] rounded-2xl border border-[var(--border-subtle)] bg-white px-3 py-2.5 text-left shadow-xl shadow-black/15 ring-1 ring-black/5 transition hover:bg-[rgb(212_120_64_/_0.04)]"
         >
           <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--brand-primary)]">
             {t("floatNewMessage")}
@@ -384,7 +384,7 @@ export function SupportChatWidget({
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? t("floatCloseSupport") : t("floatOpen")}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(212_120_64_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
       >
         {unreadFromStaff > 0 && !isOpen ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-extrabold text-[var(--brand-primary)] shadow">

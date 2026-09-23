@@ -595,7 +595,7 @@ export function AddBalanceModal({
                     <span className="font-semibold text-[#1c1917]">
                       {t("addBalance.totalPay")}
                     </span>
-                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#e85a1c]">
+                    <span className="text-xl font-semibold tracking-[-0.02em] tabular-nums text-[#c96a35]">
                       {isCobrana && penPreview
                         ? formatPenAmount(penPreview.grossPenCents)
                         : formatMoney(feePreview.grossCents / 100)}
@@ -618,7 +618,7 @@ export function AddBalanceModal({
               ) : null}
 
               {isStripe ? (
-                <div className="flex items-center justify-between gap-4 rounded-xl bg-[#fff8f3] px-4 py-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-[#faf6f1] px-4 py-3">
                   <div>
                     <p className="text-[12px] font-semibold text-[#1c1917]">
                       {t("addBalance.payWithCard")}
@@ -716,7 +716,7 @@ export function AddBalanceModal({
                     <dt className="text-[11px] font-medium text-[#6f675f]">
                       {t("addBalance.receiveWallet")}
                     </dt>
-                    <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#e85a1c]">
+                    <dd className="mt-1 text-xl font-semibold tracking-[-0.025em] tabular-nums text-[#c96a35]">
                       {formatMoney(parsedAmount)}
                     </dd>
                     <dd className="mt-0.5 text-[10px] text-[#8a8177]">
@@ -899,7 +899,7 @@ export function AddBalanceModal({
                       </p>
                       <button
                         type="button"
-                        className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#1c1917] transition-colors hover:bg-[#fff8f3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/35"
+                        className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-white px-3 text-xs font-semibold text-[#1c1917] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                         onClick={() => {
                           void navigator.clipboard
                             ?.writeText(cobranaCode)
@@ -1178,7 +1178,7 @@ function PaymentInstruction({
 }) {
   return (
     <li className="flex gap-3 text-[13px] leading-5 text-[#514b45]">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff1e8] text-[11px] font-semibold text-[#c65113]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f7f0e9] text-[11px] font-semibold text-[#a85a32]">
         {number}
       </span>
       <span className="pt-0.5">{text}</span>

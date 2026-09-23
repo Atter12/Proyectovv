@@ -1,4 +1,4 @@
-﻿import { getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import { WalletSummaryActions } from "./WalletSummaryActions.client";
 import type { HecomFinanceSnapshot } from "@/features/payments/types/hecom-finance-snapshot";
@@ -45,12 +45,12 @@ export async function WalletSummaryPremium({
     <section className="overflow-hidden rounded-[1rem] border border-[#ece7e0] bg-white shadow-[0_12px_32px_-20px_rgb(28_25_23_/_0.18)]">
       <div
         aria-hidden
-        className="h-1 bg-[linear-gradient(90deg,#ff781f,#ffa12c,#ff781f)]"
+        className="h-1 bg-[linear-gradient(90deg,#d47840,#e0a060,#d47840)]"
       />
 
       <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
         <div className="min-w-0">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#d47840]">
             {t("walletCard.eyebrow")}
           </p>
           <p className="mt-1 text-[13px] font-medium text-[#5c564e]">
@@ -82,8 +82,8 @@ export async function WalletSummaryPremium({
             </p>
           ) : null}
           {hecomFinance != null && canClientStripeFund ? (
-            <div className="mt-3 rounded-xl border border-[#ff781f]/35 bg-[#fff1e8] px-3.5 py-2.5">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#ff781f]">
+            <div className="mt-3 rounded-xl border border-[#d47840]/35 bg-[#f7f0e9] px-3.5 py-2.5">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#d47840]">
                 {t("walletCard.feeEyebrow")}
               </p>
               <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] text-[#1c1917]">
@@ -124,7 +124,7 @@ export async function WalletSummaryPremium({
         ) : (
           <a
             href="#asignar-saldo"
-            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[#d47840] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] sm:w-auto"
           >
             {t("walletCard.goBm")}
           </a>

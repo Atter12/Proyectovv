@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
@@ -26,14 +26,14 @@ interface PaymentOverviewStatsProps {
   isStaff?: boolean;
   /** CRM del cliente en alcance (saldo estimado, cobros, etc.) */
   hecomFinance?: HecomFinanceSnapshot | null;
-  /** Resumen de cuentas en tabla de asignaciÃ³n (modo gerente). */
+  /** Resumen de cuentas en tabla de asignación (modo gerente). */
   allocationSummary?: PaymentAllocationSummary | null;
   /** Advertisers del cliente: suma saldo TikTok en vivo. */
   advertiserIds?: string[];
 }
 
 /**
- * Resumen de pagos â€” grilla clara.
+ * Resumen de pagos — grilla clara.
  * Cliente: cartera Holistic + disponible TikTok + modalidad.
  * Gerente BM: KPIs de cuentas.
  */
@@ -133,7 +133,7 @@ export function PaymentOverviewStats({
               summary.accountsReadyForAllocation,
           ),
           hint: t("stats.activeAccountsHint", {
-            total: allocationSummary?.totalAccounts ?? "â€”",
+            total: allocationSummary?.totalAccounts ?? "—",
             pending: allocationSummary?.pendingCount ?? 0,
           }),
           accent: false,
@@ -151,7 +151,7 @@ export function PaymentOverviewStats({
         },
         {
           label: t("stats.modality"),
-          value: modalityLabel ?? "â€”",
+          value: modalityLabel ?? "—",
           hint:
             modality === "credito"
               ? t("stats.modalityFeeCobranza", { percent: feePercent })
@@ -174,10 +174,10 @@ export function PaymentOverviewStats({
             tiktokAvailableUsd != null
               ? formatMoney(tiktokAvailableUsd, "USD")
               : live.loading
-                ? "â€¦"
+                ? "…"
                 : tiktokCoverage.cupoTotal != null
                   ? "$0"
-                  : "â€”",
+                  : "—",
           hint:
             tiktokAvailableUsd != null
               ? [
@@ -195,7 +195,7 @@ export function PaymentOverviewStats({
                   tiktokStale ? t("stats.tiktokStale") : null,
                 ]
                   .filter(Boolean)
-                  .join(" Â· ")
+                  .join(" · ")
               : tiktokCoverage.cupoTotal != null
                 ? t("stats.tiktokNoCashCupo", {
                     amount: formatMoney(tiktokCoverage.cupoTotal, "USD"),
@@ -206,7 +206,7 @@ export function PaymentOverviewStats({
         },
         {
           label: t("stats.modality"),
-          value: modalityLabel ?? "â€”",
+          value: modalityLabel ?? "—",
           hint: modalityHint,
           accent: false,
           warn: modality === "credito",
@@ -225,7 +225,7 @@ export function PaymentOverviewStats({
   return (
     <section aria-label={t("stats.aria")} className="space-y-3">
       <div>
-        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+        <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#d47840]">
           {t("stats.eyebrow")}
         </p>
         <p className="mt-0.5 text-[13px] font-medium text-[#5c564e]">
@@ -241,7 +241,7 @@ export function PaymentOverviewStats({
           >
             <div
               aria-hidden
-              className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,#ff781f,#ffa12c,transparent)] opacity-90"
+              className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,#d47840,#e0a060,transparent)] opacity-90"
             />
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               {item.label}
@@ -253,7 +253,7 @@ export function PaymentOverviewStats({
                   : "muted" in item && item.muted
                     ? "text-[#6b645c]"
                     : item.accent
-                      ? "text-[#ff781f]"
+                      ? "text-[#d47840]"
                       : "text-[#1c1917]"
               }`}
             >

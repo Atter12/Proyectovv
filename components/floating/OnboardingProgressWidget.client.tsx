@@ -106,7 +106,6 @@ export function OnboardingProgressWidget({
         <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 text-xs font-bold">
           {completedSteps}/{totalSteps}
         </span>
-        <span className="text-xs font-medium">{t("title")}</span>
         <svg className="h-3.5 w-3.5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
         </svg>

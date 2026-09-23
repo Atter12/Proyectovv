@@ -39,7 +39,7 @@ export function PaymentsReclaimSection({
       <div className="border-b border-[#f0d9c4] px-5 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c45a18]">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#a85a32]">
               {t("reclaimSection.eyebrow")}
             </p>
             <h2 className="mt-1.5 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1a1612]">
@@ -58,7 +58,7 @@ export function PaymentsReclaimSection({
             <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9a9187]">
               {t("reclaimSection.recoverableNow")}
             </p>
-            <p className="mt-0.5 text-[1.15rem] font-bold tabular-nums tracking-[-0.02em] text-[#c45a18]">
+            <p className="mt-0.5 text-[1.15rem] font-bold tabular-nums tracking-[-0.02em] text-[#a85a32]">
               {formatMoney(totalRecoverable)}
             </p>
             <p className="text-[11px] text-[#7a736a]">
@@ -117,7 +117,7 @@ export function PaymentsReclaimSection({
               <Button
                 size="sm"
                 disabled={!canReclaim}
-                className="h-11 shrink-0 rounded-xl bg-[#c45a18] px-4 text-[13px] font-bold text-white hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-45"
+                className="h-11 shrink-0 rounded-xl bg-[#a85a32] px-4 text-[13px] font-bold text-white hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-45"
                 onClick={() => setSelected(account)}
               >
                 {canReclaim
