@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
@@ -26,14 +26,14 @@ interface PaymentOverviewStatsProps {
   isStaff?: boolean;
   /** CRM del cliente en alcance (saldo estimado, cobros, etc.) */
   hecomFinance?: HecomFinanceSnapshot | null;
-  /** Resumen de cuentas en tabla de asignación (modo gerente). */
+  /** Resumen de cuentas en tabla de asignaciÃ³n (modo gerente). */
   allocationSummary?: PaymentAllocationSummary | null;
   /** Advertisers del cliente: suma saldo TikTok en vivo. */
   advertiserIds?: string[];
 }
 
 /**
- * Resumen de pagos — grilla clara.
+ * Resumen de pagos â€” grilla clara.
  * Cliente: cartera Holistic + disponible TikTok + modalidad.
  * Gerente BM: KPIs de cuentas.
  */
@@ -133,7 +133,7 @@ export function PaymentOverviewStats({
               summary.accountsReadyForAllocation,
           ),
           hint: t("stats.activeAccountsHint", {
-            total: allocationSummary?.totalAccounts ?? "—",
+            total: allocationSummary?.totalAccounts ?? "â€”",
             pending: allocationSummary?.pendingCount ?? 0,
           }),
           accent: false,
@@ -151,7 +151,7 @@ export function PaymentOverviewStats({
         },
         {
           label: t("stats.modality"),
-          value: modalityLabel ?? "—",
+          value: modalityLabel ?? "â€”",
           hint:
             modality === "credito"
               ? t("stats.modalityFeeCobranza", { percent: feePercent })
@@ -174,10 +174,10 @@ export function PaymentOverviewStats({
             tiktokAvailableUsd != null
               ? formatMoney(tiktokAvailableUsd, "USD")
               : live.loading
-                ? "…"
+                ? "â€¦"
                 : tiktokCoverage.cupoTotal != null
                   ? "$0"
-                  : "—",
+                  : "â€”",
           hint:
             tiktokAvailableUsd != null
               ? [
@@ -195,7 +195,7 @@ export function PaymentOverviewStats({
                   tiktokStale ? t("stats.tiktokStale") : null,
                 ]
                   .filter(Boolean)
-                  .join(" · ")
+                  .join(" Â· ")
               : tiktokCoverage.cupoTotal != null
                 ? t("stats.tiktokNoCashCupo", {
                     amount: formatMoney(tiktokCoverage.cupoTotal, "USD"),
@@ -206,7 +206,7 @@ export function PaymentOverviewStats({
         },
         {
           label: t("stats.modality"),
-          value: modalityLabel ?? "—",
+          value: modalityLabel ?? "â€”",
           hint: modalityHint,
           accent: false,
           warn: modality === "credito",

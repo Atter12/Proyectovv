@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useTranslations } from "next-intl";
 import { formatMoney } from "@/lib/format-money";
@@ -101,7 +101,7 @@ export function PaymentsAccountBalanceCell({
               ? formatMoney(creditUsd)
               : hasLedger
                 ? formatMoney(ledger)
-                : "—"}
+                : "â€”"}
           </p>
           <p className="mt-0.5 text-[10px] leading-4 text-[#9a9187]">
             {creditUsd != null
@@ -109,7 +109,7 @@ export function PaymentsAccountBalanceCell({
               : t("accountBalance.assignedHolistic")}
             {metric?.error ? (
               <span className="ml-1 text-amber-700" title={metric.error}>
-                · {t("accountBalance.noData")}
+                Â· {t("accountBalance.noData")}
               </span>
             ) : null}
           </p>
