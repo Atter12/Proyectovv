@@ -105,16 +105,17 @@ export const TIKTOK_SELF_SERVE_ACCOUNT_LIMIT = 2;
 const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   // Jesus Fuentes — 2026-09-16, autorizado por gerencia: 2 cuentas más.
   "529cdfbf-8b74-44a6-afec-5212b6687a6e": 4,
-  // Jesús Callupe — 2026-09-23: ya tiene 5 mapeadas; +2 → cupo 7 (BM10).
+  // Jesús Callupe — 2026-09-23: ya tiene 5 mapeadas; +2 → cupo 7.
+  // BM300 mientras BM10 sigue sin cupo TikTok (max advertisers).
   "6425e2d9-bb9b-4176-a126-ae889c1c8543": 7,
 };
 
 /**
  * Forzar BM de create self-serve por cliente (ops).
- * Callupe → BM10 (crédito Agencia), no el default BM300.
+ * Callupe → BM300 por ahora (BM10 sin cupo BC).
  */
 const SELF_SERVE_CREATE_BM_OVERRIDES: Record<string, TikTokCreateBmBucket> = {
-  "6425e2d9-bb9b-4176-a126-ae889c1c8543": "10",
+  "6425e2d9-bb9b-4176-a126-ae889c1c8543": "300",
 };
 
 function parseLimitOverridesEnv(): Record<string, number> {
