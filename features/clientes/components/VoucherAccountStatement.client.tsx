@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { moneyUsd } from "@/lib/format/money-usd";
 
 export type StatementGasto = {
@@ -45,12 +44,6 @@ function monthStart(ymd: string): string {
   return `${ymd.slice(0, 8)}01`;
 }
 
-function shiftYmd(ymd: string, deltaDays: number): string {
-  const base = new Date(`${ymd}T12:00:00.000Z`);
-  base.setUTCDate(base.getUTCDate() + deltaDays);
-  return base.toISOString().slice(0, 10);
-}
-
 function ymdKey(value: string | null): string | null {
   if (!value) return null;
   const raw = value.trim();
@@ -87,13 +80,12 @@ function formatDay(ymd: string, locale: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-function formatShort(ymd: string, locale: string, byMonth: boolean): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  if (!y || !m || !d) return ymd;
-  if (!byMonth) return String(d);
+function formatMonthLabel(ymd: string, locale: string): string {
+  const [y, m] = ymd.split("-").map(Number);
+  if (!y || !m) return ymd;
   return new Intl.DateTimeFormat(locale, {
-    month: "short",
-    year: "2-digit",
+    month: "long",
+    year: "numeric",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, 1)));
 }
@@ -107,10 +99,7 @@ export function VoucherAccountStatement({
   const t = useTranslations("cobros.statement");
   const locale = useLocale();
   const today = useMemo(() => limaToday(), []);
-  const [range, setRange] = useState(() => ({
-    from: monthStart(limaToday()),
-    to: limaToday(),
-  }));
+  const from = useMemo(() => monthStart(today), [today]);
 
   const rows = useMemo(() => {
     const spend = gastos
@@ -143,19 +132,9 @@ export function VoucherAccountStatement({
     return { spend, paid };
   }, [cobros, feePercent, gastos]);
 
-  const earliest = useMemo(() => {
-    const dates = [
-      ...rows.spend.map((row) => row.fecha),
-      ...rows.paid.map((row) => row.fecha),
-    ].sort();
-    return dates[0] ?? monthStart(today);
-  }, [rows.paid, rows.spend, today]);
-
   const view = useMemo(() => {
-    const from = range.from || monthStart(today);
-    const to = range.to || today;
+    const to = today;
     const inRange = (fecha: string) => fecha >= from && fecha <= to;
-    const through = (fecha: string) => fecha <= to;
 
     const rangeSpend = rows.spend.filter((row) => inRange(row.fecha));
     const rangePaid = rows.paid.filter((row) => inRange(row.fecha));
@@ -163,36 +142,20 @@ export function VoucherAccountStatement({
     const fee = round2(rangeSpend.reduce((sum, row) => sum + row.fee, 0));
     const cobrado = round2(rangePaid.reduce((sum, row) => sum + row.monto, 0));
     const rangeSaldo = round2(cobrado - (gasto + fee));
+    const owed = round2(gasto + fee - cobrado);
 
-    const cargoThru = round2(
-      rows.spend
-        .filter((row) => through(row.fecha))
-        .reduce((sum, row) => sum + row.cargo, 0),
-    );
-    const cobradoThru = round2(
-      rows.paid
-        .filter((row) => through(row.fecha))
-        .reduce((sum, row) => sum + row.monto, 0),
-    );
-    const owed = round2(cargoThru - cobradoThru);
-
-    const span =
-      (Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) /
-      86_400_000;
-    const byMonth = span > 45;
     const buckets = new Map<string, Bucket>();
 
-    function bucketKey(fecha: string): string {
-      return byMonth ? fecha.slice(0, 7) : fecha;
-    }
-
     function ensure(fecha: string) {
-      const key = bucketKey(fecha);
-      const existing = buckets.get(key);
+      const existing = buckets.get(fecha);
       if (existing) return existing;
-      const label = formatShort(byMonth ? `${key}-01` : fecha, locale, byMonth);
-      const created: Bucket = { key, label, cargo: 0, paid: 0 };
-      buckets.set(key, created);
+      const created: Bucket = {
+        key: fecha,
+        label: String(Number(fecha.slice(8, 10))),
+        cargo: 0,
+        paid: 0,
+      };
+      buckets.set(fecha, created);
       return created;
     }
 
@@ -212,17 +175,17 @@ export function VoucherAccountStatement({
     return {
       from,
       to,
+      monthLabel: formatMonthLabel(from, locale),
       gasto,
       fee,
       cobrado,
       rangeSaldo,
       owed,
-      byMonth,
       series,
       rangeSpend: [...rangeSpend].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
       rangePaid: [...rangePaid].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
     };
-  }, [locale, range.from, range.to, rows.paid, rows.spend, today]);
+  }, [from, locale, rows.paid, rows.spend, today]);
 
   const maxBar = Math.max(
     1,
@@ -237,78 +200,19 @@ export function VoucherAccountStatement({
       ? "text-[#15803d]"
       : "text-[#1c1917]";
 
-  function applyPreset(kind: "month" | "d7" | "all") {
-    if (kind === "month") {
-      setRange({ from: monthStart(today), to: today });
-      return;
-    }
-    if (kind === "d7") {
-      setRange({ from: shiftYmd(today, -6), to: today });
-      return;
-    }
-    setRange({ from: earliest, to: today });
-  }
-
-  const presetClass = (active: boolean) =>
-    `rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
-      active
-        ? "border-[#ffd7b8] bg-[#fff7f0] text-[#c2410c]"
-        : "border-[#e7e0d8] bg-white text-[#5c564e] hover:border-[#ffd7b8]"
-    }`;
-
-  const monthActive = range.from === monthStart(today) && range.to === today;
-  const weekActive = range.from === shiftYmd(today, -6) && range.to === today;
-  const allActive = range.from === earliest && range.to === today;
-
   return (
     <section className="space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(165deg,#fffaf6_0%,#ffffff_48%,#fff7f0_100%)] p-4 shadow-[0_16px_40px_-28px_rgb(255_120_31_/_0.55)] sm:p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-            {t("eyebrow")}
-          </p>
-          <h3 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            {t("title")}
-          </h3>
-          <p className="mt-1 text-[12px] leading-5 text-[#6b645c]">{t("subtitle")}</p>
-        </div>
-        <div className="w-full max-w-md space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              className={presetClass(monthActive)}
-              onClick={() => applyPreset("month")}
-            >
-              {t("presetMonth")}
-            </button>
-            <button
-              type="button"
-              className={presetClass(weekActive)}
-              onClick={() => applyPreset("d7")}
-            >
-              {t("preset7")}
-            </button>
-            <button
-              type="button"
-              className={presetClass(allActive)}
-              onClick={() => applyPreset("all")}
-            >
-              {t("presetAll")}
-            </button>
-          </div>
-          <ProfitDateRangeField
-            from={range.from}
-            to={range.to}
-            max={today}
-            onChange={(next) => {
-              if (!next.from || !next.to) {
-                setRange({ from: monthStart(today), to: today });
-                return;
-              }
-              setRange(next);
-            }}
-          />
-        </div>
+      <div className="max-w-xl">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
+          {t("eyebrow")}
+        </p>
+        <h3 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+          {t("title")}
+        </h3>
+        <p className="mt-1 text-[12px] leading-5 text-[#6b645c]">{t("subtitle")}</p>
+        <p className="mt-2 text-[12px] font-semibold capitalize text-[#c2410c]">
+          {view.monthLabel}
+        </p>
       </div>
 
       <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5">
@@ -319,7 +223,10 @@ export function VoucherAccountStatement({
           {moneyUsd(Math.abs(view.owed))}
         </p>
         <p className="mt-1 max-w-2xl text-[12px] leading-5 text-[#6b645c]">
-          {t("through", { date: formatDay(view.to, locale) })}
+          {t("through", {
+            month: view.monthLabel,
+            date: formatDay(view.to, locale),
+          })}
         </p>
       </div>
 
@@ -337,9 +244,7 @@ export function VoucherAccountStatement({
 
       <div className="rounded-2xl border border-[#f0ebe4] bg-white px-4 py-4 sm:px-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] font-semibold text-[#1c1917]">
-            {view.byMonth ? t("chartMonth") : t("chartDay")}
-          </p>
+          <p className="text-[12px] font-semibold text-[#1c1917]">{t("chartDay")}</p>
           <div className="flex items-center gap-3 text-[11px] font-medium text-[#6b645c]">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#fb923c]" />
@@ -363,7 +268,7 @@ export function VoucherAccountStatement({
                 <div
                   key={bucket.key}
                   className="flex min-w-0 flex-1 flex-col items-center"
-                  title={`${formatDay(view.byMonth ? `${bucket.key}-01` : bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)} · ${t("legendPaid")} ${moneyUsd(bucket.paid)}`}
+                  title={`${formatDay(bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)} · ${t("legendPaid")} ${moneyUsd(bucket.paid)}`}
                 >
                   <div className="flex h-24 w-full items-end justify-center gap-0.5">
                     <span
@@ -433,15 +338,23 @@ function Kpi({
   hint?: string;
   tone?: "neutral" | "paid" | "owe";
 }) {
-  const color =
-    tone === "owe" ? "text-[#c2410c]" : tone === "paid" ? "text-[#15803d]" : "text-[#1c1917]";
+  const toneClass =
+    tone === "paid"
+      ? "text-[#15803d]"
+      : tone === "owe"
+        ? "text-[#c2410c]"
+        : "text-[#1c1917]";
   return (
     <div className="rounded-xl border border-[#f0ebe4] bg-white px-3 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#8a8177]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
         {label}
       </p>
-      <p className={`mt-1 text-[15px] font-bold tabular-nums ${color}`}>{value}</p>
-      {hint ? <p className="mt-1 text-[10px] leading-4 text-[#8a8177]">{hint}</p> : null}
+      <p className={`mt-1 text-[1.05rem] font-bold tabular-nums ${toneClass}`}>
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-1 text-[10px] leading-4 text-[#8a8177]">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -463,23 +376,30 @@ function MovementList({
   }>;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#f0ebe4] bg-white">
-      <div className="flex items-center justify-between border-b border-[#f0ebe4] px-4 py-3">
-        <p className="text-[12px] font-semibold text-[#1c1917]">{title}</p>
-        <span className="text-[11px] tabular-nums text-[#8a8177]">{rows.length}</span>
-      </div>
+    <div className="rounded-2xl border border-[#f0ebe4] bg-white px-4 py-4">
+      <p className="text-[12px] font-semibold text-[#1c1917]">
+        {title}
+        {rows.length > 0 ? (
+          <span className="ml-1 font-normal text-[#8a8177]">({rows.length})</span>
+        ) : null}
+      </p>
       {rows.length === 0 ? (
-        <p className="px-4 py-6 text-[12px] text-[#8a8177]">{empty}</p>
+        <p className="mt-3 text-[12px] text-[#8a8177]">{empty}</p>
       ) : (
-        <ul className="max-h-72 divide-y divide-[#f6f1eb] overflow-y-auto">
+        <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
           {rows.map((row) => (
-            <li key={row.key} className="flex items-start justify-between gap-3 px-4 py-2.5">
+            <li
+              key={row.key}
+              className="flex items-start justify-between gap-3 border-b border-[#f5f1ec] pb-2 last:border-0 last:pb-0"
+            >
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium text-[#1c1917]">{row.detail}</p>
-                <p className="text-[11px] text-[#8a8177]">
-                  {row.date}
-                  {row.extra ? ` · ${row.extra}` : ""}
+                <p className="truncate text-[12px] font-medium text-[#1c1917]">
+                  {row.detail}
                 </p>
+                <p className="text-[11px] text-[#8a8177]">{row.date}</p>
+                {row.extra ? (
+                  <p className="text-[10px] text-[#8a8177]">{row.extra}</p>
+                ) : null}
               </div>
               <p
                 className={`shrink-0 text-[12px] font-semibold tabular-nums ${
