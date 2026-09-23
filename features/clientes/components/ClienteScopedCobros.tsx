@@ -61,6 +61,7 @@ export async function ClienteScopedCobros({
         cobros={cobros.map((row) => ({
           fecha: row.fecha,
           monto: row.monto,
+          applicableMonto: row.applicableMonto,
           metodo: row.metodo,
           periodoResumen: row.periodoResumen,
           notas: row.notas,

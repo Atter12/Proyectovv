@@ -22,6 +22,7 @@ import {
   getHecomSupabaseConfig,
 } from "@/lib/hecom/supabase.server";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
+import { paymentApplicableAmount } from "@/lib/hecom/payment-applicable-amount";
 import { sortGastosByDateDesc } from "@/lib/hecom/gasto-date";
 import type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
 
@@ -31,13 +32,17 @@ export { moneyUsd } from "@/lib/format/money-usd";
 
 export type HecomCobroRow = {
   id: string;
+  clientId: string | null;
   monto: number;
+  /** Monto que baja deuda (bruto − surcharge pasarela), paridad Hecom Club. */
+  applicableMonto: number;
   fecha: string | null;
   hora: string | null;
   metodo: string | null;
   notas: string | null;
   codigo: string | null;
   periodoResumen: string | null;
+  fundingBreakdown: Record<string, unknown> | null;
   comprobanteUrls: string[];
   registeredBy: string | null;
   registeredAt: string | null;
@@ -171,15 +176,33 @@ function parseComprobanteUrls(raw: unknown): string[] {
 }
 
 function mapCobro(row: Record<string, unknown>): HecomCobroRow {
+  const clientId = row.client_id ? String(row.client_id) : null;
+  const monto = Number(row.monto ?? 0) || 0;
+  const codigo = row.codigo ? String(row.codigo) : null;
+  const fundingBreakdown =
+    row.funding_breakdown &&
+    typeof row.funding_breakdown === "object" &&
+    !Array.isArray(row.funding_breakdown)
+      ? (row.funding_breakdown as Record<string, unknown>)
+      : null;
+  const applicableMonto = paymentApplicableAmount({
+    monto,
+    codigo,
+    client_id: clientId,
+    funding_breakdown: fundingBreakdown,
+  });
   return {
     id: String(row.id ?? ""),
-    monto: Number(row.monto ?? 0) || 0,
+    clientId,
+    monto,
+    applicableMonto,
     fecha: row.fecha ? String(row.fecha) : null,
     hora: row.hora ? String(row.hora) : null,
     metodo: row.metodo ? String(row.metodo) : null,
     notas: row.notas ? String(row.notas) : null,
-    codigo: row.codigo ? String(row.codigo) : null,
+    codigo,
     periodoResumen: row.periodo_resumen ? String(row.periodo_resumen) : null,
+    fundingBreakdown,
     comprobanteUrls: parseComprobanteUrls(row.comprobante_urls),
     registeredBy: row.created_by ? String(row.created_by) : null,
     registeredAt: row.created_at ? String(row.created_at) : null,
@@ -589,7 +612,7 @@ function buildSummary(
     0,
   );
   const cargoTotal = Math.round((gastoTotal + feeTotal) * 100) / 100;
-  const cobroTotal = cobros.reduce((sum, row) => sum + row.monto, 0);
+  const cobroTotal = cobros.reduce((sum, row) => sum + row.applicableMonto, 0);
   const dailySummary = daily ?? emptyDailySpendSummary();
   return {
     accountCount: accounts.length,
@@ -700,7 +723,7 @@ async function loadLiveFinance(
       hecom
         .from("cobros")
         .select(
-          "id,client_id,monto,fecha,hora,metodo,notas,codigo,periodo_resumen,comprobante_urls,created_by,created_at",
+          "id,client_id,monto,fecha,hora,metodo,notas,codigo,periodo_resumen,funding_breakdown,comprobante_urls,created_by,created_at",
         )
         .eq("client_id", clientId)
         .order("fecha", { ascending: false })

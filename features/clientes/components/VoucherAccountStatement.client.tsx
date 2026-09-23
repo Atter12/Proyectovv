@@ -15,6 +15,8 @@ export type StatementGasto = {
 export type StatementCobro = {
   fecha: string | null;
   monto: number;
+  /** Monto que imputa a deuda (sin surcharge pasarela). Default = monto. */
+  applicableMonto?: number;
   metodo: string | null;
   /** Mes de deuda en Hecom (Ajustar mueve plata acá, no en `fecha`). */
   periodoResumen?: string | null;
@@ -137,6 +139,10 @@ export function VoucherAccountStatement({
           fecha,
           periodo,
           monto: row.monto,
+          applicable:
+            row.applicableMonto != null && Number.isFinite(row.applicableMonto)
+              ? row.applicableMonto
+              : row.monto,
           metodo: row.metodo?.trim() || null,
           notas: row.notas?.trim() || null,
           adjusted: /ajuste\s+excedente/i.test(row.notas ?? ""),
@@ -167,7 +173,9 @@ export function VoucherAccountStatement({
     const gasto = round2(rangeSpend.reduce((sum, row) => sum + row.gasto, 0));
     const fee = round2(rangeSpend.reduce((sum, row) => sum + row.fee, 0));
     const cargo = round2(gasto + fee);
-    const cobrado = round2(rangePaid.reduce((sum, row) => sum + row.monto, 0));
+    const cobrado = round2(rangePaid.reduce((sum, row) => sum + row.applicable, 0));
+    const cobradoBruto = round2(rangePaid.reduce((sum, row) => sum + row.monto, 0));
+    const surcharge = round2(cobradoBruto - cobrado);
     const rangeSaldo = round2(cobrado - cargo);
     const owed = round2(cargo - cobrado);
 
@@ -192,7 +200,7 @@ export function VoucherAccountStatement({
     }
     for (const row of rangePaid) {
       const bucket = ensure(chartDayForPaid(row));
-      bucket.paid = round2(bucket.paid + row.monto);
+      bucket.paid = round2(bucket.paid + row.applicable);
     }
 
     const series = [...buckets.values()].sort((a, b) =>
@@ -207,6 +215,8 @@ export function VoucherAccountStatement({
       fee,
       cargo,
       cobrado,
+      cobradoBruto,
+      surcharge,
       rangeSaldo,
       owed,
       series,
@@ -260,13 +270,27 @@ export function VoucherAccountStatement({
             date: formatDay(view.to, locale),
           })}
         </p>
+        {view.surcharge > 0.004 ? (
+          <p className="mt-1 max-w-2xl text-[11px] leading-4 text-[#8a8177]">
+            {t("surchargeNote", { amount: moneyUsd(view.surcharge) })}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label={t("rangeSpend")} value={moneyUsd(view.gasto)} />
         <Kpi label={t("rangeFee")} value={moneyUsd(view.fee)} />
         <Kpi label={t("rangeCargo")} value={moneyUsd(view.cargo)} hint={t("rangeCargoHint")} />
-        <Kpi label={t("rangePaid")} value={moneyUsd(view.cobrado)} tone="paid" />
+        <Kpi
+          label={t("rangePaid")}
+          value={moneyUsd(view.cobradoBruto)}
+          tone="paid"
+          hint={
+            view.surcharge > 0.004
+              ? t("rangePaidHint", { applicable: moneyUsd(view.cobrado) })
+              : undefined
+          }
+        />
         <Kpi
           label={t("rangeResult")}
           value={moneyUsd(view.rangeSaldo)}
@@ -354,11 +378,15 @@ export function VoucherAccountStatement({
             amount: `+${moneyUsd(row.monto)}`,
             extra: row.adjusted
               ? t("adjustLine")
-              : row.fecha && row.periodo && row.fecha.slice(0, 7) !== row.periodo
-                ? t("adjustPeriodHint", {
-                    paid: formatDay(row.fecha, locale),
+              : round2(row.monto - row.applicable) > 0.004
+                ? t("surchargeLine", {
+                    amount: moneyUsd(round2(row.monto - row.applicable)),
                   })
-                : null,
+                : row.fecha && row.periodo && row.fecha.slice(0, 7) !== row.periodo
+                  ? t("adjustPeriodHint", {
+                      paid: formatDay(row.fecha, locale),
+                    })
+                  : null,
             paid: true,
           }))}
         />
