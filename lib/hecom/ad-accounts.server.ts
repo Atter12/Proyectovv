@@ -49,10 +49,12 @@ function resolveDisplayName(input: {
   liveName: string | null | undefined;
   bmBucket: string | null | undefined;
 }): string {
-  const live = input.liveName?.trim();
-  if (live) return live;
+  // Hecom es la ficha del cliente: priorizar su nombre para no mostrar
+  // etiquetas recicladas/aheñas de TikTok (ej. "Steve Maldonado" en cuenta de Callupe).
   const hecom = input.hecomName?.trim();
   if (hecom) return hecom;
+  const live = input.liveName?.trim();
+  if (live) return live;
   const bucket = input.bmBucket?.trim();
   if (bucket) return `${input.clienteName} · BM ${bucket}`;
   return `${input.clienteName} · TikTok`;
@@ -121,7 +123,7 @@ export function mapHecomTiktokToAdAccount(
     bcId: bmBucket || account.advertiserId,
     externalAccountId: account.advertiserId,
     externalBusinessId: bmBucket,
-    externalAccountName: liveName?.trim() || account.advertiserName,
+    externalAccountName: account.advertiserName?.trim() || liveName?.trim() || null,
     status,
     cost: account.fee ?? 0,
     dailyBudget: 0,

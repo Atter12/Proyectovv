@@ -176,6 +176,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
     if (ids.length === 0) return 0;
 
     const hecomBcByAdvertiser = new Map<string, string>();
+    const hecomNameByAdvertiser = new Map<string, string>();
     await Promise.all(
       ids.map(async (advertiserId) => {
         const bucket = await lookupHecomBmBucketForAdvertiser({
@@ -187,6 +188,32 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         }
       }),
     );
+
+    // Nombre canónico Hecom (evita reinyectar etiquetas ajenas tipo "Steve Maldonado").
+    try {
+      const { createHecomAdminClient } = await import(
+        "@/lib/hecom/supabase.server"
+      );
+      const hecom = createHecomAdminClient();
+      let hecomQuery = hecom
+        .from("cliente_tiktok_cuentas")
+        .select("advertiser_id,advertiser_name,client_id")
+        .in("advertiser_id", ids);
+      const clienteId = input.clienteId?.trim();
+      if (clienteId) hecomQuery = hecomQuery.eq("client_id", clienteId);
+      const { data: hecomRows } = await hecomQuery;
+      for (const row of hecomRows ?? []) {
+        const adv = String(
+          (row as { advertiser_id?: string }).advertiser_id ?? "",
+        ).trim();
+        const name = String(
+          (row as { advertiser_name?: string }).advertiser_name ?? "",
+        ).trim();
+        if (adv && name) hecomNameByAdvertiser.set(adv, name);
+      }
+    } catch {
+      // Hecom opcional: seguimos con nombre de input/plantilla.
+    }
 
     const nameById = new Map(
       input.advertisers.map((row) => [
@@ -211,7 +238,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
 
     const existingInOrgRes = await admin
       .from("ad_accounts")
-      .select("external_account_id, status, metadata")
+      .select("external_account_id, name, external_account_name, status, metadata")
       .eq("organization_id", orgId)
       .eq("platform", "tiktok")
       .in("external_account_id", ids);
@@ -223,6 +250,12 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         return [
           ext,
           {
+            name: String((row as { name?: string }).name ?? "").trim() || null,
+            externalAccountName:
+              String(
+                (row as { external_account_name?: string | null })
+                  .external_account_name ?? "",
+              ).trim() || null,
             status: String((row as { status?: string }).status ?? ""),
             metadata: (row as { metadata?: unknown }).metadata ?? null,
           },
@@ -251,11 +284,23 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
         (row as { external_business_id?: string | null }).external_business_id ??
         null;
       const existing = templateById.get(ext);
-      // Preferir plantilla que ya tenga BC (evita copiar null de org espejo).
+      const nextName = String((row as { name?: string }).name ?? "").trim() || ext;
+      const hecomCanon = hecomNameByAdvertiser.get(ext);
+      // Preferir plantilla con BC; si empatan, preferir el nombre canónico Hecom.
       if (existing?.external_business_id && !nextBc) continue;
-      if (existing && existing.external_business_id === nextBc) continue;
+      if (existing && existing.external_business_id === nextBc) {
+        if (
+          hecomCanon &&
+          existing.name !== hecomCanon &&
+          nextName === hecomCanon
+        ) {
+          // reemplazar plantilla mala (ej. Steve) por la Hecom
+        } else {
+          continue;
+        }
+      }
       templateById.set(ext, {
-        name: String((row as { name?: string }).name ?? "").trim() || ext,
+        name: nextName,
         external_business_id: nextBc,
         external_account_name:
           (row as { external_account_name?: string | null })
@@ -275,8 +320,22 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
       const template = templateById.get(advertiserId);
       const preferredStatus = statusById.get(advertiserId);
       const existingInOrg = existingInOrgById.get(advertiserId);
+      const metaExisting = existingInOrg?.metadata;
+      const nameLocked =
+        isRecord(metaExisting) &&
+        metaExisting.display_name_locked === true &&
+        Boolean(
+          existingInOrg?.externalAccountName || existingInOrg?.name,
+        );
+      // Hecom > nombre bloqueado > input > plantilla limpia. Nunca dejar
+      // que un live/cache ajeno (Steve Maldonado) pise la ficha del cliente.
       const displayName =
+        hecomNameByAdvertiser.get(advertiserId) ||
+        (nameLocked
+          ? existingInOrg?.externalAccountName || existingInOrg?.name
+          : null) ||
         nameById.get(advertiserId) ||
+        template?.external_account_name ||
         template?.name ||
         (input.clienteName
           ? `${input.clienteName} · TikTok`
@@ -308,6 +367,12 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
             hecom_cliente_id: input.clienteId,
             hecom_cliente_name: input.clienteName ?? null,
             mirrored_from_other_org: Boolean(template),
+            ...(hecomNameByAdvertiser.has(advertiserId)
+              ? {
+                  display_name_locked: true,
+                  display_name_source: "hecom",
+                }
+              : {}),
           };
 
       const { error } = await admin.from("ad_accounts").upsert(
@@ -320,8 +385,7 @@ export async function ensureAdvertisersInOrganizationForAllocation(input: {
             hecomBcByAdvertiser.get(advertiserId) ??
             template?.external_business_id ??
             null,
-          external_account_name:
-            template?.external_account_name ?? displayName,
+          external_account_name: displayName,
           status,
           currency: template?.currency ?? "USD",
           timezone: template?.timezone ?? "America/Lima",

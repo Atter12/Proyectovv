@@ -399,12 +399,19 @@ export async function PaymentsGatewayPanel({
       },
     );
 
-  // Recargar: activas/pendientes Aprobadas.
-  const fundableAccounts = markSuspended(
+  // Scope Hecom: mostrar también suspendidas (ej. Agencia 11 LIMIT) para que
+  // el cliente vea todas sus cuentas mapeadas; Recargar se bloquea en la fila.
+  const scopedPool = markSuspended(
     hasClienteScope
-      ? scopeAllocationAccountsToHecomAdvertisers(pool, approvedIds)
+      ? scopeAllocationAccountsToHecomAdvertisers(pool, [
+          ...approvedIds,
+          ...suspendedIds,
+        ])
       : pool,
-  ).filter((account) => account.status !== "disabled");
+  );
+  const fundableAccounts = hasClienteScope
+    ? scopedPool
+    : scopedPool.filter((account) => account.status !== "disabled");
 
   const scopedAccounts = sortPaymentAccounts(fundableAccounts);
 

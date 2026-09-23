@@ -157,9 +157,10 @@ export async function syncApprovedAdAccountsForCliente(input: {
     const statusKind = live?.statusKind ?? "unknown";
     candidates.set(id, {
       advertiserId: id,
+      // Preferir nombre Hecom (identidad del cliente) sobre el live de TikTok.
       name:
-        live?.advertiserName ||
         account.advertiserName?.trim() ||
+        live?.advertiserName ||
         `${cliente.name} · TikTok`,
       bcId: resolveBcIdForHecomBucket(
         account.bmBucket,
