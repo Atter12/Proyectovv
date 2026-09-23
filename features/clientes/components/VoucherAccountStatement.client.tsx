@@ -61,7 +61,8 @@ function periodoYm(value: string | null | undefined): string | null {
   return m ? m[1] : null;
 }
 
-function feeUsd(gasto: number, fee: number | null, fallback: number): number {
+/** Fee sin redondear (Hecom suma crudo y redondea al final en las tarjetas). */
+function feeUsdRaw(gasto: number, fee: number | null, fallback: number): number {
   const pct =
     fee != null && Number.isFinite(fee)
       ? fee
@@ -69,7 +70,7 @@ function feeUsd(gasto: number, fee: number | null, fallback: number): number {
         ? fallback
         : 0;
   if (pct <= 0 || gasto <= 0) return 0;
-  return Math.round(gasto * (pct / 100) * 100) / 100;
+  return gasto * (pct / 100);
 }
 
 function round2(value: number): number {
@@ -115,12 +116,12 @@ export function VoucherAccountStatement({
       .map((row) => {
         const fecha = ymdKey(row.fecha);
         if (!fecha) return null;
-        const fee = feeUsd(row.gasto, row.fee, feePercent);
+        const fee = feeUsdRaw(row.gasto, row.fee, feePercent);
         return {
           fecha,
           gasto: row.gasto,
           fee,
-          cargo: round2(row.gasto + fee),
+          cargo: row.gasto + fee,
           camp: row.camp?.trim() || null,
         };
       })
@@ -335,7 +336,7 @@ export function VoucherAccountStatement({
             date: formatDay(row.fecha, locale),
             detail: row.camp || t("spendFallback"),
             amount: moneyUsd(row.gasto),
-            extra: row.fee > 0 ? t("feeLine", { amount: moneyUsd(row.fee) }) : null,
+            extra: row.fee > 0 ? t("feeLine", { amount: moneyUsd(round2(row.fee)) }) : null,
           }))}
         />
         <MovementList
