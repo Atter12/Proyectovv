@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { moneyUsd } from "@/lib/format/money-usd";
+import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 
 export type StatementGasto = {
   fecha: string | null;
@@ -31,17 +32,13 @@ type Bucket = {
   paid: number;
 };
 
-function limaToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 function monthStart(ymd: string): string {
   return `${ymd.slice(0, 8)}01`;
+}
+
+/** Último día con jale Hecom de gasto (cierra hasta ayer, Lima). */
+function spendMaxYmd(): string {
+  return shiftYmd(todayYmdInTz("America/Lima"), -1);
 }
 
 function ymdKey(value: string | null): string | null {
@@ -98,7 +95,8 @@ export function VoucherAccountStatement({
 }: Props) {
   const t = useTranslations("cobros.statement");
   const locale = useLocale();
-  const today = useMemo(() => limaToday(), []);
+  const today = useMemo(() => todayYmdInTz("America/Lima"), []);
+  const spendTo = useMemo(() => spendMaxYmd(), []);
   const from = useMemo(() => monthStart(today), [today]);
 
   const rows = useMemo(() => {
@@ -133,16 +131,18 @@ export function VoucherAccountStatement({
   }, [cobros, feePercent, gastos]);
 
   const view = useMemo(() => {
-    const to = today;
-    const inRange = (fecha: string) => fecha >= from && fecha <= to;
+    // Gasto/fee: hasta ayer (jale Hecom). Cobros: hasta hoy (entran en vivo).
+    const inSpendRange = (fecha: string) => fecha >= from && fecha <= spendTo;
+    const inPaidRange = (fecha: string) => fecha >= from && fecha <= today;
 
-    const rangeSpend = rows.spend.filter((row) => inRange(row.fecha));
-    const rangePaid = rows.paid.filter((row) => inRange(row.fecha));
+    const rangeSpend = rows.spend.filter((row) => inSpendRange(row.fecha));
+    const rangePaid = rows.paid.filter((row) => inPaidRange(row.fecha));
     const gasto = round2(rangeSpend.reduce((sum, row) => sum + row.gasto, 0));
     const fee = round2(rangeSpend.reduce((sum, row) => sum + row.fee, 0));
+    const cargo = round2(gasto + fee);
     const cobrado = round2(rangePaid.reduce((sum, row) => sum + row.monto, 0));
-    const rangeSaldo = round2(cobrado - (gasto + fee));
-    const owed = round2(gasto + fee - cobrado);
+    const rangeSaldo = round2(cobrado - cargo);
+    const owed = round2(cargo - cobrado);
 
     const buckets = new Map<string, Bucket>();
 
@@ -174,10 +174,11 @@ export function VoucherAccountStatement({
 
     return {
       from,
-      to,
+      to: spendTo,
       monthLabel: formatMonthLabel(from, locale),
       gasto,
       fee,
+      cargo,
       cobrado,
       rangeSaldo,
       owed,
@@ -185,7 +186,7 @@ export function VoucherAccountStatement({
       rangeSpend: [...rangeSpend].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
       rangePaid: [...rangePaid].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
     };
-  }, [from, locale, rows.paid, rows.spend, today]);
+  }, [from, locale, rows.paid, rows.spend, spendTo, today]);
 
   const maxBar = Math.max(
     1,
@@ -230,9 +231,10 @@ export function VoucherAccountStatement({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label={t("rangeSpend")} value={moneyUsd(view.gasto)} />
         <Kpi label={t("rangeFee")} value={moneyUsd(view.fee)} />
+        <Kpi label={t("rangeCargo")} value={moneyUsd(view.cargo)} hint={t("rangeCargoHint")} />
         <Kpi label={t("rangePaid")} value={moneyUsd(view.cobrado)} tone="paid" />
         <Kpi
           label={t("rangeResult")}
