@@ -20,6 +20,14 @@ function limaTodayYmd(): string {
   }).format(new Date());
 }
 
+/** Último día con jale Hecom (gasto ads cierra hasta ayer). */
+function limaSpendMaxYmd(): string {
+  const today = limaTodayYmd();
+  const base = new Date(`${today}T12:00:00.000Z`);
+  base.setUTCDate(base.getUTCDate() - 1);
+  return base.toISOString().slice(0, 10);
+}
+
 type StoreSummary = {
   id: string;
   name: string;
@@ -835,8 +843,13 @@ export function ProfitPageClient({
         (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
       );
       setSubscription(json.subscription ?? null);
-      if (!from && json.from) setFrom(json.from);
-      if (!to && json.to) setTo(json.to);
+      const max = limaSpendMaxYmd();
+      if (!from && json.from) {
+        setFrom(json.from > max ? max : json.from);
+      }
+      if (!to && json.to) {
+        setTo(json.to > max ? max : json.to);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t("genericError"));
     } finally {
@@ -1165,10 +1178,16 @@ export function ProfitPageClient({
           <ProfitDateRangeField
             from={from}
             to={to}
-            max={limaTodayYmd()}
+            max={limaSpendMaxYmd()}
             onChange={({ from: nextFrom, to: nextTo }) => {
-              setFrom(nextFrom);
-              setTo(nextTo);
+              const max = limaSpendMaxYmd();
+              let f = nextFrom;
+              let t = nextTo;
+              if (t && t > max) t = max;
+              if (f && f > max) f = max;
+              if (f && t && f > t) f = t;
+              setFrom(f);
+              setTo(t);
             }}
           />
           {loading ? (

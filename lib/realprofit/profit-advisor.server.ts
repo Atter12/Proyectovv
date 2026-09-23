@@ -2,7 +2,7 @@ import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
 import { getHecomAdAccountsLiveMetrics } from "@/lib/hecom/ad-account-live.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
-import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
+import { defaultProfitDateRange, clampProfitDateRange } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 
 export type ProfitAdvisorTurn = {
@@ -48,8 +48,12 @@ export async function buildProfitAdvisorBrief(input: {
   to?: string;
 }): Promise<{ brief: string; from: string; to: string }> {
   const range = defaultProfitDateRange();
-  const from = input.from?.trim() || range.from;
-  const to = input.to?.trim() || range.to;
+  const clamped = clampProfitDateRange({
+    from: input.from?.trim() || range.from,
+    to: input.to?.trim() || range.to,
+  });
+  const from = clamped.from;
+  const to = clamped.to;
 
   const [data, dashboard, live] = await Promise.all([
     loadClienteProfitPromo({

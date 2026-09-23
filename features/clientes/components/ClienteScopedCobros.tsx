@@ -1,109 +1,13 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { CrmPanel } from "@/components/dashboard/crm-ui";
-import { CobroComprobantePreview } from "@/features/clientes/components/CobroComprobantePreview.client";
 import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
+import { CobrosPaymentHistory } from "@/features/clientes/components/CobrosPaymentHistory.client";
 import { VoucherAccountStatement } from "@/features/clientes/components/VoucherAccountStatement.client";
-import { formatHecomFecha } from "@/lib/hecom/gasto-label";
-import {
-  moneyUsd,
-  type HecomClienteDashboard,
-  type HecomCobroRow,
-} from "@/lib/hecom/cliente-dashboard.server";
+import type { HecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { routes } from "@/config/routes";
-import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
-
-function formatPeriodoResumen(value: string | null, bcp47: string): string {
-  if (!value) return "—";
-  const match = value.match(/^(\d{4})-(\d{2})/);
-  if (!match) return value;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  if (!Number.isFinite(year) || month < 1 || month > 12) return value;
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  return new Intl.DateTimeFormat(bcp47, {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-function formatHora(value: string | null): string {
-  if (!value) return "—";
-  return value.slice(0, 5);
-}
-
-function limaYmdFromIso(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    const m = value.match(/^(\d{4}-\d{2}-\d{2})/);
-    return m ? m[1] : null;
-  }
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-/**
- * "Registrado" = created_at en Hecom. En syncs masivos (Ads Holistic)
- * varias filas comparten la misma hora → se ve raro vs fecha de pago.
- * Si el día no coincide con el pago, mostramos solo la fecha (sin reloj).
- */
-function formatRegisteredAt(
-  registeredAt: string | null,
-  paymentFecha: string | null,
-  bcp47: string,
-): { label: string; title: string } {
-  if (!registeredAt) {
-    return { label: "—", title: "" };
-  }
-  const date = new Date(registeredAt);
-  if (Number.isNaN(date.getTime())) {
-    return { label: registeredAt, title: "" };
-  }
-
-  const payYmd = paymentFecha?.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
-  const regYmd = limaYmdFromIso(registeredAt);
-  const sameDay = Boolean(payYmd && regYmd && payYmd === regYmd);
-
-  if (sameDay) {
-    return {
-      label: new Intl.DateTimeFormat(bcp47, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "America/Lima",
-      }).format(date),
-      title: "Momento en que quedó cargado en Hecom",
-    };
-  }
-
-  // Sync / backfill: la hora del insert no es la del pago.
-  return {
-    label: new Intl.DateTimeFormat(bcp47, {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      timeZone: "America/Lima",
-    }).format(date),
-    title:
-      "Fecha de ingreso al CRM (sync). La fecha de pago real está en la 1ª columna.",
-  };
-}
-
-function maskEmail(email: string | null): string {
-  if (!email) return "—";
-  const [user, domain] = email.split("@");
-  if (!domain) return email;
-  if (user.length <= 2) return `${user}@${domain}`;
-  return `${user.slice(0, 2)}…@${domain}`;
-}
 
 export async function ClienteScopedCobros({
   data,
@@ -111,7 +15,6 @@ export async function ClienteScopedCobros({
   data: HecomClienteDashboard;
 }) {
   const t = await getTranslations("cobros");
-  const { bcp47 } = await getAppFormatter();
   const { cliente, summary, cobros, gastos } = data;
 
   let claims: ManualPaymentIntentItem[] = [];
@@ -133,7 +36,7 @@ export async function ClienteScopedCobros({
             {t("title", { name: cliente.name })}
           </h2>
           <p className="mt-1 max-w-3xl text-[12px] leading-5 text-[var(--auth-text-muted)]">
-            Arriba ves gastos, cobros y cuánto debes. Abajo queda cada pago con su voucher.
+            {t("pageIntro")}
           </p>
         </div>
         <Link
@@ -162,114 +65,20 @@ export async function ClienteScopedCobros({
         }))}
       />
 
-      <CrmPanel
-        title={t("historyTitle")}
-        subtitle={`${cobros.length} registro${cobros.length === 1 ? "" : "s"} · solo lectura CRM`}
-        className="overflow-hidden"
-      >
-        {cobros.length === 0 ? (
-          <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-            {t("empty")}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[920px] w-full text-left text-[12px]">
-              <thead className="border-b border-[var(--auth-divider)] bg-[var(--auth-bg)]/70 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                <tr>
-                  <th className="px-4 py-3 sm:px-5">{t("colDate")}</th>
-                  <th className="px-4 py-3">{t("colTime")}</th>
-                  <th className="px-4 py-3">{t("colCode")}</th>
-                  <th className="px-4 py-3">{t("colPeriod")}</th>
-                  <th className="px-4 py-3">{t("colAmount")}</th>
-                  <th className="px-4 py-3">{t("colMethod")}</th>
-                  <th className="px-4 py-3">{t("colProofs")}</th>
-                  <th className="px-4 py-3">{t("colRegisteredBy")}</th>
-                  <th className="px-4 py-3">{t("colCrmIn")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cobros.map((row) => (
-                  <CobroTableRow
-                    key={row.id}
-                    row={row}
-                    bcp47={bcp47}
-                    proofLabel={t("proof")}
-                    proofLabelN={(n) => t("proofN", { n })}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CrmPanel>
+      <CobrosPaymentHistory
+        cobros={cobros.map((row) => ({
+          id: row.id,
+          fecha: row.fecha,
+          hora: row.hora,
+          codigo: row.codigo,
+          periodoResumen: row.periodoResumen,
+          monto: row.monto,
+          metodo: row.metodo,
+          comprobanteUrls: row.comprobanteUrls,
+          registeredBy: row.registeredBy,
+          registeredAt: row.registeredAt,
+        }))}
+      />
     </div>
-  );
-}
-
-function CobroTableRow({
-  row,
-  bcp47,
-  proofLabel,
-  proofLabelN,
-}: {
-  row: HecomCobroRow;
-  bcp47: string;
-  proofLabel: string;
-  proofLabelN: (n: number) => string;
-}) {
-  const fecha = formatHecomFecha(row.fecha);
-  const periodo = formatPeriodoResumen(row.periodoResumen, bcp47);
-  const registered = formatRegisteredAt(row.registeredAt, row.fecha, bcp47);
-
-  return (
-    <tr className="border-b border-[var(--auth-divider)] last:border-0 hover:bg-[var(--auth-bg)]/50">
-      <td className="px-4 py-3.5 font-medium text-[var(--auth-text)] sm:px-5">
-        {fecha ?? "—"}
-      </td>
-      <td className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]">
-        {formatHora(row.hora)}
-      </td>
-      <td className="px-4 py-3.5 font-mono text-[11px] text-[var(--auth-accent)]">
-        {row.codigo ?? "—"}
-      </td>
-      <td className="px-4 py-3.5 font-medium text-[var(--auth-accent)]">
-        {periodo}
-      </td>
-      <td className="px-4 py-3.5 font-semibold tabular-nums text-[#1f5c40]">
-        +{moneyUsd(row.monto)}
-      </td>
-      <td className="px-4 py-3.5 text-[var(--auth-text)]">
-        {row.metodo ?? "—"}
-      </td>
-      <td className="px-4 py-3.5">
-        {row.comprobanteUrls.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {row.comprobanteUrls.map((_, index) => (
-              <CobroComprobantePreview
-                key={`${row.id}-${index}`}
-                cobroId={row.id}
-                index={index}
-                label={
-                  row.comprobanteUrls.length > 1
-                    ? proofLabelN(index + 1)
-                    : proofLabel
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <span className="text-[11px] text-[var(--auth-text-muted)]">—</span>
-        )}
-      </td>
-      <td className="px-4 py-3.5 text-[var(--auth-text-muted)]">
-        {maskEmail(row.registeredBy)}
-      </td>
-      <td
-        className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]"
-        title={registered.title || undefined}
-      >
-        {registered.label}
-      </td>
-    </tr>
   );
 }

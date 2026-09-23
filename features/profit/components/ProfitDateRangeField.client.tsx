@@ -197,9 +197,10 @@ export function ProfitDateRangeField({
   }
 
   function goToday() {
+    // Si hay max (jale hasta ayer), saltar al último día disponible.
     const todayIso = new Date().toISOString().slice(0, 10);
-    const today = max && max < todayIso ? max : todayIso;
-    onChange({ from: today, to: today });
+    const day = max && max.length === 10 ? max : todayIso;
+    onChange({ from: day, to: day });
     setDraftStart(null);
     setHoverYmd(null);
     setOpen(false);

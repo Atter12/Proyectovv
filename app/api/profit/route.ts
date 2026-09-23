@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { defaultProfitDateRange } from "@/lib/realprofit/db.server";
+import {
+  clampProfitDateRange,
+  defaultProfitDateRange,
+} from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 import {
@@ -29,8 +32,12 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const range = defaultProfitDateRange();
-  const from = url.searchParams.get("from")?.trim() || range.from;
-  const to = url.searchParams.get("to")?.trim() || range.to;
+  const clamped = clampProfitDateRange({
+    from: url.searchParams.get("from")?.trim() || range.from,
+    to: url.searchParams.get("to")?.trim() || range.to,
+  });
+  const from = clamped.from;
+  const to = clamped.to;
 
   try {
     const [data, subscription] = await Promise.all([
