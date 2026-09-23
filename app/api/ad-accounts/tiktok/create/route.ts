@@ -4,7 +4,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { createTikTokAccountForCliente } from "@/lib/hecom/create-tiktok-account-for-cliente.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
-  DEFAULT_TIKTOK_CREATE_BM,
+  resolveTikTokCreateBmForCliente,
   TIKTOK_SELF_SERVE_CREATE_MAINTENANCE,
 } from "@/lib/integrations/tiktok/bc-create-profiles";
 import { isRecord } from "@/lib/records";
@@ -13,8 +13,8 @@ export const runtime = "nodejs";
 
 /**
  * POST /api/ad-accounts/tiktok/create
- * Body opcional: { bmBucket?: "300"|"200"|"30" }
- * Default BM 300. Cap 2 cuentas / cliente → WhatsApp.
+ * Body opcional: { bmBucket?: "300"|"200"|"30"|"10" }
+ * Callupe y otros overrides de ops fuerzan BM en server.
  */
 export async function POST(request: Request) {
   try {
@@ -45,16 +45,17 @@ export async function POST(request: Request) {
       );
     }
 
-    let bmBucket: string = DEFAULT_TIKTOK_CREATE_BM;
+    let requestedBm: string | null = null;
     try {
       const body = (await request.json()) as unknown;
       if (isRecord(body) && body.bmBucket != null) {
-        const raw = String(body.bmBucket).trim();
-        if (raw === "300" || raw === "200" || raw === "30") bmBucket = raw;
+        requestedBm = String(body.bmBucket).trim();
       }
     } catch {
       // body vacío OK
     }
+
+    const bmBucket = resolveTikTokCreateBmForCliente(selected.id, requestedBm);
 
     const result = await createTikTokAccountForCliente({
       hecomClienteId: selected.id,

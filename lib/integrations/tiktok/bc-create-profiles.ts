@@ -1,12 +1,15 @@
 import { HECOM_BM_BUCKET_TO_BC } from "@/lib/hecom/bm-bucket.shared";
 
-export type TikTokCreateBmBucket = "300" | "200" | "30";
+export type TikTokCreateBmBucket = "300" | "200" | "30" | "10";
 
 export type TikTokBcCreateProfile = {
   bmBucket: TikTokCreateBmBucket;
   bcId: string;
+  /** AGENCY usa qualification_id; DIRECT (BM10) lo omite. */
+  bcType: "AGENCY" | "DIRECT";
   company: string;
-  qualificationId: string;
+  /** Null en DIRECT — no mandar `qualification_info`. */
+  qualificationId: string | null;
   industry: number;
   registeredArea: string;
   timezone: string;
@@ -15,6 +18,7 @@ export type TikTokBcCreateProfile = {
    * Convención ops: el serial del nombre arranca en el tier del BM y sube 1 por
    * cada cuenta que el cliente ya tiene en ese BM.
    * Ej. BM300 → `Abel 300.0 USD - Agencia`, `Abel 301.0 USD - Agencia`, …
+   * BM10 → `Jesus 10.0…`, `11.0…`, `12.0…`, `13.0…`
    */
   nameSerialBase: number;
   fundingMode: "cash_transfer" | "shared_budget";
@@ -23,7 +27,7 @@ export type TikTokBcCreateProfile = {
 /** Cola fija del nombre, después del serial. */
 const NAME_TAIL = "USD - Agencia";
 
-/** Perfiles Agency para create. BM 300 = principal (producto). */
+/** Perfiles Agency/DIRECT para create. BM 300 = default producto. */
 export const TIKTOK_BC_CREATE_PROFILES: Record<
   TikTokCreateBmBucket,
   TikTokBcCreateProfile
@@ -31,6 +35,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
   "300": {
     bmBucket: "300",
     bcId: HECOM_BM_BUCKET_TO_BC["300"]!,
+    bcType: "AGENCY",
     company: "DISTRIBUCIONES EL CENTRO S.A.C.",
     qualificationId: "7683165994143449109",
     industry: 291406,
@@ -43,6 +48,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
   "200": {
     bmBucket: "200",
     bcId: HECOM_BM_BUCKET_TO_BC["200"]!,
+    bcType: "AGENCY",
     company: "PROALBA GROUP EIRL",
     qualificationId: "7577449402876198929",
     industry: 291406,
@@ -55,6 +61,7 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
   "30": {
     bmBucket: "30",
     bcId: HECOM_BM_BUCKET_TO_BC["30"]!,
+    bcType: "AGENCY",
     company: "HOLISTIC BUSINESS S.A.C.",
     qualificationId: "7566334805429485569",
     industry: 291406,
@@ -62,6 +69,20 @@ export const TIKTOK_BC_CREATE_PROFILES: Record<
     timezone: "America/Lima",
     currency: "USD",
     nameSerialBase: 30,
+    fundingMode: "shared_budget",
+  },
+  /** DIRECT · PANAMERICANA · sin qualification_info (estudio 2026-09-11). */
+  "10": {
+    bmBucket: "10",
+    bcId: HECOM_BM_BUCKET_TO_BC["10"]!,
+    bcType: "DIRECT",
+    company: "PANAMERICANA OUTSOURCING S A SUCURSAL MEDELLIN",
+    qualificationId: null,
+    industry: 291406,
+    registeredArea: "CO",
+    timezone: "America/Bogota",
+    currency: "USD",
+    nameSerialBase: 10,
     fundingMode: "shared_budget",
   },
 };
@@ -84,6 +105,16 @@ export const TIKTOK_SELF_SERVE_ACCOUNT_LIMIT = 2;
 const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   // Jesus Fuentes — 2026-09-16, autorizado por gerencia: 2 cuentas más.
   "529cdfbf-8b74-44a6-afec-5212b6687a6e": 4,
+  // Jesús Callupe — 2026-09-23: ya tiene 5 mapeadas; +2 → cupo 7 (BM10).
+  "6425e2d9-bb9b-4176-a126-ae889c1c8543": 7,
+};
+
+/**
+ * Forzar BM de create self-serve por cliente (ops).
+ * Callupe → BM10 (crédito Agencia), no el default BM300.
+ */
+const SELF_SERVE_CREATE_BM_OVERRIDES: Record<string, TikTokCreateBmBucket> = {
+  "6425e2d9-bb9b-4176-a126-ae889c1c8543": "10",
 };
 
 function parseLimitOverridesEnv(): Record<string, number> {
@@ -110,6 +141,22 @@ export function resolveTikTokSelfServeAccountLimit(
     : TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
 }
 
+/** BM efectivo al crear cuenta (override por cliente o default producto). */
+export function resolveTikTokCreateBmForCliente(
+  hecomClienteId: string | null | undefined,
+  requestedBm?: string | null,
+): TikTokCreateBmBucket {
+  const id = String(hecomClienteId ?? "").trim();
+  if (id && SELF_SERVE_CREATE_BM_OVERRIDES[id]) {
+    return SELF_SERVE_CREATE_BM_OVERRIDES[id]!;
+  }
+  const raw = String(requestedBm ?? DEFAULT_TIKTOK_CREATE_BM).trim();
+  if (raw === "10" || raw === "30" || raw === "200" || raw === "300") {
+    return raw;
+  }
+  return DEFAULT_TIKTOK_CREATE_BM;
+}
+
 /**
  * Self-serve create en mantenimiento (TikTok BC bloqueado / ops).
  * `true` = UI amable + API rechaza altas.
@@ -130,7 +177,7 @@ export function getTikTokBcCreateProfile(
   bmBucket: string | null | undefined,
 ): TikTokBcCreateProfile {
   const key = String(bmBucket ?? DEFAULT_TIKTOK_CREATE_BM).trim();
-  if (key === "200" || key === "30" || key === "300") {
+  if (key === "200" || key === "30" || key === "300" || key === "10") {
     return TIKTOK_BC_CREATE_PROFILES[key];
   }
   return TIKTOK_BC_CREATE_PROFILES[DEFAULT_TIKTOK_CREATE_BM];

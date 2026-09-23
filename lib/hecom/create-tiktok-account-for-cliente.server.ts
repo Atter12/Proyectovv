@@ -9,8 +9,8 @@ import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-a
 import { createBcAdvertiserForCliente } from "@/lib/integrations/tiktok/bc-advertiser-create.server";
 import {
   buildHolisticWhatsAppUrl,
-  DEFAULT_TIKTOK_CREATE_BM,
   getTikTokBcCreateProfile,
+  resolveTikTokCreateBmForCliente,
   resolveTikTokSelfServeAccountLimit,
   type TikTokCreateBmBucket,
 } from "@/lib/integrations/tiktok/bc-create-profiles";
@@ -69,9 +69,8 @@ export async function createTikTokAccountForCliente(input: {
     };
   }
 
-  const profile = getTikTokBcCreateProfile(
-    input.bmBucket ?? DEFAULT_TIKTOK_CREATE_BM,
-  );
+  const bmBucket = resolveTikTokCreateBmForCliente(clienteId, input.bmBucket);
+  const profile = getTikTokBcCreateProfile(bmBucket);
   const organizationId = await resolveOrganizationIdForHecomCliente(clienteId);
 
   // El serial del nombre es correlativo por BM: 300.0, 301.0, 302.0…
@@ -95,7 +94,7 @@ export async function createTikTokAccountForCliente(input: {
         .replace(/^TIKTOK_BC_UNUSUAL_ACTIVITY:\s*/i, "")
         .trim();
       const prefill =
-        `Hola Holistic, soy ${cliente.name}. No puedo crear cuenta TikTok: TikTok API 40002 unusual activity en BM 300 (BC ${profile.bcId}). ¿Pueden escalarlo?`;
+        `Hola Holistic, soy ${cliente.name}. No puedo crear cuenta TikTok: TikTok API 40002 unusual activity en BM ${profile.bmBucket} (BC ${profile.bcId}). ¿Pueden escalarlo?`;
       return {
         ok: false,
         needWhatsApp: true,

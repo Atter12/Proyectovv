@@ -47,7 +47,7 @@ export async function createBcAdvertiserForCliente(input: {
     input.organizationId,
   );
 
-  const body = {
+  const body: Record<string, unknown> = {
     bc_id: profile.bcId,
     advertiser_info: {
       name: advertiserName,
@@ -60,10 +60,13 @@ export async function createBcAdvertiserForCliente(input: {
       industry: profile.industry,
       registered_area: profile.registeredArea,
     },
-    qualification_info: {
-      qualification_id: profile.qualificationId,
-    },
   };
+  // DIRECT (BM10): TikTok rechaza qualification_info. Solo AGENCY.
+  if (profile.bcType === "AGENCY" && profile.qualificationId) {
+    body.qualification_info = {
+      qualification_id: profile.qualificationId,
+    };
+  }
 
   console.info("[tiktok-bc] advertiser_create_attempt", {
     bcId: profile.bcId,
