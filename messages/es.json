@@ -1092,6 +1092,8 @@
       "spendFallback": "Gasto de publicidad",
       "paidFallback": "Pago",
       "feeLine": "fee {amount}",
+      "adjustLine": "Ajuste Hecom (excedente de otro mes)",
+      "adjustPeriodHint": "Pagado el {paid}; imputado a este mes en Hecom",
       "capped": "Hay mucho historial y esta vista no alcanza a traerlo todo. Si el total no cuadra, avísanos."
     },
     "historyTitle": "Historial de pagos",

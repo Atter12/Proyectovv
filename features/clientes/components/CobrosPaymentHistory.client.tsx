@@ -47,11 +47,13 @@ function formatMonthTitle(ym: string, locale: string): string {
 }
 
 function cobroMonthKey(row: CobroHistoryRow): string | null {
+  // Igual que Hecom Club / Ajustar: manda periodo_resumen sobre fecha de pago.
+  const periodo = row.periodoResumen?.trim() ?? "";
+  const fromPeriodo = periodo.match(/^(\d{4}-\d{2})/);
+  if (fromPeriodo) return fromPeriodo[1];
   const fecha = row.fecha?.trim().slice(0, 10) ?? "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fecha.slice(0, 7);
-  const periodo = row.periodoResumen?.trim() ?? "";
-  const m = periodo.match(/^(\d{4}-\d{2})/);
-  return m ? m[1] : null;
+  return null;
 }
 
 function formatHecomFecha(value: string | null, locale: string): string {

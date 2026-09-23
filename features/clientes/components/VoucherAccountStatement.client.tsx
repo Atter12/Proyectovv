@@ -16,6 +16,9 @@ export type StatementCobro = {
   fecha: string | null;
   monto: number;
   metodo: string | null;
+  /** Mes de deuda en Hecom (Ajustar mueve plata acá, no en `fecha`). */
+  periodoResumen?: string | null;
+  notas?: string | null;
 };
 
 type Props = {
@@ -49,6 +52,13 @@ function ymdKey(value: string | null): string | null {
   const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
   if (!dmy) return null;
   return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+}
+
+/** `periodo_resumen` Hecom → `YYYY-MM` (igual que el Ajustar de Club). */
+function periodoYm(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const m = value.trim().match(/^(\d{4}-\d{2})/);
+  return m ? m[1] : null;
 }
 
 function feeUsd(gasto: number, fee: number | null, fallback: number): number {
@@ -98,6 +108,7 @@ export function VoucherAccountStatement({
   const today = useMemo(() => todayYmdInTz("America/Lima"), []);
   const spendTo = useMemo(() => spendMaxYmd(), []);
   const from = useMemo(() => monthStart(today), [today]);
+  const monthYm = from.slice(0, 7);
 
   const rows = useMemo(() => {
     const spend = gastos
@@ -118,11 +129,16 @@ export function VoucherAccountStatement({
     const paid = cobros
       .map((row) => {
         const fecha = ymdKey(row.fecha);
-        if (!fecha) return null;
+        const periodo = periodoYm(row.periodoResumen);
+        // Sin periodo ni fecha no se puede imputar (igual que Hecom).
+        if (!periodo && !fecha) return null;
         return {
           fecha,
+          periodo,
           monto: row.monto,
           metodo: row.metodo?.trim() || null,
+          notas: row.notas?.trim() || null,
+          adjusted: /ajuste\s+excedente/i.test(row.notas ?? ""),
         };
       })
       .filter((row): row is NonNullable<typeof row> => row != null);
@@ -131,12 +147,22 @@ export function VoucherAccountStatement({
   }, [cobros, feePercent, gastos]);
 
   const view = useMemo(() => {
-    // Gasto/fee: hasta ayer (jale Hecom). Cobros: hasta hoy (entran en vivo).
+    // Gasto/fee: hasta ayer (jale Hecom).
+    // Cobros: por periodo_resumen (Ajustar Hecom); si no hay, por fecha de pago.
     const inSpendRange = (fecha: string) => fecha >= from && fecha <= spendTo;
-    const inPaidRange = (fecha: string) => fecha >= from && fecha <= today;
+    const inPaidMonth = (row: (typeof rows.paid)[number]) => {
+      if (row.periodo) return row.periodo === monthYm;
+      if (!row.fecha) return false;
+      return row.fecha >= from && row.fecha <= today;
+    };
+    const chartDayForPaid = (row: (typeof rows.paid)[number]) => {
+      if (row.fecha && row.fecha >= from && row.fecha <= today) return row.fecha;
+      // Ajuste con fecha de otro mes → día 1 del mes de deuda (visible en el chart).
+      return from;
+    };
 
     const rangeSpend = rows.spend.filter((row) => inSpendRange(row.fecha));
-    const rangePaid = rows.paid.filter((row) => inPaidRange(row.fecha));
+    const rangePaid = rows.paid.filter((row) => inPaidMonth(row));
     const gasto = round2(rangeSpend.reduce((sum, row) => sum + row.gasto, 0));
     const fee = round2(rangeSpend.reduce((sum, row) => sum + row.fee, 0));
     const cargo = round2(gasto + fee);
@@ -164,7 +190,7 @@ export function VoucherAccountStatement({
       bucket.cargo = round2(bucket.cargo + row.cargo);
     }
     for (const row of rangePaid) {
-      const bucket = ensure(row.fecha);
+      const bucket = ensure(chartDayForPaid(row));
       bucket.paid = round2(bucket.paid + row.monto);
     }
 
@@ -184,9 +210,13 @@ export function VoucherAccountStatement({
       owed,
       series,
       rangeSpend: [...rangeSpend].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
-      rangePaid: [...rangePaid].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
+      rangePaid: [...rangePaid].sort((a, b) => {
+        const da = a.fecha ?? chartDayForPaid(a);
+        const db = b.fecha ?? chartDayForPaid(b);
+        return da < db ? 1 : -1;
+      }),
     };
-  }, [from, locale, rows.paid, rows.spend, spendTo, today]);
+  }, [from, locale, monthYm, rows.paid, rows.spend, spendTo, today]);
 
   const maxBar = Math.max(
     1,
@@ -312,11 +342,22 @@ export function VoucherAccountStatement({
           title={t("paidList")}
           empty={t("emptyPaid")}
           rows={view.rangePaid.map((row, index) => ({
-            key: `c-${index}-${row.fecha}`,
-            date: formatDay(row.fecha, locale),
+            key: `c-${index}-${row.fecha ?? row.periodo}-${row.monto}`,
+            date: formatDay(
+              row.fecha && row.fecha >= view.from && row.fecha <= today
+                ? row.fecha
+                : view.from,
+              locale,
+            ),
             detail: row.metodo || t("paidFallback"),
             amount: `+${moneyUsd(row.monto)}`,
-            extra: null,
+            extra: row.adjusted
+              ? t("adjustLine")
+              : row.fecha && row.periodo && row.fecha.slice(0, 7) !== row.periodo
+                ? t("adjustPeriodHint", {
+                    paid: formatDay(row.fecha, locale),
+                  })
+                : null,
             paid: true,
           }))}
         />

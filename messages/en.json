@@ -1092,6 +1092,8 @@
       "spendFallback": "Ad spend",
       "paidFallback": "Payment",
       "feeLine": "fee {amount}",
+      "adjustLine": "Hecom adjust (surplus from another month)",
+      "adjustPeriodHint": "Paid on {paid}; applied to this month in Hecom",
       "capped": "There is a lot of history and this view cannot load all of it. If the total looks off, tell us."
     },
     "historyTitle": "Payment history",

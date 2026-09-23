@@ -62,6 +62,8 @@ export async function ClienteScopedCobros({
           fecha: row.fecha,
           monto: row.monto,
           metodo: row.metodo,
+          periodoResumen: row.periodoResumen,
+          notas: row.notas,
         }))}
       />
 
