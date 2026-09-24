@@ -1089,7 +1089,7 @@
       "surchargeNote": "Surcharge do gateway {amount} não reduz a dívida (regra Hecom).",
       "surchargeLine": "surcharge {amount} (não reduz a dívida)",
       "chartDay": "Dia a dia",
-      "chartDayLead": "Passe o mouse: gasto do dia e total acumulado do mês",
+      "chartDayLead": "Toque ou passe o mouse em um dia para ver os valores",
       "chartSelectedDay": "Dia",
       "chartDaySpend": "Nesse dia",
       "chartDaySpendHint": "Gasto + taxa só deste dia",

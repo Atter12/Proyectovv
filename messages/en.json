@@ -1089,7 +1089,7 @@
       "surchargeNote": "Gateway surcharge {amount} does not reduce debt (Hecom rule).",
       "surchargeLine": "surcharge {amount} (does not reduce debt)",
       "chartDay": "Day by day",
-      "chartDayLead": "Hover a day: that day’s spend and month-to-date total",
+      "chartDayLead": "Tap or hover a day to see amounts",
       "chartSelectedDay": "Day",
       "chartDaySpend": "That day",
       "chartDaySpendHint": "Spend + fee for this day only",
