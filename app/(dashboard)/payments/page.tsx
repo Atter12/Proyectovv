@@ -11,6 +11,7 @@ import { CreditLockPanel } from "@/features/payments/components/CreditLockPanel.
 import { CREDIT_STRIPE_LOCK_ENABLED } from "@/lib/payments/credit-lock/credit-lock.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
+import { isHecomBmBucketHiddenForCliente } from "@/lib/hecom/bm-bucket.shared";
 import { getSelectedHecomCliente, getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-agency-bridges.server";
 import {
@@ -117,7 +118,11 @@ export default async function PaymentsPage({
   // Hecom map primero; si vacío, overview (Hecom IDs o Holistic por hecom_cliente_id — nunca por nombre).
   const mappedHecomIds = (
     cliente.tiktokAccounts.length > 0
-      ? cliente.tiktokAccounts.filter((a) => a.syncEnabled !== false)
+      ? cliente.tiktokAccounts.filter(
+          (a) =>
+            a.syncEnabled !== false &&
+            !isHecomBmBucketHiddenForCliente(cliente.id, a.bmBucket),
+        )
       : cliente.tiktokAdvertiserId && cliente.tiktokSyncEnabled !== false
         ? [{ advertiserId: cliente.tiktokAdvertiserId }]
         : []

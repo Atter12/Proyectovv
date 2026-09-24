@@ -19,6 +19,24 @@ export function resolveBmBucketFromBcId(
   return null;
 }
 
+/** BMs ocultos en UI (Cuentas ads / Pagos) por cliente Hecom — ops. */
+const HIDDEN_BM_BUCKETS_BY_CLIENTE: Record<string, readonly string[]> = {
+  // Abel Mogollon — 2026-09-23: solo BM300; BM30/10 confunden (viejas).
+  "673ac838-ce18-4074-a7a7-63407c72c80a": ["30", "10"],
+};
+
+/** True si esa cuenta BM no debe listarse al cliente en Holistic. */
+export function isHecomBmBucketHiddenForCliente(
+  hecomClienteId: string | null | undefined,
+  bmBucket: string | null | undefined,
+): boolean {
+  const id = String(hecomClienteId ?? "").trim();
+  const bucket = String(bmBucket ?? "").trim();
+  if (!id || !bucket) return false;
+  const hidden = HIDDEN_BM_BUCKETS_BY_CLIENTE[id];
+  return Boolean(hidden?.includes(bucket));
+}
+
 /** BMs donde Holistic puede Asignar (cash BM200/300 o presupuesto crédito BM10/30). */
 export const SYSTEM_ALLOCATABLE_BM_BUCKETS = ["10", "30", "200", "300"] as const;
 

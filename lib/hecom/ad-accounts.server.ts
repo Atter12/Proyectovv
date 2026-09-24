@@ -23,6 +23,7 @@ import {
   isStaffBlockedAdAccount,
   isStaffBlockedHecomCliente,
 } from "@/lib/payments/staff-block.server";
+import { isHecomBmBucketHiddenForCliente } from "@/lib/hecom/bm-bucket.shared";
 import type { AdAccount, AdAccountsOverview } from "@/types/ad-account";
 
 export { advertiserMatchesCliente } from "@/lib/hecom/advertiser-match";
@@ -294,7 +295,10 @@ async function getHecomClienteAdAccountsOverviewImpl(
   }
 
   const allHecomAccounts = resolveHecomAccounts(cliente);
-  const hecomAccounts = allHecomAccounts;
+  const hecomAccounts = allHecomAccounts.filter(
+    (account) =>
+      !isHecomBmBucketHiddenForCliente(cliente.id, account.bmBucket),
+  );
 
   let liveById = new Map<string, TikTokBcAdvertiser>();
   let liveSource: "cache" | "live" | "none" = "none";
