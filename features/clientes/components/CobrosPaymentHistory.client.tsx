@@ -200,20 +200,20 @@ export function CobrosPaymentHistory({
   const canNext = month < currentMonth;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[var(--auth-divider)] bg-white shadow-[var(--shadow-card)]">
-      <div className="flex flex-col gap-3 border-b border-[var(--auth-divider)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
+      <div className="flex flex-col gap-3 border-b border-[#efe8df] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-text-soft)]">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
             {t("historyTitle")}
           </p>
-          <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
+          <p className="mt-0.5 text-[12px] text-[#6b645c]">
             {t("historyMonthHint", {
               count: filtered.length,
               total: moneyUsd(monthTotal),
             })}
           </p>
           {hideMonthPicker ? (
-            <p className="mt-1 text-[11px] text-[var(--auth-text-muted)]">
+            <p className="mt-1 text-[11px] text-[#8a8177]">
               {t("historySyncedMonth", {
                 month: formatMonthTitle(month, locale),
               })}

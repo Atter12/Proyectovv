@@ -110,11 +110,11 @@ export function ClienteCobrosMonthView({
   const isCurrent = month === currentMonth;
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(165deg,#fffaf6_0%,#ffffff_55%,#fff7f0_100%)] shadow-[0_14px_36px_-28px_rgb(255_120_31_/_0.5)]">
-        <div className="flex flex-col gap-3 border-b border-[#ffe4cc] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="space-y-5">
+      <div className="overflow-hidden rounded-2xl bg-[#faf8f5] ring-1 ring-[#e8dfd4]">
+        <div className="flex flex-col gap-3 border-b border-[#efe8df] bg-white/70 px-4 py-4 backdrop-blur-[2px] sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
               {t("monthScopeEyebrow")}
             </p>
             <p className="mt-0.5 text-[12px] leading-4 text-[#6b645c]">
@@ -127,19 +127,19 @@ export function ClienteCobrosMonthView({
               <button
                 type="button"
                 onClick={() => setMonth(currentMonth)}
-                className="h-10 rounded-xl border border-[#ffd7b8] bg-white px-3 text-[12px] font-semibold text-[#c2410c] transition hover:bg-[#fff7f0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
+                className="h-10 rounded-xl bg-[#1a1714] px-3.5 text-[12px] font-semibold text-white transition hover:bg-[#2c2620] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
               >
                 {t("jumpCurrentMonth")}
               </button>
             ) : null}
 
-            <div className="flex items-center rounded-xl border border-[#ffd7b8] bg-white p-1 shadow-[0_1px_0_rgb(255_215_184_/_0.6)]">
+            <div className="flex items-center rounded-xl bg-white p-1 ring-1 ring-[#e8dfd4]">
               <button
                 type="button"
                 aria-label={t("prevMonth")}
                 disabled={!canPrev}
                 onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#fff7f0] hover:text-[#1c1917] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#faf8f5] hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                   <path
@@ -152,10 +152,10 @@ export function ClienteCobrosMonthView({
                 </svg>
               </button>
               <div className="min-w-[10rem] px-2 text-center sm:min-w-[12rem]">
-                <p className="text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#1c1917]">
+                <p className="text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#1a1714]">
                   {formatMonthTitle(month, locale)}
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#c2410c]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a6b4a]">
                   {isCurrent ? t("thisMonth") : t("monthScopeSynced")}
                 </p>
               </div>
@@ -164,7 +164,7 @@ export function ClienteCobrosMonthView({
                 aria-label={t("nextMonth")}
                 disabled={!canNext}
                 onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#fff7f0] hover:text-[#1c1917] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#faf8f5] hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                   <path
@@ -181,7 +181,7 @@ export function ClienteCobrosMonthView({
         </div>
 
         {recentMonths.length > 1 ? (
-          <div className="flex gap-1 overflow-x-auto border-b border-[#ffe8d4] bg-[#fffaf6]/80 px-3 py-2 sm:px-4">
+          <div className="flex gap-1 overflow-x-auto border-b border-[#efe8df] px-3 py-2.5 sm:px-4">
             {recentMonths.map((ym) => {
               const active = ym === month;
               return (
@@ -191,8 +191,8 @@ export function ClienteCobrosMonthView({
                   onClick={() => setMonth(ym)}
                   className={`shrink-0 rounded-lg px-3 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] ${
                     active
-                      ? "bg-[#d47840] text-white"
-                      : "text-[#6b645c] hover:bg-white hover:text-[#1c1917]"
+                      ? "bg-[#1a1714] text-white"
+                      : "text-[#6b645c] hover:bg-white hover:text-[#1a1714]"
                   }`}
                   aria-pressed={active}
                 >
@@ -203,7 +203,7 @@ export function ClienteCobrosMonthView({
           </div>
         ) : null}
 
-        <div className="p-3 sm:p-4">
+        <div className="p-4 sm:p-5">
           <VoucherAccountStatement
             monthYm={month}
             feePercent={feePercent}

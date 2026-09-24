@@ -359,56 +359,83 @@ export function VoucherAccountStatement({
   const owes = view.owed > 0.004;
   const favor = view.owed < -0.004;
   const heroLabel = owes ? t("youOwe") : favor ? t("inYourFavor") : t("settled");
-  const heroClass = owes
-    ? "text-[#c2410c]"
-    : favor
-      ? "text-[#15803d]"
-      : "text-[#1c1917]";
+  const heroTone = owes ? "owe" : favor ? "favor" : "ok";
 
   return (
-    <section
-      className={
-        embedded
-          ? "space-y-4"
-          : "space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(165deg,#fffaf6_0%,#ffffff_48%,#fff7f0_100%)] p-4 shadow-[0_16px_40px_-28px_rgb(255_120_31_/_0.55)] sm:p-5"
-      }
-    >
-      <div className="max-w-xl">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-          {t("eyebrow")}
-        </p>
-        <h3 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-          {t("title")}
-        </h3>
-        <p className="mt-1 text-[12px] leading-5 text-[#6b645c]">{t("subtitle")}</p>
-        {!embedded ? (
-          <p className="mt-2 text-[12px] font-semibold capitalize text-[#c2410c]">
-            {view.monthLabel}
+    <section className={embedded ? "space-y-5" : "space-y-5 rounded-2xl border border-[#e8dfd4] bg-[#faf8f5] p-4 sm:p-5"}>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
+            {t("eyebrow")}
           </p>
-        ) : null}
-      </div>
-
-      <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-          {heroLabel}
-        </p>
-        <p className={`mt-1 text-[2rem] font-bold tabular-nums tracking-[-0.03em] ${heroClass}`}>
-          {moneyUsd(Math.abs(view.owed))}
-        </p>
-        <p className="mt-1 max-w-2xl text-[12px] leading-5 text-[#6b645c]">
+          <h3 className="mt-1 text-[1.35rem] font-semibold tracking-[-0.03em] text-[#1a1714]">
+            {t("title")}
+          </h3>
+          {!embedded ? (
+            <p className="mt-1 text-[13px] capitalize text-[#9a6b4a]">{view.monthLabel}</p>
+          ) : null}
+        </div>
+        <p className="max-w-sm text-right text-[11px] leading-4 text-[#8a8177]">
           {t("through", {
             month: view.monthLabel,
             date: formatDay(view.to, locale),
           })}
         </p>
-        {view.surcharge > 0.004 ? (
-          <p className="mt-1 max-w-2xl text-[11px] leading-4 text-[#8a8177]">
-            {t("surchargeNote", { amount: moneyUsd(view.surcharge) })}
-          </p>
-        ) : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      {/* Hero saldo */}
+      <div
+        className={`relative overflow-hidden rounded-2xl px-5 py-6 sm:px-7 sm:py-7 ${
+          heroTone === "favor"
+            ? "bg-[linear-gradient(135deg,#ecf7ef_0%,#f4faf6_55%,#ffffff_100%)] ring-1 ring-[#c5e0ce]"
+            : heroTone === "owe"
+              ? "bg-[linear-gradient(135deg,#fff1e6_0%,#fff7f0_55%,#ffffff_100%)] ring-1 ring-[#f0c9a8]"
+              : "bg-white ring-1 ring-[#e8dfd4]"
+        }`}
+      >
+        <div
+          className={`pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full opacity-40 blur-2xl ${
+            heroTone === "favor"
+              ? "bg-[#9fd4b0]"
+              : heroTone === "owe"
+                ? "bg-[#f0b889]"
+                : "bg-[#ddd5cb]"
+          }`}
+          aria-hidden
+        />
+        <p
+          className={`text-[11px] font-bold uppercase tracking-[0.14em] ${
+            heroTone === "favor"
+              ? "text-[#1f6b3a]"
+              : heroTone === "owe"
+                ? "text-[#b45309]"
+                : "text-[#6b645c]"
+          }`}
+        >
+          {heroLabel}
+        </p>
+        <p
+          className={`mt-2 text-[2.55rem] font-semibold tabular-nums tracking-[-0.04em] sm:text-[2.85rem] ${
+            heroTone === "favor"
+              ? "text-[#146b38]"
+              : heroTone === "owe"
+                ? "text-[#c2410c]"
+                : "text-[#1a1714]"
+          }`}
+        >
+          {moneyUsd(Math.abs(view.owed))}
+        </p>
+        {view.surcharge > 0.004 ? (
+          <p className="mt-2 max-w-xl text-[11px] leading-4 text-[#8a8177]">
+            {t("surchargeNote", { amount: moneyUsd(view.surcharge) })}
+          </p>
+        ) : (
+          <p className="mt-2 text-[12px] text-[#6b645c]">{t("subtitle")}</p>
+        )}
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-[#e8dfd4] ring-1 ring-[#e8dfd4] sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label={t("rangeSpend")} value={moneyUsd(view.gasto)} />
         <Kpi label={t("rangeFee")} value={moneyUsd(view.fee)} />
         <Kpi label={t("rangeCargo")} value={moneyUsd(view.cargo)} hint={t("rangeCargoHint")} />
@@ -427,153 +454,128 @@ export function VoucherAccountStatement({
           value={moneyUsd(view.rangeSaldo)}
           tone={view.rangeSaldo < -0.004 ? "owe" : view.rangeSaldo > 0.004 ? "paid" : "neutral"}
           hint={t("rangeResultHint")}
+          className="col-span-2 sm:col-span-1"
         />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#efe8df] bg-[#fcfaf7]">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#efe8df] px-4 py-3.5 sm:px-5">
+      {/* Chart */}
+      <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#efe8df] px-4 py-3.5 sm:px-5">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#a85a32]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a6b4a]">
               {t("chartDay")}
             </p>
-            <p className="mt-0.5 text-[13px] font-semibold text-[#1c1917]">
-              {t("chartDayLead")}
-            </p>
+            <p className="mt-0.5 text-[13px] text-[#5c564e]">{t("chartDayLead")}</p>
           </div>
-          <div className="flex items-center gap-3 text-[11px] font-medium text-[#6b645c]">
+          <div className="flex items-center gap-4 text-[11px] font-medium text-[#6b645c]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#d47840]" />
+              <span className="h-2 w-2 rounded-sm bg-[#d47840]" />
               {t("legendCargo")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#2f7a4a]" />
+              <span className="h-2 w-2 rounded-sm bg-[#2f7a4a]" />
               {t("legendPaid")}
             </span>
           </div>
         </div>
 
         {view.series.length === 0 ? (
-          <p className="px-4 py-10 text-center text-[13px] text-[#8a8177] sm:px-5">
+          <p className="px-4 py-12 text-center text-[13px] text-[#8a8177] sm:px-5">
             {t("emptyRange")}
           </p>
         ) : (
           <>
             {selectedDay ? (
-              <div className="border-b border-[#efe8df] bg-white px-4 py-4 sm:px-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+              <div className="border-b border-[#efe8df] bg-[#fcfaf7] px-4 py-4 sm:px-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8a8177]">
                   {formatDay(selectedDay.key, locale)}
                 </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl border border-[#f0ebe4] bg-[#fffaf6] px-3.5 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a85a32]">
-                      {t("chartDaySpend")}
-                    </p>
-                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#b85f2e]">
-                      {moneyUsd(selectedDay.cargo)}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
-                      {t("chartDaySpendHint")}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[#e8e2da] bg-[#f7f5f2] px-3.5 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5c564e]">
-                      {t("chartCumSpend")}
-                    </p>
-                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#1c1917]">
-                      {moneyUsd(selectedDay.cargoCum)}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
-                      {t("chartCumSpendHint")}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[#d8e8dc] bg-[#f3faf5] px-3.5 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#2f6b45]">
-                      {t("chartDayPaid")}
-                    </p>
-                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#1f6b3a]">
-                      {moneyUsd(selectedDay.paid)}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
-                      {t("chartDayPaidHint")}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[#d4e0d8] bg-[#eef5f0] px-3.5 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#3d5c48]">
-                      {t("chartCumPaid")}
-                    </p>
-                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#163528]">
-                      {moneyUsd(selectedDay.paidCum)}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
-                      {t("chartCumPaidHint")}
-                    </p>
-                  </div>
+                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                  <DayMetric
+                    label={t("chartDaySpend")}
+                    value={moneyUsd(selectedDay.cargo)}
+                    hint={t("chartDaySpendHint")}
+                    tone="spend"
+                  />
+                  <DayMetric
+                    label={t("chartCumSpend")}
+                    value={moneyUsd(selectedDay.cargoCum)}
+                    hint={t("chartCumSpendHint")}
+                  />
+                  <DayMetric
+                    label={t("chartDayPaid")}
+                    value={moneyUsd(selectedDay.paid)}
+                    hint={t("chartDayPaidHint")}
+                    tone="paid"
+                  />
+                  <DayMetric
+                    label={t("chartCumPaid")}
+                    value={moneyUsd(selectedDay.paidCum)}
+                    hint={t("chartCumPaidHint")}
+                    tone="paid"
+                  />
                 </div>
               </div>
             ) : null}
 
-            <div className="overflow-x-auto px-2 pb-3 pt-2 sm:px-3">
+            <div className="overflow-x-auto px-2 pb-2 pt-3 sm:px-3">
               <div
-                className="flex items-end gap-1.5 px-1"
-                style={{ minWidth: `${Math.max(view.series.length * 42, 320)}px` }}
+                className="flex items-end gap-1 px-1"
+                style={{ minWidth: `${Math.max(view.series.length * 36, 280)}px` }}
               >
                 {view.series.map((bucket) => {
                   const cargoH =
                     bucket.cargo > 0
-                      ? Math.max(8, (bucket.cargo / maxBar) * 100)
+                      ? Math.max(10, (bucket.cargo / maxBar) * 100)
                       : 0;
                   const paidH =
                     bucket.paid > 0.004
-                      ? Math.max(8, (bucket.paid / maxBar) * 100)
+                      ? Math.max(10, (bucket.paid / maxBar) * 100)
                       : 0;
                   const isActive = selectedDay?.key === bucket.key;
                   const isPeak =
                     view.peakCargo.key === bucket.key && view.peakCargo.cargo > 0;
                   const hasPaid = bucket.paid > 0.004;
+                  const showCargoLabel = isActive || isPeak;
+                  const showPaidLabel = isActive && hasPaid;
                   return (
                     <button
                       key={bucket.key}
                       type="button"
                       onClick={() => setActiveDay(bucket.key)}
                       onMouseEnter={() => setActiveDay(bucket.key)}
-                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1 pt-2 transition ${
+                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-lg px-0.5 pb-1.5 pt-1 transition duration-150 ${
                         isActive
-                          ? "bg-[#fff7f0] ring-1 ring-[#e8c4a4]"
-                          : "hover:bg-white/80"
+                          ? "bg-[#fff6ee]"
+                          : "hover:bg-[#faf8f5]"
                       }`}
                       aria-label={`${formatDay(bucket.key, locale)}: ${t("chartDaySpend")} ${moneyUsd(bucket.cargo)}, ${t("chartDayPaid")} ${moneyUsd(bucket.paid)}`}
                       title={`${formatDay(bucket.key, locale)}\n${t("legendCargo")}: ${moneyUsd(bucket.cargo)}\n${t("legendPaid")}: ${moneyUsd(bucket.paid)}`}
                     >
                       <span
-                        className={`mb-0.5 h-3.5 text-[8px] font-bold tabular-nums leading-none ${
-                          bucket.cargo > 0
-                            ? isActive || isPeak
-                              ? "text-[#b85f2e]"
-                              : "text-[#c4a48a]"
-                            : "text-transparent"
+                        className={`mb-0.5 flex h-3.5 items-end text-[8px] font-bold tabular-nums leading-none ${
+                          showCargoLabel ? "text-[#b85f2e]" : "text-transparent"
                         }`}
                       >
-                        {bucket.cargo > 0 ? moneyCompact(bucket.cargo) : "·"}
+                        {showCargoLabel && bucket.cargo > 0
+                          ? moneyCompact(bucket.cargo)
+                          : "·"}
                       </span>
                       <span
-                        className={`mb-1 h-3.5 text-[8px] font-bold tabular-nums leading-none ${
-                          hasPaid
-                            ? isActive
-                              ? "text-[#1f6b3a]"
-                              : "text-[#6a9a78]"
-                            : "text-transparent"
+                        className={`mb-1 flex h-3.5 items-end text-[8px] font-bold tabular-nums leading-none ${
+                          showPaidLabel ? "text-[#1f6b3a]" : "text-transparent"
                         }`}
                       >
-                        {hasPaid ? moneyCompact(bucket.paid) : "·"}
+                        {showPaidLabel ? moneyCompact(bucket.paid) : "·"}
                       </span>
-                      <div className="flex h-28 w-full items-end justify-center gap-0.5">
+                      <div className="flex h-32 w-full items-end justify-center gap-0.5 sm:h-36">
                         <span
-                          className={`w-[38%] max-w-[12px] rounded-t-md transition ${
+                          className={`w-[40%] max-w-[11px] rounded-t-[3px] transition duration-150 ${
                             bucket.cargo > 0
                               ? isActive || isPeak
                                 ? "bg-[#d47840]"
-                                : "bg-[#e8a574]"
-                              : "bg-[#f0ebe4]"
+                                : "bg-[#e8b48a]/85 group-hover:bg-[#e09a66]"
+                              : "bg-[#efe8df]"
                           }`}
                           style={{
                             height: `${cargoH}%`,
@@ -581,11 +583,11 @@ export function VoucherAccountStatement({
                           }}
                         />
                         <span
-                          className={`w-[38%] max-w-[12px] rounded-t-md transition ${
+                          className={`w-[40%] max-w-[11px] rounded-t-[3px] transition duration-150 ${
                             hasPaid
                               ? isActive
                                 ? "bg-[#2f7a4a]"
-                                : "bg-[#5a9a6e]"
+                                : "bg-[#6a9a78]/90 group-hover:bg-[#4d8760]"
                               : "bg-[#eef2ef]"
                           }`}
                           style={{
@@ -596,11 +598,17 @@ export function VoucherAccountStatement({
                       </div>
                       <span
                         className={`mt-1.5 text-[10px] font-semibold tabular-nums ${
-                          isActive ? "text-[#1c1917]" : "text-[#8a8177]"
+                          isActive ? "text-[#1a1714]" : "text-[#9a9288]"
                         }`}
                       >
                         {bucket.label}
                       </span>
+                      <span
+                        className={`mt-1 h-0.5 w-3 rounded-full transition ${
+                          isActive ? "bg-[#d47840]" : "bg-transparent"
+                        }`}
+                        aria-hidden
+                      />
                     </button>
                   );
                 })}
@@ -667,7 +675,7 @@ export function VoucherAccountStatement({
   );
 }
 
-function Kpi({
+function DayMetric({
   label,
   value,
   hint,
@@ -675,25 +683,57 @@ function Kpi({
 }: {
   label: string;
   value: string;
+  hint: string;
+  tone?: "neutral" | "spend" | "paid";
+}) {
+  const valueClass =
+    tone === "spend"
+      ? "text-[#b85f2e]"
+      : tone === "paid"
+        ? "text-[#1f6b3a]"
+        : "text-[#1a1714]";
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+        {label}
+      </p>
+      <p className={`mt-1 text-[1.2rem] font-semibold tabular-nums tracking-[-0.02em] ${valueClass}`}>
+        {value}
+      </p>
+      <p className="mt-0.5 text-[10px] leading-3.5 text-[#9a9288]">{hint}</p>
+    </div>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+  className = "",
+}: {
+  label: string;
+  value: string;
   hint?: string;
   tone?: "neutral" | "paid" | "owe";
+  className?: string;
 }) {
   const toneClass =
     tone === "paid"
       ? "text-[#15803d]"
       : tone === "owe"
         ? "text-[#c2410c]"
-        : "text-[#1c1917]";
+        : "text-[#1a1714]";
   return (
-    <div className="rounded-xl border border-[#f0ebe4] bg-white px-3 py-3">
+    <div className={`bg-[#faf8f5] px-3.5 py-3.5 ${className}`}>
       <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
         {label}
       </p>
-      <p className={`mt-1 text-[1.05rem] font-bold tabular-nums ${toneClass}`}>
+      <p className={`mt-1.5 text-[1.1rem] font-semibold tabular-nums tracking-[-0.02em] ${toneClass}`}>
         {value}
       </p>
       {hint ? (
-        <p className="mt-1 text-[10px] leading-4 text-[#8a8177]">{hint}</p>
+        <p className="mt-1 text-[10px] leading-3.5 text-[#9a9288]">{hint}</p>
       ) : null}
     </div>
   );
@@ -716,34 +756,34 @@ function MovementList({
   }>;
 }) {
   return (
-    <div className="rounded-2xl border border-[#f0ebe4] bg-white px-4 py-4">
-      <p className="text-[12px] font-semibold text-[#1c1917]">
+    <div className="rounded-2xl bg-white px-4 py-4 ring-1 ring-[#e8dfd4]">
+      <p className="text-[12px] font-semibold text-[#1a1714]">
         {title}
         {rows.length > 0 ? (
-          <span className="ml-1 font-normal text-[#8a8177]">({rows.length})</span>
+          <span className="ml-1.5 font-normal text-[#8a8177]">({rows.length})</span>
         ) : null}
       </p>
       {rows.length === 0 ? (
         <p className="mt-3 text-[12px] text-[#8a8177]">{empty}</p>
       ) : (
-        <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+        <ul className="mt-3 max-h-64 space-y-0 overflow-y-auto pr-1">
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex items-start justify-between gap-3 border-b border-[#f5f1ec] pb-2 last:border-0 last:pb-0"
+              className="flex items-start justify-between gap-3 border-b border-[#f3eee8] py-2.5 last:border-0"
             >
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium text-[#1c1917]">
+                <p className="truncate text-[12px] font-medium text-[#1a1714]">
                   {row.detail}
                 </p>
                 <p className="text-[11px] text-[#8a8177]">{row.date}</p>
                 {row.extra ? (
-                  <p className="text-[10px] text-[#8a8177]">{row.extra}</p>
+                  <p className="text-[10px] text-[#9a9288]">{row.extra}</p>
                 ) : null}
               </div>
               <p
                 className={`shrink-0 text-[12px] font-semibold tabular-nums ${
-                  row.paid ? "text-[#15803d]" : "text-[#1c1917]"
+                  row.paid ? "text-[#15803d]" : "text-[#1a1714]"
                 }`}
               >
                 {row.amount}

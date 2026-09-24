@@ -1089,7 +1089,7 @@
       "surchargeNote": "Surcharge pasarela {amount} no baja la deuda (regla Hecom).",
       "surchargeLine": "surcharge {amount} (no imputa a deuda)",
       "chartDay": "Día a día",
-      "chartDayLead": "Pasá el mouse: gasto y lo pagado del día, más acumulados",
+      "chartDayLead": "Toca o pasa el mouse por un día para ver montos",
       "chartSelectedDay": "Día",
       "chartDaySpend": "Ese día",
       "chartDaySpendHint": "Gasto + fee solo de este día",
