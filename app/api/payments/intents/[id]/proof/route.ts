@@ -5,7 +5,11 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getPaymentIntentById, getPaymentIntentByIdInternal, updatePaymentIntentRecord } from "@/lib/payments/payment-intents.server";
 import { isMissingCobroPurpose } from "@/lib/payments/missing-cobro.shared";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
 import { mergeMetadata } from "@/lib/records";
 import { processManualVoucherUpload, VoucherRateLimitError } from "@/lib/payments/process-manual-voucher.server";
@@ -51,15 +55,28 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  let intent = session.organizationId
-    ? await getPaymentIntentById(id, session.organizationId)
+
+  // Misma resolución de org que GET /intents/[id] y POST create:
+  // staff/act-as/cliente Hecom seleccionado → org del cliente, no la del staff.
+  const actingAsCliente = await getActingAsCliente(session.id);
+  const selected = await getSelectedHecomCliente(session.id);
+  const hecomClienteId = selected?.id ?? null;
+  const clienteOrgId = hecomClienteId
+    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
+    : null;
+  const resolvedOrgId =
+    (actingAsCliente || Boolean(hecomClienteId)) && clienteOrgId
+      ? clienteOrgId
+      : session.organizationId;
+
+  let intent = resolvedOrgId
+    ? await getPaymentIntentById(id, resolvedOrgId)
     : null;
   if (!intent) {
     const internal = await getPaymentIntentByIdInternal(id);
     const meta = (internal?.metadata ?? {}) as Record<string, unknown>;
     if (internal && isMissingCobroPurpose(meta)) {
-      const selected = await getSelectedHecomCliente(session.id);
-      if (selected?.id && selected.id === String(meta.hecom_cliente_id ?? "")) {
+      if (hecomClienteId && hecomClienteId === String(meta.hecom_cliente_id ?? "")) {
         intent = internal;
       }
     }
@@ -68,7 +85,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Intención no encontrada." }, { status: 404 });
   }
 
-  const organizationId = intent.organizationId || session.organizationId;
+  const organizationId = intent.organizationId || resolvedOrgId;
   if (!organizationId) {
     return NextResponse.json({ error: "Organización no disponible." }, { status: 400 });
   }
