@@ -108,14 +108,18 @@ const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   // Jesús Callupe — 2026-09-23: ya tiene 5 mapeadas; +2 → cupo 7.
   // BM300 mientras BM10 sigue sin cupo TikTok (max advertisers).
   "6425e2d9-bb9b-4176-a126-ae889c1c8543": 7,
+  // Abel Mogollon — 2026-09-23: ya tiene 6 mapeadas; +3 → cupo 9 (BM300).
+  "673ac838-ce18-4074-a7a7-63407c72c80a": 9,
 };
 
 /**
  * Forzar BM de create self-serve por cliente (ops).
  * Callupe → BM300 por ahora (BM10 sin cupo BC).
+ * Abel → BM300 (pedido ops; 200/300 ok).
  */
 const SELF_SERVE_CREATE_BM_OVERRIDES: Record<string, TikTokCreateBmBucket> = {
   "6425e2d9-bb9b-4176-a126-ae889c1c8543": "300",
+  "673ac838-ce18-4074-a7a7-63407c72c80a": "300",
 };
 
 function parseLimitOverridesEnv(): Record<string, number> {
