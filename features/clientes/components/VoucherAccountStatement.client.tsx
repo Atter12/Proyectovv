@@ -185,6 +185,8 @@ export function VoucherAccountStatement({
   const view = useMemo(() => {
     // Gasto/fee: hasta ayer (jale Hecom).
     // Cobros: por periodo_resumen (Ajustar Hecom); si no hay, por fecha de pago.
+    // Chart: llega hasta hoy para que cobros de hoy (ej. BCP) salgan como barra verde.
+    const chartTo = today > spendTo ? today : spendTo;
     const inSpendRange = (fecha: string) => fecha >= from && fecha <= spendTo;
     const inPaidMonth = (row: (typeof rows.paid)[number]) => {
       if (row.periodo) return row.periodo === monthYm;
@@ -193,14 +195,11 @@ export function VoucherAccountStatement({
     };
     /**
      * Día del chart para un cobro:
-     * - Fecha de pago dentro del mes de gasto → ese día.
-     * - Pago de hoy (después del corte de gasto = ayer) → último día del chart
-     *   para que el acumulado cierre igual que la tarjeta Cobrado.
+     * - Fecha de pago en el mes (hasta hoy) → ese día.
      * - Ajuste Hecom / fecha fuera del mes → día 1 (mes de deuda).
      */
     const chartDayForPaid = (row: (typeof rows.paid)[number]) => {
-      if (row.fecha && row.fecha >= from && row.fecha <= spendTo) return row.fecha;
-      if (row.fecha && row.fecha > spendTo && row.fecha <= today) return spendTo;
+      if (row.fecha && row.fecha >= from && row.fecha <= chartTo) return row.fecha;
       return from;
     };
 
@@ -249,7 +248,7 @@ export function VoucherAccountStatement({
     let gastoRun = 0;
     let feeRun = 0;
     let paidRun = 0;
-    const series = eachYmd(from, spendTo).map((fecha) => {
+    const series = eachYmd(from, chartTo).map((fecha) => {
       const existing = buckets.get(fecha);
       const dayGasto = existing?.gasto ?? 0;
       const dayFee = existing?.fee ?? 0;
@@ -289,6 +288,7 @@ export function VoucherAccountStatement({
     return {
       from,
       to: spendTo,
+      chartTo,
       monthLabel: formatMonthLabel(from, locale),
       gasto,
       fee,
