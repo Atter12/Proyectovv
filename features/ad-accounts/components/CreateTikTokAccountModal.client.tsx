@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +39,11 @@ type CreateNeedWa = {
   message: string;
 };
 
+type QuotaPayload = {
+  used: number;
+  limit: number;
+};
+
 export function CreateTikTokAccountModal({
   open,
   onClose,
@@ -50,16 +55,56 @@ export function CreateTikTokAccountModal({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [quotaLoading, setQuotaLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [success, setSuccess] = useState<CreateOk | null>(null);
+  const [liveUsed, setLiveUsed] = useState(currentAccountCount);
+  const [liveLimit, setLiveLimit] = useState(accountLimit);
 
   const maintenance = TIKTOK_SELF_SERVE_CREATE_MAINTENANCE;
-  const atLimit = currentAccountCount >= accountLimit;
-  const remaining = Math.max(0, accountLimit - currentAccountCount);
+  const atLimit = liveUsed >= liveLimit;
+  const remaining = Math.max(0, liveLimit - liveUsed);
+
+  useEffect(() => {
+    if (!open) return;
+    setLiveUsed(currentAccountCount);
+    setLiveLimit(accountLimit);
+    setError(null);
+    setWhatsappUrl(null);
+    setSuccess(null);
+
+    let cancelled = false;
+    setQuotaLoading(true);
+    void (async () => {
+      try {
+        const response = await fetch(routes.api.adAccountsTikTokCreate, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const json = (await response.json()) as QuotaPayload | { error?: string };
+        if (cancelled || !("limit" in json) || !Number.isFinite(json.limit)) {
+          return;
+        }
+        setLiveUsed(Number(json.used) || 0);
+        setLiveLimit(Number(json.limit) || TIKTOK_SELF_SERVE_ACCOUNT_LIMIT);
+      } catch {
+        // Props del SSR como fallback.
+      } finally {
+        if (!cancelled) setQuotaLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, currentAccountCount, accountLimit]);
 
   const handleClose = useCallback(() => {
     setLoading(false);
+    setQuotaLoading(false);
     setError(null);
     setWhatsappUrl(null);
     setSuccess(null);
@@ -93,6 +138,8 @@ export function CreateTikTokAccountModal({
       ) {
         setWhatsappUrl(json.whatsappUrl);
         setError(json.message || t("limitReached"));
+        if (Number.isFinite(json.accountCount)) setLiveUsed(json.accountCount);
+        if (Number.isFinite(json.limit)) setLiveLimit(json.limit);
         return;
       }
 
@@ -103,6 +150,7 @@ export function CreateTikTokAccountModal({
 
       if ("ok" in json && json.ok) {
         setSuccess(json);
+        setLiveUsed(json.accountCountAfter);
         router.refresh();
       }
     } catch (err) {
@@ -156,11 +204,13 @@ export function CreateTikTokAccountModal({
                 </span>
               </div>
               <div className="mt-4 border-t border-[#e4ddd6] pt-3 text-[12px] text-[#6f675f]">
-                {t("quota", {
-                  used: currentAccountCount,
-                  limit: accountLimit,
-                  remaining,
-                })}
+                {quotaLoading
+                  ? tCommon("loading")
+                  : t("quota", {
+                      used: liveUsed,
+                      limit: liveLimit,
+                      remaining,
+                    })}
               </div>
             </div>
 
@@ -222,7 +272,7 @@ export function CreateTikTokAccountModal({
           ) : (
             <Button
               type="button"
-              disabled={loading}
+              disabled={loading || quotaLoading}
               onClick={() => void handleCreate()}
               className="h-11 rounded-xl bg-[#ff781f] px-5 hover:bg-[#e85a1c]"
             >

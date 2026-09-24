@@ -139,9 +139,10 @@ export function resolveTikTokSelfServeAccountLimit(
 ): number {
   const id = String(hecomClienteId ?? "").trim();
   if (!id) return TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
-  const override =
-    parseLimitOverridesEnv()[id] ?? SELF_SERVE_LIMIT_OVERRIDES[id];
-  return override && override > TIKTOK_SELF_SERVE_ACCOUNT_LIMIT
+  const fromEnv = parseLimitOverridesEnv()[id];
+  const fromCode = SELF_SERVE_LIMIT_OVERRIDES[id];
+  const override = Math.max(fromEnv ?? 0, fromCode ?? 0);
+  return override > TIKTOK_SELF_SERVE_ACCOUNT_LIMIT
     ? override
     : TIKTOK_SELF_SERVE_ACCOUNT_LIMIT;
 }
