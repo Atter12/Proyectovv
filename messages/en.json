@@ -35,7 +35,7 @@
     "paymentsManual": "Manual payments",
     "paymentsProfit": "Profit payments",
     "paymentsMissingCobros": "Missing payments",
-    "cobros": "Payments",
+    "cobros": "Paid",
     "gastos": "Spend",
     "affiliates": "Affiliates",
     "creativeAnalyzer": "Creatives",
@@ -1049,15 +1049,15 @@
     "title": "Membership"
   },
   "cobros": {
-    "module": "Payments",
-    "title": "Payments · {name}",
+    "module": "Paid",
+    "title": "Paid · {name}",
     "goPayments": "Go to top-ups →",
     "pageIntro": "Above: spend, collections, and what you owe. Below: this month’s payment history.",
     "totalPaid": "Total paid",
     "records": "Records",
     "debt": "Net debt",
     "estimated": "Estimated balance",
-    "debtHint": "Payments − (spend + fees)",
+    "debtHint": "Paid − (spend + fees)",
     "statement": {
       "eyebrow": "Your account",
       "title": "What you owe",
@@ -1131,7 +1131,7 @@
     "retry": "Retry",
     "enlargeProof": "Enlarge {label}",
     "missingCobro": {
-      "eyebrow": "Payments",
+      "eyebrow": "Paid",
       "title": "Don’t see the receipts you already paid?",
       "body": "If you already transferred and it’s not listed here, upload your receipt. Support reviews it and registers it for the month you choose.",
       "cta": "Upload receipt",

@@ -35,7 +35,7 @@
     "paymentsManual": "Pagos manuales",
     "paymentsProfit": "Pagos Profit",
     "paymentsMissingCobros": "Cobros faltantes",
-    "cobros": "Pagos",
+    "cobros": "Lo pagado",
     "gastos": "Gastos",
     "affiliates": "Afiliados",
     "creativeAnalyzer": "Creativos",
@@ -1049,15 +1049,15 @@
     "title": "Membresía"
   },
   "cobros": {
-    "module": "Pagos",
-    "title": "Pagos · {name}",
+    "module": "Lo pagado",
+    "title": "Lo pagado · {name}",
     "goPayments": "Ir a recargas →",
     "pageIntro": "Arriba ves gastos, cobros y cuánto debes. Abajo el historial del mes con cada pago.",
     "totalPaid": "Total pagado",
     "records": "Registros",
     "debt": "Deuda neta",
     "estimated": "Saldo estimado",
-    "debtHint": "Pagos − (gastos + fees)",
+    "debtHint": "Lo pagado − (gastos + fees)",
     "statement": {
       "eyebrow": "Tu cuenta",
       "title": "Cuánto debes",
@@ -1131,7 +1131,7 @@
     "retry": "Reintentar",
     "enlargeProof": "Ampliar {label}",
     "missingCobro": {
-      "eyebrow": "Pagos",
+      "eyebrow": "Lo pagado",
       "title": "¿No ves las boletas que ya pagaste?",
       "body": "Si ya transferiste y aquí no figura, sube tu comprobante. Soporte lo revisa y lo carga en el mes que indiques.",
       "cta": "Subir comprobante",

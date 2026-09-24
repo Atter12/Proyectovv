@@ -35,7 +35,7 @@
     "paymentsManual": "Pagamentos manuais",
     "paymentsProfit": "Pagamentos Profit",
     "paymentsMissingCobros": "Cobranças faltantes",
-    "cobros": "Pagamentos",
+    "cobros": "O pago",
     "gastos": "Gastos",
     "affiliates": "Afiliados",
     "creativeAnalyzer": "Criativos",
@@ -1049,15 +1049,15 @@
     "title": "Assinatura"
   },
   "cobros": {
-    "module": "Pagamentos",
-    "title": "Pagamentos · {name}",
+    "module": "O pago",
+    "title": "O pago · {name}",
     "goPayments": "Ir para recargas →",
     "pageIntro": "Acima: gastos, cobranças e quanto você deve. Abaixo: histórico do mês com cada pagamento.",
     "totalPaid": "Total pago",
     "records": "Registros",
     "debt": "Dívida líquida",
     "estimated": "Saldo estimado",
-    "debtHint": "Pagamentos − (gastos + taxas)",
+    "debtHint": "O pago − (gastos + taxas)",
     "statement": {
       "eyebrow": "Sua conta",
       "title": "Quanto você deve",
@@ -1131,7 +1131,7 @@
     "retry": "Tentar de novo",
     "enlargeProof": "Ampliar {label}",
     "missingCobro": {
-      "eyebrow": "Pagamentos",
+      "eyebrow": "O pago",
       "title": "Não vê os comprovantes que já pagou?",
       "body": "Se você já transferiu e aqui não aparece, envie seu comprovante. O suporte revisa e registra no mês que você indicar.",
       "cta": "Enviar comprovante",
