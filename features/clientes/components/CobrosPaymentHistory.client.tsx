@@ -145,11 +145,30 @@ function maskEmail(email: string | null): string {
   return `${user.slice(0, 2)}…@${domain}`;
 }
 
-export function CobrosPaymentHistory({ cobros }: { cobros: CobroHistoryRow[] }) {
+export function CobrosPaymentHistory({
+  cobros,
+  month: monthProp,
+  onMonthChange,
+  hideMonthPicker = false,
+}: {
+  cobros: CobroHistoryRow[];
+  /** Mes controlado desde afuera (`YYYY-MM`). */
+  month?: string;
+  onMonthChange?: (ym: string) => void;
+  /** Oculta el selector (cuando ya hay uno arriba). */
+  hideMonthPicker?: boolean;
+}) {
   const t = useTranslations("cobros");
   const locale = useLocale();
   const currentMonth = useMemo(() => limaMonthKey(), []);
-  const [month, setMonth] = useState(currentMonth);
+  const [internalMonth, setInternalMonth] = useState(currentMonth);
+  const controlled = typeof monthProp === "string" && /^\d{4}-\d{2}$/.test(monthProp);
+  const month = controlled ? monthProp : internalMonth;
+  const setMonth = (next: string | ((prev: string) => string)) => {
+    const value = typeof next === "function" ? next(month) : next;
+    if (!controlled) setInternalMonth(value);
+    onMonthChange?.(value);
+  };
 
   const oldestMonth = useMemo(() => {
     let min: string | null = null;
@@ -193,54 +212,63 @@ export function CobrosPaymentHistory({ cobros }: { cobros: CobroHistoryRow[] }) 
               total: moneyUsd(monthTotal),
             })}
           </p>
+          {hideMonthPicker ? (
+            <p className="mt-1 text-[11px] text-[var(--auth-text-muted)]">
+              {t("historySyncedMonth", {
+                month: formatMonthTitle(month, locale),
+              })}
+            </p>
+          ) : null}
         </div>
 
-        <div className="flex items-center gap-1 self-start rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-1 sm:self-auto">
-          <button
-            type="button"
-            aria-label={t("prevMonth")}
-            disabled={!canPrev}
-            onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
-          >
-            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
-              <path
-                d="M12.5 4.5 7 10l5.5 5.5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <div className="min-w-[9.5rem] px-2 text-center sm:min-w-[11rem]">
-            <p className="text-[13px] font-semibold capitalize tracking-[-0.01em] text-[#1c1917]">
-              {formatMonthTitle(month, locale)}
-            </p>
-            {month === currentMonth ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-accent)]">
-                {t("thisMonth")}
+        {hideMonthPicker ? null : (
+          <div className="flex items-center gap-1 self-start rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-1 sm:self-auto">
+            <button
+              type="button"
+              aria-label={t("prevMonth")}
+              disabled={!canPrev}
+              onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
+                <path
+                  d="M12.5 4.5 7 10l5.5 5.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            <div className="min-w-[9.5rem] px-2 text-center sm:min-w-[11rem]">
+              <p className="text-[13px] font-semibold capitalize tracking-[-0.01em] text-[#1c1917]">
+                {formatMonthTitle(month, locale)}
               </p>
-            ) : null}
+              {month === currentMonth ? (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-accent)]">
+                  {t("thisMonth")}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              aria-label={t("nextMonth")}
+              disabled={!canNext}
+              onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
+                <path
+                  d="M7.5 4.5 13 10l-5.5 5.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label={t("nextMonth")}
-            disabled={!canNext}
-            onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
-          >
-            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
-              <path
-                d="M7.5 4.5 13 10l-5.5 5.5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+        )}
       </div>
 
       {filtered.length === 0 ? (

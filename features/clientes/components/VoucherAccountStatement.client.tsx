@@ -28,7 +28,18 @@ type Props = {
   cobros: StatementCobro[];
   feePercent: number;
   capped: boolean;
+  /** Mes a mostrar `YYYY-MM` (Lima). Default = mes actual. */
+  monthYm?: string;
+  /** Dentro del shell de mes (sin doble card/borde). */
+  embedded?: boolean;
 };
+
+function monthEnd(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return `${ym}-28`;
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${ym}-${String(last).padStart(2, "0")}`;
+}
 
 type Bucket = {
   key: string;
@@ -44,10 +55,6 @@ type Bucket = {
   /** Cobros acumulados hasta este día. */
   paidCum: number;
 };
-
-function monthStart(ymd: string): string {
-  return `${ymd.slice(0, 8)}01`;
-}
 
 /** Último día con jale Hecom de gasto (cierra hasta ayer, Lima). */
 function spendMaxYmd(): string {
@@ -134,13 +141,30 @@ export function VoucherAccountStatement({
   cobros,
   feePercent,
   capped,
+  monthYm: monthYmProp,
+  embedded = false,
 }: Props) {
   const t = useTranslations("cobros.statement");
   const locale = useLocale();
   const today = useMemo(() => todayYmdInTz("America/Lima"), []);
-  const spendTo = useMemo(() => spendMaxYmd(), []);
-  const from = useMemo(() => monthStart(today), [today]);
-  const monthYm = from.slice(0, 7);
+  const currentYm = today.slice(0, 7);
+  const monthYm = monthYmProp && /^\d{4}-\d{2}$/.test(monthYmProp)
+    ? monthYmProp
+    : currentYm;
+  const isCurrentMonth = monthYm === currentYm;
+  const from = `${monthYm}-01`;
+  const monthLast = monthEnd(monthYm);
+  // Mes actual: jale Hecom hasta ayer. Mes pasado: todo el mes.
+  const spendTo = useMemo(() => {
+    if (!isCurrentMonth) return monthLast;
+    const yesterday = spendMaxYmd();
+    return yesterday < from ? from : yesterday > monthLast ? monthLast : yesterday;
+  }, [from, isCurrentMonth, monthLast]);
+  const chartTo = useMemo(() => {
+    if (!isCurrentMonth) return monthLast;
+    // Cobros de hoy (ej. BCP) salen como barra verde.
+    return today > spendTo ? (today > monthLast ? monthLast : today) : spendTo;
+  }, [isCurrentMonth, monthLast, spendTo, today]);
 
   const rows = useMemo(() => {
     const spend = gastos
@@ -183,19 +207,18 @@ export function VoucherAccountStatement({
   }, [cobros, feePercent, gastos]);
 
   const view = useMemo(() => {
-    // Gasto/fee: hasta ayer (jale Hecom).
+    // Gasto/fee: mes actual hasta ayer; mes cerrado = todo el mes.
     // Cobros: por periodo_resumen (Ajustar Hecom); si no hay, por fecha de pago.
-    // Chart: llega hasta hoy para que cobros de hoy (ej. BCP) salgan como barra verde.
-    const chartTo = today > spendTo ? today : spendTo;
+    const paidUpper = isCurrentMonth ? today : monthLast;
     const inSpendRange = (fecha: string) => fecha >= from && fecha <= spendTo;
     const inPaidMonth = (row: (typeof rows.paid)[number]) => {
       if (row.periodo) return row.periodo === monthYm;
       if (!row.fecha) return false;
-      return row.fecha >= from && row.fecha <= today;
+      return row.fecha >= from && row.fecha <= paidUpper;
     };
     /**
      * Día del chart para un cobro:
-     * - Fecha de pago en el mes (hasta hoy) → ese día.
+     * - Fecha de pago en el mes (hasta chartTo) → ese día.
      * - Ajuste Hecom / fecha fuera del mes → día 1 (mes de deuda).
      */
     const chartDayForPaid = (row: (typeof rows.paid)[number]) => {
@@ -307,7 +330,18 @@ export function VoucherAccountStatement({
         return da < db ? 1 : -1;
       }),
     };
-  }, [from, locale, monthYm, rows.paid, rows.spend, spendTo, today]);
+  }, [
+    chartTo,
+    from,
+    isCurrentMonth,
+    locale,
+    monthLast,
+    monthYm,
+    rows.paid,
+    rows.spend,
+    spendTo,
+    today,
+  ]);
 
   const maxCargo = Math.max(1, ...view.series.map((bucket) => bucket.cargo));
   const maxPaid = Math.max(1, ...view.series.map((bucket) => bucket.paid));
@@ -315,6 +349,7 @@ export function VoucherAccountStatement({
   const [activeDay, setActiveDay] = useState<string | null>(null);
   const selectedDay = useMemo(() => {
     // Por defecto el último día del rango (acumulado del mes a la fecha).
+    // Si cambió el mes y el día activo no existe, cae al último del series.
     const key =
       activeDay && view.series.some((row) => row.key === activeDay)
         ? activeDay
@@ -331,7 +366,13 @@ export function VoucherAccountStatement({
       : "text-[#1c1917]";
 
   return (
-    <section className="space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(165deg,#fffaf6_0%,#ffffff_48%,#fff7f0_100%)] p-4 shadow-[0_16px_40px_-28px_rgb(255_120_31_/_0.55)] sm:p-5">
+    <section
+      className={
+        embedded
+          ? "space-y-4"
+          : "space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(165deg,#fffaf6_0%,#ffffff_48%,#fff7f0_100%)] p-4 shadow-[0_16px_40px_-28px_rgb(255_120_31_/_0.55)] sm:p-5"
+      }
+    >
       <div className="max-w-xl">
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
           {t("eyebrow")}
@@ -340,9 +381,11 @@ export function VoucherAccountStatement({
           {t("title")}
         </h3>
         <p className="mt-1 text-[12px] leading-5 text-[#6b645c]">{t("subtitle")}</p>
-        <p className="mt-2 text-[12px] font-semibold capitalize text-[#c2410c]">
-          {view.monthLabel}
-        </p>
+        {!embedded ? (
+          <p className="mt-2 text-[12px] font-semibold capitalize text-[#c2410c]">
+            {view.monthLabel}
+          </p>
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5">
@@ -594,7 +637,7 @@ export function VoucherAccountStatement({
           rows={view.rangePaid.map((row, index) => ({
             key: `c-${index}-${row.fecha ?? row.periodo}-${row.monto}`,
             date: formatDay(
-              row.fecha && row.fecha >= view.from && row.fecha <= today
+              row.fecha && row.fecha >= view.from && row.fecha <= view.chartTo
                 ? row.fecha
                 : view.from,
               locale,

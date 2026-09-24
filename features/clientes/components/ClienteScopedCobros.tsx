@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
-import { CobrosPaymentHistory } from "@/features/clientes/components/CobrosPaymentHistory.client";
-import { VoucherAccountStatement } from "@/features/clientes/components/VoucherAccountStatement.client";
+import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
 import type { HecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { routes } from "@/config/routes";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
@@ -47,9 +46,7 @@ export async function ClienteScopedCobros({
         </Link>
       </header>
 
-      <MissingCobroClaimPanel periodos={periodos} initialClaims={claims} />
-
-      <VoucherAccountStatement
+      <ClienteCobrosMonthView
         feePercent={summary.depositFeePercent}
         capped={gastos.length >= 4000 || cobros.length >= 800}
         gastos={gastos.map((row) => ({
@@ -66,10 +63,7 @@ export async function ClienteScopedCobros({
           periodoResumen: row.periodoResumen,
           notas: row.notas,
         }))}
-      />
-
-      <CobrosPaymentHistory
-        cobros={cobros.map((row) => ({
+        historyCobros={cobros.map((row) => ({
           id: row.id,
           fecha: row.fecha,
           hora: row.hora,
@@ -82,6 +76,8 @@ export async function ClienteScopedCobros({
           registeredAt: row.registeredAt,
         }))}
       />
+
+      <MissingCobroClaimPanel periodos={periodos} initialClaims={claims} />
     </div>
   );
 }
