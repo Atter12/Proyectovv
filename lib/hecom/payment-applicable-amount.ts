@@ -112,7 +112,7 @@ export function paymentApplicableAmount(row: HecomCobroForDebt): number {
 
   const partsSum = keys.reduce(
     (sum, key) => sum + BigInt(value[key] as number),
-    0n,
+    BigInt(0),
   );
   if (partsSum !== BigInt(gross)) return amount;
 
