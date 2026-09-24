@@ -33,6 +33,10 @@ type Props = {
 type Bucket = {
   key: string;
   label: string;
+  /** Gasto del día (crudo; se redondea al mostrar). */
+  gasto: number;
+  /** Fee del día (crudo). */
+  fee: number;
   cargo: number;
   paid: number;
   /** Gasto+fee acumulado desde el 1 del mes hasta este día (inclusive). */
@@ -187,14 +191,22 @@ export function VoucherAccountStatement({
       if (!row.fecha) return false;
       return row.fecha >= from && row.fecha <= today;
     };
+    /**
+     * Día del chart para un cobro:
+     * - Fecha de pago dentro del mes de gasto → ese día.
+     * - Pago de hoy (después del corte de gasto = ayer) → último día del chart
+     *   para que el acumulado cierre igual que la tarjeta Cobrado.
+     * - Ajuste Hecom / fecha fuera del mes → día 1 (mes de deuda).
+     */
     const chartDayForPaid = (row: (typeof rows.paid)[number]) => {
-      if (row.fecha && row.fecha >= from && row.fecha <= today) return row.fecha;
-      // Ajuste con fecha de otro mes → día 1 del mes de deuda (visible en el chart).
+      if (row.fecha && row.fecha >= from && row.fecha <= spendTo) return row.fecha;
+      if (row.fecha && row.fecha > spendTo && row.fecha <= today) return spendTo;
       return from;
     };
 
     const rangeSpend = rows.spend.filter((row) => inSpendRange(row.fecha));
     const rangePaid = rows.paid.filter((row) => inPaidMonth(row));
+    // Igual Hecom: redondea gasto y fee al final; total = suma de esos.
     const gasto = round2(rangeSpend.reduce((sum, row) => sum + row.gasto, 0));
     const fee = round2(rangeSpend.reduce((sum, row) => sum + row.fee, 0));
     const cargo = round2(gasto + fee);
@@ -212,6 +224,8 @@ export function VoucherAccountStatement({
       const created: Bucket = {
         key: fecha,
         label: String(Number(fecha.slice(8, 10))),
+        gasto: 0,
+        fee: 0,
         cargo: 0,
         paid: 0,
         cargoCum: 0,
@@ -223,29 +237,38 @@ export function VoucherAccountStatement({
 
     for (const row of rangeSpend) {
       const bucket = ensure(row.fecha);
-      bucket.cargo = round2(bucket.cargo + row.cargo);
+      bucket.gasto += row.gasto;
+      bucket.fee += row.fee;
     }
     for (const row of rangePaid) {
       const bucket = ensure(chartDayForPaid(row));
-      bucket.paid = round2(bucket.paid + row.applicable);
+      bucket.paid += row.applicable;
     }
 
-    // Calendario completo + acumulados del mes.
-    let cargoRun = 0;
+    // Calendario completo + acumulados (mismo criterio de redondeo que las tarjetas).
+    let gastoRun = 0;
+    let feeRun = 0;
     let paidRun = 0;
     const series = eachYmd(from, spendTo).map((fecha) => {
       const existing = buckets.get(fecha);
-      const cargo = existing?.cargo ?? 0;
-      const paid = existing?.paid ?? 0;
-      cargoRun = round2(cargoRun + cargo);
-      paidRun = round2(paidRun + paid);
+      const dayGasto = existing?.gasto ?? 0;
+      const dayFee = existing?.fee ?? 0;
+      const dayPaid = existing?.paid ?? 0;
+      gastoRun += dayGasto;
+      feeRun += dayFee;
+      paidRun += dayPaid;
+      const dayCargo = round2(dayGasto + dayFee);
+      // Prefijo con la misma fórmula que Gastado + Fee del mes.
+      const cargoCum = round2(round2(gastoRun) + round2(feeRun));
       return {
         key: fecha,
         label: String(Number(fecha.slice(8, 10))),
-        cargo,
-        paid,
-        cargoCum: cargoRun,
-        paidCum: paidRun,
+        gasto: dayGasto,
+        fee: dayFee,
+        cargo: dayCargo,
+        paid: round2(dayPaid),
+        cargoCum,
+        paidCum: round2(paidRun),
       };
     });
 
@@ -254,6 +277,8 @@ export function VoucherAccountStatement({
       series[0] ?? {
         key: from,
         label: "1",
+        gasto: 0,
+        fee: 0,
         cargo: 0,
         paid: 0,
         cargoCum: 0,
