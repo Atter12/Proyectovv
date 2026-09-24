@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
@@ -77,6 +77,27 @@ function feeUsdRaw(gasto: number, fee: number | null, fallback: number): number 
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/** Monto corto para etiquetas del chart ($192 / $12.5). */
+function moneyCompact(value: number): string {
+  if (value < 0.005) return "";
+  const rounded = Math.round(value * 10) / 10;
+  if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
+    return `$${Math.round(rounded)}`;
+  }
+  return `$${rounded.toFixed(1)}`;
+}
+
+function eachYmd(from: string, to: string): string[] {
+  if (!from || !to || from > to) return [];
+  const out: string[] = [];
+  let cur = from;
+  while (cur <= to) {
+    out.push(cur);
+    cur = shiftYmd(cur, 1);
+  }
+  return out;
 }
 
 function formatDay(ymd: string, locale: string): string {
@@ -203,8 +224,21 @@ export function VoucherAccountStatement({
       bucket.paid = round2(bucket.paid + row.applicable);
     }
 
-    const series = [...buckets.values()].sort((a, b) =>
-      a.key < b.key ? -1 : 1,
+    // Calendario completo del mes (hasta el corte de gasto).
+    const series = eachYmd(from, spendTo).map((fecha) => {
+      const existing = buckets.get(fecha);
+      if (existing) return existing;
+      return {
+        key: fecha,
+        label: String(Number(fecha.slice(8, 10))),
+        cargo: 0,
+        paid: 0,
+      };
+    });
+
+    const peakCargo = series.reduce(
+      (best, row) => (row.cargo > best.cargo ? row : best),
+      series[0] ?? { key: from, label: "1", cargo: 0, paid: 0 },
     );
 
     return {
@@ -220,6 +254,7 @@ export function VoucherAccountStatement({
       rangeSaldo,
       owed,
       series,
+      peakCargo,
       rangeSpend: [...rangeSpend].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
       rangePaid: [...rangePaid].sort((a, b) => {
         const da = a.fecha ?? chartDayForPaid(a);
@@ -229,10 +264,17 @@ export function VoucherAccountStatement({
     };
   }, [from, locale, monthYm, rows.paid, rows.spend, spendTo, today]);
 
-  const maxBar = Math.max(
-    1,
-    ...view.series.map((bucket) => Math.max(bucket.cargo, bucket.paid)),
-  );
+  const maxCargo = Math.max(1, ...view.series.map((bucket) => bucket.cargo));
+  const [activeDay, setActiveDay] = useState<string | null>(null);
+  const selectedDay = useMemo(() => {
+    const key =
+      activeDay && view.series.some((row) => row.key === activeDay)
+        ? activeDay
+        : view.peakCargo.cargo > 0
+          ? view.peakCargo.key
+          : view.series[view.series.length - 1]?.key ?? null;
+    return view.series.find((row) => row.key === key) ?? null;
+  }, [activeDay, view.peakCargo, view.series]);
   const owes = view.owed > 0.004;
   const favor = view.owed < -0.004;
   const heroLabel = owes ? t("youOwe") : favor ? t("inYourFavor") : t("settled");
@@ -299,55 +341,147 @@ export function VoucherAccountStatement({
         />
       </div>
 
-      <div className="rounded-2xl border border-[#f0ebe4] bg-white px-4 py-4 sm:px-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] font-semibold text-[#1c1917]">{t("chartDay")}</p>
+      <div className="overflow-hidden rounded-2xl border border-[#efe8df] bg-[#fcfaf7]">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#efe8df] px-4 py-3.5 sm:px-5">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#a85a32]">
+              {t("chartDay")}
+            </p>
+            <p className="mt-0.5 text-[13px] font-semibold text-[#1c1917]">
+              {t("chartDayLead")}
+            </p>
+          </div>
           <div className="flex items-center gap-3 text-[11px] font-medium text-[#6b645c]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#fb923c]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#d47840]" />
               {t("legendCargo")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#1c1917]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#1c1917]" />
               {t("legendPaid")}
             </span>
           </div>
         </div>
+
         {view.series.length === 0 ? (
-          <p className="py-8 text-center text-[13px] text-[#8a8177]">{t("emptyRange")}</p>
+          <p className="px-4 py-10 text-center text-[13px] text-[#8a8177] sm:px-5">
+            {t("emptyRange")}
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <div
-              className="flex h-36 min-w-full items-end gap-1"
-              style={{ minWidth: `${Math.max(view.series.length * 28, 280)}px` }}
-            >
-              {view.series.map((bucket) => (
-                <div
-                  key={bucket.key}
-                  className="flex min-w-0 flex-1 flex-col items-center"
-                  title={`${formatDay(bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)} · ${t("legendPaid")} ${moneyUsd(bucket.paid)}`}
-                >
-                  <div className="flex h-24 w-full items-end justify-center gap-0.5">
-                    <span
-                      className="w-1.5 rounded-sm bg-[#fb923c] sm:w-2"
-                      style={{
-                        height: `${Math.max(bucket.cargo > 0 ? 4 : 0, (bucket.cargo / maxBar) * 96)}px`,
-                      }}
-                    />
-                    <span
-                      className="w-1.5 rounded-sm bg-[#1c1917] sm:w-2"
-                      style={{
-                        height: `${Math.max(bucket.paid > 0 ? 4 : 0, (bucket.paid / maxBar) * 96)}px`,
-                      }}
-                    />
-                  </div>
-                  <span className="mt-1 truncate text-[9px] font-medium text-[#8a8177]">
-                    {bucket.label}
-                  </span>
+          <>
+            {selectedDay ? (
+              <div className="grid grid-cols-2 gap-3 border-b border-[#efe8df] bg-white/70 px-4 py-3 sm:grid-cols-3 sm:px-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                    {t("chartSelectedDay")}
+                  </p>
+                  <p className="mt-0.5 text-[13px] font-semibold text-[#1c1917]">
+                    {formatDay(selectedDay.key, locale)}
+                  </p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                    {t("legendCargo")}
+                  </p>
+                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#b85f2e]">
+                    {moneyUsd(selectedDay.cargo)}
+                  </p>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                    {t("legendPaid")}
+                  </p>
+                  <p className="mt-0.5 text-[1.05rem] font-bold tabular-nums text-[#1c1917]">
+                    {moneyUsd(selectedDay.paid)}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="overflow-x-auto px-2 pb-3 pt-2 sm:px-3">
+              <div
+                className="flex items-end gap-1.5 px-1"
+                style={{ minWidth: `${Math.max(view.series.length * 36, 320)}px` }}
+              >
+                {view.series.map((bucket) => {
+                  const heightPct =
+                    bucket.cargo > 0
+                      ? Math.max(8, (bucket.cargo / maxCargo) * 100)
+                      : 0;
+                  const isActive = selectedDay?.key === bucket.key;
+                  const isPeak =
+                    view.peakCargo.key === bucket.key && view.peakCargo.cargo > 0;
+                  return (
+                    <button
+                      key={bucket.key}
+                      type="button"
+                      onClick={() => setActiveDay(bucket.key)}
+                      onMouseEnter={() => setActiveDay(bucket.key)}
+                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1 pt-2 transition ${
+                        isActive
+                          ? "bg-[#fff7f0] ring-1 ring-[#e8c4a4]"
+                          : "hover:bg-white/80"
+                      }`}
+                      aria-label={`${formatDay(bucket.key, locale)}: ${t("legendCargo")} ${moneyUsd(bucket.cargo)}`}
+                    >
+                      <span
+                        className={`mb-1 h-4 text-[9px] font-bold tabular-nums leading-none ${
+                          bucket.cargo > 0
+                            ? isActive || isPeak
+                              ? "text-[#b85f2e]"
+                              : "text-[#c4a48a]"
+                            : "text-transparent"
+                        }`}
+                      >
+                        {bucket.cargo > 0 ? moneyCompact(bucket.cargo) : "·"}
+                      </span>
+                      <div className="flex h-28 w-full items-end justify-center">
+                        <span
+                          className={`w-[70%] max-w-[18px] rounded-t-md transition ${
+                            bucket.cargo > 0
+                              ? isActive || isPeak
+                                ? "bg-[#d47840]"
+                                : "bg-[#e8a574]"
+                              : "bg-[#f0ebe4]"
+                          }`}
+                          style={{
+                            height: `${heightPct}%`,
+                            minHeight: bucket.cargo > 0 ? 6 : 2,
+                          }}
+                        />
+                      </div>
+                      <span
+                        className={`mt-1.5 text-[10px] font-semibold tabular-nums ${
+                          isActive ? "text-[#1c1917]" : "text-[#8a8177]"
+                        }`}
+                      >
+                        {bucket.label}
+                      </span>
+                      <span
+                        className={`mt-1 h-1.5 w-1.5 rounded-full ${
+                          bucket.paid > 0.004 ? "bg-[#1c1917]" : "bg-transparent"
+                        }`}
+                        title={
+                          bucket.paid > 0.004
+                            ? `${t("legendPaid")} ${moneyUsd(bucket.paid)}`
+                            : undefined
+                        }
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+
+            {view.peakCargo.cargo > 0 ? (
+              <p className="border-t border-[#efe8df] px-4 py-2.5 text-[11px] leading-4 text-[#6b645c] sm:px-5">
+                {t("chartPeak", {
+                  day: formatDay(view.peakCargo.key, locale),
+                  amount: moneyUsd(view.peakCargo.cargo),
+                })}
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 
