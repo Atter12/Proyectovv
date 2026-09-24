@@ -310,6 +310,8 @@ export function VoucherAccountStatement({
   }, [from, locale, monthYm, rows.paid, rows.spend, spendTo, today]);
 
   const maxCargo = Math.max(1, ...view.series.map((bucket) => bucket.cargo));
+  const maxPaid = Math.max(1, ...view.series.map((bucket) => bucket.paid));
+  const maxBar = Math.max(maxCargo, maxPaid);
   const [activeDay, setActiveDay] = useState<string | null>(null);
   const selectedDay = useMemo(() => {
     // Por defecto el último día del rango (acumulado del mes a la fecha).
@@ -401,7 +403,7 @@ export function VoucherAccountStatement({
               {t("legendCargo")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#1c1917]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#2f7a4a]" />
               {t("legendPaid")}
             </span>
           </div>
@@ -418,12 +420,12 @@ export function VoucherAccountStatement({
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
                   {formatDay(selectedDay.key, locale)}
                 </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-xl border border-[#f0ebe4] bg-[#fffaf6] px-3.5 py-3">
                     <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a85a32]">
                       {t("chartDaySpend")}
                     </p>
-                    <p className="mt-1 text-[1.35rem] font-bold tabular-nums tracking-[-0.02em] text-[#b85f2e]">
+                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#b85f2e]">
                       {moneyUsd(selectedDay.cargo)}
                     </p>
                     <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
@@ -434,38 +436,57 @@ export function VoucherAccountStatement({
                     <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5c564e]">
                       {t("chartCumSpend")}
                     </p>
-                    <p className="mt-1 text-[1.35rem] font-bold tabular-nums tracking-[-0.02em] text-[#1c1917]">
+                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#1c1917]">
                       {moneyUsd(selectedDay.cargoCum)}
                     </p>
                     <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
                       {t("chartCumSpendHint")}
                     </p>
                   </div>
+                  <div className="rounded-xl border border-[#d8e8dc] bg-[#f3faf5] px-3.5 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#2f6b45]">
+                      {t("chartDayPaid")}
+                    </p>
+                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#1f6b3a]">
+                      {moneyUsd(selectedDay.paid)}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
+                      {t("chartDayPaidHint")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[#d4e0d8] bg-[#eef5f0] px-3.5 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#3d5c48]">
+                      {t("chartCumPaid")}
+                    </p>
+                    <p className="mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] text-[#163528]">
+                      {moneyUsd(selectedDay.paidCum)}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-[#8a8177]">
+                      {t("chartCumPaidHint")}
+                    </p>
+                  </div>
                 </div>
-                {selectedDay.paid > 0.004 || selectedDay.paidCum > 0.004 ? (
-                  <p className="mt-2.5 text-[11px] leading-4 text-[#6b645c]">
-                    {t("chartPaidLine", {
-                      day: moneyUsd(selectedDay.paid),
-                      total: moneyUsd(selectedDay.paidCum),
-                    })}
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
             <div className="overflow-x-auto px-2 pb-3 pt-2 sm:px-3">
               <div
                 className="flex items-end gap-1.5 px-1"
-                style={{ minWidth: `${Math.max(view.series.length * 36, 320)}px` }}
+                style={{ minWidth: `${Math.max(view.series.length * 42, 320)}px` }}
               >
                 {view.series.map((bucket) => {
-                  const heightPct =
+                  const cargoH =
                     bucket.cargo > 0
-                      ? Math.max(8, (bucket.cargo / maxCargo) * 100)
+                      ? Math.max(8, (bucket.cargo / maxBar) * 100)
+                      : 0;
+                  const paidH =
+                    bucket.paid > 0.004
+                      ? Math.max(8, (bucket.paid / maxBar) * 100)
                       : 0;
                   const isActive = selectedDay?.key === bucket.key;
                   const isPeak =
                     view.peakCargo.key === bucket.key && view.peakCargo.cargo > 0;
+                  const hasPaid = bucket.paid > 0.004;
                   return (
                     <button
                       key={bucket.key}
@@ -477,11 +498,11 @@ export function VoucherAccountStatement({
                           ? "bg-[#fff7f0] ring-1 ring-[#e8c4a4]"
                           : "hover:bg-white/80"
                       }`}
-                      aria-label={`${formatDay(bucket.key, locale)}: ${t("chartDaySpend")} ${moneyUsd(bucket.cargo)}, ${t("chartCumSpend")} ${moneyUsd(bucket.cargoCum)}`}
-                      title={`${formatDay(bucket.key, locale)}\n${t("chartDaySpend")}: ${moneyUsd(bucket.cargo)}\n${t("chartCumSpend")}: ${moneyUsd(bucket.cargoCum)}`}
+                      aria-label={`${formatDay(bucket.key, locale)}: ${t("chartDaySpend")} ${moneyUsd(bucket.cargo)}, ${t("chartDayPaid")} ${moneyUsd(bucket.paid)}`}
+                      title={`${formatDay(bucket.key, locale)}\n${t("legendCargo")}: ${moneyUsd(bucket.cargo)}\n${t("legendPaid")}: ${moneyUsd(bucket.paid)}`}
                     >
                       <span
-                        className={`mb-1 h-4 text-[9px] font-bold tabular-nums leading-none ${
+                        className={`mb-0.5 h-3.5 text-[8px] font-bold tabular-nums leading-none ${
                           bucket.cargo > 0
                             ? isActive || isPeak
                               ? "text-[#b85f2e]"
@@ -491,9 +512,20 @@ export function VoucherAccountStatement({
                       >
                         {bucket.cargo > 0 ? moneyCompact(bucket.cargo) : "·"}
                       </span>
-                      <div className="flex h-28 w-full items-end justify-center">
+                      <span
+                        className={`mb-1 h-3.5 text-[8px] font-bold tabular-nums leading-none ${
+                          hasPaid
+                            ? isActive
+                              ? "text-[#1f6b3a]"
+                              : "text-[#6a9a78]"
+                            : "text-transparent"
+                        }`}
+                      >
+                        {hasPaid ? moneyCompact(bucket.paid) : "·"}
+                      </span>
+                      <div className="flex h-28 w-full items-end justify-center gap-0.5">
                         <span
-                          className={`w-[70%] max-w-[18px] rounded-t-md transition ${
+                          className={`w-[38%] max-w-[12px] rounded-t-md transition ${
                             bucket.cargo > 0
                               ? isActive || isPeak
                                 ? "bg-[#d47840]"
@@ -501,8 +533,21 @@ export function VoucherAccountStatement({
                               : "bg-[#f0ebe4]"
                           }`}
                           style={{
-                            height: `${heightPct}%`,
+                            height: `${cargoH}%`,
                             minHeight: bucket.cargo > 0 ? 6 : 2,
+                          }}
+                        />
+                        <span
+                          className={`w-[38%] max-w-[12px] rounded-t-md transition ${
+                            hasPaid
+                              ? isActive
+                                ? "bg-[#2f7a4a]"
+                                : "bg-[#5a9a6e]"
+                              : "bg-[#eef2ef]"
+                          }`}
+                          style={{
+                            height: `${paidH}%`,
+                            minHeight: hasPaid ? 6 : 2,
                           }}
                         />
                       </div>
@@ -513,11 +558,6 @@ export function VoucherAccountStatement({
                       >
                         {bucket.label}
                       </span>
-                      <span
-                        className={`mt-1 h-1.5 w-1.5 rounded-full ${
-                          bucket.paid > 0.004 ? "bg-[#1c1917]" : "bg-transparent"
-                        }`}
-                      />
                     </button>
                   );
                 })}
