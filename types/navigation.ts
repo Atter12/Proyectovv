@@ -12,6 +12,7 @@ export type NavItemKey =
   | "creativeAnalyzer"
   | "pixels"
   | "profit"
+  | "education"
   | "support";
 
 export interface NavItem {
@@ -32,5 +33,6 @@ export interface NavItem {
     | "creative-analyzer"
     | "pixels"
     | "profit"
+    | "education"
     | "support";
 }

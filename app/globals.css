@@ -1561,3 +1561,30 @@ html[data-theme-direction="light"]::view-transition-new(root) {
     clip-path: none !important;
   }
 }
+
+.education-dialog {
+  width: min(960px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.education-dialog::backdrop {
+  background: rgb(28 25 23 / 0.62);
+}
+
+.education-player:fullscreen {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: #0c0a09;
+}
+
+.education-player:fullscreen .education-player-frame {
+  flex: 1;
+  aspect-ratio: auto;
+  border-radius: 0;
+}

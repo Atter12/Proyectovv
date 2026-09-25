@@ -19,6 +19,7 @@ interface DashboardMobileSidebarProps {
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
+  showEducation?: boolean;
 }
 
 export function DashboardMobileSidebar({
@@ -27,6 +28,7 @@ export function DashboardMobileSidebar({
   selectedCliente = null,
   persona = "cliente",
   actingAsCliente = false,
+  showEducation = false,
 }: DashboardMobileSidebarProps) {
   const t = useTranslations("nav");
 
@@ -60,7 +62,11 @@ export function DashboardMobileSidebar({
 
       <p className="dashboard-sidebar-menu-label">{t("menu")}</p>
 
-      <DashboardNavLinks onNavigate={onNavigate} persona={persona} />
+      <DashboardNavLinks
+        onNavigate={onNavigate}
+        persona={persona}
+        showEducation={showEducation}
+      />
 
       <div className="mt-auto border-t border-[var(--auth-divider)] p-4">
         <div className="rounded-[1rem] border border-[var(--auth-border)] bg-[var(--auth-bg)] p-3.5">

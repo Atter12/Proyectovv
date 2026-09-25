@@ -25,6 +25,7 @@ interface DashboardLayoutChromeProps {
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
+  showEducation?: boolean;
 }
 
 export function DashboardLayoutChrome({
@@ -33,6 +34,7 @@ export function DashboardLayoutChrome({
   selectedCliente = null,
   persona = "cliente",
   actingAsCliente = false,
+  showEducation = false,
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -86,6 +88,7 @@ export function DashboardLayoutChrome({
               selectedCliente={selectedCliente}
               persona={persona}
               actingAsCliente={actingAsCliente}
+              showEducation={showEducation}
             />
           </div>
         </div>

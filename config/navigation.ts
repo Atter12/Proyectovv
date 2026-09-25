@@ -30,6 +30,7 @@ export const mainNavigation: NavItem[] = [
     icon: "creative-analyzer",
   },
   { key: "pixels", href: routes.pixels, icon: "pixels" },
+  { key: "education", href: routes.education, icon: "education" },
   { key: "support", href: routes.support, icon: "support" },
 ];
 
@@ -50,6 +51,7 @@ export const adminNavigation: AdminNavItem[] = [
   { label: "Reembolsos", href: "/admin/refunds", description: "Solicitudes del cliente", icon: "↩" },
   { label: "Cuentas Ads", href: "/admin/ad-accounts", description: "Estados y límites", icon: "▣" },
   { label: "Soporte", href: "/admin/support", description: "Tickets y mensajes", icon: "✦" },
+  { label: "Educación", href: "/admin/education", description: "Tutoriales y enlaces Loom", icon: "▶" },
   { label: "Afiliados", href: "/admin/affiliates", description: "Códigos y comisiones", icon: "↗" },
   { label: "Creativos", href: "/admin/creatives", description: "Uploads y jobs IA", icon: "✺" },
   { label: "Ledger", href: "/admin/ledger", description: "Journals y entries", icon: "≡" },

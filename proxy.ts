@@ -230,6 +230,8 @@ export const config = {
     "/affiliates/:path*",
     "/creative-analyzer",
     "/creative-analyzer/:path*",
+    "/education",
+    "/education/:path*",
     "/admin/:path*",
   ],
 };

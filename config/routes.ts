@@ -22,6 +22,7 @@ export const routes = {
   creativeAnalyzer: "/creative-analyzer",
   pixels: "/pixels",
   profit: "/profit",
+  education: "/education",
   support: "/support",
   shop: "/comprar",
   cart: "/carrito",
@@ -30,6 +31,7 @@ export const routes = {
   complaints: "/libro-de-reclamaciones",
   adminLogin: "/admin/login",
   adminOverview: "/admin/overview",
+  adminEducation: "/admin/education",
   adminUnauthorized: "/admin/unauthorized",
   api: {
     auth: {

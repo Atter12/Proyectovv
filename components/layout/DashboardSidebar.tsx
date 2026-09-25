@@ -16,6 +16,7 @@ interface DashboardSidebarProps {
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
+  showEducation?: boolean;
 }
 
 export async function DashboardSidebar({
@@ -23,6 +24,7 @@ export async function DashboardSidebar({
   selectedCliente = null,
   persona = "cliente",
   actingAsCliente = false,
+  showEducation = false,
 }: DashboardSidebarProps) {
   const t = await getTranslations("nav");
 
@@ -52,7 +54,7 @@ export async function DashboardSidebar({
 
       <p className="dashboard-sidebar-menu-label">{t("menu")}</p>
 
-      <DashboardNavLinks persona={persona} />
+      <DashboardNavLinks persona={persona} showEducation={showEducation} />
     </aside>
   );
 }
