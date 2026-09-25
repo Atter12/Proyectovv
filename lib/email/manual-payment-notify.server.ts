@@ -92,6 +92,7 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
     const creditUsdLabel = formatMoney(input.creditUsdCents / 100, "USD");
     const isRealProfit = input.purpose === "realprofit_cod";
     const isMissingCobro = input.purpose === "hecom_missing_cobro";
+    const isDebtPayment = input.purpose === "lo_pagado_deuda";
     const base = serverEnv.appUrl.replace(/\/$/, "");
     const adminUrl = isMissingCobro
       ? `${base}/payments/missing-cobros`
@@ -104,7 +105,9 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
       clientEmail,
       clientName,
       amountLabel,
-      creditUsdLabel: isMissingCobro
+      creditUsdLabel: isDebtPayment
+        ? "Pago de deuda (no acredita cartera · Lo pagado)"
+        : isMissingCobro
         ? "Cobro faltante (sin cartera · Lo pagado)"
         : isRealProfit
           ? "Real Profit COD (sin cartera)"
@@ -114,7 +117,9 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
       operationCode: input.operationCode ?? null,
     });
 
-    const subject = isMissingCobro
+    const subject = isDebtPayment
+      ? `[Acción] Pago de deuda por revisar · ${clientName || clientEmail || "cliente"}`
+      : isMissingCobro
       ? `[Acción] Cobro faltante por revisar · ${clientName || clientEmail || "cliente"}`
       : isRealProfit
         ? `[Acción] Profit COD $20 por revisar · ${clientName || clientEmail || "cliente"}`

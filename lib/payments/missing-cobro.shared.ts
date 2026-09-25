@@ -1,6 +1,8 @@
 /** Shared constants for “cobro faltante” claims (Lo pagado → Hecom). */
 export const MISSING_COBRO_PURPOSE = "hecom_missing_cobro";
 export const MISSING_COBRO_SOURCE = "lo_pagado_missing_cobro";
+/** Pago manual del link público: baja la deuda del mes, no acredita cartera. */
+export const LO_PAGADO_DEBT_PURPOSE = "lo_pagado_deuda";
 /** Max open (awaiting proof / pending review) claims per Hecom cliente. */
 export const MISSING_COBRO_MAX_PENDING = 3;
 
@@ -9,6 +11,13 @@ export function isMissingCobroPurpose(
 ): boolean {
   if (!metadata || typeof metadata !== "object") return false;
   return String(metadata.purpose ?? "").trim() === MISSING_COBRO_PURPOSE;
+}
+
+export function isLoPagadoDebtPurpose(
+  metadata: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!metadata || typeof metadata !== "object") return false;
+  return String(metadata.purpose ?? "").trim() === LO_PAGADO_DEBT_PURPOSE;
 }
 
 export function missingCobroCodigo(paymentIntentId: string): string {

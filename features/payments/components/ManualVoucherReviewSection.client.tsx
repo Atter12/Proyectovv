@@ -46,6 +46,7 @@ function VoucherCard({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const isRealProfit = product === "realprofit";
   const isMissingCobro = product === "missing_cobro";
+  const isDebtPayment = intent.purpose === "lo_pagado_deuda";
   const proofIsImage = isImageMime(intent.proofMimeType, intent.proofFileName);
 
   const reviewLabels = {
@@ -58,7 +59,10 @@ function VoucherCard({
 
   const chargeCurrency =
     intent.currency.toUpperCase() === "PEN" ? "PEN" : "USD";
-  const feePercent = isRealProfit || isMissingCobro ? 0 : (intent.feePercent ?? 10);
+  const feePercent =
+    isRealProfit || isMissingCobro || isDebtPayment
+      ? 0
+      : (intent.feePercent ?? 10);
   const fxRate = intent.fxRateUsdPen ?? 3.48;
   const defaultAmount =
     intent.detectedAmount != null && intent.detectedAmount > 0
@@ -75,7 +79,7 @@ function VoucherCard({
   const parsedAmount = Number.parseFloat(amountInput.replace(",", "."));
   const quote = useMemo(() => {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
-    if (isRealProfit || isMissingCobro) {
+    if (isRealProfit || isMissingCobro || isDebtPayment) {
       return {
         grossChargeCents: Math.round(parsedAmount * 100),
         creditUsdCents: 0,
@@ -94,7 +98,7 @@ function VoucherCard({
       feePercent,
       fxRateUsdPen: fxRate,
     });
-  }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit, isMissingCobro]);
+  }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit, isMissingCobro, isDebtPayment]);
 
   const showActions =
     canReview && intent.reviewStatus === "pending_review";
@@ -221,7 +225,9 @@ function VoucherCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-muted)]">
-                {isMissingCobro
+                {isDebtPayment
+                  ? "Pago de deuda · Lo pagado"
+                  : isMissingCobro
                   ? "Cobro faltante · Lo pagado"
                   : isRealProfit
                     ? "Real Profit COD · $20"
@@ -239,6 +245,11 @@ function VoucherCard({
               <p className="text-xs text-[var(--auth-muted)]">
                 {intent.actorEmail ?? intent.actorName ?? "—"}
               </p>
+              {isDebtPayment && intent.periodoResumen ? (
+                <p className="mt-0.5 text-[11px] font-semibold text-[#9a3412]">
+                  Deuda del mes: {intent.periodoResumen}
+                </p>
+              ) : null}
               {isMissingCobro && intent.periodoResumen ? (
                 <p className="mt-0.5 text-[11px] font-semibold text-sky-800">
                   Mes pedido: {intent.periodoResumen}
@@ -311,7 +322,15 @@ function VoucherCard({
                     : ""}
                 </p>
                 <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-muted)]">
-                  {isMissingCobro ? (
+                  {isDebtPayment ? (
+                    <p>
+                      Al aceptar:{" "}
+                      <span className="font-semibold text-[var(--auth-text)]">
+                        registra el cobro y baja la deuda
+                      </span>{" "}
+                      (no acredita cartera).
+                    </p>
+                  ) : isMissingCobro ? (
                     <p>
                       Al aceptar:{" "}
                       <span className="font-semibold text-[var(--auth-text)]">
@@ -373,7 +392,13 @@ function VoucherCard({
                   {formatMoney(intent.amount, intent.currency)}
                 </p>
                 <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-muted)]">
-                  {intent.creditUsd != null ? (
+                  {isDebtPayment ? (
+                    <p>
+                      Pago de deuda
+                      {intent.periodoResumen ? ` · ${intent.periodoResumen}` : ""}
+                      . No acredita cartera.
+                    </p>
+                  ) : intent.creditUsd != null ? (
                     <p>
                       Acredita a cartera:{" "}
                       <span className="font-semibold text-[var(--auth-text)]">
@@ -381,7 +406,7 @@ function VoucherCard({
                       </span>
                     </p>
                   ) : null}
-                  {intent.feePercent != null ? (
+                  {!isDebtPayment && intent.feePercent != null ? (
                     <p>
                       Fee:{" "}
                       <span className="font-semibold text-[var(--auth-text)]">

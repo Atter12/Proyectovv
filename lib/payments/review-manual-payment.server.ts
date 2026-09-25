@@ -11,6 +11,7 @@ import {
 } from "@/lib/realprofit/subscription.server";
 import { autoLinkRpStoreForCliente } from "@/lib/realprofit/profit-snapshot.server";
 import {
+  isLoPagadoDebtPurpose,
   isMissingCobroPurpose,
   normalizePeriodoResumen,
 } from "@/lib/payments/missing-cobro.shared";
@@ -381,6 +382,122 @@ async function approveMissingCobroClaim(input: {
   };
 }
 
+async function approveLoPagadoDebtPayment(input: {
+  intent: IntentRow;
+  actor: ManualReviewActor;
+  notes?: string | null;
+  approvedFrom: "admin_panel" | "dashboard";
+  adjustedGrossChargeCents?: number | null;
+}): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
+  const { intent } = input;
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+  const hecomClienteId = String(meta.hecom_cliente_id ?? "").trim();
+  if (!hecomClienteId) {
+    throw new Error("Pago de deuda sin cliente.");
+  }
+  const periodo = normalizePeriodoResumen(
+    typeof meta.periodo_resumen === "string" ? meta.periodo_resumen : "",
+  );
+  if (!periodo) {
+    throw new Error("Falta el mes de la deuda.");
+  }
+
+  const chargeCurrency =
+    String(meta.charge_currency ?? intent.currency).toUpperCase() === "PEN"
+      ? "PEN"
+      : "USD";
+  const fx = Number(meta.fx_rate_usd_pen);
+  const safeFx = Number.isFinite(fx) && fx > 0 ? fx : 3.48;
+  const storedCredit = Number(meta.credit_amount_cents);
+
+  let cobroUsdCents =
+    Number.isFinite(storedCredit) && storedCredit > 0
+      ? Math.round(storedCredit)
+      : chargeCurrency === "USD"
+        ? intent.amount_cents
+        : Math.round(intent.amount_cents / safeFx);
+
+  const adjusted = input.adjustedGrossChargeCents;
+  const staffChangedAmount =
+    adjusted != null &&
+    Number.isFinite(adjusted) &&
+    adjusted > 0 &&
+    Math.abs(adjusted - intent.amount_cents) > 100;
+  if (staffChangedAmount) {
+    cobroUsdCents =
+      chargeCurrency === "PEN"
+        ? Math.round(adjusted / safeFx)
+        : Math.round(adjusted);
+  }
+  if (cobroUsdCents < 100) {
+    throw new Error("El monto es demasiado bajo para registrar el cobro.");
+  }
+
+  const payMethod = String(meta.manual_pay_method ?? "").toLowerCase();
+  const metodo = payMethod === "binance" ? "Binance" : "BCP";
+  const opCode =
+    typeof meta.voucher_operation_code === "string"
+      ? meta.voucher_operation_code
+      : null;
+  const fecha = new Date().toISOString().slice(0, 10);
+
+  const cobro = await ensureHecomMissingCobroFromClaim({
+    hecomClienteId,
+    paymentIntentId: intent.id,
+    montoUsd: cobroUsdCents / 100,
+    periodoResumen: periodo,
+    fecha,
+    metodo,
+    operationCode: opCode,
+    notas: input.notes ?? "Pago de deuda · link Lo pagado",
+    approvedByEmail: input.actor.email,
+  });
+  if (!cobro.ok) {
+    throw new Error(
+      cobro.reason
+        ? `No se pudo registrar el cobro en Hecom: ${cobro.reason}`
+        : "No se pudo registrar el cobro en Hecom.",
+    );
+  }
+
+  const admin = createAdminClient();
+  const succeededAt = new Date().toISOString();
+  await admin
+    .from("payment_intents")
+    .update({
+      status: "succeeded",
+      provider_reference: intent.provider_reference ?? `manual:${intent.id}`,
+      succeeded_at: succeededAt,
+      updated_at: succeededAt,
+      metadata: mergeJsonMetadata(meta, {
+        manual_review_status: "approved",
+        approved_by: input.actor.id,
+        approved_by_email: input.actor.email,
+        approved_at: succeededAt,
+        approval_notes: input.notes ?? null,
+        approval_source: input.approvedFrom,
+        skip_wallet_credit: true,
+        credit_amount_cents: cobroUsdCents,
+        hecom_debt_payment_sync: {
+          ok: true,
+          cobro_id: cobro.cobroId,
+          codigo: cobro.codigo,
+          periodo_resumen: periodo,
+          monto_usd_cents: cobroUsdCents,
+          at: succeededAt,
+        },
+      }),
+    })
+    .eq("id", intent.id);
+
+  revalidateManualPaymentPaths(intent.id);
+  return {
+    journalId: "",
+    creditUsdCents: 0,
+    grossChargeCents: intent.amount_cents,
+  };
+}
+
 /**
  * Aprueba voucher y acredita saldo disponible en cartera (no asigna a TikTok).
  * Opcionalmente ajusta el monto cobrado real (ej. boleta 173.71 vs esperado 179.92).
@@ -429,6 +546,16 @@ export async function approveManualVoucherPayment(input: {
       approvedFrom: input.approvedFrom,
       adjustedGrossChargeCents: input.adjustedGrossChargeCents,
       adjustedPeriodoResumen: input.adjustedPeriodoResumen,
+    });
+  }
+
+  if (isLoPagadoDebtPurpose(meta)) {
+    return approveLoPagadoDebtPayment({
+      intent,
+      actor: input.actor,
+      notes: input.notes,
+      approvedFrom: input.approvedFrom,
+      adjustedGrossChargeCents: input.adjustedGrossChargeCents,
     });
   }
 

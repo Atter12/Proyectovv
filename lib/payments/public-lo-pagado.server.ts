@@ -110,7 +110,12 @@ export async function createPublicManualIntent(input: {
   ctx: PublicLoPagadoContext;
   amount: number;
   chargeCurrency?: "USD" | "PEN";
-}): Promise<{ paymentIntentId: string }> {
+  periodoResumen: string;
+}): Promise<{
+  paymentIntentId: string;
+  grossChargeCents: number;
+  chargeCurrency: "USD" | "PEN";
+}> {
   if (isGatewayInMaintenance("manual")) {
     throw new PublicLoPagadoError(
       "El pago manual está deshabilitado temporalmente. Escríbenos por WhatsApp.",
@@ -118,8 +123,12 @@ export async function createPublicManualIntent(input: {
     );
   }
   const amount = Number(input.amount);
-  if (!Number.isFinite(amount) || amount < 10 || amount > 50_000) {
-    throw new PublicLoPagadoError("El monto debe estar entre $10 y $50,000.");
+  if (!Number.isFinite(amount) || amount < 1 || amount > 50_000) {
+    throw new PublicLoPagadoError("El monto de la deuda debe estar entre $1 y $50,000.");
+  }
+  const periodo = String(input.periodoResumen || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(periodo)) {
+    throw new PublicLoPagadoError("Falta el mes de la deuda.");
   }
   const organizationId = requireOrganization(input.ctx);
   const recent = await countRecentPublicManuals(input.ctx.clientId);
@@ -130,18 +139,25 @@ export async function createPublicManualIntent(input: {
     );
   }
 
+  const chargeCurrency = input.chargeCurrency === "PEN" ? "PEN" : "USD";
   const result = await createPaymentIntentForSession(publicSession(input.ctx), {
     amount,
     currency: "USD",
-    chargeCurrency: input.chargeCurrency === "PEN" ? "PEN" : "USD",
+    chargeCurrency,
     provider: "manual",
     hecomClienteId: input.ctx.clientId,
     organizationId,
     actorUserId: null,
+    settlesHecomDebt: true,
+    debtPeriodoResumen: periodo,
     metadataExtra: { public_entry: PUBLIC_LO_PAGADO_ENTRY },
   });
 
-  return { paymentIntentId: result.paymentIntentId };
+  return {
+    paymentIntentId: result.paymentIntentId,
+    grossChargeCents: result.grossChargeCents ?? Math.round(amount * 100),
+    chargeCurrency,
+  };
 }
 
 export async function createPublicMissingCobro(input: {

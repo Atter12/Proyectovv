@@ -59,6 +59,10 @@ export interface CreatePaymentIntentRequest {
   /** `null` deja created_by vacío (link público, sin usuario Holistic). */
   actorUserId?: string | null;
   metadataExtra?: Record<string, unknown>;
+  /** Link de Lo pagado: el monto baja la deuda del mes. No acredita cartera. */
+  settlesHecomDebt?: boolean;
+  /** YYYY-MM de la deuda que se está pagando. */
+  debtPeriodoResumen?: string | null;
 }
 
 function publicIntentMetadataExtra(
@@ -143,15 +147,26 @@ export async function createPaymentIntentForSession(
     hecomClienteId: input.hecomClienteId,
   });
 
-  const stripeSurchargePercent =
-    provider === "stripe"
+  const settlesDebt =
+    input.settlesHecomDebt === true && input.provider === "manual";
+  if (settlesDebt) {
+    const periodo = String(input.debtPeriodoResumen ?? "").trim();
+    if (!/^\d{4}-\d{2}$/.test(periodo)) {
+      throw new Error("Falta el mes de la deuda (AAAA-MM).");
+    }
+  }
+  const stripeSurchargePercent = settlesDebt
+    ? 0
+    : provider === "stripe"
       ? normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent)
       : 0;
-  const feePercent = effectiveDepositFeePercent({
-    holisticFeePercent: feeBase.feePercent,
-    provider,
-    stripeSurchargePercent,
-  });
+  const feePercent = settlesDebt
+    ? 0
+    : effectiveDepositFeePercent({
+        holisticFeePercent: feeBase.feePercent,
+        provider,
+        stripeSurchargePercent,
+      });
   const feeSplit = depositFromDesiredCredit(creditCents, feePercent);
   const fee = {
     ...feeBase,
@@ -335,6 +350,18 @@ export async function createPaymentIntentForSession(
           }
         : {}),
       ...manualQuoteMeta,
+      ...(settlesDebt
+        ? {
+            purpose: "lo_pagado_deuda",
+            product: "lo_pagado_deuda",
+            skip_wallet_credit: true,
+            periodo_resumen: String(input.debtPeriodoResumen ?? "").trim(),
+            input_mode: "debt_payment",
+            fee_percent: 0,
+            fee_amount_cents: 0,
+            fee_holistic_percent: 0,
+          }
+        : {}),
     },
   });
 

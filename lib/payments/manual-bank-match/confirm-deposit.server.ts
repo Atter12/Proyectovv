@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeMetadata, isRecord, getString } from "@/lib/records";
 import { ensureHecomWalletCobroSyncedBestEffort } from "@/lib/hecom/ensure-wallet-cobro.server";
 import { MANUAL_DASHBOARD_SOURCE } from "./source";
+import { isLoPagadoDebtPurpose } from "@/lib/payments/missing-cobro.shared";
 
 /**
  * Cierre de pago manual (BCP / Binance) con doble prueba:
@@ -76,6 +77,16 @@ export async function completeManualBankConfirmedDeposit(input: {
     return {
       completed: false,
       reason: "No es un pago manual del panel (dashboard).",
+    };
+  }
+
+  if (
+    isLoPagadoDebtPurpose(intent.metadata) ||
+    intent.metadata.skip_wallet_credit === true
+  ) {
+    return {
+      completed: false,
+      reason: "Este pago no acredita cartera. Lo revisa gerencia.",
     };
   }
 

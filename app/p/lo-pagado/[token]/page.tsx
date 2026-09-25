@@ -114,7 +114,6 @@ export default async function LoPagadoPublicPage({
         />
         <PublicLoPagadoActions
           apiBase={apiBase}
-          feePercent={summary.depositFeePercent}
           month={month}
           activity={activity}
           claims={claims.map((claim) => ({

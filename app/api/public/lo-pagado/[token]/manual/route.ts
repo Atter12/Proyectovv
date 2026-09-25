@@ -17,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: "Link inválido." }, { status: 404 });
   }
 
-  let body: { amount?: number; chargeCurrency?: string };
+  let body: { amount?: number; chargeCurrency?: string; periodoResumen?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -29,10 +29,15 @@ export async function POST(
       ctx,
       amount: Number(body.amount),
       chargeCurrency: body.chargeCurrency === "PEN" ? "PEN" : "USD",
+      periodoResumen: String(body.periodoResumen ?? ""),
     });
     return NextResponse.json({
       ok: true,
-      paymentIntent: { paymentIntentId: created.paymentIntentId },
+      paymentIntent: {
+        paymentIntentId: created.paymentIntentId,
+        grossChargeCents: created.grossChargeCents,
+        chargeCurrency: created.chargeCurrency,
+      },
     });
   } catch (error) {
     const message =

@@ -23,7 +23,7 @@ import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import { completeManualBankConfirmedDeposit } from "@/lib/payments/manual-bank-match/confirm-deposit.server";
 import { MANUAL_DASHBOARD_SOURCE } from "@/lib/payments/manual-bank-match/source";
 import { pollYapeMailboxThrottled } from "@/lib/payments/yape/poll-mailbox.server";
-import { isMissingCobroPurpose } from "@/lib/payments/missing-cobro.shared";
+import { isMissingCobroPurpose, isLoPagadoDebtPurpose } from "@/lib/payments/missing-cobro.shared";
 
 export type ProcessManualVoucherResult = {
   analysis: VoucherAnalysisResult;
@@ -233,12 +233,14 @@ export async function processManualVoucherUpload(input: {
   });
 
   const isMissingCobro = isMissingCobroPurpose(metadata);
+  const isDebtPayment = isLoPagadoDebtPurpose(metadata);
+  const skipWalletAuto = isMissingCobro || isDebtPayment;
 
   // Cobro faltante: nunca auto-cierra con mail bancario ni acredita cartera.
   // Si el abono del banco/Binance llegó antes, cerramos ahora (solo wallet dashboard).
   const bankNotificationId = getString(metadata.bank_confirmation_notification_id);
   if (
-    !isMissingCobro &&
+    !skipWalletAuto &&
     analysis.confirmed &&
     getString(metadata.bank_confirmed_at) &&
     bankNotificationId &&
@@ -250,7 +252,7 @@ export async function processManualVoucherUpload(input: {
       notificationId: bankNotificationId,
       operationNumber: getString(metadata.bank_confirmation_operation_number),
     });
-  } else if (!isMissingCobro && analysis.confirmed) {
+  } else if (!skipWalletAuto && analysis.confirmed) {
     try {
       await pollYapeMailboxThrottled();
     } catch (error) {
@@ -260,7 +262,7 @@ export async function processManualVoucherUpload(input: {
 
   const fresh = await getPaymentIntentByIdInternal(intent.id);
   const status = fresh?.status ?? "processing";
-  const autoApproved = !isMissingCobro && status === "succeeded";
+  const autoApproved = !skipWalletAuto && status === "succeeded";
 
   if (autoApproved) {
     return {
@@ -284,11 +286,15 @@ export async function processManualVoucherUpload(input: {
     title: analysis.confirmed
       ? "Comprobante recibido"
       : "Comprobante en revisión",
-    body: isMissingCobro
+    body: isMissingCobro || isDebtPayment
       ? analysis.confirmed
-        ? "Recibimos tu comprobante. Gerencia lo revisará para registrarlo en Lo pagado (no recarga cartera)."
+        ? isDebtPayment
+          ? "Recibimos tu comprobante. Gerencia lo revisará para bajar tu deuda del mes (no recarga cartera)."
+          : "Recibimos tu comprobante. Gerencia lo revisará para registrarlo en Lo pagado (no recarga cartera)."
         : analysis.reason ||
-          "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado."
+          (isDebtPayment
+            ? "Tu comprobante fue recibido. Un gerente lo revisará antes de bajar la deuda del mes."
+            : "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado.")
       : analysis.confirmed
         ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
         : analysis.reason ||
@@ -303,7 +309,7 @@ export async function processManualVoucherUpload(input: {
   // Solo avisar a gerentes si la IA no validó (cola humana). Si validó y
   // falta el mail, el cron/cierre dual lo completa sin spam a managers.
   // Cobro faltante: siempre avisar (nunca auto-aprueba).
-  if (!analysis.confirmed || isMissingCobro) {
+  if (!analysis.confirmed || isMissingCobro || isDebtPayment) {
     const chargeCurrency = expected.currency;
     const chargeAmountCents =
       chargeCurrency === "PEN"
@@ -319,7 +325,7 @@ export async function processManualVoucherUpload(input: {
       createdBy: intent.createdBy,
       chargeAmountCents,
       chargeCurrency,
-      creditUsdCents: isMissingCobro ? 0 : creditUsdCents,
+      creditUsdCents: isMissingCobro || isDebtPayment ? 0 : creditUsdCents,
       operationCode: normalizedOperationCode ?? claimedOperationCode,
       purpose:
         typeof metadata.purpose === "string" ? String(metadata.purpose) : null,
@@ -333,7 +339,7 @@ export async function processManualVoucherUpload(input: {
     },
     autoApproved: false,
     status: "processing",
-    creditUsdCents: isMissingCobro ? 0 : creditUsdCents,
+    creditUsdCents: isMissingCobro || isDebtPayment ? 0 : creditUsdCents,
     security,
     rateLimited: !rateLimits.uploadAllowed,
     rateLimitReason: rateLimits.reason,

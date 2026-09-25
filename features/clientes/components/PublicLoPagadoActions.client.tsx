@@ -44,13 +44,11 @@ function statusLabel(status: string): string {
 
 export function PublicLoPagadoActions({
   apiBase,
-  feePercent,
   claims,
   activity,
   month,
 }: {
   apiBase: string;
-  feePercent: number;
   claims: ManualPaymentIntentItem[];
   activity: Activity[];
   /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
@@ -82,8 +80,9 @@ export function PublicLoPagadoActions({
           Pago manual
         </h2>
         <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-          Es el mismo pago de Ads Holistic: eliges el monto, ves las cuentas y
-          subes el voucher. Queda en esta cuenta para que gerencia lo revise.
+          Paga lo que debes de este mes. Eliges el monto, transfieres y subes
+          el voucher. Gerencia lo ve en Pagos manuales como pago de deuda: baja
+          lo que debes y no recarga cartera.
         </p>
         <button
           type="button"
@@ -121,7 +120,8 @@ export function PublicLoPagadoActions({
       <ManualPaymentModal
         open={payOpen}
         onClose={() => setPayOpen(false)}
-        feePercent={feePercent}
+        paysDebt
+        debtMonth={month}
         endpoints={{
           config: endpoints.config,
           create: endpoints.create,
