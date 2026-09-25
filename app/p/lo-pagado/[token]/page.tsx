@@ -5,6 +5,7 @@ import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPa
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
 import { listPublicLoPagadoActivity } from "@/lib/payments/public-lo-pagado.server";
+import { todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { serverEnv } from "@/lib/env/env.server";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 
@@ -18,6 +19,13 @@ export const metadata: Metadata = {
 function monthFromQuery(value: string | string[] | undefined): string | undefined {
   const raw = Array.isArray(value) ? value[0] : value;
   return raw && /^\d{4}-\d{2}$/.test(raw) ? raw : undefined;
+}
+
+function publicLinkMonth(value: string | string[] | undefined): string {
+  const now = todayYmdInTz("America/Lima").slice(0, 7);
+  const raw = monthFromQuery(value);
+  if (raw && raw <= now) return raw;
+  return now;
 }
 
 export default async function LoPagadoPublicPage({
@@ -41,6 +49,7 @@ export default async function LoPagadoPublicPage({
   if (!data) notFound();
 
   const { cliente, summary, cobros, gastos } = data;
+  const month = publicLinkMonth(query.m);
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
   let activity: Awaited<ReturnType<typeof listPublicLoPagadoActivity>> = [];
@@ -65,13 +74,14 @@ export default async function LoPagadoPublicPage({
             Lo pagado · {cliente.name}
           </h1>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-            Gastos diarios de ads (con fee) y pagos de este cliente. El mes del
-            mensaje de cobranza queda abierto; puedes pasar a otros meses.
-            Desde aquí también puedes pagar o avisar si no ves un pago.
+            Gastos diarios de ads (con fee) y pagos de este mes. Solo ves el mes
+            del mensaje de cobranza. Desde aquí también puedes pagar o avisar
+            si no ves un pago de ese mes.
           </p>
         </header>
         <ClienteCobrosMonthView
-          initialMonth={monthFromQuery(query.m)}
+          initialMonth={month}
+          lockMonth
           hideStaff
           feePercent={summary.depositFeePercent}
           capped={gastos.length >= 4000 || cobros.length >= 800}
@@ -105,6 +115,7 @@ export default async function LoPagadoPublicPage({
         <PublicLoPagadoActions
           apiBase={apiBase}
           feePercent={summary.depositFeePercent}
+          month={month}
           activity={activity}
           claims={claims.map((claim) => ({
             ...claim,

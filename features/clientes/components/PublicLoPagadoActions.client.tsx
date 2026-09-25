@@ -47,14 +47,20 @@ export function PublicLoPagadoActions({
   feePercent,
   claims,
   activity,
+  month,
 }: {
   apiBase: string;
   feePercent: number;
   claims: ManualPaymentIntentItem[];
   activity: Activity[];
+  /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
+  month: string;
 }) {
   const [payOpen, setPayOpen] = useState(false);
-  const periodos = useMemo(() => listRecentPeriodos(6), []);
+  const periodos = useMemo(
+    () => (month && /^\d{4}-\d{2}$/.test(month) ? [month] : listRecentPeriodos(1)),
+    [month],
+  );
   const manuals = activity.filter((row) => row.kind === "manual").slice(0, 6);
   const endpoints = useMemo(
     () => ({

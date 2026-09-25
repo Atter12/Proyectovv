@@ -63,6 +63,8 @@ type Props = {
   /** YYYY-MM del mensaje de cobranza. Vacío = mes actual Lima. */
   initialMonth?: string;
   hideStaff?: boolean;
+  /** Link público: solo el mes del mensaje, sin ir a meses anteriores. */
+  lockMonth?: boolean;
 };
 
 /**
@@ -76,6 +78,7 @@ export function ClienteCobrosMonthView({
   capped,
   initialMonth,
   hideStaff = false,
+  lockMonth = false,
 }: Props) {
   const t = useTranslations("cobros");
   const locale = useLocale();
@@ -128,12 +131,24 @@ export function ClienteCobrosMonthView({
               {t("monthScopeEyebrow")}
             </p>
             <p className="mt-0.5 text-[12px] leading-4 text-[#6b645c]">
-              {t("monthScopeHint")}
+              {lockMonth
+                ? "Gastos, deuda y pagos de este mes."
+                : t("monthScopeHint")}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isCurrent ? (
+            {lockMonth ? (
+              <div className="rounded-xl bg-white px-4 py-2 ring-1 ring-[#e8dfd4]">
+                <p className="text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#1a1714]">
+                  {formatMonthTitle(month, locale)}
+                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a6b4a]">
+                  Solo este mes
+                </p>
+              </div>
+            ) : null}
+            {!lockMonth && !isCurrent ? (
               <button
                 type="button"
                 onClick={() => setMonth(currentMonth)}
@@ -143,6 +158,7 @@ export function ClienteCobrosMonthView({
               </button>
             ) : null}
 
+            {!lockMonth ? (
             <div className="flex items-center rounded-xl bg-white p-1 ring-1 ring-[#e8dfd4]">
               <button
                 type="button"
@@ -187,10 +203,11 @@ export function ClienteCobrosMonthView({
                 </svg>
               </button>
             </div>
+            ) : null}
           </div>
         </div>
 
-        {recentMonths.length > 1 ? (
+        {!lockMonth && recentMonths.length > 1 ? (
           <div className="flex gap-1 overflow-x-auto border-b border-[#efe8df] px-3 py-2.5 sm:px-4">
             {recentMonths.map((ym) => {
               const active = ym === month;
