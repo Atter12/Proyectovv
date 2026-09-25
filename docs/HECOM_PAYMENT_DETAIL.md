@@ -29,7 +29,9 @@ lista de pagos y equivale a `!hasMore`. No certifica todo el historial del clien
 
 Cada pago incluye ID, estado, importe y moneda originales del cargo, proveedor
 y referencia, fechas, relación con la consulta, `funding`, `original` y
-`wallet_credit`. `same_client_month` significa contexto del mismo cliente;
+`wallet_credit`. `proofAvailable` y `proofKind` indican si conserva un comprobante
+original consultable, sin incluir su ruta ni firmarlo en la lista.
+`same_client_month` significa contexto del mismo cliente;
 **no demuestra que sea la recarga de ese cobro**.
 
 `funding` reutiliza `buildWalletFunding`, con importes USD de la cotización
@@ -50,9 +52,29 @@ Las respuestas son privadas, sin caché. Las consultas comparten un límite de
 20 segundos. Un fallo de pagos responde 502; un fallo exclusivo del ledger
 mantiene los pagos y declara `journalsComplete:false`.
 
+## Comprobante original bajo demanda
+
+`GET /api/internal/hecom/payment-proof` utiliza la misma autorización y exige
+`clientId`, `paymentId` y `receiptDate`. La fecha es contexto válido; el vínculo
+exacto de pago y cliente sigue siendo la condición de acceso aunque el cobro
+haya sido declarado en otra fecha. Hecom debe validar por separado cualquier
+pago seleccionado desde la lista contextual del mes.
+
+Se lee `metadata.manual_proof.path` (o `storage_path` histórico) de ese pago.
+Solamente se firma el bucket `payment-proofs` con ruta bajo
+`organizationId/paymentId/archivo-seguro`. Una ruta ajena, un nombre inseguro
+o un tamaño declarado superior a 10 MB no son consultables. No se aceptan rutas
+enviadas por el llamante, no se copian objetos y no se registra otro cobro.
+
+Devuelve `{ok:true,url,expiresIn:300,previewKind}`. La URL debe pertenecer al
+Supabase configurado y coincidir exactamente con el objeto privado solicitado.
+El enlace dura cinco minutos; puede renovarse repitiendo esta lectura.
+La vista previa de imagen se limita a JPG, PNG y WEBP; PDF y otros archivos se
+identifican por separado. No se guardan ni registran URLs firmadas en logs.
+
 ## Validación
 
-`node --test scripts/test-hecom-payment-detail.mjs scripts/test-hecom-wallet-funding.mjs`
+`node --test scripts/test-hecom-payment-detail.mjs scripts/test-hecom-payment-proof.mjs scripts/test-hecom-wallet-funding.mjs`
 
 Se cubren autorización antes de consultar, parámetros, cruce entre clientes,
 límite y cobertura, integridad del asiento, reversión, moneda e importe,

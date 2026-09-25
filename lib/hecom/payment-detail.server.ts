@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildWalletFunding } from "@/lib/hecom/wallet-funding";
+import { paymentProofReference } from "@/lib/hecom/payment-proof";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LIMIT = 100;
@@ -30,15 +31,15 @@ function identifier(value: unknown): string | null {
 function code(value: unknown): string | null {
   return typeof value === "string" && /^[a-zA-Z0-9_:-]{1,200}$/.test(value) ? value : null;
 }
-function response(body: unknown, status = 200) {
+export function hecomPaymentReadResponse(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store, private", "Vary": "Authorization" } });
 }
-function authenticated(request: Request, secret: string): boolean {
+export function authenticateHecomPaymentRead(request: Request, secret: string): boolean {
   const header = request.headers.get("authorization") ?? "";
   if (!secret || !header.startsWith("Bearer ")) return false;
   return timingSafeEqual(createHash("sha256").update(header.slice(7)).digest(), createHash("sha256").update(secret).digest());
 }
-function parseQuery(request: Request): Query | null {
+export function parseHecomPaymentReadQuery(request: Request): Query | null {
   const params = new URL(request.url).searchParams;
   if ([...params.keys()].some(key => !["clientId", "receiptDate", "paymentId"].includes(key) || params.getAll(key).length !== 1)) return null;
   const clientId = identifier(params.get("clientId"));
@@ -71,6 +72,7 @@ function walletCredit(payment: Row, journals: Row[], available: boolean) {
 
 function paymentDetail(payment: Row, query: Query, journals: Row[], journalsComplete: boolean) {
   const meta = record(payment.metadata);
+  const proof = paymentProofReference(payment);
   const wallet = walletCredit(payment, journals, journalsComplete);
   // An arbitrary metadata journal ID cannot prove a wallet credit. Only the
   // exact journal source, organization and wallet validated above can do so.
@@ -94,6 +96,7 @@ function paymentDetail(payment: Row, query: Query, journals: Row[], journalsComp
     currency: /^[A-Z]{3}$/.test(String(payment.currency)) ? payment.currency : null,
     provider: code(payment.provider), provider_reference: code(payment.provider_reference),
     created_at: date(payment.created_at), succeeded_at: date(payment.succeeded_at),
+    proofAvailable: Boolean(proof), proofKind: proof?.kind ?? null,
     relationship: query.paymentId ? "exact_payment" : "same_client_month",
     funding, original: { fx_rate_usd_pen: rate(meta.fx_rate_usd_pen),
       charge_currency: /^[A-Z]{3}$/.test(String(payment.currency)) ? payment.currency : null,
@@ -105,10 +108,10 @@ function paymentDetail(payment: Row, query: Query, journals: Row[], journalsComp
 export async function handleHecomPaymentDetail(request: Request, dependencies: {
   secret: string; createAdmin: () => SupabaseClient;
 }) {
-  if (!dependencies.secret) return response({ ok: false, error: "bridge_not_configured" }, 503);
-  if (!authenticated(request, dependencies.secret)) return response({ ok: false, error: "unauthorized" }, 401);
-  const query = parseQuery(request);
-  if (!query) return response({ ok: false, error: "invalid_query" }, 400);
+  if (!dependencies.secret) return hecomPaymentReadResponse({ ok: false, error: "bridge_not_configured" }, 503);
+  if (!authenticateHecomPaymentRead(request, dependencies.secret)) return hecomPaymentReadResponse({ ok: false, error: "unauthorized" }, 401);
+  const query = parseHecomPaymentReadQuery(request);
+  if (!query) return hecomPaymentReadResponse({ ok: false, error: "invalid_query" }, 400);
   try {
     const admin = dependencies.createAdmin();
     const signal = AbortSignal.timeout(20_000);
@@ -118,7 +121,7 @@ export async function handleHecomPaymentDetail(request: Request, dependencies: {
     else select = select.or(`and(succeeded_at.gte.${query.start},succeeded_at.lt.${query.end}),and(succeeded_at.is.null,created_at.gte.${query.start},created_at.lt.${query.end})`);
     const { data, error } = await select.order("created_at", { ascending: false }).order("id", { ascending: false })
       .limit(query.paymentId ? 1 : LIMIT + 1).abortSignal(signal);
-    if (error || !Array.isArray(data)) return response({ ok: false, error: "payment_source_unavailable" }, 502);
+    if (error || !Array.isArray(data)) return hecomPaymentReadResponse({ ok: false, error: "payment_source_unavailable" }, 502);
     // Defense in depth, including mocked/unexpected DB results. Do not reveal
     // whether an exact ID exists in a different client's account.
     const owned = data.filter(row => record(row.metadata).hecom_cliente_id === query.clientId &&
@@ -138,13 +141,13 @@ export async function handleHecomPaymentDetail(request: Request, dependencies: {
         journalsComplete = false;
       }
     }
-    return response({ ok: true, source: "adsholistic", checkedAt: new Date().toISOString(),
+    return hecomPaymentReadResponse({ ok: true, source: "adsholistic", checkedAt: new Date().toISOString(),
       coverage: { mode: query.paymentId ? "exact_payment" : "client_month", month: query.month,
         complete: !hasMore, limit: LIMIT, returned: payments.length, hasMore, journalsComplete,
         dateBasis: "succeeded_at_or_created_at", timezone: "America/Lima" },
       payments: payments.map(payment => paymentDetail(payment, query, journals, journalsComplete)),
     });
   } catch {
-    return response({ ok: false, error: "payment_source_unavailable" }, 502);
+    return hecomPaymentReadResponse({ ok: false, error: "payment_source_unavailable" }, 502);
   }
 }

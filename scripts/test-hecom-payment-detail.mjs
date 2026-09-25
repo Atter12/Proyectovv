@@ -4,13 +4,15 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import { buildWalletFunding } from "../lib/hecom/wallet-funding.ts";
+import { paymentProofReference } from "../lib/hecom/payment-proof.ts";
 
 const require = createRequire(import.meta.url), ts = require("typescript");
 const source = readFileSync(new URL("../lib/hecom/payment-detail.server.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const mod = { exports: {} };
 vm.runInNewContext(compiled, { exports: mod.exports, module: mod, Buffer, URL, Request, Response, Date, AbortSignal,
-  require: id => id === "server-only" ? {} : id === "@/lib/hecom/wallet-funding" ? { buildWalletFunding } : require(id) });
+  require: id => id === "server-only" ? {} : id === "@/lib/hecom/wallet-funding" ? { buildWalletFunding } :
+    id === "@/lib/hecom/payment-proof" ? { paymentProofReference } : require(id) });
 const { handleHecomPaymentDetail } = mod.exports;
 const ids = { client: "00000000-0000-4000-8000-000000000001", payment: "00000000-0000-4000-8000-000000000002",
   org: "00000000-0000-4000-8000-000000000003", wallet: "00000000-0000-4000-8000-000000000004",
@@ -148,4 +150,15 @@ test("payment source failure is not an empty successful history", async () => {
   const { response, body } = await read(mockDb([], [], { payment_intents: { message: "raw database error" } }));
   assert.equal(response.status, 502); assert.equal(body.error, "payment_source_unavailable");
   assert.equal(JSON.stringify(body).includes("raw database"), false);
+});
+
+test("payment detail exposes proof availability without signing, file paths or filenames", async () => {
+  const privatePath = `${ids.org}/${ids.payment}/123-private-file.png`;
+  const row = payment({}, { manual_proof: { bucket: "payment-proofs", path: privatePath,
+    mime_type: "image/png", size_bytes: 100, file_name: "private-file.png" } });
+  const { body } = await read(mockDb([row]));
+  assert.equal(body.payments[0].proofAvailable, true); assert.equal(body.payments[0].proofKind, "image");
+  assert.equal(JSON.stringify(body).includes("private-file"), false);
+  const absent = (await read()).body.payments[0];
+  assert.equal(absent.proofAvailable, false); assert.equal(absent.proofKind, null);
 });
