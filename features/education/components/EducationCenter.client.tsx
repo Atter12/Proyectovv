@@ -164,7 +164,7 @@ export function EducationCenter({
           label={t("all")}
           countLabel={t("videoCount", { count: published.length })}
           onClick={resetFilters}
-          icon={<CategoryGlyph id="all" active />}
+          icon={<CategoryGlyph id="all" />}
         />
         {educationCategories.map((item) => {
           const count = published.filter((lesson) => lesson.categoryId === item.id).length;
@@ -175,7 +175,7 @@ export function EducationCenter({
               label={item.label}
               countLabel={t("videoCount", { count })}
               onClick={() => setCategory(item.id)}
-              icon={<CategoryGlyph id={item.id} active={category === item.id} />}
+              icon={<CategoryGlyph id={item.id} />}
             />
           );
         })}
@@ -328,14 +328,14 @@ function CategoryChip({
       aria-pressed={active}
       className={
         active
-          ? "flex min-h-[92px] flex-col items-start justify-between rounded-[1.1rem] border border-[var(--auth-accent)] bg-[var(--auth-accent)] px-3 py-3 text-left text-white"
+          ? "flex min-h-[92px] flex-col items-start justify-between rounded-[1.1rem] border border-[var(--auth-accent)] bg-[var(--auth-accent-soft)] px-3 py-3 text-left"
           : "flex min-h-[92px] flex-col items-start justify-between rounded-[1.1rem] border border-[var(--auth-border)] bg-white px-3 py-3 text-left"
       }
     >
       {icon}
       <span className="mt-2 min-w-0">
-        <span className={`block truncate text-[13px] font-bold ${active ? "text-white" : "text-[var(--auth-text)]"}`}>{label}</span>
-        <span className={`block text-[11px] font-medium ${active ? "text-white/80" : "text-[var(--auth-text-soft)]"}`}>{countLabel}</span>
+        <span className="block truncate text-[13px] font-bold text-[var(--auth-text)]">{label}</span>
+        <span className="block text-[11px] font-medium text-[var(--auth-text-soft)]">{countLabel}</span>
       </span>
     </button>
   );
@@ -388,19 +388,20 @@ function LessonCard({
   );
 }
 
-function CategoryGlyph({ id, active = false }: { id: CategoryFilter; active?: boolean }) {
+function CategoryGlyph({ id }: { id: CategoryFilter }) {
   const className = "h-5 w-5";
-  const wrap = active
-    ? "grid h-9 w-9 place-items-center rounded-xl bg-white/20 text-white"
-    : "grid h-9 w-9 place-items-center rounded-xl bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]";
+  const wrap =
+    id === "all"
+      ? "grid h-9 w-9 place-items-center rounded-[0.7rem] bg-[var(--auth-accent)] text-white"
+      : "grid h-9 w-9 place-items-center rounded-[0.7rem] bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]";
 
   return (
     <span className={wrap} aria-hidden>
       {id === "all" ? <GridIcon className={className} /> : null}
       {id === "empieza" ? <RocketIcon className={className} /> : null}
       {id === "plataforma" ? <MonitorIcon className={className} /> : null}
-      {id === "tiktok" ? <NoteIcon className={className} /> : null}
-      {id === "shopify" ? <BagIcon className={className} /> : null}
+      {id === "tiktok" ? <TikTokIcon className={className} /> : null}
+      {id === "shopify" ? <ShopifyBagIcon className={className} /> : null}
       {id === "ayuda" ? <LifeRingIcon className={className} /> : null}
     </span>
   );
@@ -432,57 +433,64 @@ function PlayIcon() {
 
 function GridIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
-      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
-      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
-      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <rect x="2.5" y="2.5" width="8" height="8" rx="2" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="2" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="2" />
+      <rect x="13.5" y="13.5" width="8" height="8" rx="2" />
     </svg>
   );
 }
 
 function RocketIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14 10l-4 4M9 14l-2 5 5-2M14.5 4.5c2.5 0 5 2.5 5 5-3.2.4-6.4 1.5-8.8 3.9-1.2 1.2-2 2.8-2.4 4.4.2-3.2 1.5-6.2 3.8-8.5 2.2-2.1 4.4-3.3 2.4-4.8z" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.82m5.84-2.56a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.93 14.93 0 01-5.84 2.58m-.12-8.54a6 6 0 00-7.38 5.84h4.8m2.58-5.84a14.93 14.93 0 00-2.58 5.84m2.7 2.7a15.1 15.1 0 01-2.76-2.39m-.17 2.47a4.49 4.49 0 00-1.76 4.3 4.49 4.49 0 004.3-1.76M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+      />
     </svg>
   );
 }
 
 function MonitorIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3.5" y="4.5" width="17" height="12" rx="2" />
-      <path strokeLinecap="round" d="M8 20h8M12 16.5V20" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path strokeLinecap="round" d="M8 20h8M12 16v4" />
     </svg>
   );
 }
 
-function NoteIcon({ className }: { className: string }) {
+function TikTokIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 18V6.5l10-2V16" />
-      <circle cx="7" cy="18" r="2.2" />
-      <circle cx="17" cy="16" r="2.2" />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M14.2 3.2c.4 2.5 1.8 4.2 4.1 4.6v2.7c-1.4 0-2.7-.4-3.9-1.2v5.9c0 3.4-2.6 6-6 6-3.2 0-5.8-2.4-6.1-5.5-.3-3.3 2.3-6.2 5.6-6.2.4 0 .7 0 1.1.1v2.8a3.2 3.2 0 00-1-.2c-1.7 0-3 1.4-2.9 3.1.2 1.6 1.6 2.8 3.2 2.6 1.4-.2 2.4-1.4 2.4-2.9V3.2h3.5z" />
     </svg>
   );
 }
 
-function BagIcon({ className }: { className: string }) {
+function ShopifyBagIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8z" />
-      <path strokeLinecap="round" d="M9 8V7a3 3 0 016 0v1" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+      <path strokeLinejoin="round" d="M7.2 8.2h9.6l-.7 10.4a1.4 1.4 0 01-1.4 1.3H9.3a1.4 1.4 0 01-1.4-1.3L7.2 8.2z" />
+      <path strokeLinecap="round" d="M9.2 8.2V7a2.8 2.8 0 015.6 0v1.2" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13.4 11.2c-.2-.6-.7-.9-1.4-.9-.8 0-1.3.4-1.3 1s.5.8 1.4 1.1c1 .3 1.6.7 1.6 1.6 0 1-.9 1.7-2.1 1.7-1.1 0-1.9-.6-2.1-1.5"
+      />
     </svg>
   );
 }
 
 function LifeRingIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="3" />
-      <path strokeLinecap="round" d="M7.2 7.2l2.1 2.1M14.7 14.7l2.1 2.1M16.8 7.2l-2.1 2.1M9.3 14.7l-2.1 2.1" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+      <circle cx="12" cy="12" r="7.2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path strokeLinecap="round" d="M7.6 7.6l2.1 2.1M14.3 14.3l2.1 2.1M16.4 7.6l-2.1 2.1M9.7 14.3l-2.1 2.1" />
     </svg>
   );
 }
