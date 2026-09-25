@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env/env.server";
+import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
+import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   importTikTokAdvertiserAccounts,
@@ -9,31 +11,24 @@ import {
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
-  const headerSecret = request.headers.get("x-cron-secret") ?? request.headers.get("x-job-secret") ?? "";
+  const headerSecret =
+    request.headers.get("x-cron-secret") ?? request.headers.get("x-job-secret") ?? "";
   const expected = serverEnv.cronSecret || serverEnv.internalJobSecret;
   return Boolean(expected && (token === expected || headerSecret === expected));
 }
 
-function dateOnly(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
-
 function resolveDateRange(request: Request): { startDate: string; endDate: string } {
   const url = new URL(request.url);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const todayLima = todayYmdInTz("America/Lima");
+  const yesterdayLima = shiftYmd(todayLima, -1);
   const requestedStart = url.searchParams.get("start_date");
   const requestedEnd = url.searchParams.get("end_date");
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
   return {
-    startDate: requestedStart && datePattern.test(requestedStart)
-      ? requestedStart
-      : dateOnly(yesterday),
-    endDate: requestedEnd && datePattern.test(requestedEnd)
-      ? requestedEnd
-      : dateOnly(today),
+    startDate:
+      requestedStart && datePattern.test(requestedStart) ? requestedStart : yesterdayLima,
+    endDate: requestedEnd && datePattern.test(requestedEnd) ? requestedEnd : todayLima,
   };
 }
 
@@ -50,13 +45,36 @@ async function runSync(request: Request) {
     );
   }
 
+  const url = new URL(request.url);
+  const hecomClienteId = (
+    url.searchParams.get("hecom_cliente_id") ||
+    url.searchParams.get("client_id") ||
+    ""
+  ).trim();
+
   const admin = createAdminClient();
-  const { data, error } = await admin
+
+  let organizationFilter: string | null = null;
+  if (hecomClienteId) {
+    organizationFilter = await resolveOrganizationIdForHecomCliente(hecomClienteId);
+    if (!organizationFilter) {
+      return NextResponse.json(
+        { ok: false, error: "No hay org Holistic para ese hecom_cliente_id." },
+        { status: 404 },
+      );
+    }
+  }
+
+  let connectionsQuery = admin
     .from("integration_connections")
     .select("organization_id, created_by")
     .eq("provider", "tiktok")
     .eq("status", "active");
+  if (organizationFilter) {
+    connectionsQuery = connectionsQuery.eq("organization_id", organizationFilter);
+  }
 
+  const { data, error } = await connectionsQuery;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -86,15 +104,23 @@ async function runSync(request: Request) {
       });
       imported += result.imported;
 
-      const { data: adAccounts, error: adAccountsError } = await admin
+      let accountsQuery = admin
         .from("ad_accounts")
-        .select("id, external_account_id")
+        .select("id, external_account_id, metadata")
         .eq("organization_id", connection.organization_id)
         .eq("platform", "tiktok")
         .not("external_account_id", "is", null);
+      const { data: adAccounts, error: adAccountsError } = await accountsQuery;
       if (adAccountsError) throw new Error(adAccountsError.message);
 
-      for (const account of adAccounts ?? []) {
+      const accounts = (adAccounts ?? []).filter((account) => {
+        if (!hecomClienteId) return true;
+        const meta = (account.metadata ?? {}) as Record<string, unknown>;
+        const metaId = String(meta.hecom_cliente_id ?? meta.hecomClienteId ?? "").trim();
+        return !metaId || metaId === hecomClienteId;
+      });
+
+      for (const account of accounts) {
         if (!account.external_account_id) continue;
         try {
           const spend = await syncTikTokAdvertiserSpend({
@@ -129,7 +155,9 @@ async function runSync(request: Request) {
 
   return NextResponse.json({
     ok: failures.length === 0,
-    range: { startDate, endDate },
+    range: { startDate, endDate, tz: "America/Lima" },
+    hecom_cliente_id: hecomClienteId || null,
+    organization_id: organizationFilter,
     imported,
     recordedDays,
     recordedCents,

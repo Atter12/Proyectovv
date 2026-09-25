@@ -347,4 +347,10 @@ export const serverEnv = {
     process.env.HECOM_COBROS_BRIDGE_ENABLED,
     false,
   ),
+  /**
+   * Secret compartido Hecom Pendientes → snapshot Cuánto debes (WA cobranza).
+   * Mismo valor que ADS_HOLISTIC_WA_SNAPSHOT_SECRET en hecom.club.
+   */
+  holisticWaSnapshotSecret:
+    process.env.HOLISTIC_WA_SNAPSHOT_SECRET?.trim() ?? "",
 } as const;
