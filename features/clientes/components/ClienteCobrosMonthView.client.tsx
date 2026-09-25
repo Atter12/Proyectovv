@@ -60,6 +60,9 @@ type Props = {
   historyCobros: CobroHistoryRow[];
   feePercent: number;
   capped: boolean;
+  /** YYYY-MM del mensaje de cobranza. Vacío = mes actual Lima. */
+  initialMonth?: string;
+  hideStaff?: boolean;
 };
 
 /**
@@ -71,11 +74,18 @@ export function ClienteCobrosMonthView({
   historyCobros,
   feePercent,
   capped,
+  initialMonth,
+  hideStaff = false,
 }: Props) {
   const t = useTranslations("cobros");
   const locale = useLocale();
   const currentMonth = useMemo(() => limaMonthKey(), []);
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(() => {
+    const now = limaMonthKey();
+    return initialMonth && /^\d{4}-\d{2}$/.test(initialMonth) && initialMonth <= now
+      ? initialMonth
+      : now;
+  });
 
   const oldestMonth = useMemo(() => {
     let min = currentMonth;
@@ -220,6 +230,7 @@ export function ClienteCobrosMonthView({
         month={month}
         onMonthChange={setMonth}
         hideMonthPicker
+        hideStaff={hideStaff}
       />
     </div>
   );

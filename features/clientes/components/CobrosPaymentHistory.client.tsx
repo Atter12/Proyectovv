@@ -150,6 +150,7 @@ export function CobrosPaymentHistory({
   month: monthProp,
   onMonthChange,
   hideMonthPicker = false,
+  hideStaff = false,
 }: {
   cobros: CobroHistoryRow[];
   /** Mes controlado desde afuera (`YYYY-MM`). */
@@ -157,6 +158,8 @@ export function CobrosPaymentHistory({
   onMonthChange?: (ym: string) => void;
   /** Oculta el selector (cuando ya hay uno arriba). */
   hideMonthPicker?: boolean;
+  /** Link público: sin comprobantes ni quien registró el cobro. */
+  hideStaff?: boolean;
 }) {
   const t = useTranslations("cobros");
   const locale = useLocale();
@@ -286,8 +289,12 @@ export function CobrosPaymentHistory({
                 <th className="px-4 py-3">{t("colPeriod")}</th>
                 <th className="px-4 py-3">{t("colAmount")}</th>
                 <th className="px-4 py-3">{t("colMethod")}</th>
-                <th className="px-4 py-3">{t("colProofs")}</th>
-                <th className="px-4 py-3">{t("colRegisteredBy")}</th>
+                {hideStaff ? null : (
+                  <th className="px-4 py-3">{t("colProofs")}</th>
+                )}
+                {hideStaff ? null : (
+                  <th className="px-4 py-3">{t("colRegisteredBy")}</th>
+                )}
                 <th className="px-4 py-3">{t("colCrmIn")}</th>
               </tr>
             </thead>
@@ -321,6 +328,7 @@ export function CobrosPaymentHistory({
                     <td className="px-4 py-3.5 text-[var(--auth-text)]">
                       {row.metodo ?? "—"}
                     </td>
+                    {hideStaff ? null : (
                     <td className="px-4 py-3.5">
                       {row.comprobanteUrls.length > 0 ? (
                         <div className="flex flex-wrap items-center gap-2">
@@ -343,9 +351,12 @@ export function CobrosPaymentHistory({
                         </span>
                       )}
                     </td>
+                    )}
+                    {hideStaff ? null : (
                     <td className="px-4 py-3.5 text-[var(--auth-text-muted)]">
                       {maskEmail(row.registeredBy)}
                     </td>
+                    )}
                     <td
                       className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]"
                       title={registered.title || undefined}
