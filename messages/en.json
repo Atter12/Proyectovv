@@ -46,6 +46,12 @@
     "supportStaff": "Support inbox",
     "openMenu": "Open navigation menu",
     "menu": "Menu",
+    "modeSwitch": {
+      "label": "Mode",
+      "cliente": "Client",
+      "gerente": "Manager",
+      "error": "Could not switch mode."
+    },
     "closeMenu": "Close menu",
     "navAria": "Navigation menu",
     "quickAccess": "Shortcuts",

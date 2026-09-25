@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
   const session = await requireSession();
-  const rawFunding = resolvePaymentsFundingCapabilities({
+  const rawFunding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

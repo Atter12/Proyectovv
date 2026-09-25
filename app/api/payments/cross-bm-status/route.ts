@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
-  const capabilities = resolvePaymentsFundingCapabilities({
+  const capabilities = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

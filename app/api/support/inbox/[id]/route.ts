@@ -12,8 +12,8 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-function assertStaff(email: string, role: string | null | undefined) {
-  const funding = resolvePaymentsFundingCapabilities({ email, role });
+async function assertStaff(email: string, role: string | null | undefined) {
+  const funding = await resolvePaymentsFundingCapabilities({ email, role });
   return funding.isStaff || funding.isSuperAdmin;
 }
 
@@ -23,7 +23,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
-  if (!assertStaff(session.email, session.role)) {
+  if (!(await assertStaff(session.email, session.role))) {
     return NextResponse.json({ error: "Solo gerentes." }, { status: 403 });
   }
 

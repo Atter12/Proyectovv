@@ -8,8 +8,8 @@ import {
 
 export const runtime = "nodejs";
 
-function assertStaff(email: string, role: string | null | undefined) {
-  const funding = resolvePaymentsFundingCapabilities({ email, role });
+async function assertStaff(email: string, role: string | null | undefined) {
+  const funding = await resolvePaymentsFundingCapabilities({ email, role });
   return funding.isStaff || funding.isSuperAdmin;
 }
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
-  if (!assertStaff(session.email, session.role)) {
+  if (!(await assertStaff(session.email, session.role))) {
     return NextResponse.json(
       { error: "Solo gerentes pueden ver el inbox." },
       { status: 403 },
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
-  if (!assertStaff(session.email, session.role)) {
+  if (!(await assertStaff(session.email, session.role))) {
     return NextResponse.json({ error: "Solo gerentes." }, { status: 403 });
   }
 

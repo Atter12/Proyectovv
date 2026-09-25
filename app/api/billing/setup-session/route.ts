@@ -21,7 +21,7 @@ export async function POST() {
 
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const rawFunding = resolvePaymentsFundingCapabilities({
+  const rawFunding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

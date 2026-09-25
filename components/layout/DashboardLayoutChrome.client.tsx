@@ -10,6 +10,7 @@ import type { SidebarSelectedCliente } from "./SidebarWalletCard.client";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ActingAsClienteBanner } from "./ActingAsClienteBanner.client";
 import { HomeScreenAppBanner } from "@/features/push/HomeScreenAppBanner.client";
+import type { TesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -26,6 +27,8 @@ interface DashboardLayoutChromeProps {
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
   showEducation?: boolean;
+  canSwitchMode?: boolean;
+  testerMode?: TesterDashboardMode;
 }
 
 export function DashboardLayoutChrome({
@@ -35,6 +38,8 @@ export function DashboardLayoutChrome({
   persona = "cliente",
   actingAsCliente = false,
   showEducation = false,
+  canSwitchMode = false,
+  testerMode = "cliente",
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -89,6 +94,8 @@ export function DashboardLayoutChrome({
               persona={persona}
               actingAsCliente={actingAsCliente}
               showEducation={showEducation}
+              canSwitchMode={canSwitchMode}
+              testerMode={testerMode}
             />
           </div>
         </div>

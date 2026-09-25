@@ -17,7 +17,7 @@ export default async function ProfitPage({
 }) {
   const session = await requirePermission("adAccounts:read");
   const actingAsCliente = await getActingAsCliente(session.id);
-  const rawFunding = resolvePaymentsFundingCapabilities({
+  const rawFunding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

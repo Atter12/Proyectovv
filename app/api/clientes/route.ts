@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
+import { sessionIsGerente } from "@/lib/auth/tester-dashboard-mode.server";
 import {
   isHecomOtpLoginEnabled,
-  isHecomOtpStaffEmail,
   resolveHecomClientesForEmail,
 } from "@/lib/auth/hecom-otp.server";
 import { getHecomSupabaseConfig } from "@/lib/hecom/supabase.server";
@@ -47,7 +47,7 @@ export async function GET() {
       id: session.id,
       email: session.email,
     });
-    const isStaff = isHecomOtpStaffEmail(session.email);
+    const isStaff = await sessionIsGerente(session.email);
 
     let clientes;
     let source: string;

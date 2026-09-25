@@ -14,7 +14,7 @@ const MAX_MESSAGE = 800;
 
 export async function POST(request: Request) {
   const session = await requirePermission("adAccounts:read");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

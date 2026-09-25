@@ -3,6 +3,7 @@ import {
   isDemoClienteEmail,
   isDemoGerenteEmail,
 } from "@/lib/auth/demo-personas.server";
+import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 
@@ -52,32 +53,44 @@ export type PaymentsFundingCapabilities = {
  * - ferbasiliorengifo@gmail.com → cliente (UI Stripe; Hecom por emails del CRM)
  * - atlvbasiliorengifo@gmail.com → gerente
  */
-export function resolvePaymentsFundingCapabilities(input: {
+function clientFundingCapabilities(): PaymentsFundingCapabilities {
+  return {
+    isStaff: false,
+    isSuperAdmin: false,
+    canAgencyBmFund: false,
+    canClientStripeFund: true,
+    canSwitchFundingModes: false,
+    defaultFundingMode: "client",
+  };
+}
+
+function gerenteFundingCapabilities(): PaymentsFundingCapabilities {
+  return {
+    isStaff: true,
+    isSuperAdmin: false,
+    canAgencyBmFund: true,
+    canClientStripeFund: false,
+    canSwitchFundingModes: false,
+    defaultFundingMode: "agency_bm",
+  };
+}
+
+export async function resolvePaymentsFundingCapabilities(input: {
   email: string;
   role?: string | null;
-}): PaymentsFundingCapabilities {
+}): Promise<PaymentsFundingCapabilities> {
+  const testerMode = await getTesterDashboardMode(input.email);
+  if (testerMode === "gerente") return gerenteFundingCapabilities();
+  if (testerMode === "cliente") return clientFundingCapabilities();
+
   const email = normalizeEmail(input.email);
 
   if (isDemoClienteEmail(email)) {
-    return {
-      isStaff: false,
-      isSuperAdmin: false,
-      canAgencyBmFund: false,
-      canClientStripeFund: true,
-      canSwitchFundingModes: false,
-      defaultFundingMode: "client",
-    };
+    return clientFundingCapabilities();
   }
 
   if (isDemoGerenteEmail(email)) {
-    return {
-      isStaff: true,
-      isSuperAdmin: false,
-      canAgencyBmFund: true,
-      canClientStripeFund: false,
-      canSwitchFundingModes: false,
-      defaultFundingMode: "agency_bm",
-    };
+    return gerenteFundingCapabilities();
   }
 
   const isStaff = isHecomOtpStaffEmail(email);

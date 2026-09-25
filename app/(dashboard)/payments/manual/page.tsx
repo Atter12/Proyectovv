@@ -14,7 +14,7 @@ export default async function ManualPaymentsReviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requirePermission("payments:read");
-  const capabilities = resolvePaymentsFundingCapabilities({
+  const capabilities = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

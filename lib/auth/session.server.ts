@@ -4,6 +4,7 @@ import { routes } from "@/config/routes";
 import { getPermissionsForRole } from "@/lib/auth/permissions";
 import { getAvatarInitials } from "@/lib/auth/utils";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
+import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
 import { createClient } from "@/lib/supabase/server";
 import type {
   OrganizationMembershipRow,
@@ -65,7 +66,9 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     "Usuario";
   const role = membership?.role ?? "viewer";
   const email = profile?.email ?? user.email ?? "";
-  const staffPayments = isHecomOtpStaffEmail(email);
+  const testerMode = await getTesterDashboardMode(email);
+  const staffPayments =
+    isHecomOtpStaffEmail(email) || testerMode === "gerente";
 
   return {
     id: user.id,

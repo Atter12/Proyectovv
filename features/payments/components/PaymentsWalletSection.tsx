@@ -26,7 +26,7 @@ export async function PaymentsWalletSection({
 }: PaymentsWalletSectionProps) {
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),

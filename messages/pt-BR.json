@@ -46,6 +46,12 @@
     "supportStaff": "Inbox de suporte",
     "openMenu": "Abrir menu de navegação",
     "menu": "Menu",
+    "modeSwitch": {
+      "label": "Modo",
+      "cliente": "Cliente",
+      "gerente": "Gerente",
+      "error": "Não foi possível mudar o modo."
+    },
     "closeMenu": "Fechar menu",
     "navAria": "Menu de navegação",
     "quickAccess": "Acessos",

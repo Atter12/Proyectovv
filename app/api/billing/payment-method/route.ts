@@ -43,7 +43,7 @@ export async function GET() {
 
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),
@@ -82,7 +82,7 @@ export async function PUT(request: Request) {
 
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),
@@ -136,7 +136,7 @@ export async function DELETE() {
 
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),

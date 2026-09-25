@@ -68,7 +68,7 @@ export async function PaymentsGatewayPanel({
   const t = await getTranslations("payments");
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),

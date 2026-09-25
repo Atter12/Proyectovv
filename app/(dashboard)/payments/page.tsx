@@ -68,7 +68,7 @@ export default async function PaymentsPage({
   const isStripeReturn = status === "success" || status === "cancelled";
   const selected = await getSelectedHecomCliente(session.id);
   const actingAsCliente = await getActingAsCliente(session.id);
-  const rawCapabilities = resolvePaymentsFundingCapabilities({
+  const rawCapabilities = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

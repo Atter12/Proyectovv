@@ -9,7 +9,7 @@ export async function ManualPaymentsPanel({
 }: {
   session: SessionUser;
 }) {
-  const caps = resolvePaymentsFundingCapabilities({
+  const caps = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

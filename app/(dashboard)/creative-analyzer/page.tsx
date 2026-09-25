@@ -25,7 +25,7 @@ const RECENT_REJECT_LIMIT = 8;
 export default async function CreativeAnalyzerPage() {
   const t0 = Date.now();
   const session = await requirePermission("creativeAnalyzer:read");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

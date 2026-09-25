@@ -12,6 +12,8 @@ import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles
 import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import { canViewEducation } from "@/features/education/lib/access";
+import { canSwitchTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
+import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 
 export default async function DashboardLayout({
@@ -21,10 +23,12 @@ export default async function DashboardLayout({
 }>) {
   const started = Date.now();
   const session = await requireSession();
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
+  const testerMode = await getTesterDashboardMode(session.email);
+  const canSwitchMode = canSwitchTesterDashboardMode(session.email);
 
   const persona: DashboardPersona = funding.isSuperAdmin
     ? "super_admin"
@@ -128,6 +132,8 @@ export default async function DashboardLayout({
             persona={chromePersona}
             actingAsCliente={actingAsCliente && Boolean(selected)}
             showEducation={canViewEducation(session.email)}
+            canSwitchMode={canSwitchMode}
+            testerMode={testerMode ?? "cliente"}
           />
         </aside>
 
@@ -138,6 +144,8 @@ export default async function DashboardLayout({
             persona={chromePersona}
             actingAsCliente={actingAsCliente && Boolean(selected)}
             showEducation={canViewEducation(session.email)}
+            canSwitchMode={canSwitchMode}
+            testerMode={testerMode ?? "cliente"}
           >
             {children}
           </DashboardLayoutChrome>

@@ -14,7 +14,7 @@ export default async function EducationPage() {
   if (!canViewEducation(session.email)) {
     redirect(routes.overview);
   }
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

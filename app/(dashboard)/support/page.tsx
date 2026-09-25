@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function SupportPage() {
   const session = await requireSession();
   const t = await getTranslations("support");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

@@ -21,7 +21,7 @@ export async function saveEducationLoomUrlAction(
   loomUrl: string,
 ): Promise<SaveEducationLoomResult> {
   const session = await requireSession();
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

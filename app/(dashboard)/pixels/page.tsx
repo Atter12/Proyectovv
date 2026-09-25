@@ -7,7 +7,7 @@ import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles
 
 export default async function PixelsPage() {
   const session = await requirePermission("adAccounts:read");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

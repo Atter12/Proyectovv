@@ -13,7 +13,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const caps = resolvePaymentsFundingCapabilities({
+  const caps = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

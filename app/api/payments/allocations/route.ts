@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const amountCents = Math.round(amount * 100);
   const actingAsCliente = await getActingAsCliente(session.id);
   const capabilities = withActAsClienteView(
-    resolvePaymentsFundingCapabilities({
+    await resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),

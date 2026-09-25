@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   // Usar caps reales (sin act-as-cliente): gerencia aprueba aunque esté viendo como cliente.
-  const caps = resolvePaymentsFundingCapabilities({
+  const caps = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

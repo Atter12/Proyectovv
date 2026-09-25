@@ -16,7 +16,7 @@ export default async function CobrosPage() {
   const session = await requirePermission("payments:read");
   const selected = await getSelectedHecomCliente(session.id);
   const actingAsCliente = await getActingAsCliente(session.id);
-  const raw = resolvePaymentsFundingCapabilities({
+  const raw = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

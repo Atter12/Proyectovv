@@ -1,8 +1,8 @@
 import "server-only";
 import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
+import { sessionIsGerente } from "@/lib/auth/tester-dashboard-mode.server";
 import {
   isHecomOtpLoginEnabled,
-  isHecomOtpStaffEmail,
   resolveHecomClientesForEmail,
   userMayAccessHecomCliente,
 } from "@/lib/auth/hecom-otp.server";
@@ -22,7 +22,7 @@ export async function assertHecomClienteAccess(
     id: session.id,
     email: session.email,
   });
-  const isStaff = isHecomOtpStaffEmail(session.email);
+  const isStaff = await sessionIsGerente(session.email);
 
   if (isAdmin || isStaff) {
     const selected = await getSelectedHecomCliente(session.id);

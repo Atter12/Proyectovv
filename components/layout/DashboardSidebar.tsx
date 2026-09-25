@@ -5,11 +5,13 @@ import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { DashboardNavLinks } from "./DashboardNavLinks.client";
+import { TesterModeSwitch } from "./TesterModeSwitch.client";
 import {
   SidebarWalletCard,
   type SidebarSelectedCliente,
 } from "./SidebarWalletCard.client";
 import type { DashboardPersona } from "@/types/dashboard-persona";
+import type { TesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 
 interface DashboardSidebarProps {
   className?: string;
@@ -17,6 +19,8 @@ interface DashboardSidebarProps {
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
   showEducation?: boolean;
+  canSwitchMode?: boolean;
+  testerMode?: TesterDashboardMode;
 }
 
 export async function DashboardSidebar({
@@ -25,6 +29,8 @@ export async function DashboardSidebar({
   persona = "cliente",
   actingAsCliente = false,
   showEducation = false,
+  canSwitchMode = false,
+  testerMode = "cliente",
 }: DashboardSidebarProps) {
   const t = await getTranslations("nav");
 
@@ -50,6 +56,7 @@ export async function DashboardSidebar({
           persona={persona}
           actingAsCliente={actingAsCliente}
         />
+        {canSwitchMode ? <TesterModeSwitch mode={testerMode} /> : null}
       </div>
 
       <p className="dashboard-sidebar-menu-label">{t("menu")}</p>

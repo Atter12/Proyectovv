@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 /** Lista tiendas RP para vincular (activas e inactivas). */
 export async function GET() {
   const session = await requirePermission("adAccounts:read");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });

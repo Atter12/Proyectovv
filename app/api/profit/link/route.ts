@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const session = await requirePermission("adAccounts:create");
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
