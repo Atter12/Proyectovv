@@ -56,6 +56,28 @@ export interface CreatePaymentIntentRequest {
    * Se usa en Cobrana y se persiste en `clientes.dni`.
    */
   customerDocument?: string | null;
+  /** `null` deja created_by vacío (link público, sin usuario Holistic). */
+  actorUserId?: string | null;
+  metadataExtra?: Record<string, unknown>;
+}
+
+function publicIntentMetadataExtra(
+  extra: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!extra) return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(extra)) {
+    if (
+      key === "hecom_cliente_id" ||
+      key === "hecom_cliente_name" ||
+      key === "source" ||
+      key === "purpose"
+    ) {
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export interface CreatePaymentIntentResponse {
@@ -286,7 +308,8 @@ export async function createPaymentIntentForSession(
     currency:
       input.provider === "manual" || isCobrana ? intentCurrency : currency,
     provider,
-    createdBy: session.id,
+    createdBy:
+      input.actorUserId !== undefined ? input.actorUserId : session.id,
     idempotencyKey,
     metadata: {
       provider,
@@ -302,6 +325,7 @@ export async function createPaymentIntentForSession(
       credit_amount_cents: fee.creditCents,
       gross_amount_cents: fee.grossCents,
       wallet_credit_currency: "USD",
+      ...publicIntentMetadataExtra(input.metadataExtra),
       ...(cobranaCustomer
         ? {
             customer_document_number: cobranaCustomer.documentNumber,
@@ -322,7 +346,7 @@ export async function createPaymentIntentForSession(
     walletId,
     paymentIntentId: intent.id,
     idempotencyKey,
-    customerEmail: session.email,
+    customerEmail: session.email.includes("@") ? session.email : undefined,
     customerDocumentNumber: cobranaCustomer?.documentNumber,
     customerDocumentType: cobranaCustomer?.documentType,
     customerName: cobranaCustomer?.name,
@@ -369,7 +393,7 @@ export async function createPaymentIntentForSession(
     await mergePaymentIntentMetadata(intent.id, checkoutResult.resultMetadata);
   }
 
-  if (voucherFlow) {
+  if (voucherFlow && session.email.includes("@")) {
     await sendManualPaymentEmailBestEffort({
       to: session.email,
       userId: session.id,

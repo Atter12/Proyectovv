@@ -51,9 +51,15 @@ function reviewLabel(
 export function MissingCobroClaimPanel({
   periodos: periodosProp,
   initialClaims,
+  endpoints,
 }: {
   periodos?: string[];
   initialClaims?: ManualPaymentIntentItem[];
+  /** Link público: listar, crear y subir sin sesión. */
+  endpoints?: {
+    claims: string;
+    proof: (paymentIntentId: string) => string;
+  };
 }) {
   const t = useTranslations("cobros");
   const router = useRouter();
@@ -89,12 +95,12 @@ export function MissingCobroClaimPanel({
       const res = await apiClient<{
         ok: boolean;
         claims: ManualPaymentIntentItem[];
-      }>("/api/payments/missing-cobro");
+      }>(endpoints?.claims ?? "/api/payments/missing-cobro");
       setClaims(res.claims ?? []);
     } catch {
       /* keep existing */
     }
-  }, []);
+  }, [endpoints?.claims]);
 
   useEffect(() => {
     if (!initialClaims) void refreshClaims();
@@ -123,7 +129,7 @@ export function MissingCobroClaimPanel({
         ok: boolean;
         paymentIntentId: string;
         message?: string;
-      }>("/api/payments/missing-cobro", {
+      }> (endpoints?.claims ?? "/api/payments/missing-cobro", {
         method: "POST",
         body: JSON.stringify({
           amountUsd,
@@ -143,7 +149,10 @@ export function MissingCobroClaimPanel({
 
       const fd = new FormData();
       fd.append("proof", file);
-      await apiClient(`/api/payments/intents/${created.paymentIntentId}/proof`, {
+      await apiClient(
+        endpoints?.proof(created.paymentIntentId) ??
+          `/api/payments/intents/${created.paymentIntentId}/proof`,
+        {
         method: "POST",
         body: fd,
       });

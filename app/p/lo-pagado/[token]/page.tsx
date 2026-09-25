@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
+import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
+import { listPublicLoPagadoActivity } from "@/lib/payments/public-lo-pagado.server";
 import { serverEnv } from "@/lib/env/env.server";
+import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +41,18 @@ export default async function LoPagadoPublicPage({
   if (!data) notFound();
 
   const { cliente, summary, cobros, gastos } = data;
+  const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
+  let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
+  let activity: Awaited<ReturnType<typeof listPublicLoPagadoActivity>> = [];
+  try {
+    [claims, activity] = await Promise.all([
+      listMissingCobroClaimsForCliente(clientId),
+      listPublicLoPagadoActivity(clientId),
+    ]);
+  } catch {
+    claims = [];
+    activity = [];
+  }
 
   return (
     <main className="dashboard-canvas min-h-screen px-4 py-8 sm:px-6">
@@ -52,6 +67,7 @@ export default async function LoPagadoPublicPage({
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
             Gastos diarios de ads (con fee) y pagos de este cliente. El mes del
             mensaje de cobranza queda abierto; puedes pasar a otros meses.
+            Desde aquí también puedes pagar o avisar si no ves un pago.
           </p>
         </header>
         <ClienteCobrosMonthView
@@ -84,6 +100,18 @@ export default async function LoPagadoPublicPage({
             comprobanteUrls: [],
             registeredBy: null,
             registeredAt: row.registeredAt,
+          }))}
+        />
+        <PublicLoPagadoActions
+          apiBase={apiBase}
+          feePercent={summary.depositFeePercent}
+          activity={activity}
+          claims={claims.map((claim) => ({
+            ...claim,
+            actorEmail: null,
+            actorName: null,
+            proofSignedUrl: null,
+            organizationName: null,
           }))}
         />
       </div>

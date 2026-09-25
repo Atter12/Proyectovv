@@ -189,7 +189,8 @@ async function resumeOwnOpenMissingClaim(
 }
 
 export type CreateMissingCobroClaimInput = {
-  session: SessionUser;
+  /** Vacío en el link público: no hay usuario Holistic, solo el cliente Hecom. */
+  session?: Pick<SessionUser, "id" | "email"> | null;
   hecomClienteId: string;
   hecomClienteName?: string | null;
   organizationId: string;
@@ -299,7 +300,7 @@ export async function createMissingCobroClaim(
     amountCents,
     currency: "USD",
     provider: "manual",
-    createdBy: input.session.id,
+    createdBy: input.session?.id || null,
     idempotencyKey,
     metadata: {
       provider: "manual",
@@ -334,7 +335,9 @@ export async function createMissingCobroClaim(
     walletId,
     paymentIntentId: intent.id,
     idempotencyKey: intent.idempotencyKey ?? randomUUID(),
-    customerEmail: input.session.email,
+    customerEmail: input.session?.email?.includes("@")
+      ? input.session.email
+      : undefined,
     concept: input.hecomClienteName
       ? `Cobro faltante · ${input.hecomClienteName} · ${periodo}`
       : `Cobro faltante · ${periodo}`,

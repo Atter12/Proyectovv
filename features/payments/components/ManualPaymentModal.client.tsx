@@ -66,6 +66,12 @@ interface ManualPaymentModalProps {
   open: boolean;
   onClose: () => void;
   feePercent?: number;
+  /** Link público de Lo pagado: mismas pantallas, APIs atadas al token. */
+  endpoints?: {
+    config: string;
+    create: string;
+    proof: (paymentIntentId: string) => string;
+  };
 }
 
 interface CreateIntentResponse {
@@ -111,6 +117,7 @@ export function ManualPaymentModal({
   open,
   onClose,
   feePercent = 10,
+  endpoints,
 }: ManualPaymentModalProps) {
   const router = useRouter();
   const t = useTranslations("payments");
@@ -147,7 +154,9 @@ export function ManualPaymentModal({
 
   useEffect(() => {
     if (!open) return;
-    void apiClient<ManualConfig>("/api/payments/manual/config")
+    void apiClient<ManualConfig>(
+      endpoints?.config ?? "/api/payments/manual/config",
+    )
       .then(setConfig)
       .catch(() =>
         setConfig({
@@ -165,7 +174,7 @@ export function ManualPaymentModal({
           aiEnabled: false,
         }),
       );
-  }, [open]);
+  }, [open, endpoints?.config]);
 
   useEffect(() => {
     if (!open) return;
@@ -282,7 +291,7 @@ export function ManualPaymentModal({
     setError(null);
     try {
       const data = await apiClient<CreateIntentResponse>(
-        "/api/payments/intents",
+        endpoints?.create ?? "/api/payments/intents",
         {
           method: "POST",
           body: JSON.stringify({
@@ -317,7 +326,8 @@ export function ManualPaymentModal({
     formData.append("payMethod", payMethod);
     try {
       const data = await apiClient<ProofResponse>(
-        `/api/payments/intents/${paymentIntentId}/proof`,
+        endpoints?.proof(paymentIntentId) ??
+          `/api/payments/intents/${paymentIntentId}/proof`,
         { method: "POST", body: formData },
       );
       const credit = (data.paymentIntent.creditUsdCents ?? 0) / 100;
