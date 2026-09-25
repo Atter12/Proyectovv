@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
   educationCategories,
@@ -328,8 +328,8 @@ function CategoryChip({
       aria-pressed={active}
       className={
         active
-          ? "flex min-h-[92px] flex-col items-start justify-between rounded-[1.1rem] border border-[var(--auth-accent)] bg-[var(--auth-accent-soft)] px-3 py-3 text-left"
-          : "flex min-h-[92px] flex-col items-start justify-between rounded-[1.1rem] border border-[var(--auth-border)] bg-white px-3 py-3 text-left"
+          ? "flex min-h-[108px] flex-col items-start justify-between rounded-[1.15rem] border border-[var(--auth-accent)] bg-[#fff7f1] px-3.5 py-3 text-left"
+          : "flex min-h-[108px] flex-col items-start justify-between rounded-[1.15rem] border border-[var(--auth-border)] bg-white px-3.5 py-3 text-left"
       }
     >
       {icon}
@@ -388,21 +388,27 @@ function LessonCard({
   );
 }
 
-function CategoryGlyph({ id }: { id: CategoryFilter }) {
-  const className = "h-5 w-5";
-  const wrap =
-    id === "all"
-      ? "grid h-9 w-9 place-items-center rounded-[0.7rem] bg-[var(--auth-accent)] text-white"
-      : "grid h-9 w-9 place-items-center rounded-[0.7rem] bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]";
+const glyphTone: Record<CategoryFilter, string> = {
+  all: "bg-[#d47840] text-white shadow-[inset_0_-1px_0_rgb(0_0_0_/_0.08)]",
+  empieza: "bg-[#fff1e4] text-[#e85d04]",
+  plataforma: "bg-[#f4efe8] text-[#1c1917]",
+  tiktok: "bg-[#f2f2f2] text-[#111111]",
+  shopify: "bg-[#eaf6df] text-[#7ab55c]",
+  ayuda: "bg-[#fff0ea] text-[#e4572e]",
+};
 
+function CategoryGlyph({ id }: { id: CategoryFilter }) {
   return (
-    <span className={wrap} aria-hidden>
-      {id === "all" ? <GridIcon className={className} /> : null}
-      {id === "empieza" ? <RocketIcon className={className} /> : null}
-      {id === "plataforma" ? <MonitorIcon className={className} /> : null}
-      {id === "tiktok" ? <TikTokIcon className={className} /> : null}
-      {id === "shopify" ? <ShopifyBagIcon className={className} /> : null}
-      {id === "ayuda" ? <LifeRingIcon className={className} /> : null}
+    <span
+      className={`grid h-11 w-11 place-items-center rounded-2xl ${glyphTone[id]}`}
+      aria-hidden
+    >
+      {id === "all" ? <GridIcon /> : null}
+      {id === "empieza" ? <RocketIcon /> : null}
+      {id === "plataforma" ? <MonitorIcon /> : null}
+      {id === "tiktok" ? <TikTokIcon /> : null}
+      {id === "shopify" ? <ShopifyBagIcon /> : null}
+      {id === "ayuda" ? <LifeRingIcon /> : null}
     </span>
   );
 }
@@ -431,66 +437,92 @@ function PlayIcon() {
   );
 }
 
-function GridIcon({ className }: { className: string }) {
+function GridIcon() {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
-      <rect x="2.5" y="2.5" width="8" height="8" rx="2" />
-      <rect x="13.5" y="2.5" width="8" height="8" rx="2" />
-      <rect x="2.5" y="13.5" width="8" height="8" rx="2" />
-      <rect x="13.5" y="13.5" width="8" height="8" rx="2" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+      <rect x="2.2" y="2.2" width="8.2" height="8.2" rx="2.1" />
+      <rect x="13.6" y="2.2" width="8.2" height="8.2" rx="2.1" />
+      <rect x="2.2" y="13.6" width="8.2" height="8.2" rx="2.1" />
+      <rect x="13.6" y="13.6" width="8.2" height="8.2" rx="2.1" />
     </svg>
   );
 }
 
-function RocketIcon({ className }: { className: string }) {
+function RocketIcon() {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
+      <g transform="rotate(-38 12 12)" fill="currentColor">
+        <path d="M12 2.2c1.5 2.5 2 5.3 1.6 8l-.3 1.8h-2.6l-.3-1.8C9.9 7.5 10.5 4.7 12 2.2Z" />
+        <path d="M8.3 10.4 6.1 13.8 9.5 12.4 8.3 10.4ZM15.7 10.4 17.9 13.8 14.5 12.4 15.7 10.4Z" />
+        <path d="M10.6 12.6h2.8l.5 2.7-1.9 1.8-1.9-1.8.5-2.7Z" />
+        <circle cx="12" cy="7.2" r="1.05" fill="#fff1e4" />
+      </g>
+    </svg>
+  );
+}
+
+function MonitorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+      <path d="M4.2 4.4A2.2 2.2 0 0 1 6.4 2.2h11.2a2.2 2.2 0 0 1 2.2 2.2v8.1a2.2 2.2 0 0 1-2.2 2.2H6.4a2.2 2.2 0 0 1-2.2-2.2V4.4Z" />
+      <path d="M9.2 14.6h5.6v1.5a1 1 0 0 1-1 1h-3.6a1 1 0 0 1-1-1v-1.5Z" opacity="0.45" />
+      <path d="M8 18.7h8a1.05 1.05 0 0 1 0 2.1H8a1.05 1.05 0 0 1 0-2.1Z" />
+      <rect x="6.3" y="4.5" width="11.4" height="6.4" rx="1" fill="#f4efe8" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[26px] w-[26px]" fill="#111111" aria-hidden>
+      <path d="M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z" />
+    </svg>
+  );
+}
+
+function ShopifyBagIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[26px] w-[26px]" aria-hidden>
       <path
+        fill="#96bf48"
+        d="M7.15 7.35h9.7l-.85 11.15a1.55 1.55 0 0 1-1.55 1.45H9.55a1.55 1.55 0 0 1-1.55-1.45L7.15 7.35Z"
+      />
+      <path
+        fill="none"
+        stroke="#6f9a32"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        d="M9.35 7.45V6.35a2.65 2.65 0 0 1 5.3 0v1.1"
+      />
+      <path
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth="1.45"
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.82m5.84-2.56a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.93 14.93 0 01-5.84 2.58m-.12-8.54a6 6 0 00-7.38 5.84h4.8m2.58-5.84a14.93 14.93 0 00-2.58 5.84m2.7 2.7a15.1 15.1 0 01-2.76-2.39m-.17 2.47a4.49 4.49 0 00-1.76 4.3 4.49 4.49 0 004.3-1.76M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
+        d="M14.15 11.15c-.25-.7-.85-1.05-1.65-1.05-1 0-1.55.48-1.55 1.12 0 .58.55.9 1.65 1.22 1.15.34 1.85.78 1.85 1.75 0 1.05-.95 1.8-2.25 1.8-1.2 0-2.05-.62-2.25-1.55"
       />
     </svg>
   );
 }
 
-function MonitorIcon({ className }: { className: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
-      <rect x="3" y="4" width="18" height="12" rx="2" />
-      <path strokeLinecap="round" d="M8 20h8M12 16v4" />
-    </svg>
-  );
-}
+function LifeRingIcon() {
+  const rawId = useId().replace(/:/g, "");
+  const maskId = `edu-life-${rawId}`;
 
-function TikTokIcon({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
-      <path d="M14.2 3.2c.4 2.5 1.8 4.2 4.1 4.6v2.7c-1.4 0-2.7-.4-3.9-1.2v5.9c0 3.4-2.6 6-6 6-3.2 0-5.8-2.4-6.1-5.5-.3-3.3 2.3-6.2 5.6-6.2.4 0 .7 0 1.1.1v2.8a3.2 3.2 0 00-1-.2c-1.7 0-3 1.4-2.9 3.1.2 1.6 1.6 2.8 3.2 2.6 1.4-.2 2.4-1.4 2.4-2.9V3.2h3.5z" />
-    </svg>
-  );
-}
-
-function ShopifyBagIcon({ className }: { className: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
-      <path strokeLinejoin="round" d="M7.2 8.2h9.6l-.7 10.4a1.4 1.4 0 01-1.4 1.3H9.3a1.4 1.4 0 01-1.4-1.3L7.2 8.2z" />
-      <path strokeLinecap="round" d="M9.2 8.2V7a2.8 2.8 0 015.6 0v1.2" />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M13.4 11.2c-.2-.6-.7-.9-1.4-.9-.8 0-1.3.4-1.3 1s.5.8 1.4 1.1c1 .3 1.6.7 1.6 1.6 0 1-.9 1.7-2.1 1.7-1.1 0-1.9-.6-2.1-1.5"
-      />
-    </svg>
-  );
-}
-
-function LifeRingIcon({ className }: { className: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
-      <circle cx="12" cy="12" r="7.2" />
-      <circle cx="12" cy="12" r="2.5" />
-      <path strokeLinecap="round" d="M7.6 7.6l2.1 2.1M14.3 14.3l2.1 2.1M16.4 7.6l-2.1 2.1M9.7 14.3l-2.1 2.1" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
+      <mask id={maskId}>
+        <rect width="24" height="24" fill="#fff" />
+        <circle cx="12" cy="12" r="3.15" fill="#000" />
+        <path
+          stroke="#000"
+          strokeWidth="2.35"
+          strokeLinecap="round"
+          d="M5.1 5.1 8.7 8.7M15.3 15.3 18.9 18.9M18.9 5.1 15.3 8.7M8.7 15.3 5.1 18.9"
+        />
+      </mask>
+      <circle cx="12" cy="12" r="9" fill="currentColor" mask={`url(#${maskId})`} />
     </svg>
   );
 }

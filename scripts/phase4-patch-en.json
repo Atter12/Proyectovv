@@ -1,0 +1,178 @@
+{
+  "payments": {
+    "addBalance": {
+      "stripeSecure": "Secure processing via Stripe",
+      "cobranaProcessed": "Payment processed by Cobrana",
+      "yapeServiceHint": "In Yape, the service will appear as {company}.",
+      "cobranaConfirmHint": "Cobrana will generate a code so you can pay in soles via Yape, Plin, or your bank.",
+      "inHolisticWallet": "In your Holistic wallet",
+      "viaGateway": "Via {gateway}",
+      "yapeService": "Yape service",
+      "cobranaCodeHint": "Use the Cobrana-generated code in Yape, Plin, or your bank app.",
+      "searchInYape": "Search for this service in Yape",
+      "payServices": "Pay services",
+      "yapeNotHolistic": "The service appears as {company}, not as Holistic.",
+      "paymentCode": "Payment code",
+      "preparingCode": "Preparing the Cobrana code…",
+      "youPay": "You pay",
+      "youReceive": "You receive",
+      "waitingCobrana": "Waiting for automatic confirmation from Cobrana…",
+      "yapeHowToTitle": "How to pay with Yape",
+      "yapeStep1": "Open Yape and go to Pay services.",
+      "yapeStep2": "Search for {company} under Online purchases / Services.",
+      "yapeStep3": "Enter the code and pay the indicated amount.",
+      "yapeStep4": "Come back here. Cobrana will confirm the payment and we will credit the balance to your wallet.",
+      "mobileOpen": "If you’re on mobile, you can also open the app directly:",
+      "openApp": "Open {app}",
+      "proofHint": "Attach a Binance or wallet screenshot, or the TxID, to confirm the USDT.",
+      "proofManualHint": "Attach the transfer receipt to send it for review.",
+      "receiveAmount": "You will receive {amount}",
+      "intentId": "Intent ID:",
+      "cobranaUsdHint": "Enter the balance you want to receive in USD. Cobrana will calculate the equivalent payment in soles."
+    }
+  },
+  "profit": {
+    "pacing": {
+      "acelerando": "Pacing · accelerating",
+      "bajo": "Pacing · low",
+      "parado": "Pacing · stopped",
+      "normal": "Pacing · normal",
+      "sin_base": "Pacing · no baseline"
+    },
+    "last7InRange": "Last 7 days of the range",
+    "dateOrderError": "The From date cannot be after the To date.",
+    "loadError": "Could not load Profit.",
+    "daysWithActivity": "{count} days with activity",
+    "campaignsHint": "Impressions / CTR / CPC from the live report. COD collected per campaign is estimated when a store is linked.",
+    "emptyTryRange": "Try another range or wait for TikTok sync to write snapshots.",
+    "emptyConnectStore": "Connect your store below for CPA / net profit.",
+    "shopifyTitle": "Connect your Shopify store",
+    "shopifyBody": "Pull real orders and sales to see how much you’re earning net — not just how much you spend on ads.",
+    "spendLiveHint": "Live TikTok · balance updated"
+  },
+  "pixels": {
+    "module": "TikTok Pixels",
+    "title": "Pixels",
+    "subtitleBefore": "First",
+    "subtitleCreate": "create the pixel",
+    "subtitleMid": "and connect it to your store. Then",
+    "subtitleEvents": "enable COD events",
+    "subtitleAfter": "so TikTok can see them in Events Manager. These are two separate steps on purpose.",
+    "stepAccount": "Ad account",
+    "stepCreate": "Create pixel",
+    "stepConnect": "Connect to store",
+    "stepEvents": "Enable events",
+    "stepTest": "Test",
+    "step1Title": "Ad accounts",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "noAccounts": "No accounts in use",
+    "btn1": "Button 1 · Step 2",
+    "createPixel": "Pixel creation",
+    "createAction": "1 · Create pixel",
+    "importExisting": "I already have a pixel · import from TikTok",
+    "querying": "Querying…",
+    "btn2": "Button 2 · Step 4",
+    "yourPixels": "Your pixels",
+    "noPixels": "No pixels yet",
+    "step5": "Step 5 · Test",
+    "testEvents": "Test events",
+    "sdkReady": "SDK ready",
+    "loadSdk": "Load SDK",
+    "pickAccounts": "Pick at least one ad account.",
+    "pickPixel": "Pick a pixel first.",
+    "copyCode": "Copy",
+    "eventsPending": "COD events pending · use button 2 once the store already has the pixel."
+  },
+  "affiliates": {
+    "module": "Affiliates",
+    "title": "Affiliate program",
+    "meta": "Organization scope · not per Hecom client",
+    "goPayments": "Go to payments",
+    "viewAccounts": "View accounts",
+    "referrals": "Hecom referrals",
+    "notPerClient": "Not per client",
+    "scope": "Scope",
+    "org": "Org",
+    "agencyProgram": "Agency program",
+    "activeContext": "Active context",
+    "clientFilter": "Client filter",
+    "quickPayments": "Payments",
+    "quickAccounts": "Ad accounts",
+    "quickCreatives": "Creatives"
+  },
+  "support": {
+    "brandName": "Ads Holistic",
+    "greeting": "Hi, {name}. This is Holistic Support chat. Write your question, paste a screenshot (Ctrl+V), or attach photos/PDFs. We’ll reply here.",
+    "chats": "Chats",
+    "conversation": "Conversation",
+    "teamHint": "Ads Holistic team · replies in this chat",
+    "faqTitle": "Frequently asked questions",
+    "faqSubtitle": "Quick guides for Ads Holistic",
+    "faqGuides": "Quick guides without opening a ticket",
+    "backToChat": "← Back to chat",
+    "searchFaq": "Search FAQ…",
+    "noFaqResults": "No results for “{q}”.",
+    "loading": "Loading history…",
+    "writeUs": "Write to us",
+    "placeholder": "Write your message… You can paste screenshots with Ctrl+V",
+    "noMessages": "No messages yet",
+    "send": "Send",
+    "sending": "Sending…",
+    "clearConfirm": "Clear the entire chat? Messages in this conversation will be deleted.",
+    "dropFiles": "Drop the image or PDF here",
+    "enterHint": "Enter sends · Shift+Enter new line",
+    "back": "Back",
+    "useful": "Was this article helpful?",
+    "loadError": "Could not load the conversation.",
+    "openError": "Could not open Holistic Support.",
+    "clearError": "Could not clear the chat.",
+    "sendError": "Could not send the message.",
+    "faq": {
+      "categories": {
+        "empezar": "Getting started with Ads Holistic",
+        "dinero": "Top up and assign balance",
+        "cuentas": "Ad accounts and spend",
+        "soporte": "This support chat"
+      },
+      "articles": {
+        "que-es": {
+          "title": "What is Ads Holistic?",
+          "content": "It’s the panel where you see your TikTok accounts, Hecom balance/debt, top-ups, and chat with the team. Collections and spend data come from the Hecom Club CRM."
+        },
+        "menu-cliente": {
+          "title": "Where do I start?",
+          "content": "Sign in with your email (OTP). In the left menu you only see your data: Overview, Ad accounts, Payments, and this support chat."
+        },
+        "saldo-estimado": {
+          "title": "What is “Estimated balance”?",
+          "content": "It’s not money in TikTok or on your card. It’s the Hecom CRM balance: client collections minus (ad spend + fees). If it’s positive, they paid more than spend/fees. If negative, it’s net debt."
+        },
+        "como-recargar": {
+          "title": "How do I top up?",
+          "content": "As a client: go to Payments → Top up wallet (Stripe / available method). Choose the net amount; the Holistic fee is added to the charge. When payment confirms, you have wallet balance to assign to an ad account."
+        },
+        "como-asignar": {
+          "title": "How do I assign balance to an account?",
+          "content": "In Payments, Assign section: pick an Approved account, amount, and confirm. That moves budget to the TikTok advertiser. Only active/approved accounts appear (not suspended ones)."
+        },
+        "fee": {
+          "title": "What is the fee?",
+          "content": "It’s the client’s Holistic % (from Hecom, e.g. 10%). On deposits: you request a net amount; we charge net + fee. In history, the fee also counts in the “charge” alongside ad spend."
+        },
+        "ver-cuentas": {
+          "title": "Where do I see my TikTok accounts?",
+          "content": "Ad accounts menu. List of advertisers (name + ID), Active / Suspended status, fee, and timezone. As a client it’s read-only: you don’t create or edit accounts here."
+        },
+        "como-escribir": {
+          "title": "How do I use this chat?",
+          "content": "Write your question here. You can paste screenshots (Ctrl+V) or attach photos/PDFs. A human manager replies (not a bot). Messages update on their own—no need to refresh."
+        },
+        "tiempos": {
+          "title": "How long until someone replies?",
+          "content": "The operational goal is to reply in 30 minutes or less during business hours. If it’s urgent, include the details (account, amount, error) so we can move faster."
+        }
+      }
+    }
+  }
+}

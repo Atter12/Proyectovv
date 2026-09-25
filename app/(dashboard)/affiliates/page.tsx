@@ -1,9 +1,10 @@
-import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { ClienteScopedAffiliates } from "@/features/clientes/components/ClienteScopedAffiliates";
+import { ClientAffiliateDashboard } from "@/features/affiliates/components/ClientAffiliateDashboard.client";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { getClientAffiliateProgram } from "@/lib/affiliates/client-program.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { requirePermission } from "@/lib/auth/guards.server";
+import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export default async function AffiliatesPage() {
@@ -33,9 +34,11 @@ export default async function AffiliatesPage() {
     );
   }
 
+  const program = await getClientAffiliateProgram(session);
+
   return (
     <div className={dashboardClasses.page}>
-      <ClienteScopedAffiliates data={data} />
+      <ClientAffiliateDashboard program={program} />
     </div>
   );
 }

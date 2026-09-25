@@ -1,0 +1,178 @@
+{
+  "payments": {
+    "addBalance": {
+      "stripeSecure": "Procesamiento seguro mediante Stripe",
+      "cobranaProcessed": "Pago procesado por Cobrana",
+      "yapeServiceHint": "En Yape, el servicio aparecerá como {company}.",
+      "cobranaConfirmHint": "Cobrana generará un código para pagar en soles desde Yape, Plin o tu banco.",
+      "inHolisticWallet": "En tu cartera Holistic",
+      "viaGateway": "Mediante {gateway}",
+      "yapeService": "Servicio en Yape",
+      "cobranaCodeHint": "Usa el código generado por Cobrana desde Yape, Plin o la aplicación de tu banco.",
+      "searchInYape": "Busca este servicio en Yape",
+      "payServices": "Pago de servicios",
+      "yapeNotHolistic": "El servicio figura como {company}, no como Holistic.",
+      "paymentCode": "Código de pago",
+      "preparingCode": "Preparando el código de Cobrana…",
+      "youPay": "Pagarás",
+      "youReceive": "Recibirás",
+      "waitingCobrana": "Esperando la confirmación automática de Cobrana…",
+      "yapeHowToTitle": "Cómo pagar desde Yape",
+      "yapeStep1": "Abre Yape e ingresa a Pago de servicios.",
+      "yapeStep2": "Busca {company} en Compras online / Servicios.",
+      "yapeStep3": "Ingresa el código y paga el monto indicado.",
+      "yapeStep4": "Regresa aquí. Cobrana confirmará el pago y acreditaremos el saldo en tu cartera.",
+      "mobileOpen": "Si estás en el celular, también puedes abrir la aplicación directamente:",
+      "openApp": "Abrir {app}",
+      "proofHint": "Adjunta una captura de Binance o de tu billetera, o el TxID, para confirmar los USDT.",
+      "proofManualHint": "Adjunta el comprobante de transferencia para enviarlo a revisión.",
+      "receiveAmount": "Recibirás {amount}",
+      "intentId": "ID de intención:",
+      "cobranaUsdHint": "Ingresa el saldo que deseas recibir en USD. Cobrana calculará el pago equivalente en soles."
+    }
+  },
+  "profit": {
+    "pacing": {
+      "acelerando": "Pacing · acelerando",
+      "bajo": "Pacing · bajo",
+      "parado": "Pacing · parado",
+      "normal": "Pacing · normal",
+      "sin_base": "Pacing · sin base"
+    },
+    "last7InRange": "Últimos 7 días del rango",
+    "dateOrderError": "La fecha Desde no puede ser después de Hasta.",
+    "loadError": "No se pudo cargar Profit.",
+    "daysWithActivity": "{count} días con actividad",
+    "campaignsHint": "Impresiones / CTR / CPC desde report live. Cobrado COD por campaña = estimado si hay tienda vinculada.",
+    "emptyTryRange": "Probá otro rango o esperá a que sync TikTok escriba snapshots.",
+    "emptyConnectStore": "Conectá tu tienda abajo para CPA / ganancia neta.",
+    "shopifyTitle": "Conectá tu tienda Shopify",
+    "shopifyBody": "Jalá pedidos y ventas reales para ver cuánto estás ganando neto — no solo cuánto gastás en ads.",
+    "spendLiveHint": "Live TikTok · saldo actualizado"
+  },
+  "pixels": {
+    "module": "Píxeles TikTok",
+    "title": "Píxeles",
+    "subtitleBefore": "Primero",
+    "subtitleCreate": "creá el píxel",
+    "subtitleMid": "y conectalo a tu tienda. Después",
+    "subtitleEvents": "activá los eventos COD",
+    "subtitleAfter": "para que TikTok los vea en Events Manager. Son dos pasos separados a propósito.",
+    "stepAccount": "Cuenta ads",
+    "stepCreate": "Crear píxel",
+    "stepConnect": "Conectar a tienda",
+    "stepEvents": "Activar eventos",
+    "stepTest": "Probar",
+    "step1Title": "Cuentas ads",
+    "selectAll": "Seleccionar todas",
+    "clear": "Limpiar",
+    "noAccounts": "Sin cuentas en uso",
+    "btn1": "Botón 1 · Paso 2",
+    "createPixel": "Creación de píxel",
+    "createAction": "1 · Crear píxel",
+    "importExisting": "Ya tengo píxel · traer de TikTok",
+    "querying": "Consultando…",
+    "btn2": "Botón 2 · Paso 4",
+    "yourPixels": "Tus píxeles",
+    "noPixels": "Todavía no hay píxeles",
+    "step5": "Paso 5 · Probar",
+    "testEvents": "Eventos de prueba",
+    "sdkReady": "SDK listo",
+    "loadSdk": "Cargar SDK",
+    "pickAccounts": "Elegí al menos una cuenta ads.",
+    "pickPixel": "Elegí un píxel primero.",
+    "copyCode": "Copiar",
+    "eventsPending": "Eventos COD pendientes · usá el botón 2 cuando la tienda ya tenga el píxel."
+  },
+  "affiliates": {
+    "module": "Afiliados",
+    "title": "Programa de afiliados",
+    "meta": "Alcance organización · no por cliente Hecom",
+    "goPayments": "Ir a pagos",
+    "viewAccounts": "Ver cuentas",
+    "referrals": "Referrals Hecom",
+    "notPerClient": "No por cliente",
+    "scope": "Alcance",
+    "org": "Org",
+    "agencyProgram": "Programa agencia",
+    "activeContext": "Contexto activo",
+    "clientFilter": "Filtro de cliente",
+    "quickPayments": "Pagos",
+    "quickAccounts": "Cuentas ads",
+    "quickCreatives": "Creativos"
+  },
+  "support": {
+    "brandName": "Ads Holistic",
+    "greeting": "Hola, {name}. Este es el chat de Soporte Holistic. Escribí tu consulta, pegá una captura (Ctrl+V) o adjuntá fotos/PDF. Te respondemos acá.",
+    "chats": "Chats",
+    "conversation": "Conversación",
+    "teamHint": "Equipo Ads Holistic · respuesta en este chat",
+    "faqTitle": "Preguntas frecuentes",
+    "faqSubtitle": "Guías rápidas de Ads Holistic",
+    "faqGuides": "Guías rápidas sin abrir ticket",
+    "backToChat": "← Volver al chat",
+    "searchFaq": "Buscar en FAQ…",
+    "noFaqResults": "No hay resultados para “{q}”.",
+    "loading": "Cargando historial…",
+    "writeUs": "Escríbenos",
+    "placeholder": "Escribí tu mensaje… Podés pegar capturas con Ctrl+V",
+    "noMessages": "Todavía no hay mensajes",
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "clearConfirm": "¿Borrar todo el chat? Se eliminan los mensajes de esta conversación.",
+    "dropFiles": "Soltá la imagen o PDF acá",
+    "enterHint": "Enter envía · Shift+Enter nueva línea",
+    "back": "Volver",
+    "useful": "¿Te resultó útil este artículo?",
+    "loadError": "No se pudo cargar la conversación.",
+    "openError": "No se pudo abrir Soporte Holistic.",
+    "clearError": "No se pudo borrar el chat.",
+    "sendError": "No se pudo enviar el mensaje.",
+    "faq": {
+      "categories": {
+        "empezar": "Empezar en Ads Holistic",
+        "dinero": "Recargar y asignar saldo",
+        "cuentas": "Cuentas ads y gastos",
+        "soporte": "Este chat de soporte"
+      },
+      "articles": {
+        "que-es": {
+          "title": "¿Qué es Ads Holistic?",
+          "content": "Es el panel donde ves tus cuentas TikTok, saldo/deuda Hecom, recargas y el chat con el equipo. Los datos de cobros y gastos vienen del CRM Hecom Club."
+        },
+        "menu-cliente": {
+          "title": "¿Por dónde empiezo?",
+          "content": "Entrá con tu correo (OTP). En el menú izquierdo ves solo tus datos: Resumen, Cuentas ads, Pagos y este chat de soporte."
+        },
+        "saldo-estimado": {
+          "title": "¿Qué es el “Saldo estimado”?",
+          "content": "No es plata en TikTok ni en la tarjeta. Es el saldo del CRM Hecom: cobros del cliente menos (gastos de ads + fees). Si sale positivo, pagó más de lo que se gastó/fee. Si sale negativo, es deuda neta."
+        },
+        "como-recargar": {
+          "title": "¿Cómo recargo?",
+          "content": "Como cliente: andá a Pagos → Recargar cartera (Stripe / método disponible). Elegís el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tenés saldo en cartera para asignar a una cuenta ads."
+        },
+        "como-asignar": {
+          "title": "¿Cómo asigno saldo a una cuenta?",
+          "content": "En Pagos, sección Asignar: elegí una cuenta Aprobada, monto y confirmá. Eso mueve presupuesto hacia el advertiser TikTok. Solo aparecen cuentas activas/aprobadas (no las suspendidas)."
+        },
+        "fee": {
+          "title": "¿Qué es el fee?",
+          "content": "Es el % Holistic del cliente (viene de Hecom, p.ej. 10%). En depósitos: vos pedís un neto; se cobra neto + fee. En el historial, el fee también entra en el “cargo” junto al gasto de ads."
+        },
+        "ver-cuentas": {
+          "title": "¿Dónde veo mis cuentas TikTok?",
+          "content": "Menú Cuentas ads. Listado de advertisers (nombre + ID), estado Activa / Suspendida, fee y huso. Como cliente es solo lectura: no creás ni editás cuentas acá."
+        },
+        "como-escribir": {
+          "title": "¿Cómo uso este chat?",
+          "content": "Escribí tu consulta acá. Podés pegar capturas (Ctrl+V) o adjuntar fotos/PDF. Te responde un gerente humano (no un bot). Los mensajes se actualizan solos, sin F5."
+        },
+        "tiempos": {
+          "title": "¿Cuánto tardan en responder?",
+          "content": "La meta operativa es contestar en 30 minutos o menos en horario de atención. Si es urgente, dejá el detalle (cuenta, monto, error) para ir más rápido."
+        }
+      }
+    }
+  }
+}
