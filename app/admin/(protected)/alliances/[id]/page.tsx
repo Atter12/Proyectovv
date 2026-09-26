@@ -4,6 +4,8 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AllianceWorkspace } from "@/features/alliances/components/AllianceWorkspace.client";
 import { getAlliance } from "@/features/alliances/lib/alliances.server";
 import { todayInLima } from "@/features/alliances/lib/domain";
+import { listContractTemplates } from "@/features/alliances/lib/templates.server";
+import { signatureProviderReady } from "@/features/alliances/lib/signature.server";
 import { requireAdmin } from "@/lib/admin/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +17,7 @@ export default async function AdminAllianceDetailPage({
 }) {
   await requireAdmin();
   const { id } = await params;
-  const loaded = await getAlliance(id);
+  const [loaded, templates] = await Promise.all([getAlliance(id), listContractTemplates()]);
   if (!loaded.ok) {
     return (
       <AdminPageHeader
@@ -44,7 +46,12 @@ export default async function AdminAllianceDetailPage({
           </Link>
         }
       />
-      <AllianceWorkspace detail={detail} today={todayInLima()} />
+      <AllianceWorkspace
+        detail={detail}
+        today={todayInLima()}
+        templates={templates.ok ? templates.data : null}
+        signatureReady={signatureProviderReady()}
+      />
     </>
   );
 }

@@ -96,6 +96,12 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.61a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.5 8.25" />
         </svg>
       );
+    case "alliances":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a8.97 8.97 0 00-3.74-.479 3 3 0 00-4.682-2.72m.94 3.198A8.99 8.99 0 016 18.72m12 0a5.97 5.97 0 00-.94-3.197A5.99 5.99 0 0012 12.75a5.99 5.99 0 00-5.06 2.773M15 6.75a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      );
     case "creative-analyzer":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -170,6 +176,7 @@ function navItemsForPersona(
     if (item.href === "/payments/missing-cobros") return false;
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;
+    if (item.href === "/alianzas") return false;
     return true;
   });
 }

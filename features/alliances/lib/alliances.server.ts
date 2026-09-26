@@ -6,7 +6,6 @@ import {
   todayInLima,
   type ActivityKind,
   type AgreementKind,
-  type AllianceContractLite,
   type AllianceStatus,
   type AllianceType,
   type ContractStatus,
@@ -21,10 +20,23 @@ import type {
   AllianceHome,
 } from "@/features/alliances/lib/view";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { applyAllianceFollowups } from "@/features/alliances/lib/followup.server";
+import {
+  buildAllianceBoard,
+  type FollowupAlliance,
+  type FollowupContract,
+  type FollowupReminder,
+} from "@/features/alliances/lib/followup";
 
 export type { AllianceDetail, AllianceHome };
 
 type LoadResult<T> = { ok: true; data: T } | { ok: false; error: "missing_table" | "unknown" };
+
+function isMissingColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  const message = (error.message ?? "").toLowerCase();
+  return error.code === "42703" || error.code === "PGRST204" || message.includes("column");
+}
 
 function isMissingTable(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -45,8 +57,11 @@ interface SignerRow {
   id: string;
   name: string;
   email: string | null;
+  phone?: string | null;
   role_title: string | null;
   signed_on: string | null;
+  sign_url?: string | null;
+  provider_status?: string | null;
 }
 
 interface ContractRow {
@@ -61,6 +76,10 @@ interface ContractRow {
   storage_path: string | null;
   signature_provider: string | null;
   external_ref: string | null;
+  provider_status?: string | null;
+  rejection_reason?: string | null;
+  signed_storage_path?: string | null;
+  signed_file_name?: string | null;
   updated_at: string;
   alliance_contract_signers: SignerRow[] | null;
 }
@@ -145,13 +164,20 @@ function mapContract(row: ContractRow): AllianceContractRecord {
     hasFile: Boolean(row.storage_path),
     signatureProvider: text(row.signature_provider) || "manual",
     externalRef: text(row.external_ref),
+    providerStatus: text(row.provider_status),
+    rejectionReason: text(row.rejection_reason),
+    hasSignedFile: Boolean(row.signed_storage_path),
+    signedFileName: text(row.signed_file_name),
     updatedAt: row.updated_at,
     signers: (row.alliance_contract_signers ?? []).map((signer) => ({
       id: signer.id,
       name: signer.name,
       email: text(signer.email),
+      phone: text(signer.phone),
       roleTitle: text(signer.role_title),
       signedOn: text(signer.signed_on),
+      signUrl: text(signer.sign_url),
+      providerStatus: text(signer.provider_status),
     })),
   };
 }
@@ -227,10 +253,15 @@ function mapDetail(row: AllianceRow): AllianceDetail {
 }
 
 const LIST_SELECT = `
-  id, name, alliance_type, status, owner_name, contact_name, email, next_action,
-  alliance_contracts ( status, expires_on ),
-  alliance_reminders ( title, due_on, status )
+  id, name, alliance_type, status, owner_name, contact_name, email, next_action, created_at,
+  alliance_contracts ( id, contract_type, version, status, expires_on, sent_on, created_at ),
+  alliance_reminders ( id, title, due_on, priority, status, owner_name )
 `;
+
+const LIST_SELECT_WITH_FOLLOWUP = LIST_SELECT.replace(
+  "alliance_reminders ( id, title, due_on, priority, status, owner_name )",
+  "alliance_reminders ( id, title, due_on, priority, status, owner_name, source_key )",
+);
 
 const DETAIL_SELECT = `
   id, name, alliance_type, status, owner_name, contact_name, phone, email,
@@ -248,68 +279,171 @@ const DETAIL_SELECT = `
   alliance_files ( id, name, category, size_bytes, created_at )
 `;
 
+const DETAIL_SELECT_WITH_SIGNATURE = DETAIL_SELECT.replace(
+  "storage_path, signature_provider, external_ref, updated_at,",
+  "storage_path, signature_provider, external_ref, provider_status, rejection_reason, signed_storage_path, signed_file_name, updated_at,",
+).replace(
+  "alliance_contract_signers ( id, name, email, role_title, signed_on )",
+  "alliance_contract_signers ( id, name, email, phone, role_title, signed_on, sign_url, provider_status )",
+);
+
 export async function listAlliances(): Promise<LoadResult<AllianceHome>> {
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("alliances")
-      .select(LIST_SELECT)
-      .order("updated_at", { ascending: false });
+    const loaded = await admin.from("alliances").select(LIST_SELECT_WITH_FOLLOWUP).order("updated_at", { ascending: false });
+    const fallback =
+      loaded.error && isMissingColumn(loaded.error)
+        ? await admin.from("alliances").select(LIST_SELECT).order("updated_at", { ascending: false })
+        : null;
+    const error = fallback?.error ?? loaded.error;
+    const data = fallback ? fallback.data : loaded.data;
     if (error) return { ok: false, error: isMissingTable(error) ? "missing_table" : "unknown" };
 
     const today = todayInLima();
-    const source = (data ?? []) as unknown as Array<{
-      id: string;
-      name: string;
-      alliance_type: AllianceType;
-      status: AllianceStatus;
-      owner_name: string;
-      contact_name: string | null;
-      email: string | null;
-      next_action: string | null;
-      alliance_contracts: Array<{ status: ContractStatus; expires_on: string | null }> | null;
-      alliance_reminders: Array<{ title: string; due_on: string; status: ReminderStatus }> | null;
-    }>;
-
-    const contractsOf = (row: (typeof source)[number]): AllianceContractLite[] =>
-      (row.alliance_contracts ?? []).map((contract) => ({
-        status: contract.status,
-        expiresOn: contract.expires_on,
+    const source = (data ?? []) as unknown as RawAlliance[];
+    let alliances = source.map((row) => toFollowup(row));
+    let alertsReady = !fallback;
+    if (!fallback) {
+      const applied = await applyAllianceFollowups(alliances, today);
+      alertsReady = !applied.blocked;
+      alliances = alliances.map((alliance) => ({
+        ...alliance,
+        reminders: alliance.reminders
+          .map((reminder) => (applied.closedKeys.includes(reminder.sourceKey) ? { ...reminder, status: "done" as const } : reminder))
+          .concat(applied.created.filter((item) => item.allianceId === alliance.id).map((item) => item.reminder)),
       }));
+    }
 
-    const rows = source.map((row) =>
-      buildAllianceListRow({
-        id: row.id,
-        name: row.name,
-        allianceType: row.alliance_type,
-        status: row.status,
-        ownerName: row.owner_name,
-        contactName: text(row.contact_name),
-        email: text(row.email),
-        nextAction: text(row.next_action),
+    const board = buildAllianceBoard(alliances, today);
+    const rows = alliances.map((alliance) => {
+      const raw = source.find((item) => item.id === alliance.id);
+      return buildAllianceListRow({
+        id: alliance.id,
+        name: alliance.name,
+        allianceType: alliance.allianceType,
+        status: alliance.status as AllianceStatus,
+        ownerName: alliance.ownerName,
+        contactName: text(raw?.contact_name),
+        email: text(raw?.email),
+        nextAction: text(raw?.next_action),
         today,
-        contracts: contractsOf(row),
-        reminders: (row.alliance_reminders ?? []).map((reminder) => ({
+        contracts: alliance.contracts.map((contract) => ({ status: contract.status as ContractStatus, expiresOn: contract.expiresOn })),
+        reminders: alliance.reminders.map((reminder) => ({
           title: reminder.title,
-          dueOn: reminder.due_on,
+          dueOn: reminder.dueOn,
           status: reminder.status,
         })),
-      }),
+      });
+    });
+    const contracts = alliances.flatMap((alliance) =>
+      alliance.contracts.map((contract) => ({ status: contract.status as ContractStatus, expiresOn: contract.expiresOn })),
     );
 
-    const contracts = source.flatMap((row) => contractsOf(row));
-
-    return { ok: true, data: { today, rows, stats: summarizeAllianceHome(rows, contracts, today) } };
+    return {
+      ok: true,
+      data: {
+        today,
+        rows,
+        stats: summarizeAllianceHome(rows, contracts, today),
+        followup: board.stats,
+        byType: board.byType,
+        owners: board.owners,
+        queue: board.queue,
+        events: board.events,
+        alertsReady,
+      },
+    };
   } catch {
     return { ok: false, error: "unknown" };
   }
+}
+
+interface RawReminder {
+  id: string;
+  title: string;
+  due_on: string;
+  priority: string | null;
+  status: string;
+  owner_name: string | null;
+  source_key?: string | null;
+}
+
+interface RawContract {
+  id: string;
+  contract_type: string;
+  version: number;
+  status: string;
+  expires_on: string | null;
+  sent_on: string | null;
+  created_at: string | null;
+}
+
+interface RawAlliance {
+  id: string;
+  name: string;
+  alliance_type: AllianceType;
+  status: AllianceStatus;
+  owner_name: string;
+  contact_name: string | null;
+  email: string | null;
+  next_action: string | null;
+  created_at: string | null;
+  alliance_contracts: RawContract[] | null;
+  alliance_reminders: RawReminder[] | null;
+}
+
+function toFollowup(row: RawAlliance): FollowupAlliance {
+  return {
+    id: row.id,
+    name: row.name,
+    allianceType: row.alliance_type,
+    status: row.status,
+    ownerName: row.owner_name,
+    createdOn: dateOnly(row.created_at),
+    contracts: (row.alliance_contracts ?? []).map(
+      (contract): FollowupContract => ({
+        id: contract.id,
+        contractType: contract.contract_type,
+        version: Number(contract.version) || 1,
+        status: contract.status,
+        expiresOn: contract.expires_on,
+        sentOn: contract.sent_on,
+        createdOn: dateOnly(contract.created_at),
+      }),
+    ),
+    reminders: (row.alliance_reminders ?? []).map(
+      (reminder): FollowupReminder => ({
+        id: reminder.id,
+        title: reminder.title,
+        dueOn: reminder.due_on,
+        priority: reminder.priority === "low" || reminder.priority === "high" ? reminder.priority : "normal",
+        status: reminder.status === "done" || reminder.status === "cancelled" ? reminder.status : "open",
+        ownerName: text(reminder.owner_name),
+        sourceKey: text(reminder.source_key),
+      }),
+    ),
+  };
+}
+
+function dateOnly(value: string | null | undefined): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return todayInLima(date);
 }
 
 export async function getAlliance(id: string): Promise<LoadResult<AllianceDetail | null>> {
   if (!isAllianceId(id)) return { ok: true, data: null };
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("alliances").select(DETAIL_SELECT).eq("id", id).maybeSingle();
+    const loaded = await admin.from("alliances").select(DETAIL_SELECT_WITH_SIGNATURE).eq("id", id).maybeSingle();
+    const fallback =
+      loaded.error && isMissingColumn(loaded.error)
+        ? await admin.from("alliances").select(DETAIL_SELECT).eq("id", id).maybeSingle()
+        : null;
+    const error = fallback?.error ?? loaded.error;
+    const data = fallback ? fallback.data : loaded.data;
     if (error) return { ok: false, error: isMissingTable(error) ? "missing_table" : "unknown" };
     if (!data) return { ok: true, data: null };
     return { ok: true, data: mapDetail(data as unknown as AllianceRow) };

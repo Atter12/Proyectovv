@@ -353,4 +353,11 @@ export const serverEnv = {
    */
   holisticWaSnapshotSecret:
     process.env.HOLISTIC_WA_SNAPSHOT_SECRET?.trim() ?? "",
+
+  /** Integración FirmEasy. Vacío = la ficha no ofrece envío a firma. */
+  firmeasyBaseUrl: process.env.FIRMEASY_BASE_URL?.trim() || "https://app.firmeasy.legal/api",
+  firmeasyIntegrationToken: process.env.FIRMEASY_INTEGRATION_TOKEN?.trim() ?? "",
+  firmeasyEmail: process.env.FIRMEASY_EMAIL?.trim() ?? "",
+  firmeasyPassword: process.env.FIRMEASY_PASSWORD ?? "",
+  firmeasyWebhookSecret: process.env.FIRMEASY_WEBHOOK_SECRET?.trim() ?? "",
 } as const;

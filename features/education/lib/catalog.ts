@@ -180,6 +180,10 @@ export function isEducationLessonSlug(slug: string): boolean {
   return lessonSlugs.has(slug);
 }
 
+export function isEducationCategoryId(value: string): value is EducationCategoryId {
+  return (EDUCATION_CATEGORY_IDS as readonly string[]).includes(value);
+}
+
 export function educationCategoryById(id: EducationCategoryId): EducationCategory {
   const category = educationCategories.find((item) => item.id === id);
   if (!category) {

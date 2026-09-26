@@ -11,6 +11,7 @@ import { loomEmbedUrl } from "../lib/loom";
 import type { EducationLessonView } from "../lib/types";
 import { EducationLoomEditor } from "./EducationLoomEditor.client";
 import { EducationPlayerDialog } from "./EducationPlayerDialog.client";
+import type { EducationLessonSave } from "../actions";
 
 type CategoryFilter = "all" | EducationCategoryId;
 
@@ -27,17 +28,17 @@ export function EducationCenter({
   const [listing, setListing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [active, setActive] = useState<EducationLessonView | null>(null);
-  const [links, setLinks] = useState<Record<string, string | null>>({});
+  const [saved, setSaved] = useState<Record<string, EducationLessonSave>>({});
+  const [created, setCreated] = useState<EducationLessonView[]>([]);
 
-  const published = useMemo(
-    () =>
-      lessons.map((lesson) => {
-        if (!(lesson.slug in links)) return lesson;
-        const loomUrl = links[lesson.slug] ?? null;
-        return { ...lesson, loomUrl, embedUrl: loomEmbedUrl(loomUrl) };
-      }),
-    [lessons, links],
-  );
+  const published = useMemo(() => {
+    const known = new Set(lessons.map((lesson) => lesson.slug));
+    const current = lessons.map((lesson) => applyLessonSave(lesson, saved[lesson.slug]));
+    const extras = created
+      .filter((lesson) => !known.has(lesson.slug))
+      .map((lesson) => applyLessonSave(lesson, saved[lesson.slug]));
+    return [...current, ...extras];
+  }, [lessons, saved, created]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -115,8 +116,14 @@ export function EducationCenter({
       {canManage && editing ? (
         <EducationLoomEditor
           lessons={published}
-          onSaved={(slug, loomUrl) =>
-            setLinks((current) => ({ ...current, [slug]: loomUrl }))
+          onSaved={(lesson) =>
+            setSaved((current) => ({ ...current, [lesson.slug]: lesson }))
+          }
+          onCreated={(lesson) =>
+            setCreated((current) => [
+              ...current.filter((item) => item.slug !== lesson.slug),
+              lessonFromSave(lesson),
+            ])
           }
         />
       ) : null}
@@ -196,35 +203,6 @@ export function EducationCenter({
             </div>
           </Section>
 
-          <Section
-            title={t("exploreTitle")}
-            action={t("seeAllCategories")}
-            onAction={resetFilters}
-          >
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {educationCategories.map((item) => {
-                const count = published.filter((lesson) => lesson.categoryId === item.id).length;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setCategory(item.id)}
-                    className="rounded-[1.15rem] border border-[var(--auth-border)] bg-white p-4 text-left shadow-[0_12px_28px_-24px_rgb(28_25_23_/_0.35)] transition-colors hover:border-[rgb(212_120_64_/_0.4)]"
-                  >
-                    <CategoryGlyph id={item.id} />
-                    <p className="mt-3 font-bold text-[var(--auth-text)]">{item.label}</p>
-                    <p className="mt-0.5 text-[12px] font-medium text-[var(--auth-text-soft)]">
-                      {t("videoCount", { count })}
-                    </p>
-                    <p className="mt-2 text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                      {item.description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
           <Section title={t("latestTitle")} action={t("seeAll")} onAction={showAllLessons}>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
               {latest.map((lesson) => (
@@ -267,6 +245,36 @@ export function EducationCenter({
       />
     </div>
   );
+}
+
+function lessonFromSave(lesson: EducationLessonSave): EducationLessonView {
+  return {
+    slug: lesson.slug,
+    number: lesson.number,
+    categoryId: lesson.categoryId,
+    title: lesson.title,
+    description: "",
+    recommended: false,
+    custom: lesson.custom,
+    loomUrl: lesson.loomUrl,
+    embedUrl: loomEmbedUrl(lesson.loomUrl),
+    posterUrl: lesson.posterUrl,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function applyLessonSave(
+  lesson: EducationLessonView,
+  patch: EducationLessonSave | undefined,
+): EducationLessonView {
+  if (!patch) return lesson;
+  return {
+    ...lesson,
+    title: patch.title,
+    loomUrl: patch.loomUrl,
+    embedUrl: loomEmbedUrl(patch.loomUrl),
+    posterUrl: patch.posterUrl,
+  };
 }
 
 function Section({
@@ -362,7 +370,7 @@ function LessonCard({
     >
       <span className="relative block aspect-video overflow-hidden rounded-[1.05rem] bg-[#2a211c]">
         <img
-          src="/education/poster.svg"
+          src={lesson.posterUrl || "/education/poster.svg"}
           alt=""
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
@@ -376,7 +384,7 @@ function LessonCard({
       <span className={`mt-3 block font-bold leading-snug text-[var(--auth-text)] ${compact ? "text-[13px]" : "text-[14px]"}`}>
         {lesson.number}. {lesson.title}
       </span>
-      {compact ? null : (
+      {compact || !lesson.description ? null : (
         <span className="mt-1 block text-[13px] leading-5 text-[var(--auth-text-muted)]">
           {lesson.description}
         </span>

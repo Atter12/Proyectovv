@@ -1,4 +1,4 @@
-/** Programa de alianzas comerciales (fase 1). Sin firma externa ni automatizaciones. */
+/** Programa de alianzas comerciales. */
 
 export const ALLIANCE_TYPES = ["ecommerce", "agency", "commercial", "partner", "other"] as const;
 export type AllianceType = (typeof ALLIANCE_TYPES)[number];
@@ -176,6 +176,7 @@ export interface AgreementDraft {
 export interface SignerDraft {
   name: string;
   email: string;
+  phone: string;
   roleTitle: string;
   signedOn: string;
 }
@@ -576,11 +577,13 @@ export function parseContractDraft(input: ContractDraft): FieldResult<ContractDr
     if (!email.ok) return email;
     const signedOn = optionalDate(signer.signedOn, "La fecha de firma");
     if (!signedOn.ok) return signedOn;
-    if (!name && !email.value && !signer.roleTitle.trim() && !signedOn.value) continue;
+    const phone = cleanText(signer.phone ?? "", 40);
+    if (!name && !email.value && !phone && !signer.roleTitle.trim() && !signedOn.value) continue;
     if (name.length < 2) return { ok: false, error: "Cada firmante necesita un nombre." };
     signers.push({
       name,
       email: email.value,
+      phone,
       roleTitle: cleanText(signer.roleTitle, 120),
       signedOn: signedOn.value,
     });

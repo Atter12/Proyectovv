@@ -13,16 +13,20 @@ import {
   deleteReminderAction,
   openAllianceFileAction,
   openContractFileAction,
+  openSignedContractFileAction,
+  refreshContractSignatureAction,
   saveActivityAction,
   saveAgreementAction,
   saveContactAction,
   saveContractAction,
   saveReminderAction,
+  sendContractForSignatureAction,
   uploadAllianceFileAction,
 } from "@/features/alliances/actions";
 import { AllianceEditor } from "@/features/alliances/components/AllianceEditor.client";
 import { AllianceStatusBadge, AllianceTypeBadge, ContractStatusBadge } from "@/features/alliances/components/badges";
 import { AreaField, FormError, SelectField, TextField, fieldClass } from "@/features/alliances/components/fields";
+import { GenerateContractPanel } from "@/features/alliances/components/GenerateContractPanel.client";
 import {
   ACTIVITY_KIND_LABEL,
   ACTIVITY_KINDS,
@@ -61,6 +65,7 @@ import type {
   AllianceFileRecord,
   AllianceReminderRecord,
 } from "@/features/alliances/lib/view";
+import type { ContractTemplate } from "@/features/alliances/lib/templates";
 import { formatDateTime } from "@/lib/format";
 
 const TABS = [
@@ -162,7 +167,19 @@ function ConfirmDelete({
   );
 }
 
-export function AllianceWorkspace({ detail, today }: { detail: AllianceDetail; today: string }) {
+export function AllianceWorkspace({
+  detail,
+  today,
+  basePath = "/admin/alliances",
+  templates = null,
+  signatureReady = false,
+}: {
+  detail: AllianceDetail;
+  today: string;
+  basePath?: string;
+  templates?: ContractTemplate[] | null;
+  signatureReady?: boolean;
+}) {
   const [tab, setTab] = useState<TabId>("info");
   const headline = pickHeadlineContract(
     detail.contracts.map((contract) => ({ status: contract.status, expiresOn: contract.expiresOn || null })),
@@ -225,10 +242,33 @@ export function AllianceWorkspace({ detail, today }: { detail: AllianceDetail; t
           })}
         </div>
 
-        {tab === "info" ? <InfoTab detail={detail} /> : null}
+        {tab === "info" ? <InfoTab detail={detail} basePath={basePath} /> : null}
         {tab === "contacts" ? <ContactsTab allianceId={detail.id} rows={detail.contacts} /> : null}
         {tab === "agreements" ? <AgreementsTab allianceId={detail.id} rows={detail.agreements} /> : null}
-        {tab === "contracts" ? <ContractsTab allianceId={detail.id} rows={detail.contracts} today={today} /> : null}
+        {tab === "contracts" ? (
+          <ContractsTab
+            allianceId={detail.id}
+            rows={detail.contracts}
+            today={today}
+            templates={templates}
+            templatesHref={`${basePath}/plantillas`}
+            signatureReady={signatureReady}
+            source={{
+              name: detail.name,
+              allianceType: detail.allianceType,
+              ownerName: detail.ownerName,
+              contactName: detail.contactName,
+              email: detail.email,
+              phone: detail.phone,
+              commissionTerms: detail.commissionTerms,
+              startedOn: detail.startedOn,
+              endsOn: detail.endsOn,
+              ourContribution: detail.ourContribution,
+              theirContribution: detail.theirContribution,
+              summary: detail.summary,
+            }}
+          />
+        ) : null}
         {tab === "activities" ? <ActivitiesTab allianceId={detail.id} rows={detail.activities} /> : null}
         {tab === "reminders" ? <RemindersTab allianceId={detail.id} rows={detail.reminders} today={today} ownerName={detail.ownerName} /> : null}
         {tab === "files" ? <FilesTab allianceId={detail.id} rows={detail.files} /> : null}
@@ -257,7 +297,7 @@ function Fact({
   );
 }
 
-function InfoTab({ detail }: { detail: AllianceDetail }) {
+function InfoTab({ detail, basePath }: { detail: AllianceDetail; basePath: string }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -282,7 +322,7 @@ function InfoTab({ detail }: { detail: AllianceDetail }) {
                   setError(result.error);
                   return;
                 }
-                router.push("/admin/alliances");
+                router.push(basePath);
                 router.refresh();
               });
             }}
@@ -455,13 +495,35 @@ function ContractsTab({
   allianceId,
   rows,
   today,
+  templates,
+  templatesHref,
+  source,
+  signatureReady,
 }: {
   allianceId: string;
   rows: AllianceContractRecord[];
   today: string;
+  templates: ContractTemplate[] | null;
+  templatesHref: string;
+  signatureReady: boolean;
+  source: {
+    name: string;
+    allianceType: AllianceDetail["allianceType"];
+    ownerName: string;
+    contactName: string;
+    email: string;
+    phone: string;
+    commissionTerms: string;
+    startedOn: string;
+    endsOn: string;
+    ourContribution: string;
+    theirContribution: string;
+    summary: string;
+  };
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [manual, setManual] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState<AllianceContractRecord | null>(null);
   const [contractType, setContractType] = useState<ContractType>("commercial");
   const [version, setVersion] = useState("1");
@@ -469,7 +531,7 @@ function ContractsTab({
   const [sentOn, setSentOn] = useState("");
   const [expiresOn, setExpiresOn] = useState("");
   const [notes, setNotes] = useState("");
-  const [signers, setSigners] = useState<SignerDraft[]>([{ name: "", email: "", roleTitle: "", signedOn: "" }]);
+  const [signers, setSigners] = useState<SignerDraft[]>([{ name: "", email: "", phone: "", roleTitle: "", signedOn: "" }]);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -482,18 +544,43 @@ function ContractsTab({
     setSentOn(row?.sentOn ?? "");
     setExpiresOn(row?.expiresOn ?? "");
     setNotes(row?.notes ?? "");
-    setSigners(row?.signers.length ? row.signers.map((signer) => ({ name: signer.name, email: signer.email, roleTitle: signer.roleTitle, signedOn: signer.signedOn })) : [{ name: "", email: "", roleTitle: "", signedOn: "" }]);
+    setSigners(row?.signers.length ? row.signers.map((signer) => ({ name: signer.name, email: signer.email, phone: signer.phone, roleTitle: signer.roleTitle, signedOn: signer.signedOn })) : [{ name: "", email: "", phone: "", roleTitle: "", signedOn: "" }]);
     setError("");
-    setOpen(true);
+    setGenerating(false);
+    setManual(true);
   }
 
   return (
     <Panel
       title="Contratos"
-      lede="Registro manual del documento, la versión y quién debe firmar. La generación y FirmEasy llegan en fases posteriores."
-      action={<Button type="button" variant="secondary" onClick={() => (open ? setOpen(false) : begin())}>{open ? "Cerrar" : "Registrar contrato"}</Button>}
+      lede="Genera un borrador, envíalo a FirmEasy y conserva aquí el PDF firmado."
+      action={
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => { setGenerating((value) => !value); setManual(false); }}>
+            {generating ? "Cerrar" : "Generar contrato"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => (manual ? setManual(false) : begin())}>
+            {manual ? "Cerrar" : "Registrar a mano"}
+          </Button>
+        </div>
+      }
     >
-      {open ? (
+      {generating ? (
+        <GenerateContractPanel
+          allianceId={allianceId}
+          source={source}
+          today={today}
+          templates={templates}
+          templatesHref={templatesHref}
+          onClose={() => setGenerating(false)}
+        />
+      ) : null}
+      {!signatureReady ? (
+        <p className="mb-4 text-sm text-[var(--admin-text-muted)]">
+          FirmEasy se conecta con el token, el correo y la contraseña de la integración. Hasta entonces puedes dejar el contrato en borrador o marcarlo a mano.
+        </p>
+      ) : null}
+      {manual ? (
         <form
           className="mb-5 space-y-3 border-b border-[var(--admin-border)] pb-5"
           onSubmit={(event) => {
@@ -516,7 +603,7 @@ function ContractsTab({
                 setError(result.error);
                 return;
               }
-              setOpen(false);
+              setManual(false);
               form.reset();
               router.refresh();
             });
@@ -542,24 +629,25 @@ function ContractsTab({
           <div className="space-y-2">
             <p className="text-xs font-medium text-[var(--admin-text-muted)]">Firmantes</p>
             {signers.map((signer, index) => (
-              <div key={index} className="grid gap-2 md:grid-cols-4">
+              <div key={index} className="grid gap-2 md:grid-cols-5">
                 <input className={fieldClass} placeholder="Nombre" value={signer.name} onChange={(event) => setSigners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} />
                 <input className={fieldClass} placeholder="Correo" value={signer.email} onChange={(event) => setSigners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: event.target.value } : item))} />
+                <input className={fieldClass} placeholder="Celular" value={signer.phone} onChange={(event) => setSigners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, phone: event.target.value } : item))} />
                 <input className={fieldClass} placeholder="Rol" value={signer.roleTitle} onChange={(event) => setSigners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, roleTitle: event.target.value } : item))} />
                 <input className={fieldClass} type="date" value={signer.signedOn} onChange={(event) => setSigners((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, signedOn: event.target.value } : item))} />
               </div>
             ))}
             {signers.length < 8 ? (
-              <button type="button" className="text-xs font-medium text-[var(--admin-accent)]" onClick={() => setSigners((current) => [...current, { name: "", email: "", roleTitle: "", signedOn: "" }])}>
+              <button type="button" className="text-xs font-medium text-[var(--admin-accent)]" onClick={() => setSigners((current) => [...current, { name: "", email: "", phone: "", roleTitle: "", signedOn: "" }])}>
                 Agregar firmante
               </button>
             ) : null}
           </div>
-          <p className="text-xs text-[var(--admin-text-muted)]">Proveedor de firma: registro manual. El identificador externo se usará cuando se conecte FirmEasy.</p>
+          <p className="text-xs text-[var(--admin-text-muted)]">FirmEasy pide correo y celular de cada firmante. El envío sale del contrato ya guardado.</p>
           <Button type="submit" disabled={pending}>{pending ? "Guardando…" : "Guardar contrato"}</Button>
         </form>
       ) : null}
-      <FormError message={open ? "" : error} />
+      <FormError message={manual ? "" : error} />
       {rows.length === 0 ? <Empty text="Esta alianza todavía no tiene contratos ni adendas." /> : (
         <ul className="space-y-3">
           {rows.map((row) => {
@@ -571,10 +659,49 @@ function ContractsTab({
                     <p className="font-medium text-[var(--admin-text)]">{CONTRACT_TYPE_LABEL[row.contractType]} · v{row.version}</p>
                     <ContractStatusBadge status={shown} />
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     {row.hasFile ? (
                       <button type="button" className="text-xs font-medium text-[var(--admin-accent)]" onClick={() => openDocument(() => openContractFileAction(allianceId, row.id), setError)}>
                         Abrir archivo
+                      </button>
+                    ) : null}
+                    {row.hasSignedFile ? (
+                      <button type="button" className="text-xs font-medium text-[var(--admin-accent)]" onClick={() => openDocument(() => openSignedContractFileAction(allianceId, row.id), setError)}>
+                        Abrir firmado
+                      </button>
+                    ) : null}
+                    {signatureReady && row.hasFile && row.status !== "signed" && row.status !== "renewed" && !(row.externalRef && row.status === "pending_signature") ? (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-[var(--admin-accent)] disabled:opacity-50"
+                        disabled={pending}
+                        onClick={() => {
+                          setError("");
+                          startTransition(async () => {
+                            const result = await sendContractForSignatureAction(allianceId, row.id);
+                            if (!result.ok) setError(result.error);
+                            else router.refresh();
+                          });
+                        }}
+                      >
+                        Enviar a firma
+                      </button>
+                    ) : null}
+                    {signatureReady && row.externalRef ? (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-[var(--admin-accent)] disabled:opacity-50"
+                        disabled={pending}
+                        onClick={() => {
+                          setError("");
+                          startTransition(async () => {
+                            const result = await refreshContractSignatureAction(allianceId, row.id);
+                            if (!result.ok) setError(result.error);
+                            else router.refresh();
+                          });
+                        }}
+                      >
+                        Actualizar estado
                       </button>
                     ) : null}
                     <button type="button" className="text-xs font-medium text-[var(--admin-accent)]" onClick={() => begin(row)}>Editar</button>
@@ -587,10 +714,23 @@ function ContractsTab({
                 {row.signers.length > 0 ? (
                   <ul className="mt-2 text-sm text-[var(--admin-text)]">
                     {row.signers.map((signer) => (
-                      <li key={signer.id}>{signer.name}{signer.roleTitle ? ` · ${signer.roleTitle}` : ""}{signer.signedOn ? ` · firmó ${formatAllianceDate(signer.signedOn)}` : ""}</li>
+                      <li key={signer.id}>
+                        {signer.name}
+                        {signer.roleTitle ? ` · ${signer.roleTitle}` : ""}
+                        {signer.signedOn ? ` · firmó ${formatAllianceDate(signer.signedOn)}` : ""}
+                        {signer.signUrl ? (
+                          <>
+                            {" · "}
+                            <a className="font-medium text-[var(--admin-accent)]" href={signer.signUrl} target="_blank" rel="noreferrer">
+                              enlace de firma
+                            </a>
+                          </>
+                        ) : null}
+                      </li>
                     ))}
                   </ul>
                 ) : null}
+                {row.rejectionReason ? <p className="mt-2 text-sm text-[var(--admin-text)]">Rechazo: {row.rejectionReason}</p> : null}
                 {row.notes ? <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--admin-text-muted)]">{row.notes}</p> : null}
               </li>
             );

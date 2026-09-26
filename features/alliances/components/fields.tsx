@@ -1,4 +1,4 @@
-import type { ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes, InputHTMLAttributes } from "react";
+import { forwardRef, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, type InputHTMLAttributes } from "react";
 
 export const fieldClass =
   "h-10 w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text)] outline-none transition-colors duration-150 placeholder:text-[var(--admin-text-soft)] focus:border-[var(--admin-accent)] focus:ring-2 focus:ring-[var(--admin-accent)]/20";
@@ -35,16 +35,15 @@ export function TextField({
   );
 }
 
-export function AreaField({
-  label,
-  ...props
-}: { label: string } & TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <Field label={label}>
-      <textarea className={areaClass} {...props} />
-    </Field>
-  );
-}
+export const AreaField = forwardRef<HTMLTextAreaElement, { label: string } & TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  function AreaField({ label, ...props }, ref) {
+    return (
+      <Field label={label}>
+        <textarea ref={ref} className={areaClass} {...props} />
+      </Field>
+    );
+  },
+);
 
 export function SelectField({
   label,
