@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CobranzaMonthSnapshot } from "@/lib/hecom/cobranza-month-snapshot";
+import { PublicDailySpendChart } from "@/features/clientes/components/PublicDailySpendChart.client";
 
 type PublicPayment = {
   id: string;
@@ -53,7 +54,7 @@ export function PublicAccountStatement({
   const spendDays = snapshot.series.filter((day) => day.key <= snapshot.spendTo);
 
   return (
-    <div className="space-y-8 text-[var(--admin-text)]">
+    <div className="min-w-0 space-y-6 text-[var(--admin-text)]">
       {capped ? (
         <p role="status" className="rounded-xl bg-[var(--admin-badge-warning-bg)] p-4 text-sm leading-6 text-[var(--admin-badge-warning-text)]">
           Este estado puede no incluir todos los movimientos. Confirma el saldo con tu equipo de atención antes de pagar.
@@ -61,7 +62,7 @@ export function PublicAccountStatement({
       ) : null}
 
       <section aria-labelledby="account-balance" className="overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
-        <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[1fr_0.85fr] lg:gap-12">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.55fr)] lg:gap-x-8">
           <div className="min-w-0">
             <h2 id="account-balance" className="text-base font-medium text-[var(--admin-text-muted)]">
               {hasDebt ? "Saldo pendiente" : credit > 0 ? "Saldo a favor del mes" : "Sin saldo pendiente"}
@@ -84,7 +85,7 @@ export function PublicAccountStatement({
           {children}
         </div>
 
-        <dl className="grid border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-5 sm:grid-cols-3 sm:px-8">
+        <dl className="grid border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-5 sm:grid-cols-3 sm:px-6">
           {[
             ["Inversión en anuncios", snapshot.gasto],
             ["Comisión del servicio", snapshot.fee],
@@ -98,18 +99,21 @@ export function PublicAccountStatement({
         </dl>
       </section>
 
-      <section id="payment-history" aria-labelledby="payment-history-title" className="scroll-mt-6">
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.45fr)]">
+        <PublicDailySpendChart series={snapshot.series} spendTo={snapshot.spendTo} />
+
+      <section id="payment-history" aria-labelledby="payment-history-title" className="min-w-0 scroll-mt-6 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="payment-history-title" className="text-xl font-semibold tracking-tight">Tus pagos del mes</h2>
           <p className="text-sm text-[var(--admin-text-muted)]">{payments.length} {payments.length === 1 ? "pago registrado" : "pagos registrados"} · USD</p>
         </div>
         {payments.length > 0 ? (
-          <ul className="divide-y divide-[var(--admin-border)] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
+          <ul className="divide-y divide-[var(--admin-border)] border-t border-[var(--admin-border)]">
             {payments.map((payment) => {
               const applied = payment.applicableMonto ?? payment.monto;
               const hasProviderCharge = Math.abs(payment.monto - applied) >= 0.01;
               return (
-                <li key={payment.id} className="flex flex-wrap items-start justify-between gap-3 p-4 sm:px-5">
+                <li key={payment.id} className="flex flex-wrap items-start justify-between gap-3 py-4 last:pb-0">
                   <div className="min-w-0">
                     <p className="font-medium">{payment.metodo || "Pago registrado"}</p>
                     <p className="mt-1 text-sm text-[var(--admin-text-muted)]">{dateLabel(payment.fecha)}</p>
@@ -135,7 +139,9 @@ export function PublicAccountStatement({
           </p>
         ) : null}
       </section>
+      </div>
 
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.45fr)]">
       <details className="group rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
         <summary className="cursor-pointer rounded-xl px-5 py-5 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--admin-accent)] sm:text-lg">
           Detalle diario de inversión
@@ -203,6 +209,7 @@ export function PublicAccountStatement({
           </ul>
         </details>
       ) : null}
+      </div>
 
       <p className="text-sm leading-6 text-[var(--admin-text-muted)]">
         Este estado corresponde al mes indicado. Un pago realizado en otra fecha puede aparecer aquí si fue aplicado a este período.

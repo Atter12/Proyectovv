@@ -116,8 +116,8 @@ export default async function LoPagadoPublicPage({
   }
 
   return (
-    <main className="dashboard-canvas min-h-screen px-4 py-6 text-[var(--admin-text)] selection:bg-[var(--admin-accent-soft)] sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <main className="dashboard-canvas min-h-screen px-4 py-6 text-[var(--admin-text)] selection:bg-[var(--admin-accent-soft)] sm:px-6 lg:px-8 lg:py-8">
+      <div className="w-full min-w-0 space-y-6">
         <PublicAccountHeader clientName={cliente.name} monthLabel={monthLabel} />
         <PublicAccountStatement
           snapshot={snapshot}
