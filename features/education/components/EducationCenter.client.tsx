@@ -1,17 +1,17 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
   educationCategories,
   educationCategoryById,
   type EducationCategoryId,
 } from "../lib/catalog";
-import { loomEmbedUrl } from "../lib/loom";
+import { lessonEmbedUrl } from "../lib/loom";
 import type { EducationLessonView } from "../lib/types";
 import { EducationLoomEditor } from "./EducationLoomEditor.client";
 import { EducationPlayerDialog } from "./EducationPlayerDialog.client";
-import type { EducationLessonSave } from "../actions";
+import { cn } from "@/lib/cn";
 
 type CategoryFilter = "all" | EducationCategoryId;
 
@@ -145,21 +145,7 @@ export function EducationCenter({
         >
           {t("search")}
         </button>
-        <label className="min-w-0 lg:w-[15.5rem]">
-          <span className="sr-only">{t("categoryLabel")}</span>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value as CategoryFilter)}
-            className="h-12 w-full rounded-xl border border-[var(--auth-input-border)] bg-white px-3 text-[14px] font-medium text-[var(--auth-text)] outline-none"
-          >
-            <option value="all">{t("allCategories")}</option>
-            {educationCategories.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CategorySelect value={category} onChange={setCategory} />
       </form>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -250,8 +236,9 @@ function lessonFromSave(lesson: EducationLessonSave): EducationLessonView {
     recommended: lesson.recommended,
     custom: lesson.custom,
     loomUrl: lesson.loomUrl,
-    embedUrl: loomEmbedUrl(lesson.loomUrl),
+    embedUrl: lessonEmbedUrl(lesson.loomUrl),
     posterUrl: lesson.posterUrl,
+    videoUrl: lesson.videoUrl,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -266,8 +253,9 @@ function applyLessonSave(
     title: patch.title,
     recommended: patch.recommended,
     loomUrl: patch.loomUrl,
-    embedUrl: loomEmbedUrl(patch.loomUrl),
+    embedUrl: lessonEmbedUrl(patch.loomUrl),
     posterUrl: patch.posterUrl,
+    videoUrl: patch.videoUrl,
   };
 }
 
@@ -280,16 +268,209 @@ function LessonStrip({
   onOpen: (lesson: EducationLessonView) => void;
   compact?: boolean;
 }) {
+  const t = useTranslations("education");
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    function update() {
+      const node = scrollerRef.current;
+      if (!node) return;
+      setEdges({
+        start: node.scrollLeft > 8,
+        end: node.scrollLeft + node.clientWidth < node.scrollWidth - 8,
+      });
+    }
+
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [lessons.length]);
+
+  function move(direction: -1 | 1) {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const card = scroller.querySelector<HTMLElement>("[data-lesson-card]");
+    const step = (card?.offsetWidth ?? 280) + 12;
+    scroller.scrollBy({ left: direction * step * 2, behavior: "smooth" });
+  }
+
   return (
-    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-      {lessons.map((lesson) => (
-        <div
-          key={lesson.slug}
-          className={compact ? "w-[220px] shrink-0 sm:w-[240px]" : "w-[260px] shrink-0 sm:w-[280px]"}
+    <div className="group/strip relative">
+      <div
+        ref={scrollerRef}
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-1 px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {lessons.map((lesson) => (
+          <div
+            key={lesson.slug}
+            data-lesson-card
+            className={cn(
+              "snap-start shrink-0",
+              compact ? "w-[220px] sm:w-[240px]" : "w-[260px] sm:w-[280px]",
+            )}
+          >
+            <LessonCard lesson={lesson} onOpen={onOpen} compact={compact} />
+          </div>
+        ))}
+      </div>
+      <StripButton
+        label={t("scrollBack")}
+        hidden={!edges.start}
+        side="start"
+        compact={compact}
+        onClick={() => move(-1)}
+      />
+      <StripButton
+        label={t("scrollForward")}
+        hidden={!edges.end}
+        side="end"
+        compact={compact}
+        onClick={() => move(1)}
+      />
+    </div>
+  );
+}
+
+function StripButton({
+  label,
+  hidden,
+  side,
+  compact,
+  onClick,
+}: {
+  label: string;
+  hidden: boolean;
+  side: "start" | "end";
+  compact: boolean;
+  onClick: () => void;
+}) {
+  if (hidden) return null;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "absolute z-10 grid h-10 w-10 place-items-center rounded-full border border-[var(--auth-border)] bg-white text-[var(--auth-text)] shadow-[0_10px_24px_-12px_rgb(28_25_23_/_0.45)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/40",
+        compact ? "top-[2.45rem]" : "top-[3.3rem]",
+        side === "start" ? "left-1" : "right-1",
+      )}
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d={side === "start" ? "M14.5 6.5 9 12l5.5 5.5" : "M9.5 6.5 15 12l-5.5 5.5"}
+        />
+      </svg>
+    </button>
+  );
+}
+
+function CategorySelect({
+  value,
+  onChange,
+}: {
+  value: CategoryFilter;
+  onChange: (value: CategoryFilter) => void;
+}) {
+  const t = useTranslations("education");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const options: Array<{ id: CategoryFilter; label: string }> = [
+    { id: "all", label: t("allCategories") },
+    ...educationCategories.map((item) => ({ id: item.id, label: item.label })),
+  ];
+  const current = options.find((option) => option.id === value) ?? options[0];
+
+  useEffect(() => {
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div ref={rootRef} className="relative min-w-0 lg:w-[15.5rem]">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t("categoryLabel")}
+        onClick={() => setOpen((currentOpen) => !currentOpen)}
+        className={cn(
+          "flex h-12 w-full items-center justify-between gap-2 rounded-xl border bg-white px-3 text-left text-[14px] font-medium text-[var(--auth-text)] outline-none transition-colors",
+          "focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35",
+          open
+            ? "border-[var(--auth-accent)]/50"
+            : "border-[var(--auth-input-border)] hover:border-[var(--auth-accent)]/35",
+        )}
+      >
+        <span className="truncate">{current?.label}</span>
+        <svg
+          viewBox="0 0 24 24"
+          className={cn("h-4 w-4 shrink-0 text-[var(--auth-text-soft)] transition-transform", open && "rotate-180")}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          aria-hidden
         >
-          <LessonCard lesson={lesson} onOpen={onOpen} compact={compact} />
+          <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          role="listbox"
+          aria-label={t("categoryLabel")}
+          className="absolute right-0 z-30 mt-2 w-full min-w-[220px] overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white p-1.5 shadow-[0_18px_40px_rgb(28_25_23_/_0.12)]"
+        >
+          {options.map((option) => {
+            const selected = option.id === value;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(option.id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors",
+                  selected
+                    ? "bg-[#fff7f1] text-[var(--auth-accent)]"
+                    : "text-[var(--auth-text)] hover:bg-[var(--auth-bg)]",
+                )}
+              >
+                <span className="truncate">{option.label}</span>
+                {selected ? (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 5 5L20 7" />
+                  </svg>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
-      ))}
+      ) : null}
     </div>
   );
 }

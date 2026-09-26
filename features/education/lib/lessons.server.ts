@@ -6,8 +6,8 @@ import {
   isEducationCategoryId,
   type EducationCategoryId,
 } from "./catalog";
-import { loomEmbedUrl } from "./loom";
-import { educationPosterUrl } from "./poster";
+import { lessonEmbedUrl } from "./loom";
+import { educationPosterUrl, educationVideoUrl } from "./poster";
 import type { EducationLessonView } from "./types";
 
 export type { EducationLessonView };
@@ -20,6 +20,7 @@ type LessonRow = {
   poster_path: string | null;
   is_custom: boolean | null;
   recommended: boolean | null;
+  video_path: string | null;
   updated_at: string | null;
   created_at: string | null;
 };
@@ -74,8 +75,9 @@ function toView(
     title,
     recommended,
     loomUrl,
-    embedUrl: loomEmbedUrl(loomUrl),
+    embedUrl: lessonEmbedUrl(loomUrl),
     posterUrl: educationPosterUrl(row?.poster_path),
+    videoUrl: educationVideoUrl(row?.video_path),
     updatedAt: row?.updated_at ?? null,
     custom,
   };
@@ -96,18 +98,20 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
     const admin = createAdminClient();
     const media =
       "slug, loom_url, title, category_id, poster_path, is_custom, updated_at, created_at";
-    const withRecommended = await admin
-      .from("education_lessons")
-      .select(`${media}, recommended`);
-    if (!withRecommended.error && withRecommended.data) {
-      for (const row of withRecommended.data as LessonRow[]) map.set(row.slug, row);
-      return map;
-    }
-
-    const full = await admin.from("education_lessons").select(media);
-    if (!full.error && full.data) {
-      for (const row of full.data as LessonRow[]) {
-        map.set(row.slug, { ...row, recommended: null });
+    const attempts = [
+      `${media}, recommended, video_path`,
+      `${media}, recommended`,
+      media,
+    ];
+    for (const columns of attempts) {
+      const result = await admin.from("education_lessons").select(columns);
+      if (result.error || !result.data) continue;
+      for (const row of result.data as LessonRow[]) {
+        map.set(row.slug, {
+          ...row,
+          recommended: row.recommended ?? null,
+          video_path: row.video_path ?? null,
+        });
       }
       return map;
     }
@@ -124,6 +128,7 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
         poster_path: null,
         is_custom: false,
         recommended: null,
+        video_path: null,
         created_at: null,
       });
     }

@@ -4,11 +4,13 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
+  clearEducationVideoAction,
   createEducationLessonAction,
   saveEducationLessonAction,
   type EducationLessonSave,
 } from "../actions";
 import { educationCategories, educationCategoryById } from "../lib/catalog";
+import { uploadEducationMp4 } from "../lib/upload-video.client";
 import type { EducationCategoryId } from "../lib/catalog";
 import type { EducationLessonView } from "../lib/types";
 
@@ -79,9 +81,11 @@ function AddLessonForm({
   const [loomUrl, setLoomUrl] = useState("");
   const [recommended, setRecommended] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileEpoch, setFileEpoch] = useState(0);
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,19 +111,35 @@ function AddLessonForm({
     form.set("recommended", recommended ? "1" : "0");
     if (file) form.set("poster", file);
     const result = await createEducationLessonAction(form);
-    setPending(false);
     if (!result.ok) {
+      setPending(false);
       setError(t(`saveError.${result.error}`));
       return;
     }
+    let lesson = result.lesson;
+    if (video) {
+      setUploading(true);
+      const uploaded = await uploadEducationMp4(result.lesson.slug, video);
+      setUploading(false);
+      if (!uploaded.ok) {
+        setPending(false);
+        setError(t(`saveError.${uploaded.error}`));
+        onCreated?.(lesson);
+        router.refresh();
+        return;
+      }
+      lesson = { ...lesson, videoUrl: uploaded.videoUrl };
+    }
+    setPending(false);
     setTitle("");
     setLoomUrl("");
     setRecommended(false);
     setCategoryId("empieza");
     setFile(null);
+    setVideo(null);
     setFileEpoch((value) => value + 1);
     setFeedback(t("lessonAdded"));
-    onCreated?.(result.lesson);
+    onCreated?.(lesson);
     router.refresh();
   }
 
@@ -176,6 +196,13 @@ function AddLessonForm({
             className={inputClass(admin)}
           />
         </Field>
+        <VideoField
+          key={`video-${fileEpoch}`}
+          id="edu-new-video"
+          admin={admin}
+          fileName={video?.name ?? null}
+          onFile={setVideo}
+        />
         <PosterField
           key={fileEpoch}
           id="edu-new-poster"
@@ -192,7 +219,7 @@ function AddLessonForm({
       </div>
       <FormStatus error={error} feedback={feedback} />
       <button type="submit" disabled={pending} className={buttonClass(admin)}>
-        {pending ? t("adding") : t("addLesson")}
+        {uploading ? t("uploadingVideo") : pending ? t("adding") : t("addLesson")}
       </button>
     </form>
   );
@@ -214,9 +241,12 @@ function LessonEditor({
   const [loomUrl, setLoomUrl] = useState(lesson.loomUrl ?? "");
   const [recommended, setRecommended] = useState(lesson.recommended);
   const [file, setFile] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
+  const [removeVideo, setRemoveVideo] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileEpoch, setFileEpoch] = useState(0);
   const [pending, setPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const category = educationCategoryById(lesson.categoryId);
@@ -249,17 +279,42 @@ function LessonEditor({
     form.set("recommended", recommended ? "1" : "0");
     if (file) form.set("poster", file);
     const result = await saveEducationLessonAction(form);
-    setPending(false);
     if (!result.ok) {
+      setPending(false);
       setError(t(`saveError.${result.error}`));
       return;
     }
+    let saved = result.lesson;
+    if (video) {
+      setUploading(true);
+      const uploaded = await uploadEducationMp4(lesson.slug, video);
+      setUploading(false);
+      if (!uploaded.ok) {
+        setPending(false);
+        setError(t(`saveError.${uploaded.error}`));
+        onSaved?.(saved);
+        router.refresh();
+        return;
+      }
+      saved = { ...saved, videoUrl: uploaded.videoUrl };
+    } else if (removeVideo) {
+      const cleared = await clearEducationVideoAction(lesson.slug);
+      if (!cleared.ok) {
+        setPending(false);
+        setError(t(`saveError.${cleared.error}`));
+        return;
+      }
+      saved = { ...saved, videoUrl: null };
+    }
+    setPending(false);
     setFile(null);
+    setVideo(null);
+    setRemoveVideo(false);
     setFileEpoch((value) => value + 1);
-    setTitle(result.lesson.title);
-    setLoomUrl(result.lesson.loomUrl ?? "");
+    setTitle(saved.title);
+    setLoomUrl(saved.loomUrl ?? "");
     setFeedback(t("savedLesson"));
-    onSaved?.(result.lesson);
+    onSaved?.(saved);
     router.refresh();
   }
 
@@ -275,7 +330,7 @@ function LessonEditor({
       <p className={admin ? "text-xs text-[var(--admin-text-muted)]" : "text-xs text-[var(--auth-text-muted)]"}>
         {lesson.number}. {category.label}
         {" · "}
-        {lesson.embedUrl ? t("ready") : t("pending")}
+        {lesson.embedUrl || lesson.videoUrl ? t("ready") : t("pending")}
       </p>
       <div className="mt-2 grid gap-3 lg:grid-cols-[7.5rem_minmax(0,1fr)]">
         <img
@@ -310,9 +365,22 @@ function LessonEditor({
               inputMode="url"
               autoComplete="off"
               spellCheck={false}
-              className={inputClass(admin)}
-            />
+            className={inputClass(admin)}
+          />
           </Field>
+          <VideoField
+            key={`video-${lesson.slug}-${fileEpoch}`}
+            id={`video-${lesson.slug}`}
+            admin={admin}
+            fileName={video?.name ?? null}
+            stored={Boolean(lesson.videoUrl) && !removeVideo}
+            removeChecked={removeVideo}
+            onRemoveChange={setRemoveVideo}
+            onFile={(next) => {
+              setVideo(next);
+              if (next) setRemoveVideo(false);
+            }}
+          />
           <PosterField
             key={`${lesson.slug}-${fileEpoch}`}
             id={`poster-${lesson.slug}`}
@@ -330,9 +398,58 @@ function LessonEditor({
       </div>
       <FormStatus error={error} feedback={feedback} />
       <button type="submit" disabled={pending} className={buttonClass(admin)}>
-        {pending ? t("saving") : t("saveLink")}
+        {uploading ? t("uploadingVideo") : pending ? t("saving") : t("saveLink")}
       </button>
     </form>
+  );
+}
+
+function VideoField({
+  id,
+  admin,
+  fileName,
+  stored = false,
+  removeChecked = false,
+  onRemoveChange,
+  onFile,
+}: {
+  id: string;
+  admin: boolean;
+  fileName: string | null;
+  stored?: boolean;
+  removeChecked?: boolean;
+  onRemoveChange?: (value: boolean) => void;
+  onFile: (file: File | null) => void;
+}) {
+  const t = useTranslations("education");
+  return (
+    <Field label={t("videoLabel")} htmlFor={id} admin={admin} wide>
+      <input
+        id={id}
+        type="file"
+        accept="video/mp4,.mp4"
+        onChange={(event) => onFile(event.target.files?.[0] ?? null)}
+        className={
+          admin
+            ? "block w-full text-sm text-[var(--admin-text-muted)] file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--admin-text)]"
+            : "block w-full text-sm text-[var(--auth-text-muted)] file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--auth-text)]"
+        }
+      />
+      <p className={admin ? "mt-1 text-xs text-[var(--admin-text-muted)]" : "mt-1 text-xs text-[var(--auth-text-muted)]"}>
+        {fileName ? fileName : stored ? t("videoStored") : t("videoHint")}
+      </p>
+      {stored && onRemoveChange ? (
+        <label className="mt-2 flex items-center gap-2 text-xs font-medium text-[var(--auth-text)]">
+          <input
+            type="checkbox"
+            checked={removeChecked}
+            onChange={(event) => onRemoveChange(event.target.checked)}
+            className="h-4 w-4 accent-[var(--auth-accent)]"
+          />
+          {t("removeVideo")}
+        </label>
+      ) : null}
+    </Field>
   );
 }
 

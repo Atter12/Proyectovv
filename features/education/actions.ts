@@ -12,9 +12,10 @@ import {
   isEducationLessonSlug,
   type EducationCategoryId,
 } from "./lib/catalog";
-import { canonicalLoomShareUrl } from "./lib/loom";
+import { canonicalLessonVideoUrl } from "./lib/loom";
 import { educationLessonSlug, educationPosterKind } from "./lib/media";
-import { EDUCATION_POSTER_BUCKET, educationPosterUrl } from "./lib/poster";
+import { EDUCATION_POSTER_BUCKET, EDUCATION_VIDEO_BUCKET, educationPosterUrl, educationVideoUrl } from "./lib/poster";
+import { isEducationMp4 } from "./lib/video";
 
 export type SaveEducationLoomResult =
   | { ok: true; loomUrl: string | null }
@@ -30,6 +31,7 @@ export type EducationLessonSave = {
   number: number;
   loomUrl: string | null;
   posterUrl: string | null;
+  videoUrl: string | null;
   custom: boolean;
   recommended: boolean;
 };
@@ -132,6 +134,7 @@ export async function saveEducationLessonAction(
       number: source.number,
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path ?? previousPath),
+      videoUrl: await currentVideoUrl(slug),
       custom: Boolean(existing),
       recommended,
     },
@@ -185,6 +188,7 @@ export async function createEducationLessonAction(
       number,
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path),
+      videoUrl: null,
       custom: true,
       recommended,
     },
@@ -210,6 +214,131 @@ function readRecommended(value: FormDataEntryValue | null): boolean {
   return String(value ?? "") === "1";
 }
 
+export type EducationVideoPrepare =
+  | { ok: true; bucket: string; path: string; token: string }
+  | { ok: false; error: "forbidden" | "invalid" | "invalid_video" | "unknown" };
+
+export type EducationVideoAttach =
+  | { ok: true; videoUrl: string | null }
+  | { ok: false; error: "forbidden" | "invalid" | "missing_table" | "unknown" };
+
+export async function prepareEducationVideoUploadAction(input: {
+  slug: string;
+  size: number;
+  head: string;
+}): Promise<EducationVideoPrepare> {
+  const allowed = await assertEducationEditor();
+  if (!allowed.ok) return allowed;
+  if (!(await lessonSlugExists(input.slug))) return { ok: false, error: "invalid" };
+
+  let head: Uint8Array;
+  try {
+    head = Uint8Array.from(atob(input.head), (char) => char.charCodeAt(0));
+  } catch {
+    return { ok: false, error: "invalid_video" };
+  }
+  if (!isEducationMp4(head, input.size)) return { ok: false, error: "invalid_video" };
+
+  const path = `${input.slug}/${crypto.randomUUID()}.mp4`;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.storage
+      .from(EDUCATION_VIDEO_BUCKET)
+      .createSignedUploadUrl(path);
+    if (error || !data?.token) return { ok: false, error: "unknown" };
+    return { ok: true, bucket: EDUCATION_VIDEO_BUCKET, path: data.path, token: data.token };
+  } catch {
+    return { ok: false, error: "unknown" };
+  }
+}
+
+export async function attachEducationVideoAction(
+  slug: string,
+  path: string,
+): Promise<EducationVideoAttach> {
+  const allowed = await assertEducationEditor();
+  if (!allowed.ok) return allowed;
+  if (!isVideoPathForSlug(slug, path)) return { ok: false, error: "invalid" };
+
+  const previous = await loadVideoPath(slug);
+  const written = await writeLesson({
+    slug,
+    video_path: path,
+    updated_by: allowed.userId,
+    updated_at: new Date().toISOString(),
+  });
+  if (!written.ok) return written;
+  if (previous && previous !== path) await removeVideo(previous);
+  revalidateEducation();
+  return { ok: true, videoUrl: educationVideoUrl(path) };
+}
+
+export async function clearEducationVideoAction(slug: string): Promise<EducationVideoAttach> {
+  const allowed = await assertEducationEditor();
+  if (!allowed.ok) return allowed;
+  if (!(await lessonSlugExists(slug))) return { ok: false, error: "invalid" };
+  const previous = await loadVideoPath(slug);
+  const written = await writeLesson({
+    slug,
+    video_path: null,
+    updated_by: allowed.userId,
+    updated_at: new Date().toISOString(),
+  });
+  if (!written.ok) return written;
+  if (previous) await removeVideo(previous);
+  revalidateEducation();
+  return { ok: true, videoUrl: null };
+}
+
+function isVideoPathForSlug(slug: string, path: string): boolean {
+  return new RegExp(
+    `^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/[0-9a-f-]{36}\\.mp4$`,
+  ).test(path);
+}
+
+async function lessonSlugExists(slug: string): Promise<boolean> {
+  if (isEducationLessonSlug(slug)) return true;
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 80) return false;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("education_lessons")
+      .select("slug")
+      .eq("slug", slug)
+      .maybeSingle<{ slug: string }>();
+    return Boolean(data?.slug);
+  } catch {
+    return false;
+  }
+}
+
+async function currentVideoUrl(slug: string): Promise<string | null> {
+  return educationVideoUrl(await loadVideoPath(slug));
+}
+
+async function loadVideoPath(slug: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("education_lessons")
+      .select("video_path")
+      .eq("slug", slug)
+      .maybeSingle<{ video_path: string | null }>();
+    return data?.video_path ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function removeVideo(path: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.storage.from(EDUCATION_VIDEO_BUCKET).remove([path]);
+  } catch {
+    // The row already points at the new file.
+  }
+}
+
 function normalizeTitle(value: FormDataEntryValue | null): string | null {
   const title = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!title || title.length > 120) return null;
@@ -219,7 +348,7 @@ function normalizeTitle(value: FormDataEntryValue | null): string | null {
 function parseLoom(raw: string): string | null | "invalid" {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  return canonicalLoomShareUrl(trimmed) ?? "invalid";
+  return canonicalLessonVideoUrl(trimmed) ?? "invalid";
 }
 
 function readPosterFile(value: FormDataEntryValue | null): File | null {
@@ -355,6 +484,7 @@ async function upsertLesson(
       message.includes("education_lessons") ||
       message.includes("poster_path") ||
       message.includes("is_custom") ||
+      message.includes("video_path") ||
       missingRecommended;
     return { ok: false, error: missing ? "missing_table" : "unknown", missingRecommended };
   } catch {

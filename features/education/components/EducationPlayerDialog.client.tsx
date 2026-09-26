@@ -44,7 +44,7 @@ export function EducationPlayerDialog({
     await player.requestFullscreen();
   }
 
-  const ready = Boolean(lesson?.embedUrl);
+  const ready = Boolean(lesson.videoUrl || lesson.embedUrl);
 
   return (
     <dialog
@@ -81,22 +81,35 @@ export function EducationPlayerDialog({
           {ready ? (
             <div ref={playerRef} className="education-player flex flex-col bg-black">
               <div className="education-player-frame relative aspect-video w-full bg-black">
-                <iframe
-                  key={lesson.slug}
-                  src={lesson.embedUrl ?? undefined}
-                  title={lesson.title}
-                  className="h-full w-full"
-                  allow="fullscreen; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                />
-                <button
-                  type="button"
-                  onClick={() => void toggleFullscreen()}
-                  className="absolute bottom-3 right-3 inline-flex h-10 items-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white shadow-lg"
-                >
-                  {fullscreen ? t("exitFullscreen") : t("fullscreen")}
-                </button>
+                {lesson.videoUrl ? (
+                  <video
+                    key={lesson.videoUrl}
+                    src={lesson.videoUrl}
+                    poster={lesson.posterUrl ?? undefined}
+                    controls
+                    playsInline
+                    className="h-full w-full"
+                  />
+                ) : (
+                  <iframe
+                    key={lesson.slug}
+                    src={lesson.embedUrl ?? undefined}
+                    title={lesson.title}
+                    className="h-full w-full"
+                    allow="fullscreen; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                )}
+                {lesson.videoUrl ? null : (
+                  <button
+                    type="button"
+                    onClick={() => void toggleFullscreen()}
+                    className="absolute bottom-3 right-3 inline-flex h-10 items-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white shadow-lg"
+                  >
+                    {fullscreen ? t("exitFullscreen") : t("fullscreen")}
+                  </button>
+                )}
               </div>
             </div>
           ) : (

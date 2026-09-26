@@ -31,7 +31,10 @@ const contentSecurityPolicy = [
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
     ...clerkCspHosts.connect,
   ].join(" "),
-  ["frame-src 'self'", ...clerkCspHosts.frames].join(" "),
+  [
+    "frame-src 'self' https://www.loom.com https://loom.com https://drive.google.com",
+    ...clerkCspHosts.frames,
+  ].join(" "),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
