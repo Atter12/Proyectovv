@@ -11,7 +11,6 @@ import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertisers.server";
-import { canViewEducation } from "@/features/education/lib/access";
 import { canSwitchTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
@@ -131,7 +130,6 @@ export default async function DashboardLayout({
             selectedCliente={selectedCliente}
             persona={chromePersona}
             actingAsCliente={actingAsCliente && Boolean(selected)}
-            showEducation={canViewEducation(session.email)}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
           />
@@ -143,7 +141,6 @@ export default async function DashboardLayout({
             selectedCliente={selectedCliente}
             persona={chromePersona}
             actingAsCliente={actingAsCliente && Boolean(selected)}
-            showEducation={canViewEducation(session.email)}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
           >

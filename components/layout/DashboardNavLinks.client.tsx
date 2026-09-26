@@ -164,12 +164,8 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
 }
 
 /** Cliente final (y vista “como cliente”) no elige CRM ni ve cola de boletas. */
-function navItemsForPersona(
-  persona: DashboardPersona,
-  showEducation: boolean,
-): NavItem[] {
+function navItemsForPersona(persona: DashboardPersona): NavItem[] {
   return mainNavigation.filter((item) => {
-    if (item.href === "/education" && !showEducation) return false;
     if (persona !== "cliente") return true;
     if (item.href === "/payments/manual") return false;
     if (item.href === "/payments/profit") return false;
@@ -184,17 +180,15 @@ function navItemsForPersona(
 interface DashboardNavLinksProps {
   onNavigate?: () => void;
   persona?: DashboardPersona;
-  showEducation?: boolean;
 }
 
 export function DashboardNavLinks({
   onNavigate,
   persona = "cliente",
-  showEducation = false,
 }: DashboardNavLinksProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const items = navItemsForPersona(persona, showEducation);
+  const items = navItemsForPersona(persona);
 
   return (
     <nav className="dashboard-sidebar-nav">
