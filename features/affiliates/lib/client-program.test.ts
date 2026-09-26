@@ -49,6 +49,14 @@ test("el tester sin referidos ve smoke y otro usuario ve la tabla vacía", () =>
   assert.equal(client.smoke, false);
   assert.equal(client.referrals.length, 0);
   assert.equal(client.stats.discountsEarnedUsd, 0);
+
+  const viewingAbel = resolveClientAffiliateView({
+    ...shared,
+    email: TESTER,
+    allowSmoke: false,
+  });
+  assert.equal(viewingAbel.smoke, false);
+  assert.equal(viewingAbel.referrals.length, 0);
 });
 
 test("si el tester ya tiene referidos reales, el smoke no los tapa", () => {

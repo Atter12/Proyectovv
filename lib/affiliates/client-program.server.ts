@@ -13,6 +13,7 @@ import { serverEnv } from "@/lib/env/env.server";
 import { isRecord } from "@/lib/records";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { getAffiliateProgram } from "@/services/affiliates.service";
 import type { SessionUser } from "@/types/auth";
 
@@ -38,6 +39,7 @@ export async function getClientAffiliateProgram(
   const program = await getAffiliateProgram(session);
   const shareUrl = buildReferralShareUrl(serverEnv.appUrl, program.referralCode);
   const liveReferrals = await loadLiveReferrals(session.id);
+  const viewingAnotherClient = await getActingAsCliente(session.id);
 
   return resolveClientAffiliateView({
     email: session.email,
@@ -46,6 +48,7 @@ export async function getClientAffiliateProgram(
     shareUrl,
     displayPath: referralDisplayPath(shareUrl),
     liveReferrals,
+    allowSmoke: !viewingAnotherClient,
   });
 }
 

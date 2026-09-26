@@ -280,9 +280,13 @@ export function resolveClientAffiliateView(input: {
   shareUrl: string;
   displayPath: string;
   liveReferrals: ClientAffiliateReferral[];
+  /** El smoke no se muestra al ver el panel de otro cliente. */
+  allowSmoke?: boolean;
 }): ClientAffiliateProgramView {
   const useSmoke =
-    canViewAffiliateSmoke(input.email) && input.liveReferrals.length === 0;
+    input.allowSmoke !== false &&
+    canViewAffiliateSmoke(input.email) &&
+    input.liveReferrals.length === 0;
   const referrals = useSmoke
     ? smokeClientReferrals(input.rewardUsd)
     : input.liveReferrals;
