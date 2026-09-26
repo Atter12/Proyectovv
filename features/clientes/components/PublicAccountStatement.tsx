@@ -48,6 +48,8 @@ export function PublicAccountStatement({
 }) {
   const hasDebt = snapshot.deudaCorte > 0;
   const credit = Math.max(0, snapshot.rangeSaldo);
+  const hasMovements = expenses.length > 0 || payments.length > 0;
+  const balance = money(hasDebt ? snapshot.deudaCorte : credit);
   const spendDays = snapshot.series.filter((day) => day.key <= snapshot.spendTo);
 
   return (
@@ -60,28 +62,26 @@ export function PublicAccountStatement({
 
       <section aria-labelledby="account-balance" className="overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
         <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[1fr_0.85fr] lg:gap-12">
-          <div>
+          <div className="min-w-0">
             <h2 id="account-balance" className="text-base font-medium text-[var(--admin-text-muted)]">
               {hasDebt ? "Saldo pendiente" : credit > 0 ? "Saldo a favor del mes" : "Sin saldo pendiente"}
             </h2>
-            <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
-              {money(hasDebt ? snapshot.deudaCorte : credit)}
+            <p className={`mt-2 flex flex-wrap items-baseline gap-x-3 font-semibold tracking-tight tabular-nums ${balance.length > 14 ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl"}`}>
+              <span className="max-w-full [overflow-wrap:anywhere]">{balance}</span>
               <span className="text-base font-medium tracking-normal text-[var(--admin-text-muted)]">USD</span>
             </p>
             <p className="mt-3 max-w-md text-sm leading-6 text-[var(--admin-text-muted)]">
               {hasDebt
-                ? "Corresponde a la inversión publicitaria y la comisión del servicio, menos los pagos aplicados a este mes."
+                ? "Tu inversión en anuncios y la comisión del servicio, menos los pagos aplicados."
                 : credit > 0
                   ? "Los pagos aplicados superan los cargos de este mes. Puedes revisar el detalle más abajo."
-                  : "Los cargos registrados de este mes están cubiertos."}
+                  : hasMovements ? "Los cargos registrados de este mes están cubiertos." : "Sin movimientos registrados en este mes."}
             </p>
             <p className="mt-4 text-sm text-[var(--admin-text-muted)]">
               Gastos incluidos hasta el <span className="font-medium text-[var(--admin-text)]">{dateLabel(snapshot.spendTo)}</span>.
             </p>
           </div>
-          <div className="min-w-0 lg:border-l lg:border-[var(--admin-border)] lg:pl-8">
-            {children}
-          </div>
+          {children}
         </div>
 
         <dl className="grid border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-5 sm:grid-cols-3 sm:px-8">
@@ -115,7 +115,7 @@ export function PublicAccountStatement({
                     <p className="mt-1 text-sm text-[var(--admin-text-muted)]">{dateLabel(payment.fecha)}</p>
                     {payment.codigo ? <p className="mt-1 break-all text-xs leading-5 text-[var(--admin-text-muted)]">Referencia: {payment.codigo}</p> : null}
                   </div>
-                  <div className="text-right">
+                  <div className="ml-auto max-w-full text-right">
                     <p className="font-semibold tabular-nums">{money(applied)}</p>
                     <p className="mt-1 text-sm text-[var(--admin-badge-success-text)]">Aplicado a este mes</p>
                     {hasProviderCharge ? <p className="mt-1 text-xs text-[var(--admin-text-muted)]">Total transferido: {money(payment.monto)}</p> : null}
@@ -142,7 +142,22 @@ export function PublicAccountStatement({
           <span className="mt-1 block pl-4 text-sm font-normal text-[var(--admin-text-muted)]">Consulta los anuncios y la comisión de cada día.</span>
         </summary>
         <div className="border-t border-[var(--admin-border)] px-3 pb-4 sm:px-5">
-          <table className="w-full text-right text-sm tabular-nums">
+          <p className="py-4 text-sm text-[var(--admin-text-muted)] sm:hidden">Importes en USD. Total del período: {money(snapshot.cargo)}.</p>
+          <ul className="divide-y divide-[var(--admin-border)] sm:hidden">
+            {spendDays.map((day) => (
+              <li key={day.key} className="py-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <time dateTime={day.key} className="text-sm font-medium">{dateLabel(day.key)}</time>
+                  <span className="font-semibold tabular-nums">{money(day.cargo)}</span>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-[var(--admin-text-muted)]">Anuncios</dt><dd className="mt-1 tabular-nums">{money(day.gasto)}</dd></div>
+                  <div className="text-right"><dt className="text-[var(--admin-text-muted)]">Comisión</dt><dd className="mt-1 tabular-nums">{money(day.fee)}</dd></div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <table className="hidden w-full text-right text-sm tabular-nums sm:table">
             <caption className="py-4 text-left text-sm text-[var(--admin-text-muted)]">Importes en USD. Total del período: {money(snapshot.cargo)}.</caption>
             <thead className="text-xs text-[var(--admin-text-muted)] sm:text-sm">
               <tr className="border-b border-[var(--admin-border)]">
@@ -172,7 +187,7 @@ export function PublicAccountStatement({
           <summary className="cursor-pointer rounded-xl px-5 py-5 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--admin-accent)]">
             Movimientos por cuenta publicitaria
           </summary>
-          <ul className="max-h-96 overflow-y-auto border-t border-[var(--admin-border)] px-5 [scrollbar-color:var(--admin-border-strong)_transparent]">
+          <ul className="border-t border-[var(--admin-border)] px-5">
             {expenses.map((expense, index) => (
               <li key={`${expense.fecha}-${index}`} className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--admin-border)] py-4 last:border-0">
                 <div className="min-w-0 flex-1">

@@ -111,34 +111,36 @@ export function PublicLoPagadoActions({
   );
 
   return (
-    <div className="space-y-4">
+    <div className={isPortal ? "contents" : "space-y-4"}>
       {isPortal ? (
-        <section className="space-y-5">
+        <>
+        <section className="min-w-0 lg:border-l lg:border-[var(--admin-border)] lg:pl-8">
           <div>
             <button
               type="button"
               onClick={() => setPayOpen(true)}
               disabled={noDebt}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#c2410c] px-5 py-3 text-sm font-semibold text-white transition-colors enabled:hover:bg-[#9a3412] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-surface)] disabled:cursor-not-allowed disabled:bg-[var(--admin-surface-hover)] disabled:text-[var(--admin-text-muted)]"
+              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#c2410c] px-5 py-3 text-base font-semibold text-white transition-[background-color,transform] duration-150 ease-out enabled:hover:bg-[#9a3412] motion-safe:enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c] disabled:cursor-not-allowed disabled:bg-[var(--admin-surface-hover)] disabled:text-[var(--admin-text-muted)] motion-reduce:transition-none"
             >
-              {noDebt ? "Sin deuda pendiente" : "Pagar ahora"}
+              {noDebt ? "Sin deuda pendiente" : "Pagar por transferencia"}
             </button>
-            <p className="mt-3 text-[13px] leading-5 text-[var(--admin-text-muted)]">
+            <p className="mt-3 text-sm leading-6 text-[var(--admin-text-muted)]">
               {noDebt
                 ? "No tienes un saldo pendiente en este mes. Puedes revisar tus pagos más abajo."
-                : "Elige un método de transferencia y envía tu comprobante. Tu pago se aplica cuando el equipo lo revisa y aprueba."}
+                : "Envía tu comprobante. Aplicaremos el pago a este mes después de revisarlo."}
             </p>
           </div>
+        </section>
 
           {activityUnavailable ? (
-            <p role="status" className="rounded-lg bg-[var(--admin-badge-warning-bg)] p-3 text-[13px] leading-5 text-[var(--admin-badge-warning-text)]">
+            <p role="status" className="col-span-full rounded-lg bg-[var(--admin-badge-warning-bg)] p-3 text-sm leading-6 text-[var(--admin-badge-warning-text)]">
               No pudimos cargar el estado de tus envíos. Actualiza la página antes
               de volver a enviar un comprobante.
             </p>
           ) : null}
 
           {manuals.length > 0 ? (
-            <div className="border-t border-[var(--admin-border)] pt-4">
+            <div className="col-span-full border-t border-[var(--admin-border)] pt-4">
               <h3 className="text-sm font-semibold text-[var(--admin-text)]">
                 Pagos enviados este mes
               </h3>
@@ -162,7 +164,7 @@ export function PublicLoPagadoActions({
                         </span>
                       </p>
                     </div>
-                    <span className="text-xs font-medium leading-5 text-[var(--admin-text-muted)]">
+                    <span className={`rounded-md px-2 py-1 text-sm font-medium leading-5 ${row.reviewStatus === "approved" ? "bg-[var(--admin-badge-success-bg)] text-[var(--admin-badge-success-text)]" : row.reviewStatus === "rejected" ? "bg-[var(--admin-badge-danger-bg)] text-[var(--admin-badge-danger-text)]" : "bg-[var(--admin-badge-warning-bg)] text-[var(--admin-badge-warning-text)]"}`}>
                       {row.reviewStatus === "awaiting_proof"
                         ? "Falta comprobante"
                         : statusLabel(row.reviewStatus)}
@@ -172,7 +174,7 @@ export function PublicLoPagadoActions({
               </ul>
             </div>
           ) : null}
-        </section>
+        </>
       ) : (
         <section className="relative overflow-hidden rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">
@@ -212,7 +214,7 @@ export function PublicLoPagadoActions({
       )}
 
       {isPortal ? (
-        <details className="border-t border-[var(--admin-border)] pt-1">
+        <details className="col-span-full border-t border-[var(--admin-border)] pt-1">
           <summary className="cursor-pointer rounded-lg py-3 text-sm font-semibold text-[var(--admin-text)] marker:text-[var(--admin-text-muted)] hover:text-[var(--admin-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-surface)]">
             Ya pagué y no aparece
           </summary>

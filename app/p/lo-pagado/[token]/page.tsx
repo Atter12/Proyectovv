@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { PublicAccountStatement } from "@/features/clientes/components/PublicAccountStatement";
+import { PublicAccountHeader } from "@/features/clientes/components/PublicAccountHeader";
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
@@ -117,18 +118,7 @@ export default async function LoPagadoPublicPage({
   return (
     <main className="dashboard-canvas min-h-screen px-4 py-6 text-[var(--admin-text)] selection:bg-[var(--admin-accent-soft)] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header>
-          <p className="mb-6 border-b border-[var(--admin-border)] pb-4 text-sm font-semibold">
-            Holistic Marketing
-          </p>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Tu estado de cuenta</h1>
-              <p className="mt-2 break-words text-base text-[var(--admin-text-muted)]">{cliente.name}</p>
-            </div>
-            <p className="text-sm font-medium capitalize text-[var(--admin-text-muted)]">{monthLabel}</p>
-          </div>
-        </header>
+        <PublicAccountHeader clientName={cliente.name} monthLabel={monthLabel} />
         <PublicAccountStatement
           snapshot={snapshot}
           payments={monthPayments}

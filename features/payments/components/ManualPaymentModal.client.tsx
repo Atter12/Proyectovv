@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
@@ -106,6 +107,19 @@ const MIN_USD = 10;
 const MIN_DEBT_USD = 1;
 const MAX_USD = 50_000;
 const subscribeToNothing = () => () => {};
+const FOCUSABLE_SELECTOR =
+  'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable="true"]';
+
+function dialogFocusTargets(dialog: HTMLElement): HTMLElement[] {
+  return Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+    .filter(
+      (element) =>
+        element.tabIndex >= 0 &&
+        !element.matches(":disabled") &&
+        !element.closest("[inert]") &&
+        element.getClientRects().length > 0,
+    );
+}
 
 function buildPenQuote(creditUsd: number, feePercent: number, rate: number) {
   const usd = depositFromDesiredCredit(Math.round(creditUsd * 100), feePercent);
@@ -138,6 +152,7 @@ export function ManualPaymentModal({
   const titleId = `${id}-title`;
   const amountInputId = `${id}-amount`;
   const debtReferenceId = `${id}-debt-reference`;
+  const busyStatusId = `${id}-busy`;
   const debtReference =
     paysDebt &&
     typeof initialDebtAmountUsd === "number" &&
@@ -178,6 +193,9 @@ export function ManualPaymentModal({
   const [serverChargeCents, setServerChargeCents] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteZoneRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const isSubmitting = loading || step === "analyzing";
 
   // Suggest the current balance only on opening; keep subsequent user edits.
   if (wasOpen !== open) {
@@ -216,12 +234,75 @@ export function ManualPaymentModal({
   }, [open, endpoints?.config]);
 
   useEffect(() => {
-    if (!open) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
+    if (!open || !mounted) return;
+    const layer = layerRef.current;
+    const dialog = dialogRef.current;
+    if (!layer || !dialog) return;
+
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousBodyPadding = body.style.paddingRight;
+    const scrollbarWidth = Math.max(0, window.innerWidth - documentElement.clientWidth);
+    if (scrollbarWidth > 0) {
+      const padding = Number.parseFloat(window.getComputedStyle(body).paddingRight) || 0;
+      body.style.paddingRight = `${padding + scrollbarWidth}px`;
+    }
+    body.style.overflow = "hidden";
+    documentElement.style.overflow = "hidden";
+
+    // Preserve the background's previous state, including content mounted later.
+    const background = new Map<HTMLElement, boolean>();
+    function isolateBackground(node: Node) {
+      if (!(node instanceof HTMLElement) || node === layer || background.has(node)) return;
+      background.set(node, node.inert);
+      node.inert = true;
+    }
+    Array.from(body.children).forEach(isolateBackground);
+    const observer = new MutationObserver((records) => {
+      records.forEach((record) => record.addedNodes.forEach(isolateBackground));
+    });
+    observer.observe(body, { childList: true });
+
+    const keepFocusInside = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialog.contains(event.target)) {
+        dialog.focus({ preventScroll: true });
+      }
     };
-  }, [open]);
+    document.addEventListener("focusin", keepFocusInside);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("focusin", keepFocusInside);
+      background.forEach((wasInert, element) => {
+        element.inert = wasInert;
+      });
+      body.style.overflow = previousBodyOverflow;
+      documentElement.style.overflow = previousHtmlOverflow;
+      body.style.paddingRight = previousBodyPadding;
+      if (previousFocus?.isConnected && !previousFocus.closest("[inert]")) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, [open, mounted]);
+
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const target = document.getElementById(step === "form" ? amountInputId : titleId);
+    if (target instanceof HTMLElement) {
+      if (step !== "form") target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    } else {
+      dialog.focus({ preventScroll: true });
+    }
+    dialog.scrollTop = 0;
+  }, [open, mounted, step, amountInputId, titleId]);
 
   const effectiveFee = paysDebt ? 0 : feePercent;
   const minUsd = paysDebt ? MIN_DEBT_USD : MIN_USD;
@@ -271,6 +352,7 @@ export function ManualPaymentModal({
   const modalStepIndex = step === "form" ? 0 : step === "banks" ? 1 : 2;
 
   function resetAndClose() {
+    if (isSubmitting) return;
     setStep("form");
     setAmount("");
     setChargeCurrency("PEN");
@@ -283,6 +365,33 @@ export function ManualPaymentModal({
     setPendingMessage(null);
     setServerChargeCents(null);
     onClose();
+  }
+
+  function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.defaultPrevented || event.nativeEvent.isComposing) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      resetAndClose();
+      return;
+    }
+    if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const targets = dialogFocusTargets(dialog);
+    const first = targets[0];
+    const last = targets[targets.length - 1];
+    const active = document.activeElement;
+    if (!first || !last) {
+      event.preventDefault();
+      dialog.focus({ preventScroll: true });
+    } else if (event.shiftKey && (active === first || !targets.includes(active as HTMLElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !targets.includes(active as HTMLElement))) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   const applyProofFile = useCallback((file: File) => {
@@ -419,19 +528,33 @@ export function ManualPaymentModal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
+    <div ref={layerRef} className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
         aria-label={tCommon("close")}
+        tabIndex={-1}
+        disabled={isSubmitting}
         onClick={resetAndClose}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)]"
+        aria-describedby={isSubmitting ? busyStatusId : undefined}
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
+        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto overscroll-contain rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)] outline-none motion-safe:[&_button]:transition-[background-color,color,opacity,scale] motion-safe:[&_button]:duration-150 motion-safe:[&_button]:ease-[cubic-bezier(0.23,1,0.32,1)] motion-safe:[&_button:active:not(:disabled):not(:focus-visible)]:scale-[0.98] [&_button:focus-visible]:scale-100 motion-reduce:[&_button]:scale-100 motion-reduce:[&_button]:transition-none"
       >
+        <p id={busyStatusId} role="status" className="sr-only">
+          {isSubmitting ? t("addBalance.processing") : ""}
+        </p>
+        <fieldset
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+            className={`m-0 min-w-0 border-0 p-0 [&_button:disabled]:opacity-50 ${isSubmitting ? "[&_button:disabled]:cursor-wait" : ""}`}
+        >
         {step === "form" ? (
           <>
             <PaymentModalHeader
@@ -483,7 +606,6 @@ export function ManualPaymentModal({
                     placeholder="120.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    autoFocus
                     className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
                   />
                 </div>
@@ -938,7 +1060,7 @@ export function ManualPaymentModal({
               onClose={resetAndClose}
             />
             <div className="flex flex-col items-center px-6 py-12 text-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840]" />
+              <div aria-hidden className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840] motion-reduce:animate-none" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
                 {t("manualModal.analyzingWait")}
               </p>
@@ -1035,6 +1157,7 @@ export function ManualPaymentModal({
             </div>
           </>
         ) : null}
+        </fieldset>
       </div>
     </div>,
     document.body,
