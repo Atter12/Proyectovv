@@ -19,7 +19,7 @@ function money(value: number): string {
   }).format(value);
 }
 
-function dateLabel(value: string | null): string {
+function dateLabel(value: string | null, month: "short" | "long" = "short"): string {
   if (!value) return "Fecha no disponible";
   const iso = value.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return value;
@@ -27,7 +27,7 @@ function dateLabel(value: string | null): string {
   if (!Number.isFinite(date.getTime())) return "Fecha no disponible";
   return new Intl.DateTimeFormat("es-PE", {
     day: "numeric",
-    month: "short",
+    month,
     year: "numeric",
     timeZone: "UTC",
   }).format(date);
@@ -71,15 +71,20 @@ export function PublicAccountStatement({
               <span className="max-w-full [overflow-wrap:anywhere]">{balance}</span>
               <span className="text-base font-medium tracking-normal text-[var(--admin-text-muted)]">USD</span>
             </p>
+            <div className="mt-4 w-fit max-w-full rounded-r-xl border-l-4 border-[var(--admin-accent)] bg-[var(--admin-accent-soft)] px-4 py-3">
+              <p className="text-sm font-semibold leading-5 text-[var(--admin-text)]">
+                {hasDebt ? "Deuda calculada con gastos hasta el" : "Gastos incluidos hasta el"}
+              </p>
+              <time dateTime={snapshot.spendTo} className="mt-1 block text-xl font-bold leading-tight tracking-tight text-[var(--admin-text)] sm:text-2xl">
+                {dateLabel(snapshot.spendTo, "long")}
+              </time>
+            </div>
             <p className="mt-3 max-w-md text-sm leading-6 text-[var(--admin-text-muted)]">
               {hasDebt
                 ? "Tu inversión en anuncios y la comisión del servicio, menos los pagos aplicados."
                 : credit > 0
                   ? "Los pagos aplicados superan los cargos de este mes. Puedes revisar el detalle más abajo."
                   : hasMovements ? "Los cargos registrados de este mes están cubiertos." : "Sin movimientos registrados en este mes."}
-            </p>
-            <p className="mt-4 text-sm text-[var(--admin-text-muted)]">
-              Gastos incluidos hasta el <span className="font-medium text-[var(--admin-text)]">{dateLabel(snapshot.spendTo)}</span>.
             </p>
           </div>
           {children}
