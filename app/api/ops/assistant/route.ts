@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
-  const funding = resolvePaymentsFundingCapabilities({
+  const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,
     role: session.role,
   });
