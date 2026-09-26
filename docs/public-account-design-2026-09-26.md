@@ -12,6 +12,7 @@ El diseño utiliza la marca, tipografía y colores existentes de Holistic. Prior
 | --- | --- | --- |
 | La acción de pago estaba después de un informe largo. | Saldo, fecha de corte y pago aparecen al inicio. | El cliente entiende cuánto corresponde pagar antes de explorar movimientos. |
 | El gráfico diario quedó ausente en la primera versión del rediseño. | Gráfico diario siempre visible, con anuncios más comisión, pagos y acumulados del día seleccionado. | Conserva la visión de la evolución del gasto junto al detalle numérico. |
+| El detalle del gráfico requería hacer clic y permanecía en un día. | El puntero muestra cada día y, al salir, vuelve al total hasta la fecha. El selector y el teclado también permiten consultar días y regresar al total. | Facilita explorar el gasto y recuperar el contexto del período sin clics adicionales. |
 | La columna central dejaba amplios espacios vacíos en escritorio. | Ancho fluido, gráfico principal e historial lateral; detalles desplegables debajo. | Aprovecha la pantalla y mantiene una lectura ordenada en móvil. |
 | El reporte de comprobantes ocupaba una columna estrecha. | Reporte y actividad usan el ancho de la sección. | Facilita completar y revisar información en ambas pantallas. |
 | Los importes y estados tenían poco contexto. | Moneda, importe aplicado, cargos de procesamiento y estados explícitos. | Evita confundir un envío en revisión con un pago aplicado. |
@@ -49,6 +50,7 @@ Validar la vista en escritorio y móvil, ejecutar los checks aplicables y public
 - Snapshot mensual existente: mismos cálculos de cargos, pagos aplicados y deuda.
 - Vista con componentes reales y datos ficticios en 320, 390, 768, 1280 y 1920 px, sin desbordamiento horizontal.
 - Gráfico: selección por fecha y teclado, importes diarios/acumulados, barras vacías con altura cero y gasto posterior al corte marcado como pendiente de actualizar.
+- Interacción con puntero: entrada en columna actualiza importes sin clic; salida restaura totales, incluso con foco en la columna. Los eventos táctiles de salida conservan la selección.
 - Estados sin movimientos, saldo a favor, comprobante en revisión y error de lectura de actividad.
 - Diálogo: monto sugerido, cambio de moneda, reapertura, ciclo de Tab/Shift+Tab, Escape y restauración del foco/fondo.
 - Sin transferencias reales ni envío de comprobantes durante la validación.
