@@ -13,6 +13,7 @@ export type PaymentsFundingMode = "client" | "agency_bm";
 const DEFAULT_PAYMENTS_SUPER_ADMIN_EMAILS = [
   "attermayerbasiliorengifo@gmail.com",
   "lizarzaburusebastian046@gmail.com",
+  "clats2003@hotmail.com",
 ];
 
 function normalizeEmail(email: string): string {
