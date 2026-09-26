@@ -42,52 +42,24 @@ function statusLabel(status: string): string {
   }
 }
 
-function activityDate(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "Fecha no disponible";
-  return new Intl.DateTimeFormat("es-PE", {
-    day: "numeric",
-    month: "short",
-    timeZone: "America/Lima",
-  }).format(date);
-}
-
 export function PublicLoPagadoActions({
   apiBase,
-  claims = [],
+  claims,
   activity,
   month,
-  presentation = "default",
-  debtAmountUsd,
-  activityUnavailable = false,
 }: {
   apiBase: string;
-  claims?: ManualPaymentIntentItem[];
+  claims: ManualPaymentIntentItem[];
   activity: Activity[];
   /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
   month: string;
-  presentation?: "default" | "portal";
-  /** Referencia visual del saldo del mes; el servidor valida cada pago. */
-  debtAmountUsd?: number;
-  activityUnavailable?: boolean;
 }) {
   const [payOpen, setPayOpen] = useState(false);
   const periodos = useMemo(
     () => (month && /^\d{4}-\d{2}$/.test(month) ? [month] : listRecentPeriodos(1)),
     [month],
   );
-  const isPortal = presentation === "portal";
-  const noDebt =
-    typeof debtAmountUsd === "number" &&
-    Number.isFinite(debtAmountUsd) &&
-    debtAmountUsd <= 0;
-  const manuals = activity
-    .filter(
-      (row) =>
-        row.kind === "manual" &&
-        (!isPortal || row.periodoResumen === month),
-    )
-    .slice(0, 6);
+  const manuals = activity.filter((row) => row.kind === "manual").slice(0, 6);
   const endpoints = useMemo(
     () => ({
       config: `${apiBase}/config`,
@@ -99,126 +71,57 @@ export function PublicLoPagadoActions({
   );
 
   return (
-    <div className={isPortal ? "contents" : "space-y-4"}>
-      {isPortal ? (
-        <>
-        <section className="flex min-w-0 flex-col justify-center border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] p-5 sm:p-6 xl:border-l xl:border-t-0">
-          <div className="w-full">
-            <h2 className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">Pago del mes</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--admin-text-muted)]">
-              {noDebt
-                ? "No tienes un saldo pendiente en este mes. Puedes revisar tus pagos más abajo."
-                : "Envía tu comprobante. Aplicaremos el pago a este mes después de revisarlo."}
-            </p>
-            <button
-              type="button"
-              onClick={() => setPayOpen(true)}
-              disabled={noDebt}
-              className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#c2410c] px-5 py-3 text-base font-semibold text-white transition-[background-color,transform] duration-150 ease-out enabled:hover:bg-[#9a3412] motion-safe:enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c] disabled:cursor-not-allowed disabled:bg-[var(--admin-surface-hover)] disabled:text-[var(--admin-text-muted)] motion-reduce:transition-none sm:w-auto xl:w-full"
-            >
-              {noDebt ? "Sin deuda pendiente" : "Pagar por transferencia"}
-            </button>
-          </div>
-        </section>
+    <div className="space-y-4">
+      <section className="relative overflow-hidden rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-4 sm:p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">
+          Pagos
+        </p>
+        <h2 className="mt-1 text-[1.05rem] font-semibold tracking-[-0.02em] text-[#1a1714]">
+          Pago manual
+        </h2>
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
+          Paga lo que debes de este mes. Eliges el monto, transfieres y subes
+          el voucher. Gerencia lo ve en Pagos manuales como pago de deuda: baja
+          lo que debes y no recarga cartera.
+        </p>
+        <button
+          type="button"
+          onClick={() => setPayOpen(true)}
+          className="mt-4 inline-flex h-10 items-center rounded-[10px] bg-[#c2410c] px-4 text-[13px] font-semibold text-white hover:bg-[#9a3412]"
+        >
+          Pagar y subir voucher
+        </button>
+        {manuals.length > 0 ? (
+          <ul className="mt-4 divide-y divide-[#f0e6dc] rounded-xl border border-[#f0e6dc] bg-white">
+            {manuals.map((row) => (
+              <li
+                key={row.id}
+                className="flex items-center justify-between gap-3 px-3 py-2.5 text-[12px]"
+              >
+                <span className="font-semibold tabular-nums text-[#1a1714]">
+                  {money(row.amount, row.currency)}
+                </span>
+                <span className="text-[#78716c]">{statusLabel(row.reviewStatus)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
 
-          {activityUnavailable ? (
-            <p role="status" className="col-span-full mx-5 mb-5 rounded-lg bg-[var(--admin-badge-warning-bg)] p-3 text-sm leading-6 text-[var(--admin-badge-warning-text)] sm:mx-6">
-              No pudimos cargar el estado de tus envíos. Actualiza la página antes
-              de volver a enviar un comprobante.
-            </p>
-          ) : null}
-
-          {manuals.length > 0 ? (
-            <div className="col-span-full mx-5 border-t border-[var(--admin-border)] py-4 sm:mx-6">
-              <h3 className="text-sm font-semibold text-[var(--admin-text)]">
-                Pagos enviados este mes
-              </h3>
-              <ul className="mt-2 divide-y divide-[var(--admin-border)]">
-                {manuals.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3 text-[13px]"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold tabular-nums text-[var(--admin-text)]">
-                        {money(row.amount, row.currency)}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-[var(--admin-text-muted)]">
-                        <time dateTime={row.createdAt}>
-                          {activityDate(row.createdAt)}
-                        </time>
-                        {" · Ref. "}
-                        <span title={row.id}>
-                          {row.id.slice(0, 8).toUpperCase()}
-                        </span>
-                      </p>
-                    </div>
-                    <span className={`rounded-md px-2 py-1 text-sm font-medium leading-5 ${row.reviewStatus === "approved" ? "bg-[var(--admin-badge-success-bg)] text-[var(--admin-badge-success-text)]" : row.reviewStatus === "rejected" ? "bg-[var(--admin-badge-danger-bg)] text-[var(--admin-badge-danger-text)]" : "bg-[var(--admin-badge-warning-bg)] text-[var(--admin-badge-warning-text)]"}`}>
-                      {row.reviewStatus === "awaiting_proof"
-                        ? "Falta comprobante"
-                        : statusLabel(row.reviewStatus)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <section className="relative overflow-hidden rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-4 sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">
-            Pagos
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-semibold tracking-[-0.02em] text-[#1a1714]">
-            Pago manual
-          </h2>
-          <p className="mt-1.5 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-            Paga lo que debes de este mes. Eliges el monto, transfieres y subes
-            el voucher. Gerencia lo ve en Pagos manuales como pago de deuda: baja
-            lo que debes y no recarga cartera.
-          </p>
-          <button
-            type="button"
-            onClick={() => setPayOpen(true)}
-            className="mt-4 inline-flex h-10 items-center rounded-[10px] bg-[#c2410c] px-4 text-[13px] font-semibold text-white hover:bg-[#9a3412]"
-          >
-            Pagar y subir voucher
-          </button>
-          {manuals.length > 0 ? (
-            <ul className="mt-4 divide-y divide-[#f0e6dc] rounded-xl border border-[#f0e6dc] bg-white">
-              {manuals.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5 text-[12px]"
-                >
-                  <span className="font-semibold tabular-nums text-[#1a1714]">
-                    {money(row.amount, row.currency)}
-                  </span>
-                  <span className="text-[#78716c]">{statusLabel(row.reviewStatus)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
-      )}
-
-      {!isPortal ? (
-        <MissingCobroClaimPanel
-          periodos={periodos}
-          initialClaims={claims}
-          endpoints={{
-            claims: endpoints.claims,
-            proof: endpoints.proof,
-          }}
-        />
-      ) : null}
+      <MissingCobroClaimPanel
+        periodos={periodos}
+        initialClaims={claims}
+        endpoints={{
+          claims: endpoints.claims,
+          proof: endpoints.proof,
+        }}
+      />
 
       <ManualPaymentModal
         open={payOpen}
         onClose={() => setPayOpen(false)}
         paysDebt
         debtMonth={month}
-        initialDebtAmountUsd={isPortal ? debtAmountUsd : undefined}
         endpoints={{
           config: endpoints.config,
           create: endpoints.create,

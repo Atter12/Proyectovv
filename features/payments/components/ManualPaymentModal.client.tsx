@@ -3,12 +3,10 @@
 import {
   useCallback,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
-  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
@@ -78,8 +76,6 @@ interface ManualPaymentModalProps {
   paysDebt?: boolean;
   /** YYYY-MM de la deuda. */
   debtMonth?: string;
-  /** Saldo mostrado en el portal; solo sugiere el monto inicial del formulario. */
-  initialDebtAmountUsd?: number;
 }
 
 interface CreateIntentResponse {
@@ -107,19 +103,6 @@ const MIN_USD = 10;
 const MIN_DEBT_USD = 1;
 const MAX_USD = 50_000;
 const subscribeToNothing = () => () => {};
-const FOCUSABLE_SELECTOR =
-  'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex], [contenteditable="true"]';
-
-function dialogFocusTargets(dialog: HTMLElement): HTMLElement[] {
-  return Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter(
-      (element) =>
-        element.tabIndex >= 0 &&
-        !element.matches(":disabled") &&
-        !element.closest("[inert]") &&
-        element.getClientRects().length > 0,
-    );
-}
 
 function buildPenQuote(creditUsd: number, feePercent: number, rate: number) {
   const usd = depositFromDesiredCredit(Math.round(creditUsd * 100), feePercent);
@@ -142,23 +125,11 @@ export function ManualPaymentModal({
   endpoints,
   paysDebt = false,
   debtMonth,
-  initialDebtAmountUsd,
 }: ManualPaymentModalProps) {
   const router = useRouter();
   const t = useTranslations("payments");
   const tCommon = useTranslations("common");
   const { formatMoney } = useAppFormatter();
-  const id = useId();
-  const titleId = `${id}-title`;
-  const amountInputId = `${id}-amount`;
-  const debtReferenceId = `${id}-debt-reference`;
-  const busyStatusId = `${id}-busy`;
-  const debtReference =
-    paysDebt &&
-    typeof initialDebtAmountUsd === "number" &&
-    Number.isFinite(initialDebtAmountUsd)
-      ? Math.max(0, initialDebtAmountUsd)
-      : null;
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
@@ -174,12 +145,7 @@ export function ManualPaymentModal({
     [t],
   );
   const [step, setStep] = useState<Step>("form");
-  const [amount, setAmount] = useState(() =>
-    open && debtReference != null && debtReference > 0
-      ? debtReference.toFixed(2)
-      : "",
-  );
-  const [wasOpen, setWasOpen] = useState(open);
+  const [amount, setAmount] = useState("");
   const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>("PEN");
   const [payMethod, setPayMethod] = useState<PayMethod>("bank");
   const [config, setConfig] = useState<ManualConfig | null>(null);
@@ -193,21 +159,6 @@ export function ManualPaymentModal({
   const [serverChargeCents, setServerChargeCents] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteZoneRef = useRef<HTMLDivElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const isSubmitting = loading || step === "analyzing";
-
-  // Suggest the current balance only on opening; keep subsequent user edits.
-  if (wasOpen !== open) {
-    setWasOpen(open);
-    if (open && paysDebt) {
-      setAmount(
-        debtReference != null && debtReference > 0
-          ? debtReference.toFixed(2)
-          : "",
-      );
-    }
-  }
 
   useEffect(() => {
     if (!open) return;
@@ -234,75 +185,12 @@ export function ManualPaymentModal({
   }, [open, endpoints?.config]);
 
   useEffect(() => {
-    if (!open || !mounted) return;
-    const layer = layerRef.current;
-    const dialog = dialogRef.current;
-    if (!layer || !dialog) return;
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const { body, documentElement } = document;
-    const previousBodyOverflow = body.style.overflow;
-    const previousHtmlOverflow = documentElement.style.overflow;
-    const previousBodyPadding = body.style.paddingRight;
-    const scrollbarWidth = Math.max(0, window.innerWidth - documentElement.clientWidth);
-    if (scrollbarWidth > 0) {
-      const padding = Number.parseFloat(window.getComputedStyle(body).paddingRight) || 0;
-      body.style.paddingRight = `${padding + scrollbarWidth}px`;
-    }
-    body.style.overflow = "hidden";
-    documentElement.style.overflow = "hidden";
-
-    // Preserve the background's previous state, including content mounted later.
-    const background = new Map<HTMLElement, boolean>();
-    function isolateBackground(node: Node) {
-      if (!(node instanceof HTMLElement) || node === layer || background.has(node)) return;
-      background.set(node, node.inert);
-      node.inert = true;
-    }
-    Array.from(body.children).forEach(isolateBackground);
-    const observer = new MutationObserver((records) => {
-      records.forEach((record) => record.addedNodes.forEach(isolateBackground));
-    });
-    observer.observe(body, { childList: true });
-
-    const keepFocusInside = (event: FocusEvent) => {
-      if (event.target instanceof Node && !dialog.contains(event.target)) {
-        dialog.focus({ preventScroll: true });
-      }
-    };
-    document.addEventListener("focusin", keepFocusInside);
-
+    if (!open) return;
+    document.body.style.overflow = "hidden";
     return () => {
-      observer.disconnect();
-      document.removeEventListener("focusin", keepFocusInside);
-      background.forEach((wasInert, element) => {
-        element.inert = wasInert;
-      });
-      body.style.overflow = previousBodyOverflow;
-      documentElement.style.overflow = previousHtmlOverflow;
-      body.style.paddingRight = previousBodyPadding;
-      if (previousFocus?.isConnected && !previousFocus.closest("[inert]")) {
-        previousFocus.focus({ preventScroll: true });
-      }
+      document.body.style.overflow = "";
     };
-  }, [open, mounted]);
-
-  useEffect(() => {
-    if (!open || !mounted) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const target = document.getElementById(step === "form" ? amountInputId : titleId);
-    if (target instanceof HTMLElement) {
-      if (step !== "form") target.tabIndex = -1;
-      target.focus({ preventScroll: true });
-    } else {
-      dialog.focus({ preventScroll: true });
-    }
-    dialog.scrollTop = 0;
-  }, [open, mounted, step, amountInputId, titleId]);
+  }, [open]);
 
   const effectiveFee = paysDebt ? 0 : feePercent;
   const minUsd = paysDebt ? MIN_DEBT_USD : MIN_USD;
@@ -352,7 +240,6 @@ export function ManualPaymentModal({
   const modalStepIndex = step === "form" ? 0 : step === "banks" ? 1 : 2;
 
   function resetAndClose() {
-    if (isSubmitting) return;
     setStep("form");
     setAmount("");
     setChargeCurrency("PEN");
@@ -365,33 +252,6 @@ export function ManualPaymentModal({
     setPendingMessage(null);
     setServerChargeCents(null);
     onClose();
-  }
-
-  function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (event.defaultPrevented || event.nativeEvent.isComposing) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      resetAndClose();
-      return;
-    }
-    if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const targets = dialogFocusTargets(dialog);
-    const first = targets[0];
-    const last = targets[targets.length - 1];
-    const active = document.activeElement;
-    if (!first || !last) {
-      event.preventDefault();
-      dialog.focus({ preventScroll: true });
-    } else if (event.shiftKey && (active === first || !targets.includes(active as HTMLElement))) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && (active === last || !targets.includes(active as HTMLElement))) {
-      event.preventDefault();
-      first.focus();
-    }
   }
 
   const applyProofFile = useCallback((file: File) => {
@@ -505,7 +365,6 @@ export function ManualPaymentModal({
             t("manualModal.pendingToast"),
         );
         setStep("pending");
-        router.refresh();
       }
     } catch (err) {
       setStep("voucher");
@@ -528,52 +387,38 @@ export function ManualPaymentModal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div ref={layerRef} className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
       <button
         type="button"
         className="absolute inset-0 bg-[#0b1020]/55 backdrop-blur-[2px]"
         aria-label={tCommon("close")}
-        tabIndex={-1}
-        disabled={isSubmitting}
         onClick={resetAndClose}
       />
       <div
-        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={isSubmitting ? busyStatusId : undefined}
-        tabIndex={-1}
-        onKeyDown={handleDialogKeyDown}
-        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto overscroll-contain rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)] outline-none motion-safe:[&_button]:transition-[background-color,color,opacity,scale] motion-safe:[&_button]:duration-150 motion-safe:[&_button]:ease-[cubic-bezier(0.23,1,0.32,1)] motion-safe:[&_button:active:not(:disabled):not(:focus-visible)]:scale-[0.98] [&_button:focus-visible]:scale-100 motion-reduce:[&_button]:scale-100 motion-reduce:[&_button]:transition-none"
+        aria-labelledby="manual-payment-title"
+        className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)]"
       >
-        <p id={busyStatusId} role="status" className="sr-only">
-          {isSubmitting ? t("addBalance.processing") : ""}
-        </p>
-        <fieldset
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-            className={`m-0 min-w-0 border-0 p-0 [&_button:disabled]:opacity-50 ${isSubmitting ? "[&_button:disabled]:cursor-wait" : ""}`}
-        >
         {step === "form" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={
                 paysDebt
-                  ? "Pagar deuda del mes"
+                  ? "¿Cuánto de tu deuda vas a pagar?"
                   : t("manualModal.amountTitle")
               }
               description={
                 paysDebt
-                  ? "Elige cuánto pagar, transfiere y envía tu comprobante para revisión."
+                  ? "Este pago baja lo que debes de este mes. No recarga cartera."
                   : t("manualModal.amountHint")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={
                 paysDebt
-                  ? "Transferencia con comprobante"
+                  ? "Pago de deuda · Lo pagado"
                   : t("manualModal.subtitle")
               }
               steps={manualSteps}
@@ -582,12 +427,9 @@ export function ManualPaymentModal({
             />
             <div className="p-5 sm:p-6">
               <div>
-                <label
-                  htmlFor={amountInputId}
-                  className="mb-2 block text-[12px] font-semibold text-[#514b45]"
-                >
+                <label className="mb-2 block text-[12px] font-semibold text-[#514b45]">
                   {paysDebt
-                    ? "Monto a pagar (USD)"
+                    ? "Deuda que vas a pagar (USD)"
                     : t("manualModal.receiveLabel")}
                 </label>
                 <div className="relative">
@@ -595,10 +437,6 @@ export function ManualPaymentModal({
                     $
                   </span>
                   <Input
-                    id={amountInputId}
-                    aria-describedby={
-                      debtReference != null ? debtReferenceId : undefined
-                    }
                     type="number"
                     min={minUsd}
                     max={MAX_USD}
@@ -606,31 +444,22 @@ export function ManualPaymentModal({
                     placeholder="120.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    autoFocus
                     className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
                   />
                 </div>
-                {debtReference != null ? (
-                  <p
-                    id={debtReferenceId}
-                    className="mt-2 text-[12px] leading-5 text-[#625b54]"
-                  >
-                    Saldo pendiente del mes: {formatMoney(debtReference)}.
-                    {debtReference > 0 ? " Puedes pagar todo o una parte." : ""}
-                  </p>
-                ) : null}
               </div>
 
-              <fieldset className="mt-5">
-                <legend className="mb-2 text-[12px] font-semibold text-[#514b45]">
+              <div className="mt-5">
+                <p className="mb-2 text-[12px] font-semibold text-[#514b45]">
                   {t("manualModal.currency")}
-                </legend>
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {(["PEN", "USD"] as const).map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setChargeCurrency(c)}
-                      aria-pressed={chargeCurrency === c}
                       className={`h-11 rounded-xl border text-sm font-semibold transition ${
                         chargeCurrency === c
                           ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
@@ -643,7 +472,7 @@ export function ManualPaymentModal({
                     </button>
                   ))}
                 </div>
-              </fieldset>
+              </div>
 
               {quote ? (
                 <div className="mt-5 rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
@@ -653,7 +482,7 @@ export function ManualPaymentModal({
                   <div className="flex justify-between">
                     <span className="text-[#625b54]">
                       {paysDebt
-                        ? "Monto a pagar"
+                        ? "Baja tu deuda"
                         : t("manualModal.receiveWallet")}
                     </span>
                     <span className="font-semibold tabular-nums text-[#1c1917]">
@@ -710,11 +539,7 @@ export function ManualPaymentModal({
                   disabled={!isValidAmount || loading}
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                 >
-                  {loading
-                    ? t("addBalance.processing")
-                    : paysDebt
-                      ? "Continuar con el pago"
-                      : t("manualModal.seePayMethods")}
+                  {loading ? t("addBalance.processing") : t("manualModal.seePayMethods")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -724,7 +549,7 @@ export function ManualPaymentModal({
         {step === "banks" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={
                 payMethod === "binance"
                   ? t("manualModal.doBinance")
@@ -941,7 +766,7 @@ export function ManualPaymentModal({
         {step === "voucher" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={t("manualModal.uploadTitle")}
               description={t("manualModal.uploadDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -1039,7 +864,7 @@ export function ManualPaymentModal({
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={handleSubmitVoucher}
                 >
-                  {paysDebt ? "Enviar comprobante" : t("manualModal.verify")}
+                  {paysDebt ? "Verificar voucher" : t("manualModal.verify")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -1049,7 +874,7 @@ export function ManualPaymentModal({
         {step === "analyzing" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={t("manualModal.verifying")}
               description={t("manualModal.verifyingDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -1060,7 +885,7 @@ export function ManualPaymentModal({
               onClose={resetAndClose}
             />
             <div className="flex flex-col items-center px-6 py-12 text-center">
-              <div aria-hidden className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840] motion-reduce:animate-none" />
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840]" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
                 {t("manualModal.analyzingWait")}
               </p>
@@ -1071,11 +896,11 @@ export function ManualPaymentModal({
         {step === "confirmed" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={t("manualModal.confirmed")}
               description={
                 paysDebt
-                  ? "El equipo revisará el comprobante antes de aplicar el pago a tu deuda."
+                  ? "Gerencia ya puede revisar el voucher. Al aceptarlo, baja tu deuda. No entra a cartera."
                   : t("manualModal.confirmedDesc")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -1101,7 +926,7 @@ export function ManualPaymentModal({
                   </p>
                   <p className="mt-1 text-[11px] text-emerald-800">
                     {paysDebt
-                      ? "El pago se aplica después de revisar el comprobante."
+                      ? "Gerencia revisa el voucher y baja la deuda. No entra a cartera."
                       : t("manualModal.canAssign")}
                   </p>
                 </div>
@@ -1121,7 +946,7 @@ export function ManualPaymentModal({
         {step === "pending" ? (
           <>
             <PaymentModalHeader
-              titleId={titleId}
+              titleId="manual-payment-title"
               title={
                 paysDebt
                   ? "Comprobante en revisión"
@@ -1129,7 +954,7 @@ export function ManualPaymentModal({
               }
               description={
                 paysDebt
-                  ? "Recibimos tu comprobante. El pago se aplicará a la deuda de este mes cuando el equipo lo apruebe."
+                  ? "Gerencia revisa la transferencia y, al aceptarla, baja la deuda de este mes. No acredita cartera."
                   : t("manualModal.pendingDesc")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -1157,7 +982,6 @@ export function ManualPaymentModal({
             </div>
           </>
         ) : null}
-        </fieldset>
       </div>
     </div>,
     document.body,
