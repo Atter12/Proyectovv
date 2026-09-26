@@ -12,6 +12,7 @@ export type PaymentsFundingMode = "client" | "agency_bm";
 /** Super admin Pagos: ve Cliente (Stripe) + Gerente (BM). */
 const DEFAULT_PAYMENTS_SUPER_ADMIN_EMAILS = [
   "attermayerbasiliorengifo@gmail.com",
+  "lizarzaburusebastian046@gmail.com",
 ];
 
 function normalizeEmail(email: string): string {
