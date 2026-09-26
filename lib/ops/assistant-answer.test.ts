@@ -17,6 +17,10 @@ function row(partial: Partial<AssistantCliente> & Pick<AssistantCliente, "name">
     paidMonth: 0,
     debt: 0,
     band: "idle",
+    paid90: 0,
+    recharge7d: 0,
+    fee7d: 0,
+    lastCobro: null,
     ...partial,
   };
 }
@@ -64,9 +68,20 @@ const brief: AssistantBrief = {
       debt: 10,
       band: "green",
       spendToday: 40,
+      paid90: 400,
+      recharge7d: 100,
+      fee7d: 10,
+      lastCobro: "2026-09-25 · $100.00 · Yape",
     }),
   ],
   pendingVouchers: 1,
+  recarga7d: {
+    from: "2026-09-20",
+    to: "2026-09-26",
+    count: 56,
+    creditUsd: 6781.73,
+    feeUsd: 735.77,
+  },
 };
 
 test("rango roja es score rojo", () => {
@@ -83,9 +98,18 @@ test("pagos de hoy nombra el cobro", () => {
   assert.match(text, /120/);
 });
 
-test("score de un cliente no inventa otro", () => {
+test("score de un cliente usa el historial", () => {
   const text = answerAssistant(brief, "score de Branlyn Lopez");
   assert.match(text, /Branlyn Lopez/);
   assert.match(text, /verde/);
+  assert.match(text, /90 días/);
+  assert.match(text, /fee/);
   assert.doesNotMatch(text, /Dante/);
+});
+
+test("la semana separa recarga y fee", () => {
+  const text = answerAssistant(brief, "estos 7 dias cuanto recargaron, recarga y fee");
+  assert.match(text, /6,781\.73/);
+  assert.match(text, /735\.77/);
+  assert.doesNotMatch(text, /Luis Oropeza/);
 });

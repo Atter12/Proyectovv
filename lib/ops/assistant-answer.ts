@@ -10,6 +10,20 @@ export type AssistantCliente = {
   paidMonth: number;
   debt: number;
   band: CobranzaBand;
+  /** Cobros Hecom de los últimos 90 días. */
+  paid90: number;
+  /** Recarga a cartera de los últimos 7 días. */
+  recharge7d: number;
+  fee7d: number;
+  lastCobro: string | null;
+};
+
+export type AssistantWeek = {
+  from: string;
+  to: string;
+  count: number;
+  creditUsd: number;
+  feeUsd: number;
 };
 
 export type AssistantBrief = {
@@ -23,6 +37,7 @@ export type AssistantBrief = {
   alertas: string[];
   clientes: AssistantCliente[];
   pendingVouchers: number;
+  recarga7d: AssistantWeek;
 };
 
 export function foldText(value: string): string {
@@ -77,15 +92,25 @@ function bandLabel(band: CobranzaBand): string {
   }
 }
 
+function cardCliente(row: AssistantCliente): string {
+  const lines = [
+    row.name,
+    `Score de cobranza: ${bandLabel(row.band)}. Este mes el cargo es ${money(row.cargoMonth)}, cobrado ${money(row.paidMonth)}, deuda ${money(row.debt)}.`,
+    `En los últimos 90 días cobró ${money(row.paid90)}.`,
+    row.recharge7d > 0 || row.fee7d > 0
+      ? `Esta semana recargó ${money(row.recharge7d)} y el fee fue ${money(row.fee7d)}.`
+      : "Esta semana no recargó cartera.",
+    row.lastCobro ? `Último cobro: ${row.lastCobro}.` : null,
+    row.agency ? "Tiene crédito de agencia." : "Es prepago.",
+    row.rango ? `Rango de cobranza: ${row.rango}.` : null,
+    row.spendToday > 0 ? `Hoy lleva ${money(row.spendToday)} de gasto en ads.` : null,
+    "El semáforo de ads (rendimiento y tickets) sigue en Profit. Acá el score usa la deuda del mes, lo cobrado en 90 días y las recargas de la semana.",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
 function lineCliente(row: AssistantCliente): string {
-  const extra = [
-    row.agency ? "crédito agencia" : "prepago",
-    row.rango ? `rango ${row.rango}` : null,
-    row.spendToday > 0 ? `hoy gastó ${money(row.spendToday)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return `${row.name}: score ${bandLabel(row.band)}, deuda ${money(row.debt)} (cargo ${money(row.cargoMonth)}, cobrado ${money(row.paidMonth)})${extra ? `. ${extra}` : ""}`;
+  return `${row.name}: ${bandLabel(row.band)}, deuda ${money(row.debt)} (90 días cobró ${money(row.paid90)})`;
 }
 
 function findNamed(brief: AssistantBrief, question: string): AssistantCliente | null {
@@ -117,12 +142,23 @@ export function answerAssistant(brief: AssistantBrief, question: string): string
     wants(asked, ["score", "deuda", "como esta", "cómo está"]) &&
     !wants(asked, ["quienes", "quiénes", "cuales", "cuáles", "lista", "todos"]);
   if (aboutOne) {
-    return `${lineCliente(named)}\n\nEste score es de cobranza (deuda del mes y rango). El semáforo de ads, tickets y ritmo está en Profit, cliente por cliente.`;
+    return cardCliente(named);
   }
 
+  const aboutWeek =
+    wants(asked, ["semana", "7 dia", "siete dia", "estos dias"]) ||
+    (wants(asked, ["ultima", "ultimos"]) &&
+      wants(asked, ["recarg", "fee", "cobr", "pago"]));
   const parts: string[] = [];
 
-  if (wants(asked, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"])) {
+  if (aboutWeek) {
+    const week = brief.recarga7d;
+    parts.push(
+      `Del ${week.from} al ${week.to}: ${week.count} recargas a cartera.\nRecarga: ${money(week.creditUsd)}.\nFee: ${money(week.feeUsd)}.\nTotal cobrado: ${money(week.creditUsd + week.feeUsd)}.\nNo entran aquí las boletas de cobro faltante ni los pagos de deuda del link.`,
+    );
+  }
+
+  if (!aboutWeek && wants(asked, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"])) {
     if (!brief.pagosHoy.length) {
       parts.push(`Hoy ${brief.today} no hay cobros registrados en Hecom.`);
     } else {
@@ -200,7 +236,7 @@ export function answerAssistant(brief: AssistantBrief, question: string): string
   }
 
   if (parts.length) return parts.join("\n\n");
-  if (named) return lineCliente(named);
+  if (named) return cardCliente(named);
 
-  return `Puedo revisar ${brief.monthLabel} con datos de Hecom. Pregúntame, por ejemplo: pagos de hoy, clientes activos hoy, alertas, a quién dar crédito, quién está en rojo, o el score de un cliente.`;
+  return `Puedo armar la cartera de ${brief.monthLabel}, la recarga y el fee de esta semana, y el score de un cliente con su historial. Pregúntame, por ejemplo: cuánto recargaron esta semana, pagos de hoy, quién está en rojo, o el score de un cliente.`;
 }

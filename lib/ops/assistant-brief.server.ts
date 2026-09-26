@@ -2,7 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
-import { todayYmdInTz } from "@/lib/hecom/gasto-date";
+import { todayYmdInTz, shiftYmd } from "@/lib/hecom/gasto-date";
 import {
   cobranzaBand,
   money,
@@ -27,6 +27,7 @@ type CobroRow = {
   client_id: string | null;
   monto: number | null;
   fecha: string | null;
+  metodo?: string | null;
 };
 
 function monthLabel(ym: string): string {
@@ -80,9 +81,11 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
   const month = today.slice(0, 7);
   const monthStart = `${month}-01`;
   const monthEnd = nextMonth(month);
+  const weekFrom = shiftYmd(today, -6);
+  const paid90From = shiftYmd(today, -89);
   const hecom = createHecomAdminClient();
 
-  const [clientesRes, gastos, cobrosMonth, cobrosHoy] = await Promise.all([
+  const [clientesRes, gastos, cobrosMonth, cobrosHoy, cobros90] = await Promise.all([
     hecom
       .from("clientes")
       .select("id,name,credito_form_slug,cobranza_rango")
@@ -108,6 +111,14 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
       .select("client_id,monto,fecha")
       .eq("fecha", today)
       .limit(500),
+    fetchAll<CobroRow>((from, to) =>
+      hecom
+        .from("cobros")
+        .select("client_id,monto,fecha,metodo")
+        .gte("fecha", paid90From)
+        .lte("fecha", today)
+        .range(from, to),
+    ),
   ]);
 
   if (clientesRes.error) throw new Error(clientesRes.error.message);
@@ -151,6 +162,87 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
     paidToday.set(id, (paidToday.get(id) || 0) + (Number(row.monto) || 0));
   }
 
+  const paid90 = new Map<string, number>();
+  const lastCobro = new Map<string, { fecha: string; monto: number; metodo: string }>();
+  for (const row of cobros90) {
+    const id = String(row.client_id || "");
+    if (!id) continue;
+    const amount = Number(row.monto) || 0;
+    paid90.set(id, (paid90.get(id) || 0) + amount);
+    const fecha = String(row.fecha || "").slice(0, 10);
+    const prev = lastCobro.get(id);
+    if (!prev || fecha >= prev.fecha) {
+      lastCobro.set(id, {
+        fecha,
+        monto: amount,
+        metodo: String(row.metodo || "").trim(),
+      });
+    }
+  }
+
+  const recharge7 = new Map<string, { credit: number; fee: number }>();
+  let weekCount = 0;
+  let weekCredit = 0;
+  let weekFee = 0;
+  try {
+    const admin = createAdminClient();
+    const sinceIso = `${weekFrom}T05:00:00.000Z`;
+    const intents = await fetchAll<{
+      amount_cents: number | null;
+      currency: string | null;
+      metadata: Record<string, unknown> | null;
+    }>((from, to) =>
+      admin
+        .from("payment_intents")
+        .select("amount_cents,currency,metadata")
+        .eq("status", "succeeded")
+        .gte("succeeded_at", sinceIso)
+        .range(from, to),
+    );
+    const skipPurpose = new Set([
+      "hecom_missing_cobro",
+      "lo_pagado_deuda",
+      "realprofit_cod",
+      "staff_fund_from_bm",
+      "transfer_existing_tiktok_balance",
+    ]);
+    for (const row of intents) {
+      const meta = row.metadata || {};
+      const purpose = String(meta.purpose || "");
+      const source = String(meta.source || "");
+      if (meta.skip_wallet_credit === true || skipPurpose.has(purpose)) continue;
+      if (
+        source === "agency_bm_bridge" ||
+        source === "credito_detach" ||
+        source === "lo_pagado_missing_cobro"
+      ) {
+        continue;
+      }
+      const creditCents = Number(meta.credit_amount_cents);
+      const feeCents = Number(meta.fee_amount_cents);
+      const creditUsd =
+        Number.isFinite(creditCents) && creditCents > 0
+          ? creditCents / 100
+          : row.currency === "USD"
+            ? (Number(row.amount_cents) || 0) / 100
+            : 0;
+      const feeUsd = Number.isFinite(feeCents) && feeCents > 0 ? feeCents / 100 : 0;
+      weekCount += 1;
+      weekCredit += creditUsd;
+      weekFee += feeUsd;
+      const clientId = String(meta.hecom_cliente_id || "");
+      if (!clientId) continue;
+      const prev = recharge7.get(clientId) || { credit: 0, fee: 0 };
+      prev.credit += creditUsd;
+      prev.fee += feeUsd;
+      recharge7.set(clientId, prev);
+    }
+  } catch {
+    weekCount = 0;
+    weekCredit = 0;
+    weekFee = 0;
+  }
+
   const clientes: AssistantCliente[] = [];
   for (const [id, meta] of names) {
     const cargoMonth = round2(cargo.get(id) || 0);
@@ -166,6 +258,15 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
       paidMonth: paid,
       debt,
       band: cobranzaBand({ rango: meta.rango, cargo: cargoMonth, paid }),
+      paid90: round2(paid90.get(id) || 0),
+      recharge7d: round2(recharge7.get(id)?.credit || 0),
+      fee7d: round2(recharge7.get(id)?.fee || 0),
+      lastCobro: (() => {
+        const last = lastCobro.get(id);
+        if (!last || !last.fecha) return null;
+        const metodo = last.metodo ? ` · ${last.metodo}` : "";
+        return `${last.fecha} · ${money(last.monto)}${metodo}`;
+      })(),
     });
   }
 
@@ -244,6 +345,13 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
     alertas,
     clientes,
     pendingVouchers,
+    recarga7d: {
+      from: weekFrom,
+      to: today,
+      count: weekCount,
+      creditUsd: round2(weekCredit),
+      feeUsd: round2(weekFee),
+    },
   };
   cached = { at: Date.now(), brief };
   return brief;

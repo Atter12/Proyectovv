@@ -6,6 +6,7 @@ type ChatMessage = { role: "user" | "bot"; text: string };
 
 const SUGGESTIONS = [
   "Pagos de hoy",
+  "Recarga y fee de esta semana",
   "¿Qué clientes están activos hoy?",
   "¿Hay alertas?",
   "¿A quién podemos dar crédito?",
@@ -16,7 +17,7 @@ export function OpsAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "bot",
-      text: "Pregúntame por la cartera. Leo pagos, gasto de hoy, deudas, crédito y el score de cobranza en Hecom. Si algo hay que revisar, te lo digo.",
+      text: "Pregúntame por la cartera. Leo los pagos de hoy, la recarga y el fee de la semana, las alertas y el score de un cliente con su historial de cobros.",
     },
   ]);
   const [draft, setDraft] = useState("");
