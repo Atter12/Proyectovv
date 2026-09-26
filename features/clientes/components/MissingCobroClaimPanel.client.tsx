@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
@@ -52,9 +52,11 @@ export function MissingCobroClaimPanel({
   periodos: periodosProp,
   initialClaims,
   endpoints,
+  presentation = "default",
 }: {
   periodos?: string[];
   initialClaims?: ManualPaymentIntentItem[];
+  presentation?: "default" | "portal";
   /** Link público: listar, crear y subir sin sesión. */
   endpoints?: {
     claims: string;
@@ -63,6 +65,10 @@ export function MissingCobroClaimPanel({
 }) {
   const t = useTranslations("cobros");
   const router = useRouter();
+  const id = useId();
+  const formId = `${id}-form`;
+  const fileId = `${id}-proof`;
+  const isPortal = presentation === "portal";
   const periodos = useMemo(
     () => (periodosProp?.length ? periodosProp : listRecentPeriodos(6)),
     [periodosProp],
@@ -90,17 +96,33 @@ export function MissingCobroClaimPanel({
     notes: "",
   }));
 
-  const refreshClaims = useCallback(async () => {
-    try {
-      const res = await apiClient<{
+  // Keep the portal in its allowed months, including after a GET refresh.
+  const visibleClaims = isPortal
+    ? claims.filter(
+        (claim) =>
+          claim.periodoResumen != null && periodos.includes(claim.periodoResumen),
+      )
+    : claims;
+  const fieldLabelClass = isPortal
+    ? "font-medium text-[var(--admin-text)]"
+    : "font-medium text-[var(--auth-text)]";
+  const fieldClass = isPortal
+    ? "mt-1 min-h-11 w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[var(--admin-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]"
+    : "mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2";
+  const claimsEndpoint = endpoints?.claims ?? "/api/payments/missing-cobro";
+
+  const refreshClaims = useCallback(
+    () =>
+      apiClient<{
         ok: boolean;
         claims: ManualPaymentIntentItem[];
-      }>(endpoints?.claims ?? "/api/payments/missing-cobro");
-      setClaims(res.claims ?? []);
-    } catch {
-      /* keep existing */
-    }
-  }, [endpoints?.claims]);
+      }>(claimsEndpoint)
+        .then((res) => setClaims(res.claims ?? []))
+        .catch(() => {
+          /* keep existing */
+        }),
+    [claimsEndpoint],
+  );
 
   useEffect(() => {
     if (!initialClaims) void refreshClaims();
@@ -111,7 +133,7 @@ export function MissingCobroClaimPanel({
     setSuccess(null);
     const amountUsd = Number.parseFloat(form.amountUsd.replace(",", "."));
     if (!Number.isFinite(amountUsd) || amountUsd < 1) {
-      setError(t("missingCobro.errAmount"));
+      setError(isPortal ? "Indica el monto del pago en USD (mínimo $1)." : t("missingCobro.errAmount"));
       return;
     }
     if (!form.periodoResumen || !form.paymentFecha) {
@@ -157,7 +179,7 @@ export function MissingCobroClaimPanel({
         body: fd,
       });
 
-      setSuccess(t("missingCobro.success"));
+      setSuccess(isPortal ? "Comprobante recibido. Tu pago está en revisión." : t("missingCobro.success"));
       setOpen(false);
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -187,17 +209,23 @@ export function MissingCobroClaimPanel({
   return (
     <section className="space-y-3">
       <div
-        className={[
+        className={isPortal ? "space-y-4" : [
           "relative overflow-hidden rounded-2xl border border-[var(--auth-divider)]",
           "bg-gradient-to-br from-[#fff8f1] via-white to-[#f4f7fb]",
           "p-4 sm:p-5",
         ].join(" ")}
       >
-        <div
+        {!isPortal ? <div
           className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#ff781f]/10 blur-2xl"
           aria-hidden
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        /> : null}
+        <div className={isPortal ? "space-y-3" : "relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"}>
+          {isPortal ? (
+            <p className="text-[13px] leading-5 text-[var(--admin-text-muted)]">
+              Si tu pago no aparece en el historial, envía los datos y el
+              comprobante para que podamos revisarlo.
+            </p>
+          ) : (
           <div className="min-w-0 max-w-2xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#b45309]">
               {t("missingCobro.eyebrow")}
@@ -212,10 +240,13 @@ export function MissingCobroClaimPanel({
               {t("missingCobro.noWalletHint")}
             </p>
           </div>
+          )}
           <Button
             type="button"
             size="sm"
-            className="shrink-0 self-start sm:self-center"
+            className={isPortal ? "min-h-11 w-full bg-[#c2410c] text-white hover:bg-[#9a3412]" : "shrink-0 self-start sm:self-center"}
+            aria-expanded={open}
+            aria-controls={open ? formId : undefined}
             onClick={() => {
               setOpen((v) => !v);
               setError(null);
@@ -227,20 +258,20 @@ export function MissingCobroClaimPanel({
         </div>
 
         {success ? (
-          <p className="relative mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
+          <p role="status" className={isPortal ? "rounded-lg bg-[var(--admin-badge-success-bg)] px-3 py-2 text-[13px] text-[var(--admin-badge-success-text)]" : "relative mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900"}>
             {success}
           </p>
         ) : null}
 
         {open ? (
-          <div className="relative mt-4 space-y-3 rounded-xl border border-[var(--auth-divider)] bg-white/90 p-3 shadow-sm sm:p-4">
+          <div id={formId} className={isPortal ? "space-y-4 border-t border-[var(--admin-border)] pt-4" : "relative mt-4 space-y-3 rounded-xl border border-[var(--auth-divider)] bg-white/90 p-3 shadow-sm sm:p-4"}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
+                <span className={fieldLabelClass}>
                   {t("missingCobro.period")}
                 </span>
                 <select
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.periodoResumen}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, periodoResumen: e.target.value }))
@@ -254,12 +285,12 @@ export function MissingCobroClaimPanel({
                 </select>
               </label>
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
-                  {t("missingCobro.paymentDate")}
+                <span className={fieldLabelClass}>
+                  {isPortal ? "Fecha del pago" : t("missingCobro.paymentDate")}
                 </span>
                 <input
                   type="date"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.paymentFecha}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, paymentFecha: e.target.value }))
@@ -267,7 +298,7 @@ export function MissingCobroClaimPanel({
                 />
               </label>
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
+                <span className={fieldLabelClass}>
                   {t("missingCobro.amountUsd")}
                 </span>
                 <input
@@ -275,7 +306,7 @@ export function MissingCobroClaimPanel({
                   min="1"
                   step="0.01"
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.amountUsd}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, amountUsd: e.target.value }))
@@ -284,7 +315,7 @@ export function MissingCobroClaimPanel({
                 />
               </label>
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
+                <span className={fieldLabelClass}>
                   {t("missingCobro.amountPenOptional")}
                 </span>
                 <input
@@ -292,7 +323,7 @@ export function MissingCobroClaimPanel({
                   min="0"
                   step="0.01"
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.amountPen}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, amountPen: e.target.value }))
@@ -301,11 +332,11 @@ export function MissingCobroClaimPanel({
                 />
               </label>
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
+                <span className={fieldLabelClass}>
                   {t("missingCobro.method")}
                 </span>
                 <select
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.metodo}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, metodo: e.target.value }))
@@ -319,12 +350,12 @@ export function MissingCobroClaimPanel({
                 </select>
               </label>
               <label className="block text-[12px]">
-                <span className="font-medium text-[var(--auth-text)]">
-                  {t("missingCobro.opCode")}
+                <span className={fieldLabelClass}>
+                  {isPortal ? "Código de operación (opcional)" : t("missingCobro.opCode")}
                 </span>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className={fieldClass}
                   value={form.operationCode}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, operationCode: e.target.value }))
@@ -334,11 +365,11 @@ export function MissingCobroClaimPanel({
               </label>
             </div>
             <label className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
+              <span className={fieldLabelClass}>
                 {t("missingCobro.notes")}
               </span>
               <textarea
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                className={fieldClass}
                 rows={2}
                 value={form.notes}
                 onChange={(e) =>
@@ -347,15 +378,19 @@ export function MissingCobroClaimPanel({
               />
             </label>
             <div className="block text-[12px]">
-              <span className="font-medium text-[var(--auth-text)]">
+              <label htmlFor={fileId} className={fieldLabelClass}>
                 {t("missingCobro.voucher")}
-              </span>
+              </label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className={[
-                  "mt-1.5 flex w-full items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3.5 text-left transition",
-                  file
+                  "mt-1.5 flex w-full items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]",
+                  isPortal
+                    ? file
+                      ? "border-[var(--admin-success)] bg-[var(--admin-badge-success-bg)]"
+                      : "border-[var(--admin-border-strong)] bg-[var(--admin-surface-soft)] hover:border-[var(--admin-accent)]"
+                    : file
                     ? "border-emerald-400 bg-emerald-50"
                     : "border-[#ff781f]/70 bg-[#fff8f1] hover:border-[#ff781f] hover:bg-[#fff1e6]",
                 ].join(" ")}
@@ -363,19 +398,25 @@ export function MissingCobroClaimPanel({
                 <span
                   className={[
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[18px]",
-                    file
+                    isPortal
+                      ? file
+                        ? "bg-[var(--admin-badge-success-bg)] text-[var(--admin-badge-success-text)]"
+                        : "bg-[var(--admin-surface-hover)] text-[var(--admin-text)]"
+                      : file
                       ? "bg-emerald-100 text-emerald-800"
                       : "bg-[#ff781f] text-white",
                   ].join(" ")}
                   aria-hidden
                 >
-                  {file ? "✓" : "↑"}
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={file ? "m5 12 4 4L19 6" : "M12 16V4m-5 5 5-5 5 5M5 16v4h14v-4"} />
+                  </svg>
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold text-[var(--auth-text)]">
+                  <span className={isPortal ? "block break-all text-[13px] font-semibold text-[var(--admin-text)]" : "block text-[13px] font-semibold text-[var(--auth-text)]"}>
                     {file ? file.name : t("missingCobro.voucherPick")}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-[var(--auth-text-muted)]">
+                  <span className={isPortal ? "mt-0.5 block text-xs leading-5 text-[var(--admin-text-muted)]" : "mt-0.5 block text-[11px] text-[var(--auth-text-muted)]"}>
                     {file
                       ? t("missingCobro.voucherReady")
                       : t("missingCobro.voucherHint")}
@@ -384,15 +425,17 @@ export function MissingCobroClaimPanel({
               </button>
               <input
                 ref={fileInputRef}
+                id={fileId}
                 type="file"
                 accept="image/*,application/pdf"
                 className="sr-only"
+                tabIndex={-1}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
 
             {error ? (
-              <p className="text-[12px] text-red-600" role="alert">
+              <p className={isPortal ? "text-[13px] text-[var(--admin-badge-danger-text)]" : "text-[12px] text-red-600"} role="alert">
                 {error}
               </p>
             ) : null}
@@ -401,16 +444,17 @@ export function MissingCobroClaimPanel({
               <Button
                 type="button"
                 disabled={busy}
+                className={isPortal ? "min-h-11 w-full bg-[#c2410c] text-white hover:bg-[#9a3412]" : undefined}
                 onClick={() => void handleCreateAndUpload()}
               >
                 {busy
                   ? uploading
                     ? t("missingCobro.uploading")
-                    : t("missingCobro.creating")
+                    : isPortal ? "Preparando envío…" : t("missingCobro.creating")
                   : t("missingCobro.submit")}
               </Button>
               {pendingIntentId ? (
-                <span className="self-center font-mono text-[10px] text-[var(--auth-muted)]">
+                <span className={isPortal ? "self-center text-xs text-[var(--admin-text-muted)]" : "self-center font-mono text-[10px] text-[var(--auth-muted)]"}>
                   {pendingIntentId.slice(0, 8)}
                 </span>
               ) : null}
@@ -419,23 +463,23 @@ export function MissingCobroClaimPanel({
         ) : null}
       </div>
 
-      {claims.length > 0 ? (
-        <div className="space-y-2 rounded-2xl border border-[var(--auth-divider)] bg-white p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-            {t("missingCobro.myReports")}
+      {visibleClaims.length > 0 ? (
+        <div className={isPortal ? "space-y-2 border-t border-[var(--admin-border)] pt-4" : "space-y-2 rounded-2xl border border-[var(--auth-divider)] bg-white p-4"}>
+          <p className={isPortal ? "text-sm font-semibold text-[var(--admin-text)]" : "text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]"}>
+            {isPortal ? "Comprobantes enviados" : t("missingCobro.myReports")}
           </p>
-          <ul className="divide-y divide-[var(--auth-divider)] rounded-xl border border-[var(--auth-divider)]">
-            {claims.map((c) => (
+          <ul className={isPortal ? "divide-y divide-[var(--admin-border)]" : "divide-y divide-[var(--auth-divider)] rounded-xl border border-[var(--auth-divider)]"}>
+            {visibleClaims.map((c) => (
               <li
                 key={c.id}
                 className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[12px]"
               >
                 <div className="min-w-0">
-                  <p className="font-semibold tabular-nums text-[var(--auth-text)]">
+                  <p className={isPortal ? "font-semibold tabular-nums text-[var(--admin-text)]" : "font-semibold tabular-nums text-[var(--auth-text)]"}>
                     ${c.amount.toFixed(2)} USD
                     {c.periodoResumen ? ` · ${c.periodoResumen}` : ""}
                   </p>
-                  <p className="text-[11px] text-[var(--auth-muted)]">
+                  <p className={isPortal ? "break-words text-xs leading-5 text-[var(--admin-text-muted)]" : "text-[11px] text-[var(--auth-muted)]"}>
                     {c.claimedPaymentFecha ??
                       new Date(c.createdAt).toLocaleDateString("es-PE")}
                     {c.claimedMetodo ? ` · ${c.claimedMetodo}` : ""}
@@ -455,7 +499,9 @@ export function MissingCobroClaimPanel({
                           : "warning"
                   }
                 >
-                  {reviewLabel(c.reviewStatus, t)}
+                  {isPortal && c.reviewStatus === "awaiting_proof"
+                    ? "Falta comprobante"
+                    : reviewLabel(c.reviewStatus, t)}
                 </Badge>
               </li>
             ))}

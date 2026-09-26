@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -76,6 +77,8 @@ interface ManualPaymentModalProps {
   paysDebt?: boolean;
   /** YYYY-MM de la deuda. */
   debtMonth?: string;
+  /** Saldo mostrado en el portal; solo sugiere el monto inicial del formulario. */
+  initialDebtAmountUsd?: number;
 }
 
 interface CreateIntentResponse {
@@ -125,11 +128,22 @@ export function ManualPaymentModal({
   endpoints,
   paysDebt = false,
   debtMonth,
+  initialDebtAmountUsd,
 }: ManualPaymentModalProps) {
   const router = useRouter();
   const t = useTranslations("payments");
   const tCommon = useTranslations("common");
   const { formatMoney } = useAppFormatter();
+  const id = useId();
+  const titleId = `${id}-title`;
+  const amountInputId = `${id}-amount`;
+  const debtReferenceId = `${id}-debt-reference`;
+  const debtReference =
+    paysDebt &&
+    typeof initialDebtAmountUsd === "number" &&
+    Number.isFinite(initialDebtAmountUsd)
+      ? Math.max(0, initialDebtAmountUsd)
+      : null;
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
@@ -145,7 +159,12 @@ export function ManualPaymentModal({
     [t],
   );
   const [step, setStep] = useState<Step>("form");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(() =>
+    open && debtReference != null && debtReference > 0
+      ? debtReference.toFixed(2)
+      : "",
+  );
+  const [wasOpen, setWasOpen] = useState(open);
   const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>("PEN");
   const [payMethod, setPayMethod] = useState<PayMethod>("bank");
   const [config, setConfig] = useState<ManualConfig | null>(null);
@@ -159,6 +178,18 @@ export function ManualPaymentModal({
   const [serverChargeCents, setServerChargeCents] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteZoneRef = useRef<HTMLDivElement>(null);
+
+  // Suggest the current balance only on opening; keep subsequent user edits.
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open && paysDebt) {
+      setAmount(
+        debtReference != null && debtReference > 0
+          ? debtReference.toFixed(2)
+          : "",
+      );
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -204,7 +235,7 @@ export function ManualPaymentModal({
         : t("addBalance.fxSbs");
     }
     return t("addBalance.fxReferential");
-  }, [config?.fxAsOf, config?.fxSource, t]);
+  }, [config, t]);
   const isValidAmount =
     Number.isFinite(parsedAmount) &&
     parsedAmount >= minUsd &&
@@ -254,7 +285,7 @@ export function ManualPaymentModal({
     onClose();
   }
 
-  function applyProofFile(file: File) {
+  const applyProofFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
       setError(t("manualModal.errFileType"));
       return;
@@ -267,7 +298,7 @@ export function ManualPaymentModal({
     } else {
       setProofPreview(null);
     }
-  }
+  }, [t]);
 
   const handlePaste = useCallback((event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -284,7 +315,7 @@ export function ManualPaymentModal({
         break;
       }
     }
-  }, []);
+  }, [applyProofFile]);
 
   useEffect(() => {
     if (step !== "voucher") return;
@@ -365,6 +396,7 @@ export function ManualPaymentModal({
             t("manualModal.pendingToast"),
         );
         setStep("pending");
+        router.refresh();
       }
     } catch (err) {
       setStep("voucher");
@@ -397,28 +429,28 @@ export function ManualPaymentModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="manual-payment-title"
+        aria-labelledby={titleId}
         className="scrollbar-thin relative max-h-[min(92vh,calc(100dvh-1.5rem))] w-full max-w-[36rem] overflow-y-auto rounded-[1.25rem] bg-white shadow-[0_28px_90px_rgb(15_23_42_/_0.24)]"
       >
         {step === "form" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={
                 paysDebt
-                  ? "¿Cuánto de tu deuda vas a pagar?"
+                  ? "Pagar deuda del mes"
                   : t("manualModal.amountTitle")
               }
               description={
                 paysDebt
-                  ? "Este pago baja lo que debes de este mes. No recarga cartera."
+                  ? "Elige cuánto pagar, transfiere y envía tu comprobante para revisión."
                   : t("manualModal.amountHint")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={
                 paysDebt
-                  ? "Pago de deuda · Lo pagado"
+                  ? "Transferencia con comprobante"
                   : t("manualModal.subtitle")
               }
               steps={manualSteps}
@@ -427,9 +459,12 @@ export function ManualPaymentModal({
             />
             <div className="p-5 sm:p-6">
               <div>
-                <label className="mb-2 block text-[12px] font-semibold text-[#514b45]">
+                <label
+                  htmlFor={amountInputId}
+                  className="mb-2 block text-[12px] font-semibold text-[#514b45]"
+                >
                   {paysDebt
-                    ? "Deuda que vas a pagar (USD)"
+                    ? "Monto a pagar (USD)"
                     : t("manualModal.receiveLabel")}
                 </label>
                 <div className="relative">
@@ -437,6 +472,10 @@ export function ManualPaymentModal({
                     $
                   </span>
                   <Input
+                    id={amountInputId}
+                    aria-describedby={
+                      debtReference != null ? debtReferenceId : undefined
+                    }
                     type="number"
                     min={minUsd}
                     max={MAX_USD}
@@ -448,18 +487,28 @@ export function ManualPaymentModal({
                     className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
                   />
                 </div>
+                {debtReference != null ? (
+                  <p
+                    id={debtReferenceId}
+                    className="mt-2 text-[12px] leading-5 text-[#625b54]"
+                  >
+                    Saldo pendiente del mes: {formatMoney(debtReference)}.
+                    {debtReference > 0 ? " Puedes pagar todo o una parte." : ""}
+                  </p>
+                ) : null}
               </div>
 
-              <div className="mt-5">
-                <p className="mb-2 text-[12px] font-semibold text-[#514b45]">
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-[12px] font-semibold text-[#514b45]">
                   {t("manualModal.currency")}
-                </p>
+                </legend>
                 <div className="grid grid-cols-2 gap-2">
                   {(["PEN", "USD"] as const).map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setChargeCurrency(c)}
+                      aria-pressed={chargeCurrency === c}
                       className={`h-11 rounded-xl border text-sm font-semibold transition ${
                         chargeCurrency === c
                           ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
@@ -472,7 +521,7 @@ export function ManualPaymentModal({
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
               {quote ? (
                 <div className="mt-5 rounded-2xl bg-[#f7f5f2] p-4 text-sm sm:p-5">
@@ -482,7 +531,7 @@ export function ManualPaymentModal({
                   <div className="flex justify-between">
                     <span className="text-[#625b54]">
                       {paysDebt
-                        ? "Baja tu deuda"
+                        ? "Monto a pagar"
                         : t("manualModal.receiveWallet")}
                     </span>
                     <span className="font-semibold tabular-nums text-[#1c1917]">
@@ -539,7 +588,11 @@ export function ManualPaymentModal({
                   disabled={!isValidAmount || loading}
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                 >
-                  {loading ? t("addBalance.processing") : t("manualModal.seePayMethods")}
+                  {loading
+                    ? t("addBalance.processing")
+                    : paysDebt
+                      ? "Continuar con el pago"
+                      : t("manualModal.seePayMethods")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -549,7 +602,7 @@ export function ManualPaymentModal({
         {step === "banks" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={
                 payMethod === "binance"
                   ? t("manualModal.doBinance")
@@ -766,7 +819,7 @@ export function ManualPaymentModal({
         {step === "voucher" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={t("manualModal.uploadTitle")}
               description={t("manualModal.uploadDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -864,7 +917,7 @@ export function ManualPaymentModal({
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                   onClick={handleSubmitVoucher}
                 >
-                  {paysDebt ? "Verificar voucher" : t("manualModal.verify")}
+                  {paysDebt ? "Enviar comprobante" : t("manualModal.verify")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -874,7 +927,7 @@ export function ManualPaymentModal({
         {step === "analyzing" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={t("manualModal.verifying")}
               description={t("manualModal.verifyingDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -896,11 +949,11 @@ export function ManualPaymentModal({
         {step === "confirmed" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={t("manualModal.confirmed")}
               description={
                 paysDebt
-                  ? "Gerencia ya puede revisar el voucher. Al aceptarlo, baja tu deuda. No entra a cartera."
+                  ? "El equipo revisará el comprobante antes de aplicar el pago a tu deuda."
                   : t("manualModal.confirmedDesc")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
@@ -926,7 +979,7 @@ export function ManualPaymentModal({
                   </p>
                   <p className="mt-1 text-[11px] text-emerald-800">
                     {paysDebt
-                      ? "Gerencia revisa el voucher y baja la deuda. No entra a cartera."
+                      ? "El pago se aplica después de revisar el comprobante."
                       : t("manualModal.canAssign")}
                   </p>
                 </div>
@@ -946,7 +999,7 @@ export function ManualPaymentModal({
         {step === "pending" ? (
           <>
             <PaymentModalHeader
-              titleId="manual-payment-title"
+              titleId={titleId}
               title={
                 paysDebt
                   ? "Comprobante en revisión"
@@ -954,7 +1007,7 @@ export function ManualPaymentModal({
               }
               description={
                 paysDebt
-                  ? "Gerencia revisa la transferencia y, al aceptarla, baja la deuda de este mes. No acredita cartera."
+                  ? "Recibimos tu comprobante. El pago se aplicará a la deuda de este mes cuando el equipo lo apruebe."
                   : t("manualModal.pendingDesc")
               }
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}

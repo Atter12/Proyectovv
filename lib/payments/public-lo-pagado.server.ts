@@ -352,9 +352,10 @@ function reviewStatusOf(row: {
 
 export async function listPublicLoPagadoActivity(
   clientId: string,
+  options?: { month?: string; throwOnError?: boolean },
 ): Promise<PublicLoPagadoActivity[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from("payment_intents")
     .select("id, amount_cents, currency, status, metadata, created_at, provider")
     .eq("provider", "manual")
@@ -362,6 +363,9 @@ export async function listPublicLoPagadoActivity(
     .order("created_at", { ascending: false })
     .limit(20);
 
+  if (options?.month) query = query.filter("metadata->>periodo_resumen", "eq", options.month);
+  const { data, error } = await query;
+  if (error && options?.throwOnError) throw new Error("No se pudo cargar la actividad de pagos.");
   if (error || !data) return [];
 
   return data.flatMap((row) => {

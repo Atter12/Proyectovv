@@ -1219,6 +1219,7 @@ export async function listMissingCobroReviewsForStaff(options?: {
 /** Cliente / scoped: sus claims de cobro faltante (historial corto). */
 export async function listMissingCobroClaimsForCliente(
   hecomClienteId: string,
+  options?: { month?: string; throwOnError?: boolean },
 ): Promise<ManualPaymentIntentItem[]> {
   const id = hecomClienteId.trim();
   if (!id) return [];
@@ -1226,7 +1227,7 @@ export async function listMissingCobroClaimsForCliente(
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
 
-  const { data, error } = await admin
+  let query = admin
     .from("payment_intents")
     .select(
       "id, organization_id, wallet_id, amount_cents, currency, provider, provider_reference, status, idempotency_key, checkout_url, metadata, created_by, failure_reason, created_at, updated_at",
@@ -1237,8 +1238,11 @@ export async function listMissingCobroClaimsForCliente(
     .order("created_at", { ascending: false })
     .limit(15);
 
+  if (options?.month) query = query.filter("metadata->>periodo_resumen", "eq", options.month);
+  const { data, error } = await query;
   if (error) {
     console.error("[payments] listMissingCobroClaimsForCliente", error.message);
+    if (options?.throwOnError) throw new Error("No se pudieron cargar los comprobantes enviados.");
     return [];
   }
 

@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
+import { PublicAccountStatement } from "@/features/clientes/components/PublicAccountStatement";
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
@@ -8,24 +8,41 @@ import { listPublicLoPagadoActivity } from "@/lib/payments/public-lo-pagado.serv
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { serverEnv } from "@/lib/env/env.server";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
+import { buildCobranzaMonthSnapshot } from "@/lib/hecom/cobranza-month-snapshot";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Lo pagado · Holistic Marketing",
+  title: "Tu estado de cuenta · Holistic Marketing",
   robots: { index: false, follow: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 function monthFromQuery(value: string | string[] | undefined): string | undefined {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw && /^\d{4}-\d{2}$/.test(raw) ? raw : undefined;
+  return raw && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw) ? raw : undefined;
 }
 
-function publicLinkMonth(value: string | string[] | undefined): string {
-  const now = todayYmdInTz("America/Lima").slice(0, 7);
+function publicLinkMonth(value: string | string[] | undefined, today: string): string {
+  const now = today.slice(0, 7);
   const raw = monthFromQuery(value);
   if (raw && raw <= now) return raw;
   return now;
+}
+
+function statementDate(value: string | null): string | null {
+  if (!value) return null;
+  const raw = value.trim();
+  const iso = raw.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const dmy = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  return dmy ? `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}` : null;
 }
 
 export default async function LoPagadoPublicPage({
@@ -49,81 +66,91 @@ export default async function LoPagadoPublicPage({
   if (!data) notFound();
 
   const { cliente, summary, cobros, gastos } = data;
-  const month = publicLinkMonth(query.m);
+  const today = todayYmdInTz("America/Lima");
+  const month = publicLinkMonth(query.m, today);
+  const snapshot = buildCobranzaMonthSnapshot({
+    gastos,
+    cobros,
+    feePercent: summary.depositFeePercent,
+    monthYm: month,
+    todayYmd: today,
+  });
+  const monthLabel = new Intl.DateTimeFormat("es-PE", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T12:00:00Z`));
+  const monthPayments = cobros.filter((row) => {
+    const period = row.periodoResumen?.trim().match(/^(\d{4}-\d{2})/)?.[1];
+    if (period) return period === month;
+    const date = statementDate(row.fecha);
+    return Boolean(date && date >= snapshot.from && date <= snapshot.chartTo);
+  }).map((row) => ({
+    id: row.id,
+    fecha: statementDate(row.fecha),
+    codigo: row.codigo,
+    monto: row.monto,
+    applicableMonto: Number.isFinite(row.applicableMonto) ? row.applicableMonto : row.monto,
+    metodo: row.metodo,
+  })).sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""));
+  const monthExpenses = gastos.flatMap((row) => {
+    const date = statementDate(row.fecha);
+    return date && date >= snapshot.from && date <= snapshot.spendTo
+      ? [{ fecha: date, gasto: row.gasto, cuenta: row.camp?.split("|")[0].trim() || "Cuenta publicitaria" }]
+      : [];
+  }).sort((a, b) => b.fecha.localeCompare(a.fecha));
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
   let activity: Awaited<ReturnType<typeof listPublicLoPagadoActivity>> = [];
+  let activityUnavailable = false;
   try {
     [claims, activity] = await Promise.all([
-      listMissingCobroClaimsForCliente(clientId),
-      listPublicLoPagadoActivity(clientId),
+      listMissingCobroClaimsForCliente(clientId, { month, throwOnError: true }),
+      listPublicLoPagadoActivity(clientId, { month, throwOnError: true }),
     ]);
   } catch {
+    activityUnavailable = true;
     claims = [];
     activity = [];
   }
 
   return (
-    <main className="dashboard-canvas min-h-screen px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-5">
-        <header className="border-b border-[var(--auth-divider)] pb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
+    <main className="dashboard-canvas min-h-screen px-4 py-6 text-[var(--admin-text)] selection:bg-[var(--admin-accent-soft)] sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header>
+          <p className="mb-6 border-b border-[var(--admin-border)] pb-4 text-sm font-semibold">
             Holistic Marketing
           </p>
-          <h1 className="mt-1 text-[1.35rem] font-semibold tracking-[-0.03em] text-[#1a1714]">
-            Lo pagado · {cliente.name}
-          </h1>
-          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-            Gastos diarios de ads (con fee) y pagos de este mes. Solo ves el mes
-            del mensaje de cobranza. Desde aquí también puedes pagar o avisar
-            si no ves un pago de ese mes.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Tu estado de cuenta</h1>
+              <p className="mt-2 break-words text-base text-[var(--admin-text-muted)]">{cliente.name}</p>
+            </div>
+            <p className="text-sm font-medium capitalize text-[var(--admin-text-muted)]">{monthLabel}</p>
+          </div>
         </header>
-        <ClienteCobrosMonthView
-          initialMonth={month}
-          lockMonth
-          hideStaff
-          feePercent={summary.depositFeePercent}
+        <PublicAccountStatement
+          snapshot={snapshot}
+          payments={monthPayments}
+          expenses={monthExpenses}
           capped={gastos.length >= 4000 || cobros.length >= 800}
-          gastos={gastos.map((row) => ({
-            fecha: row.fecha,
-            gasto: row.gasto,
-            fee: row.fee,
-            camp: row.camp,
-          }))}
-          cobros={cobros.map((row) => ({
-            fecha: row.fecha,
-            monto: row.monto,
-            applicableMonto: row.applicableMonto,
-            metodo: row.metodo,
-            periodoResumen: row.periodoResumen,
-            notas: row.notas,
-          }))}
-          historyCobros={cobros.map((row) => ({
-            id: row.id,
-            fecha: row.fecha,
-            hora: row.hora,
-            codigo: row.codigo,
-            periodoResumen: row.periodoResumen,
-            monto: row.monto,
-            metodo: row.metodo,
-            comprobanteUrls: [],
-            registeredBy: null,
-            registeredAt: row.registeredAt,
-          }))}
-        />
-        <PublicLoPagadoActions
-          apiBase={apiBase}
-          month={month}
-          activity={activity}
-          claims={claims.map((claim) => ({
-            ...claim,
-            actorEmail: null,
-            actorName: null,
-            proofSignedUrl: null,
-            organizationName: null,
-          }))}
-        />
+        >
+          <PublicLoPagadoActions
+            presentation="portal"
+            debtAmountUsd={snapshot.deudaCorte}
+            activityUnavailable={activityUnavailable}
+            apiBase={apiBase}
+            month={month}
+            activity={activity.filter((row) => row.periodoResumen === month)}
+            claims={claims.filter((claim) => claim.periodoResumen === month).map((claim) => ({
+              ...claim,
+              actorEmail: null,
+              actorName: null,
+              proofSignedUrl: null,
+              organizationName: null,
+            }))}
+          />
+        </PublicAccountStatement>
       </div>
     </main>
   );
