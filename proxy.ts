@@ -234,6 +234,8 @@ export const config = {
     "/profit/:path*",
     "/asistente",
     "/asistente/:path*",
+    "/alianzas",
+    "/alianzas/:path*",
     "/education",
     "/education/:path*",
     "/admin/:path*",

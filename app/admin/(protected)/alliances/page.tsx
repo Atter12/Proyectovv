@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AllianceList } from "@/features/alliances/components/AllianceList.client";
+import { AllianceModuleNav } from "@/features/alliances/components/AllianceModuleNav";
 import { listAlliances } from "@/features/alliances/lib/alliances.server";
 import { requireAdmin } from "@/lib/admin/auth";
 
@@ -15,9 +16,18 @@ export default async function AdminAlliancesPage() {
         eyebrow="Marketing"
         title="Alianzas"
         description="Centro de relaciones comerciales: qué se acordó, qué contrato lo respalda y cuál es la siguiente acción."
+        actions={<AllianceModuleNav basePath="/admin/alliances" current="resumen" />}
       />
       {loaded.ok ? (
-        <AllianceList today={loaded.data.today} rows={loaded.data.rows} stats={loaded.data.stats} />
+        <AllianceList
+          today={loaded.data.today}
+          rows={loaded.data.rows}
+          stats={loaded.data.stats}
+          followup={loaded.data.followup}
+          byType={loaded.data.byType}
+          owners={loaded.data.owners}
+          alertsReady={loaded.data.alertsReady}
+        />
       ) : (
         <SchemaNotice missing={loaded.error === "missing_table"} />
       )}

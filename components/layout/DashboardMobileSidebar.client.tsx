@@ -21,7 +21,6 @@ interface DashboardMobileSidebarProps {
   selectedCliente?: SidebarSelectedCliente | null;
   persona?: DashboardPersona;
   actingAsCliente?: boolean;
-  showEducation?: boolean;
   canSwitchMode?: boolean;
   testerMode?: TesterDashboardMode;
 }
@@ -32,7 +31,6 @@ export function DashboardMobileSidebar({
   selectedCliente = null,
   persona = "cliente",
   actingAsCliente = false,
-  showEducation = false,
   canSwitchMode = false,
   testerMode = "cliente",
 }: DashboardMobileSidebarProps) {
@@ -72,7 +70,6 @@ export function DashboardMobileSidebar({
       <DashboardNavLinks
         onNavigate={onNavigate}
         persona={persona}
-        showEducation={showEducation}
       />
 
       <div className="mt-auto border-t border-[var(--auth-divider)] p-4">

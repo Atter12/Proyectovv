@@ -102,7 +102,7 @@ test("un firmante vacío se ignora y uno incompleto se rechaza", () => {
     sentOn: "",
     expiresOn: "2027-01-01",
     notes: "",
-    signers: [{ name: "  ", email: "", roleTitle: "", signedOn: "" }],
+    signers: [{ name: "  ", email: "", phone: "", roleTitle: "", signedOn: "" }],
   });
   assert.equal(empty.ok, true);
   if (empty.ok) assert.equal(empty.value.signers.length, 0);
@@ -114,7 +114,7 @@ test("un firmante vacío se ignora y uno incompleto se rechaza", () => {
     sentOn: "",
     expiresOn: "",
     notes: "",
-    signers: [{ name: "A", email: "", roleTitle: "Legal", signedOn: "" }],
+    signers: [{ name: "A", email: "", phone: "", roleTitle: "Legal", signedOn: "" }],
   });
   assert.equal(invalid.ok, false);
 });

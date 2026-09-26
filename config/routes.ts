@@ -19,6 +19,7 @@ export const routes = {
   cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",
+  alliances: "/alianzas",
   creativeAnalyzer: "/creative-analyzer",
   pixels: "/pixels",
   profit: "/profit",

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AdminMetricCard } from "@/components/admin/overview/AdminMetricCard";
 import { Button } from "@/components/ui/Button";
 import { allianceInitials, dueHint, emptyAllianceDraft, ALLIANCE_STATUSES, ALLIANCE_STATUS_LABEL, ALLIANCE_TYPES, ALLIANCE_TYPE_LABEL, type AllianceHomeStats, type AllianceListRow, type AllianceStatus, type AllianceType } from "@/features/alliances/lib/domain";
+import type { FollowupStatsView, OwnerLoadItem, TypeShareItem } from "@/features/alliances/lib/view";
 import { AllianceStatusBadge, AllianceTypeBadge, ContractStatusBadge } from "./badges";
 import { AllianceEditor } from "./AllianceEditor.client";
 import { fieldClass } from "./fields";
@@ -14,10 +15,20 @@ export function AllianceList({
   today,
   rows,
   stats,
+  followup,
+  byType,
+  owners,
+  alertsReady,
+  basePath = "/admin/alliances",
 }: {
   today: string;
   rows: AllianceListRow[];
   stats: AllianceHomeStats;
+  followup: FollowupStatsView;
+  byType: TypeShareItem[];
+  owners: OwnerLoadItem[];
+  alertsReady: boolean;
+  basePath?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -54,6 +65,53 @@ export function AllianceList({
           emphasized={stats.needsAttention > 0}
         />
       </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <AdminMetricCard label="Nuevas del mes" value={String(followup.newThisMonth)} detail="Altas de este mes" />
+        <AdminMetricCard label="Por vencer" value={String(followup.expiring)} detail="Contratos firmados dentro de 30 días" accent="amber" emphasized={followup.expiring > 0} />
+        <AdminMetricCard label="Seguimientos vencidos" value={String(followup.overdueFollowUps)} detail="Recordatorios abiertos con fecha pasada" accent={followup.overdueFollowUps > 0 ? "rose" : "indigo"} emphasized={followup.overdueFollowUps > 0} />
+        <AdminMetricCard label="Renovaciones en curso" value={String(followup.pendingRenewals)} detail="Renovaciones sin firmar" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[var(--admin-shadow-1)]">
+          <h2 className="text-sm font-semibold text-[var(--admin-text)]">Alianzas por tipo</h2>
+          <ul className="mt-3 space-y-2">
+            {byType.map((item) => {
+              const max = Math.max(1, ...byType.map((entry) => entry.count));
+              return (
+                <li key={item.type} className="grid grid-cols-[7rem_1fr_2rem] items-center gap-3 text-sm">
+                  <span className="text-[var(--admin-text-muted)]">{item.label}</span>
+                  <span className="h-2 overflow-hidden rounded-full bg-[var(--admin-surface-soft)]">
+                    <span className="block h-full rounded-full bg-[var(--admin-accent)]" style={{ width: `${Math.round((item.count / max) * 100)}%` }} />
+                  </span>
+                  <span className="text-right font-medium text-[var(--admin-text)]">{item.count}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+        <section className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[var(--admin-shadow-1)]">
+          <h2 className="text-sm font-semibold text-[var(--admin-text)]">Responsables con seguimiento</h2>
+          {owners.length === 0 ? (
+            <p className="mt-3 text-sm text-[var(--admin-text-muted)]">No hay recordatorios abiertos.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {owners.map((owner) => (
+                <li key={owner.name} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[var(--admin-text)]">{owner.name}</span>
+                  <span className={owner.overdue > 0 ? "font-medium text-[var(--admin-danger)]" : "text-[var(--admin-text-muted)]"}>
+                    {owner.open} abierto{owner.open === 1 ? "" : "s"}{owner.overdue > 0 ? ` · ${owner.overdue} vencido${owner.overdue === 1 ? "" : "s"}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+      {alertsReady ? null : (
+        <p className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-text-muted)]">
+          Falta aplicar supabase/migrations/041_alliance_followups.sql para guardar las alertas de 30, 15 y 7 días y las firmas que llevan más de una semana.
+        </p>
+      )}
 
       <section className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[var(--admin-shadow-1)] sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -110,7 +168,7 @@ export function AllianceList({
               initial={emptyAllianceDraft()}
               submitLabel="Crear alianza"
               onCancel={() => setCreating(false)}
-              onSaved={(id) => router.push(`/admin/alliances/${id}`)}
+              onSaved={(id) => router.push(`${basePath}/${id}`)}
             />
           </div>
         ) : null}
@@ -145,7 +203,7 @@ export function AllianceList({
                 {visible.map((row) => (
                   <tr key={row.id} className="border-b border-[var(--admin-border)] last:border-0 hover:bg-[var(--admin-surface-hover)]">
                     <td className="px-4 py-3">
-                      <Link href={`/admin/alliances/${row.id}`} className="font-semibold text-[var(--admin-text)] hover:text-[var(--admin-accent)]">
+                      <Link href={`${basePath}/${row.id}`} className="font-semibold text-[var(--admin-text)] hover:text-[var(--admin-accent)]">
                         {row.name}
                       </Link>
                       <p className="mt-0.5 text-xs text-[var(--admin-text-muted)]">
@@ -172,7 +230,7 @@ export function AllianceList({
             {visible.map((row) => (
               <Link
                 key={row.id}
-                href={`/admin/alliances/${row.id}`}
+                href={`${basePath}/${row.id}`}
                 className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[var(--admin-shadow-1)]"
               >
                 <div className="flex items-start gap-3">

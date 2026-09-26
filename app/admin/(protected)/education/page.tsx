@@ -14,7 +14,7 @@ export default async function AdminEducationPage() {
       <AdminPageHeader
         eyebrow="Contenido"
         title="Educación"
-        description="Publica el enlace de Loom de cada tutorial. Sin enlace, el cliente ve la portada y el aviso de que el video aún no está disponible."
+        description="Publica el título, el enlace de Loom y la imagen de cada tutorial. Sin enlace, el cliente ve la portada y el aviso de que el video aún no está disponible."
       />
       <EducationLoomEditor lessons={lessons} tone="admin" />
     </>

@@ -31,8 +31,11 @@ export interface AllianceSignerRecord {
   id: string;
   name: string;
   email: string;
+  phone: string;
   roleTitle: string;
   signedOn: string;
+  signUrl: string;
+  providerStatus: string;
 }
 
 export interface AllianceContractRecord {
@@ -47,6 +50,10 @@ export interface AllianceContractRecord {
   hasFile: boolean;
   signatureProvider: string;
   externalRef: string;
+  providerStatus: string;
+  rejectionReason: string;
+  hasSignedFile: boolean;
+  signedFileName: string;
   signers: AllianceSignerRecord[];
   updatedAt: string;
 }
@@ -88,8 +95,55 @@ export interface AllianceDetail extends AllianceDraft {
   files: AllianceFileRecord[];
 }
 
+export interface OwnerLoadItem {
+  name: string;
+  open: number;
+  overdue: number;
+}
+
+export interface TypeShareItem {
+  type: string;
+  label: string;
+  count: number;
+}
+
+export interface ContractQueueItemView {
+  id: string;
+  allianceId: string;
+  allianceName: string;
+  contractType: string;
+  version: number;
+  shown: string;
+  expiresOn: string;
+  sentOn: string;
+}
+
+export interface CalendarEventView {
+  id: string;
+  date: string;
+  allianceId: string;
+  allianceName: string;
+  title: string;
+  kind: "reminder" | "expiry";
+  overdue: boolean;
+  priority: "low" | "normal" | "high";
+}
+
+export interface FollowupStatsView {
+  expiring: number;
+  newThisMonth: number;
+  overdueFollowUps: number;
+  pendingRenewals: number;
+}
+
 export interface AllianceHome {
   today: string;
   rows: AllianceListRow[];
   stats: AllianceHomeStats;
+  followup: FollowupStatsView;
+  byType: TypeShareItem[];
+  owners: OwnerLoadItem[];
+  queue: ContractQueueItemView[];
+  events: CalendarEventView[];
+  alertsReady: boolean;
 }
