@@ -39,12 +39,14 @@ export function PublicAccountStatement({
   payments,
   expenses,
   capped,
+  paymentReport,
   children,
 }: {
   snapshot: CobranzaMonthSnapshot;
   payments: PublicPayment[];
   expenses: { fecha: string; gasto: number; cuenta: string }[];
   capped: boolean;
+  paymentReport?: ReactNode;
   children: ReactNode;
 }) {
   const hasDebt = snapshot.deudaCorte > 0;
@@ -147,6 +149,7 @@ export function PublicAccountStatement({
             Los pagos incluyen {money(snapshot.surcharge)} USD en cargos de procesamiento. Esos cargos no reducen el saldo pendiente.
           </p>
         ) : null}
+        {paymentReport}
       </section>
       </div>
 

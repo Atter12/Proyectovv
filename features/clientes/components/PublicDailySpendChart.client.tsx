@@ -34,6 +34,7 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
   const [activeKey, setActiveKey] = useState("");
   const [hoveredKey, setHoveredKey] = useState("");
   const dayButtons = useRef<Array<HTMLButtonElement | null>>([]);
+  const chartViewport = useRef<HTMLDivElement | null>(null);
   const chosenIndex = series.findIndex((day) => day.key === activeKey);
   const defaultIndex = series.reduce(
     (latest, day, index) => day.key <= spendTo ? index : latest,
@@ -53,11 +54,22 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
   const ticks = [scaleTop, (scaleTop + minValue) / 2, minValue];
   const labelEvery = Math.max(1, Math.ceil(series.length / 6));
 
-  function selectDay(index: number, focus = false) {
+  function selectDay(index: number, focus = false, reveal = false) {
     const next = Math.max(0, Math.min(series.length - 1, index));
     if (!series[next]) return;
     setActiveKey(series[next].key);
-    if (focus) dayButtons.current[next]?.focus();
+    if (focus || reveal) setHoveredKey("");
+    const button = dayButtons.current[next];
+    const viewport = chartViewport.current;
+    if (focus) button?.focus({ preventScroll: true });
+    if ((focus || reveal) && button && viewport) {
+      const left = button.offsetLeft;
+      const right = left + button.offsetWidth;
+      if (left < viewport.scrollLeft) viewport.scrollLeft = left;
+      else if (right > viewport.scrollLeft + viewport.clientWidth) {
+        viewport.scrollLeft = right - viewport.clientWidth;
+      }
+    }
   }
 
   function handleDayKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -77,7 +89,7 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
   }
 
   return (
-    <section aria-labelledby={`${id}-title`} className="min-w-0 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-5 text-[var(--admin-text)] sm:p-6">
+    <section aria-labelledby={`${id}-title`} className="@container min-w-0 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-5 text-[var(--admin-text)] sm:p-6">
       <h2 id={`${id}-title`} className="text-xl font-semibold leading-6 tracking-tight">Gasto diario</h2>
       <p className="mt-1 text-xs leading-5 text-[var(--admin-text-muted)]">
         Gastos hasta el {dateLabel(spendTo)} · USD
@@ -92,6 +104,7 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
           <p id={`${id}-instructions`} className="sr-only">
             Importes diarios en dólares. Pasa el puntero por una columna o selecciona una fecha para ver sus importes.
             Al retirar el puntero se muestran los totales hasta la fecha.
+            En pantallas pequeñas, desliza el gráfico horizontalmente para ver más días y toca una columna para consultar sus importes.
             En las barras, usa las flechas izquierda y derecha para cambiar de día, Inicio para el primero y Fin para el último.
             Pulsa Escape o elige Total hasta la fecha para volver al resumen.
           </p>
@@ -103,77 +116,85 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
                 </span>
               ))}
             </div>
-            <div className="relative min-w-0">
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-36 sm:h-40">
-                {ticks.map((_, index) => <span key={index} className="absolute inset-x-0 border-t border-[var(--admin-border)]" style={{ top: `${index * 50}%` }} />)}
-                {minValue < 0 && maxValue > 0 ? <span className="absolute inset-x-0 border-t border-[var(--admin-border-strong)]" style={{ bottom: `${zeroPosition}%` }} /> : null}
-              </div>
-              <div role="group" aria-label="Gráfico de importes por día" aria-describedby={`${id}-instructions`} className="relative grid min-w-0" style={{ gridTemplateColumns: `repeat(${series.length}, minmax(0, 1fr))` }}>
-                {series.map((day, index) => {
-                  const active = index === chosenIndex;
-                  const showLabel = index === 0 || index === series.length - 1 || (index % labelEvery === 0 && index < series.length - 2);
-                  const dayAmounts = `${day.key > spendTo ? "Gasto pendiente de actualizar" : `Anuncios y comisión: ${money.format(day.cargo)}`}. Pagos aplicados: ${money.format(day.paid)}.`;
-                  return (
-                    <button
-                      key={day.key}
-                      ref={(element) => { dayButtons.current[index] = element; }}
-                      type="button"
-                      tabIndex={index === selectedIndex ? 0 : -1}
-                      aria-pressed={active}
-                      aria-label={`${dateLabel(day.key)}. ${dayAmounts}`}
-                      title={`${dateLabel(day.key)}. ${dayAmounts}`}
-                      onClick={() => selectDay(index)}
-                      onPointerEnter={(event) => {
-                        if (event.pointerType !== "touch") {
-                          setHoveredKey(day.key);
-                          selectDay(index);
-                        }
-                      }}
-                      onPointerLeave={(event) => {
-                        if (event.pointerType !== "touch") {
-                          setHoveredKey((current) => current === day.key ? "" : current);
-                          setActiveKey((current) => current === day.key ? "" : current);
-                        }
-                      }}
-                      onFocus={(event) => {
-                        if (event.currentTarget.matches(":focus-visible")) selectDay(index);
-                      }}
-                      onKeyDown={(event) => handleDayKey(event, index)}
-                      className="group min-w-0 cursor-pointer rounded-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]"
-                    >
-                      <span className={`relative flex h-36 justify-center gap-px px-px sm:h-40 sm:gap-0.5 ${active ? "bg-[var(--admin-accent-soft)]" : "group-hover:bg-[var(--admin-surface-hover)]"}`}>
-                        {[day.cargo, day.paid].map((amount, barIndex) => {
-                          const height = Math.abs(amount) / scaleRange * 100;
-                          return (
-                            <span key={barIndex} aria-hidden="true" className="relative h-full w-[40%] max-w-3">
-                              <span
-                                className={`absolute inset-x-0 rounded-t-sm transition-opacity duration-150 ease-out motion-reduce:transition-none ${hoveredKey && hoveredKey !== day.key ? "opacity-20" : "opacity-100"} ${barIndex === 0 ? "bg-[var(--admin-accent)]" : "bg-[var(--admin-badge-success-text)]"}`}
-                                style={{ height: `${height}%`, bottom: `${amount >= 0 ? zeroPosition : zeroPosition - height}%` }}
-                              />
-                            </span>
-                          );
-                        })}
-                      </span>
-                      <span aria-hidden="true" className={`mt-2 block h-4 text-[10px] leading-4 tabular-nums ${active ? "font-semibold text-[var(--admin-text)]" : "text-[var(--admin-text-muted)]"}`}>
-                        {showLabel ? day.label : ""}
-                      </span>
-                    </button>
-                  );
-                })}
+            <div ref={chartViewport} className="min-w-0 overflow-x-auto overscroll-x-contain pb-2 [--chart-day-width:44px] @min-[42rem]:[--chart-day-width:24px]">
+              <div className="relative" style={{ minWidth: `calc(${series.length} * var(--chart-day-width))` }}>
+                <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-36 sm:h-40">
+                  {ticks.map((_, index) => <span key={index} className="absolute inset-x-0 border-t border-[var(--admin-border)]" style={{ top: `${index * 50}%` }} />)}
+                  {minValue < 0 && maxValue > 0 ? <span className="absolute inset-x-0 border-t border-[var(--admin-border-strong)]" style={{ bottom: `${zeroPosition}%` }} /> : null}
+                </div>
+                <div role="group" aria-label="Gráfico de importes por día" aria-describedby={`${id}-instructions`} className="relative grid min-w-0" style={{ gridTemplateColumns: `repeat(${series.length}, minmax(0, 1fr))` }}>
+                  {series.map((day, index) => {
+                    const active = index === chosenIndex;
+                    const showLabel = index === 0 || index === series.length - 1 || (index % labelEvery === 0 && index < series.length - 2);
+                    const dayAmounts = `${day.key > spendTo ? "Gasto pendiente de actualizar" : `Anuncios y comisión: ${money.format(day.cargo)}`}. Pagos aplicados: ${money.format(day.paid)}.`;
+                    return (
+                      <button
+                        key={day.key}
+                        ref={(element) => { dayButtons.current[index] = element; }}
+                        type="button"
+                        tabIndex={index === selectedIndex ? 0 : -1}
+                        aria-pressed={active}
+                        aria-label={`${dateLabel(day.key)}. ${dayAmounts}`}
+                        title={`${dateLabel(day.key)}. ${dayAmounts}`}
+                        onClick={() => selectDay(index)}
+                        onPointerMove={(event) => {
+                          // Scrolling with the keyboard must not select the day passing under a still pointer.
+                          if (event.pointerType !== "touch") {
+                            setHoveredKey(day.key);
+                            selectDay(index);
+                          }
+                        }}
+                        onPointerLeave={(event) => {
+                          if (event.pointerType !== "touch") {
+                            setHoveredKey((current) => current === day.key ? "" : current);
+                            setActiveKey((current) => current === day.key ? "" : current);
+                          }
+                        }}
+                        onFocus={(event) => {
+                          if (event.currentTarget.matches(":focus-visible")) selectDay(index);
+                        }}
+                        onKeyDown={(event) => handleDayKey(event, index)}
+                        className="group min-w-0 cursor-pointer rounded-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]"
+                      >
+                        <span className={`relative flex h-36 justify-center gap-1 px-1 sm:h-40 @min-[42rem]:gap-0.5 @min-[42rem]:px-px ${active ? "bg-[var(--admin-accent-soft)]" : "group-hover:bg-[var(--admin-surface-hover)]"}`}>
+                          {[day.cargo, day.paid].map((amount, barIndex) => {
+                            const height = Math.abs(amount) / scaleRange * 100;
+                            return (
+                              <span key={barIndex} aria-hidden="true" className="relative h-full w-[40%] max-w-3">
+                                <span
+                                  className={`absolute inset-x-0 rounded-t-sm transition-opacity duration-150 ease-out motion-reduce:transition-none ${hoveredKey && hoveredKey !== day.key ? "opacity-20" : "opacity-100"} ${barIndex === 0 ? "bg-[var(--admin-accent)]" : "bg-[var(--admin-badge-success-text)]"}`}
+                                  style={{ height: `${height}%`, bottom: `${amount >= 0 ? zeroPosition : zeroPosition - height}%` }}
+                                />
+                              </span>
+                            );
+                          })}
+                        </span>
+                        <span aria-hidden="true" className={`mt-2 block h-4 text-[10px] leading-4 tabular-nums ${active ? "font-semibold text-[var(--admin-text)]" : "text-[var(--admin-text-muted)]"}`}>
+                          <span className={showLabel ? "" : "@min-[42rem]:invisible"}>{day.label}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
+          <p className="mt-1 text-xs leading-5 text-[var(--admin-text-muted)] @min-[42rem]:hidden">Desliza para ver más días · Toca una columna para ver el detalle.</p>
 
           <div className="mt-3 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
-            <button type="button" aria-label="Día anterior" disabled={chosenIndex === 0} onClick={() => selectDay(chosenIndex >= 0 ? chosenIndex - 1 : defaultIndex)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--admin-border)] hover:bg-[var(--admin-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" aria-label="Día anterior" disabled={chosenIndex === 0} onClick={() => selectDay(chosenIndex >= 0 ? chosenIndex - 1 : defaultIndex, false, true)} className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--admin-border)] hover:bg-[var(--admin-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] disabled:cursor-not-allowed disabled:opacity-40">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="m14 6-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
             <label htmlFor={`${id}-date`} className="sr-only">Día del gráfico</label>
-            <select id={`${id}-date`} value={selected?.key ?? ""} onChange={(event) => setActiveKey(event.target.value)} className="col-start-2 row-start-1 h-11 min-w-0 w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] sm:text-sm">
+            <select id={`${id}-date`} value={selected?.key ?? ""} onChange={(event) => {
+              const index = series.findIndex((day) => day.key === event.target.value);
+              if (index >= 0) selectDay(index, false, true);
+              else setActiveKey("");
+            }} className="col-start-2 row-start-1 h-11 min-w-0 w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] sm:text-sm">
               <option value="">Total hasta la fecha</option>
               {series.map((day) => <option key={day.key} value={day.key}>{dateLabel(day.key)}</option>)}
             </select>
-            <button type="button" aria-label="Día siguiente" disabled={chosenIndex === series.length - 1} onClick={() => selectDay(chosenIndex >= 0 ? chosenIndex + 1 : 0)} className="col-start-3 row-start-1 flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--admin-border)] hover:bg-[var(--admin-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" aria-label="Día siguiente" disabled={chosenIndex === series.length - 1} onClick={() => selectDay(chosenIndex >= 0 ? chosenIndex + 1 : 0, false, true)} className="col-start-3 row-start-1 flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--admin-border)] hover:bg-[var(--admin-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)] disabled:cursor-not-allowed disabled:opacity-40">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="m10 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
           </div>

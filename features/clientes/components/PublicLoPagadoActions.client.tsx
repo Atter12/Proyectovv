@@ -54,7 +54,7 @@ function activityDate(value: string): string {
 
 export function PublicLoPagadoActions({
   apiBase,
-  claims,
+  claims = [],
   activity,
   month,
   presentation = "default",
@@ -62,7 +62,7 @@ export function PublicLoPagadoActions({
   activityUnavailable = false,
 }: {
   apiBase: string;
-  claims: ManualPaymentIntentItem[];
+  claims?: ManualPaymentIntentItem[];
   activity: Activity[];
   /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
   month: string;
@@ -96,18 +96,6 @@ export function PublicLoPagadoActions({
       claims: `${apiBase}/missing-cobro`,
     }),
     [apiBase],
-  );
-
-  const claimPanel = (
-    <MissingCobroClaimPanel
-      presentation={presentation}
-      periodos={periodos}
-      initialClaims={claims}
-      endpoints={{
-        claims: endpoints.claims,
-        proof: endpoints.proof,
-      }}
-    />
   );
 
   return (
@@ -214,16 +202,16 @@ export function PublicLoPagadoActions({
         </section>
       )}
 
-      {isPortal ? (
-        <details className="col-span-full mx-5 border-t border-[var(--admin-border)] py-2 sm:mx-6">
-          <summary className="cursor-pointer rounded-lg py-3 text-sm font-semibold text-[var(--admin-text)] marker:text-[var(--admin-text-muted)] hover:text-[var(--admin-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-surface)]">
-            Ya pagué y no aparece
-          </summary>
-          <div className="pb-2 pt-1">{claimPanel}</div>
-        </details>
-      ) : (
-        claimPanel
-      )}
+      {!isPortal ? (
+        <MissingCobroClaimPanel
+          periodos={periodos}
+          initialClaims={claims}
+          endpoints={{
+            claims: endpoints.claims,
+            proof: endpoints.proof,
+          }}
+        />
+      ) : null}
 
       <ManualPaymentModal
         open={payOpen}

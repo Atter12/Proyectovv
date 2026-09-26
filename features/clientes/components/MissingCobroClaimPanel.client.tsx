@@ -107,7 +107,7 @@ export function MissingCobroClaimPanel({
     ? "font-medium text-[var(--admin-text)]"
     : "font-medium text-[var(--auth-text)]";
   const fieldClass = isPortal
-    ? "mt-1 min-h-11 w-full rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[var(--admin-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]"
+    ? "mt-1 min-h-11 w-full min-w-0 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[var(--admin-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--admin-accent)]"
     : "mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2";
   const claimsEndpoint = endpoints?.claims ?? "/api/payments/missing-cobro";
 
@@ -207,7 +207,7 @@ export function MissingCobroClaimPanel({
   }
 
   return (
-    <section className="space-y-3">
+    <section className={isPortal ? "min-w-0 space-y-3" : "space-y-3"}>
       <div
         className={isPortal ? "space-y-4" : [
           "relative overflow-hidden rounded-2xl border border-[var(--auth-divider)]",
@@ -265,7 +265,7 @@ export function MissingCobroClaimPanel({
 
         {open ? (
           <div id={formId} className={isPortal ? "space-y-4 border-t border-[var(--admin-border)] pt-4" : "relative mt-4 space-y-3 rounded-xl border border-[var(--auth-divider)] bg-white/90 p-3 shadow-sm sm:p-4"}>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={isPortal ? "grid min-w-0 grid-cols-1 gap-3" : "grid gap-3 sm:grid-cols-2"}>
               <label className="block text-[12px]">
                 <span className={fieldLabelClass}>
                   {t("missingCobro.period")}

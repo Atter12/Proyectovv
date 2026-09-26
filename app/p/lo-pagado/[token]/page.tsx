@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicAccountStatement } from "@/features/clientes/components/PublicAccountStatement";
 import { PublicAccountHeader } from "@/features/clientes/components/PublicAccountHeader";
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
+import { PublicMissingPaymentReport } from "@/features/clientes/components/PublicMissingPaymentReport.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
 import { listPublicLoPagadoActivity } from "@/lib/payments/public-lo-pagado.server";
@@ -124,6 +125,19 @@ export default async function LoPagadoPublicPage({
           payments={monthPayments}
           expenses={monthExpenses}
           capped={gastos.length >= 4000 || cobros.length >= 800}
+          paymentReport={
+            <PublicMissingPaymentReport
+              apiBase={apiBase}
+              month={month}
+              claims={claims.filter((claim) => claim.periodoResumen === month).map((claim) => ({
+                ...claim,
+                actorEmail: null,
+                actorName: null,
+                proofSignedUrl: null,
+                organizationName: null,
+              }))}
+            />
+          }
         >
           <PublicLoPagadoActions
             presentation="portal"
@@ -132,13 +146,6 @@ export default async function LoPagadoPublicPage({
             apiBase={apiBase}
             month={month}
             activity={activity.filter((row) => row.periodoResumen === month)}
-            claims={claims.filter((claim) => claim.periodoResumen === month).map((claim) => ({
-              ...claim,
-              actorEmail: null,
-              actorName: null,
-              proofSignedUrl: null,
-              organizationName: null,
-            }))}
           />
         </PublicAccountStatement>
       </div>
