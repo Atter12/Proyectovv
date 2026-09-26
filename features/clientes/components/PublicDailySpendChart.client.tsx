@@ -32,6 +32,7 @@ function dateLabel(value: string): string {
 export function PublicDailySpendChart({ series, spendTo }: Props) {
   const id = useId();
   const [activeKey, setActiveKey] = useState("");
+  const [hoveredKey, setHoveredKey] = useState("");
   const dayButtons = useRef<Array<HTMLButtonElement | null>>([]);
   const chosenIndex = series.findIndex((day) => day.key === activeKey);
   const defaultIndex = series.reduce(
@@ -123,10 +124,14 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
                       title={`${dateLabel(day.key)}. ${dayAmounts}`}
                       onClick={() => selectDay(index)}
                       onPointerEnter={(event) => {
-                        if (event.pointerType !== "touch") selectDay(index);
+                        if (event.pointerType !== "touch") {
+                          setHoveredKey(day.key);
+                          selectDay(index);
+                        }
                       }}
                       onPointerLeave={(event) => {
                         if (event.pointerType !== "touch") {
+                          setHoveredKey((current) => current === day.key ? "" : current);
                           setActiveKey((current) => current === day.key ? "" : current);
                         }
                       }}
@@ -142,7 +147,7 @@ export function PublicDailySpendChart({ series, spendTo }: Props) {
                           return (
                             <span key={barIndex} aria-hidden="true" className="relative h-full w-[40%] max-w-3">
                               <span
-                                className={`absolute inset-x-0 rounded-t-sm ${barIndex === 0 ? "bg-[var(--admin-accent)]" : "bg-[var(--admin-badge-success-text)]"}`}
+                                className={`absolute inset-x-0 rounded-t-sm transition-opacity duration-150 ease-out motion-reduce:transition-none ${hoveredKey && hoveredKey !== day.key ? "opacity-20" : "opacity-100"} ${barIndex === 0 ? "bg-[var(--admin-accent)]" : "bg-[var(--admin-badge-success-text)]"}`}
                                 style={{ height: `${height}%`, bottom: `${amount >= 0 ? zeroPosition : zeroPosition - height}%` }}
                               />
                             </span>
