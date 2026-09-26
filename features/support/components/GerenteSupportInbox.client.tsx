@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/features/support/types/support.types";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
+import { StaffMeetingsBoard } from "@/features/support/components/StaffMeetingsBoard.client";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   useSupportListPolling,
@@ -88,6 +89,8 @@ export function GerenteSupportInbox() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [workspace, setWorkspace] = useState<"chats" | "meetings">("chats");
+  const [pendingMeetings, setPendingMeetings] = useState(0);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(() => new Set());
   const knownUpdatedAtRef = useRef<Map<string, string>>(new Map());
   const selectedMetaRef = useRef<{
@@ -118,6 +121,33 @@ export function GerenteSupportInbox() {
       document.title = base;
     };
   }, [unreadIds]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let known: number | null = null;
+    async function tick() {
+      try {
+        const res = await fetch("/api/support/meetings?scope=counts", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const data = (await res.json()) as { counts?: { pending?: number } };
+        const pending = data.counts?.pending ?? 0;
+        if (cancelled) return;
+        if (known !== null && pending > known) playSupportNotifySound();
+        known = pending;
+        setPendingMeetings(pending);
+      } catch {
+        if (!cancelled && known === null) setPendingMeetings(0);
+      }
+    }
+    void tick();
+    const timer = window.setInterval(() => void tick(), 20000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [workspace]);
 
   const filteredTickets = tickets.filter((ticket) => {
     const query = q.trim().toLowerCase();
@@ -498,6 +528,19 @@ export function GerenteSupportInbox() {
 
   return (
     <>
+      {workspace === "meetings" ? (
+        <>
+          <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]" aria-hidden />
+          <div className="fixed inset-x-0 top-14 bottom-0 z-[15] overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-[#f6f4f1] sm:top-16 lg:left-[272px]">
+            <StaffMeetingsBoard
+              onBackToChats={() => setWorkspace("chats")}
+              onPending={setPendingMeetings}
+            />
+          </div>
+        </>
+      ) : null}
+      {workspace === "chats" ? (
+      <>
       {/* Reserva altura en el flujo; el panel real va fixed pegado al sidebar. */}
       <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]" aria-hidden />
       <div className="fixed inset-x-0 top-14 bottom-0 z-[15] flex flex-col overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-white sm:top-16 lg:left-[272px]">
@@ -519,14 +562,28 @@ export function GerenteSupportInbox() {
                   Chats
                 </h1>
               </div>
-              <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
-                {filteredTickets.length}
-                {unreadIds.size > 0 ? (
-                  <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {unreadIds.size}
-                  </span>
-                ) : null}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWorkspace("meetings")}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-3 py-1.5 text-[11px] font-bold text-white"
+                >
+                  Reuniones
+                  {pendingMeetings > 0 ? (
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 tabular-nums">
+                      {pendingMeetings}
+                    </span>
+                  ) : null}
+                </button>
+                <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
+                  {filteredTickets.length}
+                  {unreadIds.size > 0 ? (
+                    <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {unreadIds.size}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
             </div>
             <input
               value={q}
@@ -718,6 +775,8 @@ export function GerenteSupportInbox() {
         </section>
       </div>
       </div>
+      </>
+      ) : null}
     </>
   );
 }

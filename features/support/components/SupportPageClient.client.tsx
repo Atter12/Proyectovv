@@ -10,6 +10,7 @@ import { supportFaqForPersona } from "@/features/support/lib/support-faq-for-per
 import type { ChatMessage, SupportView } from "@/features/support/types/support.types";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
+import { ClientMeetingsPanel } from "@/features/support/components/ClientMeetingsPanel.client";
 import { ChatFaqCategoryDetail } from "@/features/support/components/ChatFaqCategoryDetail";
 import { ChatFaqArticleDetail } from "@/features/support/components/ChatFaqArticleDetail";
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
@@ -48,6 +49,7 @@ interface PostMessageResponse {
 
 type PanelMode =
   | "chat"
+  | "meetings"
   | Extract<
       SupportView,
       "faqCategories" | "faqCategoryDetail" | "faqArticleDetail"
@@ -457,6 +459,7 @@ export function SupportPageClient({
     panel === "faqCategories" ||
     panel === "faqCategoryDetail" ||
     panel === "faqArticleDetail";
+  const meetingsMode = panel === "meetings";
 
   const leftColumn = (
     <div className="space-y-4">
@@ -504,6 +507,65 @@ export function SupportPageClient({
               {t("teamHint")}
             </span>
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPanel("meetings");
+            setMobileShowChat(false);
+          }}
+          className={cn(
+            "mt-2 flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
+            panel === "meetings"
+              ? "border-[var(--auth-accent)]/50 bg-[rgb(255_120_31_/_0.06)]"
+              : "border-[var(--auth-input-border)] bg-white hover:border-[var(--auth-accent)]/35",
+          )}
+        >
+          <span
+            aria-hidden
+            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--auth-accent)]"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-semibold text-[var(--auth-text)]">{t("meetings.nav")}</span>
+            <span className="mt-0.5 block text-[12px] text-[var(--auth-text-muted)]">{t("meetings.navHint")}</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPanel("meetings");
+            setMobileShowChat(false);
+          }}
+          className={cn(
+            "mt-2 flex w-full items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors",
+            panel === "meetings"
+              ? "border-[var(--auth-accent)]/50 bg-[rgb(255_120_31_/_0.06)]"
+              : "border-[var(--auth-input-border)] bg-white hover:border-[var(--auth-accent)]/40",
+          )}
+        >
+          <div>
+            <p className="text-[14px] font-semibold text-[var(--auth-text)]">
+              {t("meetings.nav")}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
+              {t("meetings.navHint")}
+            </p>
+          </div>
+          <svg
+            className="h-4 w-4 shrink-0 text-[var(--auth-text-soft)]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 19.5h15a.75.75 0 00.75-.75V7.5a.75.75 0 00-.75-.75h-15a.75.75 0 00-.75.75v11.25c0 .414.336.75.75.75z" />
+          </svg>
         </button>
 
         <button
@@ -575,16 +637,25 @@ export function SupportPageClient({
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <div className={cn(mobileShowChat && !faqMode && "hidden lg:block")}>
+        <div className={cn(((mobileShowChat && !faqMode) || meetingsMode) && "hidden lg:block")}>
           {leftColumn}
         </div>
         <div
           className={cn(
             "min-w-0",
-            (!mobileShowChat || faqMode) && "hidden lg:block",
+            !meetingsMode && (!mobileShowChat || faqMode) && "hidden lg:block",
           )}
         >
-          {chatColumn}
+          {meetingsMode ? (
+            <ClientMeetingsPanel
+              onBack={() => {
+                setPanel("chat");
+                setMobileShowChat(false);
+              }}
+            />
+          ) : (
+            chatColumn
+          )}
         </div>
       </div>
     </div>

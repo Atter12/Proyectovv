@@ -60,6 +60,20 @@ export function isHecomOtpStaffEmail(emailRaw: string): boolean {
   return DEFAULT_STAFF_EMAILS.includes(email);
 }
 
+/** Correos que pueden atender reuniones de soporte. */
+export function listHecomOtpStaffEmails(): string[] {
+  const emails = new Set<string>();
+  for (const email of [
+    ...DEFAULT_STAFF_EMAILS,
+    ...serverEnv.authHecomOtpStaffEmails,
+    ...serverEnv.adminAllowedEmails,
+  ]) {
+    const normalized = normalizeEmail(email);
+    if (normalized && !isDemoClienteEmail(normalized)) emails.add(normalized);
+  }
+  return [...emails];
+}
+
 function isOtpTestClienteEmail(email: string): boolean {
   return (
     serverEnv.authHecomOtpTestEmails.includes(email) ||
