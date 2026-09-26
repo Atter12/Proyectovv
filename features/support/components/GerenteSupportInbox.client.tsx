@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { TICKET_STATUS_LABELS } from "@/lib/constants/status";
 import type { ChatMessage } from "@/features/support/types/support.types";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
@@ -42,6 +41,8 @@ interface InboxTicket {
   lastMessageFromClient?: boolean;
   lastMessageSenderUserId?: string | null;
   requesterUserId?: string | null;
+  staffReadAt?: string | null;
+  unreadForStaff?: boolean;
 }
 
 function clientLabel(ticket: InboxTicket) {
@@ -51,11 +52,6 @@ function clientLabel(ticket: InboxTicket) {
     ticket.organizationName ||
     "Cliente"
   );
-}
-
-function agentLabel(ticket: InboxTicket | null) {
-  if (!ticket) return null;
-  return ticket.assignedUserDisplayName || ticket.assignedUserName || null;
 }
 
 function emptyThread(): ChatMessage[] {
@@ -72,22 +68,17 @@ function emptyThread(): ChatMessage[] {
 }
 
 const FILTERS = [
-  { id: "all", label: "Todos" },
-  { id: "unassigned", label: "Sin atender" },
-  { id: "mine", label: "Míos" },
-  { id: "active", label: "Activos" },
-  { id: "resolved", label: "Resueltos" },
+  { id: "chats", label: "Chats" },
+  { id: "all", label: "Contactos" },
 ] as const;
 
 export function GerenteSupportInbox() {
   const [tickets, setTickets] = useState<InboxTicket[]>([]);
-  const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // "all" = lista completa Hecom Club (default). "unassigned" oculta clientes sin ticket abierto.
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("chats");
   const [q, setQ] = useState("");
-  const [claiming, setClaiming] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(emptyThread());
@@ -111,17 +102,7 @@ export function GerenteSupportInbox() {
       !selected.id.startsWith("org:") &&
       !selected.id.startsWith("hecom:"),
   );
-  const iOwnSelected =
-    Boolean(selected?.assignedUserId) && selected?.assignedUserId === meId;
-  const isUnassigned = Boolean(
-    hasRealTicket && selected && !selected.assignedUserId,
-  );
-  const ownedByOther =
-    hasRealTicket &&
-    selected?.assignedUserId &&
-    selected.assignedUserId !== meId;
   const selectedClientName = selected ? clientLabel(selected) : null;
-  const assigneeLabel = agentLabel(selected);
 
   useEffect(() => {
     selectedMetaRef.current = selected
@@ -130,8 +111,8 @@ export function GerenteSupportInbox() {
   }, [selected]);
 
   useEffect(() => {
-    const n = unreadIds.size;
-    const base = "Soporte · Hecom";
+  const n = unreadIds.size;
+    const base = "Chats";
     document.title = n > 0 ? `(${n}) ${base}` : base;
     return () => {
       document.title = base;
@@ -177,81 +158,31 @@ export function GerenteSupportInbox() {
       }
       const nextTickets = data.tickets ?? [];
       setTickets(nextTickets);
-      if (data.me?.id) setMeId(data.me.id);
 
       const meta = selectedMetaRef.current;
       const selectedNow = meta?.id ?? null;
 
-      const currentMeId = data.me?.id ?? meId;
-
-      // Regla simple: "Nuevo mensaje" solo si el último sender NO soy yo.
-      const isIncomingForStaff = (ticket: InboxTicket) => {
-        const sender = ticket.lastMessageSenderUserId?.trim() || null;
-        if (!sender || !currentMeId) return false;
-        return sender !== currentMeId;
-      };
-
-      // Badge "nuevo mensaje" solo si el ÚLTIMO mensaje lo escribió el cliente.
-      // Respuestas propias del staff no deben marcar unread.
-      if (opts?.silent) {
-        const fresh = new Set<string>();
-        const clearStaffReply = new Set<string>();
+      // Leído es del equipo: solo queda pendiente si el cliente escribió
+      // después de que algún gerente abrió el chat.
+      setUnreadIds((prev) => {
+        const next = new Set<string>();
         for (const ticket of nextTickets) {
-          if (!ticket.hasTicket || ticket.status === "none") continue;
-          if (
-            ticket.id.startsWith("org:") ||
-            ticket.id.startsWith("hecom:")
-          ) {
-            continue;
+          if (ticket.unreadForStaff && ticket.id !== selectedNow) {
+            next.add(ticket.id);
           }
           const stamp =
             ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt;
-          if (ticket.id === selectedNow) {
-            knownUpdatedAtRef.current.set(ticket.id, stamp);
-            continue;
-          }
-          const prev = knownUpdatedAtRef.current.get(ticket.id);
-          const stampChanged = !prev || stamp !== prev;
-          if (isIncomingForStaff(ticket)) {
-            if (stampChanged) fresh.add(ticket.id);
-          } else {
-            clearStaffReply.add(ticket.id);
-          }
           knownUpdatedAtRef.current.set(ticket.id, stamp);
         }
-        if (fresh.size > 0 || clearStaffReply.size > 0) {
-          setUnreadIds((prev) => {
-            const merged = new Set(prev);
-            for (const id of clearStaffReply) merged.delete(id);
-            for (const id of fresh) merged.add(id);
-            if (selectedNow) merged.delete(selectedNow);
-            return merged;
-          });
-          if (fresh.size > 0) playSupportNotifySound();
-        }
-      } else {
-        // Carga fuerte: reseedar stamps y tirar unread de mensajes propios.
-        const keepIncoming = new Set<string>();
-        for (const ticket of nextTickets) {
-          if (!ticket.hasTicket || ticket.status === "none") continue;
-          const stamp =
-            ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt;
-          knownUpdatedAtRef.current.set(ticket.id, stamp);
-          if (isIncomingForStaff(ticket) && ticket.id !== selectedNow) {
-            // No auto-marcar todo lo viejo como unread al refrescar;
-            // solo conservar si ya estaba marcado.
-            keepIncoming.add(ticket.id);
+        if (opts?.silent) {
+          let added = false;
+          for (const id of next) {
+            if (!prev.has(id)) added = true;
           }
+          if (added) playSupportNotifySound();
         }
-        setUnreadIds((prev) => {
-          const next = new Set<string>();
-          for (const id of prev) {
-            if (keepIncoming.has(id)) next.add(id);
-          }
-          if (selectedNow) next.delete(selectedNow);
-          return next;
-        });
-      }
+        return next;
+      });
 
       // Si estaba en contacto Hecom sin ticket y el cliente escribió → abrir hilo real.
       if (
@@ -301,7 +232,7 @@ export function GerenteSupportInbox() {
     } finally {
       if (!opts?.silent) setLoading(false);
     }
-  }, [statusFilter, meId]);
+  }, [statusFilter]);
 
   useEffect(() => {
     void loadTickets();
@@ -498,30 +429,6 @@ export function GerenteSupportInbox() {
     }
   }
 
-  async function claimOrRelease(action: "claim" | "release") {
-    if (!selectedId || selectedId.startsWith("org:") || selectedId.startsWith("hecom:"))
-      return;
-    setClaiming(true);
-    setThreadError(null);
-    try {
-      const res = await fetch(`/api/support/inbox/${selectedId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error ?? "No se pudo actualizar la asignación.");
-      }
-      await loadTickets();
-    } catch (err) {
-      setThreadError(err instanceof Error ? err.message : "Error de asignación.");
-    } finally {
-      setClaiming(false);
-    }
-  }
-
   async function handleSend(files: File[] = []) {
     if (!selected) return;
     const text = inputValue.trim();
@@ -536,7 +443,7 @@ export function GerenteSupportInbox() {
       role: "user",
       text: text || "📎 Adjunto",
       ...supportChatTimestampsNow(),
-      senderName: "Vos",
+      senderName: "Tú",
       senderKind: "agent",
     };
     setMessages((prev) => [
@@ -548,7 +455,6 @@ export function GerenteSupportInbox() {
       const ticketId = await ensureTicketId(selected);
       const formData = new FormData();
       if (text) formData.set("message", text);
-      formData.set("status", "pending");
       for (const file of files) formData.append("files", file);
 
       const res = await fetch(`/api/support/inbox/${ticketId}/messages`, {
@@ -577,50 +483,14 @@ export function GerenteSupportInbox() {
     }
   }
 
-  async function setStatus(status: string) {
-    if (
-      !selectedId ||
-      selectedId.startsWith("org:") ||
-      selectedId.startsWith("hecom:")
-    )
-      return;
-    try {
-      const res = await fetch(`/api/support/inbox/${selectedId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error ?? "No se pudo actualizar.");
-      }
-      await loadTickets();
-    } catch (err) {
-      setThreadError(err instanceof Error ? err.message : "Error de estado.");
-    }
-  }
-
-  const headerActions = selected ? (
+  const headerActions = hasRealTicket ? (
     <div className="flex items-center gap-2">
-      {isUnassigned ? (
-        <button type="button" disabled={claiming} onClick={() => void claimOrRelease("claim")} className="rounded-full bg-[var(--brand-primary)] px-4 py-2 text-[12px] font-bold text-white shadow-sm hover:bg-[var(--brand-primary-deep)] disabled:opacity-50">
-          {claiming ? "Tomando..." : "Tomar chat"}
-        </button>
-      ) : null}
-      {hasRealTicket && selected.status !== "resolved" ? (
-        <button type="button" onClick={() => void setStatus("resolved")} className="hidden rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[12px] font-semibold text-white hover:bg-white/20 sm:inline-flex">
-          Resolver
-        </button>
-      ) : null}
       <details className="relative">
         <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-lg font-bold text-white/80 hover:bg-white/10 [&::-webkit-details-marker]:hidden" aria-label="Más acciones">•••</summary>
-        <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-black/10 bg-white p-1.5 text-[#332820] shadow-xl">
-          {[{ id: "open", label: "Marcar abierto" }, { id: "pending", label: "Dejar pendiente" }, { id: "closed", label: "Cerrar conversación" }].map((item) => (
-            <button key={item.id} type="button" onClick={() => void setStatus(item.id)} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-[#f7f2ed]">{item.label}</button>
-          ))}
-          {iOwnSelected ? <button type="button" disabled={claiming} onClick={() => void claimOrRelease("release")} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-[#f7f2ed]">Liberar chat</button> : null}
-          {hasRealTicket ? <button type="button" disabled={clearingChat} onClick={() => { if (window.confirm("¿Borrar todos los mensajes de esta conversación?")) void handleClearChat(); }} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50">Borrar conversación</button> : null}
+        <div className="absolute right-0 top-11 z-30 w-48 overflow-hidden rounded-xl border border-black/10 bg-white p-1.5 text-[#332820] shadow-xl">
+          {hasRealTicket ? (
+            <button type="button" disabled={clearingChat} onClick={() => { if (window.confirm("¿Borrar todos los mensajes de esta conversación?")) void handleClearChat(); }} className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50">Borrar conversación</button>
+          ) : null}
         </div>
       </details>
     </div>
@@ -643,10 +513,10 @@ export function GerenteSupportInbox() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
-                  Inbox
+                  Soporte
                 </p>
                 <h1 className="text-[15px] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                  Soporte · Hecom
+                  Chats
                 </h1>
               </div>
               <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
@@ -661,7 +531,7 @@ export function GerenteSupportInbox() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar cliente…"
+              placeholder="Buscar chat…"
               className="mt-3 h-10 w-full rounded-xl border border-[var(--auth-input-border)] bg-[#f7f5f2] px-3.5 text-[13px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
             />
             <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -705,24 +575,22 @@ export function GerenteSupportInbox() {
                 <p className="mt-4 text-[14px] font-bold text-[var(--auth-text)]">
                   {q.trim()
                     ? "Sin resultados"
-                    : statusFilter === "all"
-                      ? "No hay clientes Hecom"
-                      : "Nadie en este filtro"}
+                    : statusFilter === "chats"
+                      ? "Todavía no hay chats"
+                      : "No hay contactos"}
                 </p>
                 <p className="mt-1.5 max-w-[16rem] text-[12px] leading-relaxed text-[var(--auth-text-muted)]">
                   {q.trim()
-                    ? "Prueba con otro nombre, correo o fragmento del último mensaje."
-                    : statusFilter === "all"
-                      ? "Cuando un cliente escriba en Soporte Holistic, aparecerá acá."
-                      : 'Cambia a "Todos" o prueba otro filtro para ver más clientes.'}
+                    ? "Prueba con otro nombre o con un pedazo del último mensaje."
+                    : statusFilter === "chats"
+                      ? "Cuando un cliente escriba, el chat aparece acá para cualquier gerente."
+                      : "En Contactos puedes abrir un chat nuevo."}
                 </p>
               </div>
             ) : (
               <ul className="divide-y divide-[rgb(15_23_42_/_0.06)]">
                 {filteredTickets.map((ticket) => {
                   const active = ticket.id === selectedId;
-                  const mine = ticket.assignedUserId === meId;
-                  const free = !ticket.assignedUserId && Boolean(ticket.hasTicket);
                   const name = clientLabel(ticket);
                   const unread = unreadIds.has(ticket.id);
                   return (
@@ -784,33 +652,10 @@ export function GerenteSupportInbox() {
                                 : "text-[var(--auth-text-muted)]",
                             )}
                           >
-                            {unread ? "Nuevo mensaje · " : ""}
-                            {ticket.lastMessagePreview?.trim() || ticket.subject}
-                          </span>
-                          <span
-                            className={cn(
-                              "mt-0.5 block truncate text-[10.5px] font-semibold",
-                              ticket.hasHolisticAccount === false
-                                ? "text-amber-700"
-                                : free
-                                  ? "text-amber-700"
-                                  : mine
-                                    ? "text-emerald-700"
-                                    : "text-[var(--auth-text-soft)]",
-                            )}
-                          >
-                            {ticket.hasHolisticAccount === false
-                              ? "Sin cuenta Holistic"
-                              : !ticket.hasTicket || ticket.status === "none"
-                                ? "Sin chat"
-                                : free
-                                  ? "Sin atender"
-                                  : mine
-                                    ? "Lo atiendes tú"
-                                    : `Agente: ${ticket.assignedUserDisplayName || ticket.assignedUserName || "otro"}`}
-                            {ticket.hasTicket && ticket.status !== "none"
-                              ? ` · ${TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}`
-                              : ""}
+                            {ticket.lastMessagePreview?.trim() ||
+                              (ticket.hasHolisticAccount === false
+                                ? "Sin cuenta Holistic"
+                                : "Sin mensajes")}
                           </span>
                         </span>
                       </button>
@@ -830,31 +675,18 @@ export function GerenteSupportInbox() {
             mobileShowChat && "flex flex-col",
           )}
         >
-          {ownedByOther ? (
-            <p className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-3 py-1.5 text-[12px] font-medium text-amber-900">
-              Otro agente tiene este chat. Solo lectura hasta que lo libere.
-            </p>
-          ) : null}
-
           {!selectedId ? (
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-[#efeae2] px-8 text-center">
-              <span
-                aria-hidden
-                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-md ring-1 ring-black/5"
-              >
-                📥
-              </span>
-              <p className="mt-5 text-[17px] font-bold tracking-[-0.02em] text-[#3f3a34]">
-                Inbox Soporte Holistic
+              <p className="text-[17px] font-bold tracking-[-0.02em] text-[#3f3a34]">
+                Chats de soporte
               </p>
               <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[#6b645c]">
-                Elige un cliente de la lista para ver el historial, tomar el chat
-                y responder. Los mensajes le llegan a su Soporte en Ads Holistic.
+                Elige un chat. Cualquier gerente puede leer y responder. Si ya
+                lo abrieron, queda leído para todos.
               </p>
               {unreadIds.size > 0 ? (
                 <p className="mt-4 rounded-full bg-[var(--brand-primary)] px-4 py-1.5 text-[12px] font-bold text-white shadow-sm">
-                  {unreadIds.size} conversación
-                  {unreadIds.size === 1 ? "" : "es"} con mensajes nuevos
+                  {unreadIds.size} sin leer
                 </p>
               ) : null}
             </div>
@@ -867,29 +699,19 @@ export function GerenteSupportInbox() {
             error={threadError}
             showBack={mobileShowChat}
             className="min-h-0 flex-1"
-            title={selectedClientName ?? "Inbox Soporte"}
+            title={selectedClientName ?? "Chat"}
             subtitle={
-              selected
-                ? isUnassigned
-                  ? "Sin agente · toma el chat o responde"
-                  : iOwnSelected
-                    ? "Lo estás atendiendo tú"
-                    : `Atendido por ${assigneeLabel ?? "otro agente"}`
-                : "Selecciona un cliente en la lista"
+              selected?.hasHolisticAccount === false
+                ? "Aún no tiene cuenta para recibir el chat"
+                : "Cualquier gerente puede responder"
             }
             avatarUrl={selected?.avatarUrl}
             headerActions={headerActions}
             onInputChange={setInputValue}
             onSend={(files) => void handleSend(files)}
             onBack={() => setMobileShowChat(false)}
-            composerDisabled={
-              Boolean(ownedByOther) || selected?.hasHolisticAccount === false
-            }
-            composerDisabledReason={
-              selected?.hasHolisticAccount === false
-                ? "Este cliente aún no tiene cuenta Holistic para recibir Soporte."
-                : "Otro agente tiene este chat. Pídele que lo libere para responder."
-            }
+            composerDisabled={selected?.hasHolisticAccount === false}
+            composerDisabledReason="Este cliente aún no tiene cuenta Holistic para recibir el chat."
             emptyHint="Escribe para responder al cliente. Puedes pegar capturas o adjuntar archivos."
           />
           )}

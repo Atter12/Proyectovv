@@ -100,6 +100,13 @@ export interface InboxTicketItem {
   lastMessageSenderUserId?: string | null;
   /** requester_user_id del ticket (cliente). */
   requesterUserId?: string | null;
+  /**
+   * Hasta cuándo el equipo ya vio el hilo. Compartido entre gerentes:
+   * si uno abre el chat, para todos queda leído.
+   */
+  staffReadAt?: string | null;
+  /** El último mensaje es del cliente y llegó después de staffReadAt. */
+  unreadForStaff?: boolean;
 }
 
 /** Etiqueta de persona: nombre real → org → local-part del mail (nunca el email completo). */
@@ -141,6 +148,112 @@ function parseAttachments(raw: unknown): SupportAttachmentInput[] {
       return { name, mimeType, path, bucket, size };
     })
     .filter((item): item is SupportAttachmentInput => Boolean(item));
+}
+
+function staffReadAtFromMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+  const value = (metadata as Record<string, unknown>).staff_read_at;
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+/** Marca el hilo leído para todo el equipo, sin mover updated_at. */
+export async function markStaffThreadRead(
+  ticketId: string,
+  readAt = new Date().toISOString(),
+): Promise<void> {
+  if (!ticketId || ticketId.startsWith("hecom:") || ticketId.startsWith("org:")) {
+    return;
+  }
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("support_tickets")
+    .select("metadata")
+    .eq("id", ticketId)
+    .maybeSingle<{ metadata: unknown }>();
+  const meta =
+    data?.metadata &&
+    typeof data.metadata === "object" &&
+    !Array.isArray(data.metadata)
+      ? { ...(data.metadata as Record<string, unknown>) }
+      : {};
+  const prev = staffReadAtFromMetadata(meta);
+  const prevMs = prev ? Date.parse(prev) : Number.NaN;
+  const nextMs = Date.parse(readAt);
+  if (!Number.isNaN(prevMs) && !Number.isNaN(nextMs) && prevMs >= nextMs) return;
+  if (prev && Number.isNaN(nextMs) && prev >= readAt) return;
+  meta.staff_read_at = readAt;
+  const { error } = await admin
+    .from("support_tickets")
+    .update({ metadata: meta })
+    .eq("id", ticketId);
+  if (error) {
+    console.error("[support-inbox] staff read", error.message);
+  }
+}
+
+/**
+ * Chats de antes de este cursor no tienen marca: se toman como ya leídos
+ * (el último mensaje que ya estaba) para que no sigan viéndose por responder.
+ */
+async function seedMissingStaffRead(
+  items: InboxTicketItem[],
+): Promise<InboxTicketItem[]> {
+  const pending = items.filter(
+    (item) =>
+      item.hasTicket &&
+      !item.id.startsWith("hecom:") &&
+      !item.id.startsWith("org:") &&
+      !item.staffReadAt &&
+      item.lastMessageAt,
+  );
+  if (pending.length === 0) return items;
+  const admin = createAdminClient();
+  const readAtById = new Map<string, string>();
+  await Promise.all(
+    pending.map(async (item) => {
+      const { data: fresh } = await admin
+        .from("support_tickets")
+        .select("metadata")
+        .eq("id", item.id)
+        .maybeSingle<{ metadata: unknown }>();
+      const raw = fresh?.metadata;
+      const meta =
+        raw && typeof raw === "object" && !Array.isArray(raw)
+          ? { ...(raw as Record<string, unknown>) }
+          : {};
+      const existing = staffReadAtFromMetadata(meta);
+      const readAt = existing || item.lastMessageAt!;
+      readAtById.set(item.id, readAt);
+      if (existing) return;
+      meta.staff_read_at = readAt;
+      const { error } = await admin
+        .from("support_tickets")
+        .update({ metadata: meta })
+        .eq("id", item.id);
+      if (error) console.error("[support-inbox] seed read", error.message);
+    }),
+  );
+  return items.map((item) =>
+    readAtById.has(item.id)
+      ? { ...item, staffReadAt: readAtById.get(item.id) }
+      : item,
+  );
+}
+
+function withStaffUnread(item: InboxTicketItem): InboxTicketItem {
+  const lastMs = item.lastMessageAt ? Date.parse(item.lastMessageAt) : Number.NaN;
+  const readMs = item.staffReadAt ? Date.parse(item.staffReadAt) : Number.NaN;
+  const unread = Boolean(
+    item.lastMessageFromClient &&
+      item.lastMessageAt &&
+      item.staffReadAt &&
+      !Number.isNaN(lastMs) &&
+      !Number.isNaN(readMs) &&
+      lastMs > readMs,
+  );
+  return { ...item, unreadForStaff: unread };
 }
 
 function summarizeMessagePreview(body: string, attachmentsRaw: unknown): string {
@@ -691,6 +804,7 @@ export async function listInboxContacts(filters?: {
       assignedUserDisplayName: ticket?.assigned_user_id
         ? personDisplayName(assignee?.name, assignee?.email, "Agente")
         : null,
+      staffReadAt: staffReadAtFromMetadata(ticket?.metadata),
       hasTicket: Boolean(ticket),
       hecomClienteId: cliente.id,
       hasHolisticAccount,
@@ -699,7 +813,7 @@ export async function listInboxContacts(filters?: {
   });
 
   const status = filters?.status ?? "all";
-  if (status && status !== "all") {
+  if (status && status !== "all" && status !== "chats") {
     if (status === "active") {
       items = items.filter(
         (item) => item.hasTicket && ["open", "pending"].includes(item.status),
@@ -726,22 +840,16 @@ export async function listInboxContacts(filters?: {
   }
 
   items = await attachLastMessagePreviews(items);
+  items = await seedMissingStaffRead(items);
+  items = items.map(withStaffUnread);
+  if (status === "chats") {
+    items = items.filter((item) => item.hasTicket && Boolean(item.lastMessageAt));
+  }
 
   items.sort((a, b) => {
-    const aActive =
-      a.hasTicket && ["open", "pending"].includes(a.status) ? 0 : 1;
-    const bActive =
-      b.hasTicket && ["open", "pending"].includes(b.status) ? 0 : 1;
-    if (aActive !== bActive) return aActive - bActive;
-    if (aActive === 0) {
-      const aTime = new Date(
-        a.lastMessageAt ?? a.updatedAt ?? a.createdAt,
-      ).getTime();
-      const bTime = new Date(
-        b.lastMessageAt ?? b.updatedAt ?? b.createdAt,
-      ).getTime();
-      return bTime - aTime;
-    }
+    const aTime = new Date(a.lastMessageAt ?? a.updatedAt ?? 0).getTime();
+    const bTime = new Date(b.lastMessageAt ?? b.updatedAt ?? 0).getTime();
+    if (aTime !== bTime) return bTime - aTime;
     return a.requesterDisplayName.localeCompare(b.requesterDisplayName, "es");
   });
 
@@ -851,7 +959,7 @@ export async function ensureInboxTicketForHecomCliente(input: {
     .insert({
       organization_id: organizationId,
       requester_user_id: requesterId,
-      assigned_user_id: input.session.id,
+      assigned_user_id: null,
       subject: `Soporte · ${cliente.name}`,
       status: "open",
       priority: "normal",
@@ -984,6 +1092,11 @@ export async function listInboxTicketMessagesForAgent(
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
+
+  const latestAt = data.length
+    ? (data[data.length - 1]?.created_at as string | undefined)
+    : undefined;
+  await markStaffThreadRead(ticketId, latestAt || new Date().toISOString());
 
   const requesterId = ticket?.requester_user_id ?? null;
   const senderIds = [
@@ -1126,24 +1239,6 @@ export async function replyInboxTicket(input: {
     throw new Error(error?.message ?? "Ticket no encontrado.");
   }
 
-  if (
-    ticket.assigned_user_id &&
-    ticket.assigned_user_id !== input.session.id
-  ) {
-    throw new Error("Este chat lo está atendiendo otro agente. Pídele que lo libere o tómalo solo si está libre.");
-  }
-
-  // Whaticket-style: al responder se toma el chat automáticamente.
-  if (!ticket.assigned_user_id) {
-    await admin
-      .from("support_tickets")
-      .update({
-        assigned_user_id: input.session.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", ticket.id);
-  }
-
   const files = input.files ?? [];
   const attachments: SupportAttachmentInput[] = [];
   for (const file of files) {
@@ -1179,13 +1274,15 @@ export async function replyInboxTicket(input: {
   const nextStatus =
     input.status && ["open", "pending", "resolved", "closed"].includes(input.status)
       ? input.status
-      : "pending";
+      : ticket.status === "closed" || ticket.status === "resolved"
+        ? "open"
+        : ticket.status;
 
   await updateTicketStatusWithFallback({
     ticketId: ticket.id,
     status: nextStatus,
-    assignedUserId: input.session.id,
   });
+  await markStaffThreadRead(ticket.id);
 
   await createNotificationBestEffort({
     organizationId: ticket.organization_id,
@@ -1222,14 +1319,12 @@ export async function updateInboxTicketStatus(input: {
   await updateTicketStatusWithFallback({
     ticketId: input.ticketId,
     status: input.status,
-    assignedUserId: input.session.id,
   });
 }
 
 async function updateTicketStatusWithFallback(input: {
   ticketId: string;
   status: string;
-  assignedUserId: string;
 }): Promise<void> {
   const admin = createAdminClient();
   const desired = input.status;
@@ -1243,7 +1338,6 @@ async function updateTicketStatusWithFallback(input: {
       .from("support_tickets")
       .update({
         status,
-        assigned_user_id: input.assignedUserId,
         updated_at: new Date().toISOString(),
         closed_at: status === "closed" || status === "resolved" ? closedAt : null,
       })

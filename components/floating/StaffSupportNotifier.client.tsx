@@ -17,6 +17,7 @@ interface InboxTicketLite {
   updatedAt?: string | null;
   createdAt?: string;
   lastMessageFromClient?: boolean;
+  unreadForStaff?: boolean;
   lastMessageSenderUserId?: string | null;
 }
 
@@ -32,13 +33,12 @@ export function StaffSupportNotifier() {
     Array<{ id: string; name: string; preview: string }>
   >([]);
   const [expanded, setExpanded] = useState(false);
-  const [meId, setMeId] = useState<string | null>(null);
-  const knownStampRef = useRef<Map<string, string>>(new Map());
+  const knownUnreadRef = useRef<Set<string>>(new Set());
   const seededRef = useRef(false);
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch("/api/support/inbox?status=active", {
+      const res = await fetch("/api/support/inbox?status=chats", {
         credentials: "include",
         cache: "no-store",
       });
@@ -48,57 +48,38 @@ export function StaffSupportNotifier() {
         me?: { id: string };
       };
       if (!res.ok || !data.ok) return;
-      if (data.me?.id) setMeId(data.me.id);
-      const myId = data.me?.id ?? meId;
 
-      const tickets = (data.tickets ?? []).filter(
+      const pending = (data.tickets ?? []).filter(
         (t) =>
+          t.unreadForStaff &&
           t.hasTicket !== false &&
           !t.id.startsWith("org:") &&
-          !t.id.startsWith("hecom:") &&
-          t.status !== "none",
+          !t.id.startsWith("hecom:"),
       );
 
-      const fresh: Array<{ id: string; name: string; preview: string }> = [];
-      for (const ticket of tickets) {
-        const stamp =
-          ticket.lastMessageAt ?? ticket.updatedAt ?? ticket.createdAt ?? "";
-        const prev = knownStampRef.current.get(ticket.id);
-        knownStampRef.current.set(ticket.id, stamp);
-
-        if (!seededRef.current) continue;
-        if (!prev || prev === stamp) continue;
-
-        const sender = ticket.lastMessageSenderUserId?.trim() || null;
-        // Solo avisar si el último mensaje NO lo escribe yo.
-        if (!sender || !myId || sender === myId) continue;
-
-        fresh.push({
-          id: ticket.id,
-          name: ticket.requesterDisplayName?.trim() || "Cliente",
-          preview:
-            ticket.lastMessagePreview?.trim() || "Nuevo mensaje de cliente",
-        });
-      }
+      const next = pending.map((ticket) => ({
+        id: ticket.id,
+        name: ticket.requesterDisplayName?.trim() || "Cliente",
+        preview: ticket.lastMessagePreview?.trim() || "Mensaje nuevo",
+      }));
 
       if (!seededRef.current) {
         seededRef.current = true;
+        knownUnreadRef.current = new Set(next.map((item) => item.id));
+        setUnread(next);
         return;
       }
 
+      const fresh = next.filter((item) => !knownUnreadRef.current.has(item.id));
+      knownUnreadRef.current = new Set(next.map((item) => item.id));
+      setUnread(next);
       if (fresh.length === 0) return;
-
       playSupportNotifySound();
-      setUnread((prev) => {
-        const map = new Map(prev.map((p) => [p.id, p]));
-        for (const item of fresh) map.set(item.id, item);
-        return Array.from(map.values());
-      });
       setExpanded(true);
     } catch {
       // ignore poll errors
     }
-  }, [meId]);
+  }, []);
 
   useEffect(() => {
     if (onSupportPage) return;
