@@ -220,7 +220,7 @@ export type EducationVideoPrepare =
 
 export type EducationVideoAttach =
   | { ok: true; videoUrl: string | null }
-  | { ok: false; error: "forbidden" | "invalid" | "missing_table" | "unknown" };
+  | { ok: false; error: "forbidden" | "invalid" | "invalid_video" | "missing_table" | "unknown" };
 
 export async function prepareEducationVideoUploadAction(input: {
   slug: string;

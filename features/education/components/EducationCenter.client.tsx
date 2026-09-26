@@ -8,6 +8,7 @@ import {
   type EducationCategoryId,
 } from "../lib/catalog";
 import { lessonEmbedUrl } from "../lib/loom";
+import type { EducationLessonSave } from "../actions";
 import type { EducationLessonView } from "../lib/types";
 import { EducationLoomEditor } from "./EducationLoomEditor.client";
 import { EducationPlayerDialog } from "./EducationPlayerDialog.client";

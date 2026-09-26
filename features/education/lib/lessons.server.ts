@@ -106,7 +106,7 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
     for (const columns of attempts) {
       const result = await admin.from("education_lessons").select(columns);
       if (result.error || !result.data) continue;
-      for (const row of result.data as LessonRow[]) {
+      for (const row of result.data as unknown as LessonRow[]) {
         map.set(row.slug, {
           ...row,
           recommended: row.recommended ?? null,

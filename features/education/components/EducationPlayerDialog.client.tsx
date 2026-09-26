@@ -44,7 +44,7 @@ export function EducationPlayerDialog({
     await player.requestFullscreen();
   }
 
-  const ready = Boolean(lesson.videoUrl || lesson.embedUrl);
+  const ready = Boolean(lesson?.videoUrl || lesson?.embedUrl);
 
   return (
     <dialog
