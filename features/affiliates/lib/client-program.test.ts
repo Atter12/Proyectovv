@@ -50,7 +50,7 @@ test("el tester sin referidos ve smoke y otro usuario ve la tabla vacía", () =>
   assert.equal(tester.stats.total, 8);
   assert.equal(tester.stats.closed, 3);
   assert.equal(tester.stats.negotiating, 2);
-  assert.equal(tester.stats.discountsEarnedUsd, 45);
+  assert.equal(tester.stats.discountsEarnedUsd, 30);
 
   const client = resolveClientAffiliateView({
     ...shared,
@@ -103,7 +103,7 @@ test("si el tester ya tiene referidos reales, el smoke no los tapa", () => {
     ["Ana Real"],
   );
   assert.equal(view.stats.closed, 1);
-  assert.equal(view.stats.discountsEarnedUsd, 15);
+  assert.equal(view.stats.discountsEarnedUsd, 10);
   assert.equal(live.discountStatus, "pending");
 });
 

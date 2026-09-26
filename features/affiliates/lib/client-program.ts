@@ -24,7 +24,7 @@ export function selectLinkedAffiliateUserId(
 }
 
 /** Descuento fijo por cliente cerrado. El referido no paga la entrada. */
-export const CLIENT_AFFILIATE_REWARD_USD = 15;
+export const CLIENT_AFFILIATE_REWARD_USD = 10;
 
 export const CLIENT_REFERRAL_STAGES = [
   "registered",
