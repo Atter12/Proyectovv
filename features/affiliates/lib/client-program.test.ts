@@ -7,11 +7,21 @@ import {
   mapReferralSource,
   referralDisplayPath,
   resolveClientAffiliateView,
+  selectLinkedAffiliateUserId,
   smokeClientReferrals,
   summarizeClientReferrals,
 } from "./client-program.ts";
 
 const TESTER = "sandrowonmer@gmail.com";
+
+test("la vista de otro cliente no usa el usuario del gerente", () => {
+  const gerente = "gerente-user";
+  const abel = "abel-user";
+  assert.equal(selectLinkedAffiliateUserId(gerente, [gerente, abel]), abel);
+  assert.equal(selectLinkedAffiliateUserId(gerente, [abel]), abel);
+  assert.equal(selectLinkedAffiliateUserId(gerente, [gerente]), null);
+  assert.equal(selectLinkedAffiliateUserId(gerente, []), null);
+});
 
 test("el enlace público usa /r y se muestra sin protocolo", () => {
   const shareUrl = buildReferralShareUrl("https://adsholistic.com/", "sandro-wong");

@@ -55,6 +55,7 @@ export const adminNavigation: AdminNavItem[] = [
   { label: "Educación", href: "/admin/education", description: "Tutoriales y enlaces Loom", icon: "▶" },
   { label: "Afiliados", href: "/admin/affiliates", description: "Códigos y comisiones", icon: "↗" },
   { label: "Creativos", href: "/admin/creatives", description: "Uploads y jobs IA", icon: "✺" },
+  { label: "Alianzas", href: "/admin/alliances", description: "Relaciones, contratos y seguimiento", icon: "◆" },
   { label: "Ledger", href: "/admin/ledger", description: "Journals y entries", icon: "≡" },
   { label: "Conciliación", href: "/admin/reconciliation", description: "Runs e inconsistencias", icon: "⇄" },
   { label: "Webhooks", href: "/admin/webhooks", description: "Eventos externos", icon: "⌁" },

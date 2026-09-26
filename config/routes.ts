@@ -33,6 +33,7 @@ export const routes = {
   adminLogin: "/admin/login",
   adminOverview: "/admin/overview",
   adminEducation: "/admin/education",
+  adminAlliances: "/admin/alliances",
   adminUnauthorized: "/admin/unauthorized",
   api: {
     auth: {

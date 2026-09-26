@@ -5,6 +5,7 @@ import {
   mapReferralSource,
   referralDisplayPath,
   resolveClientAffiliateView,
+  selectLinkedAffiliateUserId,
   type ClientAffiliateProgramView,
   type ClientAffiliateReferral,
   type ReferralSource,
@@ -13,7 +14,10 @@ import { serverEnv } from "@/lib/env/env.server";
 import { isRecord } from "@/lib/records";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import { getAffiliateProgram } from "@/services/affiliates.service";
 import type { SessionUser } from "@/types/auth";
 
@@ -33,27 +37,173 @@ interface OrganizationQueryRow {
   billing_email: string | null;
 }
 
+interface ViewedClientIdentity {
+  userId: string;
+  email: string | null;
+  referralCode: string;
+}
+
 export async function getClientAffiliateProgram(
   session: SessionUser,
 ): Promise<ClientAffiliateProgramView> {
-  const program = await getAffiliateProgram(session);
-  const shareUrl = buildReferralShareUrl(serverEnv.appUrl, program.referralCode);
-  const liveReferrals = await loadLiveReferrals(session.id);
   const viewingAnotherClient = await getActingAsCliente(session.id);
 
+  if (!viewingAnotherClient) {
+    const program = await getAffiliateProgram(session);
+    const shareUrl = buildReferralShareUrl(serverEnv.appUrl, program.referralCode);
+    const liveReferrals = await loadLiveReferrals(session.id, false);
+    return resolveClientAffiliateView({
+      email: session.email,
+      rewardUsd: CLIENT_AFFILIATE_REWARD_USD,
+      referralCode: program.referralCode,
+      shareUrl,
+      displayPath: referralDisplayPath(shareUrl),
+      liveReferrals,
+      allowSmoke: true,
+    });
+  }
+
+  const identity = await resolveViewedClientIdentity(session.id);
+  const referralCode = identity?.referralCode ?? "pending";
+  const shareUrl = buildReferralShareUrl(serverEnv.appUrl, referralCode);
+  const liveReferrals = identity
+    ? await loadLiveReferrals(identity.userId, true)
+    : [];
+
   return resolveClientAffiliateView({
-    email: session.email,
+    email: identity?.email,
     rewardUsd: CLIENT_AFFILIATE_REWARD_USD,
-    referralCode: program.referralCode,
+    referralCode,
     shareUrl,
     displayPath: referralDisplayPath(shareUrl),
     liveReferrals,
-    allowSmoke: !viewingAnotherClient,
+    allowSmoke: false,
   });
 }
 
-async function loadLiveReferrals(userId: string): Promise<ClientAffiliateReferral[]> {
-  const rows = await queryReferrals(userId);
+/**
+ * Ficha Hecom vista por un gerente: código y referidos del usuario OTP
+ * de ese cliente. Si no hay cuenta vinculada, no se usa la del gerente.
+ */
+async function resolveViewedClientIdentity(
+  viewerUserId: string,
+): Promise<ViewedClientIdentity | null> {
+  try {
+    const selected = await getSelectedHecomCliente(viewerUserId);
+    if (!selected) return null;
+
+    const admin = createAdminClient();
+    const { data: links } = await admin
+      .from("hecom_cliente_user_links")
+      .select("user_id, email")
+      .eq("hecom_cliente_id", selected.id)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+
+    const userId = selectLinkedAffiliateUserId(
+      viewerUserId,
+      (links ?? []).map((row) => String(row.user_id ?? "")),
+    );
+    if (!userId) return null;
+
+    const link = (links ?? []).find((row) => String(row.user_id) === userId);
+    const email = typeof link?.email === "string" ? link.email : null;
+    const referralCode = await referralCodeForClientUser(userId, selected.name);
+
+    return { userId, email, referralCode };
+  } catch {
+    return null;
+  }
+}
+
+async function referralCodeForClientUser(
+  userId: string,
+  clienteName: string,
+): Promise<string> {
+  const admin = createAdminClient();
+  const { data: membership } = await admin
+    .from("organization_memberships")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ organization_id: string }>();
+
+  const organizationId = membership?.organization_id
+    ? String(membership.organization_id)
+    : "";
+
+  const { data: codes } = await admin
+    .from("referral_codes")
+    .select("code, organization_id, created_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(8);
+
+  const rows = codes ?? [];
+  const forOrg = organizationId
+    ? rows.find((row) => String(row.organization_id) === organizationId)
+    : undefined;
+  const existing = forOrg ?? rows[0];
+  if (existing?.code) return String(existing.code);
+  if (!organizationId) return "pending";
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", userId)
+    .maybeSingle<{ full_name: string | null; email: string | null }>();
+
+  const name =
+    profile?.full_name?.trim() ||
+    clienteName.trim() ||
+    profile?.email?.split("@")[0] ||
+    "ref";
+  const code = `${slugReferralBase(name)}-${userId.slice(0, 6)}`;
+
+  const inserted = await admin
+    .from("referral_codes")
+    .insert({
+      organization_id: organizationId,
+      user_id: userId,
+      code,
+      status: "active",
+    })
+    .select("code")
+    .maybeSingle<{ code: string }>();
+
+  if (inserted.data?.code) return inserted.data.code;
+
+  const { data: again } = await admin
+    .from("referral_codes")
+    .select("code")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle<{ code: string }>();
+
+  return again?.code ? String(again.code) : "pending";
+}
+
+function slugReferralBase(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24);
+  return base || "ref";
+}
+
+async function loadLiveReferrals(
+  userId: string,
+  useAdmin: boolean,
+): Promise<ClientAffiliateReferral[]> {
+  const rows = await queryReferrals(userId, useAdmin);
   if (rows.length === 0) return [];
 
   const orgIds = [
@@ -83,8 +233,11 @@ async function loadLiveReferrals(userId: string): Promise<ClientAffiliateReferra
   });
 }
 
-async function queryReferrals(userId: string): Promise<ReferralQueryRow[]> {
-  const supabase = await createClient();
+async function queryReferrals(
+  userId: string,
+  useAdmin: boolean,
+): Promise<ReferralQueryRow[]> {
+  const supabase = useAdmin ? createAdminClient() : await createClient();
   const full = await supabase
     .from("referrals")
     .select(

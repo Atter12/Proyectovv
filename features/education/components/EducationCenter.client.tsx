@@ -328,14 +328,14 @@ function CategoryChip({
       aria-pressed={active}
       className={
         active
-          ? "flex min-h-[108px] flex-col items-start justify-between rounded-[1.15rem] border border-[var(--auth-accent)] bg-[#fff7f1] px-3.5 py-3 text-left"
-          : "flex min-h-[108px] flex-col items-start justify-between rounded-[1.15rem] border border-[var(--auth-border)] bg-white px-3.5 py-3 text-left"
+          ? "flex min-h-[128px] flex-col items-center justify-center gap-3 rounded-[1.15rem] border border-[var(--auth-accent)] bg-[#fff7f1] px-3 py-4 text-center"
+          : "flex min-h-[128px] flex-col items-center justify-center gap-3 rounded-[1.15rem] border border-[var(--auth-border)] bg-white px-3 py-4 text-center"
       }
     >
       {icon}
-      <span className="mt-2 min-w-0">
-        <span className="block truncate text-[13px] font-bold text-[var(--auth-text)]">{label}</span>
-        <span className="block text-[11px] font-medium text-[var(--auth-text-soft)]">{countLabel}</span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-bold leading-4 text-[var(--auth-text)]">{label}</span>
+        <span className="mt-0.5 block text-[11px] font-medium text-[var(--auth-text-soft)]">{countLabel}</span>
       </span>
     </button>
   );
@@ -400,7 +400,7 @@ const glyphTone: Record<CategoryFilter, string> = {
 function CategoryGlyph({ id }: { id: CategoryFilter }) {
   return (
     <span
-      className={`grid h-11 w-11 place-items-center rounded-2xl ${glyphTone[id]}`}
+      className={`grid h-[3.25rem] w-[3.25rem] place-items-center rounded-[1.05rem] ${glyphTone[id]}`}
       aria-hidden
     >
       {id === "all" ? <GridIcon /> : null}
@@ -439,7 +439,7 @@ function PlayIcon() {
 
 function GridIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
       <rect x="2.2" y="2.2" width="8.2" height="8.2" rx="2.1" />
       <rect x="13.6" y="2.2" width="8.2" height="8.2" rx="2.1" />
       <rect x="2.2" y="13.6" width="8.2" height="8.2" rx="2.1" />
@@ -450,8 +450,8 @@ function GridIcon() {
 
 function RocketIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
-      <g transform="rotate(-38 12 12)" fill="currentColor">
+    <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden>
+      <g transform="translate(12 12) scale(1.18) translate(-12 -12) rotate(-38 12 12)" fill="currentColor">
         <path d="M12 2.2c1.5 2.5 2 5.3 1.6 8l-.3 1.8h-2.6l-.3-1.8C9.9 7.5 10.5 4.7 12 2.2Z" />
         <path d="M8.3 10.4 6.1 13.8 9.5 12.4 8.3 10.4ZM15.7 10.4 17.9 13.8 14.5 12.4 15.7 10.4Z" />
         <path d="M10.6 12.6h2.8l.5 2.7-1.9 1.8-1.9-1.8.5-2.7Z" />
@@ -463,7 +463,7 @@ function RocketIcon() {
 
 function MonitorIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
       <path d="M4.2 4.4A2.2 2.2 0 0 1 6.4 2.2h11.2a2.2 2.2 0 0 1 2.2 2.2v8.1a2.2 2.2 0 0 1-2.2 2.2H6.4a2.2 2.2 0 0 1-2.2-2.2V4.4Z" />
       <path d="M9.2 14.6h5.6v1.5a1 1 0 0 1-1 1h-3.6a1 1 0 0 1-1-1v-1.5Z" opacity="0.45" />
       <path d="M8 18.7h8a1.05 1.05 0 0 1 0 2.1H8a1.05 1.05 0 0 1 0-2.1Z" />
@@ -474,7 +474,7 @@ function MonitorIcon() {
 
 function TikTokIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[26px] w-[26px]" fill="#111111" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="#111111" aria-hidden>
       <path d="M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07Z" />
     </svg>
   );
@@ -482,25 +482,22 @@ function TikTokIcon() {
 
 function ShopifyBagIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-[26px] w-[26px]" aria-hidden>
+    <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden>
+      <path
+        fill="none"
+        stroke="#96bf48"
+        strokeWidth="2.15"
+        strokeLinecap="round"
+        d="M12.2 14.4V10.6a3.8 3.8 0 0 1 7.6 0v3.8"
+      />
       <path
         fill="#96bf48"
-        d="M7.15 7.35h9.7l-.85 11.15a1.55 1.55 0 0 1-1.55 1.45H9.55a1.55 1.55 0 0 1-1.55-1.45L7.15 7.35Z"
+        d="M8.3 13.2h15.4c.5 0 .8.4.8.8l-1.45 12.2a2.3 2.3 0 0 1-2.3 2H11.25a2.3 2.3 0 0 1-2.3-2L7.5 14c0-.4.4-.8.8-.8Z"
       />
+      <ellipse cx="16" cy="13.55" rx="6.55" ry="1.45" fill="#7eae3a" />
       <path
-        fill="none"
-        stroke="#6f9a32"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        d="M9.35 7.45V6.35a2.65 2.65 0 0 1 5.3 0v1.1"
-      />
-      <path
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.45"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M14.15 11.15c-.25-.7-.85-1.05-1.65-1.05-1 0-1.55.48-1.55 1.12 0 .58.55.9 1.65 1.22 1.15.34 1.85.78 1.85 1.75 0 1.05-.95 1.8-2.25 1.8-1.2 0-2.05-.62-2.25-1.55"
+        fill="#fff"
+        d="M17.55 17.15c-.35-.85-1.15-1.25-2.15-1.15-1.25.1-2 .75-2 1.55 0 .7.55 1.1 1.85 1.5 1.55.45 2.55 1.05 2.55 2.4 0 1.45-1.2 2.45-3.05 2.45-1.55 0-2.7-.7-3.15-1.9l1.85-.7c.25.6.85 1 1.55 1 .85 0 1.35-.4 1.35-.95 0-.6-.5-.95-1.75-1.35-1.55-.5-2.7-1.15-2.7-2.55 0-1.4 1.2-2.4 3-2.4 1.4 0 2.45.55 2.9 1.7l-1.65.45Z"
       />
     </svg>
   );
@@ -511,7 +508,7 @@ function LifeRingIcon() {
   const maskId = `edu-life-${rawId}`;
 
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden>
       <mask id={maskId}>
         <rect width="24" height="24" fill="#fff" />
         <circle cx="12" cy="12" r="3.15" fill="#000" />

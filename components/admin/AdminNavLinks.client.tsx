@@ -11,6 +11,7 @@ const groups = [
   { title: "Operación", items: ["/admin/overview", "/admin/clientes", "/admin/organizations", "/admin/users", "/admin/support", "/admin/education"] },
   { title: "Finanzas", items: ["/admin/payments", "/admin/refunds", "/admin/ledger", "/admin/reconciliation"] },
   { title: "Growth & Ads", items: ["/admin/ad-accounts", "/admin/affiliates", "/admin/creatives"] },
+  { title: "Marketing", items: ["/admin/alliances"] },
   { title: "Sistema", items: ["/admin/webhooks", "/admin/audit", "/admin/integrations", "/admin/settings"] },
 ];
 

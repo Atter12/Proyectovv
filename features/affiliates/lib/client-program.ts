@@ -6,6 +6,23 @@ export function canViewAffiliateSmoke(email: string | null | undefined): boolean
   return (AFFILIATE_SMOKE_EMAILS as readonly string[]).includes(normalized);
 }
 
+/**
+ * En “ver como cliente”, el enlace es del usuario vinculado a esa ficha.
+ * El id de quien está mirando (gerente) no cuenta aunque también aparezca.
+ */
+export function selectLinkedAffiliateUserId(
+  viewerUserId: string,
+  linkedUserIds: readonly string[],
+): string | null {
+  const viewer = viewerUserId.trim();
+  for (const raw of linkedUserIds) {
+    const id = raw.trim();
+    if (!id || id === viewer) continue;
+    return id;
+  }
+  return null;
+}
+
 /** Descuento fijo por cliente cerrado. El referido no paga la entrada. */
 export const CLIENT_AFFILIATE_REWARD_USD = 15;
 
