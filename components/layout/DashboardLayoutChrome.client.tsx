@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { DashboardMobileSidebar } from "./DashboardMobileSidebar.client";
@@ -11,6 +12,7 @@ import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ActingAsClienteBanner } from "./ActingAsClienteBanner.client";
 import { HomeScreenAppBanner } from "@/features/push/HomeScreenAppBanner.client";
 import type { TesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
+import { routes } from "@/config/routes";
 
 const FloatingSupportStack = dynamic(
   () =>
@@ -40,6 +42,7 @@ export function DashboardLayoutChrome({
   testerMode = "cliente",
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
+  const isAssistant = usePathname() === routes.assistant;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -107,7 +110,9 @@ export function DashboardLayoutChrome({
           persona={persona}
           actingAsCliente={actingAsCliente}
         />
-        <main className="app-content mx-auto w-full min-w-0 max-w-[1280px] flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8">
+        <main className={isAssistant
+          ? "app-content mx-auto w-full min-w-0 flex-1 bg-[#fcfbf9]"
+          : "app-content mx-auto w-full min-w-0 max-w-[1280px] flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8"}>
           {actingAsCliente && selectedCliente ? (
             <ActingAsClienteBanner clienteName={selectedCliente.name} />
           ) : null}

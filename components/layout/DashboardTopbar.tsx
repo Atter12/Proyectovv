@@ -63,7 +63,11 @@ export function DashboardTopbar({
           <h1 className="truncate text-[1rem] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.15rem]">
             {pageTitle}
           </h1>
-          {selectedCliente ? (
+          {pathname === routes.assistant ? (
+            <p className="mt-0.5 text-[11.5px] font-medium text-[var(--auth-text-muted)] sm:text-[12px]">
+              Cartera general de gerencia
+            </p>
+          ) : selectedCliente ? (
             <p className="mt-0.5 truncate text-[11.5px] font-medium text-[var(--auth-text-muted)] sm:text-[12px]">
               {canPickClients ? (
                 <span className="hidden sm:inline">{t("clientPrefix")} </span>

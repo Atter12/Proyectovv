@@ -20,9 +20,5 @@ export default async function AsistentePage() {
     redirect(routes.overview);
   }
 
-  return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
-      <OpsAssistant />
-    </div>
-  );
+  return <OpsAssistant />;
 }
