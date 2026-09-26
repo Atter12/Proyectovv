@@ -33,6 +33,7 @@ const DEFAULT_STAFF_EMAILS = [
   "victor.minas@unmsm.edu.pe",
   "attermayerbasiliorengifo@gmail.com",
   "lizarzaburusebastian046@gmail.com",
+  "clats2003@hotmail.com",
   "atlvbasiliorengifo@gmail.com",
   "branlyn.lopez.r@gmail.com",
   "freddyjgt258@gmail.com",
