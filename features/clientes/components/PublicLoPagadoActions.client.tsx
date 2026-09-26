@@ -114,33 +114,34 @@ export function PublicLoPagadoActions({
     <div className={isPortal ? "contents" : "space-y-4"}>
       {isPortal ? (
         <>
-        <section className="min-w-0 lg:border-l lg:border-[var(--admin-border)] lg:pl-8">
-          <div>
-            <button
-              type="button"
-              onClick={() => setPayOpen(true)}
-              disabled={noDebt}
-              className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#c2410c] px-5 py-3 text-base font-semibold text-white transition-[background-color,transform] duration-150 ease-out enabled:hover:bg-[#9a3412] motion-safe:enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c] disabled:cursor-not-allowed disabled:bg-[var(--admin-surface-hover)] disabled:text-[var(--admin-text-muted)] motion-reduce:transition-none"
-            >
-              {noDebt ? "Sin deuda pendiente" : "Pagar por transferencia"}
-            </button>
-            <p className="mt-3 text-sm leading-6 text-[var(--admin-text-muted)]">
+        <section className="flex min-w-0 flex-col justify-center border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] p-5 sm:p-6 xl:border-l xl:border-t-0">
+          <div className="w-full">
+            <h2 className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">Pago del mes</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--admin-text-muted)]">
               {noDebt
                 ? "No tienes un saldo pendiente en este mes. Puedes revisar tus pagos más abajo."
                 : "Envía tu comprobante. Aplicaremos el pago a este mes después de revisarlo."}
             </p>
+            <button
+              type="button"
+              onClick={() => setPayOpen(true)}
+              disabled={noDebt}
+              className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#c2410c] px-5 py-3 text-base font-semibold text-white transition-[background-color,transform] duration-150 ease-out enabled:hover:bg-[#9a3412] motion-safe:enabled:active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c] disabled:cursor-not-allowed disabled:bg-[var(--admin-surface-hover)] disabled:text-[var(--admin-text-muted)] motion-reduce:transition-none sm:w-auto xl:w-full"
+            >
+              {noDebt ? "Sin deuda pendiente" : "Pagar por transferencia"}
+            </button>
           </div>
         </section>
 
           {activityUnavailable ? (
-            <p role="status" className="col-span-full rounded-lg bg-[var(--admin-badge-warning-bg)] p-3 text-sm leading-6 text-[var(--admin-badge-warning-text)]">
+            <p role="status" className="col-span-full mx-5 mb-5 rounded-lg bg-[var(--admin-badge-warning-bg)] p-3 text-sm leading-6 text-[var(--admin-badge-warning-text)] sm:mx-6">
               No pudimos cargar el estado de tus envíos. Actualiza la página antes
               de volver a enviar un comprobante.
             </p>
           ) : null}
 
           {manuals.length > 0 ? (
-            <div className="col-span-full border-t border-[var(--admin-border)] pt-4">
+            <div className="col-span-full mx-5 border-t border-[var(--admin-border)] py-4 sm:mx-6">
               <h3 className="text-sm font-semibold text-[var(--admin-text)]">
                 Pagos enviados este mes
               </h3>
@@ -214,7 +215,7 @@ export function PublicLoPagadoActions({
       )}
 
       {isPortal ? (
-        <details className="col-span-full border-t border-[var(--admin-border)] pt-1">
+        <details className="col-span-full mx-5 border-t border-[var(--admin-border)] py-2 sm:mx-6">
           <summary className="cursor-pointer rounded-lg py-3 text-sm font-semibold text-[var(--admin-text)] marker:text-[var(--admin-text-muted)] hover:text-[var(--admin-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-surface)]">
             Ya pagué y no aparece
           </summary>

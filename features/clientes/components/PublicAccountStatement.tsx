@@ -62,8 +62,10 @@ export function PublicAccountStatement({
       ) : null}
 
       <section aria-labelledby="account-balance" className="overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
-        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.55fr)] lg:gap-x-8">
-          <div className="min-w-0">
+        <div className="grid gap-x-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.45fr)]">
+          <div className="min-w-0 p-5 sm:p-6">
+            <div className="grid items-start gap-4 md:grid-cols-2 md:gap-x-6">
+            <div className="min-w-0">
             <h2 id="account-balance" className="text-base font-medium text-[var(--admin-text-muted)]">
               {hasDebt ? "Saldo pendiente" : credit > 0 ? "Saldo a favor del mes" : "Sin saldo pendiente"}
             </h2>
@@ -71,7 +73,8 @@ export function PublicAccountStatement({
               <span className="max-w-full [overflow-wrap:anywhere]">{balance}</span>
               <span className="text-base font-medium tracking-normal text-[var(--admin-text-muted)]">USD</span>
             </p>
-            <div className="mt-4 w-fit max-w-full rounded-r-xl border-l-4 border-[var(--admin-accent)] bg-[var(--admin-accent-soft)] px-4 py-3">
+            </div>
+            <div className="flex min-w-0 flex-col justify-center self-stretch rounded-xl bg-[var(--admin-accent-soft)] px-4 py-3">
               <p className="text-sm font-semibold leading-5 text-[var(--admin-text)]">
                 {hasDebt ? "Deuda calculada con gastos hasta el" : "Gastos incluidos hasta el"}
               </p>
@@ -79,29 +82,30 @@ export function PublicAccountStatement({
                 {dateLabel(snapshot.spendTo, "long")}
               </time>
             </div>
-            <p className="mt-3 max-w-md text-sm leading-6 text-[var(--admin-text-muted)]">
+            <p className="max-w-2xl text-sm leading-6 text-[var(--admin-text-muted)] md:col-span-2">
               {hasDebt
                 ? "Tu inversión en anuncios y la comisión del servicio, menos los pagos aplicados."
                 : credit > 0
                   ? "Los pagos aplicados superan los cargos de este mes. Puedes revisar el detalle más abajo."
                   : hasMovements ? "Los cargos registrados de este mes están cubiertos." : "Sin movimientos registrados en este mes."}
             </p>
-          </div>
-          {children}
-        </div>
+            </div>
 
-        <dl className="grid border-t border-[var(--admin-border)] bg-[var(--admin-surface-soft)] px-5 sm:grid-cols-3 sm:px-6">
+        <dl className="mt-5 grid gap-x-6 border-t border-[var(--admin-border)] pt-1 sm:grid-cols-3">
           {[
             ["Inversión en anuncios", snapshot.gasto],
             ["Comisión del servicio", snapshot.fee],
             ["Pagos aplicados", snapshot.cobrado],
           ].map(([label, amount]) => (
-            <div key={label} className="flex items-center justify-between gap-4 border-b border-[var(--admin-border)] py-4 last:border-b-0 sm:block sm:border-b-0 sm:py-5">
+            <div key={label} className="flex min-w-0 items-center justify-between gap-4 border-b border-[var(--admin-border)] py-3 last:border-b-0 sm:block sm:border-b-0 sm:pb-0 sm:pt-4">
               <dt className="text-sm text-[var(--admin-text-muted)]">{label}</dt>
-              <dd className="text-lg font-semibold tabular-nums sm:mt-1">{money(Number(amount))}</dd>
+              <dd className="text-lg font-semibold tabular-nums [overflow-wrap:anywhere] sm:mt-1">{money(Number(amount))}</dd>
             </div>
           ))}
         </dl>
+          </div>
+          {children}
+        </div>
       </section>
 
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.45fr)]">

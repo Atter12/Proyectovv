@@ -4,13 +4,14 @@
 
 La ruta `/p/lo-pagado/[token]` presenta primero el saldo del mes y el acceso al pago. Conserva el cálculo mensual existente y el flujo de transferencia con comprobante. La confirmación automática con pasarelas se implementará por separado.
 
-El diseño utiliza la marca, tipografía y colores existentes de Holistic. Prioriza lectura, contraste y uso táctil; no añade animaciones decorativas. Ocupa el ancho disponible con márgenes laterales de 16 a 32 px. En escritorio separa saldo y acción, y presenta el gráfico diario junto al historial de pagos; en móvil apila estas secciones y utiliza filas para el detalle diario.
+El diseño utiliza la marca, tipografía y colores existentes de Holistic. Prioriza lectura, contraste y uso táctil; no añade animaciones decorativas. Ocupa el ancho disponible con márgenes laterales de 16 a 32 px. Desde 1280 px, una misma cuadrícula alinea el resumen con el gráfico y el bloque de pago con el historial. Saldo y corte comparten una fila dentro del resumen; el desglose queda debajo. La acción de pago forma un bloque con título y explicación, centrado verticalmente. En móvil se apilan resumen, desglose, pago y detalle.
 
 ## Revisión de diseño
 
 | Before | After | Why |
 | --- | --- | --- |
 | La acción de pago estaba después de un informe largo. | Saldo, fecha de corte y pago aparecen al inicio. | El cliente entiende cuánto corresponde pagar antes de explorar movimientos. |
+| El botón quedaba aislado arriba de una columna con mucho espacio vacío y una proporción distinta al resto de la página. | Bloque de pago con título, explicación y botón, centrado junto al resumen; sus límites coinciden con el historial inferior. | Agrupa la acción y su contexto, equilibra la cabecera y mantiene alineaciones estables. |
 | El gráfico diario quedó ausente en la primera versión del rediseño. | Gráfico diario siempre visible, con anuncios más comisión, pagos y acumulados del día seleccionado. | Conserva la visión de la evolución del gasto junto al detalle numérico. |
 | El detalle del gráfico requería hacer clic y permanecía en un día. | El puntero muestra cada día y, al salir, vuelve al total hasta la fecha. El selector y el teclado también permiten consultar días y regresar al total. | Facilita explorar el gasto y recuperar el contexto del período sin clics adicionales. |
 | La columna central dejaba amplios espacios vacíos en escritorio. | Ancho fluido, gráfico principal e historial lateral; detalles desplegables debajo. | Aprovecha la pantalla y mantiene una lectura ordenada en móvil. |
@@ -49,6 +50,7 @@ Validar la vista en escritorio y móvil, ejecutar los checks aplicables y public
 - TypeScript de la ruta y sus dependencias, lint focalizado y revisión de espacios del diff.
 - Snapshot mensual existente: mismos cálculos de cargos, pagos aplicados y deuda.
 - Vista con componentes reales y datos ficticios en 320, 390, 768, 1280 y 1920 px, sin desbordamiento horizontal.
+- Cabecera: columnas alineadas con gráfico/historial; formulario de comprobantes a todo el ancho y campos apilados en móvil.
 - Gráfico: selección por fecha y teclado, importes diarios/acumulados, barras vacías con altura cero y gasto posterior al corte marcado como pendiente de actualizar.
 - Interacción con puntero: entrada en columna actualiza importes sin clic; salida restaura totales, incluso con foco en la columna. Los eventos táctiles de salida conservan la selección.
 - Estados sin movimientos, saldo a favor, comprobante en revisión y error de lectura de actividad.
