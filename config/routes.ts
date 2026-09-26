@@ -22,6 +22,7 @@ export const routes = {
   creativeAnalyzer: "/creative-analyzer",
   pixels: "/pixels",
   profit: "/profit",
+  assistant: "/asistente",
   education: "/education",
   support: "/support",
   shop: "/comprar",

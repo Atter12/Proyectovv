@@ -12,6 +12,7 @@ export const protectedRoutes = [
   routes.creativeAnalyzer,
   routes.pixels,
   routes.profit,
+  routes.assistant,
   routes.education,
 ] as const;
 

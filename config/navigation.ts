@@ -7,6 +7,7 @@ export const mainNavigation: NavItem[] = [
   { key: "adAccounts", href: routes.adAccounts, icon: "ad-accounts" },
   { key: "payments", href: routes.payments, icon: "payments" },
   { key: "profit", href: routes.profit, icon: "profit" },
+  { key: "assistant", href: routes.assistant, icon: "assistant" },
   {
     key: "paymentsManual",
     href: routes.paymentsManual,
