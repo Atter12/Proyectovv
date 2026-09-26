@@ -4,10 +4,17 @@ import { createNotificationBestEffort } from "@/lib/notifications/create-notific
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SessionUser } from "@/types/auth";
 import type {
+  AdvisorOption,
   MeetingCounts,
   MeetingDto,
   ScheduleDto,
 } from "@/features/support/lib/meeting-types";
+import {
+  CREATED_MEETING_STATUS,
+  MeetingFlowError,
+  planClientMutation,
+  planStaffMutation,
+} from "@/features/support/lib/meeting-flow";
 import {
   HORIZON_DAYS,
   MAX_OPEN_MEETINGS,
@@ -150,6 +157,12 @@ function toSchedule(row: ScheduleRow): ScheduleDto {
   };
 }
 
+/** Las cuatro personas que el cliente puede elegir para reunirse. */
+function bookableAdvisors(schedules: ScheduleDto[]): ScheduleDto[] {
+  const seeded = new Set(SEEDED_ADVISORS.map((item) => item.email));
+  return schedules.filter((item) => seeded.has(item.email) && item.isAvailable);
+}
+
 function displayNameFor(email: string): string {
   const seeded = SEEDED_ADVISORS.find((item) => item.email === email);
   if (seeded) return seeded.displayName;
@@ -251,7 +264,7 @@ function overlapsSlot(span: BusySpan, startMs: number, endMs: number): boolean {
   return Date.parse(span.startsAt) < endMs && Date.parse(span.endsAt) > startMs;
 }
 
-/** Asesores libres en ese bloque. Un pedido sin asesor también ocupa un cupo. */
+/** Asesores que trabajan ese bloque y no tienen otra reunión a esa hora. */
 async function openSeats(
   startsAt: string,
   ignoreId?: string | null,
@@ -271,10 +284,7 @@ async function openSeats(
       (span) => span.advisorEmail === schedule.email && overlapsSlot(span, startMs, endMs),
     );
   });
-  const unassigned = busy.filter(
-    (span) => !span.advisorEmail && overlapsSlot(span, startMs, endMs),
-  ).length;
-  return open.slice(unassigned);
+  return open;
 }
 
 async function claimSeat(input: {
@@ -288,7 +298,16 @@ async function claimSeat(input: {
   const preferred = input.preferredEmail?.trim().toLowerCase() || null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let seats = await openSeats(input.startsAt, input.ignoreId);
-    if (preferred) seats = seats.filter((seat) => seat.email === preferred);
+    if (preferred) {
+      seats = seats.filter((seat) => seat.email === preferred);
+    } else {
+      const startMs = Date.parse(input.startsAt);
+      const endMs = startMs + SLOT_MINUTES * 60_000;
+      const unassigned = (await loadBusy(input.ignoreId)).filter(
+        (span) => !span.advisorEmail && overlapsSlot(span, startMs, endMs),
+      ).length;
+      seats = seats.slice(unassigned);
+    }
     for (const advisor of seats) {
       const { data, error } = await input.write(advisor);
       if (!error && data) return data;
@@ -339,8 +358,25 @@ export async function getAvailability(input: {
   fromYmd?: string | null;
   dayCount?: number;
   ignoreId?: string | null;
-}): Promise<{ today: string; days: string[]; hours: number[]; cells: HourCell[] }> {
-  const schedules = await ensureAdvisorSchedules();
+  advisorEmail?: string | null;
+}): Promise<{
+  today: string;
+  days: string[];
+  hours: number[];
+  cells: HourCell[];
+  advisors: AdvisorOption[];
+  advisor: string | null;
+}> {
+  const all = await ensureAdvisorSchedules();
+  const bookable = bookableAdvisors(all);
+  const advisors = bookable.map((item) => ({
+    email: item.email,
+    displayName: item.displayName,
+  }));
+  const requestedAdvisor = input.advisorEmail?.trim().toLowerCase() || null;
+  const schedules = requestedAdvisor
+    ? bookable.filter((item) => item.email === requestedAdvisor)
+    : bookable;
   const today = todayYmd();
   const requested = input.fromYmd && /^\d{4}-\d{2}-\d{2}$/.test(input.fromYmd)
     ? input.fromYmd
@@ -348,7 +384,7 @@ export async function getAvailability(input: {
   const monday = mondayOf(today);
   const latest = mondayOf(addDaysYmd(today, HORIZON_DAYS));
   const fromYmd = requested < monday ? monday : requested > latest ? latest : requested;
-  const dayCount = Math.min(7, Math.max(1, input.dayCount ?? 7));
+  const dayCount = Math.min(14, Math.max(1, input.dayCount ?? 7));
   const busy = await loadBusy(input.ignoreId);
   const grid = buildAvailability({
     schedules,
@@ -357,7 +393,12 @@ export async function getAvailability(input: {
     fromYmd,
     dayCount,
   });
-  return { today, ...grid };
+  return {
+    today,
+    ...grid,
+    advisors,
+    advisor: requestedAdvisor && schedules.length === 1 ? requestedAdvisor : null,
+  };
 }
 
 async function listRows(filter?: { requesterId?: string }): Promise<MeetingRow[]> {
@@ -444,6 +485,34 @@ function cleanText(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+async function requireBookableAdvisor(emailRaw: string): Promise<ScheduleDto> {
+  const email = cleanText(emailRaw, 120).toLowerCase();
+  const advisor = bookableAdvisors(await ensureAdvisorSchedules()).find(
+    (item) => item.email === email,
+  );
+  if (!advisor) {
+    throw new MeetingError("advisor", "Elige a una persona de soporte.");
+  }
+  return advisor;
+}
+
+async function openSlotForAdvisor(startsAt: string, advisorEmail: string, ignoreId?: string | null) {
+  const today = todayYmd();
+  const grid = await getAvailability({
+    fromYmd: mondayOf(today),
+    dayCount: 7,
+    ignoreId,
+    advisorEmail,
+  });
+  const later = await getAvailability({
+    fromYmd: addDaysYmd(mondayOf(today), 7),
+    dayCount: 7,
+    ignoreId,
+    advisorEmail,
+  });
+  return slotIsOpen(grid.cells, startsAt) ?? slotIsOpen(later.cells, startsAt);
+}
+
 export async function createClientMeeting(input: {
   session: SessionUser;
   startsAt: string;
@@ -451,6 +520,7 @@ export async function createClientMeeting(input: {
   notes: string;
   phone: string;
   meetingType: string;
+  advisorEmail: string;
 }): Promise<MeetingDto> {
   const subject = cleanText(input.subject, 160);
   const notes = cleanText(input.notes, 2000);
@@ -478,18 +548,10 @@ export async function createClientMeeting(input: {
     );
   }
 
-  const grid = await getAvailability({
-    fromYmd: mondayOf(todayYmd()),
-    dayCount: 7,
-  });
-  const later = await getAvailability({
-    fromYmd: addDaysYmd(mondayOf(todayYmd()), 7),
-    dayCount: 7,
-  });
-  const slot =
-    slotIsOpen(grid.cells, input.startsAt) ?? slotIsOpen(later.cells, input.startsAt);
+  const advisor = await requireBookableAdvisor(input.advisorEmail);
+  const slot = await openSlotForAdvisor(input.startsAt, advisor.email);
   if (!slot) {
-    throw new MeetingError("slot_taken", "Ese horario ya no está libre.");
+    throw new MeetingError("advisor", "Ese asesor no está libre en ese horario.");
   }
 
   const organizationId = isUuid(input.session.organizationId)
@@ -497,6 +559,7 @@ export async function createClientMeeting(input: {
     : null;
   const meeting = await claimSeat({
     startsAt: slot.startsAt,
+    preferredEmail: advisor.email,
     write: (advisor) =>
       db()
         .from("support_meetings")
@@ -514,7 +577,7 @@ export async function createClientMeeting(input: {
           meeting_type: input.meetingType,
           starts_at: slot.startsAt,
           ends_at: slot.endsAt,
-          status: "pending",
+          status: CREATED_MEETING_STATUS,
         })
         .select(MEETING_COLUMNS)
         .single(),
@@ -532,7 +595,7 @@ export async function createClientMeeting(input: {
   await notifyStaff({
     meetingId: meeting.id,
     title: "Nueva reunión por confirmar",
-    body: `${input.session.name} pidió “${subject}” para ${when}.`,
+    body: `${input.session.name} pidió “${subject}” con ${advisor.displayName} para ${when}.`,
   });
 
   return toMeeting(meeting);
@@ -558,12 +621,12 @@ async function loadOwned(
   return row;
 }
 
-function assertClientCanChange(row: MeetingRow) {
-  if (!ACTIVE.includes(row.status as (typeof ACTIVE)[number])) {
-    throw new MeetingError("terminal", "Esta reunión ya no se puede cambiar.");
-  }
-  if (Date.parse(row.starts_at) <= Date.now()) {
-    throw new MeetingError("started", "Esta reunión ya comenzó.");
+function fromFlow<T>(run: () => T): T {
+  try {
+    return run();
+  } catch (error) {
+    if (error instanceof MeetingFlowError) throw new MeetingError(error.code, error.message);
+    throw error;
   }
 }
 
@@ -572,14 +635,21 @@ export async function mutateClientMeeting(input: {
   id: string;
   action: string;
   startsAt?: string;
+  advisorEmail?: string;
 }): Promise<MeetingDto> {
   const row = await loadOwned(input.id, input.session, false);
-  assertClientCanChange(row);
+  const plan = fromFlow(() =>
+    planClientMutation({
+      status: row.status,
+      startsAtMs: Date.parse(row.starts_at),
+      action: input.action,
+    }),
+  );
 
-  if (input.action === "cancel") {
+  if (plan.status === "cancelled") {
     const { data, error } = await db()
       .from("support_meetings")
-      .update({ status: "cancelled" })
+      .update({ status: plan.status })
       .eq("id", row.id)
       .select(MEETING_COLUMNS)
       .single();
@@ -587,38 +657,28 @@ export async function mutateClientMeeting(input: {
     return toMeeting(data as MeetingRow);
   }
 
-  if (input.action === "reschedule") {
+  if (plan.clearMeetUrl) {
     if (!input.startsAt) throw new MeetingError("slot_taken", "Elige un horario.");
-    const today = todayYmd();
-    const grid = await getAvailability({
-      fromYmd: mondayOf(today),
-      dayCount: 7,
-      ignoreId: row.id,
-    });
-    const later = await getAvailability({
-      fromYmd: addDaysYmd(mondayOf(today), 7),
-      dayCount: 7,
-      ignoreId: row.id,
-    });
-    const slot =
-      slotIsOpen(grid.cells, input.startsAt) ?? slotIsOpen(later.cells, input.startsAt);
-    if (!slot) throw new MeetingError("slot_taken", "Ese horario ya no está libre.");
+    const advisor = await requireBookableAdvisor(input.advisorEmail || row.advisor_email || "");
+    const slot = await openSlotForAdvisor(input.startsAt, advisor.email, row.id);
+    if (!slot) throw new MeetingError("advisor", "Ese asesor no está libre en ese horario.");
     const meeting = await claimSeat({
       startsAt: slot.startsAt,
       ignoreId: row.id,
+      preferredEmail: advisor.email,
       write: (advisor) =>
         db()
           .from("support_meetings")
           .update({
             starts_at: slot.startsAt,
             ends_at: slot.endsAt,
-            status: "pending",
-            meet_url: null,
+            status: plan.status,
+            meet_url: plan.clearMeetUrl ? null : row.meet_url,
             advisor_user_id: advisor.userId,
             advisor_name: advisor.displayName,
             advisor_email: advisor.email,
-            client_reminder_at: null,
-            advisor_reminder_at: null,
+            client_reminder_at: plan.clearReminders ? null : row.client_reminder_at,
+            advisor_reminder_at: plan.clearReminders ? null : row.advisor_reminder_at,
           })
           .eq("id", row.id)
           .select(MEETING_COLUMNS)
@@ -646,17 +706,18 @@ export async function mutateStaffMeeting(input: {
 }): Promise<MeetingDto> {
   const row = await loadOwned(input.id, input.session, true);
   const schedules = await ensureAdvisorSchedules();
-  const closed = row.status === "completed" || row.status === "cancelled" || row.status === "no_show";
-  if (closed && input.action !== "notes") {
-    throw new MeetingError("terminal", "Esta reunión ya está cerrada.");
-  }
 
   if (input.action === "confirm" || input.action === "reschedule") {
     const typedUrl = cleanText(input.meetUrl, 300);
     const meetUrl = typedUrl || (input.action === "reschedule" ? row.meet_url ?? "" : "");
-    if (!isHttpsUrl(meetUrl)) {
-      throw new MeetingError("meet_url", "Pega un enlace https de la reunión.");
-    }
+    const plan = fromFlow(() =>
+      planStaffMutation({
+        status: row.status,
+        action: input.action,
+        hasMeetUrl: isHttpsUrl(meetUrl),
+      }),
+    );
+    if (plan.kind !== "schedule") throw new MeetingError("invalid", "Acción no disponible.");
     const advisorEmail = cleanText(input.advisorEmail, 120).toLowerCase() || row.advisor_email;
     const advisor = schedules.find((item) => item.email === advisorEmail);
     if (!advisor || !advisor.isAvailable) {
@@ -698,7 +759,7 @@ export async function mutateStaffMeeting(input: {
         db()
           .from("support_meetings")
           .update({
-            status: input.action === "confirm" ? "confirmed" : "rescheduled",
+            status: plan.status,
             meet_url: meetUrl,
             advisor_user_id: seat.userId,
             advisor_name: seat.displayName,
@@ -734,8 +795,11 @@ export async function mutateStaffMeeting(input: {
   }
 
   if (input.action === "complete" || input.action === "no_show" || input.action === "cancel") {
-    const status =
-      input.action === "complete" ? "completed" : input.action === "no_show" ? "no_show" : "cancelled";
+    const plan = fromFlow(() =>
+      planStaffMutation({ status: row.status, action: input.action, hasMeetUrl: false }),
+    );
+    if (plan.kind !== "close") throw new MeetingError("invalid", "Acción no disponible.");
+    const status = plan.status;
     const { data, error } = await db()
       .from("support_meetings")
       .update({ status })
@@ -747,6 +811,10 @@ export async function mutateStaffMeeting(input: {
   }
 
   if (input.action === "remind") {
+    const plan = fromFlow(() =>
+      planStaffMutation({ status: row.status, action: "remind", hasMeetUrl: false }),
+    );
+    if (plan.kind !== "remind") throw new MeetingError("invalid", "Acción no disponible.");
     const nowIso = new Date().toISOString();
     const { data, error } = await db()
       .from("support_meetings")
@@ -784,6 +852,7 @@ export async function mutateStaffMeeting(input: {
   }
 
   if (input.action === "notes") {
+    fromFlow(() => planStaffMutation({ status: row.status, action: "notes", hasMeetUrl: false }));
     const notes = cleanText(input.notes, 2000);
     const { data, error } = await db()
       .from("support_meetings")

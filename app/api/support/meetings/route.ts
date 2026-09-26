@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
     if (staff) {
       const board = await listStaffBoard();
-      return NextResponse.json({ ok: true, ...board });
+      return NextResponse.json({ ok: true, viewerEmail: gate.session.email, ...board });
     }
     const meetings = await listClientMeetings(gate.session.id);
     return NextResponse.json({ ok: true, meetings });
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
     notes?: string;
     phone?: string;
     meetingType?: string;
+    advisorEmail?: string;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       notes: body.notes ?? "",
       phone: body.phone ?? "",
       meetingType: body.meetingType ?? "",
+      advisorEmail: body.advisorEmail ?? "",
     });
     return NextResponse.json({ ok: true, meeting });
   } catch (error) {

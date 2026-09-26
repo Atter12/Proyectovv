@@ -298,7 +298,9 @@ export function buildAvailability(input: {
           const email = span.advisorEmail;
           return !email || !covering.includes(email);
         }).length;
-        const free = covering.filter((email) => !taken.has(email)).length - unassigned;
+        const freeNamed = covering.filter((email) => !taken.has(email)).length;
+        const anonymousHold = input.schedules.length > 1 ? unassigned : 0;
+        const free = freeNamed - anonymousHold;
         if (free > 0 && start.getTime() >= earliest) {
           slots.push({
             startsAt: start.toISOString(),

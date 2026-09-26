@@ -14,6 +14,7 @@ export async function GET(request: Request) {
   const from = url.searchParams.get("from");
   const days = Number(url.searchParams.get("days") ?? "7");
   const ignore = url.searchParams.get("ignore");
+  const advisor = url.searchParams.get("advisor");
 
   try {
     let ignoreId: string | null = null;
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
       fromYmd: from,
       dayCount: Number.isFinite(days) ? days : 7,
       ignoreId,
+      advisorEmail: advisor,
     });
     return NextResponse.json({ ok: true, timezone: "America/Lima", ...availability });
   } catch (error) {

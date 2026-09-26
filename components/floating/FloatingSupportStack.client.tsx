@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { routes } from "@/config/routes";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { SupportChatWidget } from "./SupportChatWidget.client";
+import { StaffCalendarFab } from "./StaffCalendarFab.client";
 import { StaffSupportNotifier } from "./StaffSupportNotifier.client";
 
 const OnboardingWidgetLoader = dynamic(
@@ -33,9 +34,15 @@ export function FloatingSupportStack({
     pathname.startsWith(`${routes.adAccounts}/`);
   const isStaff = persona === "gerente" || persona === "super_admin";
 
-  // Staff: burbuja izquierda + sonido fuera de /support (inbox ya avisa adentro).
+  // Staff: avisos de chat a la izquierda y la agenda personal a la derecha,
+  // en todos los módulos, para ver fecha y hora de las citas a su nombre.
   if (isStaff) {
-    return <StaffSupportNotifier />;
+    return (
+      <>
+        <StaffSupportNotifier />
+        <StaffCalendarFab />
+      </>
+    );
   }
 
   // En /support la página completa es el canal; sin WhatsApp ni burbuja duplicada.

@@ -71,6 +71,37 @@ test("dos reuniones sin asesor llenan el bloque de las 10", () => {
   assert.equal(slotIsOpen(grid.cells, half.startsAt)?.minute, 10 * 60 + 30);
 });
 
+test("una reunión sin asesor no bloquea el calendario de una sola persona", () => {
+  const start = limaWallToUtc(2026, 9, 26, 10 * 60);
+  const grid = buildAvailability({
+    schedules: [SEEDED_ADVISORS[1]],
+    busy: [
+      {
+        startsAt: start.toISOString(),
+        endsAt: new Date(start.getTime() + 30 * 60_000).toISOString(),
+        advisorEmail: null,
+        status: "pending",
+      },
+    ],
+    now,
+    fromYmd: "2026-09-26",
+    dayCount: 1,
+  });
+  const ten = grid.cells.find((cell) => cell.minute === 10 * 60);
+  assert.equal(ten?.slots.some((slot) => slot.minute === 10 * 60), true);
+});
+
+test("el sábado el horario de Branlyn no tiene cupo", () => {
+  const grid = buildAvailability({
+    schedules: [SEEDED_ADVISORS[0]],
+    busy: [],
+    now,
+    fromYmd: "2026-09-26",
+    dayCount: 1,
+  });
+  assert.ok(grid.cells.every((cell) => cell.kind === "off" && cell.slots.length === 0));
+});
+
 test("el descanso de mediodía no se puede reservar", () => {
   const branlyn = SEEDED_ADVISORS[0];
   assert.equal(coverageKind(branlyn, 0, 12 * 60, 30), "break");

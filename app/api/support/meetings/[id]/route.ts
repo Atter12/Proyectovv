@@ -48,6 +48,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           id,
           action,
           startsAt: body.startsAt,
+          advisorEmail: body.advisorEmail,
         });
     return NextResponse.json({ ok: true, meeting });
   } catch (error) {

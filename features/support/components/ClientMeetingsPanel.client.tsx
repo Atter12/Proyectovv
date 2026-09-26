@@ -4,9 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import {
-  HORIZON_DAYS,
   MEETING_TYPES,
-  addDaysYmd,
   formatMinute,
   limaWallToUtc,
   mondayOf,
@@ -16,7 +14,7 @@ import {
   type HourKind,
   type MeetingType,
 } from "@/features/support/lib/meeting-slots";
-import type { MeetingDto } from "@/features/support/lib/meeting-types";
+import type { AdvisorOption, MeetingDto } from "@/features/support/lib/meeting-types";
 
 const ACTIVE = new Set(["pending", "confirmed", "rescheduled"]);
 const ERROR_CODES = [
@@ -45,7 +43,17 @@ type GridResponse = {
   days: string[];
   hours: number[];
   cells: HourCell[];
+  advisors?: AdvisorOption[];
+  advisor?: string | null;
 };
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 function isErrorCode(value: string): value is ErrorCode {
   return (ERROR_CODES as readonly string[]).includes(value);
@@ -80,9 +88,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
   const t = useTranslations("support");
   const locale = useLocale();
   const currentMonday = mondayOf(todayYmd());
-  const maxMonday = mondayOf(addDaysYmd(todayYmd(), HORIZON_DAYS));
 
-  const [weekStart, setWeekStart] = useState(currentMonday);
   const [grid, setGrid] = useState<GridResponse | null>(null);
   const [meetings, setMeetings] = useState<MeetingDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +97,8 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
   const [selectedSlot, setSelectedSlot] = useState<FreeSlot | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [advisorEmail, setAdvisorEmail] = useState("");
+  const [advisors, setAdvisors] = useState<AdvisorOption[]>([]);
   const [meetingType, setMeetingType] = useState<MeetingType>("consulta");
   const [subject, setSubject] = useState("");
   const [notes, setNotes] = useState("");
@@ -133,8 +141,9 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ from: weekStart, days: "7" });
+      const params = new URLSearchParams({ from: currentMonday, days: "14" });
       if (rescheduleId) params.set("ignore", rescheduleId);
+      if (advisorEmail) params.set("advisor", advisorEmail);
       const [slotsRes, meetingsRes] = await Promise.all([
         fetch(`/api/support/meetings/slots?${params}`, { credentials: "include", cache: "no-store" }),
         fetch("/api/support/meetings", { credentials: "include", cache: "no-store" }),
@@ -144,13 +153,14 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
       if (!slotsRes.ok || !slots.ok) throw new Error(slots.code ?? "invalid");
       if (!meetingsRes.ok || !list.ok) throw new Error(list.code ?? "invalid");
       setGrid(slots);
+      setAdvisors(slots.advisors ?? []);
       setMeetings(list.meetings ?? []);
     } catch (err) {
       setError(explain(err instanceof Error ? err.message : "invalid"));
     } finally {
       setLoading(false);
     }
-  }, [explain, rescheduleId, weekStart]);
+  }, [advisorEmail, currentMonday, explain, rescheduleId]);
 
   useEffect(() => {
     void load();
@@ -174,8 +184,19 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
     return map;
   }, [grid]);
 
+  const selectedAdvisor = advisors.find((person) => person.email === advisorEmail) ?? null;
+  const gridReady = Boolean(advisorEmail) && grid?.advisor === advisorEmail;
+
+  function chooseAdvisor(email: string) {
+    if (email === advisorEmail) return;
+    setAdvisorEmail(email);
+    setSelectedCell(null);
+    setSelectedSlot(null);
+    setGrid(null);
+  }
+
   async function submitBooking() {
-    if (!selectedSlot || saving) return;
+    if (!selectedSlot || !advisorEmail || saving) return;
     setSaving(true);
     setError(null);
     setNotice(null);
@@ -190,6 +211,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
           notes,
           phone,
           meetingType,
+          advisorEmail,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; code?: string; meeting?: MeetingDto };
@@ -225,6 +247,8 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
       setRescheduleId(null);
       setSelectedCell(null);
       setSelectedSlot(null);
+      if (body.action === "reschedule") setNotice(t("meetings.moved"));
+      if (body.action === "cancel") setNotice(t("meetings.cancelled"));
       await load();
     } catch (err) {
       setError(explain(err instanceof Error ? err.message : "invalid"));
@@ -245,10 +269,42 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
     if (!rescheduleId) setSelectedId(null);
   }
 
-  const weekLabel =
+  const weeks = useMemo(() => {
+    const days = grid?.days ?? [];
+    const chunks: string[][] = [];
+    for (let index = 0; index < days.length; index += 7) {
+      chunks.push(days.slice(index, index + 7));
+    }
+    return chunks;
+  }, [grid]);
+
+  const rangeLabel =
     grid && grid.days.length > 0
       ? `${labelDay(grid.days[0], false)} – ${labelDay(grid.days[grid.days.length - 1], false)}`
       : "";
+
+  function weekHasFree(days: string[]) {
+    const hours = grid?.hours ?? [];
+    return days.some((day) =>
+      hours.some((hour) => (cellsByKey.get(`${day}-${hour}`)?.slots.length ?? 0) > 0),
+    );
+  }
+
+  function startReschedule(meeting: MeetingDto) {
+    const nextAdvisor =
+      meeting.advisorEmail && advisors.some((person) => person.email === meeting.advisorEmail)
+        ? meeting.advisorEmail
+        : advisorEmail;
+    if (nextAdvisor && nextAdvisor !== advisorEmail) {
+      setAdvisorEmail(nextAdvisor);
+      setGrid(null);
+    }
+    setSelectedId(meeting.id);
+    setRescheduleId(meeting.id);
+    setSelectedCell(null);
+    setSelectedSlot(null);
+    setNotice(null);
+  }
 
   return (
     <div className="space-y-4">
@@ -268,29 +324,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
             {t("meetings.subtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label={t("meetings.prevWeek")}
-            disabled={weekStart <= currentMonday}
-            onClick={() => setWeekStart((value) => addDaysYmd(value, -7))}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--auth-input-border)] bg-white text-[var(--auth-text)] disabled:opacity-40"
-          >
-            ‹
-          </button>
-          <span className="min-w-[7.5rem] text-center text-[12px] font-semibold capitalize text-[var(--auth-text)]">
-            {weekLabel}
-          </span>
-          <button
-            type="button"
-            aria-label={t("meetings.nextWeek")}
-            disabled={weekStart >= maxMonday}
-            onClick={() => setWeekStart((value) => addDaysYmd(value, 7))}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--auth-input-border)] bg-white text-[var(--auth-text)] disabled:opacity-40"
-          >
-            ›
-          </button>
-        </div>
+        <p className="shrink-0 text-[12px] font-semibold capitalize text-[var(--auth-text)]">{rangeLabel}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -311,52 +345,93 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
         </p>
       ) : null}
       {rescheduleId ? (
-        <p className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[13px] text-orange-900">
-          {t("meetings.rescheduleHint")}
-        </p>
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[13px] text-orange-900">
+          <p>{t("meetings.rescheduleHint")}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setRescheduleId(null);
+              setSelectedCell(null);
+              setSelectedSlot(null);
+            }}
+            className="shrink-0 font-semibold"
+          >
+            {t("meetings.cancelBook")}
+          </button>
+        </div>
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
         <section className="dashboard-surface-card rounded-[1.15rem] p-3 sm:p-4">
+          <div className="mb-3">
+            <p className="mb-2 text-[12px] font-semibold text-[var(--auth-text)]">{t("meetings.withWho")}</p>
+            <div className="flex flex-wrap gap-2">
+              {advisors.map((person) => {
+                const active = advisorEmail === person.email;
+                return (
+                  <button
+                    key={person.email}
+                    type="button"
+                    onClick={() => chooseAdvisor(person.email)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[13px] font-semibold",
+                      active
+                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
+                        : "border-[var(--auth-input-border)] bg-white text-[var(--auth-text)]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold",
+                        active ? "bg-white/20 text-white" : "bg-orange-100 text-orange-800",
+                      )}
+                    >
+                      {initials(person.displayName)}
+                    </span>
+                    {person.displayName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[13px] font-semibold text-[var(--auth-text)]">{t("meetings.clickHint")}</p>
+            <p className="text-[13px] font-semibold text-[var(--auth-text)]">
+              {advisorEmail ? t("meetings.clickHint") : t("meetings.pickPerson")}
+            </p>
             <div className="flex flex-wrap gap-2 text-[11px] font-medium text-[var(--auth-text-muted)]">
               <Legend swatch="bg-emerald-100" label={t("meetings.legendFree")} />
               <Legend swatch="bg-amber-50" label={t("meetings.legendBreak")} />
               <Legend swatch="bg-slate-200" label={t("meetings.legendFull")} />
             </div>
           </div>
-          {loading && !grid ? (
+          {!advisorEmail ? (
+            <p className="py-16 text-center text-[13px] text-[var(--auth-text-muted)]">{t("meetings.pickPerson")}</p>
+          ) : !gridReady ? (
             <p className="py-16 text-center text-[13px] text-[var(--auth-text-muted)]">{t("meetings.loading")}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <div className="grid min-w-[36rem] grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] gap-1">
-                <span />
-                {(grid?.days ?? []).map((day) => (
-                  <span key={day} className="pb-1 text-center text-[11px] font-semibold capitalize text-[var(--auth-text-muted)]">
-                    {labelDay(day)}
-                  </span>
-                ))}
-                {(grid?.hours ?? []).map((hour) => (
-                  <HourRow
-                    key={hour}
-                    hour={hour}
-                    days={grid?.days ?? []}
-                    cellsByKey={cellsByKey}
-                    selectedKey={selectedCell ? `${selectedCell.day}-${selectedCell.minute}` : ""}
-                    onChoose={chooseCell}
-                    labelFor={(kind) =>
-                      kind === "free"
-                        ? t("meetings.legendFree")
-                        : kind === "break"
-                          ? t("meetings.legendBreak")
-                          : kind === "full"
-                            ? t("meetings.legendFull")
-                            : ""
-                    }
-                  />
-                ))}
-              </div>
+            <div className="space-y-5">
+              {weeks.map((days, index) => (
+                <WeekGrid
+                  key={days[0] ?? index}
+                  title={index === 0 ? t("meetings.thisWeek") : t("meetings.nextWeek")}
+                  note={index === 0 && !weekHasFree(days) ? t("meetings.weekFull") : null}
+                  days={days}
+                  hours={grid?.hours ?? []}
+                  cellsByKey={cellsByKey}
+                  selectedKey={selectedCell ? `${selectedCell.day}-${selectedCell.minute}` : ""}
+                  onChoose={chooseCell}
+                  labelDay={labelDay}
+                  labelFor={(kind) =>
+                    kind === "free"
+                      ? t("meetings.legendFree")
+                      : kind === "break"
+                        ? t("meetings.legendBreak")
+                        : kind === "full"
+                          ? t("meetings.legendFull")
+                          : ""
+                  }
+                />
+              ))}
             </div>
           )}
         </section>
@@ -379,6 +454,11 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
                     {labelWhen(selectedSlot.startsAt)}
                   </p>
                   <p className="text-[12px] text-[var(--auth-text-muted)]">{t("meetings.duration")}</p>
+                  {selectedAdvisor ? (
+                    <p className="text-[12px] font-semibold text-[var(--auth-text)]">
+                      {t("meetings.withAdvisor", { name: selectedAdvisor.displayName })}
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -475,23 +555,25 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
                   void patchMeeting(selected.id, { action: "cancel" });
                 }
               }}
-              onReschedule={() => {
-                setRescheduleId(selected.id);
-                setSelectedCell(null);
-                setSelectedSlot(null);
-              }}
+              onReschedule={() => startReschedule(selected)}
               onMove={() => {
-                if (!selectedSlot) return;
-                void patchMeeting(selected.id, { action: "reschedule", startsAt: selectedSlot.startsAt });
+                if (!selectedSlot || !advisorEmail) return;
+                void patchMeeting(selected.id, {
+                  action: "reschedule",
+                  startsAt: selectedSlot.startsAt,
+                  advisorEmail,
+                });
               }}
               moving={rescheduleId === selected.id}
               canMove={Boolean(selectedSlot)}
+              nextWhen={selectedSlot ? labelWhen(selectedSlot.startsAt) : null}
             />
           ) : (
             <MeetingList
               meetings={meetings}
               labelWhen={labelWhen}
               onSelect={setSelectedId}
+              onReschedule={startReschedule}
             />
           )}
         </aside>
@@ -515,6 +597,56 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
       <span className={cn("h-2.5 w-2.5 rounded-sm", swatch)} />
       {label}
     </span>
+  );
+}
+
+function WeekGrid({
+  title,
+  note,
+  days,
+  hours,
+  cellsByKey,
+  selectedKey,
+  onChoose,
+  labelDay,
+  labelFor,
+}: {
+  title: string;
+  note: string | null;
+  days: string[];
+  hours: number[];
+  cellsByKey: Map<string, HourCell>;
+  selectedKey: string;
+  onChoose: (cell: HourCell) => void;
+  labelDay: (ymd: string) => string;
+  labelFor: (kind: HourKind) => string;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text)]">{title}</p>
+      {note ? <p className="mb-2 text-[12px] leading-relaxed text-[var(--auth-text-muted)]">{note}</p> : null}
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[36rem] grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] gap-1">
+          <span />
+          {days.map((day) => (
+            <span key={day} className="pb-1 text-center text-[11px] font-semibold capitalize text-[var(--auth-text-muted)]">
+              {labelDay(day)}
+            </span>
+          ))}
+          {hours.map((hour) => (
+            <HourRow
+              key={`${days[0]}-${hour}`}
+              hour={hour}
+              days={days}
+              cellsByKey={cellsByKey}
+              selectedKey={selectedKey}
+              onChoose={onChoose}
+              labelFor={labelFor}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -564,12 +696,14 @@ function MeetingGroup({
   empty,
   labelWhen,
   onSelect,
+  onReschedule,
 }: {
   title: string;
   meetings: MeetingDto[];
   empty?: string;
   labelWhen: (iso: string) => string;
   onSelect: (id: string) => void;
+  onReschedule?: (meeting: MeetingDto) => void;
 }) {
   const t = useTranslations("support");
   return (
@@ -579,25 +713,34 @@ function MeetingGroup({
         <p className="mt-2 text-[13px] leading-relaxed text-[var(--auth-text-muted)]">{empty}</p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {meetings.map((meeting) => (
-            <li key={meeting.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(meeting.id)}
-                className="flex w-full items-start justify-between gap-3 rounded-xl border border-[var(--auth-input-border)] px-3 py-2.5 text-left hover:border-[var(--auth-accent)]/40"
-              >
-                <span>
-                  <span className="block text-[13px] font-semibold text-[var(--auth-text)]">{meeting.subject}</span>
-                  <span className="mt-0.5 block text-[12px] capitalize text-[var(--auth-text-muted)]">
-                    {labelWhen(meeting.startsAt)}
+          {meetings.map((meeting) => {
+            const canMove = Boolean(onReschedule) && Date.parse(meeting.startsAt) > Date.now();
+            return (
+              <li key={meeting.id} className="rounded-xl border border-[var(--auth-input-border)] px-3 py-2.5">
+                <button type="button" onClick={() => onSelect(meeting.id)} className="flex w-full items-start justify-between gap-3 text-left">
+                  <span>
+                    <span className="block text-[13px] font-semibold text-[var(--auth-text)]">{meeting.subject}</span>
+                    <span className="mt-0.5 block text-[12px] capitalize text-[var(--auth-text-muted)]">
+                      {labelWhen(meeting.startsAt)}
+                      {meeting.advisorName ? ` · ${meeting.advisorName}` : ""}
+                    </span>
                   </span>
-                </span>
-                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
-                  {t(`meetings.statuses.${meeting.status}`)}
-                </span>
-              </button>
-            </li>
-          ))}
+                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
+                    {t(`meetings.statuses.${meeting.status}`)}
+                  </span>
+                </button>
+                {canMove ? (
+                  <button
+                    type="button"
+                    onClick={() => onReschedule?.(meeting)}
+                    className="mt-2 text-[12px] font-semibold text-[var(--auth-accent)]"
+                  >
+                    {t("meetings.reschedule")}
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -608,10 +751,12 @@ function MeetingList({
   meetings,
   labelWhen,
   onSelect,
+  onReschedule,
 }: {
   meetings: MeetingDto[];
   labelWhen: (iso: string) => string;
   onSelect: (id: string) => void;
+  onReschedule: (meeting: MeetingDto) => void;
 }) {
   const t = useTranslations("support");
   const upcoming = meetings
@@ -625,7 +770,7 @@ function MeetingList({
   }
   return (
     <div className="space-y-4">
-      <MeetingGroup title={t("meetings.upcoming")} meetings={upcoming} empty={t("meetings.noUpcoming")} labelWhen={labelWhen} onSelect={onSelect} />
+      <MeetingGroup title={t("meetings.upcoming")} meetings={upcoming} empty={t("meetings.noUpcoming")} labelWhen={labelWhen} onSelect={onSelect} onReschedule={onReschedule} />
       {history.length > 0 ? (
         <MeetingGroup title={t("meetings.history")} meetings={history} labelWhen={labelWhen} onSelect={onSelect} />
       ) : null}
@@ -639,6 +784,7 @@ function MeetingDetail({
   saving,
   moving,
   canMove,
+  nextWhen,
   onClose,
   onCancel,
   onReschedule,
@@ -649,6 +795,7 @@ function MeetingDetail({
   saving: boolean;
   moving: boolean;
   canMove: boolean;
+  nextWhen: string | null;
   onClose: () => void;
   onCancel: () => void;
   onReschedule: () => void;
@@ -725,7 +872,7 @@ function MeetingDetail({
           onClick={onMove}
           className="h-10 w-full rounded-lg bg-[var(--brand-primary)] text-[14px] font-semibold text-white disabled:opacity-50"
         >
-          {t("meetings.moveTo")}
+          {canMove && nextWhen ? t("meetings.moveToWhen", { when: nextWhen }) : t("meetings.moveTo")}
         </button>
       ) : null}
     </div>

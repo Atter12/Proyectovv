@@ -26,6 +26,11 @@ export type MeetingDto = {
 
 export type ScheduleDto = AdvisorSchedule & { userId: string | null };
 
+export type AdvisorOption = {
+  email: string;
+  displayName: string;
+};
+
 export type MeetingCounts = {
   today: number;
   pending: number;
