@@ -19,6 +19,7 @@ type LessonRow = {
   category_id: string | null;
   poster_path: string | null;
   is_custom: boolean | null;
+  recommended: boolean | null;
   updated_at: string | null;
   created_at: string | null;
 };
@@ -66,9 +67,12 @@ function toView(
 ): EducationLessonView {
   const loomUrl = row?.loom_url?.trim() || null;
   const title = row?.title?.trim() || lesson.title;
+  const recommended =
+    typeof row?.recommended === "boolean" ? row.recommended : lesson.recommended;
   return {
     ...lesson,
     title,
+    recommended,
     loomUrl,
     embedUrl: loomEmbedUrl(loomUrl),
     posterUrl: educationPosterUrl(row?.poster_path),
@@ -90,13 +94,21 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
   const map = new Map<string, LessonRow>();
   try {
     const admin = createAdminClient();
-    const full = await admin
+    const media =
+      "slug, loom_url, title, category_id, poster_path, is_custom, updated_at, created_at";
+    const withRecommended = await admin
       .from("education_lessons")
-      .select(
-        "slug, loom_url, title, category_id, poster_path, is_custom, updated_at, created_at",
-      );
+      .select(`${media}, recommended`);
+    if (!withRecommended.error && withRecommended.data) {
+      for (const row of withRecommended.data as LessonRow[]) map.set(row.slug, row);
+      return map;
+    }
+
+    const full = await admin.from("education_lessons").select(media);
     if (!full.error && full.data) {
-      for (const row of full.data as LessonRow[]) map.set(row.slug, row);
+      for (const row of full.data as LessonRow[]) {
+        map.set(row.slug, { ...row, recommended: null });
+      }
       return map;
     }
 
@@ -111,6 +123,7 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
         category_id: null,
         poster_path: null,
         is_custom: false,
+        recommended: null,
         created_at: null,
       });
     }

@@ -55,13 +55,10 @@ export function EducationCenter({
   }, [published, query, category]);
 
   const browsing = category === "all" && query.trim().length === 0 && !listing;
-  const recommended = published.filter((lesson) => lesson.recommended);
-  const latest = [...published].sort((a, b) => {
-    const left = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-    const right = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-    if (left !== right) return right - left;
-    return b.number - a.number;
-  });
+  const byNumber = [...published].sort(
+    (left, right) => left.number - right.number || left.title.localeCompare(right.title),
+  );
+  const recommended = byNumber.filter((lesson) => lesson.recommended);
 
   function resetFilters() {
     setQuery("");
@@ -191,26 +188,22 @@ export function EducationCenter({
       {browsing ? (
         <>
           <Section
-            title={t("recommendedTitle")}
-            subtitle={t("recommendedSubtitle")}
+            title={t("allVideosTitle")}
+            subtitle={t("allVideosSubtitle")}
             action={t("seeAll")}
             onAction={showAllLessons}
           >
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {recommended.map((lesson) => (
-                <LessonCard key={lesson.slug} lesson={lesson} onOpen={setActive} />
-              ))}
-            </div>
+            <LessonStrip lessons={byNumber} onOpen={setActive} />
           </Section>
 
-          <Section title={t("latestTitle")} action={t("seeAll")} onAction={showAllLessons}>
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-              {latest.map((lesson) => (
-                <div key={lesson.slug} className="w-[220px] shrink-0 sm:w-[240px]">
-                  <LessonCard lesson={lesson} onOpen={setActive} compact />
-                </div>
-              ))}
-            </div>
+          <Section title={t("recommendedTitle")} subtitle={t("recommendedSubtitle")}>
+            {recommended.length === 0 ? (
+              <p className="rounded-[1.15rem] border border-dashed border-[var(--auth-border)] bg-white px-4 py-8 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
+                {t("recommendedEmpty")}
+              </p>
+            ) : (
+              <LessonStrip lessons={recommended} onOpen={setActive} compact />
+            )}
           </Section>
         </>
       ) : (
@@ -254,7 +247,7 @@ function lessonFromSave(lesson: EducationLessonSave): EducationLessonView {
     categoryId: lesson.categoryId,
     title: lesson.title,
     description: "",
-    recommended: false,
+    recommended: lesson.recommended,
     custom: lesson.custom,
     loomUrl: lesson.loomUrl,
     embedUrl: loomEmbedUrl(lesson.loomUrl),
@@ -271,10 +264,34 @@ function applyLessonSave(
   return {
     ...lesson,
     title: patch.title,
+    recommended: patch.recommended,
     loomUrl: patch.loomUrl,
     embedUrl: loomEmbedUrl(patch.loomUrl),
     posterUrl: patch.posterUrl,
   };
+}
+
+function LessonStrip({
+  lessons,
+  onOpen,
+  compact = false,
+}: {
+  lessons: EducationLessonView[];
+  onOpen: (lesson: EducationLessonView) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+      {lessons.map((lesson) => (
+        <div
+          key={lesson.slug}
+          className={compact ? "w-[220px] shrink-0 sm:w-[240px]" : "w-[260px] shrink-0 sm:w-[280px]"}
+        >
+          <LessonCard lesson={lesson} onOpen={onOpen} compact={compact} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Section({

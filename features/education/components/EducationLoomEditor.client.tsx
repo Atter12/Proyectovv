@@ -77,6 +77,7 @@ function AddLessonForm({
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState<EducationCategoryId>("empieza");
   const [loomUrl, setLoomUrl] = useState("");
+  const [recommended, setRecommended] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileEpoch, setFileEpoch] = useState(0);
@@ -103,6 +104,7 @@ function AddLessonForm({
     form.set("title", title);
     form.set("categoryId", categoryId);
     form.set("loomUrl", loomUrl);
+    form.set("recommended", recommended ? "1" : "0");
     if (file) form.set("poster", file);
     const result = await createEducationLessonAction(form);
     setPending(false);
@@ -112,6 +114,7 @@ function AddLessonForm({
     }
     setTitle("");
     setLoomUrl("");
+    setRecommended(false);
     setCategoryId("empieza");
     setFile(null);
     setFileEpoch((value) => value + 1);
@@ -180,6 +183,12 @@ function AddLessonForm({
           preview={preview}
           onFile={setFile}
         />
+        <RecommendedToggle
+          id="edu-new-recommended"
+          checked={recommended}
+          admin={admin}
+          onChange={setRecommended}
+        />
       </div>
       <FormStatus error={error} feedback={feedback} />
       <button type="submit" disabled={pending} className={buttonClass(admin)}>
@@ -203,6 +212,7 @@ function LessonEditor({
   const admin = tone === "admin";
   const [title, setTitle] = useState(lesson.title);
   const [loomUrl, setLoomUrl] = useState(lesson.loomUrl ?? "");
+  const [recommended, setRecommended] = useState(lesson.recommended);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileEpoch, setFileEpoch] = useState(0);
@@ -214,7 +224,8 @@ function LessonEditor({
   useEffect(() => {
     setTitle(lesson.title);
     setLoomUrl(lesson.loomUrl ?? "");
-  }, [lesson.title, lesson.loomUrl]);
+    setRecommended(lesson.recommended);
+  }, [lesson.title, lesson.loomUrl, lesson.recommended]);
 
   useEffect(() => {
     if (!file) {
@@ -235,6 +246,7 @@ function LessonEditor({
     form.set("slug", lesson.slug);
     form.set("title", title);
     form.set("loomUrl", loomUrl);
+    form.set("recommended", recommended ? "1" : "0");
     if (file) form.set("poster", file);
     const result = await saveEducationLessonAction(form);
     setPending(false);
@@ -308,6 +320,12 @@ function LessonEditor({
             preview={null}
             onFile={setFile}
           />
+          <RecommendedToggle
+            id={`recommended-${lesson.slug}`}
+            checked={recommended}
+            admin={admin}
+            onChange={setRecommended}
+          />
         </div>
       </div>
       <FormStatus error={error} feedback={feedback} />
@@ -315,6 +333,39 @@ function LessonEditor({
         {pending ? t("saving") : t("saveLink")}
       </button>
     </form>
+  );
+}
+
+function RecommendedToggle({
+  id,
+  checked,
+  admin,
+  onChange,
+}: {
+  id: string;
+  checked: boolean;
+  admin: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const t = useTranslations("education");
+  return (
+    <label
+      htmlFor={id}
+      className={
+        admin
+          ? "flex items-center gap-2 text-sm font-medium text-[var(--admin-text)]"
+          : "flex items-center gap-2 text-sm font-medium text-[var(--auth-text)]"
+      }
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-[var(--auth-accent)]"
+      />
+      {t("recommendedToggle")}
+    </label>
   );
 }
 

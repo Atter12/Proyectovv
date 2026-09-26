@@ -31,6 +31,7 @@ export type EducationLessonSave = {
   loomUrl: string | null;
   posterUrl: string | null;
   custom: boolean;
+  recommended: boolean;
 };
 
 export type SaveEducationLessonResult =
@@ -83,6 +84,7 @@ export async function saveEducationLessonAction(
   if (!title) return { ok: false, error: "invalid_title" };
   const loom = parseLoom(String(formData.get("loomUrl") ?? ""));
   if (loom === "invalid") return { ok: false, error: "invalid" };
+  const recommended = readRecommended(formData.get("recommended"));
 
   const catalog = educationLessons.find((lesson) => lesson.slug === slug);
   const existing = catalog ? null : await loadCustomLesson(slug);
@@ -103,6 +105,7 @@ export async function saveEducationLessonAction(
     poster_path: uploaded.path ?? previousPath,
     is_custom: Boolean(existing),
     category_id: existing?.category_id ?? catalog?.categoryId ?? null,
+    recommended,
     updated_by: allowed.userId,
     updated_at: new Date().toISOString(),
   });
@@ -130,6 +133,7 @@ export async function saveEducationLessonAction(
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path ?? previousPath),
       custom: Boolean(existing),
+      recommended,
     },
   };
 }
@@ -146,6 +150,7 @@ export async function createEducationLessonAction(
   if (!isEducationCategoryId(categoryRaw)) return { ok: false, error: "invalid" };
   const loom = parseLoom(String(formData.get("loomUrl") ?? ""));
   if (loom === "invalid") return { ok: false, error: "invalid" };
+  const recommended = readRecommended(formData.get("recommended"));
 
   const slug = educationLessonSlug(title, crypto.randomUUID().replace(/-/g, "").slice(0, 6));
   const file = readPosterFile(formData.get("poster"));
@@ -160,6 +165,7 @@ export async function createEducationLessonAction(
     loom_url: loom,
     poster_path: uploaded.path,
     is_custom: true,
+    recommended,
     updated_by: allowed.userId,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
@@ -180,6 +186,7 @@ export async function createEducationLessonAction(
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path),
       custom: true,
+      recommended,
     },
   };
 }
@@ -197,6 +204,10 @@ async function assertEducationEditor(): Promise<
     return { ok: false, error: "forbidden" };
   }
   return { ok: true, userId: session.id };
+}
+
+function readRecommended(value: FormDataEntryValue | null): boolean {
+  return String(value ?? "") === "1";
 }
 
 function normalizeTitle(value: FormDataEntryValue | null): string | null {
@@ -322,19 +333,30 @@ async function countCustomLessons(): Promise<number> {
 async function writeLesson(
   payload: Record<string, unknown>,
 ): Promise<{ ok: true } | { ok: false; error: "missing_table" | "unknown" }> {
+  const first = await upsertLesson(payload);
+  if (first.ok || !("recommended" in payload) || !first.missingRecommended) return first;
+  const { recommended: _ignored, ...withoutRecommended } = payload;
+  return upsertLesson(withoutRecommended);
+}
+
+async function upsertLesson(
+  payload: Record<string, unknown>,
+): Promise<{ ok: true } | { ok: false; error: "missing_table" | "unknown"; missingRecommended?: boolean }> {
   try {
     const admin = createAdminClient();
     const { error } = await admin.from("education_lessons").upsert(payload);
     if (!error) return { ok: true };
     const message = error.message.toLowerCase();
+    const missingRecommended = message.includes("recommended");
     const missing =
       error.code === "42P01" ||
       error.code === "PGRST204" ||
       error.code === "PGRST205" ||
       message.includes("education_lessons") ||
       message.includes("poster_path") ||
-      message.includes("is_custom");
-    return { ok: false, error: missing ? "missing_table" : "unknown" };
+      message.includes("is_custom") ||
+      missingRecommended;
+    return { ok: false, error: missing ? "missing_table" : "unknown", missingRecommended };
   } catch {
     return { ok: false, error: "unknown" };
   }
