@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type DebtLinkClient = {
   id: string;
@@ -29,6 +29,24 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
 
   const selected = clients.find((row) => row.id === selectedId) ?? null;
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const lock = () => {
+      const value = desktop.matches ? "hidden" : "";
+      root.style.overflow = value;
+      body.style.overflow = value;
+    };
+    lock();
+    desktop.addEventListener("change", lock);
+    return () => {
+      desktop.removeEventListener("change", lock);
+      root.style.overflow = "";
+      body.style.overflow = "";
+    };
+  }, []);
+
   async function copyLink() {
     if (!selected) return;
     try {
@@ -41,8 +59,8 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
   }
 
   return (
-    <div className="grid h-full min-h-0 flex-1 items-stretch gap-3 overflow-hidden lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
+    <div className="grid items-start gap-3 lg:h-[calc(100dvh-12.75rem)] lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] lg:items-stretch lg:overflow-hidden">
+      <section className="flex h-[min(68dvh,36rem)] flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4] lg:h-full">
         <div className="shrink-0 border-b border-[#efe8df] px-3.5 py-3">
           <label
             htmlFor="links-deuda-search"
@@ -61,7 +79,7 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
             {filtered.length} de {clients.length}
           </p>
         </div>
-        <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <ul className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
           {filtered.length === 0 ? (
             <li className="px-3.5 py-8 text-center text-[13px] text-[#6b645c]">
               Ningún cliente con ese nombre.
@@ -79,8 +97,8 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
                     }}
                     className={
                       active
-                        ? "flex w-full items-center border-l-2 border-[#c2410c] bg-[#fff8f1] px-3.5 py-2 text-left text-[13px] font-semibold text-[#1a1714]"
-                        : "flex w-full items-center border-l-2 border-transparent px-3.5 py-2 text-left text-[13px] text-[#3f3a34] hover:bg-[#faf8f5]"
+                        ? "flex w-full items-center border-l-2 border-[#c2410c] bg-[#fff8f1] px-3.5 py-2.5 text-left text-[15px] font-semibold leading-5 text-[#1a1714]"
+                        : "flex w-full items-center border-l-2 border-transparent px-3.5 py-2.5 text-left text-[15px] font-medium leading-5 text-[#3f3a34] hover:bg-[#faf8f5]"
                     }
                   >
                     {row.name}
@@ -92,7 +110,7 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
         </ul>
       </section>
 
-      <section className="h-full min-h-0 overflow-hidden rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-5">
+      <section className="overflow-hidden rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-5 lg:sticky lg:top-0 lg:h-full">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
           Link público
         </p>
