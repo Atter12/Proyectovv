@@ -5,8 +5,15 @@ colors:
   canvas: "#fcfbf9"
   brand-mark: "#d47840"
   control-accent: "#a95023"
+  control-accent-strong: "#8f421c"
   border: "#e8e2da"
+  border-soft: "#f1ece6"
+  ink: "#1c1917"
+  ink-soft: "#3b352f"
   muted: "#6c665f"
+  tint: "#fbf1e8"
+  tint-soft: "#fdf8f3"
+  selection: "#f3d9c3"
 ---
 
 # Asistente de gerencia
@@ -23,11 +30,15 @@ La autoridad visual es `OpsAssistant.module.css`; la interacción está en `OpsA
 
 Se hereda Sora del panel, cargada en `app/layout.tsx`. El lienzo cálido `#fcfbf9`, las tarjetas blancas y los bordes finos de 1 px `#e8e2da` sostienen una jerarquía tranquila. La «h» usa `#d47840`; el acento de controles accesible `#a95023` distingue envío, enlaces y foco. Conservar esta separación entre marca y controles.
 
-La bienvenida usa un título de 28–42 px, peso 500, y descripción secundaria. El compositor tiene radio de 16 px y sombra ligera; las sugerencias, métricas y tablas usan radios de 12 px. Los iconos locales son trazos de 1.65 px, heredan el color y son decorativos (`aria-hidden`).
+Los colores viven como variables `--assistant-*` en `.surface`; no escribir literales nuevos fuera de ellas. `tint`/`tint-soft` son los únicos fondos cálidos (hover, burbuja del usuario, etiqueta de alcance, métrica principal); el naranja sólido queda reservado para la «h» y el botón de envío.
+
+La bienvenida usa un título de 30–44 px, peso 500, tracking -0.04em, y descripción secundaria. El compositor tiene radio de 18 px, sombra con desplazamiento y anillo suave al enfocar; crece con el contenido (`field-sizing: content`, sin tirador). La tecla Enter se muestra como `<kbd>`. Métricas, tablas y el índice de sugerencias usan radio de 14–16 px. Los iconos locales son trazos de 1.65 px, heredan el color y son decorativos (`aria-hidden`).
 
 ## Composición y adaptación
 
-Bienvenida, compositor y conversación están centrados con un máximo de 920 px; la barra superior alcanza 1152 px. La bienvenida presenta cuatro consultas principales: pagos de hoy, recargas y fee, clientes activos y alertas de cartera. Crédito y clientes en rojo aparecen como acciones secundarias.
+El encabezado del panel ya nombra la página, así que la bienvenida no repite una barra propia. Bienvenida y conversación están centradas con máximos de 840 y 880 px. La bienvenida presenta cuatro consultas principales (pagos de hoy, recargas y fee, clientes activos y alertas de cartera) como **un solo índice** dividido por líneas finas, no como tarjetas sueltas; crédito y clientes en rojo son pastillas secundarias.
+
+En conversación, una barra fija con línea inferior reúne el título de la primera respuesta, el alcance «Cartera general», el número de consultas y «Nueva consulta». No hay un segundo encabezado dentro del historial.
 
 Desde 541 px, una conversación iniciada ocupa `calc(100dvh - 4rem)`, con mínimo de 620 px. Solo el historial tiene desplazamiento interno; el compositor y las dos sugerencias de consulta permanecen fuera de esa zona. El último turno se lleva a la vista al añadirse.
 
@@ -49,5 +60,6 @@ Los pagos de hoy están **agrupados por cliente**. La métrica cuenta «Clientes
 - «Nueva consulta» cancela una solicitud activa, vacía el historial y borrador, y devuelve el foco al compositor. Al pasar por primera vez a conversación también se conserva el foco del campo.
 - «Copiar respuesta» copia `reply` y comunica éxito o fallo. Las fuentes usan `details`/`summary` nativos y las tablas incluyen caption y encabezados de columna.
 - Los controles muestran foco de teclado. El campo señala el foco mediante el borde del compositor. La preferencia de movimiento reducido elimina animaciones y transiciones.
+- Movimiento: la carga muestra tres líneas de esqueleto con brillo lento y, al llegar, la respuesta entra con un único desvanecido corto (ease-out exponencial). No añadir otras entradas animadas.
 
 El historial vive únicamente en el estado local del componente; no se persiste. **Cada consulta es independiente**: los turnos anteriores no se envían como contexto a la API. Las sugerencias posteriores abren consultas completas, sin implicar memoria conversacional.
