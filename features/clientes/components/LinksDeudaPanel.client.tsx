@@ -41,8 +41,8 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
   }
 
   return (
-    <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(18rem,28rem)_minmax(0,1fr)] lg:min-h-[calc(100dvh-13.5rem)]">
-      <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4] lg:min-h-0">
+    <div className="grid min-h-0 flex-1 items-stretch gap-3 lg:grid-cols-[minmax(20rem,34%)_minmax(0,1fr)]">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
         <div className="border-b border-[#efe8df] px-5 py-5">
           <label
             htmlFor="links-deuda-search"
@@ -92,7 +92,7 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
         </ul>
       </section>
 
-      <section className="flex min-h-[22rem] flex-col rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-6 sm:p-8">
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[#ffd7b8] bg-gradient-to-br from-[#fff8f1] via-white to-[#f7f4ef] p-6 sm:p-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
           Link público
         </p>

@@ -4,7 +4,6 @@ import { LinksDeudaPanel } from "@/features/clientes/components/LinksDeudaPanel.
 import { requirePermission } from "@/lib/auth/guards.server";
 import { listDebtLinkClients } from "@/lib/hecom/lo-pagado-staff-links.server";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
-import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +35,8 @@ export default async function LinksDeudaPage() {
   }
 
   return (
-    <div className={dashboardClasses.page}>
-      <header className="space-y-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <header className="shrink-0 space-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
           Gerente
         </p>

@@ -42,7 +42,9 @@ export function DashboardLayoutChrome({
   testerMode = "cliente",
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
-  const isAssistant = usePathname() === routes.assistant;
+  const pathname = usePathname();
+  const isAssistant = pathname === routes.assistant;
+  const isLinksDeuda = pathname === routes.linksDeuda;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -112,7 +114,9 @@ export function DashboardLayoutChrome({
         />
         <main className={isAssistant
           ? "app-content mx-auto w-full min-w-0 flex-1 bg-[#fcfbf9]"
-          : "app-content mx-auto w-full min-w-0 max-w-[1280px] flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8"}>
+          : isLinksDeuda
+            ? "app-content flex h-[calc(100dvh-3.5rem)] w-full min-w-0 max-w-none flex-1 flex-col overflow-hidden px-3 py-3 sm:h-[calc(100dvh-4rem)] sm:px-4 sm:py-4"
+            : "app-content mx-auto w-full min-w-0 max-w-[1280px] flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8"}>
           {actingAsCliente && selectedCliente ? (
             <ActingAsClienteBanner clienteName={selectedCliente.name} />
           ) : null}
