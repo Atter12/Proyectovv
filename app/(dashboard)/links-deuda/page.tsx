@@ -37,14 +37,14 @@ export default async function LinksDeudaPage() {
 
   return (
     <div className={dashboardClasses.page}>
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+      <header className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
           Gerente
         </p>
-        <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
+        <h1 className="text-[1.65rem] font-semibold tracking-[-0.03em] text-[#1a1714] sm:text-[2rem]">
           Links deuda
         </h1>
-        <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
+        <p className="max-w-2xl text-[15px] leading-6 text-[#5c564e]">
           Elige un cliente y copia su link. Es el mismo que manda el bot: ve
           lo que debe, sus pagos y sus gastos, y puede abonar o subir
           comprobante.
