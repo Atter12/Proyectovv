@@ -65,7 +65,8 @@ type Props = {
   hideStaff?: boolean;
   /** Link público: solo el mes del mensaje, sin ir a meses anteriores. */
   lockMonth?: boolean;
-  proofEndpoint?: (cobroId: string, index: number) => string;
+  /** Prefijo público de comprobantes. La función se arma en el cliente. */
+  proofApiBase?: string;
 };
 
 /**
@@ -80,7 +81,7 @@ export function ClienteCobrosMonthView({
   initialMonth,
   hideStaff = false,
   lockMonth = false,
-  proofEndpoint,
+  proofApiBase,
 }: Props) {
   const t = useTranslations("cobros");
   const locale = useLocale();
@@ -250,7 +251,12 @@ export function ClienteCobrosMonthView({
         onMonthChange={setMonth}
         hideMonthPicker
         hideStaff={hideStaff}
-        proofEndpoint={proofEndpoint}
+        proofEndpoint={
+          proofApiBase
+            ? (cobroId, index) =>
+                `${proofApiBase}/comprobante/${encodeURIComponent(cobroId)}?index=${index}`
+            : undefined
+        }
       />
     </div>
   );

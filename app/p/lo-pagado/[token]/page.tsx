@@ -77,9 +77,7 @@ export default async function LoPagadoPublicPage({
           initialMonth={month}
           lockMonth
           hideStaff
-          proofEndpoint={(cobroId, index) =>
-            `${apiBase}/comprobante/${encodeURIComponent(cobroId)}?index=${index}`
-          }
+          proofApiBase={apiBase}
           feePercent={summary.depositFeePercent}
           capped={gastos.length >= 4000 || cobros.length >= 800}
           gastos={gastos.map((row) => ({
