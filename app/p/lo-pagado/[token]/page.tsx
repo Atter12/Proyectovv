@@ -4,7 +4,6 @@ import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCo
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
-import { listPublicLoPagadoActivity } from "@/lib/payments/public-lo-pagado.server";
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { serverEnv } from "@/lib/env/env.server";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
@@ -52,15 +51,10 @@ export default async function LoPagadoPublicPage({
   const month = publicLinkMonth(query.m);
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
-  let activity: Awaited<ReturnType<typeof listPublicLoPagadoActivity>> = [];
   try {
-    [claims, activity] = await Promise.all([
-      listMissingCobroClaimsForCliente(clientId),
-      listPublicLoPagadoActivity(clientId),
-    ]);
+    claims = await listMissingCobroClaimsForCliente(clientId);
   } catch {
     claims = [];
-    activity = [];
   }
 
   return (
@@ -83,6 +77,9 @@ export default async function LoPagadoPublicPage({
           initialMonth={month}
           lockMonth
           hideStaff
+          proofEndpoint={(cobroId, index) =>
+            `${apiBase}/comprobante/${encodeURIComponent(cobroId)}?index=${index}`
+          }
           feePercent={summary.depositFeePercent}
           capped={gastos.length >= 4000 || cobros.length >= 800}
           gastos={gastos.map((row) => ({
@@ -107,7 +104,7 @@ export default async function LoPagadoPublicPage({
             periodoResumen: row.periodoResumen,
             monto: row.monto,
             metodo: row.metodo,
-            comprobanteUrls: [],
+            comprobanteUrls: row.comprobanteUrls.map(() => "1"),
             registeredBy: null,
             registeredAt: row.registeredAt,
           }))}
@@ -115,7 +112,6 @@ export default async function LoPagadoPublicPage({
         <PublicLoPagadoActions
           apiBase={apiBase}
           month={month}
-          activity={activity}
           claims={claims.map((claim) => ({
             ...claim,
             actorEmail: null,

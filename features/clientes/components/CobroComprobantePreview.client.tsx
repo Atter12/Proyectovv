@@ -18,10 +18,13 @@ export function CobroComprobantePreview({
   cobroId,
   index = 0,
   label,
+  endpoint,
 }: {
   cobroId: string;
   index?: number;
   label?: string;
+  /** GET que devuelve { url, kind }. Vacío = ruta de staff. */
+  endpoint?: string;
 }) {
   const t = useTranslations("cobros");
   const resolvedLabel = label ?? t("proof");
@@ -39,7 +42,8 @@ export function CobroComprobantePreview({
         url: string;
         kind?: ComprobanteKind;
       }>(
-        `/api/hecom/cobros/${encodeURIComponent(cobroId)}/comprobante?index=${index}`,
+        endpoint ??
+          `/api/hecom/cobros/${encodeURIComponent(cobroId)}/comprobante?index=${index}`,
       );
       if (!data.url) throw new Error(t("proofUnavailable"));
       setUrl(data.url);
@@ -56,7 +60,7 @@ export function CobroComprobantePreview({
     } finally {
       setLoading(false);
     }
-  }, [cobroId, index, t]);
+  }, [cobroId, endpoint, index, t]);
 
   useEffect(() => {
     void loadUrl();

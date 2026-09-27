@@ -6,51 +6,13 @@ import { ManualPaymentModal } from "@/features/payments/components/ManualPayment
 import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
 
-type Activity = {
-  id: string;
-  createdAt: string;
-  amount: number;
-  currency: string;
-  reviewStatus: string;
-  kind: "manual" | "missing_cobro";
-  periodoResumen: string | null;
-};
-
-function money(amount: number, currency: string): string {
-  const code = currency.toUpperCase() === "PEN" ? "PEN" : "USD";
-  try {
-    return new Intl.NumberFormat("es-PE", {
-      style: "currency",
-      currency: code,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${code}`;
-  }
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case "pending_review":
-      return "En revisión";
-    case "approved":
-      return "Aprobado";
-    case "rejected":
-      return "Rechazado";
-    default:
-      return "Falta voucher";
-  }
-}
-
 export function PublicLoPagadoActions({
   apiBase,
   claims,
-  activity,
   month,
 }: {
   apiBase: string;
   claims: ManualPaymentIntentItem[];
-  activity: Activity[];
   /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
   month: string;
 }) {
@@ -59,7 +21,6 @@ export function PublicLoPagadoActions({
     () => (month && /^\d{4}-\d{2}$/.test(month) ? [month] : listRecentPeriodos(1)),
     [month],
   );
-  const manuals = activity.filter((row) => row.kind === "manual").slice(0, 6);
   const endpoints = useMemo(
     () => ({
       config: `${apiBase}/config`,
@@ -91,21 +52,6 @@ export function PublicLoPagadoActions({
         >
           Pagar y subir voucher
         </button>
-        {manuals.length > 0 ? (
-          <ul className="mt-4 divide-y divide-[#f0e6dc] rounded-xl border border-[#f0e6dc] bg-white">
-            {manuals.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-center justify-between gap-3 px-3 py-2.5 text-[12px]"
-              >
-                <span className="font-semibold tabular-nums text-[#1a1714]">
-                  {money(row.amount, row.currency)}
-                </span>
-                <span className="text-[#78716c]">{statusLabel(row.reviewStatus)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </section>
 
       <MissingCobroClaimPanel

@@ -224,6 +224,8 @@ export const config = {
     "/ad-accounts/:path*",
     "/payments",
     "/payments/:path*",
+    "/links-deuda",
+    "/links-deuda/:path*",
     "/gastos",
     "/gastos/:path*",
     "/affiliates",

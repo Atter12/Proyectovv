@@ -65,6 +65,7 @@ type Props = {
   hideStaff?: boolean;
   /** Link público: solo el mes del mensaje, sin ir a meses anteriores. */
   lockMonth?: boolean;
+  proofEndpoint?: (cobroId: string, index: number) => string;
 };
 
 /**
@@ -79,6 +80,7 @@ export function ClienteCobrosMonthView({
   initialMonth,
   hideStaff = false,
   lockMonth = false,
+  proofEndpoint,
 }: Props) {
   const t = useTranslations("cobros");
   const locale = useLocale();
@@ -248,6 +250,7 @@ export function ClienteCobrosMonthView({
         onMonthChange={setMonth}
         hideMonthPicker
         hideStaff={hideStaff}
+        proofEndpoint={proofEndpoint}
       />
     </div>
   );

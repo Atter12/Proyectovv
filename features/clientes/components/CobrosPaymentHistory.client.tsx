@@ -151,6 +151,7 @@ export function CobrosPaymentHistory({
   onMonthChange,
   hideMonthPicker = false,
   hideStaff = false,
+  proofEndpoint,
 }: {
   cobros: CobroHistoryRow[];
   /** Mes controlado desde afuera (`YYYY-MM`). */
@@ -158,8 +159,10 @@ export function CobrosPaymentHistory({
   onMonthChange?: (ym: string) => void;
   /** Oculta el selector (cuando ya hay uno arriba). */
   hideMonthPicker?: boolean;
-  /** Link público: sin comprobantes ni quien registró el cobro. */
+  /** Link público: oculta quién registró el cobro. */
   hideStaff?: boolean;
+  /** GET del comprobante. En el link público reemplaza la ruta de staff. */
+  proofEndpoint?: (cobroId: string, index: number) => string;
 }) {
   const t = useTranslations("cobros");
   const locale = useLocale();
@@ -201,6 +204,7 @@ export function CobrosPaymentHistory({
 
   const canPrev = Boolean(oldestMonth && shiftMonthKey(month, -1) >= oldestMonth);
   const canNext = month < currentMonth;
+  const showProofs = !hideStaff || Boolean(proofEndpoint);
 
   return (
     <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
@@ -289,9 +293,9 @@ export function CobrosPaymentHistory({
                 <th className="px-4 py-3">{t("colPeriod")}</th>
                 <th className="px-4 py-3">{t("colAmount")}</th>
                 <th className="px-4 py-3">{t("colMethod")}</th>
-                {hideStaff ? null : (
+                {showProofs ? (
                   <th className="px-4 py-3">{t("colProofs")}</th>
-                )}
+                ) : null}
                 {hideStaff ? null : (
                   <th className="px-4 py-3">{t("colRegisteredBy")}</th>
                 )}
@@ -328,7 +332,7 @@ export function CobrosPaymentHistory({
                     <td className="px-4 py-3.5 text-[var(--auth-text)]">
                       {row.metodo ?? "—"}
                     </td>
-                    {hideStaff ? null : (
+                    {showProofs ? (
                     <td className="px-4 py-3.5">
                       {row.comprobanteUrls.length > 0 ? (
                         <div className="flex flex-wrap items-center gap-2">
@@ -337,6 +341,7 @@ export function CobrosPaymentHistory({
                               key={`${row.id}-${index}`}
                               cobroId={row.id}
                               index={index}
+                              endpoint={proofEndpoint?.(row.id, index)}
                               label={
                                 row.comprobanteUrls.length > 1
                                   ? t("proofN", { n: index + 1 })
@@ -351,7 +356,7 @@ export function CobrosPaymentHistory({
                         </span>
                       )}
                     </td>
-                    )}
+                    ) : null}
                     {hideStaff ? null : (
                     <td className="px-4 py-3.5 text-[var(--auth-text-muted)]">
                       {maskEmail(row.registeredBy)}
