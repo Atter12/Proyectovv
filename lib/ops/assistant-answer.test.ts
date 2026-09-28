@@ -250,3 +250,59 @@ test("preguntas vacías o desconocidas muestran ayuda sin cifras ni fuentes inve
     assert.deepEqual(response.blocks[0].sources, []);
   }
 });
+
+const conAbel: AssistantBrief = {
+  ...brief,
+  clientes: [
+    ...brief.clientes,
+    row({
+      name: "Abel Mogollon",
+      paidToday: 27.5,
+      paidMonth: 840,
+      cargoMonth: 960,
+      debt: 120,
+      band: "yellow",
+    }),
+  ],
+  pagosHoy: [...brief.pagosHoy, { name: "Abel Mogollon", amount: 27.5 }],
+  pagosHoyTotal: 147.5,
+};
+
+test("pagos de un cliente no listan el dia de todos", () => {
+  const response = buildAssistantResponse(conAbel, "quiero saber los pagos y cobros de abel mogollon");
+  assert.match(response.reply, /Abel Mogollon/);
+  assert.match(response.reply, /840/);
+  assert.doesNotMatch(response.reply, /Pagos de hoy/);
+  assert.doesNotMatch(response.reply, /Luis Oropeza/);
+  assert.equal(response.blocks[0].title, "Abel Mogollon");
+  assert.equal(response.blocks[0].metrics?.find((metric) => metric.label === "Cobrado del mes")?.value, money(840));
+});
+
+test("pagos de un cliente en setiembre son los del mes", () => {
+  const text = answerAssistant(conAbel, "Quiero saber los pagos de abel mogollon en setiembre");
+  assert.match(text, /Abel Mogollon/);
+  assert.match(text, /840/);
+  assert.doesNotMatch(text, /Pagos de hoy/);
+  assert.doesNotMatch(text, /Luis Oropeza/);
+});
+
+test("cobros de setiembre no son los pagos de hoy", () => {
+  const response = buildAssistantResponse(conAbel, "Quiero saber los cobros en setiembre");
+  assert.match(response.reply, /Cobros de Setiembre de 2026/);
+  assert.doesNotMatch(response.reply, /Pagos de hoy/);
+  assert.equal(response.blocks[0].title, "Cobros de Setiembre de 2026");
+  assert.equal(response.blocks[0].table?.rows.some((item) => item.name === "Luis Oropeza"), false);
+});
+
+test("un apellido alcanza si es unico", () => {
+  const text = answerAssistant(conAbel, "pagos de mogollon");
+  assert.match(text, /Abel Mogollon/);
+  assert.doesNotMatch(text, /Luis Oropeza/);
+});
+
+test("otro mes no copia los pagos de hoy", () => {
+  const text = answerAssistant(conAbel, "cobros de abel mogollon en agosto");
+  assert.match(text, /no tengo el corte/);
+  assert.match(text, /Abel Mogollon/);
+  assert.doesNotMatch(text, /Pagos de hoy/);
+});

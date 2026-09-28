@@ -1,41 +1,11 @@
-import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
 import Link from "next/link";
+import type { LandingCopy } from "./i18n/landing-copy";
 
-const features = [
-  {
-    title: "Cartera y recargas",
-    body: "Saldo del cliente, movimientos y top-ups con Stripe o el flujo operativo que ya usas en Hecom Club.",
-    icon: "wallet",
-  },
-  {
-    title: "Cuentas y Business Manager",
-    body: "Alcance por agencia o cuenta, sin mezclar clientes ni cuentas publicitarias de otros.",
-    icon: "scope",
-  },
-  {
-    title: "Gasto TikTok al día",
-    body: "Historial y totales por periodo. Menos Excel, más control de cuánto quemó cada cuenta.",
-    icon: "trend",
-  },
-  {
-    title: "Roles claros",
-    body: "Cliente, manager y admin ven solo lo suyo: mismo producto, permisos y paneles distintos.",
-    icon: "people",
-  },
-  {
-    title: "Hecom Club + CRM",
-    body: "Cobros y operación alineados a lo que pasa en la calle, no a un export desactualizado.",
-    icon: "link",
-  },
-  {
-    title: "Un solo lugar de verdad",
-    body: "Deja de pelear con hojas sueltas entre finanzas, media buying y el cliente final.",
-    icon: "board",
-  },
-] as const;
+/** Íconos en el mismo orden que `copy.features.items`. */
+const FEATURE_ICONS = ["wallet", "scope", "trend", "people", "link", "board"] as const;
 
-function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
+function FeatureIcon({ name }: { name: (typeof FEATURE_ICONS)[number] }) {
   const common = {
     width: 22,
     height: 22,
@@ -96,24 +66,21 @@ function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
   }
 }
 
-export function NsxFeatures() {
+export function NsxFeatures({ copy }: { copy: LandingCopy["features"] }) {
   return (
     <section className="nsx-section nsx-features" id="producto">
       <div className="nsx-container">
         <div className="nsx-section-head">
-          <span className="nsx-pill">Producto</span>
-          <h2 className="nsx-h2">Hecho para operar, no para otro CRM</h2>
-          <p>
-            {siteConfig.name} concentra el día a día de agencias y equipos que
-            viven de TikTok Ads y de la red Hecom Club.
-          </p>
+          <span className="nsx-pill">{copy.pill}</span>
+          <h2 className="nsx-h2">{copy.title}</h2>
+          <p>{copy.lead}</p>
         </div>
 
         <div className="nsx-feature-grid">
-          {features.map((f) => (
-            <article key={f.title} className="nsx-feature-card">
+          {copy.items.map((f, i) => (
+            <article key={FEATURE_ICONS[i]} className="nsx-feature-card">
               <div className="nsx-feature-icon" aria-hidden>
-                <FeatureIcon name={f.icon} />
+                <FeatureIcon name={FEATURE_ICONS[i]} />
               </div>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
@@ -122,13 +89,13 @@ export function NsxFeatures() {
         </div>
 
         <div className="nsx-feature-cta">
-          <p>¿Nuevo o ya tienes ficha en Hecom? Elige tu acceso.</p>
+          <p>{copy.ctaQuestion}</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href={routes.register} className="nsx-btn-dark">
-              Registrarme <span aria-hidden>→</span>
+              {copy.register} <span aria-hidden>→</span>
             </Link>
             <Link href={routes.login} className="nsx-btn-outline">
-              Iniciar sesión
+              {copy.login}
             </Link>
           </div>
         </div>
@@ -138,35 +105,16 @@ export function NsxFeatures() {
 }
 
 /** Ancla de “Proceso” para el menú — flujo operativo simple. */
-export function NsxProcess() {
-  const steps = [
-    {
-      n: "01",
-      title: "Entras al panel",
-      body: "Un solo acceso con la cuenta que te dio Holistic Marketing.",
-    },
-    {
-      n: "02",
-      title: "Ves solo lo tuyo",
-      body: "Cliente, manager o admin: cada rol ve cartera y cuentas que le corresponden.",
-    },
-    {
-      n: "03",
-      title: "Operas el día a día",
-      body: "Recargas, gasto TikTok, cobros Hecom y estados de cuenta sin depender de Excel.",
-    },
-  ];
+export function NsxProcess({ copy }: { copy: LandingCopy["process"] }) {
+  const steps = copy.steps.map((s, i) => ({ ...s, n: `0${i + 1}` }));
 
   return (
     <section className="nsx-section nsx-process" id="proceso">
       <div className="nsx-container">
         <div className="nsx-section-head">
-          <span className="nsx-pill">Proceso</span>
-          <h2 className="nsx-h2">Cómo se trabaja con el panel</h2>
-          <p>
-            Sin onboarding eterno: el producto está pensado para la operación
-            real de {siteConfig.name} y Hecom Club.
-          </p>
+          <span className="nsx-pill">{copy.pill}</span>
+          <h2 className="nsx-h2">{copy.title}</h2>
+          <p>{copy.lead}</p>
         </div>
         <ol className="nsx-process-grid">
           {steps.map((s) => (

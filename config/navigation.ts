@@ -23,6 +23,7 @@ export const mainNavigation: NavItem[] = [
     href: routes.paymentsMissingCobros,
     icon: "payments-missing-cobros",
   },
+  { key: "debtLinks", href: routes.linksDeuda, icon: "debt-links" },
   { key: "cobros", href: routes.cobros, icon: "cobros" },
   { key: "affiliates", href: routes.affiliates, icon: "affiliates" },
   { key: "alliances", href: routes.alliances, icon: "alliances" },

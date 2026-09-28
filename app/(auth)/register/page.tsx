@@ -5,6 +5,8 @@ import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
 import { routes } from "@/config/routes";
 import { clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { serverEnv } from "@/lib/env/env.server";
+import { getAuthCopy } from "@/features/auth/i18n/auth-copy";
+import { getLandingLocale } from "@/features/landing/i18n/landing-locale.server";
 
 function AuthCardFallback() {
   return (
@@ -19,7 +21,7 @@ function AuthCardFallback() {
 }
 
 /** Registro público OTP: crea cliente Hecom y envía código. */
-export default function RegisterPage() {
+export default async function RegisterPage() {
   if (clerkLoginEnabled()) {
     redirect(clerkRoutes.signUp);
   }
@@ -28,16 +30,20 @@ export default function RegisterPage() {
     redirect(routes.login);
   }
 
+  const locale = await getLandingLocale();
+  const copy = getAuthCopy(locale).register;
+
   return (
     <AuthSplitShell
-      topRight={{ label: "Iniciar sesión", href: routes.login }}
+      locale={locale}
+      topRight={{ label: copy.topRightLabel, href: routes.login }}
       caption={{
-        title: "Una sola cartera para todas tus cuentas.",
-        sub: "Ads Holistic, la plataforma de Holistic Marketing.",
+        title: copy.captionTitle,
+        sub: copy.captionSub,
       }}
     >
       <Suspense fallback={<AuthCardFallback />}>
-        <RegisterForm />
+        <RegisterForm locale={locale} />
       </Suspense>
     </AuthSplitShell>
   );

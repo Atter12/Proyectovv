@@ -120,7 +120,75 @@ function lineCliente(row: AssistantCliente): string {
   return `${row.name}: ${bandLabel(row.band)}, deuda ${money(row.debt)} (90 días cobró ${money(row.paid90)})`;
 }
 
-function findNamed(brief: AssistantBrief, question: string): AssistantCliente | null {
+const MONTHS: Record<string, number> = {
+  enero: 1,
+  febrero: 2,
+  marzo: 3,
+  abril: 4,
+  mayo: 5,
+  junio: 6,
+  julio: 7,
+  agosto: 8,
+  setiembre: 9,
+  septiembre: 9,
+  octubre: 10,
+  noviembre: 11,
+  diciembre: 12,
+};
+
+const NAME_STOP = new Set([
+  "quiero",
+  "saber",
+  "pagos",
+  "pago",
+  "cobros",
+  "cobro",
+  "cobrado",
+  "deposito",
+  "cliente",
+  "clientes",
+  "cuanto",
+  "cuantos",
+  "hoy",
+  "ayer",
+  "deuda",
+  "score",
+  "estos",
+  "estas",
+  "estan",
+  "semana",
+  "recarga",
+  "alerta",
+  "alertas",
+  "credito",
+  "quien",
+  "quienes",
+  "donde",
+  "cuando",
+  "dame",
+  "decime",
+  "lista",
+  "todos",
+  "mes",
+  "activo",
+  "activos",
+  "gastando",
+  "gasto",
+  "rojo",
+  "roja",
+  "rojos",
+  "moroso",
+  ...Object.keys(MONTHS),
+]);
+
+type NameHit =
+  | { kind: "one"; row: AssistantCliente }
+  | { kind: "many"; names: string[] }
+  | { kind: "none" };
+
+type PaymentScope = "today" | "month" | "other-month" | "open";
+
+function findNamed(brief: AssistantBrief, question: string): NameHit {
   const q = foldText(question);
   let hit: AssistantCliente | null = null;
   for (const row of brief.clientes) {
@@ -129,7 +197,65 @@ function findNamed(brief: AssistantBrief, question: string): AssistantCliente | 
     if (!q.includes(name)) continue;
     if (!hit || name.length > foldText(hit.name).length) hit = row;
   }
-  return hit;
+  if (hit) return { kind: "one", row: hit };
+
+  const tokens = q
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 4 && !NAME_STOP.has(token));
+  if (!tokens.length) return { kind: "none" };
+  const matches = brief.clientes.filter((row) => {
+    const parts = foldText(row.name)
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 4);
+    return tokens.some((token) => parts.includes(token));
+  });
+  if (matches.length === 1) return { kind: "one", row: matches[0] };
+  if (matches.length > 1) return { kind: "many", names: matches.map((row) => row.name) };
+  return { kind: "none" };
+}
+
+function paymentScope(question: string, today: string): PaymentScope {
+  const q = foldText(question);
+  const named = q.match(
+    /\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\b/,
+  );
+  if (named) {
+    const asked = MONTHS[named[1]];
+    const current = Number(today.slice(5, 7));
+    return asked === current ? "month" : "other-month";
+  }
+  if (/\b(este mes|del mes|el mes)\b/.test(q)) return "month";
+  if (/\bhoy\b/.test(q)) return "today";
+  return "open";
+}
+
+function onePaymentText(row: AssistantCliente, scope: PaymentScope, monthLabel: string): string {
+  if (scope === "today") {
+    return row.paidToday > 0
+      ? `${row.name} hoy: ${money(row.paidToday)}.`
+      : `${row.name} hoy no tiene cobro.`;
+  }
+  if (scope === "other-month") {
+    return `De ese mes no tengo el corte. ${row.name} en ${monthLabel}: cobrado ${money(row.paidMonth)}, deuda ${money(row.debt)}.`;
+  }
+  const todayBit = scope === "open" && row.paidToday > 0 ? ` Hoy: ${money(row.paidToday)}.` : "";
+  return `${row.name} en ${monthLabel}: cobrado ${money(row.paidMonth)}, deuda ${money(row.debt)}.${todayBit}`;
+}
+
+function monthPaymentsText(brief: AssistantBrief): string {
+  const rows = brief.clientes
+    .filter((row) => row.paidMonth > 0)
+    .sort((a, b) => b.paidMonth - a.paidMonth);
+  if (!rows.length) return `En ${brief.monthLabel} no hay cobros registrados.`;
+  const total = round2(rows.reduce((sum, row) => sum + row.paidMonth, 0));
+  const shown = rows.slice(0, 15);
+  const lines = shown.map((row) => `• ${row.name}: ${money(row.paidMonth)}`);
+  const more = rows.length > 15 ? `\n…y ${rows.length - 15} más.` : "";
+  return `Cobros de ${brief.monthLabel}: ${money(total)} en ${rows.length} cliente${rows.length === 1 ? "" : "s"}.\n${lines.join("\n")}${more}`;
+}
+
+function asksPayments(question: string): boolean {
+  return wants(question, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"]);
 }
 
 function wants(question: string, words: string[]): boolean {
@@ -139,24 +265,29 @@ function wants(question: string, words: string[]): boolean {
 
 function getQuestionContext(brief: AssistantBrief, question: string) {
   const asked = question.trim();
-  const named = findNamed(brief, asked);
+  const nameHit = findNamed(brief, asked);
+  const named = nameHit.kind === "one" ? nameHit.row : null;
   const aboutOne = Boolean(
     named &&
       wants(asked, ["score", "deuda", "como esta", "cómo está"]) &&
-      !wants(asked, ["quienes", "quiénes", "cuales", "cuáles", "lista", "todos"]),
+      !wants(asked, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito", "quienes", "quiénes", "cuales", "cuáles", "lista", "todos"]),
   );
   const aboutWeek =
     wants(asked, ["semana", "7 dia", "siete dia", "estos dias"]) ||
     (wants(asked, ["ultima", "ultimos"]) &&
       wants(asked, ["recarg", "fee", "cobr", "pago"]));
 
-  return { asked, named, aboutOne, aboutWeek };
+  return { asked, named, nameHit, aboutOne, aboutWeek, payScope: paymentScope(asked, brief.today) };
 }
 
 export function answerAssistant(brief: AssistantBrief, question: string): string {
-  const { asked, named, aboutOne, aboutWeek } = getQuestionContext(brief, question);
+  const { asked, named, nameHit, aboutOne, aboutWeek, payScope } = getQuestionContext(brief, question);
   if (!asked) {
     return "Pregúntame por los pagos de hoy, quién está activo, las alertas, a quién dar crédito o quién está en rojo.";
+  }
+
+  if (nameHit.kind === "many" && asksPayments(asked)) {
+    return `Hay más de uno: ${nameHit.names.slice(0, 6).join(", ")}. Decime el nombre completo.`;
   }
 
   if (aboutOne && named) {
@@ -172,8 +303,14 @@ export function answerAssistant(brief: AssistantBrief, question: string): string
     );
   }
 
-  if (!aboutWeek && wants(asked, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"])) {
-    if (!brief.pagosHoy.length) {
+  if (!aboutWeek && asksPayments(asked)) {
+    if (named) {
+      parts.push(onePaymentText(named, payScope, brief.monthLabel));
+    } else if (payScope === "month") {
+      parts.push(monthPaymentsText(brief));
+    } else if (payScope === "other-month") {
+      parts.push(`Ese mes no está cargado. El corte que tengo es ${brief.monthLabel}.`);
+    } else if (!brief.pagosHoy.length) {
       parts.push(`Hoy ${brief.today} no hay cobros registrados en Hecom.`);
     } else {
       const lines = brief.pagosHoy
@@ -339,12 +476,17 @@ export function buildAssistantResponse(
   question: string,
 ): AssistantResponse {
   const reply = answerAssistant(brief, question);
-  const { asked, named, aboutOne, aboutWeek } = getQuestionContext(brief, question);
+  const { asked, named, nameHit, aboutOne, aboutWeek, payScope } = getQuestionContext(brief, question);
   const blocks: AssistantBlock[] = [];
   const response = () => ({ reply, today: brief.today, blocks });
 
   if (!asked) {
     blocks.push({ id: "help", title: "¿Qué quieres consultar?", text: reply, sources: [] });
+    return response();
+  }
+
+  if (nameHit.kind === "many" && asksPayments(asked)) {
+    blocks.push({ id: "help", title: "Hay más de un cliente", text: reply, sources: [] });
     return response();
   }
 
@@ -368,30 +510,87 @@ export function buildAssistantResponse(
     });
   }
 
-  if (!aboutWeek && wants(asked, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"])) {
-    const visible = brief.pagosHoy.slice(0, 15);
-    blocks.push({
-      id: "payments",
-      title: "Pagos de hoy",
-      text: brief.pagosHoy.length
-        ? `Cobros del ${brief.today}, agrupados por cliente.`
-        : `Hoy ${brief.today} no hay cobros registrados en Hecom.`,
-      metrics: [
-        { label: "Total cobrado", value: money(brief.pagosHoyTotal) },
-        { label: "Clientes con pagos", value: String(brief.pagosHoy.length) },
-      ],
-      ...(visible.length ? {
-        table: {
-          columns: [
-            { key: "name", label: "Cliente" },
-            { key: "amount", label: "Cobrado hoy", align: "right" as const },
-          ],
-          rows: visible.map((row) => ({ name: row.name, amount: money(row.amount) })),
-          caption: `Mostrando ${visible.length} de ${brief.pagosHoy.length} clientes. Importes en USD.`,
-        },
-      } : {}),
-      sources: [paymentsSource(brief)],
-    });
+  if (!aboutWeek && asksPayments(asked)) {
+    if (named) {
+      const monthView = payScope !== "today";
+      blocks.push({
+        id: "payments",
+        title: named.name,
+        text: onePaymentText(named, payScope, brief.monthLabel),
+        metrics: monthView
+          ? [
+              { label: "Cobrado del mes", value: money(named.paidMonth) },
+              { label: "Deuda del mes", value: money(named.debt) },
+              ...(payScope === "open" && named.paidToday > 0
+                ? [{ label: "Cobrado hoy", value: money(named.paidToday) }]
+                : []),
+            ]
+          : [{ label: "Cobrado hoy", value: money(named.paidToday) }],
+        sources: [monthView ? portfolioSource(brief) : paymentsSource(brief)],
+      });
+    } else if (payScope === "month") {
+      const rows = brief.clientes
+        .filter((row) => row.paidMonth > 0)
+        .sort((a, b) => b.paidMonth - a.paidMonth);
+      const visible = rows.slice(0, 15);
+      const total = round2(rows.reduce((sum, row) => sum + row.paidMonth, 0));
+      blocks.push({
+        id: "payments",
+        title: `Cobros de ${brief.monthLabel}`,
+        text: rows.length
+          ? `Cobros de ${brief.monthLabel}, agrupados por cliente.`
+          : `En ${brief.monthLabel} no hay cobros registrados.`,
+        metrics: [
+          { label: "Total cobrado", value: money(total) },
+          { label: "Clientes con cobros", value: String(rows.length) },
+        ],
+        ...(visible.length ? {
+          table: {
+            columns: [
+              { key: "name", label: "Cliente" },
+              { key: "amount", label: "Cobrado del mes", align: "right" as const },
+            ],
+            rows: visible.map((row) => ({ name: row.name, amount: money(row.paidMonth) })),
+            caption: `Mostrando ${visible.length} de ${rows.length} clientes. Importes en USD.`,
+          },
+        } : {}),
+        sources: [{
+          label: "Hecom · Cobros",
+          detail: `Cobros de ${brief.monthLabel}, agrupados por cliente. Los importes están en USD.`,
+        }],
+      });
+    } else if (payScope === "other-month") {
+      blocks.push({
+        id: "payments",
+        title: brief.monthLabel,
+        text: `Ese mes no está cargado. El corte que tengo es ${brief.monthLabel}.`,
+        sources: [portfolioSource(brief)],
+      });
+    } else {
+      const visible = brief.pagosHoy.slice(0, 15);
+      blocks.push({
+        id: "payments",
+        title: "Pagos de hoy",
+        text: brief.pagosHoy.length
+          ? `Cobros del ${brief.today}, agrupados por cliente.`
+          : `Hoy ${brief.today} no hay cobros registrados en Hecom.`,
+        metrics: [
+          { label: "Total cobrado", value: money(brief.pagosHoyTotal) },
+          { label: "Clientes con pagos", value: String(brief.pagosHoy.length) },
+        ],
+        ...(visible.length ? {
+          table: {
+            columns: [
+              { key: "name", label: "Cliente" },
+              { key: "amount", label: "Cobrado hoy", align: "right" as const },
+            ],
+            rows: visible.map((row) => ({ name: row.name, amount: money(row.amount) })),
+            caption: `Mostrando ${visible.length} de ${brief.pagosHoy.length} clientes. Importes en USD.`,
+          },
+        } : {}),
+        sources: [paymentsSource(brief)],
+      });
+    }
   }
 
   if (wants(asked, ["activo", "activos", "gastando", "gasto de hoy", "hoy estan", "hoy están"])) {

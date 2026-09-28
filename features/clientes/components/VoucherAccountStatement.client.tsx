@@ -361,21 +361,25 @@ export function VoucherAccountStatement({
   const heroLabel = owes ? t("youOwe") : favor ? t("inYourFavor") : t("settled");
   const heroTone = owes ? "owe" : favor ? "favor" : "ok";
 
+  // Solo presentación: qué parte del consumo del mes ya se cubrió.
+  const coverage =
+    view.cargo > 0.004 ? Math.min(1, Math.max(0, view.cobrado / view.cargo)) : view.cobrado > 0.004 ? 1 : 0;
+
   return (
-    <section className={embedded ? "space-y-5" : "space-y-5 rounded-2xl border border-[#e8dfd4] bg-[#faf8f5] p-4 sm:p-5"}>
+    <section className={embedded ? "space-y-4" : "space-y-4 rounded-[24px] bg-[#faf8f5] p-4 ring-1 ring-[#e8dfd4] sm:p-5"}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 max-w-xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
             {t("eyebrow")}
           </p>
-          <h3 className="mt-1 text-[1.35rem] font-semibold tracking-[-0.03em] text-[#1a1714]">
+          <h3 className="mt-1 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#1a1714]">
             {t("title")}
           </h3>
           {!embedded ? (
-            <p className="mt-1 text-[13px] capitalize text-[#9a6b4a]">{view.monthLabel}</p>
+            <p className="mt-1 text-[13px] capitalize text-[#5c564e]">{view.monthLabel}</p>
           ) : null}
         </div>
-        <p className="max-w-sm text-right text-[11px] leading-4 text-[#8a8177]">
+        <p className="max-w-sm text-[11px] leading-4 text-[#8a8177] sm:text-right">
           {t("through", {
             month: view.monthLabel,
             date: formatDay(view.to, locale),
@@ -383,62 +387,72 @@ export function VoucherAccountStatement({
         </p>
       </div>
 
-      {/* Hero saldo */}
-      <div
-        className={`relative overflow-hidden rounded-2xl px-5 py-6 sm:px-7 sm:py-7 ${
-          heroTone === "favor"
-            ? "bg-[linear-gradient(135deg,#ecf7ef_0%,#f4faf6_55%,#ffffff_100%)] ring-1 ring-[#c5e0ce]"
-            : heroTone === "owe"
-              ? "bg-[linear-gradient(135deg,#fff1e6_0%,#fff7f0_55%,#ffffff_100%)] ring-1 ring-[#f0c9a8]"
-              : "bg-white ring-1 ring-[#e8dfd4]"
-        }`}
-      >
-        <div
-          className={`pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full opacity-40 blur-2xl ${
-            heroTone === "favor"
-              ? "bg-[#9fd4b0]"
-              : heroTone === "owe"
-                ? "bg-[#f0b889]"
-                : "bg-[#ddd5cb]"
-          }`}
-          aria-hidden
-        />
-        <p
-          className={`text-[11px] font-bold uppercase tracking-[0.14em] ${
-            heroTone === "favor"
-              ? "text-[#1f6b3a]"
-              : heroTone === "owe"
-                ? "text-[#b45309]"
-                : "text-[#6b645c]"
-          }`}
-        >
-          {heroLabel}
-        </p>
-        <p
-          className={`mt-2 text-[2.55rem] font-semibold tabular-nums tracking-[-0.04em] sm:text-[2.85rem] ${
-            heroTone === "favor"
-              ? "text-[#146b38]"
-              : heroTone === "owe"
-                ? "text-[#c2410c]"
-                : "text-[#1a1714]"
-          }`}
-        >
-          {moneyUsd(Math.abs(view.owed))}
-        </p>
-        {view.surcharge > 0.004 ? (
-          <p className="mt-2 max-w-xl text-[11px] leading-4 text-[#8a8177]">
-            {t("surchargeNote", { amount: moneyUsd(view.surcharge) })}
-          </p>
-        ) : (
-          <p className="mt-2 text-[12px] text-[#6b645c]">{t("subtitle")}</p>
-        )}
-      </div>
+      {/* Saldo + KPIs */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-[#1a1714] px-5 py-5 text-white sm:px-6 sm:py-6">
+          <div
+            className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#d47840]/25 blur-2xl"
+            aria-hidden
+          />
+          <div className="relative">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                heroTone === "owe"
+                  ? "bg-[#d47840]/20 text-[#f0b889]"
+                  : heroTone === "favor"
+                    ? "bg-[#9fd4b0]/15 text-[#9fd4b0]"
+                    : "bg-white/10 text-white/80"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  heroTone === "owe"
+                    ? "bg-[#e8955a]"
+                    : heroTone === "favor"
+                      ? "bg-[#6fbf8a]"
+                      : "bg-white/70"
+                }`}
+                aria-hidden
+              />
+              {heroLabel}
+            </span>
+            <p className="mt-3 text-[2.4rem] font-semibold leading-none tabular-nums tracking-[-0.045em] sm:text-[2.75rem]">
+              {moneyUsd(Math.abs(view.owed))}
+            </p>
+            <p className="mt-2 text-[12px] capitalize text-white/60">{view.monthLabel}</p>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-[#e8dfd4] ring-1 ring-[#e8dfd4] sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi label={t("rangeSpend")} value={moneyUsd(view.gasto)} />
-        <Kpi label={t("rangeFee")} value={moneyUsd(view.fee)} />
-        <Kpi label={t("rangeCargo")} value={moneyUsd(view.cargo)} hint={t("rangeCargoHint")} />
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[11px] text-white/70">
+                <span>
+                  {t("rangePaid")} {moneyUsd(view.cobrado)}
+                </span>
+                <span className="tabular-nums">{Math.round(coverage * 100)}%</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#d47840] transition-[width] duration-500"
+                  style={{ width: `${coverage * 100}%` }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] leading-4 text-white/50">
+                {view.surcharge > 0.004
+                  ? t("surchargeNote", { amount: moneyUsd(view.surcharge) })
+                  : t("subtitle")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Kpi
+          label={t("rangeCargo")}
+          value={moneyUsd(view.cargo)}
+          hint={t("rangeCargoHint")}
+          className="col-span-2 sm:col-span-1"
+          breakdown={[
+            { label: t("rangeSpend"), value: moneyUsd(view.gasto) },
+            { label: t("rangeFee"), value: moneyUsd(view.fee) },
+          ]}
+        />
         <Kpi
           label={t("rangePaid")}
           value={moneyUsd(view.cobradoBruto)}
@@ -448,49 +462,50 @@ export function VoucherAccountStatement({
               ? t("rangePaidHint", { applicable: moneyUsd(view.cobrado) })
               : undefined
           }
+          className="col-span-2 sm:col-span-1"
         />
         <Kpi
           label={t("rangeResult")}
           value={moneyUsd(view.rangeSaldo)}
           tone={view.rangeSaldo < -0.004 ? "owe" : view.rangeSaldo > 0.004 ? "paid" : "neutral"}
           hint={t("rangeResultHint")}
-          className="col-span-2 sm:col-span-1"
+          className="col-span-2 sm:col-span-2 lg:col-span-1"
         />
       </div>
 
       {/* Chart */}
-      <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#efe8df] px-4 py-3.5 sm:px-5">
+      <div className="overflow-hidden rounded-[22px] bg-white ring-1 ring-[#e8dfd4]">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a6b4a]">
+            <h4 className="text-[15px] font-semibold tracking-[-0.02em] text-[#1a1714]">
               {t("chartDay")}
-            </p>
-            <p className="mt-0.5 text-[13px] text-[#5c564e]">{t("chartDayLead")}</p>
+            </h4>
+            <p className="mt-0.5 text-[12px] text-[#5c564e]">{t("chartDayLead")}</p>
           </div>
-          <div className="flex items-center gap-4 text-[11px] font-medium text-[#6b645c]">
+          <div className="flex items-center gap-4 text-[11px] font-medium text-[#5c564e]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-sm bg-[#d47840]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#d47840]" />
               {t("legendCargo")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-sm bg-[#2f7a4a]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#2f7a4a]" />
               {t("legendPaid")}
             </span>
           </div>
         </div>
 
         {view.series.length === 0 ? (
-          <p className="px-4 py-12 text-center text-[13px] text-[#8a8177] sm:px-5">
-            {t("emptyRange")}
-          </p>
+          <div className="px-4 py-12 text-center sm:px-5">
+            <p className="text-[13px] font-medium text-[#5c564e]">{t("emptyRange")}</p>
+          </div>
         ) : (
           <>
             {selectedDay ? (
-              <div className="border-b border-[#efe8df] bg-[#fcfaf7] px-4 py-4 sm:px-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8a8177]">
+              <div className="px-4 pb-1 pt-2 sm:px-5">
+                <p className="text-[11px] font-semibold capitalize text-[#8a8177]">
                   {formatDay(selectedDay.key, locale)}
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <DayMetric
                     label={t("chartDaySpend")}
                     value={moneyUsd(selectedDay.cargo)}
@@ -544,10 +559,8 @@ export function VoucherAccountStatement({
                       type="button"
                       onClick={() => setActiveDay(bucket.key)}
                       onMouseEnter={() => setActiveDay(bucket.key)}
-                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-lg px-0.5 pb-1.5 pt-1 transition duration-150 ${
-                        isActive
-                          ? "bg-[#fff6ee]"
-                          : "hover:bg-[#faf8f5]"
+                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1.5 pt-1 transition duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#d47840] ${
+                        isActive ? "bg-[#fff6ee]" : "hover:bg-[#fcfaf7]"
                       }`}
                       aria-label={`${formatDay(bucket.key, locale)}: ${t("chartDaySpend")} ${moneyUsd(bucket.cargo)}, ${t("chartDayPaid")} ${moneyUsd(bucket.paid)}`}
                       title={`${formatDay(bucket.key, locale)}\n${t("legendCargo")}: ${moneyUsd(bucket.cargo)}\n${t("legendPaid")}: ${moneyUsd(bucket.paid)}`}
@@ -568,9 +581,9 @@ export function VoucherAccountStatement({
                       >
                         {showPaidLabel ? moneyCompact(bucket.paid) : "·"}
                       </span>
-                      <div className="flex h-32 w-full items-end justify-center gap-0.5 sm:h-36">
+                      <div className="flex h-32 w-full items-end justify-center gap-0.5 sm:h-40">
                         <span
-                          className={`w-[40%] max-w-[11px] rounded-t-[3px] transition duration-150 ${
+                          className={`w-[42%] max-w-[12px] rounded-t-[4px] transition duration-150 ${
                             bucket.cargo > 0
                               ? isActive || isPeak
                                 ? "bg-[#d47840]"
@@ -583,12 +596,12 @@ export function VoucherAccountStatement({
                           }}
                         />
                         <span
-                          className={`w-[40%] max-w-[11px] rounded-t-[3px] transition duration-150 ${
+                          className={`w-[42%] max-w-[12px] rounded-t-[4px] transition duration-150 ${
                             hasPaid
                               ? isActive
                                 ? "bg-[#2f7a4a]"
                                 : "bg-[#6a9a78]/90 group-hover:bg-[#4d8760]"
-                              : "bg-[#eef2ef]"
+                              : "bg-[#f5f0ea]"
                           }`}
                           style={{
                             height: `${paidH}%`,
@@ -616,7 +629,7 @@ export function VoucherAccountStatement({
             </div>
 
             {view.peakCargo.cargo > 0 ? (
-              <p className="border-t border-[#efe8df] px-4 py-2.5 text-[11px] leading-4 text-[#6b645c] sm:px-5">
+              <p className="border-t border-[#efe8df] px-4 py-2.5 text-[11px] leading-4 text-[#5c564e] sm:px-5">
                 {t("chartPeak", {
                   day: formatDay(view.peakCargo.key, locale),
                   amount: moneyUsd(view.peakCargo.cargo),
@@ -642,6 +655,7 @@ export function VoucherAccountStatement({
         <MovementList
           title={t("paidList")}
           empty={t("emptyPaid")}
+          paid
           rows={view.rangePaid.map((row, index) => ({
             key: `c-${index}-${row.fecha ?? row.periodo}-${row.monto}`,
             date: formatDay(
@@ -663,7 +677,6 @@ export function VoucherAccountStatement({
                       paid: formatDay(row.fecha, locale),
                     })
                   : null,
-            paid: true,
           }))}
         />
       </div>
@@ -686,21 +699,22 @@ function DayMetric({
   hint: string;
   tone?: "neutral" | "spend" | "paid";
 }) {
-  const valueClass =
+  const dotClass =
     tone === "spend"
-      ? "text-[#b85f2e]"
+      ? "bg-[#d47840]"
       : tone === "paid"
-        ? "text-[#1f6b3a]"
-        : "text-[#1a1714]";
+        ? "bg-[#2f7a4a]"
+        : "bg-[#ddd5cb]";
   return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-        {label}
+    <div className="min-w-0 rounded-2xl bg-[#fcfaf7] px-3 py-2.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium text-[#5c564e]">
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
+        <span className="truncate">{label}</span>
       </p>
-      <p className={`mt-1 text-[1.2rem] font-semibold tabular-nums tracking-[-0.02em] ${valueClass}`}>
+      <p className="mt-1 text-[1.15rem] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1714]">
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] leading-3.5 text-[#9a9288]">{hint}</p>
+      <p className="mt-0.5 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
     </div>
   );
 }
@@ -711,29 +725,43 @@ function Kpi({
   hint,
   tone = "neutral",
   className = "",
+  breakdown,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: "neutral" | "paid" | "owe";
   className?: string;
+  breakdown?: Array<{ label: string; value: string }>;
 }) {
   const toneClass =
     tone === "paid"
       ? "text-[#15803d]"
       : tone === "owe"
-        ? "text-[#c2410c]"
+        ? "text-[#c2531b]"
         : "text-[#1a1714]";
   return (
-    <div className={`bg-[#faf8f5] px-3.5 py-3.5 ${className}`}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-        {label}
-      </p>
-      <p className={`mt-1.5 text-[1.1rem] font-semibold tabular-nums tracking-[-0.02em] ${toneClass}`}>
+    <div
+      className={`flex flex-col rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e8dfd4] sm:px-5 ${className}`}
+    >
+      <p className="text-[12px] font-medium text-[#5c564e]">{label}</p>
+      <p
+        className={`mt-2 text-[1.55rem] font-semibold leading-none tabular-nums tracking-[-0.035em] ${toneClass}`}
+      >
         {value}
       </p>
+      {breakdown && breakdown.length > 0 ? (
+        <dl className="mt-3 space-y-1">
+          {breakdown.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-2 text-[11px]">
+              <dt className="text-[#8a8177]">{item.label}</dt>
+              <dd className="font-semibold tabular-nums text-[#3f3a34]">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {hint ? (
-        <p className="mt-1 text-[10px] leading-3.5 text-[#9a9288]">{hint}</p>
+        <p className="mt-auto pt-3 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
       ) : null}
     </div>
   );
@@ -743,47 +771,80 @@ function MovementList({
   title,
   empty,
   rows,
+  paid = false,
 }: {
   title: string;
   empty: string;
+  paid?: boolean;
   rows: Array<{
     key: string;
     date: string;
     detail: string;
     amount: string;
     extra: string | null;
-    paid?: boolean;
   }>;
 }) {
   return (
-    <div className="rounded-2xl bg-white px-4 py-4 ring-1 ring-[#e8dfd4]">
-      <p className="text-[12px] font-semibold text-[#1a1714]">
-        {title}
+    <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e8dfd4] sm:px-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#1a1714]">{title}</p>
         {rows.length > 0 ? (
-          <span className="ml-1.5 font-normal text-[#8a8177]">({rows.length})</span>
+          <span className="rounded-full bg-[#f5f0ea] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#5c564e]">
+            {rows.length}
+          </span>
         ) : null}
-      </p>
+      </div>
       {rows.length === 0 ? (
-        <p className="mt-3 text-[12px] text-[#8a8177]">{empty}</p>
+        <p className="mt-4 rounded-2xl bg-[#fcfaf7] px-3 py-6 text-center text-[12px] text-[#8a8177]">
+          {empty}
+        </p>
       ) : (
-        <ul className="mt-3 max-h-64 space-y-0 overflow-y-auto pr-1">
+        <ul className="mt-3 max-h-72 overflow-y-auto pr-1">
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex items-start justify-between gap-3 border-b border-[#f3eee8] py-2.5 last:border-0"
+              className="flex items-center justify-between gap-3 border-b border-[#f3eee8] py-2.5 last:border-0"
             >
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium text-[#1a1714]">
-                  {row.detail}
-                </p>
-                <p className="text-[11px] text-[#8a8177]">{row.date}</p>
-                {row.extra ? (
-                  <p className="text-[10px] text-[#9a9288]">{row.extra}</p>
-                ) : null}
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    paid ? "bg-[#ecf7ef] text-[#1f6b3a]" : "bg-[#f5f0ea] text-[#b85f2e]"
+                  }`}
+                  aria-hidden
+                >
+                  {paid ? (
+                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
+                      <path
+                        d="m5 10.5 3.2 3L15 6.5"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
+                      <path
+                        d="M4 14.5 8 10l3 3 5-6.5M12.5 6.5H16V10"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium text-[#1a1714]">{row.detail}</p>
+                  <p className="text-[11px] text-[#8a8177]">{row.date}</p>
+                  {row.extra ? (
+                    <p className="text-[10px] text-[#9a9288]">{row.extra}</p>
+                  ) : null}
+                </div>
               </div>
               <p
-                className={`shrink-0 text-[12px] font-semibold tabular-nums ${
-                  row.paid ? "text-[#15803d]" : "text-[#1a1714]"
+                className={`shrink-0 text-[13px] font-semibold tabular-nums ${
+                  paid ? "text-[#15803d]" : "text-[#1a1714]"
                 }`}
               >
                 {row.amount}

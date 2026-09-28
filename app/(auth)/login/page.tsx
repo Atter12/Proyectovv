@@ -5,6 +5,8 @@ import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
 import { routes } from "@/config/routes";
 import { clerkLoginEnabled, clerkRoutes } from "@/lib/auth/clerk";
 import { serverEnv } from "@/lib/env/env.server";
+import { getAuthCopy } from "@/features/auth/i18n/auth-copy";
+import { getLandingLocale } from "@/features/landing/i18n/landing-locale.server";
 
 function AuthCardFallback() {
   return (
@@ -17,21 +19,25 @@ function AuthCardFallback() {
   );
 }
 
-export default function LoginPage() {
+export default async function LoginPage() {
   if (clerkLoginEnabled()) {
     redirect(clerkRoutes.signIn);
   }
 
+  const locale = await getLandingLocale();
+  const copy = getAuthCopy(locale).login;
+
   return (
     <AuthSplitShell
-      topRight={{ label: "Crear cuenta", href: routes.register, prompt: "¿Aún no tienes cuenta?" }}
+      locale={locale}
+      topRight={{ label: copy.topRightLabel, href: routes.register, prompt: copy.topRightPrompt }}
       accountLinkPosition="bottom"
       caption={{
-        title: "Recarga en soles o dólares.\nImpulsa tus campañas.",
+        title: copy.caption,
       }}
     >
       <Suspense fallback={<AuthCardFallback />}>
-        <LoginForm hecomOtpEnabled={serverEnv.authHecomOtpLogin} />
+        <LoginForm hecomOtpEnabled={serverEnv.authHecomOtpLogin} locale={locale} />
       </Suspense>
     </AuthSplitShell>
   );

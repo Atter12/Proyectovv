@@ -12,7 +12,9 @@ import {
 } from "./AuthFormUi";
 import styles from "./auth.module.css";
 import { createClient } from "@/lib/supabase/client";
-import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { localizeAuthNotice, mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { getAuthCopy } from "../i18n/auth-copy";
+import type { LandingLocale } from "@/features/landing/i18n/landing-locale";
 import {
   HECOM_OTP_COOLDOWN_SECONDS,
   normalizeHecomOtpEmail,
@@ -24,9 +26,11 @@ async function assertAdminAccess(): Promise<boolean> {
   return response.ok;
 }
 
-export function VerifyOtpForm() {
+export function VerifyOtpForm({ locale = "es" }: { locale?: LandingLocale }) {
+  const t = getAuthCopy(locale).verify;
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hintParam = searchParams.get("hint");
   const emailParam = searchParams.get("email") ?? "";
   const isAdminContext = searchParams.get("context") === "admin";
   const isHecomFlow = searchParams.get("flow") === "hecom";
@@ -53,7 +57,7 @@ export function VerifyOtpForm() {
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(
-    searchParams.get("hint"),
+    hintParam ? localizeAuthNotice(hintParam, locale) : null,
   );
 
   useEffect(() => {
@@ -79,14 +83,14 @@ export function VerifyOtpForm() {
     setSuccess(null);
 
     if (!email) {
-      setError("Falta el correo electrónico. Vuelve al inicio de sesión.");
+      setError(t.missingEmailBack);
       setLoading(false);
       return;
     }
 
     const code = otp.replace(/\D/g, "").slice(0, 6);
     if (!/^\d{6}$/.test(code)) {
-      setError("Introduce un código de 6 dígitos.");
+      setError(t.invalidCode);
       setLoading(false);
       return;
     }
@@ -110,10 +114,7 @@ export function VerifyOtpForm() {
 
         if (!response.ok) {
           setError(
-            mapAuthErrorMessage(
-              payload.error ??
-                "No pudimos verificar el código. Pedí uno nuevo e intentá de nuevo.",
-            ),
+            payload.error ? mapAuthErrorMessage(payload.error, locale) : t.verifyFailed,
           );
           setLoading(false);
           return;
@@ -158,9 +159,7 @@ export function VerifyOtpForm() {
         router.refresh();
         return;
       } catch {
-        setError(
-          "No pudimos verificar el código. Revisá tu conexión e intentá de nuevo.",
-        );
+        setError(t.verifyNetwork);
         setLoading(false);
         return;
       }
@@ -175,14 +174,12 @@ export function VerifyOtpForm() {
       });
 
       if (verifyError) {
-        setError(mapAuthErrorMessage(verifyError.message));
+        setError(mapAuthErrorMessage(verifyError.message, locale));
         setLoading(false);
         return;
       }
     } catch {
-      setError(
-        "No pudimos verificar el código. Revisá tu conexión e intentá de nuevo.",
-      );
+      setError(t.verifyNetwork);
       setLoading(false);
       return;
     }
@@ -204,7 +201,7 @@ export function VerifyOtpForm() {
 
   async function handleResend() {
     if (!email) {
-      setError("Falta el correo electrónico.");
+      setError(t.missingEmail);
       return;
     }
     if (resendCooldown > 0) return;
@@ -230,17 +227,16 @@ export function VerifyOtpForm() {
           if (response.status === 429 && payload.retryAfterSec) {
             applyResendCooldown(payload.retryAfterSec);
           }
-          setError(mapAuthErrorMessage(payload.error ?? "No se pudo reenviar."));
+          setError(payload.error ? mapAuthErrorMessage(payload.error, locale) : t.resendFailed);
         } else {
           applyResendCooldown(payload.retryAfterSec);
           setOtp("");
           setSuccess(
-            payload.message ??
-              "Te enviamos un código nuevo. El anterior ya no sirve.",
+            payload.message ? localizeAuthNotice(payload.message, locale) : t.resentHecom,
           );
         }
       } catch {
-        setError("No se pudo reenviar el código.");
+        setError(t.resendFailedCode);
       }
       setResending(false);
       return;
@@ -253,26 +249,26 @@ export function VerifyOtpForm() {
     });
 
     if (resendError) {
-      setError(mapAuthErrorMessage(resendError.message));
+      setError(mapAuthErrorMessage(resendError.message, locale));
     } else {
-      setSuccess("Te enviamos un nuevo código a tu correo.");
+      setSuccess(t.resentOther);
     }
     setResending(false);
   }
 
   return (
     <div className="w-full">
-      <AuthFormHeading title="Revisa tu correo">
-        Enviamos un código de 6 dígitos a
+      <AuthFormHeading title={t.title}>
+        {t.sentTo}
         <strong className={styles.destinationEmail}>
-          {email || "tu correo electrónico"}
+          {email || t.yourEmail}
         </strong>
       </AuthFormHeading>
 
       <form onSubmit={handleVerify} className={styles.form}>
         <div className={styles.fieldGroup}>
           <label htmlFor="otp" className={styles.fieldLabel}>
-            Código de 6 dígitos
+            {t.codeLabel}
           </label>
           <AuthCodeInput
             id="otp"
@@ -283,9 +279,7 @@ export function VerifyOtpForm() {
             describedBy={error ? "otp-error" : "otp-help"}
           />
           <p id="otp-help" className={styles.helpText}>
-            {isHecomFlow
-              ? "También puedes entrar desde el enlace del mismo correo."
-              : "Copia y pega el código completo para verificar tu correo."}
+            {isHecomFlow ? t.helpHecom : t.helpOther}
           </p>
         </div>
 
@@ -297,13 +291,13 @@ export function VerifyOtpForm() {
           <AuthNotice tone="success">{success}</AuthNotice>
         )}
 
-        <AuthSubmitButton loading={loading} loadingLabel="Verificando código…">
-          Verificar y continuar
+        <AuthSubmitButton loading={loading} loadingLabel={t.verifying}>
+          {t.verify}
         </AuthSubmitButton>
       </form>
 
       <div className={styles.formFooter}>
-        <p className={styles.muted}>¿No encuentras el correo? Revisa también spam.</p>
+        <p className={styles.muted}>{t.checkSpam}</p>
         <button
           type="button"
           onClick={handleResend}
@@ -311,14 +305,14 @@ export function VerifyOtpForm() {
           className={styles.secondaryButton}
         >
           {resending
-            ? "Reenviando…"
+            ? t.resending
             : resendCooldown > 0
-              ? `Reenviar código en ${resendCooldown}s`
-              : "Reenviar código"}
+              ? t.resendIn(resendCooldown)
+              : t.resend}
         </button>
         {isHecomFlow ? (
           <p className={styles.helpText}>
-            Si solicitas otro código, usa el más reciente.
+            {t.useLatest}
           </p>
         ) : null}
         <p>
@@ -326,7 +320,7 @@ export function VerifyOtpForm() {
             href={isAdminContext ? routes.adminLogin : routes.login}
             className={styles.textLink}
           >
-            Usar otro correo
+            {t.useOtherEmail}
           </Link>
         </p>
       </div>

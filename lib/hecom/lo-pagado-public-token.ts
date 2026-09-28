@@ -26,6 +26,13 @@ function b64urlDecode(value: string): Buffer | null {
  * compartido HOLISTIC_WA_SNAPSHOT_SECRET / ADS_HOLISTIC_WA_SNAPSHOT_SECRET.
  * Rotar ese secret invalida los links ya enviados.
  */
+const PUBLIC_BASE = "https://www.adsholistic.com";
+
+export function loPagadoPublicUrl(clientId: string, secret: string): string {
+  const token = signLoPagadoToken(clientId, secret);
+  return `${PUBLIC_BASE}/p/lo-pagado/${token}`;
+}
+
 export function signLoPagadoToken(clientId: string, secret: string): string {
   const id = clientId.trim().toLowerCase();
   const mac = createHmac("sha256", secret)

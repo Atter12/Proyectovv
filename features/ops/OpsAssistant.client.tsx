@@ -104,12 +104,11 @@ export function OpsAssistant() {
       maxLength={500} rows={2} placeholder={started ? "Escribe otra consulta sobre tu cartera…" : "¿Qué necesitas saber de tu cartera?"} aria-describedby={`${inputId}-hint`} />
     <div className={styles.composerFooter}>
       <span className={styles.scope}><AssistantIcon name="briefcase" /> Cartera general</span>
-      <div className={styles.sendGroup}><span id={`${inputId}-hint`} className={styles.keyHint}>{draft.length >= 400 ? `${draft.length}/500` : "Enter para enviar"}</span><button className={styles.sendButton} type="submit" disabled={busy || !draft.trim()} aria-label="Enviar consulta"><AssistantIcon name="arrowUp" /></button></div>
+      <div className={styles.sendGroup}><span id={`${inputId}-hint`} className={styles.keyHint}>{draft.length >= 400 ? `${draft.length}/500` : <><kbd>Enter</kbd> para enviar</>}</span><button className={styles.sendButton} type="submit" disabled={busy || !draft.trim()} aria-label="Enviar consulta"><AssistantIcon name="arrowUp" /></button></div>
     </div>
   </form>;
 
   return <section className={styles.surface} data-started={started} aria-label="Asistente de gerencia">
-    <div className={styles.toolbar}><span className={styles.toolbarLabel}><AssistantIcon name="briefcase" /> Asistente de gerencia</span><button type="button" className={styles.newButton} onClick={reset}><AssistantIcon name="plus" /> Nueva consulta</button></div>
     {!started ? <div className={styles.welcome}>
       <header className={styles.intro}><AssistantMark /><h2>Tu cartera, más clara.</h2><p>Consulta pagos, clientes y alertas con datos de Hecom y Cartera Holistic.</p></header>
       {composer}
@@ -119,13 +118,16 @@ export function OpsAssistant() {
       </div>
       <p className={styles.sourceNote}><AssistantIcon name="database" /> Hecom y Cartera Holistic · Fuentes en cada reporte</p>
     </div> : <div className={styles.conversation}>
-      <div className={styles.conversationHeading}><h2>{turns[0].answer?.blocks[0]?.title ?? "Tu consulta de cartera"}</h2><p><AssistantIcon name="briefcase" /> Cartera general de gerencia</p></div>
+      <div className={styles.toolbar}>
+        <div className={styles.conversationHeading}><h2>{turns[0].answer?.blocks[0]?.title ?? "Tu consulta de cartera"}</h2><p><AssistantIcon name="briefcase" /> Cartera general · {turns.length} {turns.length === 1 ? "consulta" : "consultas"}</p></div>
+        <button type="button" className={styles.newButton} onClick={reset}><AssistantIcon name="plus" /> Nueva consulta</button>
+      </div>
       <div className={styles.turns} aria-label="Conversación">{turns.map((turn, index) => <article key={turn.id} ref={index === turns.length - 1 ? lastTurn : undefined} className={styles.turn} aria-label={`Consulta: ${turn.question}`}>
         <div className={styles.userMessage}><div><p>{turn.question}</p><time dateTime={turn.time}>{new Date(turn.time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</time></div><span className={styles.userAvatar} aria-label="Tú">Tú</span></div>
         <div className={styles.answer}><AssistantMark small /><div className={styles.answerContent}>
           <div className={styles.answerByline}><strong>Asistente</strong>{turn.answer?.today && <span>Datos al {turn.answer.today}</span>}</div>
-          {turn.answer && <>{turn.answer.blocks.length ? turn.answer.blocks.map((block) => <OpsAssistantReport key={block.id} block={block} />) : <p className={styles.plainAnswer}>{turn.answer.reply}</p>}<CopyAnswer text={turn.answer.reply} /></>}
-          {pendingId === turn.id && <p className={styles.loading} role="status"><span className={styles.loadingDot} /> Consultando los datos de tu cartera…</p>}
+          {turn.answer && <div className={styles.answerBody}>{turn.answer.blocks.length ? turn.answer.blocks.map((block) => <OpsAssistantReport key={block.id} block={block} />) : <p className={styles.plainAnswer}>{turn.answer.reply}</p>}<CopyAnswer text={turn.answer.reply} /></div>}
+          {pendingId === turn.id && <div className={styles.loading}><p role="status">Consultando los datos de tu cartera…</p><span className={styles.skeleton} aria-hidden="true"><i /><i /><i /></span></div>}
           {turn.error && <div className={styles.error} role="alert"><p>{turn.error}</p><button type="button" className={styles.textButton} disabled={busy} onClick={() => void ask(turn.question, turn.id)}><AssistantIcon name="retry" /> Reintentar consulta</button></div>}
         </div></div>
       </article>)}</div>

@@ -75,8 +75,8 @@ export function HomeScreenAppBanner() {
   if (mode === "hidden" || done) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-lg">
-      <div className="pointer-events-auto rounded-2xl border border-[var(--auth-border)] bg-white p-3.5 shadow-[0_16px_40px_-20px_rgb(28_25_23_/_0.45)]">
+    <div className="pointer-events-none fixed right-3 top-[calc(4rem+env(safe-area-inset-top))] z-30 w-[min(18rem,calc(100vw-1.5rem))] sm:right-5 sm:top-[calc(4.5rem+env(safe-area-inset-top))] lg:right-6">
+      <div className="pointer-events-auto rounded-xl border border-[var(--auth-border)] bg-white p-3 shadow-[0_12px_32px_-18px_rgb(28_25_23_/_0.45)]">
         {mode === "install" ? (
           <>
             <p className="text-[13px] font-semibold text-[var(--auth-text)]">

@@ -1,5 +1,13 @@
 # Estado de cuenta público: diseño y respaldo
 
+## Restauración de la vista original — 2026-09-26
+
+El usuario solicitó recuperar la vista con la que comenzó el trabajo y publicarla en main. Se restaura el diseño desde `backup/lo-pagado-20260926` (`b709a4165e77e5c7efb9e8411010c93744d6154e`): encabezado «Lo pagado», informe mensual `ClienteCobrosMonthView` y acciones de pago al final. La ruta y los tres componentes compartidos indicados en la guía de restauración vuelven al respaldo original. Se retiran los cuatro componentes del rediseño que ya no tienen consumidores.
+
+Los servicios, endpoints, permisos y cálculos financieros conservan sus mejoras posteriores. La restauración no afecta Marketing de Hecom ni otros módulos. La descripción del diseño que sigue se conserva como historial de la propuesta sustituida.
+
+Se mantienen ajustes no visuales mínimos en los callbacks de actualización y pegado de comprobantes para cumplir las reglas actuales de React. No modifican la presentación recuperada ni el contrato de los pagos.
+
 ## Alcance
 
 La ruta `/p/lo-pagado/[token]` presenta primero el saldo del mes y el acceso al pago. Conserva el cálculo mensual existente y el flujo de transferencia con comprobante. La confirmación automática con pasarelas se implementará por separado.
