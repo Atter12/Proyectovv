@@ -14,6 +14,9 @@ const paths = {
   check: <path d="m5 12 4 4L19 6" />,
   chevron: <path d="m9 5 7 7-7 7" />,
   retry: <path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" />,
+  wallet: <><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5" /><path d="M16 14h.01" /></>,
+  alert: <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0" />,
+  pulse: <path d="M3 12h4l3-8 4 16 3-8h4" />,
 } satisfies Record<string, ReactNode>;
 
 export type AssistantIconName = keyof typeof paths;
