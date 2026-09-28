@@ -1,8 +1,3 @@
-const HOLISTIC_LEGAL_NAME = "HOLISTIC MARKETING PE E.I.R.L.";
-const HOLISTIC_RUC = "20616314557";
-const HOLISTIC_SERVICE =
-  "Recarga de saldo publicitario y operación de cuentas de anuncios (TikTok) desde el panel Ads Holistic.";
-
 export const CLIENT_FEE_PERCENT = 10;
 
 export type ClientPartyType = "natural" | "company";
@@ -24,16 +19,6 @@ export interface ClientContractValue extends ClientContractDraft {
   countryCode: string;
   nationalPhone: string;
 }
-
-const PARTY: Record<ClientPartyType, string> = {
-  natural: "persona natural",
-  company: "empresa",
-};
-
-const DOC: Record<ClientDocType, string> = {
-  dni: "DNI",
-  ruc: "RUC",
-};
 
 export function parseClientContract(
   input: ClientContractDraft,
@@ -92,25 +77,6 @@ export function parseClientContract(
       nationalPhone: phone.phone,
     },
   };
-}
-
-export function clientContractBlocks(value: ClientContractValue): string {
-  const party = PARTY[value.partyType];
-  const doc = DOC[value.docType];
-  const identified = value.partyType === "company" ? "identificada" : "identificado";
-  return [
-    "# Contrato de servicios Ads Holistic",
-    "## Primero. Partes",
-    `${HOLISTIC_LEGAL_NAME}, con RUC ${HOLISTIC_RUC}, y ${value.legalName}, ${party} ${identified} con ${doc} ${value.docNumber}, celebran este contrato de servicios.`,
-    "## Segundo. Servicio",
-    HOLISTIC_SERVICE,
-    "## Tercero. Domicilio",
-    `El cliente señala como domicilio ${value.address}.`,
-    "## Cuarto. Comisión",
-    `La comisión variable es el ${value.feePercent}% del gasto publicitario. Este porcentaje no lo modifica el cliente.`,
-    "## Quinto. Avisos de firma",
-    `Este contrato no tiene precio de entrada. FirmEasy envía el enlace de firma al celular ${value.phone} por WhatsApp y al correo ${value.email}.`,
-  ].join("\n\n");
 }
 
 function splitPeruPhone(raw: string): { countryCode: string; phone: string } | null {

@@ -53,7 +53,7 @@ export function ClientContractForm({
       setError(result.error);
       return;
     }
-    router.push(routes.overview);
+    router.push(routes.membershipCheckout);
     router.refresh();
   }
 

@@ -4,6 +4,7 @@ import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
 import { ClientContractForm } from "@/features/contracts/components/ClientContractForm.client";
 import {
   loadRegistrationContractPrefill,
+  registrationNextPath,
   serviceContractAlreadySent,
 } from "@/features/contracts/lib/registration-contract.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
@@ -19,7 +20,10 @@ export default async function ClientContractPage() {
     redirect(`${routes.verifyOtp}?email=${encodeURIComponent(user.email)}`);
   }
   if (isHecomOtpStaffEmail(user.email)) redirect(routes.clientes);
-  if (await serviceContractAlreadySent(user.email)) redirect(routes.overview);
+  if (await serviceContractAlreadySent(user.email)) {
+    const next = await registrationNextPath(user.email);
+    redirect(next === "/pago" ? routes.membershipCheckout : routes.overview);
+  }
 
   const prefill = await loadRegistrationContractPrefill(user.email);
 

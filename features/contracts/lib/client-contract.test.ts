@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { clientContractBlocks, parseClientContract } from "./client-contract.ts";
+import { parseClientContract } from "./client-contract.ts";
 
 const base = {
   partyType: "natural" as const,
@@ -19,10 +20,9 @@ test("persona natural queda con DNI, fee 10 y sin entrada", () => {
   assert.equal(parsed.value.feePercent, 10);
   assert.equal(parsed.value.entryAmount, null);
   assert.equal(parsed.value.docNumber, "70901048");
-  const text = clientContractBlocks(parsed.value);
-  assert.match(text, /10%/);
-  assert.match(text, /no tiene precio de entrada/);
-  assert.equal(text.includes("SEXTO"), false);
+  const template = readFileSync(new URL("./service-contract.template.txt", import.meta.url), "utf8");
+  assert.match(template, /10 %/);
+  assert.equal(/precio de entrada/i.test(template), false);
 });
 
 test("una empresa exige RUC de 11 dígitos", () => {

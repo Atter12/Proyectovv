@@ -4,12 +4,17 @@ import { revalidatePath } from "next/cache";
 import { contractDocumentHtml } from "@/features/alliances/lib/templates";
 import { buildContractPdf } from "@/features/alliances/lib/signature";
 import { sendSignatureEnvelope } from "@/features/alliances/lib/signature.server";
+import { requireAllianceStaff } from "@/features/alliances/lib/access.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { requireSession } from "@/lib/auth/guards.server";
 import { updateHecomClienteDocument } from "@/lib/hecom/clientes.server";
+import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clientContractBlocks, parseClientContract } from "./lib/client-contract";
+import { parseClientContract } from "./lib/client-contract";
+import { registrationServiceContractText } from "./lib/registration-contract-text";
+import { nasMembershipCheckoutUrl } from "./lib/nas-checkout";
 import { loadRegistrationContractPrefill } from "./lib/registration-contract.server";
+import { syncRegistrationSignature } from "./lib/registration-signature-sync.server";
 
 export type SubmitClientContractResult =
   | { ok: true }
@@ -89,9 +94,10 @@ export async function submitClientServiceContractAction(
   }
 
   const html = contractDocumentHtml({
-    title: "Contrato de servicios Ads Holistic",
-    parties: value.legalName,
-    body: clientContractBlocks(value),
+    title: "Contrato de prestación de servicios",
+    parties: "HOLISTIC BUSINESS S.A.C.",
+    body: registrationServiceContractText(value),
+    footer: "El texto es el contrato de servicios que se firma con el cliente. La firma es la de FirmEasy.",
   });
   const pdf = buildContractPdf(html);
   const deadline = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -114,21 +120,105 @@ export async function submitClientServiceContractAction(
   if (!sent.ok) return { ok: false, error: sent.error };
 
   const signUrl = sent.envelope.signers.find((signer) => signer.link)?.link ?? null;
-  await admin
+  const marked = await admin
     .from("client_service_contracts")
     .update({
       status: "pending_signature",
       external_ref: sent.envelope.token,
       sign_url: signUrl,
+      requires_checkout: true,
       updated_at: new Date().toISOString(),
     })
     .eq("id", saved.data.id);
+  if (marked.error && isMissingColumn(marked.error.message)) {
+    await admin
+      .from("client_service_contracts")
+      .update({
+        status: "pending_signature",
+        external_ref: sent.envelope.token,
+        sign_url: signUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", saved.data.id);
+  }
   await admin.from("client_registration_intents").delete().eq("email", value.email);
   revalidatePath("/overview");
   return { ok: true };
 }
 
+export async function startNasMembershipCheckoutAction(): Promise<
+  { ok: true; url: string } | { ok: false; error: string }
+> {
+  const session = await requireSession();
+  if (isHecomOtpStaffEmail(session.email)) {
+    return { ok: false, error: "El pago de registro lo completa el cliente." };
+  }
+  const email = session.email.trim().toLowerCase();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { ok: false, error: "No se pudo abrir el pago." };
+  }
+  const contract = await admin
+    .from("client_service_contracts")
+    .select("id, status, requires_checkout, checkout_returned_at")
+    .eq("email", email)
+    .maybeSingle<{
+      id: string;
+      status: string;
+      requires_checkout: boolean;
+      checkout_returned_at: string | null;
+    }>();
+  if (contract.error && isMissingColumn(contract.error.message)) {
+    return { ok: false, error: "Falta aplicar la migración 047_client_service_checkout.sql." };
+  }
+  if (contract.error || !contract.data?.requires_checkout) {
+    return { ok: false, error: "Primero termina el contrato." };
+  }
+  if (contract.data.checkout_returned_at) return { ok: false, error: "Este pago ya quedó registrado." };
+  if (contract.data.status !== "pending_signature" && contract.data.status !== "signed") {
+    return { ok: false, error: "Primero envía el contrato a firma." };
+  }
+
+  const token = crypto.randomUUID();
+  const saved = await admin
+    .from("client_service_contracts")
+    .update({
+      checkout_token: token,
+      checkout_started_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", contract.data.id);
+  if (saved.error) return { ok: false, error: "No se pudo abrir el pago." };
+
+  const returnUrl = new URL("/pago/listo", serverEnv.appUrl);
+  returnUrl.searchParams.set("token", token);
+  return { ok: true, url: nasMembershipCheckoutUrl(returnUrl.toString()) };
+}
+
+function isMissingColumn(message: string | undefined): boolean {
+  const text = (message ?? "").toLowerCase();
+  return text.includes("requires_checkout") || text.includes("checkout_token") || text.includes("schema cache");
+}
+
 function isMissingTable(message: string | undefined): boolean {
   const text = (message ?? "").toLowerCase();
   return text.includes("client_service_contracts") || text.includes("schema cache") || text.includes("does not exist");
+}
+
+export async function refreshRegistrationSignaturesAction(): Promise<void> {
+  await requireAllianceStaff();
+  const admin = createAdminClient();
+  const pending = await admin
+    .from("client_service_contracts")
+    .select("external_ref")
+    .eq("status", "pending_signature")
+    .not("external_ref", "is", null)
+    .limit(40);
+  for (const row of pending.data ?? []) {
+    const token = (row as { external_ref?: string | null }).external_ref;
+    if (token) await syncRegistrationSignature(token);
+  }
+  revalidatePath("/contratos-registro");
 }

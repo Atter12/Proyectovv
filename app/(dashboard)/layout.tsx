@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
-import { clientNeedsServiceContract } from "@/features/contracts/lib/registration-contract.server";
+import { registrationNextPath } from "@/features/contracts/lib/registration-contract.server";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardSpanishLock } from "@/components/layout/DashboardSpanishLock.client";
 import { requireSession } from "@/lib/auth/guards.server";
@@ -38,8 +38,10 @@ export default async function DashboardLayout({
       ? "gerente"
       : "cliente";
 
-  if (persona === "cliente" && (await clientNeedsServiceContract(session.email))) {
-    redirect(routes.serviceContract);
+  if (persona === "cliente") {
+    const next = await registrationNextPath(session.email);
+    if (next === "/contrato") redirect(routes.serviceContract);
+    if (next === "/pago") redirect(routes.membershipCheckout);
   }
 
   let selected = await getSelectedHecomCliente(session.id);

@@ -4,6 +4,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import {
   isAccountSetupPath,
   isServiceContractPath,
+  isCheckoutPath,
   isAdminLoginPath,
   isAdminProtectedPath,
   isGuestOnlyPath,
@@ -43,7 +44,8 @@ async function runHolisticProxy(request: NextRequest) {
     isGuestOnlyPath(pathname) ||
     isVerifyOtpPath(pathname) ||
     isAccountSetupPath(pathname) ||
-    isServiceContractPath(pathname);
+    isServiceContractPath(pathname) ||
+    isCheckoutPath(pathname);
 
   const canAccessDashboard =
     needsDashboardAccessCheck && isAuthenticated && user
@@ -163,7 +165,7 @@ async function runHolisticProxy(request: NextRequest) {
     return NextResponse.redirect(targetUrl);
   }
 
-  if (isAccountSetupPath(pathname) || isServiceContractPath(pathname)) {
+  if (isAccountSetupPath(pathname) || isServiceContractPath(pathname) || isCheckoutPath(pathname)) {
     if (!isAuthenticated) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = routes.login;
@@ -212,6 +214,8 @@ export const config = {
     "/forgot-password",
     "/account-setup",
     "/contrato",
+    "/pago",
+    "/pago/:path*",
     "/sign-in",
     "/sign-in/(.*)",
     "/sign-up",
@@ -241,6 +245,8 @@ export const config = {
     "/asistente/:path*",
     "/alianzas",
     "/alianzas/:path*",
+    "/contratos-registro",
+    "/contratos-registro/:path*",
     "/education",
     "/education/:path*",
     "/admin/:path*",

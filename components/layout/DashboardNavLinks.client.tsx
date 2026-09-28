@@ -184,6 +184,7 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;
     if (item.href === "/alianzas") return false;
+    if (item.href === "/contratos-registro") return false;
     return true;
   });
 }

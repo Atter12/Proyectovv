@@ -139,6 +139,12 @@ export function VerifyOtpForm({ locale = "es" }: { locale?: LandingLocale }) {
           return;
         }
 
+        if (payload.nextPath === routes.membershipCheckout) {
+          router.push(routes.membershipCheckout);
+          router.refresh();
+          return;
+        }
+
         if (
           payload.nextPath === routes.clientes ||
           payload.needsPicker ||

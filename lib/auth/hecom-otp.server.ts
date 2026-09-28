@@ -17,8 +17,8 @@ import {
 } from "@/lib/hecom/clientes.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 import {
-  clientNeedsServiceContract,
   recordRegistrationContractIntent,
+  registrationNextPath,
 } from "@/features/contracts/lib/registration-contract.server";
 import {
   HECOM_OTP_COOLDOWN_SECONDS,
@@ -505,7 +505,7 @@ export async function provisionHecomClienteAccess(input: {
   autoSelected: { id: string; name: string } | null;
   needsPicker: boolean;
   isStaff: boolean;
-  nextPath: "/overview" | "/clientes" | "/contrato";
+  nextPath: "/overview" | "/clientes" | "/contrato" | "/pago";
 }> {
   const email = normalizeEmail(input.email);
   const isStaff = isHecomOtpStaffEmail(email);
@@ -533,7 +533,7 @@ export async function provisionHecomClienteAccess(input: {
 
   const linked = await linkHecomClientesForUser(input);
 
-  const needsContract = await clientNeedsServiceContract(email);
+  const gate = await registrationNextPath(email);
 
   if (linked.clientes.length === 1) {
     const only = linked.clientes[0];
@@ -547,7 +547,7 @@ export async function provisionHecomClienteAccess(input: {
       autoSelected: only,
       needsPicker: false,
       isStaff: false,
-      nextPath: needsContract ? "/contrato" : "/overview",
+      nextPath: gate ?? "/overview",
     };
   }
 
@@ -555,9 +555,9 @@ export async function provisionHecomClienteAccess(input: {
     return {
       ...linked,
       autoSelected: null,
-      needsPicker: !needsContract,
+      needsPicker: !gate,
       isStaff: false,
-      nextPath: needsContract ? "/contrato" : "/clientes",
+      nextPath: gate ?? "/clientes",
     };
   }
 
@@ -566,7 +566,7 @@ export async function provisionHecomClienteAccess(input: {
     autoSelected: null,
     needsPicker: false,
     isStaff: false,
-    nextPath: needsContract ? "/contrato" : "/overview",
+    nextPath: gate ?? "/overview",
   };
 }
 

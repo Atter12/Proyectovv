@@ -146,6 +146,7 @@ export function contractDocumentHtml(input: {
   title: string;
   parties: string;
   body: string;
+  footer?: string;
 }): string {
   const blocks = input.body
     .split(/\n{2,}/)
@@ -186,7 +187,7 @@ export function contractDocumentHtml(input: {
       <div class="meta">${escapeHtml(input.parties)}</div>
     </header>
     ${blocks}
-    <footer>Borrador generado desde una plantilla de Holistic. La firma electrónica se envía desde la ficha.</footer>
+    <footer>${escapeHtml(input.footer ?? "Borrador generado desde una plantilla de Holistic. La firma electrónica se envía desde la ficha.")}</footer>
   </main>
 </body>
 </html>`;

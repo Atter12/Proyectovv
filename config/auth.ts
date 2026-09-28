@@ -59,6 +59,13 @@ export function isVerifyOtpPath(pathname: string): boolean {
   );
 }
 
+export function isCheckoutPath(pathname: string): boolean {
+  return (
+    pathname === routes.membershipCheckout ||
+    pathname.startsWith(`${routes.membershipCheckout}/`)
+  );
+}
+
 export function isServiceContractPath(pathname: string): boolean {
   return (
     pathname === routes.serviceContract ||

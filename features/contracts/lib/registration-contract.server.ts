@@ -128,3 +128,72 @@ export async function serviceContractAlreadySent(email: string): Promise<boolean
     return false;
   }
 }
+
+export async function clientNeedsCheckout(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes("@")) return false;
+  try {
+    const admin = createAdminClient();
+    const contract = await admin
+      .from("client_service_contracts")
+      .select("status, requires_checkout, checkout_returned_at")
+      .eq("email", normalized)
+      .maybeSingle<{
+        status: string;
+        requires_checkout: boolean;
+        checkout_returned_at: string | null;
+      }>();
+    if (contract.error || !contract.data) return false;
+    return (
+      contract.data.requires_checkout &&
+      !contract.data.checkout_returned_at &&
+      OPEN_STATUSES.includes(contract.data.status)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function registrationNextPath(
+  email: string,
+): Promise<"/contrato" | "/pago" | null> {
+  if (await clientNeedsServiceContract(email)) return "/contrato";
+  if (await clientNeedsCheckout(email)) return "/pago";
+  return null;
+}
+
+export async function completeNasCheckoutReturn(
+  email: string,
+  token: string,
+): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return false;
+  try {
+    const admin = createAdminClient();
+    const contract = await admin
+      .from("client_service_contracts")
+      .select("id, checkout_token, checkout_returned_at, requires_checkout")
+      .eq("email", normalized)
+      .maybeSingle<{
+        id: string;
+        checkout_token: string | null;
+        checkout_returned_at: string | null;
+        requires_checkout: boolean;
+      }>();
+    if (contract.error || !contract.data?.requires_checkout) return false;
+    if (contract.data.checkout_returned_at) return true;
+    if (contract.data.checkout_token !== token) return false;
+    const saved = await admin
+      .from("client_service_contracts")
+      .update({
+        checkout_returned_at: new Date().toISOString(),
+        checkout_token: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", contract.data.id)
+      .eq("checkout_token", token);
+    return !saved.error;
+  } catch {
+    return false;
+  }
+}

@@ -156,7 +156,7 @@ function blocksFromHtml(html: string): PdfBlock[] {
     .split(/\n{2,}/)
     .map((block) => block.replace(/[ \t]+\n/g, "\n").replace(/\n{2,}/g, "\n").trim())
     .filter(Boolean)
-    .slice(0, 80)
+    .slice(0, 160)
     .map((block) => {
       if (block.startsWith("# ")) return { kind: "h1" as const, text: block.slice(2).trim() };
       if (block.startsWith("## ")) return { kind: "h2" as const, text: block.slice(3).trim() };

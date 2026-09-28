@@ -27,6 +27,7 @@ export const mainNavigation: NavItem[] = [
   { key: "cobros", href: routes.cobros, icon: "cobros" },
   { key: "affiliates", href: routes.affiliates, icon: "affiliates" },
   { key: "alliances", href: routes.alliances, icon: "alliances" },
+  { key: "registrationContracts", href: routes.registrationContracts, icon: "alliances" },
   {
     key: "creativeAnalyzer",
     href: routes.creativeAnalyzer,
