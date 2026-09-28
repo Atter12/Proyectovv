@@ -2,15 +2,15 @@ import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { getSession } from "@/lib/auth/session.server";
 import { LandingPage } from "@/features/landing/LandingPage";
-import { siteConfig } from "@/config/site";
+import { getLandingCopy } from "@/features/landing/i18n/landing-copy";
+import { getLandingLocale } from "@/features/landing/i18n/landing-locale.server";
 import type { Metadata } from "next";
 import "@/features/landing/automation-landing.css";
 
-export const metadata: Metadata = {
-  title: `${siteConfig.name} — Crece con control real en ads`,
-  description:
-    "Holistic Marketing: cartera, cuentas TikTok, gasto diario, pagos Hecom y operación para agencias y equipos de performance en Latam.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { meta } = getLandingCopy(await getLandingLocale());
+  return { title: meta.title, description: meta.description };
+}
 
 export default async function HomePage() {
   const session = await getSession();
@@ -18,5 +18,5 @@ export default async function HomePage() {
     redirect(routes.overview);
   }
 
-  return <LandingPage />;
+  return <LandingPage locale={await getLandingLocale()} />;
 }

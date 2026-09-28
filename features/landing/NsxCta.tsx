@@ -1,30 +1,28 @@
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { routes } from "@/config/routes";
+import type { LandingCopy } from "./i18n/landing-copy";
 
-export function NsxCta() {
+export function NsxCta({ copy }: { copy: LandingCopy["cta"] }) {
   return (
     <section className="nsx-cta" aria-labelledby="cta-title">
       <div className="nsx-container nsx-cta-inner">
         <div>
-          <span className="nsx-pill nsx-pill-on-dark">Acceso</span>
+          <span className="nsx-pill nsx-pill-on-dark">{copy.pill}</span>
           <h2 className="nsx-h2 nsx-h2-on-dark" id="cta-title">
-            Todo el control de cartera y TikTok, en un solo panel
+            {copy.title}
           </h2>
-          <p>
-            Un único acceso para clientes, managers y admin. Sin fricción extra:
-            entra y opera con la cuenta que te dio {siteConfig.name}.
-          </p>
+          <p>{copy.lead}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link href={routes.register} className="nsx-btn-light">
-            Registrarme
+            {copy.register}
             <span className="nsx-btn-arrow" aria-hidden>
               →
             </span>
           </Link>
           <Link href={routes.login} className="nsx-btn-outline">
-            Iniciar sesión
+            {copy.login}
           </Link>
         </div>
       </div>
@@ -32,23 +30,23 @@ export function NsxCta() {
   );
 }
 
-export function NsxFooter() {
+export function NsxFooter({ copy }: { copy: LandingCopy["footer"] }) {
   return (
     <footer className="nsx-footer">
       <div className="nsx-container nsx-footer-row">
         <div className="nsx-footer-brand">
           <strong>{siteConfig.name}</strong>
-          <span>Cartera, TikTok Ads y operación Hecom Club</span>
+          <span>{copy.tagline}</span>
         </div>
-        <nav className="nsx-footer-nav" aria-label="Pie de página">
-          <a href="#soluciones">Soluciones</a>
-          <Link href={routes.shop}>Comprar</Link>
-          <Link href={routes.cart}>Carrito</Link>
-          <Link href={routes.terms}>Términos y condiciones</Link>
-          <Link href={routes.returns}>Cambios y devoluciones</Link>
-          <Link href={routes.complaints}>Libro de reclamaciones</Link>
-          <Link href={routes.login}>Iniciar sesión</Link>
-          <Link href={routes.register}>Registrarme</Link>
+        <nav className="nsx-footer-nav" aria-label={copy.ariaNav}>
+          <a href="#soluciones">{copy.solutions}</a>
+          <Link href={routes.shop}>{copy.buy}</Link>
+          <Link href={routes.cart}>{copy.cart}</Link>
+          <Link href={routes.terms}>{copy.terms}</Link>
+          <Link href={routes.returns}>{copy.returns}</Link>
+          <Link href={routes.complaints}>{copy.complaints}</Link>
+          <Link href={routes.login}>{copy.login}</Link>
+          <Link href={routes.register}>{copy.register}</Link>
         </nav>
         <p className="nsx-footer-copy">
           © {new Date().getFullYear()} {siteConfig.name}

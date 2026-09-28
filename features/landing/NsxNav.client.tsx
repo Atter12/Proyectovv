@@ -8,15 +8,23 @@ import { HolisticLogo } from "@/components/brand/EcomdyLogo";
 import { cn } from "@/lib/cn";
 import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
 import { ShopCartLink } from "@/features/shop/ShopCartLink.client";
+import type { LandingCopy } from "./i18n/landing-copy";
+import type { LandingLocale } from "./i18n/landing-locale";
+import { LandingLocaleSwitcher } from "./i18n/LandingLocaleSwitcher.client";
 
-const NAV = [
-  { href: "#soluciones", label: "Soluciones" },
-  { href: "#proceso", label: "Proceso" },
-  { href: "#nosotros", label: "Nosotros" },
-  { href: "#resultados", label: "Resultados" },
-] as const;
-
-export function NsxNav() {
+export function NsxNav({
+  locale,
+  copy,
+}: {
+  locale: LandingLocale;
+  copy: LandingCopy["nav"];
+}) {
+  const NAV = [
+    { href: "#soluciones", label: copy.solutions },
+    { href: "#proceso", label: copy.process },
+    { href: "#nosotros", label: copy.about },
+    { href: "#resultados", label: copy.results },
+  ];
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -58,7 +66,7 @@ export function NsxNav() {
           />
         </Link>
 
-        <nav className="hidden items-center xl:flex" aria-label="Principal">
+        <nav className="hidden items-center xl:flex" aria-label={copy.ariaMain}>
           <ul className="flex items-center">
             {NAV.map((item) => (
               <li key={item.href} className="relative py-2.5">
@@ -73,27 +81,31 @@ export function NsxNav() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-1 xl:flex">
-          <ShopCartLink />
-          <NsxBtnSecondary href={routes.login}>Iniciar sesión</NsxBtnSecondary>
-          <NsxBtnPrimary href={routes.shop}>Comprar</NsxBtnPrimary>
-        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <LandingLocaleSwitcher locale={locale} label={copy.language} />
 
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--nsx-secondary)] xl:hidden"
-          aria-expanded={open}
-          aria-label={open ? "Cerrar menú" : "Abrir menú"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            {open ? (
-              <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-            ) : (
-              <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
-            )}
-          </svg>
-        </button>
+          <div className="hidden items-center gap-1 xl:flex">
+            <ShopCartLink />
+            <NsxBtnSecondary href={routes.login}>{copy.login}</NsxBtnSecondary>
+            <NsxBtnPrimary href={routes.shop}>{copy.buy}</NsxBtnPrimary>
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--nsx-secondary)] xl:hidden"
+            aria-expanded={open}
+            aria-label={open ? copy.closeMenu : copy.openMenu}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              {open ? (
+                <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+              ) : (
+                <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open ? (
@@ -115,20 +127,20 @@ export function NsxNav() {
             <div className="flex items-center justify-between px-1">
               <ShopCartLink />
               <a href={routes.shop} className="text-[0.95rem] font-semibold text-[var(--nsx-secondary)]">
-                Comprar
+                {copy.buy}
               </a>
             </div>
             <NsxBtnPrimary
               href={routes.shop}
               className="w-full justify-center"
             >
-              Comprar
+              {copy.buy}
             </NsxBtnPrimary>
             <NsxBtnSecondary
               href={routes.login}
               className="w-full justify-center"
             >
-              Iniciar sesión
+              {copy.login}
             </NsxBtnSecondary>
           </div>
         </div>

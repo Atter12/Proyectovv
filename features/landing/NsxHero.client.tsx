@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { routes } from "@/config/routes";
-import { siteConfig } from "@/config/site";
 import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
 import { NsxReveal } from "./NsxReveal.client";
+import type { LandingCopy } from "./i18n/landing-copy";
 
 const AVATARS = [
   "/nexsas/automation/images/ns-avatar-11.jpg",
@@ -12,7 +12,13 @@ const AVATARS = [
   "/nexsas/automation/images/ns-avatar-14.jpg",
 ] as const;
 
-export function NsxHero() {
+export function NsxHero({
+  copy,
+  nav,
+}: {
+  copy: LandingCopy["hero"];
+  nav: LandingCopy["nav"];
+}) {
   return (
     <section className="nsx-hero" id="soluciones">
       {/* Video solo desktop: en móvil parpadea / pesa y rompe el primer paint */}
@@ -54,20 +60,16 @@ export function NsxHero() {
                 <span className="font-semibold text-[var(--nsx-secondary)]">
                   +180
                 </span>{" "}
-                equipos en Latam ya operan con {siteConfig.name}.
+                {copy.social}
               </p>
             </div>
 
             <div className="nsx-hero-titles">
               <h1 className="nsx-h1 mx-auto max-w-[950px]">
-                Opera campañas, pagos y saldos
-                <br className="hidden sm:block" /> en un solo lugar.
+                {copy.titleLine1}
+                <br className="hidden sm:block" /> {copy.titleLine2}
               </h1>
-              <p className="nsx-hero-lead">
-                Recarga la {siteConfig.walletName}, asigna presupuesto a cuentas
-                TikTok y controla gasto, cobros Hecom Club y clientes sin
-                planillas ni dashboards genéricos.
-              </p>
+              <p className="nsx-hero-lead">{copy.lead}</p>
             </div>
 
             <div className="nsx-hero-cta">
@@ -75,13 +77,13 @@ export function NsxHero() {
                 href={routes.shop}
                 className="nsx-hero-cta-btn justify-center"
               >
-                Comprar
+                {nav.buy}
               </NsxBtnPrimary>
               <NsxBtnSecondary
                 href={routes.login}
                 className="nsx-hero-cta-btn justify-center"
               >
-                Iniciar sesión
+                {nav.login}
               </NsxBtnSecondary>
             </div>
           </div>
@@ -90,7 +92,7 @@ export function NsxHero() {
             <figure className="nsx-hero-banner relative z-10">
               <Image
                 src="/landing/holistic/hero-dashboard.png"
-                alt={`${siteConfig.name} — panel de cartera, cuentas TikTok y operación Hecom`}
+                alt={copy.imageAlt}
                 width={1600}
                 height={1000}
                 priority

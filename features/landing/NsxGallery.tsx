@@ -1,40 +1,19 @@
 import Image from "next/image";
-import { siteConfig } from "@/config/site";
+import type { LandingCopy } from "./i18n/landing-copy";
 
-const items = [
-  {
-    src: "/landing/holistic/gallery-01.png",
-    alt: "Equipo de growth en sesión de planificación",
-    caption: "Planificación semanal",
-  },
-  {
-    src: "/landing/holistic/gallery-02.png",
-    alt: "Panel de gasto y cartera en monitor",
-    caption: "Cartera y gasto en vivo",
-  },
-  {
-    src: "/landing/holistic/gallery-03.png",
-    alt: "Creadores grabando contenido en estudio",
-    caption: "Contenido y creativos",
-  },
-  {
-    src: "/landing/holistic/gallery-04.png",
-    alt: "Análisis de métricas TikTok en oficina",
-    caption: "Métricas TikTok",
-  },
-  {
-    src: "/landing/holistic/gallery-05.png",
-    alt: "Laptops con reportes de campañas",
-    caption: "Cierres y reportes",
-  },
-  {
-    src: "/landing/holistic/gallery-06.png",
-    alt: "Colaboración en war room de marketing",
-    caption: "Coordinación de cuenta",
-  },
+/** Imágenes en el mismo orden que `copy.gallery.items`. */
+const GALLERY_SRCS = [
+  "/landing/holistic/gallery-01.png",
+  "/landing/holistic/gallery-02.png",
+  "/landing/holistic/gallery-03.png",
+  "/landing/holistic/gallery-04.png",
+  "/landing/holistic/gallery-05.png",
+  "/landing/holistic/gallery-06.png",
 ] as const;
 
-export function NsxGallery() {
+export function NsxGallery({ copy }: { copy: LandingCopy["gallery"] }) {
+  const items = GALLERY_SRCS.map((src, i) => ({ src, ...copy.items[i] }));
+
   return (
     <section
       className="nsx-section nsx-gallery"
@@ -43,15 +22,11 @@ export function NsxGallery() {
     >
       <div className="nsx-container">
         <div className="nsx-section-head nsx-gallery-head">
-          <span className="nsx-pill">Resultados en entorno real</span>
+          <span className="nsx-pill">{copy.pill}</span>
           <h2 className="nsx-h2" id="gallery-title">
-            Así se ve la operación en el día a día
+            {copy.title}
           </h2>
-          <p>
-            Del war room al detalle de cada cuenta: el mismo ritmo con el que
-            trabajamos TikTok Ads y Hecom Club para los clientes de{" "}
-            {siteConfig.name}.
-          </p>
+          <p>{copy.lead}</p>
         </div>
 
         <div className="nsx-gallery-grid">
