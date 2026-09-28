@@ -9,21 +9,24 @@ const LINKS = [
 
 export function AllianceModuleNav({ basePath, current }: { basePath: string; current: (typeof LINKS)[number]["key"] }) {
   return (
-    <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Secciones de alianzas">
-      {LINKS.map((link) => (
-        <Link
-          key={link.key}
-          href={`${basePath}${link.suffix}`}
-          className={
-            link.key === current
-              ? "text-sm font-semibold text-[var(--admin-text)]"
-              : "text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]"
-          }
-          aria-current={link.key === current ? "page" : undefined}
-        >
-          {link.label}
-        </Link>
-      ))}
+    <nav className="inline-flex flex-wrap gap-1 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-soft)] p-1" aria-label="Secciones de alianzas">
+      {LINKS.map((link) => {
+        const selected = link.key === current;
+        return (
+          <Link
+            key={link.key}
+            href={`${basePath}${link.suffix}`}
+            className={
+              selected
+                ? "rounded-lg bg-[var(--admin-surface)] px-3 py-1.5 text-sm font-semibold text-[var(--admin-text)] shadow-[var(--admin-shadow-1)]"
+                : "rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--admin-text-muted)] hover:bg-[var(--admin-surface-hover)] hover:text-[var(--admin-text)]"
+            }
+            aria-current={selected ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
