@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { requireAllianceStaff } from "@/features/alliances/lib/access.server";
-import { refreshRegistrationSignaturesAction } from "@/features/contracts/actions";
+import { refreshRegistrationSignaturesAction, reviewMembershipCaptureAction } from "@/features/contracts/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,9 @@ interface RegistrationContractRow {
   signed_at: string | null;
   signed_storage_path: string | null;
   checkout_returned_at: string | null;
+  payment_proof_status: string | null;
+  payment_proof_path: string | null;
+  payment_proof_reason: string | null;
   created_at: string;
 }
 
@@ -26,7 +29,7 @@ export default async function RegistrationContractsPage() {
   const loaded = await admin
     .from("client_service_contracts")
     .select(
-      "id, email, legal_name, party_type, doc_type, doc_number, status, external_ref, signed_at, signed_storage_path, checkout_returned_at, created_at",
+      "id, email, legal_name, party_type, doc_type, doc_number, status, external_ref, signed_at, signed_storage_path, checkout_returned_at, payment_proof_status, payment_proof_path, payment_proof_reason, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(80);
@@ -36,7 +39,7 @@ export default async function RegistrationContractsPage() {
       <AdminPageHeader
         eyebrow="Registro"
         title="Contratos de registro"
-        description="El mismo contrato de servicios que se firma en la reunión. Aquí se ve quién lo envió, si FirmEasy lo recibió y si ya quedó firmado."
+        description="Contrato de registro y contrato de reunión usan el mismo FirmEasy. Aquí ves si avisó, si firmó, y si la captura del pago ya abre el panel."
         actions={
           <form action={refreshRegistrationSignaturesAction}>
             <button
@@ -50,7 +53,7 @@ export default async function RegistrationContractsPage() {
       />
       {loaded.error ? (
         <div className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-5 text-sm text-[var(--admin-text-muted)]">
-          No se pudo cargar la lista. Aplica las migraciones 046, 047 y 048.
+          No se pudo cargar la lista. Aplica las migraciones 046, 047, 048 y 049.
         </div>
       ) : (loaded.data ?? []).length === 0 ? (
         <div className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-5 text-sm text-[var(--admin-text-muted)]">
@@ -65,7 +68,7 @@ export default async function RegistrationContractsPage() {
                 <th className="px-4 py-3 font-medium">Documento</th>
                 <th className="px-4 py-3 font-medium">FirmEasy</th>
                 <th className="px-4 py-3 font-medium">Firma</th>
-                <th className="px-4 py-3 font-medium">Volvió de NAS</th>
+                <th className="px-4 py-3 font-medium">Captura del pago</th>
               </tr>
             </thead>
             <tbody>
@@ -93,7 +96,29 @@ export default async function RegistrationContractsPage() {
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3">{row.checkout_returned_at ? "Sí" : "No"}</td>
+                    <td className="px-4 py-3">
+                      {proofLabel(row.payment_proof_status)}
+                      {row.checkout_returned_at ? <div className="text-[var(--admin-text-muted)]">Volvió de NAS</div> : null}
+                      {row.payment_proof_reason ? <div className="text-[var(--admin-text-muted)]">{row.payment_proof_reason}</div> : null}
+                      {row.payment_proof_path ? (
+                        <div>
+                          <a className="underline" href={await signedPdfUrl(row.payment_proof_path)}>
+                            Ver captura
+                          </a>
+                        </div>
+                      ) : null}
+                      {row.payment_proof_status === "pending_review" ? (
+                        <form action={reviewMembershipCaptureAction} className="mt-2 flex gap-2">
+                          <input type="hidden" name="id" value={row.id} />
+                          <button name="decision" value="approved" className="underline" type="submit">
+                            Aceptar
+                          </button>
+                          <button name="decision" value="rejected" className="underline" type="submit">
+                            Rechazar
+                          </button>
+                        </form>
+                      ) : null}
+                    </td>
                   </tr>
                 )),
               )}
@@ -115,6 +140,13 @@ function statusLabel(status: string): string {
   if (status === "rejected") return "Rechazado";
   if (status === "pending_signature") return "Pendiente";
   return "Borrador";
+}
+
+function proofLabel(status: string | null): string {
+  if (status === "approved") return "Aceptada";
+  if (status === "pending_review") return "En revisión";
+  if (status === "rejected") return "Rechazada";
+  return "Sin captura";
 }
 
 async function signedPdfUrl(path: string): Promise<string> {

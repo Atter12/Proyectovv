@@ -13,8 +13,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { parseClientContract } from "./lib/client-contract";
 import { registrationServiceContractText } from "./lib/registration-contract-text";
 import { nasMembershipCheckoutUrl } from "./lib/nas-checkout";
-import { loadRegistrationContractPrefill } from "./lib/registration-contract.server";
+import { loadRegistrationContractPrefill, registrationContractFlowEnabled } from "./lib/registration-contract.server";
 import { syncRegistrationSignature } from "./lib/registration-signature-sync.server";
+import {
+  captureHasEditorMark,
+  captureLooksLikeImage,
+  decideMembershipCapture,
+  hashCapture,
+} from "./lib/payment-capture";
+import { readNasMembershipCapture } from "./lib/payment-capture.server";
 
 export type SubmitClientContractResult =
   | { ok: true }
@@ -30,6 +37,9 @@ export async function submitClientServiceContractAction(
     phone: string;
   },
 ): Promise<SubmitClientContractResult> {
+  if (!registrationContractFlowEnabled) {
+    return { ok: false, error: "El contrato de registro está pausado." };
+  }
   const session = await requireSession();
   if (isHecomOtpStaffEmail(session.email)) {
     return { ok: false, error: "El contrato lo completa el cliente." };
@@ -149,6 +159,9 @@ export async function submitClientServiceContractAction(
 export async function startNasMembershipCheckoutAction(): Promise<
   { ok: true; url: string } | { ok: false; error: string }
 > {
+  if (!registrationContractFlowEnabled) {
+    return { ok: false, error: "El pago de registro está pausado." };
+  }
   const session = await requireSession();
   if (isHecomOtpStaffEmail(session.email)) {
     return { ok: false, error: "El pago de registro lo completa el cliente." };
@@ -162,13 +175,13 @@ export async function startNasMembershipCheckoutAction(): Promise<
   }
   const contract = await admin
     .from("client_service_contracts")
-    .select("id, status, requires_checkout, checkout_returned_at")
+    .select("id, status, requires_checkout, payment_proof_status")
     .eq("email", email)
     .maybeSingle<{
       id: string;
       status: string;
       requires_checkout: boolean;
-      checkout_returned_at: string | null;
+      payment_proof_status: string | null;
     }>();
   if (contract.error && isMissingColumn(contract.error.message)) {
     return { ok: false, error: "Falta aplicar la migración 047_client_service_checkout.sql." };
@@ -176,7 +189,12 @@ export async function startNasMembershipCheckoutAction(): Promise<
   if (contract.error || !contract.data?.requires_checkout) {
     return { ok: false, error: "Primero termina el contrato." };
   }
-  if (contract.data.checkout_returned_at) return { ok: false, error: "Este pago ya quedó registrado." };
+  if (contract.data.payment_proof_status === "approved") {
+    return { ok: false, error: "Este pago ya quedó aceptado." };
+  }
+  if (contract.data.payment_proof_status === "pending_review") {
+    return { ok: false, error: "Tu captura está en revisión. El panel sigue cerrado." };
+  }
   if (contract.data.status !== "pending_signature" && contract.data.status !== "signed") {
     return { ok: false, error: "Primero envía el contrato a firma." };
   }
@@ -199,7 +217,12 @@ export async function startNasMembershipCheckoutAction(): Promise<
 
 function isMissingColumn(message: string | undefined): boolean {
   const text = (message ?? "").toLowerCase();
-  return text.includes("requires_checkout") || text.includes("checkout_token") || text.includes("schema cache");
+  return (
+    text.includes("requires_checkout") ||
+    text.includes("checkout_token") ||
+    text.includes("payment_proof") ||
+    text.includes("schema cache")
+  );
 }
 
 function isMissingTable(message: string | undefined): boolean {
@@ -221,4 +244,122 @@ export async function refreshRegistrationSignaturesAction(): Promise<void> {
     if (token) await syncRegistrationSignature(token);
   }
   revalidatePath("/contratos-registro");
+}
+
+const PROOF_TYPES = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
+export async function submitMembershipCaptureAction(
+  formData: FormData,
+): Promise<{ ok: true; decision: "approve" | "review" | "reject" } | { ok: false; error: string }> {
+  if (!registrationContractFlowEnabled) {
+    return { ok: false, error: "El pago de registro está pausado." };
+  }
+  const session = await requireSession();
+  if (isHecomOtpStaffEmail(session.email)) {
+    return { ok: false, error: "La captura la sube el cliente." };
+  }
+  const file = formData.get("capture");
+  if (!(file instanceof File)) return { ok: false, error: "Elige la captura del pago." };
+  const mime = PROOF_TYPES.get(file.type);
+  if (!mime) return { ok: false, error: "La captura tiene que ser JPG, PNG o WebP." };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const image = captureLooksLikeImage(bytes);
+  const admin = createAdminClient();
+  const email = session.email.trim().toLowerCase();
+  const contract = await admin
+    .from("client_service_contracts")
+    .select("id, requires_checkout, payment_proof_status")
+    .eq("email", email)
+    .maybeSingle<{ id: string; requires_checkout: boolean; payment_proof_status: string | null }>();
+  if (!contract.data?.requires_checkout) return { ok: false, error: "Primero abre el pago de la membresía." };
+  if (contract.data.payment_proof_status === "approved" || contract.data.payment_proof_status === "pending_review") {
+    return { ok: false, error: "Esta captura ya está en revisión." };
+  }
+
+  const hash = hashCapture(bytes);
+  const duplicate = await admin
+    .from("client_service_contracts")
+    .select("id")
+    .eq("payment_proof_hash", hash)
+    .neq("id", contract.data.id)
+    .limit(1);
+  const reading = image ? await readNasMembershipCapture(bytes, file.type) : null;
+  const duplicateReference = reading?.reference
+    ? Boolean(
+        (
+          await admin
+            .from("client_service_contracts")
+            .select("id")
+            .eq("payment_proof_reference", reading.reference)
+            .neq("id", contract.data.id)
+            .limit(1)
+        ).data?.length,
+      )
+    : false;
+  const verdict = decideMembershipCapture({
+    image,
+    bytes: bytes.byteLength,
+    duplicate: Boolean(duplicate.data?.length),
+    editor: image && captureHasEditorMark(bytes),
+    paid: reading?.paid ?? null,
+    looksLikeNas: reading?.looksLikeNas ?? null,
+    edited: reading?.edited ?? null,
+    confidence: reading?.confidence ?? null,
+    duplicateReference,
+  });
+  if (verdict.decision === "reject") {
+    return { ok: false, error: verdict.reason };
+  }
+
+  const path = `${contract.data.id}/pago-${crypto.randomUUID()}.${mime}`;
+  const uploaded = await admin.storage.from("registration-contracts").upload(path, bytes, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (uploaded.error) return { ok: false, error: "No se pudo guardar la captura." };
+
+  const status = verdict.decision === "approve" ? "approved" : "pending_review";
+  const saved = await admin
+    .from("client_service_contracts")
+    .update({
+      payment_proof_status: status,
+      payment_proof_path: path,
+      payment_proof_hash: hash,
+      payment_proof_reference: reading?.reference ?? null,
+      payment_proof_reason: verdict.reason,
+      payment_reviewed_at: status === "approved" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", contract.data.id);
+  if (saved.error) {
+    await admin.storage.from("registration-contracts").remove([path]);
+    return { ok: false, error: "No se pudo registrar la captura." };
+  }
+  revalidatePath("/pago");
+  revalidatePath("/contratos-registro");
+  return { ok: true, decision: verdict.decision };
+}
+
+export async function reviewMembershipCaptureAction(formData: FormData): Promise<void> {
+  await requireAllianceStaff();
+  const id = String(formData.get("id") ?? "");
+  const decision = formData.get("decision") === "approved" ? "approved" : "rejected";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+  const admin = createAdminClient();
+  await admin
+    .from("client_service_contracts")
+    .update({
+      payment_proof_status: decision,
+      payment_proof_reason: decision === "approved" ? "Gerencia aceptó la captura." : "Gerencia rechazó la captura.",
+      payment_reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("payment_proof_status", "pending_review");
+  revalidatePath("/contratos-registro");
+  revalidatePath("/pago");
 }

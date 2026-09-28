@@ -1,6 +1,8 @@
 import "server-only";
 import { findHecomClientesByEmail } from "@/lib/hecom/clientes.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { syncRegistrationSignature } from "./registration-signature-sync.server";
+import type { MembershipCaptureStep } from "./payment-capture";
 
 export interface RegistrationContractPrefill {
   legalName: string;
@@ -12,6 +14,9 @@ export interface RegistrationContractPrefill {
 
 const OPEN_STATUSES = ["pending_signature", "signed"];
 
+/** NAS todavía no confirma el cobro, así que el registro no pide contrato ni pago. */
+export const registrationContractFlowEnabled = false;
+
 export async function recordRegistrationContractIntent(input: {
   email: string;
   hecomClienteId: string;
@@ -19,6 +24,7 @@ export async function recordRegistrationContractIntent(input: {
   docNumber: string;
   phone: string;
 }): Promise<void> {
+  if (!registrationContractFlowEnabled) return;
   const email = input.email.trim().toLowerCase();
   if (!email.includes("@")) return;
   try {
@@ -136,17 +142,26 @@ export async function clientNeedsCheckout(email: string): Promise<boolean> {
     const admin = createAdminClient();
     const contract = await admin
       .from("client_service_contracts")
-      .select("status, requires_checkout, checkout_returned_at")
+      .select("status, requires_checkout, payment_proof_status")
       .eq("email", normalized)
       .maybeSingle<{
         status: string;
         requires_checkout: boolean;
-        checkout_returned_at: string | null;
+        payment_proof_status: string | null;
       }>();
-    if (contract.error || !contract.data) return false;
+    if (contract.error) {
+      const fallback = await admin
+        .from("client_service_contracts")
+        .select("status, requires_checkout")
+        .eq("email", normalized)
+        .maybeSingle<{ status: string; requires_checkout: boolean }>();
+      if (fallback.error || !fallback.data) return false;
+      return fallback.data.requires_checkout && OPEN_STATUSES.includes(fallback.data.status);
+    }
+    if (!contract.data) return false;
     return (
       contract.data.requires_checkout &&
-      !contract.data.checkout_returned_at &&
+      contract.data.payment_proof_status !== "approved" &&
       OPEN_STATUSES.includes(contract.data.status)
     );
   } catch {
@@ -157,6 +172,7 @@ export async function clientNeedsCheckout(email: string): Promise<boolean> {
 export async function registrationNextPath(
   email: string,
 ): Promise<"/contrato" | "/pago" | null> {
+  if (!registrationContractFlowEnabled) return null;
   if (await clientNeedsServiceContract(email)) return "/contrato";
   if (await clientNeedsCheckout(email)) return "/pago";
   return null;
@@ -196,4 +212,33 @@ export async function completeNasCheckoutReturn(
   } catch {
     return false;
   }
+}
+
+export async function loadMembershipCaptureStep(email: string): Promise<{
+  step: MembershipCaptureStep;
+  reason: string | null;
+}> {
+  const normalized = email.trim().toLowerCase();
+  const admin = createAdminClient();
+  const contract = await admin
+    .from("client_service_contracts")
+    .select("checkout_returned_at, checkout_started_at, payment_proof_status, payment_proof_reason, external_ref")
+    .eq("email", normalized)
+    .maybeSingle<{
+      checkout_returned_at: string | null;
+      checkout_started_at: string | null;
+      payment_proof_status: string | null;
+      payment_proof_reason: string | null;
+      external_ref: string | null;
+    }>();
+  const row = contract.data;
+  if (row?.external_ref && row.payment_proof_status !== "approved") {
+    const { syncRegistrationSignature } = await import("./registration-signature-sync.server");
+    await syncRegistrationSignature(row.external_ref);
+  }
+  const status = row?.payment_proof_status ?? "none";
+  if (status === "pending_review") return { step: "review", reason: row?.payment_proof_reason ?? null };
+  if (status === "rejected") return { step: "rejected", reason: row?.payment_proof_reason ?? null };
+  if (row?.checkout_returned_at || row?.checkout_started_at) return { step: "capture", reason: null };
+  return { step: "pay", reason: null };
 }
