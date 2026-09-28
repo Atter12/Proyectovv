@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LinksDeudaCuentas } from "@/features/clientes/components/LinksDeudaCuentas.client";
 
 type DebtLinkClient = {
   id: string;
@@ -255,6 +256,12 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
                 ))}
               </div>
             </div>
+
+            <LinksDeudaCuentas
+              key={selected.id}
+              clienteId={selected.id}
+              clienteName={selected.name}
+            />
           </div>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center rounded-2xl bg-[#fcfaf7] px-6 py-12 text-center ring-1 ring-[#efe8df]">
