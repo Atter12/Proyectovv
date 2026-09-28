@@ -187,18 +187,18 @@ export function MissingCobroClaimPanel({
     <section className="space-y-3">
       <div
         className={[
-          "relative overflow-hidden rounded-2xl border border-[var(--auth-divider)]",
-          "bg-gradient-to-br from-[#fff8f1] via-white to-[#f4f7fb]",
+          "relative overflow-hidden rounded-[24px] border border-[var(--auth-divider)]",
+          "bg-white",
           "p-4 sm:p-5",
         ].join(" ")}
       >
         <div
-          className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#ff781f]/10 blur-2xl"
+          className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[var(--auth-accent-soft)] blur-2xl"
           aria-hidden
         />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#b45309]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-accent)]">
               {t("missingCobro.eyebrow")}
             </p>
             <h3 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[var(--auth-text)] sm:text-[1.125rem]">
@@ -214,7 +214,7 @@ export function MissingCobroClaimPanel({
           <Button
             type="button"
             size="sm"
-            className="shrink-0 self-start sm:self-center"
+            className="shrink-0 self-start rounded-full px-4 sm:self-center"
             onClick={() => {
               setOpen((v) => !v);
               setError(null);
@@ -419,7 +419,7 @@ export function MissingCobroClaimPanel({
       </div>
 
       {claims.length > 0 ? (
-        <div className="space-y-2 rounded-2xl border border-[var(--auth-divider)] bg-white p-4">
+        <div className="space-y-2 rounded-[24px] border border-[var(--auth-divider)] bg-white p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
             {t("missingCobro.myReports")}
           </p>

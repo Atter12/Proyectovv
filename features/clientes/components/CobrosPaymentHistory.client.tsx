@@ -207,20 +207,20 @@ export function CobrosPaymentHistory({
   const showProofs = !hideStaff || Boolean(proofEndpoint);
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#e8dfd4]">
-      <div className="flex flex-col gap-3 border-b border-[#efe8df] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <section className="overflow-hidden rounded-[24px] bg-white ring-1 ring-[#e4e9e3]">
+      <div className="flex flex-col gap-3 border-b border-[#eef1ec] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
+          <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-[#0f1f17]">
             {t("historyTitle")}
-          </p>
-          <p className="mt-0.5 text-[12px] text-[#6b645c]">
+          </h3>
+          <p className="mt-0.5 text-[12px] text-[#5f6f66]">
             {t("historyMonthHint", {
               count: filtered.length,
               total: moneyUsd(monthTotal),
             })}
           </p>
           {hideMonthPicker ? (
-            <p className="mt-1 text-[11px] text-[#8a8177]">
+            <p className="mt-1 text-[11px] text-[#8b988f]">
               {t("historySyncedMonth", {
                 month: formatMonthTitle(month, locale),
               })}
@@ -229,13 +229,13 @@ export function CobrosPaymentHistory({
         </div>
 
         {hideMonthPicker ? null : (
-          <div className="flex items-center gap-1 self-start rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-1 sm:self-auto">
+          <div className="flex items-center gap-1 self-start rounded-full border border-[#e4e9e3] bg-[#f3f5f1] p-1 sm:self-auto">
             <button
               type="button"
               aria-label={t("prevMonth")}
               disabled={!canPrev}
               onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#5f6f66] transition hover:bg-white hover:text-[#0f1f17] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                 <path
@@ -248,11 +248,11 @@ export function CobrosPaymentHistory({
               </svg>
             </button>
             <div className="min-w-[9.5rem] px-2 text-center sm:min-w-[11rem]">
-              <p className="text-[13px] font-semibold capitalize tracking-[-0.01em] text-[#1c1917]">
+              <p className="text-[13px] font-semibold capitalize tracking-[-0.01em] text-[#0f1f17]">
                 {formatMonthTitle(month, locale)}
               </p>
               {month === currentMonth ? (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-accent)]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f7d6c]">
                   {t("thisMonth")}
                 </p>
               ) : null}
@@ -262,7 +262,7 @@ export function CobrosPaymentHistory({
               aria-label={t("nextMonth")}
               disabled={!canNext}
               onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-white hover:text-[#1c1917] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#5f6f66] transition hover:bg-white hover:text-[#0f1f17] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                 <path
@@ -279,13 +279,75 @@ export function CobrosPaymentHistory({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="px-4 py-10 text-center text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5">
-          {t("emptyMonth")}
-        </p>
+        <div className="px-4 py-10 sm:px-5">
+          <p className="rounded-2xl bg-[#f6f8f4] px-4 py-8 text-center text-[13px] font-medium text-[#5f6f66]">
+            {t("emptyMonth")}
+          </p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        <ul className="divide-y divide-[#f0f3ee] md:hidden">
+          {filtered.map((row) => (
+            <li key={row.id} className="flex items-start justify-between gap-3 px-4 py-3.5">
+              <div className="flex min-w-0 items-start gap-3">
+                <span
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef7d9] text-[#4d6b0f]"
+                  aria-hidden
+                >
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
+                    <path
+                      d="m5 10.5 3.2 3L15 6.5"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium text-[#0f1f17]">
+                    {row.metodo ?? "—"}
+                  </p>
+                  <p className="text-[11px] tabular-nums text-[#8b988f]">
+                    {formatHecomFecha(row.fecha, locale)}
+                    {row.hora ? ` · ${formatHora(row.hora)}` : ""}
+                  </p>
+                  {row.codigo ? (
+                    <p className="truncate font-mono text-[10px] text-[#5f7d6c]">{row.codigo}</p>
+                  ) : null}
+                  {showProofs && row.comprobanteUrls.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {row.comprobanteUrls.map((_, index) => (
+                        <CobroComprobantePreview
+                          key={`${row.id}-m-${index}`}
+                          cobroId={row.id}
+                          index={index}
+                          endpoint={proofEndpoint?.(row.id, index)}
+                          label={
+                            row.comprobanteUrls.length > 1
+                              ? t("proofN", { n: index + 1 })
+                              : t("proof")
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[13px] font-semibold tabular-nums text-[#1d5a43]">
+                  +{moneyUsd(row.monto)}
+                </p>
+                <p className="mt-0.5 text-[10px] capitalize text-[#8b988f]">
+                  {formatPeriodoResumen(row.periodoResumen, locale)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-[920px] w-full text-left text-[12px]">
-            <thead className="border-b border-[var(--auth-divider)] bg-[var(--auth-bg)]/70 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+            <thead className="border-b border-[#eef1ec] bg-[#f6f8f4] text-[10px] font-bold uppercase tracking-[0.08em] text-[#8b988f]">
               <tr>
                 <th className="px-4 py-3 sm:px-5">{t("colDate")}</th>
                 <th className="px-4 py-3">{t("colTime")}</th>
@@ -312,7 +374,7 @@ export function CobrosPaymentHistory({
                 return (
                   <tr
                     key={row.id}
-                    className="border-b border-[var(--auth-divider)] last:border-0 hover:bg-[var(--auth-bg)]/50"
+                    className="border-b border-[#f0f3ee] last:border-0 transition hover:bg-[#f8faf6]"
                   >
                     <td className="px-4 py-3.5 font-medium text-[var(--auth-text)] sm:px-5">
                       {formatHecomFecha(row.fecha, locale)}
@@ -320,13 +382,13 @@ export function CobrosPaymentHistory({
                     <td className="px-4 py-3.5 tabular-nums text-[var(--auth-text-muted)]">
                       {formatHora(row.hora)}
                     </td>
-                    <td className="px-4 py-3.5 font-mono text-[11px] text-[var(--auth-accent)]">
+                    <td className="px-4 py-3.5 font-mono text-[11px] text-[#5f7d6c]">
                       {row.codigo ?? "—"}
                     </td>
-                    <td className="px-4 py-3.5 font-medium text-[var(--auth-accent)]">
+                    <td className="px-4 py-3.5 font-medium capitalize text-[#1d5a43]">
                       {formatPeriodoResumen(row.periodoResumen, locale)}
                     </td>
-                    <td className="px-4 py-3.5 font-semibold tabular-nums text-[#1f5c40]">
+                    <td className="px-4 py-3.5 font-semibold tabular-nums text-[#1d5a43]">
                       +{moneyUsd(row.monto)}
                     </td>
                     <td className="px-4 py-3.5 text-[var(--auth-text)]">
@@ -374,6 +436,7 @@ export function CobrosPaymentHistory({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </section>
   );
