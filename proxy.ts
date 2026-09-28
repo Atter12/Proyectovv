@@ -206,8 +206,13 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   return runHolisticProxy(request);
 }
 
+// Toda página que lea la sesión en el servidor debe pasar por aquí: el proxy
+// es el único punto que puede guardar el token renovado en la cookie. Si una
+// página queda fuera, Supabase rota el token sin persistirlo y cierra la sesión.
+// `lib/auth/proxy-matcher.test.ts` verifica que no falte ninguna ruta del panel.
 export const config = {
   matcher: [
+    "/",
     "/login",
     "/register",
     "/verify-otp",
@@ -233,6 +238,12 @@ export const config = {
     "/payments/:path*",
     "/links-deuda",
     "/links-deuda/:path*",
+    "/cobros",
+    "/cobros/:path*",
+    "/pixels",
+    "/pixels/:path*",
+    "/support",
+    "/support/:path*",
     "/gastos",
     "/gastos/:path*",
     "/affiliates",
