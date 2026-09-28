@@ -1,0 +1,28 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    { "query": "path:\"10 Producto\"", "color": { "a": 1, "rgb": 3576561 } },
+    { "query": "path:\"20 Marca y Diseño\"", "color": { "a": 1, "rgb": 14709248 } },
+    { "query": "path:\"30 Ingeniería\"", "color": { "a": 1, "rgb": 2005983 } },
+    { "query": "path:\"40 Negocio\"", "color": { "a": 1, "rgb": 15641125 } },
+    { "query": "path:\"50 Operación y QA\"", "color": { "a": 1, "rgb": 10233776 } },
+    { "query": "path:\"60 Recursos\"", "color": { "a": 1, "rgb": 6262196 } }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
+  "textFadeMultiplier": -0.3,
+  "nodeSizeMultiplier": 1.2,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": false,
+  "centerStrength": 0.5,
+  "repelStrength": 11,
+  "linkStrength": 1,
+  "linkDistance": 220,
+  "scale": 1
+}

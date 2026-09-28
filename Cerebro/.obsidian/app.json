@@ -1,0 +1,16 @@
+{
+  "attachmentFolderPath": "Adjuntos",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "70 Investigación",
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "showUnsupportedFiles": true,
+  "trashOption": "local",
+  "promptDelete": true,
+  "spellcheck": true,
+  "spellcheckLanguages": ["es-ES"],
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "userIgnoreFilters": ["Adjuntos/"]
+}

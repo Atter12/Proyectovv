@@ -59,3 +59,10 @@ node_modules/
 .vercel-preview-secret
 .vercel-preview-url
 scripts/yape-agent/.state.json
+
+# Obsidian - estado local del vault (la config compartida si se versiona)
+Cerebro/.obsidian/workspace.json
+Cerebro/.obsidian/workspace-mobile.json
+Cerebro/.obsidian/cache
+Cerebro/.obsidian/plugins/*/data.json
+Cerebro/.trash/
