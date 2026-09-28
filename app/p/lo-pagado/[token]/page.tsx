@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
@@ -27,29 +26,6 @@ function publicLinkMonth(value: string | string[] | undefined): string {
   if (raw && raw <= now) return raw;
   return now;
 }
-
-/** Tema visual del link público (solo colores; no toca datos). */
-const LO_PAGADO_THEME = {
-  backgroundColor: "#eef1ec",
-  "--auth-bg": "#f3f5f1",
-  "--auth-border": "#e4e9e3",
-  "--auth-divider": "#e4e9e3",
-  "--auth-text": "#0f1f17",
-  "--auth-text-muted": "#5f6f66",
-  "--auth-text-soft": "#8b988f",
-  "--auth-muted": "#8b988f",
-  "--auth-accent": "#1d5a43",
-  "--auth-accent-hover": "#12372a",
-  "--auth-accent-soft": "#eef7d9",
-  "--auth-accent-ring": "rgb(29 90 67 / 0.2)",
-  "--auth-control-border": "#dfe5de",
-  "--auth-control-hover": "#f3f7ee",
-  "--auth-input-border": "#dbe2da",
-  "--auth-input-border-hover": "#c3cec5",
-  "--admin-accent": "#12372a",
-  "--admin-accent-hover": "#1d5a43",
-  "--admin-accent-soft": "#eef7d9",
-} as CSSProperties;
 
 export default async function LoPagadoPublicPage({
   params,
@@ -91,13 +67,12 @@ export default async function LoPagadoPublicPage({
   return (
     <main
       className="dashboard-canvas min-h-screen px-4 pb-12 pt-4 sm:px-6 sm:pt-6"
-      style={LO_PAGADO_THEME}
     >
       <div className="mx-auto max-w-5xl space-y-5">
-        <nav className="flex items-center justify-between gap-3 rounded-[20px] bg-white px-3 py-2.5 ring-1 ring-[#e4e9e3] sm:px-4">
+        <nav className="flex items-center justify-between gap-3 rounded-[20px] bg-white px-3 py-2.5 ring-1 ring-[#e8dfd4] sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <span
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#12372a] text-[#b8e04f]"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a1714] text-[#f0b889]"
               aria-hidden
             >
               <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" fill="none">
@@ -110,30 +85,30 @@ export default async function LoPagadoPublicPage({
               </svg>
             </span>
             <div className="min-w-0 leading-tight">
-              <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#0f1f17]">
+              <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1714]">
                 Holistic Marketing
               </p>
-              <p className="text-[11px] text-[#8b988f]">Estado de cuenta</p>
+              <p className="text-[11px] text-[#8a8177]">Estado de cuenta</p>
             </div>
           </div>
-          <div className="flex min-w-0 items-center gap-2 rounded-full bg-[#f3f5f1] py-1 pl-1 pr-3 ring-1 ring-[#e4e9e3]">
+          <div className="flex min-w-0 items-center gap-2 rounded-full bg-[#faf8f5] py-1 pl-1 pr-3 ring-1 ring-[#e8dfd4]">
             <span
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#b8e04f] text-[11px] font-bold text-[#12372a]"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#f7f0e9] text-[11px] font-bold text-[#b85f2e]"
               aria-hidden
             >
               {initials || "C"}
             </span>
-            <span className="max-w-[9rem] truncate text-[12px] font-semibold text-[#0f1f17] sm:max-w-[16rem]">
+            <span className="max-w-[9rem] truncate text-[12px] font-semibold text-[#1a1714] sm:max-w-[16rem]">
               {cliente.name}
             </span>
           </div>
         </nav>
 
         <header className="px-1">
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em] text-[#0f1f17] sm:text-[2rem]">
+          <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em] text-[#1a1714] sm:text-[2rem]">
             Lo pagado
           </h1>
-          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5f6f66]">
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
             Gastos diarios de ads (con fee) y pagos de este mes. Solo ves el mes
             del mensaje de cobranza. Desde aquí también puedes pagar o avisar
             si no ves un pago de ese mes.

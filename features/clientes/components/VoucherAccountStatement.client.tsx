@@ -366,20 +366,20 @@ export function VoucherAccountStatement({
     view.cargo > 0.004 ? Math.min(1, Math.max(0, view.cobrado / view.cargo)) : view.cobrado > 0.004 ? 1 : 0;
 
   return (
-    <section className={embedded ? "space-y-4" : "space-y-4 rounded-[24px] bg-[#f3f5f1] p-4 ring-1 ring-[#e4e9e3] sm:p-5"}>
+    <section className={embedded ? "space-y-4" : "space-y-4 rounded-[24px] bg-[#faf8f5] p-4 ring-1 ring-[#e8dfd4] sm:p-5"}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f7d6c]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
             {t("eyebrow")}
           </p>
-          <h3 className="mt-1 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#0f1f17]">
+          <h3 className="mt-1 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#1a1714]">
             {t("title")}
           </h3>
           {!embedded ? (
-            <p className="mt-1 text-[13px] capitalize text-[#5f6f66]">{view.monthLabel}</p>
+            <p className="mt-1 text-[13px] capitalize text-[#5c564e]">{view.monthLabel}</p>
           ) : null}
         </div>
-        <p className="max-w-sm text-[11px] leading-4 text-[#8b988f] sm:text-right">
+        <p className="max-w-sm text-[11px] leading-4 text-[#8a8177] sm:text-right">
           {t("through", {
             month: view.monthLabel,
             date: formatDay(view.to, locale),
@@ -389,27 +389,27 @@ export function VoucherAccountStatement({
 
       {/* Saldo + KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-[#12372a] px-5 py-5 text-white sm:px-6 sm:py-6">
+        <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-[#1a1714] px-5 py-5 text-white sm:px-6 sm:py-6">
           <div
-            className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#b8e04f]/15 blur-2xl"
+            className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#d47840]/25 blur-2xl"
             aria-hidden
           />
           <div className="relative">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                 heroTone === "owe"
-                  ? "bg-[#ffb07a]/15 text-[#ffc39a]"
+                  ? "bg-[#d47840]/20 text-[#f0b889]"
                   : heroTone === "favor"
-                    ? "bg-[#b8e04f]/15 text-[#cdee7c]"
+                    ? "bg-[#9fd4b0]/15 text-[#9fd4b0]"
                     : "bg-white/10 text-white/80"
               }`}
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   heroTone === "owe"
-                    ? "bg-[#ff9a5a]"
+                    ? "bg-[#e8955a]"
                     : heroTone === "favor"
-                      ? "bg-[#b8e04f]"
+                      ? "bg-[#6fbf8a]"
                       : "bg-white/70"
                 }`}
                 aria-hidden
@@ -430,7 +430,7 @@ export function VoucherAccountStatement({
               </div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#b8e04f] transition-[width] duration-500"
+                  className="h-full rounded-full bg-[#d47840] transition-[width] duration-500"
                   style={{ width: `${coverage * 100}%` }}
                 />
               </div>
@@ -474,21 +474,21 @@ export function VoucherAccountStatement({
       </div>
 
       {/* Chart */}
-      <div className="overflow-hidden rounded-[22px] bg-white ring-1 ring-[#e4e9e3]">
+      <div className="overflow-hidden rounded-[22px] bg-white ring-1 ring-[#e8dfd4]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
           <div>
-            <h4 className="text-[15px] font-semibold tracking-[-0.02em] text-[#0f1f17]">
+            <h4 className="text-[15px] font-semibold tracking-[-0.02em] text-[#1a1714]">
               {t("chartDay")}
             </h4>
-            <p className="mt-0.5 text-[12px] text-[#5f6f66]">{t("chartDayLead")}</p>
+            <p className="mt-0.5 text-[12px] text-[#5c564e]">{t("chartDayLead")}</p>
           </div>
-          <div className="flex items-center gap-4 text-[11px] font-medium text-[#5f6f66]">
+          <div className="flex items-center gap-4 text-[11px] font-medium text-[#5c564e]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#1d5a43]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#d47840]" />
               {t("legendCargo")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#b8e04f]" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#2f7a4a]" />
               {t("legendPaid")}
             </span>
           </div>
@@ -496,13 +496,13 @@ export function VoucherAccountStatement({
 
         {view.series.length === 0 ? (
           <div className="px-4 py-12 text-center sm:px-5">
-            <p className="text-[13px] font-medium text-[#5f6f66]">{t("emptyRange")}</p>
+            <p className="text-[13px] font-medium text-[#5c564e]">{t("emptyRange")}</p>
           </div>
         ) : (
           <>
             {selectedDay ? (
               <div className="px-4 pb-1 pt-2 sm:px-5">
-                <p className="text-[11px] font-semibold capitalize text-[#8b988f]">
+                <p className="text-[11px] font-semibold capitalize text-[#8a8177]">
                   {formatDay(selectedDay.key, locale)}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -559,15 +559,15 @@ export function VoucherAccountStatement({
                       type="button"
                       onClick={() => setActiveDay(bucket.key)}
                       onMouseEnter={() => setActiveDay(bucket.key)}
-                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1.5 pt-1 transition duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#1d5a43] ${
-                        isActive ? "bg-[#f1f6ea]" : "hover:bg-[#f6f8f4]"
+                      className={`group flex min-w-0 flex-1 flex-col items-center rounded-xl px-0.5 pb-1.5 pt-1 transition duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#d47840] ${
+                        isActive ? "bg-[#fff6ee]" : "hover:bg-[#fcfaf7]"
                       }`}
                       aria-label={`${formatDay(bucket.key, locale)}: ${t("chartDaySpend")} ${moneyUsd(bucket.cargo)}, ${t("chartDayPaid")} ${moneyUsd(bucket.paid)}`}
                       title={`${formatDay(bucket.key, locale)}\n${t("legendCargo")}: ${moneyUsd(bucket.cargo)}\n${t("legendPaid")}: ${moneyUsd(bucket.paid)}`}
                     >
                       <span
                         className={`mb-0.5 flex h-3.5 items-end text-[8px] font-bold tabular-nums leading-none ${
-                          showCargoLabel ? "text-[#1d5a43]" : "text-transparent"
+                          showCargoLabel ? "text-[#b85f2e]" : "text-transparent"
                         }`}
                       >
                         {showCargoLabel && bucket.cargo > 0
@@ -576,7 +576,7 @@ export function VoucherAccountStatement({
                       </span>
                       <span
                         className={`mb-1 flex h-3.5 items-end text-[8px] font-bold tabular-nums leading-none ${
-                          showPaidLabel ? "text-[#5c7f12]" : "text-transparent"
+                          showPaidLabel ? "text-[#1f6b3a]" : "text-transparent"
                         }`}
                       >
                         {showPaidLabel ? moneyCompact(bucket.paid) : "·"}
@@ -586,9 +586,9 @@ export function VoucherAccountStatement({
                           className={`w-[42%] max-w-[12px] rounded-t-[4px] transition duration-150 ${
                             bucket.cargo > 0
                               ? isActive || isPeak
-                                ? "bg-[#12372a]"
-                                : "bg-[#2f6b52] group-hover:bg-[#1d5a43]"
-                              : "bg-[#eef1ec]"
+                                ? "bg-[#d47840]"
+                                : "bg-[#e8b48a]/85 group-hover:bg-[#e09a66]"
+                              : "bg-[#efe8df]"
                           }`}
                           style={{
                             height: `${cargoH}%`,
@@ -599,9 +599,9 @@ export function VoucherAccountStatement({
                           className={`w-[42%] max-w-[12px] rounded-t-[4px] transition duration-150 ${
                             hasPaid
                               ? isActive
-                                ? "bg-[#9ccc3a]"
-                                : "bg-[#b8e04f] group-hover:bg-[#a6d43f]"
-                              : "bg-[#f1f4ee]"
+                                ? "bg-[#2f7a4a]"
+                                : "bg-[#6a9a78]/90 group-hover:bg-[#4d8760]"
+                              : "bg-[#f5f0ea]"
                           }`}
                           style={{
                             height: `${paidH}%`,
@@ -611,14 +611,14 @@ export function VoucherAccountStatement({
                       </div>
                       <span
                         className={`mt-1.5 text-[10px] font-semibold tabular-nums ${
-                          isActive ? "text-[#0f1f17]" : "text-[#9aa59e]"
+                          isActive ? "text-[#1a1714]" : "text-[#9a9288]"
                         }`}
                       >
                         {bucket.label}
                       </span>
                       <span
                         className={`mt-1 h-0.5 w-3 rounded-full transition ${
-                          isActive ? "bg-[#12372a]" : "bg-transparent"
+                          isActive ? "bg-[#d47840]" : "bg-transparent"
                         }`}
                         aria-hidden
                       />
@@ -629,7 +629,7 @@ export function VoucherAccountStatement({
             </div>
 
             {view.peakCargo.cargo > 0 ? (
-              <p className="border-t border-[#eef1ec] px-4 py-2.5 text-[11px] leading-4 text-[#5f6f66] sm:px-5">
+              <p className="border-t border-[#efe8df] px-4 py-2.5 text-[11px] leading-4 text-[#5c564e] sm:px-5">
                 {t("chartPeak", {
                   day: formatDay(view.peakCargo.key, locale),
                   amount: moneyUsd(view.peakCargo.cargo),
@@ -682,7 +682,7 @@ export function VoucherAccountStatement({
       </div>
 
       {capped ? (
-        <p className="text-[11px] leading-5 text-[#8b988f]">{t("capped")}</p>
+        <p className="text-[11px] leading-5 text-[#8a8177]">{t("capped")}</p>
       ) : null}
     </section>
   );
@@ -701,20 +701,20 @@ function DayMetric({
 }) {
   const dotClass =
     tone === "spend"
-      ? "bg-[#1d5a43]"
+      ? "bg-[#d47840]"
       : tone === "paid"
-        ? "bg-[#b8e04f]"
-        : "bg-[#c9d2cc]";
+        ? "bg-[#2f7a4a]"
+        : "bg-[#ddd5cb]";
   return (
-    <div className="min-w-0 rounded-2xl bg-[#f6f8f4] px-3 py-2.5">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium text-[#5f6f66]">
+    <div className="min-w-0 rounded-2xl bg-[#fcfaf7] px-3 py-2.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium text-[#5c564e]">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
         <span className="truncate">{label}</span>
       </p>
-      <p className="mt-1 text-[1.15rem] font-semibold tabular-nums tracking-[-0.02em] text-[#0f1f17]">
+      <p className="mt-1 text-[1.15rem] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1714]">
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] leading-3.5 text-[#8b988f]">{hint}</p>
+      <p className="mt-0.5 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
     </div>
   );
 }
@@ -736,15 +736,15 @@ function Kpi({
 }) {
   const toneClass =
     tone === "paid"
-      ? "text-[#1d5a43]"
+      ? "text-[#15803d]"
       : tone === "owe"
         ? "text-[#c2531b]"
-        : "text-[#0f1f17]";
+        : "text-[#1a1714]";
   return (
     <div
-      className={`flex flex-col rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e4e9e3] sm:px-5 ${className}`}
+      className={`flex flex-col rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e8dfd4] sm:px-5 ${className}`}
     >
-      <p className="text-[12px] font-medium text-[#5f6f66]">{label}</p>
+      <p className="text-[12px] font-medium text-[#5c564e]">{label}</p>
       <p
         className={`mt-2 text-[1.55rem] font-semibold leading-none tabular-nums tracking-[-0.035em] ${toneClass}`}
       >
@@ -754,14 +754,14 @@ function Kpi({
         <dl className="mt-3 space-y-1">
           {breakdown.map((item) => (
             <div key={item.label} className="flex items-center justify-between gap-2 text-[11px]">
-              <dt className="text-[#8b988f]">{item.label}</dt>
-              <dd className="font-semibold tabular-nums text-[#3d4d44]">{item.value}</dd>
+              <dt className="text-[#8a8177]">{item.label}</dt>
+              <dd className="font-semibold tabular-nums text-[#3f3a34]">{item.value}</dd>
             </div>
           ))}
         </dl>
       ) : null}
       {hint ? (
-        <p className="mt-auto pt-3 text-[10px] leading-3.5 text-[#8b988f]">{hint}</p>
+        <p className="mt-auto pt-3 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
       ) : null}
     </div>
   );
@@ -785,17 +785,17 @@ function MovementList({
   }>;
 }) {
   return (
-    <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e4e9e3] sm:px-5">
+    <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e8dfd4] sm:px-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#0f1f17]">{title}</p>
+        <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#1a1714]">{title}</p>
         {rows.length > 0 ? (
-          <span className="rounded-full bg-[#f1f4ee] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#5f6f66]">
+          <span className="rounded-full bg-[#f5f0ea] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#5c564e]">
             {rows.length}
           </span>
         ) : null}
       </div>
       {rows.length === 0 ? (
-        <p className="mt-4 rounded-2xl bg-[#f6f8f4] px-3 py-6 text-center text-[12px] text-[#8b988f]">
+        <p className="mt-4 rounded-2xl bg-[#fcfaf7] px-3 py-6 text-center text-[12px] text-[#8a8177]">
           {empty}
         </p>
       ) : (
@@ -803,12 +803,12 @@ function MovementList({
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex items-center justify-between gap-3 border-b border-[#f0f3ee] py-2.5 last:border-0"
+              className="flex items-center justify-between gap-3 border-b border-[#f3eee8] py-2.5 last:border-0"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span
                   className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    paid ? "bg-[#eef7d9] text-[#4d6b0f]" : "bg-[#f1f4ee] text-[#1d5a43]"
+                    paid ? "bg-[#ecf7ef] text-[#1f6b3a]" : "bg-[#f5f0ea] text-[#b85f2e]"
                   }`}
                   aria-hidden
                 >
@@ -835,16 +835,16 @@ function MovementList({
                   )}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-medium text-[#0f1f17]">{row.detail}</p>
-                  <p className="text-[11px] text-[#8b988f]">{row.date}</p>
+                  <p className="truncate text-[13px] font-medium text-[#1a1714]">{row.detail}</p>
+                  <p className="text-[11px] text-[#8a8177]">{row.date}</p>
                   {row.extra ? (
-                    <p className="text-[10px] text-[#9aa59e]">{row.extra}</p>
+                    <p className="text-[10px] text-[#9a9288]">{row.extra}</p>
                   ) : null}
                 </div>
               </div>
               <p
                 className={`shrink-0 text-[13px] font-semibold tabular-nums ${
-                  paid ? "text-[#1d5a43]" : "text-[#0f1f17]"
+                  paid ? "text-[#15803d]" : "text-[#1a1714]"
                 }`}
               >
                 {row.amount}

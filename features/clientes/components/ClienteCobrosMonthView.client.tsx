@@ -127,13 +127,13 @@ export function ClienteCobrosMonthView({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[24px] bg-[#f3f5f1] ring-1 ring-[#e4e9e3]">
-        <div className="flex flex-col gap-3 border-b border-[#e4e9e3] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="overflow-hidden rounded-[24px] bg-[#faf8f5] ring-1 ring-[#e8dfd4]">
+        <div className="flex flex-col gap-3 border-b border-[#e8dfd4] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f7d6c]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">
               {t("monthScopeEyebrow")}
             </p>
-            <p className="mt-0.5 text-[12px] leading-4 text-[#5f6f66]">
+            <p className="mt-0.5 text-[12px] leading-4 text-[#5c564e]">
               {lockMonth
                 ? "Gastos, deuda y pagos de este mes."
                 : t("monthScopeHint")}
@@ -142,18 +142,18 @@ export function ClienteCobrosMonthView({
 
           <div className="flex flex-wrap items-center gap-2">
             {lockMonth ? (
-              <div className="inline-flex items-center gap-2.5 rounded-full bg-[#f3f5f1] py-1.5 pl-1.5 pr-4 ring-1 ring-[#e4e9e3]">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#12372a] text-[#b8e04f]" aria-hidden>
+              <div className="inline-flex items-center gap-2.5 rounded-full bg-[#faf8f5] py-1.5 pl-1.5 pr-4 ring-1 ring-[#e8dfd4]">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1714] text-[#f0b889]" aria-hidden>
                   <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
                     <rect x="3.5" y="4.5" width="13" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
                     <path d="M3.5 8.5h13M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                   </svg>
                 </span>
                 <span className="leading-tight">
-                  <span className="block text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#0f1f17]">
+                  <span className="block text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#1a1714]">
                     {formatMonthTitle(month, locale)}
                   </span>
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f7d6c]">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a6b4a]">
                     Solo este mes
                   </span>
                 </span>
@@ -163,20 +163,20 @@ export function ClienteCobrosMonthView({
               <button
                 type="button"
                 onClick={() => setMonth(currentMonth)}
-                className="h-10 rounded-full bg-[#12372a] px-4 text-[12px] font-semibold text-white transition hover:bg-[#1d5a43] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5a43]"
+                className="h-10 rounded-full bg-[#1a1714] px-4 text-[12px] font-semibold text-white transition hover:bg-[#2c2620] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
               >
                 {t("jumpCurrentMonth")}
               </button>
             ) : null}
 
             {!lockMonth ? (
-            <div className="flex items-center rounded-full bg-[#f3f5f1] p-1 ring-1 ring-[#e4e9e3]">
+            <div className="flex items-center rounded-full bg-[#faf8f5] p-1 ring-1 ring-[#e8dfd4]">
               <button
                 type="button"
                 aria-label={t("prevMonth")}
                 disabled={!canPrev}
                 onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5f6f66] transition hover:bg-white hover:text-[#0f1f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5a43] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5c564e] transition hover:bg-white hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                   <path
@@ -189,10 +189,10 @@ export function ClienteCobrosMonthView({
                 </svg>
               </button>
               <div className="min-w-[10rem] px-2 text-center sm:min-w-[12rem]">
-                <p className="text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#0f1f17]">
+                <p className="text-[14px] font-semibold capitalize tracking-[-0.02em] text-[#1a1714]">
                   {formatMonthTitle(month, locale)}
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f7d6c]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a6b4a]">
                   {isCurrent ? t("thisMonth") : t("monthScopeSynced")}
                 </p>
               </div>
@@ -201,7 +201,7 @@ export function ClienteCobrosMonthView({
                 aria-label={t("nextMonth")}
                 disabled={!canNext}
                 onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5f6f66] transition hover:bg-white hover:text-[#0f1f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5a43] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5c564e] transition hover:bg-white hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                   <path
@@ -219,7 +219,7 @@ export function ClienteCobrosMonthView({
         </div>
 
         {!lockMonth && recentMonths.length > 1 ? (
-          <div className="flex gap-1 overflow-x-auto border-b border-[#e4e9e3] px-3 py-2.5 sm:px-4">
+          <div className="flex gap-1 overflow-x-auto border-b border-[#e8dfd4] px-3 py-2.5 sm:px-4">
             {recentMonths.map((ym) => {
               const active = ym === month;
               return (
@@ -227,10 +227,10 @@ export function ClienteCobrosMonthView({
                   key={ym}
                   type="button"
                   onClick={() => setMonth(ym)}
-                  className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d5a43] ${
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] ${
                     active
-                      ? "bg-[#12372a] text-white"
-                      : "text-[#5f6f66] hover:bg-white hover:text-[#0f1f17]"
+                      ? "bg-[#1a1714] text-white"
+                      : "text-[#5c564e] hover:bg-white hover:text-[#1a1714]"
                   }`}
                   aria-pressed={active}
                 >
