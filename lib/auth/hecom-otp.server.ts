@@ -17,6 +17,10 @@ import {
 } from "@/lib/hecom/clientes.server";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 import {
+  clientNeedsServiceContract,
+  recordRegistrationContractIntent,
+} from "@/features/contracts/lib/registration-contract.server";
+import {
   HECOM_OTP_COOLDOWN_SECONDS,
   normalizeHecomOtpEmail,
 } from "@/lib/auth/hecom-otp-email";
@@ -444,6 +448,14 @@ export async function registerHecomClientOtp(input: {
     clienteId: created.cliente.id,
   });
 
+  await recordRegistrationContractIntent({
+    email,
+    hecomClienteId: created.cliente.id,
+    legalName: name,
+    docNumber: dni,
+    phone,
+  });
+
   return requestHecomClientOtp({ email });
 }
 
@@ -493,7 +505,7 @@ export async function provisionHecomClienteAccess(input: {
   autoSelected: { id: string; name: string } | null;
   needsPicker: boolean;
   isStaff: boolean;
-  nextPath: "/overview" | "/clientes";
+  nextPath: "/overview" | "/clientes" | "/contrato";
 }> {
   const email = normalizeEmail(input.email);
   const isStaff = isHecomOtpStaffEmail(email);
@@ -521,6 +533,8 @@ export async function provisionHecomClienteAccess(input: {
 
   const linked = await linkHecomClientesForUser(input);
 
+  const needsContract = await clientNeedsServiceContract(email);
+
   if (linked.clientes.length === 1) {
     const only = linked.clientes[0];
     await setSelectedHecomCliente({
@@ -533,7 +547,7 @@ export async function provisionHecomClienteAccess(input: {
       autoSelected: only,
       needsPicker: false,
       isStaff: false,
-      nextPath: "/overview",
+      nextPath: needsContract ? "/contrato" : "/overview",
     };
   }
 
@@ -541,9 +555,9 @@ export async function provisionHecomClienteAccess(input: {
     return {
       ...linked,
       autoSelected: null,
-      needsPicker: true,
+      needsPicker: !needsContract,
       isStaff: false,
-      nextPath: "/clientes",
+      nextPath: needsContract ? "/contrato" : "/clientes",
     };
   }
 
@@ -552,7 +566,7 @@ export async function provisionHecomClienteAccess(input: {
     autoSelected: null,
     needsPicker: false,
     isStaff: false,
-    nextPath: "/overview",
+    nextPath: needsContract ? "/contrato" : "/overview",
   };
 }
 

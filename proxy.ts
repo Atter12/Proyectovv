@@ -3,6 +3,7 @@ import type { NextFetchEvent, NextRequest } from "next/server";
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import {
   isAccountSetupPath,
+  isServiceContractPath,
   isAdminLoginPath,
   isAdminProtectedPath,
   isGuestOnlyPath,
@@ -41,7 +42,8 @@ async function runHolisticProxy(request: NextRequest) {
   const needsDashboardAccessCheck =
     isGuestOnlyPath(pathname) ||
     isVerifyOtpPath(pathname) ||
-    isAccountSetupPath(pathname);
+    isAccountSetupPath(pathname) ||
+    isServiceContractPath(pathname);
 
   const canAccessDashboard =
     needsDashboardAccessCheck && isAuthenticated && user
@@ -161,7 +163,7 @@ async function runHolisticProxy(request: NextRequest) {
     return NextResponse.redirect(targetUrl);
   }
 
-  if (isAccountSetupPath(pathname)) {
+  if (isAccountSetupPath(pathname) || isServiceContractPath(pathname)) {
     if (!isAuthenticated) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = routes.login;
@@ -180,7 +182,7 @@ async function runHolisticProxy(request: NextRequest) {
       return NextResponse.redirect(verifyUrl);
     }
 
-    if (canAccessDashboard) {
+    if (isAccountSetupPath(pathname) && canAccessDashboard) {
       const overviewUrl = request.nextUrl.clone();
       overviewUrl.pathname = routes.overview;
       overviewUrl.search = "";
@@ -209,6 +211,7 @@ export const config = {
     "/verify-otp",
     "/forgot-password",
     "/account-setup",
+    "/contrato",
     "/sign-in",
     "/sign-in/(.*)",
     "/sign-up",

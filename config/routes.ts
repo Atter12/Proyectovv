@@ -5,6 +5,7 @@ export const routes = {
   verifyOtp: "/verify-otp",
   forgotPassword: "/forgot-password",
   accountSetup: "/account-setup",
+  serviceContract: "/contrato",
   authCallback: "/auth/callback",
   clerkSignIn: "/sign-in",
   clerkSignUp: "/sign-up",

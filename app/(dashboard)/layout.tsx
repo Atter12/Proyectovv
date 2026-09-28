@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation";
+import { routes } from "@/config/routes";
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
+import { clientNeedsServiceContract } from "@/features/contracts/lib/registration-contract.server";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardSpanishLock } from "@/components/layout/DashboardSpanishLock.client";
 import { requireSession } from "@/lib/auth/guards.server";
@@ -34,6 +37,10 @@ export default async function DashboardLayout({
     : funding.isStaff
       ? "gerente"
       : "cliente";
+
+  if (persona === "cliente" && (await clientNeedsServiceContract(session.email))) {
+    redirect(routes.serviceContract);
+  }
 
   let selected = await getSelectedHecomCliente(session.id);
   let actingAsCliente = await getActingAsCliente(session.id);

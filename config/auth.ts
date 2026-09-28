@@ -59,6 +59,13 @@ export function isVerifyOtpPath(pathname: string): boolean {
   );
 }
 
+export function isServiceContractPath(pathname: string): boolean {
+  return (
+    pathname === routes.serviceContract ||
+    pathname.startsWith(`${routes.serviceContract}/`)
+  );
+}
+
 export function isAccountSetupPath(pathname: string): boolean {
   return (
     pathname === routes.accountSetup ||

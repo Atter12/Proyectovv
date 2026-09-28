@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { AccountSetupPendingCard } from "@/features/auth/components/AccountSetupPendingCard.client";
 import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
+import { clientNeedsServiceContract } from "@/features/contracts/lib/registration-contract.server";
 import { ensureAccountProvisionedForUser } from "@/lib/auth/account-provisioning.server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +23,10 @@ export default async function AccountSetupPage() {
 
   const result = await ensureAccountProvisionedForUser(user);
   if (result.ready) {
-    redirect(routes.overview);
+    const needsContract = user.email
+      ? await clientNeedsServiceContract(user.email)
+      : false;
+    redirect(needsContract ? routes.serviceContract : routes.overview);
   }
 
   return (

@@ -132,6 +132,12 @@ export function VerifyOtpForm() {
           return;
         }
 
+        if (payload.nextPath === routes.serviceContract) {
+          router.push(routes.serviceContract);
+          router.refresh();
+          return;
+        }
+
         if (
           payload.nextPath === routes.clientes ||
           payload.needsPicker ||
