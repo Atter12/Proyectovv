@@ -6,23 +6,29 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
-import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
+import { localizeAuthNotice, mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 import { AuthFormHeading, AuthNotice, AuthSubmitButton } from "./AuthFormUi";
 import styles from "./auth.module.css";
+import { getAuthCopy } from "../i18n/auth-copy";
+import type { LandingLocale } from "@/features/landing/i18n/landing-locale";
 
 function PasswordToggle({
   visible,
   onToggle,
+  showLabel,
+  hideLabel,
 }: {
   visible: boolean;
   onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
       className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--auth-text-soft)] transition-colors hover:bg-[var(--auth-control-hover)] hover:text-[var(--auth-text)]"
-      aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+      aria-label={visible ? hideLabel : showLabel}
       aria-pressed={visible}
     >
       {visible ? (
@@ -54,12 +60,14 @@ const inputClassName = "auth-field";
 
 interface LoginFormProps {
   hecomOtpEnabled?: boolean;
+  locale?: LandingLocale;
 }
 
 /**
  * Login Holistic — mismo lenguaje visual que Registrarme + lookup por nombre.
  */
-export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
+export function LoginForm({ hecomOtpEnabled = false, locale = "es" }: LoginFormProps) {
+  const t = getAuthCopy(locale).login;
   const router = useRouter();
   const searchParams = useSearchParams();
   const otpMode = hecomOtpEnabled;
@@ -98,16 +106,18 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       };
 
       if (!response.ok) {
-        setLookupError(payload.error ?? "No se pudo buscar el correo.");
+        setLookupError(
+          payload.error ? mapAuthErrorMessage(payload.error, locale) : t.lookupFailed,
+        );
         setLookupLoading(false);
         return;
       }
 
       setLookupMatches(payload.matches ?? []);
-      setLookupHint(payload.message ?? null);
+      setLookupHint(payload.message ? localizeAuthNotice(payload.message, locale) : null);
       setLookupLoading(false);
     } catch {
-      setLookupError("No se pudo buscar. Vuelve a intentar.");
+      setLookupError(t.lookupRetry);
       setLookupLoading(false);
     }
   }
@@ -141,9 +151,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
       if (!response.ok) {
         setError(
-          mapAuthErrorMessage(
-            payload.error ?? "No se pudo enviar el código.",
-          ),
+          payload.error ? mapAuthErrorMessage(payload.error, locale) : t.sendFailed,
         );
         setLoading(false);
         return;
@@ -168,7 +176,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo enviar el código. Vuelve a intentar.");
+      setError(t.sendRetry);
       setLoading(false);
     }
   }
@@ -185,7 +193,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
     });
 
     if (signInError) {
-      setError(mapAuthErrorMessage(signInError.message));
+      setError(mapAuthErrorMessage(signInError.message, locale));
       setLoading(false);
       return;
     }
@@ -213,10 +221,8 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
   return (
     <div className="w-full">
       <div className={styles.loginHeading}>
-        <AuthFormHeading title="Entra a AdsHolistic.">
-          {otpMode
-            ? "Te enviaremos un código a tu correo."
-            : "Qué bueno verte de nuevo. Accede a tu panel de anunciante."}
+        <AuthFormHeading title={t.title}>
+          {otpMode ? t.subtitleOtp : t.subtitlePassword}
         </AuthFormHeading>
       </div>
 
@@ -230,7 +236,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
             htmlFor="email"
             className={styles.fieldLabel}
           >
-            Correo electrónico
+            {t.emailLabel}
           </label>
           <div className="relative">
             <FieldIcon>
@@ -248,7 +254,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="tu@correo.com"
+              placeholder={t.emailPlaceholder}
               className={inputClassName}
               disabled={loading}
             />
@@ -265,7 +271,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
               aria-expanded={lookupOpen}
               aria-controls="email-lookup"
             >
-              ¿No recuerdas tu correo?
+              {t.forgotEmail}
             </button>
           ) : null}
         </div>
@@ -273,10 +279,10 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
         {otpMode && lookupOpen ? (
           <div id="email-lookup" className={styles.lookupPanel}>
             <p className={styles.lookupPanelTitle}>
-              Recuperar correo por nombre
+              {t.lookupTitle}
             </p>
             <p className={`${styles.helpText} mt-1`}>
-              Escribe tu nombre y apellido como figuran en tu cuenta.
+              {t.lookupHelp}
             </p>
             <div className="mt-3.5 space-y-3">
               <div className="relative">
@@ -287,7 +293,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 </FieldIcon>
                 <input
                   id="lookup-name"
-                  aria-label="Nombre y apellido para recuperar tu correo"
+                  aria-label={t.lookupAria}
                   autoComplete="name"
                   minLength={4}
                   value={lookupName}
@@ -300,7 +306,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                       }
                     }
                   }}
-                  placeholder="María González Pérez"
+                  placeholder={t.lookupPlaceholder}
                   className={inputClassName}
                 />
               </div>
@@ -334,7 +340,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                           </span>
                         </span>
                         <span className="shrink-0 text-[12px] font-bold text-[var(--auth-accent)]">
-                          Usar
+                          {t.lookupUse}
                         </span>
                       </button>
                     </li>
@@ -348,7 +354,7 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 disabled={lookupLoading || lookupName.trim().length < 4}
                 className={`${styles.secondaryButton} w-full`}
               >
-                {lookupLoading ? "Buscando…" : "Buscar mi correo"}
+                {lookupLoading ? t.lookupSearching : t.lookupSearch}
               </button>
             </div>
           </div>
@@ -361,13 +367,13 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 htmlFor="password"
                 className={styles.fieldLabel}
               >
-                Contraseña
+                {t.passwordLabel}
               </label>
               <Link
                 href={routes.forgotPassword}
                 className={styles.textLink}
               >
-                ¿Olvidaste tu contraseña?
+                {t.forgotPassword}
               </Link>
             </div>
             <div className="relative">
@@ -378,12 +384,14 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Tu contraseña"
+                placeholder={t.passwordPlaceholder}
                 className={cn(inputClassName, styles.passwordField)}
               />
               <PasswordToggle
                 visible={showPassword}
                 onToggle={() => setShowPassword((prev) => !prev)}
+                showLabel={t.showPassword}
+                hideLabel={t.hidePassword}
               />
             </div>
           </div>
@@ -391,24 +399,23 @@ export function LoginForm({ hecomOtpEnabled = false }: LoginFormProps) {
 
         {(error || magicError) && (
           <AuthNotice tone="error">
-            {error ??
-              "El enlace expiró o no es válido. Pide uno nuevo."}
+            {error ?? t.magicLinkExpired}
           </AuthNotice>
         )}
 
-        <AuthSubmitButton loading={loading} loadingLabel={otpMode ? "Enviando código…" : "Iniciando sesión…"}>
-          {otpMode ? "Recibir código" : "Iniciar sesión"}
+        <AuthSubmitButton loading={loading} loadingLabel={otpMode ? t.sendingCode : t.signingIn}>
+          {otpMode ? t.getCode : t.signIn}
         </AuthSubmitButton>
       </form>
 
       {!otpMode ? (
         <p className={styles.formFooter}>
-          ¿Problemas?{" "}
+          {t.troubles}{" "}
           <Link
             href={routes.forgotPassword}
             className={styles.textLink}
           >
-            Recuperar acceso
+            {t.recoverAccess}
           </Link>
         </p>
       ) : null}

@@ -7,6 +7,8 @@ import { routes } from "@/config/routes";
 import { mapAuthErrorMessage } from "@/lib/auth/error-messages.client";
 import { AuthFormHeading, AuthNotice, AuthSubmitButton } from "./AuthFormUi";
 import styles from "./auth.module.css";
+import { getAuthCopy, type AuthCopy } from "../i18n/auth-copy";
+import type { LandingLocale } from "@/features/landing/i18n/landing-locale";
 
 interface RegisterFormValues {
   firstName: string;
@@ -58,28 +60,32 @@ async function trackReferralClick(code: string): Promise<void> {
   }
 }
 
-function validateForm(values: RegisterFormValues): string | null {
+function validateForm(
+  values: RegisterFormValues,
+  t: AuthCopy["register"],
+): string | null {
   if (values.firstName.trim().length < 2) {
-    return "Escribe tus nombres.";
+    return t.errFirstName;
   }
   if (values.lastName.trim().length < 2) {
-    return "Escribe tus apellidos.";
+    return t.errLastName;
   }
   const dni = values.dni.trim().replace(/\D/g, "");
   if (!/^\d{8}$/.test(dni)) {
-    return "El DNI tiene 8 dígitos. No se acepta RUC ni pasaporte.";
+    return t.errDni;
   }
   const phoneDigits = values.phone.replace(/\D/g, "");
   if (phoneDigits.length < 9) {
-    return "Escribe un teléfono válido (mínimo 9 dígitos).";
+    return t.errPhone;
   }
   if (!values.email.trim().includes("@")) {
-    return "Escribe un correo electrónico válido.";
+    return t.errEmail;
   }
   return null;
 }
 
-export function RegisterForm() {
+export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
+  const t = getAuthCopy(locale).register;
   const router = useRouter();
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("ref")?.trim() || null;
@@ -110,7 +116,7 @@ export function RegisterForm() {
     event.preventDefault();
     setError(null);
 
-    const validationError = validateForm(values);
+    const validationError = validateForm(values, t);
     if (validationError) {
       setError(validationError);
       return;
@@ -142,9 +148,7 @@ export function RegisterForm() {
 
       if (!response.ok) {
         setError(
-          mapAuthErrorMessage(
-            payload.error ?? "No se pudo completar el registro.",
-          ),
+          payload.error ? mapAuthErrorMessage(payload.error, locale) : t.failed,
         );
         setLoading(false);
         return;
@@ -170,16 +174,14 @@ export function RegisterForm() {
       router.push(`${verifyUrl.pathname}${verifyUrl.search}`);
       router.refresh();
     } catch {
-      setError("No se pudo completar el registro. Vuelve a intentar.");
+      setError(t.failedRetry);
       setLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <AuthFormHeading title="Crea tu cuenta">
-        Completa tus datos y tu DNI. Te enviaremos un código por correo para verificar tu cuenta.
-      </AuthFormHeading>
+      <AuthFormHeading title={t.title}>{t.subtitle}</AuthFormHeading>
 
       <form onSubmit={handleSubmit} className={styles.form} aria-busy={loading}>
         <div className={styles.twoColumns}>
@@ -188,7 +190,7 @@ export function RegisterForm() {
               htmlFor="firstName"
               className={styles.fieldLabel}
             >
-              Nombres
+              {t.firstName}
             </label>
             <div className="relative">
               <FieldIcon>
@@ -202,7 +204,7 @@ export function RegisterForm() {
                 required
                 value={values.firstName}
                 onChange={(event) => updateField("firstName", event.target.value)}
-                placeholder="María Fernanda"
+                placeholder={t.firstNamePlaceholder}
                 className={inputClassName}
               />
             </div>
@@ -213,7 +215,7 @@ export function RegisterForm() {
               htmlFor="lastName"
               className={styles.fieldLabel}
             >
-              Apellidos
+              {t.lastName}
             </label>
             <div className="relative">
               <FieldIcon>
@@ -227,7 +229,7 @@ export function RegisterForm() {
                 required
                 value={values.lastName}
                 onChange={(event) => updateField("lastName", event.target.value)}
-                placeholder="Quispe Ramos"
+                placeholder={t.lastNamePlaceholder}
                 className={inputClassName}
               />
             </div>
@@ -239,7 +241,7 @@ export function RegisterForm() {
             htmlFor="dni"
             className={styles.fieldLabel}
           >
-            DNI
+            {t.dni}
           </label>
           <div className="relative">
             <FieldIcon>
@@ -261,7 +263,7 @@ export function RegisterForm() {
                   event.target.value.replace(/\D/g, "").slice(0, 8),
                 )
               }
-              placeholder="8 dígitos"
+              placeholder={t.dniPlaceholder}
               className={inputClassName}
             />
           </div>
@@ -272,7 +274,7 @@ export function RegisterForm() {
             htmlFor="phone"
             className={styles.fieldLabel}
           >
-            Teléfono
+            {t.phone}
           </label>
           <div className="relative">
             <FieldIcon>
@@ -302,7 +304,7 @@ export function RegisterForm() {
             htmlFor="email"
             className={styles.fieldLabel}
           >
-            Correo electrónico
+            {t.email}
           </label>
           <div className="relative">
             <FieldIcon>
@@ -317,7 +319,7 @@ export function RegisterForm() {
               required
               value={values.email}
               onChange={(event) => updateField("email", event.target.value)}
-              placeholder="tu@correo.com"
+              placeholder={t.emailPlaceholder}
               className={inputClassName}
             />
           </div>
@@ -325,7 +327,7 @@ export function RegisterForm() {
 
         {referralCode && (
           <AuthNotice tone="info">
-            Código de referido:{" "}
+            {t.referral}{" "}
             <span className="font-semibold text-[var(--auth-text)]">
               {referralCode}
             </span>
@@ -336,18 +338,18 @@ export function RegisterForm() {
           <AuthNotice tone="error" id="register-error">{error}</AuthNotice>
         )}
 
-        <AuthSubmitButton loading={loading} loadingLabel="Creando cuenta…">
-          Crear cuenta
+        <AuthSubmitButton loading={loading} loadingLabel={t.creating}>
+          {t.create}
         </AuthSubmitButton>
       </form>
 
       <p className={styles.formFooter}>
-        ¿Ya tienes cuenta?{" "}
+        {t.haveAccount}{" "}
         <Link
           href={routes.login}
           className={styles.textLink}
         >
-          Iniciar sesión
+          {t.signIn}
         </Link>
       </p>
     </div>

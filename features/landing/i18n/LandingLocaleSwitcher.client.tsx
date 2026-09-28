@@ -61,7 +61,7 @@ export function LandingLocaleSwitcher({
         aria-haspopup="listbox"
         disabled={pending}
         className={cn(
-          "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-[0.85rem] font-semibold text-[var(--nsx-secondary)] transition-colors hover:bg-[rgb(26_26_28_/_0.05)]",
+          "inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-[0.85rem] font-semibold text-[var(--nsx-secondary,#1a1a1c)] transition-colors hover:bg-[rgb(26_26_28_/_0.05)]",
           open && "bg-[rgb(26_26_28_/_0.05)]",
           pending && "opacity-60",
         )}
@@ -91,7 +91,7 @@ export function LandingLocaleSwitcher({
         <div
           role="listbox"
           aria-label={label}
-          className="absolute right-0 z-[60] mt-2 w-44 overflow-hidden rounded-2xl border border-[var(--nsx-stroke)] bg-white p-1.5 shadow-[0_18px_40px_-12px_rgb(28_34_43_/_0.25)]"
+          className="absolute right-0 z-[60] mt-2 w-44 overflow-hidden rounded-2xl border border-[var(--nsx-stroke,#e8e8ea)] bg-white p-1.5 shadow-[0_18px_40px_-12px_rgb(28_34_43_/_0.25)]"
         >
           {landingLocales.map((code) => {
             const active = code === locale;
@@ -106,8 +106,8 @@ export function LandingLocaleSwitcher({
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[0.9rem] font-medium transition-colors",
                   active
-                    ? "bg-[rgb(26_26_28_/_0.06)] text-[var(--nsx-secondary)]"
-                    : "text-[rgb(26_26_28_/_0.7)] hover:bg-[rgb(26_26_28_/_0.04)] hover:text-[var(--nsx-secondary)]",
+                    ? "bg-[rgb(26_26_28_/_0.06)] text-[var(--nsx-secondary,#1a1a1c)]"
+                    : "text-[rgb(26_26_28_/_0.7)] hover:bg-[rgb(26_26_28_/_0.04)] hover:text-[var(--nsx-secondary,#1a1a1c)]",
                 )}
               >
                 <span>{landingLocaleLabels[code]}</span>

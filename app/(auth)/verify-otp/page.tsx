@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { VerifyOtpForm } from "@/features/auth/components/VerifyOtpForm.client";
 import { AuthSplitShell } from "@/features/auth/components/AuthSplitShell";
 import { routes } from "@/config/routes";
+import { getAuthCopy } from "@/features/auth/i18n/auth-copy";
+import { getLandingLocale } from "@/features/landing/i18n/landing-locale.server";
 
 function AuthCardFallback() {
   return (
@@ -14,17 +16,21 @@ function AuthCardFallback() {
   );
 }
 
-export default function VerifyOtpPage() {
+export default async function VerifyOtpPage() {
+  const locale = await getLandingLocale();
+  const copy = getAuthCopy(locale).verify;
+
   return (
     <AuthSplitShell
-      topRight={{ label: "Volver al inicio", href: routes.login }}
+      locale={locale}
+      topRight={{ label: copy.topRightLabel, href: routes.login }}
       caption={{
-        title: "Revisa tu correo. El código llega en segundos.",
-        sub: "Ads Holistic, la plataforma de Holistic Marketing.",
+        title: copy.captionTitle,
+        sub: copy.captionSub,
       }}
     >
       <Suspense fallback={<AuthCardFallback />}>
-        <VerifyOtpForm />
+        <VerifyOtpForm locale={locale} />
       </Suspense>
     </AuthSplitShell>
   );
