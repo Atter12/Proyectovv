@@ -368,7 +368,7 @@ function buildGuardEmail(
   const subject = `${preview ? "[Prueba] Guardián de prepago activo · " : "[Aviso] Prepago: "}${
     allClear
       ? "todo en orden"
-      : `${budget.length} cuenta${budget.length === 1 ? "" : "s"} TikTok pueden gastar más que su saldo · ${clientes} cliente${clientes === 1 ? "" : "s"}`
+      : `${budget.length} cuenta${budget.length === 1 ? " TikTok puede" : "s TikTok pueden"} gastar más que su saldo · ${clientes} cliente${clientes === 1 ? "" : "s"}`
   }`;
 
   const rowsHtml = budget
@@ -399,7 +399,7 @@ function buildGuardEmail(
       <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">Todo en orden</p>
       <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:#57524b;">Ninguna cuenta de TikTok de clientes de Ads puede gastar más que su saldo en cartera, y ningún cliente está como crédito sin aprobación. Cuando eso cambie, este correo llega con el detalle.</p>`
     : `${previewHtml}
-      <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">${budget.length} cuenta${budget.length === 1 ? "" : "s"} pueden gastar más que su saldo</p>
+      <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">${budget.length} cuenta${budget.length === 1 ? " puede" : "s pueden"} gastar más que su saldo</p>
       <p style="margin:10px 0 24px;font-size:15px;line-height:1.5;color:#57524b;">El guardián de prepago revisó los presupuestos en TikTok contra el saldo en cartera. Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, abre la cuenta del cliente en Ads o ajusta su presupuesto en TikTok al valor sugerido.</p>
       ${creditHtml}
       ${
