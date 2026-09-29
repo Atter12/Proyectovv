@@ -262,7 +262,7 @@ async function loadProofForEmail(
       download.data.size <= MAX_INLINE_BYTES
     ) {
       inline = {
-        filename: `vista-${fileName}`,
+        filename: fileName,
         content,
         contentType: mimeType,
         contentId: VOUCHER_CID,
@@ -453,17 +453,19 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
         organizationId: input.organizationId,
         userId: input.createdBy,
         idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}:${managerEmail}`,
-        attachments: proof
-          ? [proof.inline, proof.attachment].filter(
-              (a): a is EmailAttachment => a !== null,
-            )
-          : undefined,
+        // Si el voucher ya va dentro del cuerpo no se adjunta otra copia:
+        // Apple Mail / iCloud la pintaban a tamaño completo al final.
+        attachments: proof?.inline
+          ? [proof.inline]
+          : proof?.attachment
+            ? [proof.attachment]
+            : undefined,
         metadata: {
           payment_intent_id: input.paymentIntentId,
           managers_count: managers.length,
           purpose: input.purpose ?? null,
           notify_mode: "per_recipient",
-          voucher_attached: Boolean(proof?.attachment),
+          voucher_attached: Boolean(proof?.inline ?? proof?.attachment),
         },
       });
     const results: PromiseSettledResult<unknown>[] = [];

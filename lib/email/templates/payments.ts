@@ -78,7 +78,7 @@ const PENDING_KIND_DESTINATION: Record<Exclude<ManualPaymentPendingKind, "wallet
 };
 
 const INK = "#1a1917";
-const MUTED = "#6b665f";
+const MUTED = "#57524b";
 const HAIRLINE = "#e8e4dd";
 
 function listRow(
@@ -89,8 +89,8 @@ function listRow(
   const border = options.first ? "" : `border-top:1px solid ${HAIRLINE};`;
   return `
       <tr>
-        <td style="${border}padding:13px 16px 13px 0;font-size:14px;color:${MUTED};vertical-align:top;white-space:nowrap;">${escapeHtml(label)}</td>
-        <td align="right" style="${border}padding:13px 0;font-size:14px;color:${options.quiet ? MUTED : INK};vertical-align:top;">${valueHtml}</td>
+        <td style="${border}padding:13px 16px 13px 0;font-size:15px;color:${MUTED};vertical-align:top;white-space:nowrap;">${escapeHtml(label)}</td>
+        <td align="right" style="${border}padding:13px 0;font-size:15px;color:${options.quiet ? MUTED : INK};vertical-align:top;">${valueHtml}</td>
       </tr>`;
 }
 
@@ -143,7 +143,7 @@ export function manualPaymentPendingManagerTemplate(input: {
   const preview = `${input.clientName} envió ${input.chargedLabel} por ${input.payMethodLabel}${input.operationCode ? ` · Op. ${input.operationCode}` : ""}.`;
 
   const operationHtml = input.operationCode
-    ? `<span style="font-family:${EMAIL_MONO};font-size:13px;letter-spacing:0.02em;">${escapeHtml(input.operationCode)}</span>`
+    ? `<span style="font-family:${EMAIL_MONO};font-size:14px;letter-spacing:0.02em;">${escapeHtml(input.operationCode)}</span>`
     : `<span style="color:${MUTED};">Sin número</span>`;
 
   const paymentRows = [
@@ -181,12 +181,12 @@ export function manualPaymentPendingManagerTemplate(input: {
               ? `<img src="cid:${escapeHtml(input.proof.inlineCid)}" alt="Voucher de ${escapeHtml(input.clientName)}" width="200" style="display:block;width:200px;max-width:100%;height:auto;border:1px solid ${HAIRLINE};border-radius:12px;" />`
               : `<div style="padding:28px 16px;border:1px solid ${HAIRLINE};border-radius:12px;text-align:center;font-size:13px;line-height:1.5;color:${MUTED};">Voucher en archivo<br />ábrelo desde el adjunto</div>`
           }
-          <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:${MUTED};">
-            ${input.proof.attached ? "Adjunto en este correo" : "Muy pesado para adjuntar"} · ${escapeHtml(fileTypeLabel(input.proof.fileName))}
+          <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:${MUTED};">
+            ${input.proof.inlineCid ? "Voucher" : input.proof.attached ? "Adjunto en este correo" : "Muy pesado para adjuntar"} · ${escapeHtml(fileTypeLabel(input.proof.fileName))}
           </p>
           ${
             input.proof.url
-              ? `<p style="margin:6px 0 0;font-size:13px;"><a href="${escapeHtml(input.proof.url)}" style="color:${INK};text-decoration:underline;">Ver en tamaño completo</a></p>`
+              ? `<p style="margin:6px 0 0;font-size:14px;"><a href="${escapeHtml(input.proof.url)}" style="color:${INK};text-decoration:underline;">Ver en tamaño completo</a></p>`
               : ""
           }`
     : `<div style="padding:28px 16px;border:1px solid ${HAIRLINE};border-radius:12px;text-align:center;font-size:13px;line-height:1.5;color:${MUTED};">No encontramos el voucher.<br />Revísalo en admin.</div>`;
@@ -206,7 +206,7 @@ export function manualPaymentPendingManagerTemplate(input: {
   const alertsHtml = input.alerts
     .map(
       (alert) => `
-      <p style="margin:0 0 10px;padding:14px 18px;background:#fbeeec;border-radius:6px;font-size:14px;line-height:1.5;color:#8f1d12;text-align:center;">${escapeHtml(alert)}</p>`,
+      <p style="margin:0 0 10px;padding:14px 18px;background:#fbeeec;border-radius:6px;font-size:15px;line-height:1.5;color:#8f1d12;text-align:center;">${escapeHtml(alert)}</p>`,
     )
     .join("");
 
@@ -216,7 +216,7 @@ export function manualPaymentPendingManagerTemplate(input: {
           <td class="hi-col" width="296" style="width:296px;padding-right:24px;vertical-align:top;">
             <p class="hi-amount" style="margin:0;font-size:40px;line-height:1.1;font-weight:700;letter-spacing:-0.02em;color:${INK};">${escapeHtml(input.chargedLabel)}</p>
             <p style="margin:14px 0 0;font-size:20px;line-height:1.3;color:${INK};">${escapeHtml(input.clientName)}</p>
-            ${input.clientEmail ? `<p style="margin:6px 0 0;font-size:14px;color:${MUTED};">${escapeHtml(input.clientEmail)}</p>` : ""}
+            ${input.clientEmail ? `<p style="margin:6px 0 0;font-size:15px;color:${MUTED};">${escapeHtml(input.clientEmail)}</p>` : ""}
 
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:28px;border-top:1px solid ${HAIRLINE};">
               ${paymentRows}
@@ -231,7 +231,7 @@ export function manualPaymentPendingManagerTemplate(input: {
 
       <div style="margin-top:32px;">
         ${alertsHtml}
-        <p style="margin:0;padding:14px 18px;background:#f6f1e8;border-radius:6px;font-size:14px;line-height:1.5;color:#5c574f;text-align:center;">${escapeHtml(reviewLine)}</p>
+        <p style="margin:0;padding:14px 18px;background:#f6f1e8;border-radius:6px;font-size:15px;line-height:1.5;color:#4a463f;text-align:center;">${escapeHtml(reviewLine)}</p>
       </div>
 
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;">

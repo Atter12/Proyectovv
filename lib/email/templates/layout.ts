@@ -92,7 +92,8 @@ export function wrapHolisticEmail(input: {
 
 /** Pila de fuentes del sistema: en correo no se cargan fuentes web. */
 export const EMAIL_SANS =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+  // Sin Segoe UI: en Windows a 13–14 px se ve fina y borrosa; Arial queda nítida.
+  "-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif";
 export const EMAIL_MONO =
   "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
 
@@ -142,7 +143,7 @@ export function wrapInternalEmail(input: {
                   <td class="hi-head-logo" style="vertical-align:middle;">
                     <img src="${logoUrl}" alt="${brand}" width="104" style="display:block;width:104px;max-width:104px;height:auto;border:0;" />
                   </td>
-                  <td class="hi-head" align="right" style="vertical-align:middle;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#6b665f;">
+                  <td class="hi-head" align="right" style="vertical-align:middle;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#57524b;">
                     ${label}
                   </td>
                 </tr>
@@ -155,7 +156,7 @@ export function wrapInternalEmail(input: {
             </td>
           </tr>
           <tr>
-            <td class="hi-pad" style="padding:28px 40px 36px;font-size:12px;line-height:1.5;color:#6b665f;">
+            <td class="hi-pad" style="padding:28px 40px 36px;font-size:13px;line-height:1.5;color:#6b665f;">
               ${escapeHtml(input.footerNote)}
             </td>
           </tr>
