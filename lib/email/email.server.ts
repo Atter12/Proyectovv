@@ -11,6 +11,14 @@ export interface SendEmailInput {
   userId?: string | null;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
+  /** Contenido en base64 (formato de Resend). */
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    contentType?: string;
+    /** Imagen incrustada: se referencia en el HTML como `cid:<contentId>`. */
+    contentId?: string;
+  }>;
 }
 
 interface ResendSendResponse {
@@ -91,6 +99,16 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<{ s
       html: input.html,
       text: input.text,
       ...(serverEnv.emailReplyTo ? { reply_to: serverEnv.emailReplyTo } : {}),
+      ...(input.attachments?.length
+        ? {
+            attachments: input.attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content,
+              ...(a.contentType ? { content_type: a.contentType } : {}),
+              ...(a.contentId ? { content_id: a.contentId } : {}),
+            })),
+          }
+        : {}),
       tags: [
         { name: "template", value: input.templateKey.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 256) },
       ],

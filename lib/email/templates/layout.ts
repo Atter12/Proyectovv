@@ -90,4 +90,81 @@ export function wrapHolisticEmail(input: {
   };
 }
 
+/** Pila de fuentes del sistema: en correo no se cargan fuentes web. */
+export const EMAIL_SANS =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+export const EMAIL_MONO =
+  "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
+
+/**
+ * Shell para avisos internos a gerencia: papel claro, logo pequeño y una
+ * etiqueta de estado. Sin firma ni pie legal; solo los datos para decidir.
+ */
+export function wrapInternalEmail(input: {
+  label: string;
+  preview: string;
+  bodyHtml: string;
+  footerNote: string;
+}): string {
+  const label = escapeHtml(input.label);
+  const preview = escapeHtml(input.preview);
+  const brand = escapeHtml(siteConfig.name);
+  const logoUrl = `${serverEnv.appUrl.replace(/\/$/, "")}${siteConfig.logoSrc}`;
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" /><meta name="supported-color-schemes" content="light" />
+  <title>${preview}</title>
+  <style>
+    @media (max-width:560px) {
+      .hi-pad { padding-left:22px !important; padding-right:22px !important; }
+      .hi-col { display:block !important; width:100% !important; padding:0 !important; }
+      .hi-voucher { padding-top:28px !important; }
+      .hi-voucher img { width:100% !important; max-width:260px !important; }
+      .hi-head-logo { display:block !important; }
+      .hi-head { display:block !important; text-align:left !important; padding-top:16px !important; }
+      .hi-amount { font-size:34px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f2f0eb;font-family:${EMAIL_SANS};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">${preview}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f0eb;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#fcfbf9;border-radius:6px;">
+          <tr>
+            <td class="hi-pad" style="padding:36px 40px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td class="hi-head-logo" style="vertical-align:middle;">
+                    <img src="${logoUrl}" alt="${brand}" width="104" style="display:block;width:104px;max-width:104px;height:auto;border:0;" />
+                  </td>
+                  <td class="hi-head" align="right" style="vertical-align:middle;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#6b665f;">
+                    ${label}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="hi-pad" style="padding:36px 40px 0;">
+              ${input.bodyHtml}
+            </td>
+          </tr>
+          <tr>
+            <td class="hi-pad" style="padding:28px 40px 36px;font-size:12px;line-height:1.5;color:#6b665f;">
+              ${escapeHtml(input.footerNote)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 export { escapeHtml };
