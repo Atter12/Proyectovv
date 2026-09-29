@@ -13,6 +13,7 @@ import { getPaymentIntentByIdInternal } from "@/lib/payments/payment-intents.ser
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { RECHARGE_BOT_SOURCE, YAPE_RECIPIENT } from "@/lib/payments/yape/recipient";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
+import { listHecomOtpStaffEmails } from "@/lib/auth/hecom-otp.server";
 import {
   describeVoucherChannel,
   normalizeVoucherBank,
@@ -41,12 +42,14 @@ const MANUAL_PAYMENT_MANAGER_FALLBACKS = [
   "templesour@icloud.com",
 ] as const;
 
-/** Gerentes / ops que deben enterarse de pagos manuales pendientes. */
+/**
+ * Gerentes / ops que deben enterarse de pagos manuales pendientes: los mismos
+ * que pueden entrar como gerente (lista fija + env), aunque falten en Vercel.
+ */
 export function resolveManualPaymentManagerEmails(): string[] {
   return uniqueEmails([
     ...MANUAL_PAYMENT_MANAGER_FALLBACKS,
-    ...serverEnv.authHecomOtpStaffEmails,
-    ...serverEnv.adminAllowedEmails,
+    ...listHecomOtpStaffEmails(),
     ...serverEnv.paymentsSuperAdminEmails,
     serverEnv.supportEmail,
   ]);
