@@ -20,7 +20,8 @@
   transition:
     opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-  background: linear-gradient(120deg, #ff9a3c 0%, #ff6a2b 45%, #e5482a 100%);
+  /* Tonos oscuros del naranja: pasan 3:1 como texto grande sobre fondo claro. */
+  background: linear-gradient(120deg, #ea580c 0%, #d9480f 50%, #c2410c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -218,9 +219,7 @@
   gap: 1.25rem;
   padding: 1.25rem;
   border-radius: 24px;
-  background:
-    radial-gradient(70% 60% at 100% 0%, rgb(255 176 120 / 0.18), transparent 70%),
-    #fff;
+  background: #fff;
   border: 1px solid var(--nsx-stroke);
   min-height: 25rem;
 }
@@ -411,6 +410,7 @@
 .nsx-mock-avatar.is-accent {
   border-radius: 999px;
   background: linear-gradient(135deg, #ffb84a, #ff4d2d);
+  color: #17150f;
 }
 
 .nsx-mock-pill {
@@ -588,6 +588,7 @@
 
 .nsx-mock-funnel li:last-child .nsx-mock-funnel-bar {
   background: linear-gradient(90deg, #ff6a2b, #ffb84a);
+  color: #17150f;
 }
 
 .nsx-mock-events code {
@@ -753,6 +754,7 @@
   justify-content: center;
   border-radius: 999px;
   background: linear-gradient(135deg, #ffb84a, #ff4d2d);
+  color: #17150f;
   font-size: 0.65rem;
 }
 
@@ -940,11 +942,9 @@
   align-items: center;
   padding: 1.75rem;
   border-radius: 28px;
-  background:
-    radial-gradient(60% 90% at 0% 0%, rgb(255 184 74 / 0.35), transparent 60%),
-    radial-gradient(50% 80% at 100% 100%, rgb(255 90 43 / 0.2), transparent 60%),
-    #fff7ef;
-  border: 1px solid rgb(255 120 31 / 0.25);
+  background: #fff;
+  border: 1px solid var(--nsx-stroke);
+  box-shadow: 0 24px 60px -40px rgb(28 34 43 / 0.35);
 }
 
 @media (min-width: 900px) {
@@ -961,10 +961,10 @@
   width: 7rem;
   height: 7rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffb84a 0%, #ff781f 55%, #ff4d2d 100%);
+  background: #17150f;
   color: #fff;
   text-align: center;
-  box-shadow: 0 20px 40px -18px rgb(255 90 43 / 0.7);
+  box-shadow: 0 20px 40px -18px rgb(23 21 15 / 0.6);
   animation: nsx-float 4s ease-in-out infinite;
 }
 
@@ -975,6 +975,7 @@
 }
 
 .nsx-referral-badge strong {
+  color: #ff8a3d;
   font-size: 2.6rem;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -988,10 +989,6 @@
   50% {
     transform: translateY(-6px) rotate(3deg);
   }
-}
-
-.nsx-referral-copy .nsx-pill {
-  background: #fff;
 }
 
 .nsx-referral-copy .nsx-h2 {
