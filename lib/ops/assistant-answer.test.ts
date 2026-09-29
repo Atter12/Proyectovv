@@ -240,15 +240,27 @@ test("cortes vacíos muestran ceros sin inventar filas", () => {
   assert.ok(client.table?.rows.every((item) => item.amount === money(0)));
 });
 
-test("preguntas vacías o desconocidas muestran ayuda sin cifras ni fuentes inventadas", () => {
-  for (const question of ["", " ", "muéstrame campañas de ayer"]) {
+test("un saludo responde con el corte del día y una consulta suelta no inventa otra cosa", () => {
+  const hi = buildAssistantResponse(brief, "hola");
+  assert.equal(hi.blocks[0].id, "pulse");
+  assert.equal(hi.blocks[0].title, "Hola");
+  assert.match(hi.reply, /Qué dudas tienes de los clientes/);
+  assert.match(hi.reply, /qué quieres saber hoy/);
+  assert.equal(hi.blocks[0].metrics, undefined);
+
+  for (const question of ["", " "]) {
     const response = buildAssistantResponse(brief, question);
     assert.equal(response.reply, answerAssistant(brief, question));
     assert.equal(response.blocks[0].id, "help");
     assert.equal(response.blocks[0].metrics, undefined);
-    assert.equal(response.blocks[0].table, undefined);
     assert.deepEqual(response.blocks[0].sources, []);
   }
+
+  const other = buildAssistantResponse(brief, "muéstrame campañas de ayer");
+  assert.equal(other.blocks[0].id, "pulse");
+  assert.match(other.reply, /corte de Setiembre de 2026/);
+  assert.equal(other.blocks[0].metrics?.find((metric) => metric.label === "Cobrado hoy")?.value, money(120));
+  assert.doesNotMatch(other.reply, /campañas de ayer fueron/);
 });
 
 const conAbel: AssistantBrief = {

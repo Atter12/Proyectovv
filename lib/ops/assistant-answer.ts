@@ -258,6 +258,37 @@ function asksPayments(question: string): boolean {
   return wants(question, ["pago", "pagos", "cobro", "cobrado", "deposito", "depósito"]);
 }
 
+function isGreeting(question: string): boolean {
+  const q = foldText(question)
+    .replace(/[!?.,¡¿]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return /^(hola|holi|hello|hey|buenas|buenos dias|buenas tardes|buenas noches|buen dia|que tal|como estas|como va|gracias)$/.test(q);
+}
+
+function topByDebt(rows: AssistantCliente[]): AssistantCliente | null {
+  return rows.reduce<AssistantCliente | null>(
+    (best, row) => (!best || row.debt > best.debt ? row : best),
+    null,
+  );
+}
+
+function snapshotText(brief: AssistantBrief, lead: string): string {
+  const pagos = brief.pagosHoy.length
+    ? `Hoy se cobró ${money(brief.pagosHoyTotal)} en ${brief.pagosHoy.length} cliente${brief.pagosHoy.length === 1 ? "" : "s"}.`
+    : `Hoy ${brief.today} todavía no hay cobros.`;
+  const activos = brief.activosHoy.length
+    ? `${brief.activosHoy.length} cliente${brief.activosHoy.length === 1 ? "" : "s"} con gasto de ads hoy.`
+    : "Hoy no hay gasto de ads cargado.";
+  const highest = topByDebt(brief.rojos);
+  const rojos = highest
+    ? `En rojo hay ${brief.rojos.length}: ${highest.name} debe ${money(highest.debt)}.`
+    : "En este corte no hay clientes en rojo.";
+  const week = brief.recarga7d;
+  const recarga = `Del ${week.from} al ${week.to} la recarga a cartera fue ${money(week.creditUsd)} y el fee ${money(week.feeUsd)}.`;
+  return `${lead}\n${pagos} ${activos} ${rojos}\n${recarga}`;
+}
+
 function wants(question: string, words: string[]): boolean {
   const q = foldText(question);
   return words.some((word) => q.includes(word));
@@ -283,11 +314,14 @@ function getQuestionContext(brief: AssistantBrief, question: string) {
 export function answerAssistant(brief: AssistantBrief, question: string): string {
   const { asked, named, nameHit, aboutOne, aboutWeek, payScope } = getQuestionContext(brief, question);
   if (!asked) {
-    return "Pregúntame por los pagos de hoy, quién está activo, las alertas, a quién dar crédito o quién está en rojo.";
+    return `Cartera al ${brief.today}. Escribe un cliente o qué quieres ver.`;
+  }
+  if (isGreeting(asked)) {
+    return `Hola. ¿Qué dudas tienes de los clientes, o qué quieres saber hoy?`;
   }
 
   if (nameHit.kind === "many" && asksPayments(asked)) {
-    return `Hay más de uno: ${nameHit.names.slice(0, 6).join(", ")}. Decime el nombre completo.`;
+    return `Hay más de uno: ${nameHit.names.slice(0, 6).join(", ")}. Dime el nombre completo.`;
   }
 
   if (aboutOne && named) {
@@ -389,7 +423,10 @@ export function answerAssistant(brief: AssistantBrief, question: string): string
   if (parts.length) return parts.join("\n\n");
   if (named) return cardCliente(named);
 
-  return `Puedo armar la cartera de ${brief.monthLabel}, la recarga y el fee de esta semana, y el score de un cliente con su historial. Pregúntame, por ejemplo: cuánto recargaron esta semana, pagos de hoy, quién está en rojo, o el score de un cliente.`;
+  return snapshotText(
+    brief,
+    `Con el corte de ${brief.monthLabel} te respondo la cartera.`,
+  );
 }
 
 function paymentsSource(brief: AssistantBrief): AssistantSource {
@@ -686,9 +723,40 @@ export function buildAssistantResponse(
   }
 
   if (!blocks.length) {
-    blocks.push(named
-      ? clientBlock(brief, named)
-      : { id: "help", title: "Puedo ayudarte con la cartera", text: reply, sources: [] });
+    if (named) {
+      blocks.push(clientBlock(brief, named));
+    } else {
+      const week = brief.recarga7d;
+      const highest = topByDebt(brief.rojos);
+      blocks.push({
+        id: "pulse",
+        title: isGreeting(asked) ? "Hola" : `Cartera al ${brief.today}`,
+        text: isGreeting(asked)
+          ? "¿Qué dudas tienes de los clientes, o qué quieres saber hoy?"
+          : reply,
+        sources: isGreeting(asked)
+          ? []
+          : [portfolioSource(brief), paymentsSource(brief), rechargeSource(brief)],
+        ...(!isGreeting(asked)
+          ? {
+              metrics: [
+                { label: "Cobrado hoy", value: money(brief.pagosHoyTotal) },
+                { label: "Con gasto hoy", value: String(brief.activosHoy.length) },
+                { label: "En rojo", value: String(brief.rojos.length) },
+                { label: "Recarga de la semana", value: money(week.creditUsd) },
+              ],
+              ...(highest
+                ? {
+                    table: clientsTable(
+                      [highest],
+                      `Mayor deuda en rojo de ${brief.monthLabel}. Importes en USD.`,
+                    ),
+                  }
+                : {}),
+            }
+          : {}),
+      });
+    }
   }
 
   return response();
