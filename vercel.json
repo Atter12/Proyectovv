@@ -28,6 +28,10 @@
     {
       "path": "/api/jobs/alliances-followup",
       "schedule": "15 13 * * *"
+    },
+    {
+      "path": "/api/jobs/prepago-guard",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
