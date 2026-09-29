@@ -34,6 +34,8 @@ export type LandingCopy = {
     language: string;
   };
   hero: {
+    /** Etiqueta visible sobre el H1 con la palabra clave principal (SEO). */
+    eyebrow: string;
     social: string;
     titlePrefix: string;
     rotating: [string, string, string, string];
@@ -141,9 +143,9 @@ export type LandingCopy = {
 
 const es: LandingCopy = {
   meta: {
-    title: `${n} — Crece con control real en ads`,
+    title: "Agencia de TikTok Ads en Perú · Recarga con Yape y Plin | Ads Holistic",
     description:
-      "Holistic Marketing: recarga con Yape, Plin, transferencia, tarjeta o USDT, crea tus cuentas TikTok, mide el ROAS real y analiza tus creativos con IA.",
+      "Publica tus anuncios en TikTok: crea cuentas publicitarias, recarga saldo con Yape, Plin, tarjeta o USDT y mide el ROAS real. Agencia de publicidad digital en Perú.",
   },
   skipToContent: "Saltar al contenido",
   nav: {
@@ -160,6 +162,7 @@ const es: LandingCopy = {
     language: "Idioma",
   },
   hero: {
+    eyebrow: "Agencia de TikTok Ads en Perú",
     social: `equipos en Latam ya operan con ${n}.`,
     titlePrefix: "Controla tus",
     rotating: ["campañas TikTok", "recargas", "creativos", "ganancias"],
@@ -363,6 +366,10 @@ const es: LandingCopy = {
     lead: "¿Tienes otra duda? Escríbenos desde el chat del panel.",
     items: [
       {
+        q: "¿Qué es Ads Holistic?",
+        a: `Es la plataforma de ${n}, agencia de publicidad digital en Perú, para publicar y gestionar tus anuncios en TikTok: cuentas publicitarias, recargas de saldo con Yape, Plin o tarjeta, píxel, creativos con IA y reportes de ROAS en un solo panel.`,
+      },
+      {
         q: "¿Con qué plataformas de anuncios trabajan?",
         a: "Nos enfocamos en TikTok Ads: cuentas, Business Center, píxel, creativos y reportes, todo integrado en un solo panel.",
       },
@@ -411,9 +418,9 @@ const es: LandingCopy = {
 
 const en: LandingCopy = {
   meta: {
-    title: `${n} — Grow with real control over your ads`,
+    title: "TikTok Ads Agency in Peru · Top up with Yape and Plin | Ads Holistic",
     description:
-      "Holistic Marketing: top up with Yape, Plin, bank transfer, card or USDT, create your TikTok ad accounts, measure real ROAS and analyze your creatives with AI.",
+      "Run your TikTok ads: create ad accounts, top up with Yape, Plin, card or USDT and measure real ROAS. A digital advertising agency based in Peru.",
   },
   skipToContent: "Skip to content",
   nav: {
@@ -430,6 +437,7 @@ const en: LandingCopy = {
     language: "Language",
   },
   hero: {
+    eyebrow: "TikTok Ads agency in Peru",
     social: `teams across Latin America already run on ${n}.`,
     titlePrefix: "Run your",
     rotating: ["TikTok campaigns", "top-ups", "creatives", "profits"],
@@ -633,6 +641,10 @@ const en: LandingCopy = {
     lead: "Have another question? Message us from the dashboard chat.",
     items: [
       {
+        q: "What is Ads Holistic?",
+        a: `It's the platform of ${n}, a digital advertising agency in Peru, to publish and manage your TikTok ads: ad accounts, balance top-ups with Yape, Plin or card, pixel, AI creative analysis and ROAS reports in one dashboard.`,
+      },
+      {
         q: "Which ad platforms do you work with?",
         a: "We focus on TikTok Ads: accounts, Business Center, pixel, creatives and reports, all integrated in one dashboard.",
       },
@@ -681,9 +693,9 @@ const en: LandingCopy = {
 
 const zh: LandingCopy = {
   meta: {
-    title: `${n} — 真正掌控你的广告增长`,
+    title: "秘鲁 TikTok 广告代理 · 支持 Yape 与 Plin 充值 | Ads Holistic",
     description:
-      "Holistic Marketing：支持 Yape、Plin、银行转账、银行卡或 USDT 充值，自助创建 TikTok 广告账户，衡量真实 ROAS，并用 AI 分析你的创意素材。",
+      "投放你的 TikTok 广告：创建广告账户，使用 Yape、Plin、银行卡或 USDT 充值，并衡量真实 ROAS。总部位于秘鲁的数字广告代理。",
   },
   skipToContent: "跳到内容",
   nav: {
@@ -700,6 +712,7 @@ const zh: LandingCopy = {
     language: "语言",
   },
   hero: {
+    eyebrow: "秘鲁 TikTok 广告代理",
     social: `个拉美团队已在使用 ${n} 运营。`,
     titlePrefix: "一个面板，掌控你的",
     rotating: ["TikTok 广告", "充值", "创意素材", "利润"],
@@ -902,6 +915,10 @@ const zh: LandingCopy = {
     title: "大家最常问的问题",
     lead: "还有其他疑问？请通过面板内的聊天联系我们。",
     items: [
+      {
+        q: "Ads Holistic 是什么？",
+        a: `它是秘鲁数字广告代理 ${n} 旗下的平台，用于投放和管理你的 TikTok 广告：广告账户、通过 Yape、Plin 或银行卡充值、Pixel、AI 创意分析和 ROAS 报表，全部集中在一个面板中。`,
+      },
       {
         q: "你们支持哪些广告平台？",
         a: "我们专注于 TikTok Ads：账户、Business Center、Pixel、创意素材和报表，全部集成在一个面板中。",

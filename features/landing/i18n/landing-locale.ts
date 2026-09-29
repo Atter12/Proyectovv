@@ -81,15 +81,28 @@ function fromCountry(country: string | null | undefined): LandingLocale | null {
   return "en";
 }
 
+/** Parámetro de URL que fija el idioma (`/?lang=en`), usado para hreflang. */
+export const landingLocaleQueryParam = "lang";
+
+const BOT_UA =
+  /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|linkedin|preview|lighthouse|headless/i;
+
 /**
- * Orden: elección manual (cookie) → idioma del navegador → país → español.
+ * Orden: `?lang=` → elección manual (cookie) → idioma del navegador → país → español.
+ * Robots y visitas sin `Accept-Language` reciben español: Googlebot rastrea desde
+ * EE. UU. sin idioma y, si no, indexaría la versión en inglés.
  */
 export function detectLandingLocale(input: {
+  query?: string | null;
   cookie?: string | null;
   acceptLanguage?: string | null;
   country?: string | null;
+  userAgent?: string | null;
 }): LandingLocale {
+  if (isLandingLocale(input.query)) return input.query;
   if (isLandingLocale(input.cookie)) return input.cookie;
+  if (input.userAgent && BOT_UA.test(input.userAgent)) return defaultLandingLocale;
+  if (!input.acceptLanguage?.trim()) return defaultLandingLocale;
   return (
     fromAcceptLanguage(input.acceptLanguage) ??
     fromCountry(input.country) ??

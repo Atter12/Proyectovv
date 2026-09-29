@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { siteConfig } from "@/config/site";
+import { seoConfig } from "@/config/seo";
 import { DocumentThemeScope } from "@/components/theme/DocumentThemeScope.client";
 import { adminThemeInitScript } from "@/lib/admin-theme-script";
 import { criticalCss, cssLoadGuardScript } from "@/lib/critical-css";
@@ -64,8 +65,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(seoConfig.siteUrl),
   title: siteConfig.name,
   description: siteConfig.description,
+  openGraph: {
+    type: "website",
+    siteName: seoConfig.siteName,
+    locale: "es_PE",
+    images: [{ url: seoConfig.ogImagePath, width: 1600, height: 1000 }],
+  },
   applicationName: "Ads Holistic",
   appleWebApp: {
     capable: true,

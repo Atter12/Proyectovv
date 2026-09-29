@@ -5,6 +5,19 @@
   gap: 0.75rem;
 }
 
+/* Etiqueta con la palabra clave principal, sobre el título (visible, no oculta). */
+.nsx-hero-eyebrow {
+  margin-bottom: -0.75rem;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--nsx-stroke);
+}
+
+@media (min-width: 768px) {
+  .nsx-hero-eyebrow {
+    margin-bottom: -1.5rem;
+  }
+}
+
 /* Palabra rotativa del hero: todas apiladas en la misma celda (sin saltos de layout). */
 .nsx-rotator {
   display: inline-grid;

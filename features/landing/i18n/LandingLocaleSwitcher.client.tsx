@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import {
   landingLocaleCookieName,
   landingLocaleLabels,
+  landingLocaleQueryParam,
   landingLocaleShort,
   landingLocales,
   type LandingLocale,
@@ -48,6 +49,13 @@ export function LandingLocaleSwitcher({
     setOpen(false);
     if (next === locale) return;
     saveLandingLocale(next);
+    // `?lang=` manda sobre la cookie: se quita para que valga la elección nueva.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has(landingLocaleQueryParam)) {
+      url.searchParams.delete(landingLocaleQueryParam);
+      startTransition(() => router.replace(`${url.pathname}${url.search}${url.hash}`));
+      return;
+    }
     startTransition(() => router.refresh());
   }
 

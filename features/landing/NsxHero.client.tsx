@@ -72,6 +72,7 @@ export function NsxHero({
       <div className="nsx-container relative z-10">
         <div className="nsx-hero-stack">
           <div className="nsx-hero-copy">
+            <p className="nsx-pill nsx-hero-eyebrow">{copy.eyebrow}</p>
             <div className="nsx-hero-social">
               <div className="nsx-hero-avatars">
                 {AVATARS.map((src) => (
