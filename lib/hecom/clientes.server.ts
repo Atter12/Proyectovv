@@ -77,11 +77,11 @@ export function buildOtpTestHecomCliente(id: string): HecomCliente {
 const HECOM_CLIENTE_SELECT =
   "id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at,tiktok_advertiser_id,tiktok_advertiser_name,tiktok_sync_enabled,tiktok_default_fee,credito_form_slug,cobranza_rango";
 
-/** Modalidad de cobro según ficha Hecom Club. */
+/** En Ads Holistic la modalidad es prepago. El link del formulario no convierte a crédito. */
 export function resolveHecomBillingModality(
-  cliente: Pick<HecomCliente, "creditoFormSlug">,
+  _cliente: Pick<HecomCliente, "creditoFormSlug">,
 ): "credito" | "prepago" {
-  return cliente.creditoFormSlug?.trim() ? "credito" : "prepago";
+  return "prepago";
 }
 
 function asStringArray(value: unknown): string[] {

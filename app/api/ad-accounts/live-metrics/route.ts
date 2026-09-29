@@ -47,8 +47,8 @@ export async function GET(request: Request) {
       reason?: string;
     }> = [];
 
-    // BM 10/30 Ads Holistic prepago: cupo TikTok = ledger (como cash BM200).
-    // No tocar solo-Hecom ni crédito agencia (ficha Hecom con credito_form_slug).
+    // BM 10/30 Ads Holistic: todos prepago, cupo TikTok = ledger.
+    // No tocar clientes que solo están en Hecom.
     const adsHolistic = await isAdsHolisticCliente(selected.id);
     const agencyCredit = adsHolistic
       ? await isAgencyCreditCliente(selected.id)

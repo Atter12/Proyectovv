@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAgencyCreditSlug } from "@/lib/hecom/agency-credit";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
 import { todayYmdInTz, shiftYmd } from "@/lib/hecom/gasto-date";
 import {
@@ -131,7 +132,7 @@ export async function loadAssistantBrief(force = false): Promise<AssistantBrief>
     if (!id || !name) continue;
     names.set(id, {
       name,
-      agency: Boolean(String(row.credito_form_slug || "").trim()),
+      agency: isAgencyCreditSlug(row.credito_form_slug),
       rango: row.cobranza_rango ? String(row.cobranza_rango).trim() : null,
     });
   }
