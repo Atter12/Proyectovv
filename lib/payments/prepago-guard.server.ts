@@ -30,6 +30,9 @@ const TOLERANCE_USD = 1;
 const REALERT_AFTER_HOURS = 6;
 const MANAGER_EMAILS_PER_SECOND = 2;
 const AUDIT_ACTION = "prepago_guard.run";
+/** Correo de prueba que se envía una sola vez, en la primera revisión en producción. */
+const PREVIEW_ACTION = "prepago_guard.preview_sent";
+const PREVIEW_TO = ["lizarzaburusebastian046@gmail.com"];
 
 export type PrepagoGuardIncident = {
   kind: "budget_over_balance" | "credit_without_approval";
@@ -228,6 +231,11 @@ export async function runPrepagoGuard(
   const { alerted, reason } = notify
     ? await alertIfNeeded(incidents)
     : { alerted: false, reason: "prueba_sin_aviso" };
+  if (notify) {
+    await sendPreviewOnce(incidents, tiktokRows.length, clientesSeen.size).catch((error) =>
+      console.warn("[prepago-guard] preview failed", error),
+    );
+  }
 
   if (record) await createAdminClient().from("audit_logs").insert({
     action: AUDIT_ACTION,
@@ -254,6 +262,40 @@ export async function runPrepagoGuard(
   };
 }
 
+/** Primer correo en producción, a quien pidió probar el guardián. Una sola vez. */
+async function sendPreviewOnce(
+  incidents: PrepagoGuardIncident[],
+  scanned: number,
+  clientes: number,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: done } = await admin
+    .from("audit_logs")
+    .select("id")
+    .eq("action", PREVIEW_ACTION)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (done?.id) return;
+
+  const email = buildGuardEmail(incidents, { preview: true, scanned, clientes });
+  for (const to of PREVIEW_TO) {
+    await sendTransactionalEmail({
+      to,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      templateKey: "ops.prepago_guard.preview",
+      idempotencyKey: `email:prepago_guard_preview:${to}`,
+      metadata: { incidents_count: incidents.length },
+    });
+  }
+  await admin.from("audit_logs").insert({
+    action: PREVIEW_ACTION,
+    entity_type: "prepago_guard",
+    metadata: { to: PREVIEW_TO, incidents_count: incidents.length, scanned_advertisers: scanned },
+  });
+}
+
 /** Huella del problema: cambia si aparece otra cuenta o el exceso sube de a $10. */
 function incidentsHash(incidents: PrepagoGuardIncident[]): string {
   const key = incidents
@@ -270,19 +312,21 @@ async function alertIfNeeded(
   if (incidents.length === 0) return { alerted: false, reason: "sin_incidentes" };
 
   const hash = incidentsHash(incidents);
-  const { data: lastAlert } = await createAdminClient()
+  // audit_logs tiene cientos de miles de filas: solo la ventana de re-aviso,
+  // y el filtro por metadata se hace aquí para no depender de un índice.
+  const since = new Date(Date.now() - REALERT_AFTER_HOURS * 3_600_000).toISOString();
+  const { data: recentRuns } = await createAdminClient()
     .from("audit_logs")
     .select("created_at, metadata")
     .eq("action", AUDIT_ACTION)
-    .eq("metadata->>alerted", "true")
+    .gte("created_at", since)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ created_at: string; metadata: { incidents_hash?: string } }>();
-
-  if (lastAlert?.metadata?.incidents_hash === hash) {
-    const hoursSince = (Date.now() - new Date(lastAlert.created_at).getTime()) / 3_600_000;
-    if (hoursSince < REALERT_AFTER_HOURS) return { alerted: false, reason: "ya_avisado" };
-  }
+    .limit(30);
+  const alreadyAlerted = (recentRuns ?? []).some((run) => {
+    const meta = (run.metadata ?? {}) as { alerted?: boolean; incidents_hash?: string };
+    return meta.alerted === true && meta.incidents_hash === hash;
+  });
+  if (alreadyAlerted) return { alerted: false, reason: "ya_avisado" };
 
   const managers = resolveManualPaymentManagerEmails();
   if (managers.length === 0) return { alerted: false, reason: "sin_destinatarios" };
@@ -313,11 +357,19 @@ function usd(value: number | undefined): string {
   return value == null ? "—" : `USD ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function buildGuardEmail(incidents: PrepagoGuardIncident[]) {
+function buildGuardEmail(
+  incidents: PrepagoGuardIncident[],
+  preview?: { preview: true; scanned: number; clientes: number },
+) {
   const budget = incidents.filter((i) => i.kind === "budget_over_balance");
   const credit = incidents.filter((i) => i.kind === "credit_without_approval");
   const clientes = new Set(incidents.map((i) => i.hecomClienteId)).size;
-  const subject = `[Aviso] Prepago: ${budget.length} cuenta${budget.length === 1 ? "" : "s"} TikTok pueden gastar más que su saldo · ${clientes} cliente${clientes === 1 ? "" : "s"}`;
+  const allClear = incidents.length === 0;
+  const subject = `${preview ? "[Prueba] Guardián de prepago activo · " : "[Aviso] Prepago: "}${
+    allClear
+      ? "todo en orden"
+      : `${budget.length} cuenta${budget.length === 1 ? "" : "s"} TikTok pueden gastar más que su saldo · ${clientes} cliente${clientes === 1 ? "" : "s"}`
+  }`;
 
   const rowsHtml = budget
     .map(
@@ -337,7 +389,16 @@ function buildGuardEmail(incidents: PrepagoGuardIncident[]) {
        </p>`
     : "";
 
-  const bodyHtml = `
+  const previewHtml = preview
+    ? `<p style="margin:0 0 20px;padding:14px 18px;background:#f6f1e8;border-radius:6px;font-size:14px;line-height:1.5;color:#4a463f;">
+         Correo de prueba: el guardián ya corre en producción cada 15 minutos. En esta revisión leyó <b>${preview.scanned}</b> cuentas de BM10 y BM30 y <b>${preview.clientes}</b> clientes de Ads.
+       </p>`
+    : "";
+  const bodyHtml = allClear
+    ? `${previewHtml}
+      <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">Todo en orden</p>
+      <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:#57524b;">Ninguna cuenta de TikTok de clientes de Ads puede gastar más que su saldo en cartera, y ningún cliente está como crédito sin aprobación. Cuando eso cambie, este correo llega con el detalle.</p>`
+    : `${previewHtml}
       <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">${budget.length} cuenta${budget.length === 1 ? "" : "s"} pueden gastar más que su saldo</p>
       <p style="margin:10px 0 24px;font-size:15px;line-height:1.5;color:#57524b;">El guardián de prepago revisó los presupuestos en TikTok contra el saldo en cartera. Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, abre la cuenta del cliente en Ads o ajusta su presupuesto en TikTok al valor sugerido.</p>
       ${creditHtml}
