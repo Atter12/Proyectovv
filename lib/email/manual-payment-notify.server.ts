@@ -205,6 +205,7 @@ function slugify(value: string): string {
     .slice(0, 40);
 }
 
+const MANAGER_EMAILS_PER_SECOND = 2;
 const PROOF_SIGNED_URL_TTL_SECONDS = 72 * 60 * 60;
 /** Resend acepta hasta 40 MB por correo; en base64 el archivo crece ~33 %. */
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
@@ -439,33 +440,41 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
           ? "payment.realprofit.pending_manager"
           : "payment.manual.pending_manager";
 
-    // Un correo por gerente (no batch). Gmail suele enterrar los TO múltiples.
-    const results = await Promise.allSettled(
-      managers.map((managerEmail) =>
-        sendTransactionalEmail({
-          to: managerEmail,
-          subject: template.subject,
-          html: template.html,
-          text: template.text,
-          templateKey,
-          organizationId: input.organizationId,
-          userId: input.createdBy,
-          idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}:${managerEmail}`,
-          attachments: proof
-            ? [proof.inline, proof.attachment].filter(
-                (a): a is EmailAttachment => a !== null,
-              )
-            : undefined,
-          metadata: {
-            payment_intent_id: input.paymentIntentId,
-            managers_count: managers.length,
-            purpose: input.purpose ?? null,
-            notify_mode: "per_recipient",
-            voucher_attached: Boolean(proof?.attachment),
-          },
-        }),
-      ),
-    );
+    // Un correo por gerente (no batch): Gmail suele enterrar los TO múltiples.
+    // De a dos por segundo, que es el límite de Resend; con 12 gerentes en
+    // paralelo algunos rebotaban con 429.
+    const sendToManager = (managerEmail: string) =>
+      sendTransactionalEmail({
+        to: managerEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        templateKey,
+        organizationId: input.organizationId,
+        userId: input.createdBy,
+        idempotencyKey: `email:manual_pending_mgr:${input.paymentIntentId}:${managerEmail}`,
+        attachments: proof
+          ? [proof.inline, proof.attachment].filter(
+              (a): a is EmailAttachment => a !== null,
+            )
+          : undefined,
+        metadata: {
+          payment_intent_id: input.paymentIntentId,
+          managers_count: managers.length,
+          purpose: input.purpose ?? null,
+          notify_mode: "per_recipient",
+          voucher_attached: Boolean(proof?.attachment),
+        },
+      });
+    const results: PromiseSettledResult<unknown>[] = [];
+    for (let i = 0; i < managers.length; i += MANAGER_EMAILS_PER_SECOND) {
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
+      results.push(
+        ...(await Promise.allSettled(
+          managers.slice(i, i + MANAGER_EMAILS_PER_SECOND).map(sendToManager),
+        )),
+      );
+    }
 
     const failed = results.filter((r) => r.status === "rejected");
     if (failed.length > 0) {

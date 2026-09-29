@@ -66,6 +66,9 @@ async function insertEmailEvent(input: SendEmailInput, status: string, patch: Re
   }
 }
 
+const RESEND_EMAILS_URL = "https://api.resend.com/emails";
+const RESEND_RATE_LIMIT_RETRIES = 3;
+
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<{ sent: boolean; providerMessageId?: string }> {
   const recipients = normalizeRecipients(input.to).filter(Boolean);
   if (recipients.length === 0) {
@@ -89,31 +92,39 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<{ s
     headers["Idempotency-Key"] = input.idempotencyKey.slice(0, 256);
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      from: serverEnv.emailFrom,
-      to: recipients,
-      subject: input.subject,
-      html: input.html,
-      text: input.text,
-      ...(serverEnv.emailReplyTo ? { reply_to: serverEnv.emailReplyTo } : {}),
-      ...(input.attachments?.length
-        ? {
-            attachments: input.attachments.map((a) => ({
-              filename: a.filename,
-              content: a.content,
-              ...(a.contentType ? { content_type: a.contentType } : {}),
-              ...(a.contentId ? { content_id: a.contentId } : {}),
-            })),
-          }
-        : {}),
-      tags: [
-        { name: "template", value: input.templateKey.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 256) },
-      ],
-    }),
+  const body = JSON.stringify({
+    from: serverEnv.emailFrom,
+    to: recipients,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+    ...(serverEnv.emailReplyTo ? { reply_to: serverEnv.emailReplyTo } : {}),
+    ...(input.attachments?.length
+      ? {
+          attachments: input.attachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+            ...(a.contentType ? { content_type: a.contentType } : {}),
+            ...(a.contentId ? { content_id: a.contentId } : {}),
+          })),
+        }
+      : {}),
+    tags: [
+      { name: "template", value: input.templateKey.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 256) },
+    ],
   });
+
+  // Resend limita a ~2 envíos por segundo: ante un 429 espera y reintenta.
+  let response = await fetch(RESEND_EMAILS_URL, { method: "POST", headers, body });
+  for (let attempt = 1; response.status === 429 && attempt <= RESEND_RATE_LIMIT_RETRIES; attempt++) {
+    const retryAfterSeconds = Number(response.headers.get("retry-after"));
+    const waitMs =
+      Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? Math.min(retryAfterSeconds * 1000, 5000)
+        : 1000 * attempt;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    response = await fetch(RESEND_EMAILS_URL, { method: "POST", headers, body });
+  }
 
   const data = (await response.json().catch(() => ({}))) as ResendSendResponse;
   if (!response.ok || data.error) {

@@ -16,6 +16,8 @@ import { processManualVoucherUpload, VoucherRateLimitError } from "@/lib/payment
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 
 export const runtime = "nodejs";
+// Análisis del voucher + aviso a cada gerente (de a dos por segundo).
+export const maxDuration = 60;
 
 const PAYMENT_PROOFS_BUCKET = "payment-proofs";
 const MAX_PROOF_SIZE_BYTES = 10 * 1024 * 1024;
