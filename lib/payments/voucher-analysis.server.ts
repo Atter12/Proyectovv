@@ -2,6 +2,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { serverEnv } from "@/lib/env/env.server";
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
+import {
+  normalizeVoucherBank,
+  normalizeVoucherChannel,
+  type VoucherChannel,
+} from "@/lib/payments/voucher-channel";
 
 export type VoucherAnalysisResult = {
   confirmed: boolean;
@@ -12,6 +17,10 @@ export type VoucherAnalysisResult = {
   operationCode: string | null;
   paymentDate: string | null;
   beneficiaryMatch: boolean | null;
+  /** Solo informativo (aviso a gerencia); no interviene en la confirmación. */
+  paymentChannel?: VoucherChannel | null;
+  originBank?: string | null;
+  payerName?: string | null;
   reason: string;
   analysisMode: "openai_vision" | "trust_upload" | "pending_no_ai";
 };
@@ -52,9 +61,15 @@ Devuelve SOLO JSON válido con estas claves:
   "operation_code": string o null,
   "payment_date": "YYYY-MM-DD" o null,
   "beneficiary_matches": boolean,
+  "payment_channel": "yape" | "plin" | "transferencia" | "deposito" | "binance" | "cripto" | "tarjeta" | "otro" | null,
+  "origin_bank": string o null,
+  "payer_name": string o null,
   "confidence": number entre 0 y 1,
   "notes": string corto en español
 }
+- "payment_channel": cómo se pagó según el comprobante.
+- "origin_bank": banco, caja o app DESDE la que se pagó (ej. BCP, Interbank, BBVA, Scotiabank, BanBif, Banco de la Nación, Caja Arequipa, Binance). No el banco del beneficiario.
+- "payer_name": nombre del titular que paga, tal como aparece.
 Monto esperado del cliente: ${input.expectedAmount} ${input.expectedCurrency}.
 Beneficiarios válidos (parcial): ${input.holderNames.join(", ")}.`;
 
@@ -100,6 +115,9 @@ Beneficiarios válidos (parcial): ${input.holderNames.join(", ")}.`;
       operation_code?: string | null;
       payment_date?: string | null;
       beneficiary_matches?: boolean;
+      payment_channel?: string | null;
+      origin_bank?: string | null;
+      payer_name?: string | null;
       confidence?: number;
       notes?: string;
     };
@@ -135,6 +153,12 @@ Beneficiarios válidos (parcial): ${input.holderNames.join(", ")}.`;
       operationCode: parsed.operation_code ?? null,
       paymentDate: parsed.payment_date ?? null,
       beneficiaryMatch: parsed.beneficiary_matches ?? null,
+      paymentChannel: normalizeVoucherChannel(parsed.payment_channel),
+      originBank: normalizeVoucherBank(parsed.origin_bank),
+      payerName:
+        typeof parsed.payer_name === "string" && parsed.payer_name.trim()
+          ? parsed.payer_name.trim().slice(0, 80)
+          : null,
       reason: confirmed
         ? "Comprobante verificado automáticamente."
         : (parsed.notes ??

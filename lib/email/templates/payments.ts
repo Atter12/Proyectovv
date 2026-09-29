@@ -115,6 +115,8 @@ export function manualPaymentPendingManagerTemplate(input: {
   clientEmail: string | null;
   chargedLabel: string;
   payMethodLabel: string;
+  /** Titular que paga según el voucher, si la IA lo leyó. */
+  payerName: string | null;
   destinationLabel: string | null;
   operationCode: string | null;
   /** Fecha del pago según el voucher; si la IA no la leyó, va la de envío. */
@@ -146,6 +148,7 @@ export function manualPaymentPendingManagerTemplate(input: {
 
   const paymentRows = [
     listRow("Medio de pago", escapeHtml(input.payMethodLabel), { first: true }),
+    input.payerName ? listRow("Pagado por", escapeHtml(input.payerName)) : "",
     input.destinationLabel
       ? listRow("Cuenta destino", escapeHtml(input.destinationLabel))
       : "",
@@ -253,6 +256,7 @@ export function manualPaymentPendingManagerTemplate(input: {
     "",
     `Monto: ${input.chargedLabel}`,
     `Medio de pago: ${input.payMethodLabel}`,
+    input.payerName ? `Pagado por: ${input.payerName}` : null,
     input.destinationLabel ? `Cuenta destino: ${input.destinationLabel}` : null,
     input.operationCode ? `N° de operación: ${input.operationCode}` : null,
     input.paidAtLabel

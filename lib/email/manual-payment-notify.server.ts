@@ -13,6 +13,11 @@ import { getPaymentIntentByIdInternal } from "@/lib/payments/payment-intents.ser
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { RECHARGE_BOT_SOURCE, YAPE_RECIPIENT } from "@/lib/payments/yape/recipient";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
+import {
+  describeVoucherChannel,
+  normalizeVoucherBank,
+  normalizeVoucherChannel,
+} from "@/lib/payments/voucher-channel";
 
 function uniqueEmails(list: Array<string | null | undefined>): string[] {
   const out: string[] = [];
@@ -102,37 +107,57 @@ async function resolveHecomCliente(
   return { id, name: cliente?.name?.trim() || storedName };
 }
 
+/**
+ * Medio de pago tal como lo muestra el voucher (Yape, Plin · Interbank,
+ * Transferencia interbancaria · BBVA, Binance Pay…). Si la IA no lo pudo leer,
+ * cae a lo que el cliente eligió al subirlo.
+ */
 function resolvePayMethod(input: {
   provider: string;
   metadata: Record<string, unknown>;
   chargeCurrency: string;
+  analysis: Record<string, unknown> | null;
 }): { label: string; destination: string | null } {
   const { metadata } = input;
-  if (getString(metadata.source) === RECHARGE_BOT_SOURCE) {
-    return {
-      label: "Yape",
-      destination: `Yape ${YAPE_RECIPIENT.phoneDisplay} · ${YAPE_RECIPIENT.holder}`,
-    };
-  }
-  if (input.provider === "crypto") {
-    return { label: "Cripto (USDT)", destination: null };
-  }
+  const channel = normalizeVoucherChannel(getString(input.analysis?.paymentChannel));
+  const bank = normalizeVoucherBank(getString(input.analysis?.originBank));
   const method = (
     getString(metadata.manual_pay_method) ??
     getString(metadata.pay_method) ??
     ""
   ).toLowerCase();
-  if (method === "binance") {
-    return { label: "Binance Pay", destination: null };
+
+  if (getString(metadata.source) === RECHARGE_BOT_SOURCE) {
+    return {
+      label: describeVoucherChannel({ channel, bank }) ?? "Yape",
+      destination: `Yape ${YAPE_RECIPIENT.phoneDisplay} · ${YAPE_RECIPIENT.holder}`,
+    };
   }
-  const claimed = getString(metadata.claimed_metodo);
-  if (claimed && method !== "bank") {
-    return { label: claimed, destination: null };
+
+  const isCrypto =
+    input.provider === "crypto" ||
+    method === "binance" ||
+    channel === "binance" ||
+    channel === "cripto";
+  if (isCrypto) {
+    return {
+      label:
+        describeVoucherChannel({ channel, bank }) ??
+        (method === "binance" ? "Binance Pay" : "Cripto (USDT)"),
+      destination: null,
+    };
   }
+
   const currency = input.chargeCurrency === "PEN" ? "PEN" : "USD";
   const account = getManualBankAccounts(currency)[0];
+  const detected = describeVoucherChannel({
+    channel,
+    bank,
+    destinationBank: account?.bank ?? null,
+  });
+  const claimed = getString(metadata.claimed_metodo);
   return {
-    label: `Transferencia ${account?.bank ?? "BCP"} (${currency === "PEN" ? "soles" : "dólares"})`,
+    label: detected ?? (claimed && method !== "bank" ? claimed : "Transferencia bancaria"),
     destination: account
       ? `${account.label} · ****${account.accountNumber.slice(-4)}`
       : null,
@@ -301,10 +326,12 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
     const feeLabel =
       creditLabel && feeCents > 0 ? formatMoney(feeCents / 100, "USD") : null;
 
+    const analysis = isRecord(metadata.voucher_analysis) ? metadata.voucher_analysis : null;
     const payMethod = resolvePayMethod({
       provider: intent?.provider ?? "manual",
       metadata,
       chargeCurrency: input.chargeCurrency,
+      analysis,
     });
 
     const operationCode =
@@ -312,7 +339,6 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
       getString(metadata.voucher_operation_code) ??
       getString(metadata.claimed_operation_code);
 
-    const analysis = isRecord(metadata.voucher_analysis) ? metadata.voucher_analysis : null;
     const security = isRecord(metadata.voucher_security) ? metadata.voucher_security : null;
     const proofMeta = isRecord(metadata.manual_proof) ? metadata.manual_proof : null;
 
@@ -381,6 +407,7 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
       clientEmail: profile.email,
       chargedLabel,
       payMethodLabel: payMethod.label,
+      payerName: getString(analysis?.payerName),
       destinationLabel: payMethod.destination,
       operationCode,
       paidAtLabel,
