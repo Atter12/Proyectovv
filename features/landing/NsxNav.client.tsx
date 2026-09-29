@@ -20,10 +20,11 @@ export function NsxNav({
   copy: LandingCopy["nav"];
 }) {
   const NAV = [
-    { href: "#soluciones", label: copy.solutions },
+    { href: "#producto", label: copy.product },
+    { href: "#ia", label: copy.ai },
     { href: "#proceso", label: copy.process },
     { href: "#nosotros", label: copy.about },
-    { href: "#resultados", label: copy.results },
+    { href: "#preguntas", label: copy.faq },
   ];
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

@@ -1,8 +1,13 @@
 import "./automation-landing.css";
+import "./landing-sections.css";
 import { NsxNav } from "./NsxNav.client";
 import { NsxHero } from "./NsxHero.client";
+import { NsxPayMarquee } from "./NsxPayMarquee";
+import { NsxShowcase } from "./NsxShowcase.client";
+import { NsxAiSpotlight } from "./NsxAiSpotlight";
 import { NsxAbout } from "./NsxAbout";
 import { NsxFeatures, NsxProcess } from "./NsxFeatures";
+import { NsxFaq, NsxReferral } from "./NsxFaq";
 import { NsxGallery } from "./NsxGallery";
 import { NsxCta, NsxFooter } from "./NsxCta";
 import { getLandingCopy } from "./i18n/landing-copy";
@@ -32,10 +37,15 @@ export function LandingPage({ locale }: { locale: LandingLocale }) {
       <NsxNav locale={locale} copy={copy.nav} />
       <main id="contenido">
         <NsxHero copy={copy.hero} nav={copy.nav} />
-        <NsxAbout copy={copy.about} />
+        <NsxPayMarquee copy={copy.payments} />
+        <NsxShowcase copy={copy.showcase} />
+        <NsxAiSpotlight copy={copy.ai} />
         <NsxProcess copy={copy.process} />
-        <NsxFeatures copy={copy.features} />
+        <NsxFeatures copy={copy.extras} />
+        <NsxReferral copy={copy.referral} />
+        <NsxAbout copy={copy.about} />
         <NsxGallery copy={copy.gallery} />
+        <NsxFaq copy={copy.faq} />
         <NsxCta copy={copy.cta} />
       </main>
       <NsxFooter copy={copy.footer} />

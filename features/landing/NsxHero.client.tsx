@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { routes } from "@/config/routes";
 import { NsxBtnPrimary, NsxBtnSecondary } from "./NsxButtons";
@@ -11,6 +12,34 @@ const AVATARS = [
   "/nexsas/automation/images/ns-avatar-13.jpg",
   "/nexsas/automation/images/ns-avatar-14.jpg",
 ] as const;
+
+const ROTATE_MS = 2600;
+
+/** Palabra que rota dentro del título; todas apiladas para no mover el layout. */
+function RotatingWord({ words }: { words: readonly string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % words.length);
+    }, ROTATE_MS);
+    return () => window.clearInterval(id);
+  }, [words.length]);
+
+  return (
+    <>
+      <span className="nsx-rotator" aria-hidden>
+        {words.map((word, i) => (
+          <span key={word} className={i === index ? "is-active" : undefined}>
+            {word}
+          </span>
+        ))}
+      </span>
+      <span className="sr-only">{words[0]}</span>
+    </>
+  );
+}
 
 export function NsxHero({
   copy,
@@ -66,8 +95,12 @@ export function NsxHero({
 
             <div className="nsx-hero-titles">
               <h1 className="nsx-h1 mx-auto max-w-[950px]">
-                {copy.titleLine1}
-                <br className="hidden sm:block" /> {copy.titleLine2}
+                {copy.titlePrefix} <RotatingWord words={copy.rotating} />
+                {copy.titleSuffix ? (
+                  <>
+                    <br className="hidden sm:block" /> {copy.titleSuffix}
+                  </>
+                ) : null}
               </h1>
               <p className="nsx-hero-lead">{copy.lead}</p>
             </div>
