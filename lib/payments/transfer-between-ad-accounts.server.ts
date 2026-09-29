@@ -13,6 +13,11 @@ export interface TransferBetweenAdAccountsInput {
   idempotencyKey?: string;
   agencyBmFunding?: boolean;
   forceLedgerOnly?: boolean;
+  /**
+   * Solo staff: mover cupo TikTok que no está en la cartera (se acredita como
+   * import). Un cliente prepago solo mueve lo que pagó.
+   */
+  allowTikTokOverLedger?: boolean;
 }
 
 export interface TransferBetweenAdAccountsResult {
@@ -29,8 +34,8 @@ export interface TransferBetweenAdAccountsResult {
 /**
  * Mueve saldo de cuenta ads A → cuenta ads B en un solo paso.
  * TikTok: DEDUCT/baja presupuesto en origen → RECHARGE/sube presupuesto en destino.
- * El tope es el cupo gastable de TikTok (cash BM200 o headroom SHARED), no solo el ledger.
- * Ledger: refund origen (si hay) + import del gap TikTok → cartera → allocate destino.
+ * Cliente: el tope es su saldo en cartera (lo que pagó). Staff con
+ * allowTikTokOverLedger: puede mover todo el cupo TikTok (import del gap → cartera).
  */
 export async function transferBetweenAdAccountsWithTikTok(
   input: TransferBetweenAdAccountsInput,
@@ -174,7 +179,8 @@ export async function transferBetweenAdAccountsWithTikTok(
       amountCents: requested,
       requestedBy: input.requestedBy,
       forceLedgerOnly: Boolean(input.forceLedgerOnly),
-      allowTikTokOverLedger: !input.forceLedgerOnly,
+      allowTikTokOverLedger:
+        input.allowTikTokOverLedger === true && !input.forceLedgerOnly,
       idempotencyKey: `transfer-reclaim:${transferId}`,
     });
   } catch (err) {

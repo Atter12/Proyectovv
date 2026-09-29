@@ -5,7 +5,10 @@ import {
   isSharedCreditBmBucket,
 } from "@/lib/hecom/bm-bucket.shared";
 import { getAdAccountLedgerBalance } from "@/lib/ledger/ledger.server";
-import { setSharedBmAdvertiserBudgetAbsolute } from "@/lib/integrations/tiktok/bc-finance.server";
+import {
+  getAdvertiserBudgetSnapshot,
+  setSharedBmAdvertiserBudgetAbsolute,
+} from "@/lib/integrations/tiktok/bc-finance.server";
 import type { AdAccountLiveMetricsRow } from "@/lib/hecom/ad-account-live.server";
 
 const ENFORCE_COOLDOWN_MS = 3 * 60_000;
@@ -82,6 +85,7 @@ async function resolveAdAccountId(input: {
  * BM 10/30 estilo BM200: el cupo gastable en TikTok = saldo ledger Holistic.
  * targetBudget = gastadoTikTok + saldoLedgerHolistic
  * (ledger=0 → solo deja lo ya gastado; UNLIMITED → fuerza tope finito).
+ * Solo baja: si el target queda por encima del presupuesto actual, no toca nada.
  *
  * `adsHolisticClient=true`: sí bajar cupo aunque ledger sea $0 (clientes con
  * login/pagos Ads Holistic). `false`: no tocar cuentas solo-Hecom/agencia.
@@ -209,7 +213,33 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
     };
   }
 
-  const targetBudget = Math.round((cost + ledgerUsd) * 100) / 100;
+  // Prepago: el tope solo baja. El cupo sube únicamente en la recarga
+  // (INCREASE_BUDGET por lo pagado). El gasto no siempre se descuenta del
+  // ledger, así que subir a gastado + ledger devolvía cupo ya gastado.
+  const fresh = await getAdvertiserBudgetSnapshot({
+    bcId,
+    advertiserId,
+    organizationId: input.organizationId,
+  }).catch(() => null);
+  const liveMode = String(fresh?.budgetMode ?? mode).toUpperCase();
+  const liveUnlimited = fresh ? liveMode === "UNLIMITED" : unlimited;
+  const liveBudget = fresh ? fresh.budget : budget;
+  const liveCost = fresh ? Math.max(0, fresh.budgetCost) : cost;
+  const targetBudget = Math.round((liveCost + ledgerUsd) * 100) / 100;
+  if (!liveUnlimited && (!Number.isFinite(liveBudget) || targetBudget >= liveBudget - 0.01)) {
+    lastEnforceAt.set(cooldownKey, now);
+    return {
+      advertiserId,
+      enforced: false,
+      skipped: true,
+      previousBudget: Number.isFinite(liveBudget) ? liveBudget : null,
+      previousMode: liveMode || null,
+      newBudget: null,
+      newHeadroomUsd: headroom,
+      ledgerUsd,
+      reason: "never_raise",
+    };
+  }
 
   try {
     const result = await setSharedBmAdvertiserBudgetAbsolute({
@@ -224,7 +254,7 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
       advertiserId,
       adsHolistic,
       ledgerUsd,
-      cost,
+      cost: liveCost,
       previousBudget: result.previousBudget,
       previousMode: result.previousMode,
       newBudget: result.newBudget,
@@ -240,7 +270,7 @@ export async function enforceSharedBudgetCapForAdvertiser(input: {
       newBudget: result.newBudget,
       newHeadroomUsd: Math.max(
         0,
-        Math.round((result.newBudget - cost) * 100) / 100,
+        Math.round((result.newBudget - liveCost) * 100) / 100,
       ),
       ledgerUsd,
     };

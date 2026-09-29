@@ -204,7 +204,8 @@ for (const t of tiktok) {
   const gap = round2(remaining - hol.ledger); // >0 too much TikTok; <0 short vs ledger
   const unlimited = t.mode === "UNLIMITED";
   const needsLower = unlimited || gap > TOL;
-  const needsRaise = !unlimited && gap < -TOL && hol.ledger > 0;
+  // Solo bajar: el ledger no descuenta todo el gasto, subir devolvía cupo ya gastado.
+  const needsRaise = false;
   if (!needsLower && !needsRaise) {
     alreadyOk += 1;
     continue;

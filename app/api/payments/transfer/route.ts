@@ -113,6 +113,8 @@ export async function POST(request: Request) {
       requestedBy: session.id,
       agencyBmFunding: wantsAgencyBm,
       forceLedgerOnly,
+      // Prepago: el cliente solo mueve lo que pagó. Cupo TikTok extra, solo staff.
+      allowTikTokOverLedger: capabilities.isStaff || capabilities.isSuperAdmin,
       idempotencyKey:
         body.idempotencyKey ??
         `transfer:${organizationId}:${body.fromAdAccountId}:${body.toAdAccountId}:${amountCents}:${randomUUID()}`,
