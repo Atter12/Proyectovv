@@ -80,7 +80,7 @@ function buildJsonLd(locale: LandingLocale) {
         alternateName: seoConfig.siteName,
         url: absoluteUrl("/"),
         logo: absoluteUrl(seoConfig.logoPath),
-        areaServed: "PE",
+        areaServed: "Worldwide",
       },
       {
         "@type": "WebSite",
@@ -96,7 +96,7 @@ function buildJsonLd(locale: LandingLocale) {
         serviceType: "TikTok Ads",
         description: copy.meta.description,
         provider: { "@id": orgId },
-        areaServed: "PE",
+        areaServed: "Worldwide",
       },
       {
         "@type": "FAQPage",

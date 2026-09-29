@@ -6,7 +6,7 @@ import { legalCompany } from "@/lib/legal/company";
 export const metadata: Metadata = {
   title: "Comprar saldo para TikTok Ads · Recarga desde USD 100 | Holistic Marketing",
   description:
-    "Compra saldo publicitario para TikTok Ads en paquetes de USD 100, 300 o 500. Paga con Yape, Plin, transferencia, tarjeta o USDT y asígnalo a tus cuentas.",
+    "Compra saldo publicitario para TikTok Ads en paquetes de USD 100, 300 o 500. Paga con billetera, cripto, Stripe o tarjeta y asígnalo a tus cuentas.",
   alternates: { canonical: "/comprar" },
 };
 

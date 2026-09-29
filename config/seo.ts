@@ -19,15 +19,14 @@ export const seoConfig = {
   /** Palabras con las que nos buscan (también guían los textos visibles). */
   keywords: [
     "agencia de TikTok Ads",
-    "agencia de TikTok Ads en Perú",
     "agencia de publicidad digital",
-    "agencia de marketing digital en Lima",
+    "agencia de marketing digital",
     "publicar anuncios en TikTok",
     "subir anuncios a TikTok",
     "cuentas publicitarias de TikTok",
     "recargar saldo TikTok Ads",
-    "recarga TikTok Ads con Yape",
-    "pagar TikTok Ads con Yape y Plin",
+    "recarga TikTok Ads con Stripe",
+    "pagar TikTok Ads con cripto",
     "Business Center TikTok",
     "píxel de TikTok",
     "anuncios contra entrega",
