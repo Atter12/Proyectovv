@@ -27,7 +27,6 @@ export const mainNavigation: NavItem[] = [
   { key: "prepagoMonitor", href: routes.monitoreo, icon: "monitor" },
   { key: "cobros", href: routes.cobros, icon: "cobros" },
   { key: "affiliates", href: routes.affiliates, icon: "affiliates" },
-  { key: "alliances", href: routes.alliances, icon: "alliances" },
   { key: "registrationContracts", href: routes.registrationContracts, icon: "alliances" },
   {
     key: "creativeAnalyzer",
@@ -59,7 +58,6 @@ export const adminNavigation: AdminNavItem[] = [
   { label: "Educación", href: "/admin/education", description: "Tutoriales y enlaces Loom", icon: "▶" },
   { label: "Afiliados", href: "/admin/affiliates", description: "Códigos y comisiones", icon: "↗" },
   { label: "Creativos", href: "/admin/creatives", description: "Uploads y jobs IA", icon: "✺" },
-  { label: "Alianzas", href: "/admin/alliances", description: "Relaciones, contratos y seguimiento", icon: "◆" },
   { label: "Ledger", href: "/admin/ledger", description: "Journals y entries", icon: "≡" },
   { label: "Conciliación", href: "/admin/reconciliation", description: "Runs e inconsistencias", icon: "⇄" },
   { label: "Webhooks", href: "/admin/webhooks", description: "Eventos externos", icon: "⌁" },
