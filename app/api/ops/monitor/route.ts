@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/guards.server";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { getClienteModalidades } from "@/lib/ops/cliente-modalidad.server";
 import { getPrepagoMonitorSnapshot } from "@/lib/ops/prepago-monitor.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
@@ -28,8 +29,11 @@ export async function GET(request: Request) {
 
   const fresh = new URL(request.url).searchParams.get("fresh") === "1";
   try {
-    const snapshot = await getPrepagoMonitorSnapshot({ fresh });
-    return NextResponse.json({ ok: true, snapshot });
+    const [snapshot, modalidades] = await Promise.all([
+      getPrepagoMonitorSnapshot({ fresh }),
+      getClienteModalidades({ fresh }).catch(() => ({})),
+    ]);
+    return NextResponse.json({ ok: true, snapshot, modalidades });
   } catch (error) {
     console.error("[ops/monitor] failed", error);
     return NextResponse.json(

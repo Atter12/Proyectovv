@@ -32,8 +32,8 @@ export default async function MonitoreoPage() {
           Monitoreo prepago
         </h1>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-          Quién puede gastar plata que no pagó, quién ya debe y qué movimientos
-          raros hubo. Cada cliente solo debe gastar lo que recargó.
+          Cada cliente tiene un color que dice qué hacer: quitar saldo, preguntar
+          al gerente, cobrar, solo vigilar o nada. Toca un cliente para ver los pasos.
         </p>
       </header>
 

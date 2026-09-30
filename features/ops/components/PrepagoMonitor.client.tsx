@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  VERDICT_META,
+  VERDICT_ORDER,
+  verdictFor,
+  type Verdict,
+  type VerdictKey,
+} from "@/features/ops/lib/monitor-verdict";
 import type {
+  ClienteModalidad,
+  ClienteModalidadEntry,
   MonitorAccount,
   MonitorCliente,
   MonitorEvent,
@@ -12,8 +21,16 @@ import type {
 
 const AUTO_REFRESH_MS = 5 * 60_000;
 
-type SeverityFilter = "all" | MonitorSeverity;
+type VerdictFilter = "all" | VerdictKey;
 type Tab = "clientes" | "movimientos";
+type Modalidades = Record<string, ClienteModalidadEntry>;
+
+type Row = {
+  cliente: MonitorCliente;
+  modalidad: ClienteModalidad;
+  modalidadEntry: ClienteModalidadEntry | null;
+  verdict: Verdict;
+};
 
 const SEVERITY_META: Record<
   MonitorSeverity,
@@ -41,11 +58,11 @@ const SEVERITY_META: Record<
     text: "text-[#7a5f0e]",
   },
   info: {
-    label: "En orden",
-    dot: "bg-[#3f8f5b]",
-    chip: "bg-[#eaf5ee] text-[#276043]",
-    ring: "ring-[#cfe7d8]",
-    text: "text-[#276043]",
+    label: "Info",
+    dot: "bg-[#a39b92]",
+    chip: "bg-[#f5f0ea] text-[#5c564e]",
+    ring: "ring-[#ece5dc]",
+    text: "text-[#5c564e]",
   },
 };
 
@@ -91,16 +108,28 @@ function initialsOf(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-function SeverityChip({ severity, compact = false }: { severity: MonitorSeverity; compact?: boolean }) {
-  const meta = SEVERITY_META[severity];
+function VerdictChip({ verdict, compact = false }: { verdict: VerdictKey; compact?: boolean }) {
+  const meta = VERDICT_META[verdict];
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full font-semibold ${meta.chip} ${
-        compact ? "px-2 py-0.5 text-[10.5px]" : "px-2.5 py-1 text-[11px]"
+        compact ? "px-2 py-0.5 text-[10.5px]" : "px-2.5 py-1 text-[11.5px]"
       }`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} aria-hidden />
-      {meta.label}
+      {compact ? meta.short : meta.label}
+    </span>
+  );
+}
+
+function ModalidadBadge({ modalidad }: { modalidad: ClienteModalidad }) {
+  return modalidad === "acuerdo" ? (
+    <span className="inline-flex shrink-0 items-center rounded-md bg-[#ebf0fa] px-1.5 py-0.5 text-[10.5px] font-semibold text-[#2f4a86]">
+      Paga después
+    </span>
+  ) : (
+    <span className="inline-flex shrink-0 items-center rounded-md bg-[#f5f0ea] px-1.5 py-0.5 text-[10.5px] font-semibold text-[#5c564e]">
+      Prepago
     </span>
   );
 }
@@ -113,7 +142,10 @@ function BmBadge({ bm }: { bm: string }) {
   );
 }
 
-async function fetchSnapshot(fresh: boolean, signal: AbortSignal): Promise<MonitorSnapshot> {
+async function fetchSnapshot(
+  fresh: boolean,
+  signal: AbortSignal,
+): Promise<{ snapshot: MonitorSnapshot; modalidades: Modalidades }> {
   const res = await fetch(`/api/ops/monitor${fresh ? "?fresh=1" : ""}`, {
     cache: "no-store",
     signal,
@@ -121,12 +153,13 @@ async function fetchSnapshot(fresh: boolean, signal: AbortSignal): Promise<Monit
   const json = (await res.json().catch(() => ({}))) as {
     ok?: boolean;
     snapshot?: MonitorSnapshot;
+    modalidades?: Modalidades;
     error?: string;
   };
   if (!res.ok || !json.ok || !json.snapshot) {
     throw new Error(json.error || "No se pudo cargar el monitoreo.");
   }
-  return json.snapshot;
+  return { snapshot: json.snapshot, modalidades: json.modalidades ?? {} };
 }
 
 function isAbort(err: unknown): boolean {
@@ -135,21 +168,24 @@ function isAbort(err: unknown): boolean {
 
 export function PrepagoMonitor({
   initialSnapshot = null,
+  initialModalidades = {},
   initialTab = "clientes",
   initialOpenId = null,
 }: {
   /** Si viene, se muestra sin esperar la primera carga (vista previa / tests). */
   initialSnapshot?: MonitorSnapshot | null;
+  initialModalidades?: Modalidades;
   initialTab?: Tab;
   initialOpenId?: string | null;
 } = {}) {
   const [snapshot, setSnapshot] = useState<MonitorSnapshot | null>(initialSnapshot);
+  const [modalidades, setModalidades] = useState<Modalidades>(initialModalidades);
   const [loading, setLoading] = useState(initialSnapshot == null);
   const [error, setError] = useState<string | null>(null);
   const [auto, setAuto] = useState(true);
   const [now, setNow] = useState(() => Date.now());
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [filter, setFilter] = useState<SeverityFilter>("all");
+  const [filter, setFilter] = useState<VerdictFilter>("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(initialOpenId);
   const abortRef = useRef<AbortController | null>(null);
@@ -162,7 +198,9 @@ export function PrepagoMonitor({
     setLoading(true);
     setError(null);
     try {
-      setSnapshot(await fetchSnapshot(fresh, controller.signal));
+      const data = await fetchSnapshot(fresh, controller.signal);
+      setSnapshot(data.snapshot);
+      setModalidades(data.modalidades);
     } catch (err) {
       if (isAbort(err)) return;
       setError(err instanceof Error ? err.message : "No se pudo cargar el monitoreo.");
@@ -176,7 +214,10 @@ export function PrepagoMonitor({
     const controller = new AbortController();
     abortRef.current = controller;
     fetchSnapshot(false, controller.signal)
-      .then((data) => setSnapshot(data))
+      .then((data) => {
+        setSnapshot(data.snapshot);
+        setModalidades(data.modalidades);
+      })
       .catch((err) => {
         if (!isAbort(err)) {
           setError(err instanceof Error ? err.message : "No se pudo cargar el monitoreo.");
@@ -201,25 +242,61 @@ export function PrepagoMonitor({
     return () => window.clearInterval(id);
   }, [auto, load]);
 
-  const clientes = useMemo(() => {
-    const list = snapshot?.clientes ?? [];
+  const rows = useMemo<Row[]>(() => {
+    const list = (snapshot?.clientes ?? []).map((cliente) => {
+      const entry = modalidades[cliente.id] ?? null;
+      const modalidad: ClienteModalidad = entry?.modalidad ?? "prepago";
+      return { cliente, modalidad, modalidadEntry: entry, verdict: verdictFor(cliente, modalidad) };
+    });
+    const weight = (r: Row) =>
+      r.cliente.exposureUsd + Math.max(0, r.cliente.month.debtUsd);
+    return list.sort(
+      (a, b) =>
+        VERDICT_ORDER.indexOf(a.verdict.key) - VERDICT_ORDER.indexOf(b.verdict.key) ||
+        weight(b) - weight(a),
+    );
+  }, [snapshot, modalidades]);
+
+  const counts = useMemo(() => {
+    const out: Record<VerdictKey, number> = { quitar_saldo: 0, preguntar: 0, cobrar: 0, acuerdo: 0, ok: 0 };
+    for (const r of rows) out[r.verdict.key] += 1;
+    return out;
+  }, [rows]);
+
+  const modalidadById = useMemo(() => new Map(rows.map((r) => [r.cliente.id, r.modalidad])), [rows]);
+
+  const visibleRows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return list.filter((c) => {
-      if (filter !== "all" && c.severity !== filter) return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
+    return rows.filter((r) => {
+      if (filter !== "all" && r.verdict.key !== filter) return false;
+      if (q && !r.cliente.name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [snapshot, filter, query]);
+  }, [rows, filter, query]);
 
   const events = useMemo(() => {
     const list = snapshot?.events ?? [];
     const q = query.trim().toLowerCase();
-    return list.filter((e) => {
-      if (filter !== "all" && e.severity !== filter) return false;
-      if (q && !e.clienteName.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [snapshot, filter, query]);
+    return list.filter((e) => !q || e.clienteName.toLowerCase().includes(q));
+  }, [snapshot, query]);
+
+  const saveModalidad = useCallback(
+    async (clienteId: string, modalidad: ClienteModalidad, nota: string) => {
+      const res = await fetch("/api/ops/cliente-modalidad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteId, modalidad, nota }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        entry?: ClienteModalidadEntry;
+        error?: string;
+      };
+      if (!res.ok || !json.ok || !json.entry) throw new Error(json.error || "No se pudo guardar.");
+      setModalidades((prev) => ({ ...prev, [clienteId]: json.entry! }));
+    },
+    [],
+  );
 
   if (!snapshot && loading) return <MonitorSkeleton />;
 
@@ -240,7 +317,13 @@ export function PrepagoMonitor({
   }
 
   const t = snapshot.totals;
-  const atRisk = t.critical + t.high;
+  const prepagoExposure = rows
+    .filter((r) => r.modalidad === "prepago")
+    .reduce((s, r) => s + r.cliente.exposureUsd, 0);
+  const acuerdoExposure = rows
+    .filter((r) => r.modalidad === "acuerdo")
+    .reduce((s, r) => s + r.cliente.exposureUsd, 0);
+  const actionable = counts.quitar_saldo + counts.preguntar + counts.cobrar;
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -276,12 +359,7 @@ export function PrepagoMonitor({
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-full bg-[#1a1714] px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#2c2723] disabled:opacity-60"
           >
-            <svg
-              viewBox="0 0 20 20"
-              className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
-              fill="none"
-              aria-hidden
-            >
+            <svg viewBox="0 0 20 20" className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} fill="none" aria-hidden>
               <path
                 d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 3.5v3.5H13"
                 stroke="currentColor"
@@ -306,41 +384,45 @@ export function PrepagoMonitor({
         </p>
       ) : null}
 
-      {/* Resumen */}
+      <HowToRead />
+
+      {/* Resumen: qué hay que hacer hoy */}
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,2fr)]">
         <div className="relative min-w-0 overflow-hidden rounded-[22px] bg-[#1a1714] p-5 text-white sm:p-6">
           <div
             className={`pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full blur-2xl ${
-              atRisk ? "bg-[#d47840]/30" : "bg-[#3f8f5b]/30"
+              actionable ? "bg-[#d47840]/30" : "bg-[#3f8f5b]/30"
             }`}
             aria-hidden
           />
           <div className="relative">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f0b889]">
-              Ahora mismo
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f0b889]">Hoy hay que</p>
             <p className="mt-2 text-[2.1rem] font-semibold leading-none tracking-[-0.03em] tabular-nums">
-              {usdShort.format(t.exposureUsd)}
+              {actionable} cliente{actionable === 1 ? "" : "s"}
             </p>
             <p className="mt-1.5 text-[13px] text-white/70">
-              pueden gastarse en TikTok sin un pago detrás
+              {actionable
+                ? `para revisar. Clientes prepago pueden gastar ${usdShort.format(prepagoExposure)} sin haber pagado.`
+                : "sin pendientes. Todos gastan solo lo que pagaron."}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {(["critical", "high", "medium", "info"] as const).map((sev) => {
-                const n = sev === "critical" ? t.critical : sev === "high" ? t.high : sev === "medium" ? t.medium : t.ok;
-                const active = filter === sev;
+              {VERDICT_ORDER.map((key) => {
+                const active = filter === key;
                 return (
                   <button
-                    key={sev}
+                    key={key}
                     type="button"
-                    onClick={() => setFilter(active ? "all" : sev)}
+                    onClick={() => {
+                      setFilter(active ? "all" : key);
+                      setTab("clientes");
+                    }}
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
                       active ? "bg-white text-[#1a1714]" : "bg-white/10 text-white hover:bg-white/15"
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${SEVERITY_META[sev].dot}`} aria-hidden />
-                    {SEVERITY_META[sev].label}
-                    <span className="tabular-nums opacity-80">{n}</span>
+                    <span className={`h-2 w-2 rounded-full ${VERDICT_META[key].dot}`} aria-hidden />
+                    {VERDICT_META[key].short}
+                    <span className="tabular-nums opacity-80">{counts[key]}</span>
                   </button>
                 );
               })}
@@ -352,30 +434,26 @@ export function PrepagoMonitor({
           <Kpi
             label="Deuda del mes"
             value={usdShort.format(t.monthDebtUsd)}
-            hint={`Gastaron más de lo pagado (${snapshot.month})`}
+            hint={`Gastaron más de lo que pagaron (${snapshot.month})`}
             tone={t.monthDebtUsd > 0 ? "warn" : "ok"}
           />
           <Kpi
             label="Cargas directas en TikTok"
             value={usdShort.format(t.manualLoadUsd)}
-            hint={`Sin pasar por Ads Holistic · ${snapshot.windows.manualLoadHours} h`}
+            hint={`No pasaron por Ads Holistic · últimas ${snapshot.windows.manualLoadHours} h`}
             tone={t.manualLoadUsd > 0 ? "bad" : "ok"}
           />
           <Kpi
             label="Recargas de gerente"
             value={usdShort.format(t.staffRechargeUsd)}
-            hint={`Sin pago del cliente · ${snapshot.windows.staffMovesDays} días`}
+            hint={`Sin pago del cliente · últimos ${snapshot.windows.staffMovesDays} días`}
             tone={t.staffRechargeUsd > 0 ? "warn" : "ok"}
           />
           <Kpi
-            label="Cuentas sin tope"
-            value={String(t.unlimitedAccounts)}
-            hint={
-              t.tiktokImportUsd > 0
-                ? `+ ${usdShort.format(t.tiktokImportUsd)} de cupo pasado a cartera`
-                : "BM10/30 en ilimitado"
-            }
-            tone={t.unlimitedAccounts > 0 ? "bad" : t.tiktokImportUsd > 0 ? "warn" : "ok"}
+            label="Saldo de clientes con acuerdo"
+            value={usdShort.format(acuerdoExposure)}
+            hint="Cargado a clientes que pagan después (es normal)"
+            tone="ok"
           />
         </div>
       </section>
@@ -386,8 +464,8 @@ export function PrepagoMonitor({
           <div className="flex rounded-full bg-[#f5f0ea] p-1" role="tablist">
             {(
               [
-                ["clientes", `Clientes`, clientes.length],
-                ["movimientos", `Movimientos raros`, events.length],
+                ["clientes", "Clientes", visibleRows.length],
+                ["movimientos", "Movimientos raros", events.length],
               ] as const
             ).map(([key, label, n]) => (
               <button
@@ -405,13 +483,13 @@ export function PrepagoMonitor({
             ))}
           </div>
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-            {filter !== "all" ? (
+            {filter !== "all" && tab === "clientes" ? (
               <button
                 type="button"
                 onClick={() => setFilter("all")}
                 className="inline-flex items-center gap-1 rounded-full bg-[#f5f0ea] px-2.5 py-1 text-[11.5px] font-semibold text-[#5c564e] hover:bg-[#ece5dc]"
               >
-                {SEVERITY_META[filter].label} ✕
+                {VERDICT_META[filter].short} ✕
               </button>
             ) : null}
             <div className="relative w-full max-w-[16rem]">
@@ -437,21 +515,100 @@ export function PrepagoMonitor({
 
         {tab === "clientes" ? (
           <ClientesList
-            clientes={clientes}
+            rows={visibleRows}
             openId={openId}
             onToggle={(id) => setOpenId((prev) => (prev === id ? null : id))}
+            onSaveModalidad={saveModalidad}
           />
         ) : (
-          <EventsList events={events} now={now} />
+          <EventsList events={events} now={now} modalidadById={modalidadById} />
         )}
       </section>
 
       <p className="px-1 text-[11.5px] leading-5 text-[#a39b92]">
-        Solo lectura: esta pantalla no cambia nada en TikTok ni en la cartera. «Puede gastar sin
-        pagar» = lo que TikTok le deja gastar menos lo que tiene pagado en cartera. Cargas directas:
-        plata que entró a sus cuentas cash (BM200/300) sin recarga en Ads Holistic.
+        Esta pantalla solo muestra: no cambia nada en TikTok ni en la cartera. Para quitar o poner
+        saldo, avisa al gerente.
       </p>
     </div>
+  );
+}
+
+function HowToRead() {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="rounded-[22px] bg-white ring-1 ring-[#e8dfd4]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left"
+      >
+        <span className="flex items-center gap-2.5">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1e6] text-[13px] font-bold text-[#b85f2e]" aria-hidden>
+            ?
+          </span>
+          <span>
+            <span className="block text-[13.5px] font-semibold text-[#1a1714]">Cómo leer esta pantalla</span>
+            <span className="block text-[12px] text-[#6b645c]">
+              Cada cliente tiene un color que dice qué hacer. Toca un cliente para ver los pasos.
+            </span>
+          </span>
+        </span>
+        <svg
+          viewBox="0 0 20 20"
+          className={`h-4 w-4 shrink-0 text-[#a39b92] transition ${open ? "rotate-90" : ""}`}
+          fill="none"
+          aria-hidden
+        >
+          <path d="M7.5 4.5 13 10l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open ? (
+        <div className="grid gap-4 border-t border-[#efe8df] px-5 py-4 lg:grid-cols-2">
+          <div className="space-y-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">La regla</p>
+            <p className="text-[13px] leading-5 text-[#3f3a34]">
+              Un cliente <b>prepago</b> primero paga (recarga) y después gasta. Nunca debería gastar más de
+              lo que pagó. Algunos clientes tienen un <b>acuerdo con gerencia</b> y pagan después: a ellos
+              es normal verles deuda.
+            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Palabras</p>
+            <ul className="space-y-1.5 text-[12.5px] leading-5 text-[#3f3a34]">
+              <li>
+                <b>Cartera:</b> plata que el cliente pagó y todavía no gastó.
+              </li>
+              <li>
+                <b>Puede gastar sin pagar:</b> lo que TikTok le deja gastar menos lo que tiene pagado. Si no es
+                $0, puede gastar plata que no pagó.
+              </li>
+              <li>
+                <b>Deuda del mes:</b> lo que gastó (con fee) menos lo que pagó este mes.
+              </li>
+              <li>
+                <b>Carga directa:</b> alguien puso saldo en TikTok sin pasar por Ads Holistic.
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Los colores</p>
+            {(
+              [
+                ["quitar_saldo", "Puede gastar plata que no pagó. Es un error. Avisar al gerente para quitar ese saldo."],
+                ["preguntar", "Alguien le cargó saldo sin que pagara. Preguntar al gerente si estaba autorizado."],
+                ["cobrar", "Ya gastó más de lo que pagó este mes. Cobrarle y avisar al gerente."],
+                ["acuerdo", "Paga después con acuerdo. Tener deuda es normal. Solo vigilar que pague."],
+                ["ok", "Solo gasta lo que pagó. No hacer nada."],
+              ] as const
+            ).map(([key, text]) => (
+              <div key={key} className={`flex items-start gap-3 rounded-2xl px-3 py-2.5 ring-1 ${VERDICT_META[key].ring} ${VERDICT_META[key].soft}`}>
+                <VerdictChip verdict={key} />
+                <p className="text-[12.5px] leading-5 text-[#3f3a34]">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -470,39 +627,42 @@ function Kpi({
   return (
     <div className="flex min-w-0 flex-col justify-between rounded-[18px] bg-white p-4 ring-1 ring-[#e8dfd4]">
       <p className="text-[11.5px] font-semibold leading-4 text-[#6b645c]">{label}</p>
-      <p className={`mt-3 text-[1.45rem] font-semibold leading-none tracking-[-0.02em] tabular-nums ${color}`}>
-        {value}
-      </p>
+      <p className={`mt-3 text-[1.45rem] font-semibold leading-none tracking-[-0.02em] tabular-nums ${color}`}>{value}</p>
       <p className="mt-2 text-[11px] leading-4 text-[#a39b92]">{hint}</p>
     </div>
   );
 }
 
 function ClientesList({
-  clientes,
+  rows,
   openId,
   onToggle,
+  onSaveModalidad,
 }: {
-  clientes: MonitorCliente[];
+  rows: Row[];
   openId: string | null;
   onToggle: (id: string) => void;
+  onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
 }) {
-  if (clientes.length === 0) {
-    return <EmptyState text="Ningún cliente con ese filtro." />;
-  }
+  if (rows.length === 0) return <EmptyState text="Ningún cliente con ese filtro." />;
   return (
     <div>
-      <div className="hidden grid-cols-[minmax(0,2.2fr)_repeat(4,minmax(0,1fr))_minmax(0,2.2fr)] gap-3 border-b border-[#f3eee8] bg-[#fcfaf7] px-4 py-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#a39b92] lg:grid">
+      <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,2.6fr)_repeat(3,minmax(0,1fr))] gap-3 border-b border-[#f3eee8] bg-[#fcfaf7] px-4 py-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#a39b92] lg:grid">
         <span>Cliente</span>
+        <span>Qué pasa</span>
         <span className="text-right">Puede gastar sin pagar</span>
-        <span className="text-right">Cartera</span>
         <span className="text-right">Deuda del mes</span>
-        <span className="text-right">Gasto ayer</span>
-        <span>Lo más urgente</span>
+        <span className="text-right">Cartera</span>
       </div>
       <ul className="divide-y divide-[#f3eee8]">
-        {clientes.map((c) => (
-          <ClienteRow key={c.id} cliente={c} open={openId === c.id} onToggle={() => onToggle(c.id)} />
+        {rows.map((row) => (
+          <ClienteRow
+            key={row.cliente.id}
+            row={row}
+            open={openId === row.cliente.id}
+            onToggle={() => onToggle(row.cliente.id)}
+            onSaveModalidad={onSaveModalidad}
+          />
         ))}
       </ul>
     </div>
@@ -510,23 +670,25 @@ function ClientesList({
 }
 
 function ClienteRow({
-  cliente,
+  row,
   open,
   onToggle,
+  onSaveModalidad,
 }: {
-  cliente: MonitorCliente;
+  row: Row;
   open: boolean;
   onToggle: () => void;
+  onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
 }) {
-  const top = cliente.signals.find((s) => s.severity !== "info") ?? null;
-  const meta = SEVERITY_META[cliente.severity];
+  const { cliente, verdict, modalidad } = row;
+  const meta = VERDICT_META[verdict.key];
   return (
-    <li className={open ? "bg-[#fffaf5]" : undefined}>
+    <li className={open ? meta.soft : undefined}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-left transition hover:bg-[#fcfaf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d47840]/40 lg:grid-cols-[minmax(0,2.2fr)_repeat(4,minmax(0,1fr))_minmax(0,2.2fr)] lg:items-center lg:gap-3"
+        className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-left transition hover:bg-[#fcfaf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d47840]/40 lg:grid-cols-[minmax(0,2fr)_minmax(0,2.6fr)_repeat(3,minmax(0,1fr))] lg:items-center lg:gap-3"
       >
         <span className="flex min-w-0 items-center gap-3">
           <span className="relative shrink-0">
@@ -539,37 +701,40 @@ function ClienteRow({
             <span className={`absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full ring-2 ring-white ${meta.dot}`} aria-hidden />
           </span>
           <span className="min-w-0">
-            <span className="flex items-center gap-2">
-              <span className="truncate text-[14px] font-semibold text-[#1a1714]">{cliente.name}</span>
-              <SeverityChip severity={cliente.severity} compact />
-            </span>
-            <span className="mt-0.5 block text-[11.5px] text-[#a39b92]">
+            <span className="block truncate text-[14px] font-semibold text-[#1a1714]">{cliente.name}</span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-[#a39b92]">
+              <ModalidadBadge modalidad={modalidad} />
               {cliente.accounts.length} cuenta{cliente.accounts.length === 1 ? "" : "s"}
-              {cliente.hasLogin ? " · con login" : " · sin login"}
             </span>
           </span>
         </span>
-        <MetricCell label="Puede gastar sin pagar" value={cliente.exposureUsd} strong={cliente.exposureUsd > 1} />
-        <MetricCell label="Cartera" value={cliente.walletUsd} />
-        <MetricCell label="Deuda del mes" value={Math.max(0, cliente.month.debtUsd)} strong={cliente.month.debtUsd > 1} />
-        <MetricCell label="Gasto ayer" value={cliente.spendYesterdayUsd} />
-        <span className="flex min-w-0 items-center gap-2">
-          {top ? (
-            <span className={`truncate text-[12.5px] font-medium ${SEVERITY_META[top.severity].text}`}>{top.title}</span>
-          ) : (
-            <span className="text-[12.5px] text-[#276043]">Sin alertas</span>
-          )}
+        <span className="flex min-w-0 items-start gap-2">
+          <span className="min-w-0 flex-1">
+            <VerdictChip verdict={verdict.key} />
+            <span className="mt-1 block text-[12.5px] leading-5 text-[#3f3a34] lg:line-clamp-2">{verdict.headline}</span>
+          </span>
           <svg
             viewBox="0 0 20 20"
-            className={`ml-auto h-4 w-4 shrink-0 text-[#a39b92] transition ${open ? "rotate-90" : ""}`}
+            className={`mt-1 h-4 w-4 shrink-0 text-[#a39b92] transition lg:hidden ${open ? "rotate-90" : ""}`}
             fill="none"
             aria-hidden
           >
             <path d="M7.5 4.5 13 10l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
+        <MetricCell
+          label="Puede gastar sin pagar"
+          value={cliente.exposureUsd}
+          strong={cliente.exposureUsd > 1 && modalidad === "prepago"}
+        />
+        <MetricCell
+          label="Deuda del mes"
+          value={Math.max(0, cliente.month.debtUsd)}
+          strong={cliente.month.debtUsd > 1 && modalidad === "prepago"}
+        />
+        <MetricCell label="Cartera" value={cliente.walletUsd} />
       </button>
-      {open ? <ClienteDetail cliente={cliente} /> : null}
+      {open ? <ClienteDetail row={row} onSaveModalidad={onSaveModalidad} /> : null}
     </li>
   );
 }
@@ -585,29 +750,162 @@ function MetricCell({ label, value, strong = false }: { label: string; value: nu
   );
 }
 
-function ClienteDetail({ cliente }: { cliente: MonitorCliente }) {
-  const signals = cliente.signals;
+function ClienteDetail({
+  row,
+  onSaveModalidad,
+}: {
+  row: Row;
+  onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
+}) {
+  const { cliente, verdict } = row;
+  const meta = VERDICT_META[verdict.key];
+  const [showTech, setShowTech] = useState(false);
   return (
-    <div className="grid gap-4 px-4 pb-5 pt-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Qué pasa</p>
-        {signals.length === 0 ? (
-          <p className="rounded-2xl bg-[#eaf5ee] px-3.5 py-3 text-[12.5px] text-[#276043]">
-            Todo en orden: no puede gastar más de lo que pagó.
-          </p>
-        ) : (
-          signals.map((s, i) => <SignalCard key={`${s.kind}-${s.advertiserId ?? i}-${i}`} signal={s} />)
-        )}
-        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-white p-3 ring-1 ring-[#efe8df]">
-          <MiniStat label="Cargo del mes" value={cliente.month.chargeUsd} />
-          <MiniStat label="Cobrado" value={cliente.month.paidUsd} />
-          <MiniStat label="Diferencia" value={cliente.month.debtUsd} danger={cliente.month.debtUsd > 1} />
+    <div className="space-y-4 px-4 pb-5 pt-1">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div className={`rounded-2xl bg-white p-4 ring-1 ${meta.ring}`}>
+          <VerdictChip verdict={verdict.key} />
+          <p className="mt-2 text-[14px] font-semibold leading-6 text-[#1a1714]">{verdict.headline}</p>
+          {verdict.steps.length ? (
+            <>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Qué hacer</p>
+              <ol className="mt-1.5 space-y-2">
+                {verdict.steps.map((step, i) => (
+                  <li key={step} className="flex gap-2.5 text-[13px] leading-5 text-[#3f3a34]">
+                    <span
+                      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${meta.dot}`}
+                      aria-hidden
+                    >
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : null}
         </div>
+        <ModalidadEditor row={row} onSave={onSaveModalidad} />
       </div>
+
+      <div className="grid grid-cols-3 gap-2 rounded-2xl bg-white p-3 ring-1 ring-[#efe8df] sm:max-w-md">
+        <MiniStat label="Gastó este mes (con fee)" value={cliente.month.chargeUsd} />
+        <MiniStat label="Pagó este mes" value={cliente.month.paidUsd} />
+        <MiniStat label="Diferencia" value={cliente.month.debtUsd} danger={cliente.month.debtUsd > 1} />
+      </div>
+
       <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Cuentas TikTok</p>
-        <AccountsTable accounts={cliente.accounts} />
+        <button
+          type="button"
+          onClick={() => setShowTech((v) => !v)}
+          aria-expanded={showTech}
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#9a6b4a] hover:text-[#b85f2e]"
+        >
+          <svg viewBox="0 0 20 20" className={`h-3.5 w-3.5 transition ${showTech ? "rotate-90" : ""}`} fill="none" aria-hidden>
+            <path d="M7.5 4.5 13 10l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {showTech ? "Ocultar detalle técnico" : "Ver detalle técnico (alertas y cuentas TikTok)"}
+        </button>
+        {showTech ? (
+          <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+            <div className="space-y-2">
+              {cliente.signals.length === 0 ? (
+                <p className="rounded-2xl bg-[#eaf5ee] px-3.5 py-3 text-[12.5px] text-[#276043]">Sin alertas.</p>
+              ) : (
+                cliente.signals.map((s, i) => <SignalCard key={`${s.kind}-${s.advertiserId ?? i}-${i}`} signal={s} />)
+              )}
+            </div>
+            <AccountsTable accounts={cliente.accounts} />
+          </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function ModalidadEditor({
+  row,
+  onSave,
+}: {
+  row: Row;
+  onSave: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
+}) {
+  const [modalidad, setModalidad] = useState<ClienteModalidad>(row.modalidad);
+  const [nota, setNota] = useState(row.modalidadEntry?.nota ?? "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const dirty = modalidad !== row.modalidad || nota.trim() !== (row.modalidadEntry?.nota ?? "");
+
+  async function save() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await onSave(row.cliente.id, modalidad, nota);
+      setMessage({ ok: true, text: "Guardado." });
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : "No se pudo guardar." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-[#efe8df]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Tipo de cliente</p>
+      <p className="mt-1 text-[12px] leading-5 text-[#6b645c]">Lo decide gerencia. Cambia lo que esta pantalla recomienda.</p>
+      <div className="mt-2.5 grid grid-cols-2 gap-1 rounded-xl bg-[#f5f0ea] p-1" role="radiogroup" aria-label="Tipo de cliente">
+        {(
+          [
+            ["prepago", "Prepago", "Paga antes de gastar"],
+            ["acuerdo", "Paga después", "Tiene acuerdo"],
+          ] as const
+        ).map(([key, label, hint]) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={modalidad === key}
+            onClick={() => setModalidad(key)}
+            className={`rounded-lg px-2.5 py-2 text-left transition ${
+              modalidad === key ? "bg-white shadow-sm ring-1 ring-[#e8dfd4]" : "hover:bg-white/60"
+            }`}
+          >
+            <span className="block text-[12.5px] font-semibold text-[#1a1714]">{label}</span>
+            <span className="block text-[11px] text-[#6b645c]">{hint}</span>
+          </button>
+        ))}
+      </div>
+      <label className="mt-2.5 block">
+        <span className="text-[11.5px] font-medium text-[#6b645c]">
+          Nota {modalidad === "acuerdo" ? "(obligatoria: quién lo autorizó y cuándo paga)" : "(opcional)"}
+        </span>
+        <textarea
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+          rows={2}
+          maxLength={300}
+          placeholder={modalidad === "acuerdo" ? "Ej: Autorizado por gerencia, paga a fin de mes." : ""}
+          className="mt-1 w-full resize-none rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2 text-[12.5px] text-[#1a1714] outline-none transition placeholder:text-[#a39b92] focus:border-[#d47840] focus:bg-white"
+        />
+      </label>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="min-w-0 text-[11px] leading-4 text-[#a39b92]">
+          {row.modalidadEntry
+            ? `Marcado por ${row.modalidadEntry.updatedBy} · ${limaDateTime(row.modalidadEntry.updatedAt)}`
+            : "Sin marcar: se trata como prepago."}
+        </p>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={!dirty || saving}
+          className="shrink-0 rounded-full bg-[#1a1714] px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#2c2723] disabled:opacity-40"
+        >
+          {saving ? "Guardando…" : "Guardar"}
+        </button>
+      </div>
+      {message ? (
+        <p className={`mt-1.5 text-[12px] ${message.ok ? "text-[#276043]" : "text-[#9f1d12]"}`}>{message.text}</p>
+      ) : null}
     </div>
   );
 }
@@ -623,14 +921,8 @@ function SignalCard({ signal }: { signal: MonitorSignal }) {
         </div>
         {signal.amountUsd != null ? (
           <span className={`shrink-0 text-[13px] font-semibold tabular-nums ${meta.text}`}>{usd(signal.amountUsd)}</span>
-        ) : (
-          <SeverityChip severity={signal.severity} compact />
-        )}
+        ) : null}
       </div>
-      <p className="mt-2 flex gap-1.5 text-[12px] leading-5 text-[#6b645c]">
-        <span aria-hidden>→</span>
-        {signal.action}
-      </p>
     </div>
   );
 }
@@ -638,7 +930,7 @@ function SignalCard({ signal }: { signal: MonitorSignal }) {
 function MiniStat({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
     <div>
-      <p className="text-[10.5px] text-[#a39b92]">{label}</p>
+      <p className="text-[10.5px] leading-4 text-[#a39b92]">{label}</p>
       <p className={`mt-0.5 text-[13px] font-semibold tabular-nums ${danger ? "text-[#9f1d12]" : "text-[#1a1714]"}`}>
         {usd(value)}
       </p>
@@ -700,15 +992,22 @@ function AccountsTable({ accounts }: { accounts: MonitorAccount[] }) {
   );
 }
 
-function EventsList({ events, now }: { events: MonitorEvent[]; now: number }) {
-  if (events.length === 0) {
-    return <EmptyState text="Sin movimientos raros en la ventana revisada." />;
-  }
+function EventsList({
+  events,
+  now,
+  modalidadById,
+}: {
+  events: MonitorEvent[];
+  now: number;
+  modalidadById: Map<string, ClienteModalidad>;
+}) {
+  if (events.length === 0) return <EmptyState text="Sin movimientos raros en la ventana revisada." />;
   return (
     <ol className="relative px-4 py-4">
       <span className="absolute bottom-6 left-[1.9rem] top-6 w-px bg-[#efe8df]" aria-hidden />
       {events.map((e) => {
-        const meta = SEVERITY_META[e.severity];
+        const acuerdo = modalidadById.get(e.clienteId) === "acuerdo";
+        const meta = acuerdo ? VERDICT_META.acuerdo : SEVERITY_META[e.severity];
         return (
           <li key={e.id} className="relative flex gap-4 py-2.5">
             <span
@@ -719,16 +1018,22 @@ function EventsList({ events, now }: { events: MonitorEvent[]; now: number }) {
             </span>
             <div className="min-w-0 flex-1 rounded-2xl bg-[#fcfaf7] px-3.5 py-2.5 ring-1 ring-[#f3eee8]">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <p className="text-[13px] font-semibold text-[#1a1714]">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-[#1a1714]">
                   {e.clienteName}
-                  <span className={`ml-2 font-medium ${meta.text}`}>{e.title}</span>
+                  <ModalidadBadge modalidad={acuerdo ? "acuerdo" : "prepago"} />
+                  <span className={`font-medium ${meta.text}`}>{e.title}</span>
                 </p>
                 <span className="text-[11.5px] tabular-nums text-[#a39b92]" title={limaDateTime(e.at)}>
                   {relativeTime(e.at, now)}
                 </span>
               </div>
               <p className="mt-1 text-[12.5px] leading-5 text-[#3f3a34]">{e.detail}</p>
-              {e.actor ? <p className="mt-1 text-[11.5px] text-[#6b645c]">Hecho por {e.actor}</p> : null}
+              <p className="mt-1 text-[11.5px] text-[#6b645c]">
+                {e.actor ? `Hecho por ${e.actor}. ` : ""}
+                {acuerdo
+                  ? "Cliente con acuerdo: es normal, solo vigilar."
+                  : "Cliente prepago: preguntar al gerente si estaba autorizado."}
+              </p>
             </div>
           </li>
         );
@@ -742,12 +1047,12 @@ function EmptyState({ text }: { text: string }) {
 }
 
 /** Pasos que sigue el servidor, en el orden en que suelen terminar (~15 s en total). */
-const LOADING_STEPS: Array<{ at: number; label: string }> = [
-  { at: 0, label: "Leyendo cartera y pagos de Ads Holistic…" },
-  { at: 2_500, label: "Revisando cuentas TikTok BM10 y BM30…" },
-  { at: 6_000, label: "Revisando cuentas cash BM200 y BM300…" },
-  { at: 9_500, label: "Buscando cargas directas y recargas de gerente…" },
-  { at: 12_500, label: "Cruzando con Hecom y armando alertas…" },
+const LOADING_STEPS: Array<{ at: number; label: string; short: string }> = [
+  { at: 0, label: "Leyendo cartera y pagos de Ads Holistic…", short: "Cartera" },
+  { at: 2_500, label: "Revisando cuentas TikTok BM10 y BM30…", short: "BM10/30" },
+  { at: 6_000, label: "Revisando cuentas cash BM200 y BM300…", short: "BM200/300" },
+  { at: 9_500, label: "Buscando cargas directas y recargas de gerente…", short: "Movimientos" },
+  { at: 12_500, label: "Cruzando con Hecom y armando alertas…", short: "Alertas" },
 ];
 const EXPECTED_MS = 15_000;
 
@@ -774,7 +1079,14 @@ function RefreshBar({ active }: { active: boolean }) {
   const { percent } = useLoadingProgress(active);
   if (!active) return null;
   return (
-    <div className="h-1 w-full overflow-hidden rounded-full bg-[#efe8df]" role="progressbar" aria-label="Actualizando monitoreo" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      className="h-1 w-full overflow-hidden rounded-full bg-[#efe8df]"
+      role="progressbar"
+      aria-label="Actualizando monitoreo"
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div
         className="h-full rounded-full bg-gradient-to-r from-[#d47840] to-[#f0b889] transition-[width] duration-300 ease-out"
         style={{ width: `${Math.max(6, percent)}%` }}
@@ -825,9 +1137,7 @@ function MonitorSkeleton() {
               >
                 {i < stepIndex ? "✓" : i + 1}
               </span>
-              <span className={i <= stepIndex ? "text-[#3f3a34]" : "text-[#a39b92]"}>
-                {["Cartera", "BM10/30", "BM200/300", "Movimientos", "Alertas"][i]}
-              </span>
+              <span className={i <= stepIndex ? "text-[#3f3a34]" : "text-[#a39b92]"}>{s.short}</span>
             </li>
           ))}
         </ol>

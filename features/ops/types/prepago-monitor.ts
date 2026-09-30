@@ -2,6 +2,17 @@
 
 export type MonitorSeverity = "critical" | "high" | "medium" | "info";
 
+/** Tipo de cliente que marca gerencia. */
+export type ClienteModalidad = "prepago" | "acuerdo";
+
+export type ClienteModalidadEntry = {
+  modalidad: ClienteModalidad;
+  nota: string;
+  updatedAt: string;
+  /** Email de quien lo marcó. */
+  updatedBy: string;
+};
+
 export type MonitorSignalKind =
   | "unlimited"
   | "budget_over_wallet"
