@@ -70,6 +70,16 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
           />
         </svg>
       );
+    case "monitor":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 13.5h3l2.25-6 3.75 12 2.25-6h5.25M3.75 4.5h16.5v15H3.75z"
+          />
+        </svg>
+      );
     case "payments-missing-cobros":
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -181,6 +191,7 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
     if (item.href === "/payments/profit") return false;
     if (item.href === "/payments/missing-cobros") return false;
     if (item.href === "/links-deuda") return false;
+    if (item.href === "/monitoreo") return false;
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;
     if (item.href === "/alianzas") return false;

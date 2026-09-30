@@ -21,6 +21,7 @@ const PRIVATE_PATHS = [
   "/ad-accounts",
   "/payments",
   "/links-deuda",
+  "/monitoreo",
   "/gastos",
   "/affiliates",
   "/creative-analyzer",
