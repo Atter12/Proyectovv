@@ -110,6 +110,8 @@ const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   "6425e2d9-bb9b-4176-a126-ae889c1c8543": 7,
   // Abel Mogollon — 2026-09-23: ya tiene 6 mapeadas; +3 → cupo 9 (BM300).
   "673ac838-ce18-4074-a7a7-63407c72c80a": 9,
+  // Fritzner Duran — 2026-09-29, autorizado por gerencia: ya tiene 3 mapeadas; +3 → cupo 6.
+  "97780792-7dd8-43e1-9da2-42599e08e60e": 6,
 };
 
 /**
