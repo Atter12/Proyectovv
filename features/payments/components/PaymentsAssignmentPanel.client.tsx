@@ -242,7 +242,8 @@ export function PaymentsAssignmentPanel({
         open={transferAccount !== null}
         onClose={() => setTransferAccount(null)}
         agencyBmFunding={agencyBmFunding}
-        allowForceLedger={allowForceLedger}
+        // Transferir en solo-ledger está prohibido en el servidor.
+        allowForceLedger={false}
         clientSelfService={!agencyBmFunding}
         onFundingChanged={refreshAfterFundingChange}
         liveMetricsByAdvertiser={metricsByAdvertiser}

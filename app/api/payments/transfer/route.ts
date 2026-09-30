@@ -58,10 +58,15 @@ export async function POST(request: Request) {
     actingAsCliente,
   );
 
-  const forceLedgerOnly = Boolean(body.forceLedgerOnly);
-  if (forceLedgerOnly && !capabilities.isStaff && !capabilities.isSuperAdmin) {
+  // Transferir en solo-ledger devolvía el saldo sin bajar TikTok en origen y
+  // luego fondeaba el destino: la misma plata gastable dos veces. Prohibido
+  // para todos; si el origen está trabado, se recupera aparte y se asigna.
+  if (body.forceLedgerOnly) {
     return NextResponse.json(
-      { error: "Solo staff puede forzar transferencia solo-ledger." },
+      {
+        error:
+          "La transferencia solo-ledger no está permitida. Recupera el saldo de la cuenta origen y luego asígnalo.",
+      },
       { status: 403 },
     );
   }
@@ -126,9 +131,9 @@ export async function POST(request: Request) {
       amountCents,
       requestedBy: session.id,
       agencyBmFunding: wantsAgencyBm,
-      forceLedgerOnly,
-      // Prepago: el cliente solo mueve lo que pagó. Cupo TikTok extra, solo staff.
-      allowTikTokOverLedger: capabilities.isStaff || capabilities.isSuperAdmin,
+      // Prepago: el cliente solo mueve lo que pagó. El cupo TikTok extra se
+      // asienta como depósito pagado del cliente: solo super admin.
+      allowTikTokOverLedger: capabilities.isSuperAdmin,
       idempotencyKey:
         body.idempotencyKey ??
         `transfer:${organizationId}:${body.fromAdAccountId}:${body.toAdAccountId}:${amountCents}:${randomUUID()}`,

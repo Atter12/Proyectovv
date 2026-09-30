@@ -4,6 +4,7 @@ import {
   allocateToAdAccount,
   confirmDepositInLedger,
   getWalletLedgerBalance,
+  refundAdAccountToWallet,
   reverseLedgerJournal,
 } from "@/lib/ledger/ledger.server";
 import {
@@ -63,6 +64,13 @@ export interface AllocateWithTikTokInput {
 export interface AllocateWithTikTokResult {
   journalId: string;
   agencyBmFunding: boolean;
+  /**
+   * TikTok aceptó el fondeo pero la lectura posterior no lo confirmó a tiempo.
+   * La cartera ya está debitada: NO reintentar (fondearía dos veces); revisar.
+   */
+  pendingVerification: boolean;
+  /** La idempotencyKey ya estaba asentada: no se volvió a llamar a TikTok. */
+  replayed: boolean;
   tiktokTransfer: {
     attempted: boolean;
     requestId: string | null;
@@ -144,9 +152,12 @@ async function ensureAgencyBmBridgeCredit(input: {
 
 /**
  * Asigna saldo a una cuenta ads.
- * Cliente: exige cartera Holistic → TikTok BC → ledger.
- * Gerente (agencyBmFunding): TikTok BC primero → puente contable → ledger.
- * Importante: no acreditar cartera si TikTok falla (evita saldo fantasma).
+ * Cliente: débito atómico del ledger (cartera → cuenta ads) → TikTok BC.
+ * Gerente (agencyBmFunding): puente contable → débito ledger → TikTok BC.
+ * Si TikTok rechaza, se devuelve la plata a la cartera y se revierte el
+ * puente. El ledger va primero porque su débito es atómico: con TikTok
+ * primero, dos asignaciones simultáneas (o un reintento) fondeaban TikTok
+ * dos veces con un solo débito.
  */
 export async function allocateWithOptionalTikTokFunding(
   input: AllocateWithTikTokInput,
@@ -291,7 +302,28 @@ export async function allocateWithOptionalTikTokFunding(
     fundingOn,
   });
 
-  // Cliente: validar cartera antes de llamar a TikTok (no muta).
+  // Reintento con la misma idempotencyKey: el ledger devolvería el journal
+  // anterior sin debitar de nuevo. Si llamáramos a TikTok otra vez, la cuenta
+  // quedaría fondeada dos veces con un solo débito. Cortamos aquí.
+  const previousAllocation = await findAllocationJournalByKey(
+    input.organizationId,
+    idempotencyKey,
+  );
+  if (previousAllocation) {
+    return await resolveReplayedAllocation({
+      organizationId: input.organizationId,
+      idempotencyKey,
+      journal: previousAllocation,
+      agencyBmFunding,
+      canFund,
+      bcId,
+      advertiserId,
+    });
+  }
+
+  // Cliente: aviso temprano con mensaje claro. NO es la garantía: dos
+  // peticiones pueden pasar este chequeo a la vez; la que manda es el débito
+  // atómico de ledger_allocate_to_ad_account más abajo.
   if (!agencyBmFunding) {
     const wallet = await getWalletLedgerBalance(input.organizationId);
     const available = wallet?.availableBalanceCents ?? 0;
@@ -302,128 +334,49 @@ export async function allocateWithOptionalTikTokFunding(
     }
   }
 
-  // TikTok PRIMERO. Si falla, no tocamos ledger ni puente.
-  // BM 200 (NON_SHARED): cash_amount transfer 1:1
-  // BM 10/30 (SHARED): INCREASE_BUDGET — gasta de la línea de crédito
+  // Lecturas previas a TikTok (no mueven plata): se hacen antes del débito
+  // para no ensuciar el historial del cliente con asignación + reverso cuando
+  // ya sabemos que TikTok no tiene cupo.
+  const willCrossBmPull =
+    canFund &&
+    useSharedBudgetPath &&
+    agencyBmFunding &&
+    Boolean(input.crossBmFunding) &&
+    bmBucket === "10";
+  const cashAmount = canFund ? usdCentsToTikTokCashAmount(input.amountCents) : 0;
   if (canFund) {
-    transferRequestId = `bc:${idempotencyKey}`;
-    const cashAmount = usdCentsToTikTokCashAmount(input.amountCents);
     assertTikTokCashMatchesCents(cashAmount, input.amountCents);
+  }
+  let beforeCash: number | null = null;
+  if (canFund && useSharedBudgetPath && !willCrossBmPull) {
+    await assertSharedBmSpendableBeforeAllocate({
+      bcId,
+      advertiserId,
+      amountUsd: cashAmount,
+      organizationId: input.organizationId,
+    });
+  } else if (canFund && !useSharedBudgetPath) {
+    const beforeCashSnap = await getAdvertiserBudgetSnapshot({
+      bcId,
+      advertiserId,
+      organizationId: input.organizationId,
+    });
+    beforeCash =
+      beforeCashSnap?.validCashBalance ??
+      beforeCashSnap?.cashBalance ??
+      null;
+  }
 
-    if (useSharedBudgetPath) {
-      if (agencyBmFunding && input.crossBmFunding && bmBucket === "10") {
-        const sourceBcId =
-          input.crossBmSourceBcId?.trim() ||
-          HECOM_BM_BUCKET_TO_BC["30"];
-        await attemptCrossBmCreditPull({
-          sourceBcId,
-          targetBcId: bcId,
-          amountUsd: cashAmount,
-          organizationId: input.organizationId,
-          requestId: `cross-bm:${idempotencyKey}`.padEnd(32, "0").slice(0, 32),
-        });
-      }
-
-      await assertSharedBmSpendableBeforeAllocate({
-        bcId,
-        advertiserId,
-        amountUsd: cashAmount,
-        organizationId: input.organizationId,
-      });
-
-      const budgetResult = await increaseSharedBmAdvertiserBudget({
-        organizationId: input.organizationId,
-        bcId,
-        advertiserId,
-        increaseAmountUsd: cashAmount,
-      });
-      tiktokRequestId = budgetResult.tiktokRequestId;
-      tiktokFundingSource = "shared_budget";
-      tiktokBudgetBefore = budgetResult.previousBudget;
-      tiktokBudgetAfter = budgetResult.newBudget;
-    } else {
-      const beforeCashSnap = await getAdvertiserBudgetSnapshot({
-        bcId,
-        advertiserId,
-        organizationId: input.organizationId,
-      });
-      const beforeCash =
-        beforeCashSnap?.validCashBalance ??
-        beforeCashSnap?.cashBalance ??
-        null;
-
-      const transfer = await transferBcFundsToAdvertiser({
-        organizationId: input.organizationId,
-        bcId,
-        advertiserId,
-        cashAmount,
-        requestId: transferRequestId,
-        transferType: "RECHARGE",
-      });
-      tiktokRequestId = transfer.tiktokRequestId;
-      tiktokFundingSource = transfer.fundingSource;
-
-      // BM 200: confirmar que el cash llegó (si podemos leer el advertiser).
-      if (beforeCash != null && transfer.fundingSource === "cash") {
-        const expectedCash = Math.round((beforeCash + cashAmount) * 100) / 100;
-        let cashOk = false;
-        let sawAfter = false;
-        const delays = [0, 700, 1500, 2800];
-        for (let i = 0; i < delays.length; i++) {
-          if (delays[i]! > 0) {
-            await new Promise((r) => setTimeout(r, delays[i]));
-          }
-          const after = await getAdvertiserBudgetSnapshot({
-            bcId,
-            advertiserId,
-            organizationId: input.organizationId,
-          });
-          const live =
-            after?.validCashBalance ?? after?.cashBalance ?? null;
-          if (live == null) continue;
-          sawAfter = true;
-          if (live + 1e-6 >= expectedCash - 0.05) {
-            cashOk = true;
-            break;
-          }
-          console.info("[payments/allocate] bm200_cash_verify_retry", {
-            attempt: i + 1,
-            advertiserId,
-            beforeCash,
-            expectedCash,
-            live,
-          });
-        }
-        if (!cashOk && sawAfter) {
-          console.error("[payments/allocate] bm200_cash_not_persisted", {
-            advertiserId,
-            bcId,
-            beforeCash,
-            cashAmount,
-            tiktokRequestId,
-          });
-          throw new Error(
-            "TikTok aceptó la transferencia pero el saldo cash no quedó aplicado. No se debitó la cartera: reintenta o contacta a soporte.",
-          );
-        }
-        if (!cashOk && !sawAfter) {
-          console.warn("[payments/allocate] bm200_cash_verify_skipped", {
-            advertiserId,
-            bcId,
-            beforeCash,
-            cashAmount,
-            reason: "no_after_snapshot",
-          });
-        }
-      }
-    }
-  } else if (agencyBmFunding) {
+  if (!canFund && agencyBmFunding) {
     throw new Error(
       "Modo gerente requiere TikTok BC funding activo (advertiser + bc_id + TIKTOK_BC_FUNDING_ENABLED).",
     );
   }
 
-  // Solo después de TikTok OK (o funding off en camino cliente): puente + allocate.
+  // LEDGER PRIMERO. ledger_allocate_to_ad_account bloquea la cartera (FOR
+  // UPDATE) y falla si no alcanza: dos asignaciones simultáneas ya no pueden
+  // pasar el chequeo de saldo y fondear TikTok dos veces con un solo débito.
+  // Gerente: el puente acredita la cartera justo antes para que el débito pase.
   if (agencyBmFunding) {
     bridgeJournalId = await ensureAgencyBmBridgeCredit({
       organizationId: input.organizationId,
@@ -434,6 +387,13 @@ export async function allocateWithOptionalTikTokFunding(
     });
   }
 
+  if (canFund) {
+    transferRequestId = `bc:${idempotencyKey}`;
+  }
+
+  // Marca de este intento: si otra petición con la misma clave ganó la
+  // carrera, el RPC devuelve SU journal y no debita; lo detectamos por aquí.
+  const attemptId = randomUUID();
   let journalId: string;
   try {
     journalId = await allocateToAdAccount({
@@ -448,51 +408,189 @@ export async function allocateWithOptionalTikTokFunding(
         source: agencyBmFunding ? "agency_bm" : "dashboard",
         requested_by: input.requestedBy,
         currency,
+        allocation_attempt_id: attemptId,
         agency_bm_funding: agencyBmFunding,
         agency_bm_bridge_journal_id: bridgeJournalId,
         tiktok_bc_funding_enabled: fundingOn,
         tiktok_bc_transfer_attempted: canFund,
         tiktok_bc_id: bcId || null,
         tiktok_advertiser_id: advertiserId || null,
-        tiktok_cash_amount_usd: canFund
-          ? usdCentsToTikTokCashAmount(input.amountCents)
+        tiktok_cash_amount_usd: canFund ? cashAmount : null,
+        tiktok_funding_path: canFund
+          ? useSharedBudgetPath
+            ? "shared_budget"
+            : "cash_transfer"
           : null,
-        tiktok_funding_source: tiktokFundingSource,
-        tiktok_budget_before: tiktokBudgetBefore,
-        tiktok_budget_after: tiktokBudgetAfter,
         tiktok_amount_cents: input.amountCents,
         tiktok_transfer_request_id: transferRequestId,
-        tiktok_api_request_id: tiktokRequestId,
       },
     });
   } catch (allocateError) {
-    if (bridgeJournalId) {
-      try {
-        await reverseLedgerJournal({
-          journalId: bridgeJournalId,
-          reason:
-            "Reverso automático: asignación falló después del puente BM gerente",
-          idempotencyKey: `rollback:agency-bm-bridge:${bridgeJournalId}`,
+    await rollbackAgencyBmBridge({
+      bridgeJournalId,
+      idempotencyKey,
+      cause: allocateError,
+    });
+    throw allocateError;
+  }
+
+  const allocationJournal = await findAllocationJournalByKey(
+    input.organizationId,
+    idempotencyKey,
+  );
+  const ownAttempt =
+    allocationJournal?.id === journalId &&
+    allocationJournal.metadata?.allocation_attempt_id === attemptId;
+  if (!ownAttempt) {
+    // Otra petición con la misma clave asentó (y fondea) esta asignación.
+    // El puente es idempotente por clave: es el mismo journal, no se revierte.
+    return await resolveReplayedAllocation({
+      organizationId: input.organizationId,
+      idempotencyKey,
+      journal: allocationJournal ?? { id: journalId, metadata: null },
+      agencyBmFunding,
+      canFund,
+      bcId,
+      advertiserId,
+    });
+  }
+
+  // TikTok DESPUÉS del débito. Si TikTok rechaza, devolvemos la plata a la
+  // cartera (y revertimos el puente gerente) con claves derivadas de la
+  // asignación, así un reintento del reverso no duplica la devolución.
+  // BM 200 (NON_SHARED): cash_amount transfer 1:1
+  // BM 10/30 (SHARED): INCREASE_BUDGET — gasta de la línea de crédito
+  let pendingVerification = false;
+  if (canFund) {
+    try {
+      if (useSharedBudgetPath) {
+        if (willCrossBmPull) {
+          const sourceBcId =
+            input.crossBmSourceBcId?.trim() ||
+            HECOM_BM_BUCKET_TO_BC["30"];
+          await attemptCrossBmCreditPull({
+            sourceBcId,
+            targetBcId: bcId,
+            amountUsd: cashAmount,
+            organizationId: input.organizationId,
+            requestId: `cross-bm:${idempotencyKey}`.padEnd(32, "0").slice(0, 32),
+          });
+          await assertSharedBmSpendableBeforeAllocate({
+            bcId,
+            advertiserId,
+            amountUsd: cashAmount,
+            organizationId: input.organizationId,
+          });
+        }
+
+        const budgetResult = await increaseSharedBmAdvertiserBudget({
+          organizationId: input.organizationId,
+          bcId,
+          advertiserId,
+          increaseAmountUsd: cashAmount,
         });
-        console.info("[payments/allocate] bridge_rolled_back", {
-          bridgeJournalId,
+        tiktokRequestId = budgetResult.tiktokRequestId;
+        tiktokFundingSource = "shared_budget";
+        tiktokBudgetBefore = budgetResult.previousBudget;
+        tiktokBudgetAfter = budgetResult.newBudget;
+        pendingVerification = budgetResult.pendingVerification;
+      } else {
+        const transfer = await transferBcFundsToAdvertiser({
+          organizationId: input.organizationId,
+          bcId,
+          advertiserId,
+          cashAmount,
+          requestId: transferRequestId ?? `bc:${idempotencyKey}`,
+          transferType: "RECHARGE",
+        });
+        tiktokRequestId = transfer.tiktokRequestId;
+        tiktokFundingSource = transfer.fundingSource;
+      }
+    } catch (tiktokError) {
+      await compensateFailedTikTokFunding({
+        organizationId: input.organizationId,
+        adAccountId: input.adAccountId,
+        amountCents: input.amountCents,
+        idempotencyKey,
+        allocationJournalId: journalId,
+        bridgeJournalId,
+        requestedBy: input.requestedBy,
+        cause: tiktokError,
+      });
+      throw tiktokError;
+    }
+
+    // BM 200: confirmar que el cash llegó (si podemos leer el advertiser).
+    // Aquí TikTok YA aceptó la transferencia: no se compensa ni se lanza
+    // error, porque el cliente reintentaría y fondearía dos veces. Se marca
+    // como pendiente de verificación para que soporte lo revise.
+    if (
+      !useSharedBudgetPath &&
+      beforeCash != null &&
+      tiktokFundingSource === "cash"
+    ) {
+      const expectedCash = Math.round((beforeCash + cashAmount) * 100) / 100;
+      let cashOk = false;
+      let sawAfter = false;
+      const delays = [0, 700, 1500, 2800];
+      for (let i = 0; i < delays.length; i++) {
+        if (delays[i]! > 0) {
+          await new Promise((r) => setTimeout(r, delays[i]));
+        }
+        const after = await getAdvertiserBudgetSnapshot({
+          bcId,
+          advertiserId,
+          organizationId: input.organizationId,
+        }).catch(() => null);
+        const live =
+          after?.validCashBalance ?? after?.cashBalance ?? null;
+        if (live == null) continue;
+        sawAfter = true;
+        if (live + 1e-6 >= expectedCash - 0.05) {
+          cashOk = true;
+          break;
+        }
+        console.info("[payments/allocate] bm200_cash_verify_retry", {
+          attempt: i + 1,
+          advertiserId,
+          beforeCash,
+          expectedCash,
+          live,
+        });
+      }
+      if (!cashOk && sawAfter) {
+        pendingVerification = true;
+        console.warn("[payments/allocate] bm200_cash_pending_verification", {
+          advertiserId,
+          bcId,
+          beforeCash,
+          cashAmount,
+          tiktokRequestId,
+          journalId,
           idempotencyKey,
         });
-      } catch (rollbackError) {
-        console.error("[payments/allocate] bridge_rollback_failed", {
-          bridgeJournalId,
-          allocateError:
-            allocateError instanceof Error
-              ? allocateError.message
-              : "unknown",
-          rollbackError:
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : "unknown",
+      }
+      if (!cashOk && !sawAfter) {
+        console.warn("[payments/allocate] bm200_cash_verify_skipped", {
+          advertiserId,
+          bcId,
+          beforeCash,
+          cashAmount,
+          reason: "no_after_snapshot",
         });
       }
     }
-    throw allocateError;
+
+    console.info("[payments/allocate] tiktok_funded_after_ledger", {
+      journalId,
+      advertiserId,
+      bcId,
+      tiktokFundingSource,
+      tiktokRequestId,
+      tiktokBudgetBefore,
+      tiktokBudgetAfter,
+      pendingVerification,
+    });
   }
 
   // BM10/30 prepago: cupo TikTok = gastado + ledger.
@@ -529,6 +627,8 @@ export async function allocateWithOptionalTikTokFunding(
   return {
     journalId,
     agencyBmFunding,
+    pendingVerification,
+    replayed: false,
     tiktokTransfer: {
       attempted: canFund,
       requestId: transferRequestId,
@@ -537,4 +637,170 @@ export async function allocateWithOptionalTikTokFunding(
       advertiserId: advertiserId || null,
     },
   };
+}
+
+type AllocationJournalRow = {
+  id: string;
+  metadata: Record<string, unknown> | null;
+};
+
+/** Clave del reverso automático; determinista para que reintentar no duplique la devolución. */
+function allocationCompensationKey(idempotencyKey: string): string {
+  return `allocation-compensation:${idempotencyKey}`;
+}
+
+async function findAllocationJournalByKey(
+  organizationId: string,
+  idempotencyKey: string,
+): Promise<AllocationJournalRow | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("ledger_journals")
+    .select("id, metadata")
+    .eq("organization_id", organizationId)
+    .eq("idempotency_key", idempotencyKey)
+    .limit(1)
+    .maybeSingle<{ id: string; metadata: unknown }>();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return null;
+  return {
+    id: data.id,
+    metadata: isRecord(data.metadata) ? data.metadata : null,
+  };
+}
+
+/**
+ * La asignación con esta clave ya existe: no volver a tocar TikTok.
+ * Si ya se había compensado (TikTok falló), se avisa en vez de dar un OK falso.
+ */
+async function resolveReplayedAllocation(input: {
+  organizationId: string;
+  idempotencyKey: string;
+  journal: AllocationJournalRow;
+  agencyBmFunding: boolean;
+  canFund: boolean;
+  bcId: string;
+  advertiserId: string;
+}): Promise<AllocateWithTikTokResult> {
+  const compensation = await findAllocationJournalByKey(
+    input.organizationId,
+    allocationCompensationKey(input.idempotencyKey),
+  );
+  if (compensation) {
+    throw new Error(
+      "Esta asignación ya se intentó y TikTok no la aceptó; el saldo volvió a la cartera. Vuelve a asignar como una operación nueva.",
+    );
+  }
+
+  console.warn("[payments/allocate] replay_skipped_tiktok", {
+    journalId: input.journal.id,
+    idempotencyKey: input.idempotencyKey,
+  });
+
+  const meta = input.journal.metadata ?? {};
+  return {
+    journalId: input.journal.id,
+    agencyBmFunding: input.agencyBmFunding,
+    pendingVerification: false,
+    replayed: true,
+    tiktokTransfer: {
+      attempted: false,
+      requestId:
+        typeof meta.tiktok_transfer_request_id === "string"
+          ? meta.tiktok_transfer_request_id
+          : null,
+      tiktokRequestId: null,
+      bcId: input.bcId || null,
+      advertiserId: input.advertiserId || null,
+    },
+  };
+}
+
+/** Revierte el puente gerente si la asignación no llegó a quedar en pie. */
+async function rollbackAgencyBmBridge(input: {
+  bridgeJournalId: string | null;
+  idempotencyKey: string;
+  cause: unknown;
+}): Promise<void> {
+  if (!input.bridgeJournalId) return;
+  try {
+    await reverseLedgerJournal({
+      journalId: input.bridgeJournalId,
+      reason:
+        "Reverso automático: asignación falló después del puente BM gerente",
+      idempotencyKey: `rollback:agency-bm-bridge:${input.bridgeJournalId}`,
+    });
+    console.info("[payments/allocate] bridge_rolled_back", {
+      bridgeJournalId: input.bridgeJournalId,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (rollbackError) {
+    console.error("[payments/allocate] bridge_rollback_failed", {
+      bridgeJournalId: input.bridgeJournalId,
+      cause: input.cause instanceof Error ? input.cause.message : "unknown",
+      rollbackError:
+        rollbackError instanceof Error ? rollbackError.message : "unknown",
+    });
+  }
+}
+
+/**
+ * TikTok rechazó el fondeo después del débito: la plata vuelve de la cuenta
+ * ads a la cartera y, en modo gerente, se revierte el puente (primero el
+ * refund, porque el reverso del puente saca de la cartera lo que el refund
+ * devuelve).
+ */
+async function compensateFailedTikTokFunding(input: {
+  organizationId: string;
+  adAccountId: string;
+  amountCents: number;
+  idempotencyKey: string;
+  allocationJournalId: string;
+  bridgeJournalId: string | null;
+  requestedBy: string;
+  cause: unknown;
+}): Promise<void> {
+  const causeMessage =
+    input.cause instanceof Error ? input.cause.message : String(input.cause);
+  try {
+    const refundJournalId = await refundAdAccountToWallet({
+      organizationId: input.organizationId,
+      adAccountId: input.adAccountId,
+      amountCents: input.amountCents,
+      idempotencyKey: allocationCompensationKey(input.idempotencyKey),
+      description: "Reverso automático: TikTok no aceptó la asignación",
+      metadata: {
+        source: "allocation_compensation",
+        requested_by: input.requestedBy,
+        allocation_journal_id: input.allocationJournalId,
+        allocation_idempotency_key: input.idempotencyKey,
+        tiktok_error: causeMessage.slice(0, 500),
+      },
+    });
+    console.info("[payments/allocate] allocation_compensated", {
+      allocationJournalId: input.allocationJournalId,
+      refundJournalId,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (refundError) {
+    // Sin refund no se revierte el puente: la cartera no tendría con qué.
+    // Queda debitado y sin TikTok; soporte debe devolverlo a mano.
+    console.error("[payments/allocate] allocation_compensation_failed", {
+      allocationJournalId: input.allocationJournalId,
+      bridgeJournalId: input.bridgeJournalId,
+      idempotencyKey: input.idempotencyKey,
+      cause: causeMessage,
+      refundError:
+        refundError instanceof Error ? refundError.message : "unknown",
+    });
+    throw new Error(
+      `${causeMessage} Además no se pudo devolver el saldo a la cartera automáticamente; contacta a soporte (ref. ${input.allocationJournalId}).`,
+    );
+  }
+
+  await rollbackAgencyBmBridge({
+    bridgeJournalId: input.bridgeJournalId,
+    idempotencyKey: input.idempotencyKey,
+    cause: input.cause,
+  });
 }

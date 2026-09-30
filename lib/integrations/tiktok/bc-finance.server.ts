@@ -1007,6 +1007,11 @@ export async function increaseSharedBmAdvertiserBudget(input: {
   newBudget: number;
   budgetMode: string;
   tiktokRequestId: string | null;
+  /**
+   * TikTok aceptó el cambio pero la relectura no lo confirmó a tiempo.
+   * El caller ya debitó el ledger: no debe reintentar ni revertir.
+   */
+  pendingVerification: boolean;
 }> {
   const advertiserId = input.advertiserId.trim();
   const increase = Math.round(input.increaseAmountUsd * 100) / 100;
@@ -1150,6 +1155,7 @@ export async function increaseSharedBmAdvertiserBudget(input: {
           newBudget: verifiedIncremental.budget,
           budgetMode: verifiedIncremental.budgetMode || "CUSTOM_BUDGET",
           tiktokRequestId,
+          pendingVerification: false,
         };
       }
 
@@ -1231,7 +1237,11 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     (verified.budget + 1e-6 < newBudget - 0.05 &&
       verified.budget + 1e-6 < baseBudget + increase - 0.05)
   ) {
-    console.error("[tiktok-bc] budget_increase_not_persisted", {
+    // TikTok ya aceptó el UPDATE y el caller ya debitó la cartera (ledger
+    // primero). Lanzar aquí haría que el cliente reintente y se fondee dos
+    // veces: se devuelve OK marcado como pendiente de verificación. El tope
+    // posterior (gastado + ledger) vuelve a fijar el presupuesto correcto.
+    console.warn("[tiktok-bc] budget_increase_pending_verification", {
       bcId,
       advertiserId,
       expected: newBudget,
@@ -1239,9 +1249,14 @@ export async function increaseSharedBmAdvertiserBudget(input: {
       mode: verified?.budgetMode ?? null,
       tiktokRequestId,
     });
-    throw new Error(
-      "TikTok aceptó la asignación pero el presupuesto no quedó aplicado. No se debitó la cartera: reintenta o contacta a soporte.",
-    );
+    return {
+      ok: true,
+      previousBudget: baseBudget,
+      newBudget: verified?.budget ?? newBudget,
+      budgetMode: verified?.budgetMode || "CUSTOM_BUDGET",
+      tiktokRequestId,
+      pendingVerification: true,
+    };
   }
 
   return {
@@ -1250,6 +1265,7 @@ export async function increaseSharedBmAdvertiserBudget(input: {
     newBudget: verified.budget,
     budgetMode: verified.budgetMode || "CUSTOM_BUDGET",
     tiktokRequestId,
+    pendingVerification: false,
   };
 }
 

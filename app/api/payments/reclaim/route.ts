@@ -55,10 +55,13 @@ export async function POST(request: Request) {
     }),
     actingAsCliente,
   );
+  // Solo-ledger devuelve saldo a la cartera sin bajar TikTok: la misma plata
+  // queda gastable en la cuenta y en la cartera. Solo super admin, que
+  // asume conciliarlo a mano.
   const forceLedgerOnly = Boolean(body.forceLedgerOnly);
-  if (forceLedgerOnly && !capabilities.isStaff && !capabilities.isSuperAdmin) {
+  if (forceLedgerOnly && !capabilities.isSuperAdmin) {
     return NextResponse.json(
-      { error: "Solo staff puede forzar recuperación solo-ledger." },
+      { error: "Solo un super admin puede forzar recuperación solo-ledger." },
       { status: 403 },
     );
   }

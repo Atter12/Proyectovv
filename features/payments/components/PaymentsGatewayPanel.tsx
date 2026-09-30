@@ -474,9 +474,9 @@ export async function PaymentsGatewayPanel({
             )}
             walletBalance={core.wallet.balance}
             clienteName={clienteName}
-            allowForceLedger={
-              capabilities.isStaff || capabilities.isSuperAdmin
-            }
+            // Solo-ledger deja la plata gastable en TikTok y en cartera a la
+            // vez: solo super admin (la ruta lo valida igual).
+            allowForceLedger={capabilities.isSuperAdmin}
           />
         )}
       </div>

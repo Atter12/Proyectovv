@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
 import { reclaimFromAdAccountWithTikTok } from "@/lib/payments/reclaim-with-tiktok.server";
-import { getAdAccountLedgerBalance } from "@/lib/ledger/ledger.server";
 
 export interface TransferBetweenAdAccountsInput {
   organizationId: string;
@@ -12,10 +11,13 @@ export interface TransferBetweenAdAccountsInput {
   requestedBy: string;
   idempotencyKey?: string;
   agencyBmFunding?: boolean;
-  forceLedgerOnly?: boolean;
+  // Sin forceLedgerOnly a propósito: en una transferencia devolvía el ledger
+  // sin bajar TikTok en origen y luego fondeaba el destino, así la misma
+  // plata quedaba gastable dos veces.
   /**
-   * Solo staff: mover cupo TikTok que no está en la cartera (se acredita como
-   * import). Un cliente prepago solo mueve lo que pagó.
+   * Solo super admin: mover cupo TikTok que no está en la cartera (se acredita
+   * como depósito "tiktok_balance_import"). Un cliente prepago solo mueve lo
+   * que pagó.
    */
   allowTikTokOverLedger?: boolean;
 }
@@ -34,7 +36,7 @@ export interface TransferBetweenAdAccountsResult {
 /**
  * Mueve saldo de cuenta ads A → cuenta ads B en un solo paso.
  * TikTok: DEDUCT/baja presupuesto en origen → RECHARGE/sube presupuesto en destino.
- * Cliente: el tope es su saldo en cartera (lo que pagó). Staff con
+ * Cliente: el tope es su saldo en cartera (lo que pagó). Super admin con
  * allowTikTokOverLedger: puede mover todo el cupo TikTok (import del gap → cartera).
  */
 export async function transferBetweenAdAccountsWithTikTok(
@@ -136,21 +138,6 @@ export async function transferBetweenAdAccountsWithTikTok(
     );
   }
 
-  if (input.forceLedgerOnly) {
-    const fromLedger = await getAdAccountLedgerBalance(fromAccount.id);
-    const fromAvailable = fromLedger?.availableBalanceCents ?? 0;
-    if (fromAvailable <= 0) {
-      throw new Error(
-        "La cuenta origen no tiene saldo Holistic para transferir.",
-      );
-    }
-    if (requested > fromAvailable) {
-      throw new Error(
-        `Solo hay ${(fromAvailable / 100).toFixed(2)} USD disponibles en la cuenta origen.`,
-      );
-    }
-  }
-
   if (!toAccount.external_account_id?.trim()) {
     throw new Error(
       "La cuenta de destino no tiene advertiser_id de TikTok. Completa el ID antes de transferir.",
@@ -178,9 +165,10 @@ export async function transferBetweenAdAccountsWithTikTok(
       adAccountId: fromAccount.id,
       amountCents: requested,
       requestedBy: input.requestedBy,
-      forceLedgerOnly: Boolean(input.forceLedgerOnly),
-      allowTikTokOverLedger:
-        input.allowTikTokOverLedger === true && !input.forceLedgerOnly,
+      // Nunca solo-ledger: el origen tiene que bajar en TikTok antes de
+      // fondear el destino.
+      forceLedgerOnly: false,
+      allowTikTokOverLedger: input.allowTikTokOverLedger === true,
       idempotencyKey: `transfer-reclaim:${transferId}`,
     });
   } catch (err) {
@@ -211,6 +199,8 @@ export async function transferBetweenAdAccountsWithTikTok(
       reclaimJournalId: reclaimResult.journalId,
       allocateJournalId: allocateResult.journalId,
       reclaimPath: reclaimResult.path,
+      pendingVerification: allocateResult.pendingVerification,
+      replayed: allocateResult.replayed,
     });
 
     return {

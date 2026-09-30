@@ -38,14 +38,18 @@ export interface ReclaimFromAdAccountInput {
   requestedBy: string;
   idempotencyKey?: string;
   /**
-   * Solo staff: si TikTok falla (cuenta trabada), igual devolver ledger
-   * a cartera. Riesgo: cash puede seguir en el advertiser en TikTok.
+   * Solo super admin (lo valida la ruta): si TikTok falla (cuenta trabada),
+   * igual devolver ledger a cartera. Riesgo: el cash/cupo sigue en el
+   * advertiser en TikTok y la misma plata queda gastable dos veces.
+   * Nunca en transferencias (ver transfer-between-ad-accounts).
    */
   forceLedgerOnly?: boolean;
   /**
-   * Transferencia entre cuentas: permite jalar cupo TikTok aunque el
-   * ledger Holistic esté en $0 (plata que ya estaba en Manager).
-   * No usar en “Recuperar a cartera”: eso sí exige ledger.
+   * Transferencia entre cuentas, solo super admin (lo valida la ruta):
+   * permite jalar cupo TikTok aunque el ledger Holistic esté en $0 (plata que
+   * ya estaba en Manager). El excedente se asienta como depósito pagado del
+   * cliente ("tiktok_balance_import"), por eso no puede quedar en manos de
+   * cualquier staff. No usar en “Recuperar a cartera”: eso sí exige ledger.
    */
   allowTikTokOverLedger?: boolean;
 }

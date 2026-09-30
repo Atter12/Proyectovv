@@ -145,6 +145,9 @@ export async function POST(request: Request) {
       ok: true,
       journalId: result.journalId,
       agencyBmFunding: result.agencyBmFunding,
+      // true = TikTok aceptó pero no se pudo confirmar; la UI no debe reintentar.
+      pendingVerification: result.pendingVerification,
+      replayed: result.replayed,
       tiktokTransfer: result.tiktokTransfer,
     });
   } catch (error) {
