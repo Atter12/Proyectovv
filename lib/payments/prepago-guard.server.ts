@@ -7,7 +7,10 @@ import { isAgencyCreditCliente } from "@/lib/hecom/is-agency-credit-cliente.serv
 import { sendTransactionalEmail } from "@/lib/email/email.server";
 import { resolveManualPaymentManagerEmails } from "@/lib/email/manual-payment-notify.server";
 import { escapeHtml, wrapInternalEmail } from "@/lib/email/templates/layout";
-import { setSharedBmAdvertiserBudgetAbsolute } from "@/lib/integrations/tiktok/bc-finance.server";
+import {
+  getAdvertiserBudgetSnapshot,
+  setSharedBmAdvertiserBudgetAbsolute,
+} from "@/lib/integrations/tiktok/bc-finance.server";
 
 /**
  * Guardián de prepago (cron cada 15 min).
@@ -85,10 +88,19 @@ export type PrepagoGuardIncident = {
   costUsd?: number;
   /** BC de TikTok donde vive la cuenta (para corregir). */
   bcId?: string;
+  /** Filas de ad_accounts de este advertiser (para releer el saldo al corregir). */
+  adAccountIds?: string[];
   organizationId?: string;
   /** Resultado de la corrección automática. */
   correction?: {
-    status: "corrected" | "failed" | "skipped_alert_mode" | "skipped_circuit_breaker" | "skipped_excluded";
+    status:
+      | "corrected"
+      | "failed"
+      | "skipped_alert_mode"
+      | "skipped_circuit_breaker"
+      | "skipped_excluded"
+      /** Al releer en vivo ya estaba en orden: no se toca ni se avisa. */
+      | "not_needed";
     previousBudgetUsd?: number;
     newBudgetUsd?: number;
     error?: string;
@@ -218,12 +230,25 @@ export async function runPrepagoGuard(
 
   const byAdvertiser = new Map<
     string,
-    { ledgerUsd: number; hecomId: string | null; clienteName: string | null; organizationId: string | null }
+    {
+      ledgerUsd: number;
+      hecomId: string | null;
+      clienteName: string | null;
+      organizationId: string | null;
+      adAccountIds: string[];
+    }
   >();
   for (const a of adAccounts) {
     const adv = String(a.external_account_id ?? "").trim();
     if (!adv) continue;
-    const entry = byAdvertiser.get(adv) ?? { ledgerUsd: 0, hecomId: null, clienteName: null, organizationId: null };
+    const entry = byAdvertiser.get(adv) ?? {
+      ledgerUsd: 0,
+      hecomId: null,
+      clienteName: null,
+      organizationId: null,
+      adAccountIds: [],
+    };
+    entry.adAccountIds.push(a.id);
     const rowLedger = balanceByAdAccount.get(a.id) ?? 0;
     if (rowLedger >= entry.ledgerUsd || !entry.organizationId) entry.organizationId = a.organization_id;
     entry.ledgerUsd = Math.max(entry.ledgerUsd, rowLedger);
@@ -269,6 +294,7 @@ export async function runPrepagoGuard(
       costUsd: round2(row.cost),
       bcId: HECOM_BM_BUCKET_TO_BC[row.bm],
       organizationId: holistic.organizationId ?? undefined,
+      adAccountIds: holistic.adAccountIds,
     });
   }
 
@@ -284,6 +310,10 @@ export async function runPrepagoGuard(
 
   const mode = resolveGuardMode();
   await correctIncidents(incidents, mode, apply);
+  // Lo que al releer en vivo ya estaba en orden no es incidente.
+  for (let i = incidents.length - 1; i >= 0; i--) {
+    if (incidents[i]!.correction?.status === "not_needed") incidents.splice(i, 1);
+  }
 
   const { alerted, reason } = notify
     ? await alertIfNeeded(incidents, mode)
@@ -320,6 +350,17 @@ export async function runPrepagoGuard(
   };
 }
 
+/** Saldo asignado actual del advertiser (mismo criterio que la detección: la fila con más). */
+async function readLiveLedgerUsd(adAccountIds: string[]): Promise<number> {
+  if (adAccountIds.length === 0) return 0;
+  const { data, error } = await createAdminClient()
+    .from("v_ad_account_ledger_balances")
+    .select("available_balance_cents")
+    .in("ad_account_id", adAccountIds);
+  if (error) throw new Error(`Saldo asignado: ${error.message}`);
+  return Math.max(0, ...(data ?? []).map((row) => (Number(row.available_balance_cents) || 0) / 100));
+}
+
 /**
  * Baja el presupuesto de las cuentas con gasto por encima de lo asignado.
  * Solo en modo enforce y con `apply` (las pruebas locales no escriben).
@@ -354,11 +395,34 @@ async function correctIncidents(
       continue;
     }
     try {
-      // Relee el presupuesto en vivo y nunca baja de lo ya gastado.
+      // Entre la lectura masiva y este momento el cliente pudo asignar saldo o
+      // alguien pudo bajar el presupuesto: se releen saldo y TikTok en vivo.
+      const live = await getAdvertiserBudgetSnapshot({
+        bcId: i.bcId,
+        advertiserId: i.advertiserId,
+        organizationId: i.organizationId,
+      });
+      if (!live) {
+        i.correction = { status: "failed", error: "No se pudo releer la cuenta en TikTok." };
+        continue;
+      }
+      const ledgerUsd = await readLiveLedgerUsd(i.adAccountIds ?? []);
+      const liveUnlimited = live.budgetMode === "UNLIMITED";
+      const liveRemaining = round2(live.budget - live.budgetCost);
+      const target = round2(live.budgetCost + ledgerUsd);
+      if (!liveUnlimited && (liveRemaining - ledgerUsd <= TOLERANCE_USD || target >= live.budget)) {
+        // Ya está en orden, o corregir implicaría subir: nunca se sube.
+        i.correction = { status: "not_needed" };
+        continue;
+      }
+      i.ledgerUsd = round2(ledgerUsd);
+      i.targetBudgetUsd = target;
+      i.costUsd = round2(live.budgetCost);
+
       const result = await setSharedBmAdvertiserBudgetAbsolute({
         bcId: i.bcId,
         advertiserId: i.advertiserId,
-        budgetUsd: i.targetBudgetUsd,
+        budgetUsd: target,
         organizationId: i.organizationId,
         preferBudgetMode: "CUSTOM_BUDGET",
       });
