@@ -7,6 +7,7 @@ import { isAgencyCreditCliente } from "@/lib/hecom/is-agency-credit-cliente.serv
 import { sendTransactionalEmail } from "@/lib/email/email.server";
 import { resolveManualPaymentManagerEmails } from "@/lib/email/manual-payment-notify.server";
 import { escapeHtml, wrapInternalEmail } from "@/lib/email/templates/layout";
+import { setSharedBmAdvertiserBudgetAbsolute } from "@/lib/integrations/tiktok/bc-finance.server";
 
 /**
  * Guardián de prepago (cron cada 15 min).
@@ -16,9 +17,11 @@ import { escapeHtml, wrapInternalEmail } from "@/lib/email/templates/layout";
  * solo se aplica al recargar o al abrir la cuenta en vivo; entre esos
  * momentos un cambio en TikTok o un error de configuración deja gastar de más.
  *
- * Modo "alert" (default): detecta, registra en audit_logs y avisa a gerencia.
- * No escribe en TikTok. Es la versión automática del dry-run de
- * scripts/cap-ads-holistic-shared-budgets.mjs.
+ * Modo "enforce" (default): si una cuenta puede gastar más de lo que respalda
+ * lo asignado desde la cartera, baja su presupuesto en TikTok a
+ * gastado + saldo asignado y avisa lo que hizo. Nunca sube presupuestos: eso
+ * solo pasa al asignar saldo desde la cartera, que es el flujo correcto.
+ * PREPAGO_GUARD_MODE=alert lo deja en solo aviso (sin escribir en TikTok).
  */
 
 const TIKTOK_API = "https://business-api.tiktok.com/open_api/v1.3";
@@ -26,13 +29,39 @@ const TIKTOK_API = "https://business-api.tiktok.com/open_api/v1.3";
 const SHARED_BUCKETS = ["10", "30"] as const;
 /** Margen para no avisar por centavos. */
 const TOLERANCE_USD = 1;
-/** Si el mismo problema sigue, se vuelve a avisar pasadas estas horas. */
-const REALERT_AFTER_HOURS = 6;
+/** Si algo no se pudo corregir, se vuelve a avisar pasadas estas horas. */
+const REALERT_AFTER_HOURS = 1;
+/**
+ * Freno de emergencia: con más cuentas que esto en una misma revisión no se
+ * corrige ninguna. Un número así suele ser una falla (saldos que no cargaron),
+ * no errores reales, y no queremos cortar el presupuesto de todos.
+ */
+const MAX_CORRECTIONS_PER_RUN = 10;
+/**
+ * Clientes que el guardián avisa pero no corrige, mientras el equipo los
+ * resuelve a mano. Se suman los de PREPAGO_GUARD_EXCLUDE_HECOM_IDS (coma).
+ */
+const EXCLUDED_FROM_CORRECTION = new Set<string>([
+  // Julio Lirio: presupuesto puesto a mano en TikTok; lo revisa el equipo (30/09/2026).
+  "d6121f78-5eb3-42e3-b8d8-e3727c434f2c",
+  ...String(process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim().toLowerCase())
+    .filter(Boolean),
+]);
 const MANAGER_EMAILS_PER_SECOND = 2;
 const AUDIT_ACTION = "prepago_guard.run";
 /** Correo de prueba que se envía una sola vez, en la primera revisión en producción. */
 const PREVIEW_ACTION = "prepago_guard.preview_sent";
 const PREVIEW_TO = ["lizarzaburusebastian046@gmail.com"];
+
+export type PrepagoGuardMode = "alert" | "enforce";
+
+function resolveGuardMode(): PrepagoGuardMode {
+  return String(process.env.PREPAGO_GUARD_MODE ?? "").trim().toLowerCase() === "alert"
+    ? "alert"
+    : "enforce";
+}
 
 export type PrepagoGuardIncident = {
   kind: "budget_over_balance" | "credit_without_approval";
@@ -49,10 +78,22 @@ export type PrepagoGuardIncident = {
   unlimited?: boolean;
   /** Presupuesto que debería tener: gastado + saldo. */
   targetBudgetUsd?: number;
+  /** Lo ya gastado según TikTok (base del presupuesto). */
+  costUsd?: number;
+  /** BC de TikTok donde vive la cuenta (para corregir). */
+  bcId?: string;
+  organizationId?: string;
+  /** Resultado de la corrección automática. */
+  correction?: {
+    status: "corrected" | "failed" | "skipped_alert_mode" | "skipped_circuit_breaker" | "skipped_excluded";
+    previousBudgetUsd?: number;
+    newBudgetUsd?: number;
+    error?: string;
+  };
 };
 
 export type PrepagoGuardResult = {
-  mode: "alert";
+  mode: PrepagoGuardMode;
   scannedAdvertisers: number;
   adsClientes: number;
   incidents: PrepagoGuardIncident[];
@@ -139,11 +180,12 @@ async function scanSharedBc(bm: string, bcId: string, token: string): Promise<Ti
 }
 
 export async function runPrepagoGuard(
-  options: { notify?: boolean; record?: boolean } = {},
+  options: { notify?: boolean; record?: boolean; apply?: boolean } = {},
 ): Promise<PrepagoGuardResult> {
   // notify/record en false = prueba local: solo detecta, no avisa ni registra.
   const notify = options.notify !== false;
   const record = options.record !== false;
+  const apply = options.apply ?? notify;
   const token = serverEnv.tiktokAccessToken.trim();
   if (!token) throw new Error("Falta TIKTOK_ACCESS_TOKEN para leer presupuestos.");
 
@@ -153,13 +195,14 @@ export async function runPrepagoGuard(
   // el script de tope: la fila con más saldo gana).
   const adAccounts = await fetchAllRows<{
     id: string;
+    organization_id: string;
     name: string | null;
     external_account_id: string | null;
     hecom_cliente_id: string | null;
     hecom_cliente_name: string | null;
   }>(
     "ad_accounts",
-    "id,name,external_account_id,hecom_cliente_id:metadata->>hecom_cliente_id,hecom_cliente_name:metadata->>hecom_cliente_name",
+    "id,organization_id,name,external_account_id,hecom_cliente_id:metadata->>hecom_cliente_id,hecom_cliente_name:metadata->>hecom_cliente_name",
     { platform: "tiktok" },
   );
   const balances = await fetchAllRows<{ ad_account_id: string; available_balance_cents: number | null }>(
@@ -170,12 +213,17 @@ export async function runPrepagoGuard(
     balances.map((b) => [b.ad_account_id, Math.max(0, (Number(b.available_balance_cents) || 0) / 100)]),
   );
 
-  const byAdvertiser = new Map<string, { ledgerUsd: number; hecomId: string | null; clienteName: string | null }>();
+  const byAdvertiser = new Map<
+    string,
+    { ledgerUsd: number; hecomId: string | null; clienteName: string | null; organizationId: string | null }
+  >();
   for (const a of adAccounts) {
     const adv = String(a.external_account_id ?? "").trim();
     if (!adv) continue;
-    const entry = byAdvertiser.get(adv) ?? { ledgerUsd: 0, hecomId: null, clienteName: null };
-    entry.ledgerUsd = Math.max(entry.ledgerUsd, balanceByAdAccount.get(a.id) ?? 0);
+    const entry = byAdvertiser.get(adv) ?? { ledgerUsd: 0, hecomId: null, clienteName: null, organizationId: null };
+    const rowLedger = balanceByAdAccount.get(a.id) ?? 0;
+    if (rowLedger >= entry.ledgerUsd || !entry.organizationId) entry.organizationId = a.organization_id;
+    entry.ledgerUsd = Math.max(entry.ledgerUsd, rowLedger);
     if (a.hecom_cliente_id) {
       entry.hecomId = String(a.hecom_cliente_id);
       entry.clienteName = a.hecom_cliente_name || entry.clienteName || a.name;
@@ -215,6 +263,9 @@ export async function runPrepagoGuard(
       excessUsd: unlimited ? undefined : excess,
       unlimited,
       targetBudgetUsd: round2(row.cost + holistic.ledgerUsd),
+      costUsd: round2(row.cost),
+      bcId: HECOM_BM_BUCKET_TO_BC[row.bm],
+      organizationId: holistic.organizationId ?? undefined,
     });
   }
 
@@ -228,8 +279,11 @@ export async function runPrepagoGuard(
 
   incidents.sort((a, b) => (b.unlimited ? 1e9 : b.excessUsd ?? 0) - (a.unlimited ? 1e9 : a.excessUsd ?? 0));
 
+  const mode = resolveGuardMode();
+  await correctIncidents(incidents, mode, apply);
+
   const { alerted, reason } = notify
-    ? await alertIfNeeded(incidents)
+    ? await alertIfNeeded(incidents, mode)
     : { alerted: false, reason: "prueba_sin_aviso" };
   if (notify) {
     await sendPreviewOnce(incidents, tiktokRows.length, clientesSeen.size).catch((error) =>
@@ -241,11 +295,12 @@ export async function runPrepagoGuard(
     action: AUDIT_ACTION,
     entity_type: "prepago_guard",
     metadata: {
-      mode: "alert",
+      mode,
       scanned_advertisers: tiktokRows.length,
       ads_clientes: clientesSeen.size,
       incidents_count: incidents.length,
-      incidents_hash: incidentsHash(incidents),
+      incidents_hash: incidentsHash(incidents.filter((i) => !isResolved(i))),
+      corrected_count: incidents.filter(isResolved).length,
       alerted,
       alert_reason: reason,
       incidents: incidents.slice(0, 200),
@@ -253,13 +308,76 @@ export async function runPrepagoGuard(
   });
 
   return {
-    mode: "alert",
+    mode,
     scannedAdvertisers: tiktokRows.length,
     adsClientes: clientesSeen.size,
     incidents,
     alerted,
     alertReason: reason,
   };
+}
+
+/**
+ * Baja el presupuesto de las cuentas con gasto por encima de lo asignado.
+ * Solo en modo enforce y con `apply` (las pruebas locales no escriben).
+ */
+async function correctIncidents(
+  incidents: PrepagoGuardIncident[],
+  mode: PrepagoGuardMode,
+  apply: boolean,
+): Promise<void> {
+  const budget = incidents.filter((i) => i.kind === "budget_over_balance");
+  if (budget.length === 0) return;
+
+  if (mode === "alert" || !apply) {
+    for (const i of budget) i.correction = { status: "skipped_alert_mode" };
+    return;
+  }
+  const toCorrect = budget.filter((i) => {
+    if (!EXCLUDED_FROM_CORRECTION.has(i.hecomClienteId.toLowerCase())) return true;
+    i.correction = { status: "skipped_excluded" };
+    return false;
+  });
+
+  if (toCorrect.length > MAX_CORRECTIONS_PER_RUN) {
+    for (const i of toCorrect) i.correction = { status: "skipped_circuit_breaker" };
+    console.warn("[prepago-guard] circuit_breaker", { accounts: toCorrect.length });
+    return;
+  }
+
+  for (const i of toCorrect) {
+    if (!i.bcId || !i.advertiserId || i.targetBudgetUsd == null) {
+      i.correction = { status: "failed", error: "Faltan datos de la cuenta en TikTok." };
+      continue;
+    }
+    try {
+      // Relee el presupuesto en vivo y nunca baja de lo ya gastado.
+      const result = await setSharedBmAdvertiserBudgetAbsolute({
+        bcId: i.bcId,
+        advertiserId: i.advertiserId,
+        budgetUsd: i.targetBudgetUsd,
+        organizationId: i.organizationId,
+        preferBudgetMode: "CUSTOM_BUDGET",
+      });
+      i.correction = {
+        status: "corrected",
+        previousBudgetUsd: result.previousBudget,
+        newBudgetUsd: result.newBudget,
+      };
+      console.info("[prepago-guard] corrected", {
+        advertiserId: i.advertiserId,
+        previousBudget: result.previousBudget,
+        newBudget: result.newBudget,
+        skipped: result.skipped,
+      });
+    } catch (error) {
+      i.correction = {
+        status: "failed",
+        error: error instanceof Error ? error.message.slice(0, 200) : "Error de TikTok",
+      };
+      console.error("[prepago-guard] correction_failed", { advertiserId: i.advertiserId, error });
+    }
+  }
 }
 
 /** Primer correo en producción, a quien pidió probar el guardián. Una sola vez. */
@@ -296,7 +414,7 @@ async function sendPreviewOnce(
   });
 }
 
-/** Huella del problema: cambia si aparece otra cuenta o el exceso sube de a $10. */
+/** Huella de lo que sigue sin corregirse: cambia si aparece otra cuenta o el exceso sube de a $10. */
 function incidentsHash(incidents: PrepagoGuardIncident[]): string {
   const key = incidents
     .map((i) => `${i.kind}:${i.advertiserId ?? i.hecomClienteId}:${i.unlimited ? "U" : Math.floor((i.excessUsd ?? 0) / 10)}`)
@@ -305,33 +423,48 @@ function incidentsHash(incidents: PrepagoGuardIncident[]): string {
   return createHash("sha256").update(key).digest("hex").slice(0, 16);
 }
 
-/** Avisa solo si el problema es nuevo o lleva horas sin avisarse. */
+function isResolved(incident: PrepagoGuardIncident): boolean {
+  return incident.correction?.status === "corrected";
+}
+
+/**
+ * Cuándo avisar:
+ * - Si en esta revisión se corrigió algo: siempre, en el momento.
+ * - Si queda algo sin corregir: al aparecer y luego cada hora mientras siga.
+ */
 async function alertIfNeeded(
   incidents: PrepagoGuardIncident[],
+  mode: PrepagoGuardMode,
 ): Promise<{ alerted: boolean; reason: string }> {
   if (incidents.length === 0) return { alerted: false, reason: "sin_incidentes" };
 
-  const hash = incidentsHash(incidents);
-  // audit_logs tiene cientos de miles de filas: solo la ventana de re-aviso,
-  // y el filtro por metadata se hace aquí para no depender de un índice.
-  const since = new Date(Date.now() - REALERT_AFTER_HOURS * 3_600_000).toISOString();
-  const { data: recentRuns } = await createAdminClient()
-    .from("audit_logs")
-    .select("created_at, metadata")
-    .eq("action", AUDIT_ACTION)
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(30);
-  const alreadyAlerted = (recentRuns ?? []).some((run) => {
-    const meta = (run.metadata ?? {}) as { alerted?: boolean; incidents_hash?: string };
-    return meta.alerted === true && meta.incidents_hash === hash;
-  });
-  if (alreadyAlerted) return { alerted: false, reason: "ya_avisado" };
+  const correctedNow = incidents.filter(isResolved);
+  const pending = incidents.filter((i) => !isResolved(i));
+  const hash = incidentsHash(pending);
+
+  if (correctedNow.length === 0) {
+    // audit_logs tiene cientos de miles de filas: solo la ventana de re-aviso,
+    // y el filtro por metadata se hace aquí para no depender de un índice.
+    const since = new Date(Date.now() - REALERT_AFTER_HOURS * 3_600_000).toISOString();
+    const { data: recentRuns } = await createAdminClient()
+      .from("audit_logs")
+      .select("created_at, metadata")
+      .eq("action", AUDIT_ACTION)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const alreadyAlerted = (recentRuns ?? []).some((run) => {
+      const meta = (run.metadata ?? {}) as { alerted?: boolean; incidents_hash?: string };
+      return meta.alerted === true && meta.incidents_hash === hash;
+    });
+    if (alreadyAlerted) return { alerted: false, reason: "ya_avisado" };
+  }
 
   const managers = resolveManualPaymentManagerEmails();
   if (managers.length === 0) return { alerted: false, reason: "sin_destinatarios" };
 
-  const email = buildGuardEmail(incidents);
+  const email = buildGuardEmail(incidents, undefined, mode);
+  const stamp = new Date().toISOString().slice(0, 16);
   let sent = 0;
   for (let i = 0; i < managers.length; i += MANAGER_EMAILS_PER_SECOND) {
     if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -343,44 +476,87 @@ async function alertIfNeeded(
           html: email.html,
           text: email.text,
           templateKey: "ops.prepago_guard.alert",
-          idempotencyKey: `email:prepago_guard:${hash}:${new Date().toISOString().slice(0, 13)}:${to}`,
-          metadata: { incidents_hash: hash, incidents_count: incidents.length },
+          idempotencyKey: `email:prepago_guard:${hash}:${stamp}:${to}`,
+          metadata: { incidents_hash: hash, incidents_count: incidents.length, corrected: correctedNow.length },
         }),
       ),
     );
     sent += batch.filter((r) => r.status === "fulfilled").length;
   }
-  return { alerted: sent > 0, reason: sent > 0 ? "nuevo_o_vencido" : "envio_fallido" };
+  if (sent === 0) return { alerted: false, reason: "envio_fallido" };
+  return { alerted: true, reason: correctedNow.length ? "corregido" : "pendiente" };
 }
 
 function usd(value: number | undefined): string {
   return value == null ? "—" : `USD ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function actionLabel(i: PrepagoGuardIncident): { text: string; color: string } {
+  switch (i.correction?.status) {
+    case "corrected": {
+      const after =
+        i.correction.newBudgetUsd != null && i.costUsd != null
+          ? Math.max(0, round2(i.correction.newBudgetUsd - i.costUsd))
+          : i.ledgerUsd;
+      return { text: `Ahora puede gastar ${usd(after)}`, color: "#1f6b3a" };
+    }
+    case "failed":
+      return { text: "No se pudo corregir", color: "#8f1d12" };
+    case "skipped_circuit_breaker":
+      return { text: "Sin corregir (freno)", color: "#8f1d12" };
+    case "skipped_excluded":
+      return { text: "Excluido: lo corrige el equipo", color: "#8f1d12" };
+    default:
+      return { text: `Debería poder gastar ${usd(i.ledgerUsd)}`, color: "#57524b" };
+  }
+}
+
 function buildGuardEmail(
   incidents: PrepagoGuardIncident[],
   preview?: { preview: true; scanned: number; clientes: number },
+  mode: PrepagoGuardMode = "enforce",
 ) {
   const budget = incidents.filter((i) => i.kind === "budget_over_balance");
   const credit = incidents.filter((i) => i.kind === "credit_without_approval");
+  const corrected = budget.filter(isResolved);
+  const pending = budget.filter((i) => !isResolved(i));
+  const breaker = budget.some((i) => i.correction?.status === "skipped_circuit_breaker");
   const clientes = new Set(incidents.map((i) => i.hecomClienteId)).size;
   const allClear = incidents.length === 0;
-  const subject = `${preview ? "[Prueba] Guardián de prepago activo · " : "[Aviso] Prepago: "}${
-    allClear
-      ? "todo en orden"
-      : `${budget.length} cuenta${budget.length === 1 ? " TikTok puede" : "s TikTok pueden"} gastar más que su saldo · ${clientes} cliente${clientes === 1 ? "" : "s"}`
+  const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+  const headline = allClear
+    ? "Todo en orden"
+    : pending.length === 0 && credit.length === 0
+      ? `Se ${plural(corrected.length, "corrigió 1 cuenta", `corrigieron ${corrected.length} cuentas`)} que podía${plural(corrected.length, "", "n")} gastar más que su saldo`
+      : `${corrected.length ? `Se ${plural(corrected.length, "corrigió 1 cuenta", `corrigieron ${corrected.length} cuentas`)} · ` : ""}${pending.length} cuenta${plural(pending.length, " sigue", "s siguen")} pudiendo gastar más que su saldo`;
+
+  const subject = `${preview ? "[Prueba] Guardián de prepago activo · " : pending.length || credit.length ? "[Acción] Prepago: " : "[Corregido] Prepago: "}${
+    allClear ? "todo en orden" : `${headline.charAt(0).toLowerCase()}${headline.slice(1)} · ${clientes} cliente${plural(clientes, "", "s")}`
   }`;
 
+  const explanation =
+    mode === "alert"
+      ? "Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, ajusta el presupuesto en TikTok al valor sugerido o asigna saldo desde la cartera."
+      : breaker
+        ? `Aparecieron más de ${MAX_CORRECTIONS_PER_RUN} cuentas a la vez, así que <b>no se corrigió ninguna</b> por seguridad: puede ser una falla al leer los saldos. Revisen antes de ajustar.`
+        : pending.some((i) => i.correction?.status === "skipped_excluded")
+          ? "Hay clientes excluidos de la corrección automática porque el equipo los está resolviendo a mano. Mientras tanto siguen pudiendo gastar de más; este aviso se repite cada hora hasta que se corrija."
+          : pending.length
+          ? "Lo que no se pudo corregir sigue pudiendo gastar de más. Revísenlo en TikTok."
+          : "El presupuesto en TikTok se bajó a lo ya gastado más el saldo asignado desde la cartera. Si el cliente necesita más, debe asignar saldo desde su cartera.";
+
   const rowsHtml = budget
-    .map(
-      (i) => `
+    .map((i) => {
+      const action = actionLabel(i);
+      return `
         <tr>
           <td style="padding:10px 12px 10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;">${escapeHtml(i.clienteName)}<br /><span style="font-size:12px;color:#57524b;">${escapeHtml(i.advertiserName ?? "")} · BM${escapeHtml(i.bm ?? "")}</span></td>
           <td align="right" style="padding:10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;white-space:nowrap;">${i.unlimited ? "Ilimitado" : usd(i.tiktokRemainingUsd)}</td>
           <td align="right" style="padding:10px 0 10px 12px;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;white-space:nowrap;">${usd(i.ledgerUsd)}</td>
-          <td align="right" style="padding:10px 0 10px 12px;border-top:1px solid #e8e4dd;font-size:14px;font-weight:700;color:#8f1d12;vertical-align:top;white-space:nowrap;">${i.unlimited ? "Sin tope" : usd(i.excessUsd)}</td>
-        </tr>`,
-    )
+          <td align="right" style="padding:10px 0 10px 12px;border-top:1px solid #e8e4dd;font-size:14px;font-weight:700;color:${action.color};vertical-align:top;white-space:nowrap;">${escapeHtml(action.text)}</td>
+        </tr>`;
+    })
     .join("");
 
   const creditHtml = credit.length
@@ -394,22 +570,23 @@ function buildGuardEmail(
          Correo de prueba: el guardián ya corre en producción cada 15 minutos. En esta revisión leyó <b>${preview.scanned}</b> cuentas de BM10 y BM30 y <b>${preview.clientes}</b> clientes de Ads.
        </p>`
     : "";
+
   const bodyHtml = allClear
     ? `${previewHtml}
       <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">Todo en orden</p>
-      <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:#57524b;">Ninguna cuenta de TikTok de clientes de Ads puede gastar más que su saldo en cartera, y ningún cliente está como crédito sin aprobación. Cuando eso cambie, este correo llega con el detalle.</p>`
+      <p style="margin:10px 0 0;font-size:15px;line-height:1.5;color:#57524b;">Ninguna cuenta de TikTok de clientes de Ads puede gastar más que su saldo asignado, y ningún cliente está como crédito sin aprobación.</p>`
     : `${previewHtml}
-      <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">${budget.length} cuenta${budget.length === 1 ? " puede" : "s pueden"} gastar más que su saldo</p>
-      <p style="margin:10px 0 24px;font-size:15px;line-height:1.5;color:#57524b;">El guardián de prepago revisó los presupuestos en TikTok contra el saldo en cartera. Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, abre la cuenta del cliente en Ads o ajusta su presupuesto en TikTok al valor sugerido.</p>
+      <p style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:#1a1917;">${escapeHtml(headline)}</p>
+      <p style="margin:10px 0 24px;font-size:15px;line-height:1.5;color:#57524b;">${explanation}</p>
       ${creditHtml}
       ${
         budget.length
           ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr>
           <td style="padding:0 12px 8px 0;font-size:12px;color:#57524b;">Cliente / cuenta</td>
-          <td align="right" style="padding:0 0 8px;font-size:12px;color:#57524b;">Puede gastar en TikTok</td>
-          <td align="right" style="padding:0 0 8px 12px;font-size:12px;color:#57524b;">Saldo en cartera</td>
-          <td align="right" style="padding:0 0 8px 12px;font-size:12px;color:#57524b;">De más</td>
+          <td align="right" style="padding:0 0 8px;font-size:12px;color:#57524b;">Podía gastar en TikTok</td>
+          <td align="right" style="padding:0 0 8px 12px;font-size:12px;color:#57524b;">Saldo asignado</td>
+          <td align="right" style="padding:0 0 8px 12px;font-size:12px;color:#57524b;">Qué se hizo</td>
         </tr>
         ${rowsHtml}
       </table>`
@@ -425,11 +602,11 @@ function buildGuardEmail(
 
   const text = [
     subject,
-    "Modo solo aviso: no se cambió nada.",
+    explanation.replace(/<[^>]+>/g, ""),
     ...credit.map((c) => `CRÉDITO SIN APROBACIÓN: ${c.clienteName}`),
     ...budget.map(
       (i) =>
-        `${i.clienteName} · ${i.advertiserName} · BM${i.bm}: puede gastar ${i.unlimited ? "ilimitado" : usd(i.tiktokRemainingUsd)}, saldo ${usd(i.ledgerUsd)}, de más ${i.unlimited ? "sin tope" : usd(i.excessUsd)}. Presupuesto sugerido ${usd(i.targetBudgetUsd)}.`,
+        `${i.clienteName} · ${i.advertiserName} · BM${i.bm}: podía gastar ${i.unlimited ? "ilimitado" : usd(i.tiktokRemainingUsd)}, saldo asignado ${usd(i.ledgerUsd)}. ${actionLabel(i).text}.`,
     ),
   ].join("\n");
 

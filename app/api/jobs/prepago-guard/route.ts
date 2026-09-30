@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env/env.server";
 import { runPrepagoGuard } from "@/lib/payments/prepago-guard.server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ function isAuthorized(request: Request): boolean {
   return Boolean(expected && (token === expected || headerSecret === expected));
 }
 
-/** Guardián de prepago: modo solo aviso. Ver lib/payments/prepago-guard.server.ts. */
+/** Guardián de prepago: corrige y avisa. Ver lib/payments/prepago-guard.server.ts. */
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -34,6 +35,18 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("[prepago-guard] failed", error);
+    // Que una revisión fallida no pase en silencio.
+    await createAdminClient()
+      .from("audit_logs")
+      .insert({
+        action: "prepago_guard.error",
+        entity_type: "prepago_guard",
+        metadata: { error: error instanceof Error ? error.message.slice(0, 500) : String(error) },
+      })
+      .then(
+        () => undefined,
+        () => undefined,
+      );
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Error del guardián." },
       { status: 500 },
