@@ -8,13 +8,29 @@ import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
 
+/** Primer mes que ve un cliente en «Lo pagado». Gerentes ven todo el historial. */
+export const CLIENT_COBROS_FROM_MONTH = "2026-09";
+
+/** YYYY-MM de una fecha o periodo; null si no se puede leer. */
+function monthOf(value: string | null | undefined): string | null {
+  const match = String(value ?? "").trim().match(/^(\d{4}-\d{2})/);
+  return match ? match[1]! : null;
+}
+
 export async function ClienteScopedCobros({
   data,
+  fromMonth,
 }: {
   data: HecomClienteDashboard;
+  /** YYYY-MM: solo se muestra desde ese mes (vista cliente). Sin valor = todo. */
+  fromMonth?: string;
 }) {
   const t = await getTranslations("cobros");
-  const { cliente, summary, cobros, gastos } = data;
+  const { cliente, summary } = data;
+  // Se filtra en el servidor: los meses anteriores ni siquiera llegan al navegador.
+  const visible = (month: string | null) => !fromMonth || (month !== null && month >= fromMonth);
+  const gastos = data.gastos.filter((row) => visible(monthOf(row.fecha)));
+  const cobros = data.cobros.filter((row) => visible(monthOf(row.periodoResumen) ?? monthOf(row.fecha)));
 
   let claims: ManualPaymentIntentItem[] = [];
   try {
@@ -22,7 +38,8 @@ export async function ClienteScopedCobros({
   } catch {
     claims = [];
   }
-  const periodos = listRecentPeriodos(6);
+  claims = claims.filter((claim) => visible(monthOf(claim.createdAt)));
+  const periodos = listRecentPeriodos(6).filter((periodo) => visible(periodo));
 
   return (
     <div className="space-y-5">
@@ -77,7 +94,11 @@ export async function ClienteScopedCobros({
         }))}
       />
 
-      <MissingCobroClaimPanel periodos={periodos} initialClaims={claims} />
+      <MissingCobroClaimPanel
+        periodos={periodos}
+        initialClaims={claims}
+        fromDate={fromMonth ? `${fromMonth}-01` : undefined}
+      />
     </div>
   );
 }

@@ -52,9 +52,12 @@ export function MissingCobroClaimPanel({
   periodos: periodosProp,
   initialClaims,
   endpoints,
+  fromDate,
 }: {
   periodos?: string[];
   initialClaims?: ManualPaymentIntentItem[];
+  /** YYYY-MM-DD: oculta reclamos anteriores (vista cliente de «Lo pagado»). */
+  fromDate?: string;
   /** Link público: listar, crear y subir sin sesión. */
   endpoints?: {
     claims: string;
@@ -96,9 +99,15 @@ export function MissingCobroClaimPanel({
         ok: boolean;
         claims: ManualPaymentIntentItem[];
       }>(claimsEndpoint)
-        .then((res) => setClaims(res.claims ?? []))
+        .then((res) =>
+          setClaims(
+            (res.claims ?? []).filter(
+              (claim) => !fromDate || String(claim.createdAt).slice(0, 10) >= fromDate,
+            ),
+          ),
+        )
         .catch(() => { /* keep existing */ }),
-    [claimsEndpoint],
+    [claimsEndpoint, fromDate],
   );
 
   useEffect(() => {

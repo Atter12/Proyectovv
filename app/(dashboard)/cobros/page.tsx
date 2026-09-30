@@ -1,5 +1,8 @@
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { ClienteScopedCobros } from "@/features/clientes/components/ClienteScopedCobros";
+import {
+  CLIENT_COBROS_FROM_MONTH,
+  ClienteScopedCobros,
+} from "@/features/clientes/components/ClienteScopedCobros";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import {
@@ -55,7 +58,13 @@ export default async function CobrosPage() {
 
   return (
     <div className={dashboardClasses.page}>
-      <ClienteScopedCobros data={data} />
+      <ClienteScopedCobros
+        data={data}
+        // Clientes (y gerentes en «ver como cliente») ven desde setiembre 2026; gerentes, todo.
+        fromMonth={
+          capabilities.isStaff || capabilities.isSuperAdmin ? undefined : CLIENT_COBROS_FROM_MONTH
+        }
+      />
     </div>
   );
 }
