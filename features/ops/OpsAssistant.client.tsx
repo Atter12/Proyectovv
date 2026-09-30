@@ -11,16 +11,16 @@ type Query = { title: string; description: string; question: string; icon: Assis
 
 const QUERY_GROUPS: { title: string; icon: AssistantIconName; queries: Query[] }[] = [
   { title: "Ingresos", icon: "wallet", queries: [
-    { title: "Pagos de hoy", description: "Cuánto ingresó, por cliente.", question: "Pagos de hoy", icon: "calendar" },
-    { title: "Recargas y fee", description: "El movimiento de la semana.", question: "Recarga y fee de esta semana", icon: "chart" },
+    { title: "Pagos de hoy", description: "Quién pagó, cuánto y por qué medio.", question: "Pagos de hoy", icon: "calendar" },
+    { title: "Pagos pendientes", description: "Vouchers en revisión y pagos sin completar.", question: "¿Hay pagos pendientes o vouchers por revisar?", icon: "chart" },
   ] },
   { title: "Clientes", icon: "users", queries: [
-    { title: "Clientes activos", description: "Quiénes están operando hoy.", question: "¿Qué clientes están activos hoy?", icon: "pulse" },
-    { title: "Crédito", description: "A quién podemos dar crédito.", question: "¿A quién podemos dar crédito?", icon: "briefcase" },
+    { title: "Qué están haciendo", description: "Pagos, recargas y movimientos de las últimas horas.", question: "¿Qué están haciendo los clientes ahora?", icon: "pulse" },
+    { title: "Gasto de hoy", description: "Quiénes están gastando en TikTok hoy.", question: "¿Qué clientes están gastando hoy?", icon: "briefcase" },
   ] },
   { title: "Riesgo", icon: "alert", queries: [
-    { title: "Alertas de cartera", description: "Qué requiere atención.", question: "¿Hay alertas?", icon: "bell" },
-    { title: "Clientes en rojo", description: "Quién está en rojo.", question: "¿Quién está en rojo?", icon: "alert" },
+    { title: "Recargas de gerente", description: "Saldo puesto sin pago del cliente esta semana.", question: "¿Qué recargas de gerente hubo esta semana?", icon: "bell" },
+    { title: "Quién debe más", description: "Deuda del mes de clientes de Ads Holistic.", question: "¿Quién debe más este mes en Ads Holistic?", icon: "alert" },
   ] },
 ];
 const QUERIES = QUERY_GROUPS.flatMap((group) => group.queries);
@@ -109,7 +109,8 @@ export function OpsAssistant() {
     let timedOut = false;
     const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 60_000);
     try {
-      const response = await fetch("/api/ops/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question }), signal: controller.signal });
+      const history = turns.filter((item) => item.answer && item.id !== retryId).slice(-4).map((item) => ({ q: item.question, a: item.answer!.reply }));
+      const response = await fetch("/api/ops/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: question, history }), signal: controller.signal });
       const data = await response.json().catch(() => null) as (Partial<AssistantResponse> & { error?: string }) | null;
       if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "No pude consultar la cartera. Intenta de nuevo.");
       if (typeof data?.reply !== "string") throw new Error("El reporte llegó incompleto. Intenta de nuevo.");

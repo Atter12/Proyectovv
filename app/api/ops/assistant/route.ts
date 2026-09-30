@@ -4,8 +4,19 @@ import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { buildAssistantResponse } from "@/lib/ops/assistant-answer";
 import { loadAssistantBrief } from "@/lib/ops/assistant-brief.server";
+import { answerWithLlm, isAssistantLlmEnabled, type AssistantTurn } from "@/lib/ops/assistant-llm.server";
 
 export const runtime = "nodejs";
+// La IA consulta varias herramientas (Hecom + Ads Holistic); suele tardar 3–10 s.
+export const maxDuration = 60;
+
+function parseHistory(body: unknown): AssistantTurn[] {
+  if (!body || typeof body !== "object" || !("history" in body) || !Array.isArray(body.history)) return [];
+  return body.history
+    .filter((t): t is { q: string; a: string } => Boolean(t) && typeof t.q === "string" && typeof t.a === "string")
+    .slice(-4)
+    .map((t) => ({ q: t.q.slice(0, 500), a: t.a.slice(0, 1500) }));
+}
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -35,6 +46,15 @@ export async function POST(request: Request) {
       : "";
   if (!message) {
     return NextResponse.json({ error: "Escribe una pregunta." }, { status: 400 });
+  }
+
+  if (isAssistantLlmEnabled()) {
+    try {
+      return NextResponse.json({ ok: true, ...(await answerWithLlm(message, parseHistory(body))) });
+    } catch (error) {
+      // Si la IA falla, responde el asistente de reglas con el mismo corte de datos.
+      console.error("[ops/assistant] IA falló, uso respaldo.", error);
+    }
   }
 
   try {
