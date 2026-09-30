@@ -1,7 +1,7 @@
 import type { LandingLocale } from "@/features/landing/i18n/landing-locale";
 
 /**
- * Textos del acceso público (login, registro, código OTP) en es/en/zh.
+ * Textos del acceso público (login, registro, código OTP) en es/en/pt/zh.
  * Usa el mismo idioma que la landing (`HOLISTIC_LANDING_LANG`).
  */
 export type AuthCopy = {
@@ -398,7 +398,106 @@ const zh: AuthCopy = {
   },
 };
 
-const copies: Record<LandingLocale, AuthCopy> = { es, en, zh };
+const pt: AuthCopy = {
+  shell: {
+    skipToForm: "Ir para o formulário",
+    homeAria: "início",
+    language: "Idioma",
+  },
+  login: {
+    topRightLabel: "Criar conta",
+    topRightPrompt: "Ainda não tem conta?",
+    caption: "Recarregue em reais, soles ou dólares.\nImpulsione suas campanhas.",
+    title: "Entre na AdsHolistic.",
+    subtitleOtp: "Vamos enviar um código para o seu e-mail.",
+    subtitlePassword: "Que bom te ver de novo. Acesse seu painel de anunciante.",
+    emailLabel: "E-mail",
+    emailPlaceholder: "voce@email.com",
+    forgotEmail: "Não lembra seu e-mail?",
+    lookupTitle: "Recuperar e-mail pelo nome",
+    lookupHelp: "Escreva seu nome e sobrenome como aparecem na sua conta.",
+    lookupAria: "Nome e sobrenome para recuperar seu e-mail",
+    lookupPlaceholder: "Maria Souza Oliveira",
+    lookupUse: "Usar",
+    lookupSearching: "Buscando…",
+    lookupSearch: "Buscar meu e-mail",
+    lookupFailed: "Não foi possível buscar o e-mail.",
+    lookupRetry: "Não foi possível buscar. Tente de novo.",
+    passwordLabel: "Senha",
+    passwordPlaceholder: "Sua senha",
+    forgotPassword: "Esqueceu sua senha?",
+    showPassword: "Mostrar senha",
+    hidePassword: "Ocultar senha",
+    magicLinkExpired: "O link expirou ou não é válido. Peça um novo.",
+    sendFailed: "Não foi possível enviar o código.",
+    sendRetry: "Não foi possível enviar o código. Tente de novo.",
+    sendingCode: "Enviando código…",
+    signingIn: "Entrando…",
+    getCode: "Receber código",
+    signIn: "Entrar",
+    troubles: "Problemas?",
+    recoverAccess: "Recuperar acesso",
+  },
+  register: {
+    topRightLabel: "Entrar",
+    captionTitle: "Uma só carteira para todas as suas contas.",
+    captionSub: "Ads Holistic, a plataforma da Holistic Marketing.",
+    title: "Crie sua conta",
+    subtitle:
+      "Preencha seus dados e seu documento (DNI). Vamos enviar um código por e-mail para verificar sua conta.",
+    firstName: "Nome",
+    firstNamePlaceholder: "Maria Fernanda",
+    lastName: "Sobrenome",
+    lastNamePlaceholder: "Souza Oliveira",
+    dni: "Documento (DNI)",
+    dniPlaceholder: "8 dígitos",
+    phone: "Telefone",
+    email: "E-mail",
+    emailPlaceholder: "voce@email.com",
+    referral: "Código de indicação:",
+    errFirstName: "Escreva seu nome.",
+    errLastName: "Escreva seu sobrenome.",
+    errDni: "O DNI tem 8 dígitos. Não aceitamos RUC nem passaporte.",
+    errPhone: "Escreva um telefone válido (mínimo 9 dígitos).",
+    errEmail: "Escreva um e-mail válido.",
+    failed: "Não foi possível concluir o cadastro.",
+    failedRetry: "Não foi possível concluir o cadastro. Tente de novo.",
+    creating: "Criando conta…",
+    create: "Criar conta",
+    haveAccount: "Já tem conta?",
+    signIn: "Entrar",
+  },
+  verify: {
+    topRightLabel: "Voltar ao início",
+    captionTitle: "Confira seu e-mail. O código chega em segundos.",
+    captionSub: "Ads Holistic, a plataforma da Holistic Marketing.",
+    title: "Confira seu e-mail",
+    sentTo: "Enviamos um código de 6 dígitos para",
+    yourEmail: "seu e-mail",
+    codeLabel: "Código de 6 dígitos",
+    helpHecom: "Você também pode entrar pelo link do mesmo e-mail.",
+    helpOther: "Copie e cole o código completo para verificar seu e-mail.",
+    missingEmailBack: "Falta o e-mail. Volte para o login.",
+    missingEmail: "Falta o e-mail.",
+    invalidCode: "Digite um código de 6 dígitos.",
+    verifyFailed: "Não conseguimos verificar o código. Peça um novo e tente de novo.",
+    verifyNetwork: "Não conseguimos verificar o código. Confira sua conexão e tente de novo.",
+    resendFailed: "Não foi possível reenviar.",
+    resendFailedCode: "Não foi possível reenviar o código.",
+    resentHecom: "Enviamos um código novo. O anterior não vale mais.",
+    resentOther: "Enviamos um novo código para o seu e-mail.",
+    verifying: "Verificando código…",
+    verify: "Verificar e continuar",
+    checkSpam: "Não encontrou o e-mail? Confira também o spam.",
+    resending: "Reenviando…",
+    resendIn: (s) => `Reenviar código em ${s}s`,
+    resend: "Reenviar código",
+    useLatest: "Se pedir outro código, use o mais recente.",
+    useOtherEmail: "Usar outro e-mail",
+  },
+};
+
+const copies: Record<LandingLocale, AuthCopy> = { es, en, zh, pt };
 
 export function getAuthCopy(locale: LandingLocale): AuthCopy {
   return copies[locale];

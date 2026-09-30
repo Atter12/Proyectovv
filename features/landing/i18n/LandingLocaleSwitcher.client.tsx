@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import {
   landingLocaleCookieName,
+  landingLocaleHtmlLang,
   landingLocaleLabels,
   landingLocaleQueryParam,
   landingLocaleShort,
@@ -109,7 +110,7 @@ export function LandingLocaleSwitcher({
                 type="button"
                 role="option"
                 aria-selected={active}
-                lang={code === "zh" ? "zh-CN" : code}
+                lang={landingLocaleHtmlLang[code]}
                 onClick={() => onChange(code)}
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[0.9rem] font-medium transition-colors",

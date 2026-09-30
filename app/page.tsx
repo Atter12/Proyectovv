@@ -20,12 +20,14 @@ type HomeProps = {
 const LOCALE_PATHS: Record<LandingLocale, string> = {
   es: "/",
   en: `/?${landingLocaleQueryParam}=en`,
+  pt: `/?${landingLocaleQueryParam}=pt`,
   zh: `/?${landingLocaleQueryParam}=zh`,
 };
 
 const OG_LOCALES: Record<LandingLocale, string> = {
   es: "es_PE",
   en: "en_US",
+  pt: "pt_BR",
   zh: "zh_CN",
 };
 
@@ -42,6 +44,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       languages: {
         "es-PE": LOCALE_PATHS.es,
         en: LOCALE_PATHS.en,
+        "pt-BR": LOCALE_PATHS.pt,
         "zh-CN": LOCALE_PATHS.zh,
         "x-default": LOCALE_PATHS.es,
       },
@@ -87,7 +90,7 @@ function buildJsonLd(locale: LandingLocale) {
         "@id": absoluteUrl("/#website"),
         name: seoConfig.siteName,
         url: absoluteUrl("/"),
-        inLanguage: ["es-PE", "en", "zh-CN"],
+        inLanguage: ["es-PE", "en", "pt-BR", "zh-CN"],
         publisher: { "@id": orgId },
       },
       {
@@ -100,7 +103,7 @@ function buildJsonLd(locale: LandingLocale) {
       },
       {
         "@type": "FAQPage",
-        inLanguage: locale === "zh" ? "zh-CN" : locale === "es" ? "es-PE" : "en",
+        inLanguage: { es: "es-PE", en: "en", pt: "pt-BR", zh: "zh-CN" }[locale],
         mainEntity: copy.faq.items.map((item) => ({
           "@type": "Question",
           name: item.q,

@@ -2,7 +2,7 @@
  * Idioma de la landing pública (independiente del `NEXT_LOCALE` del sistema).
  * Solo afecta a `/`; el dashboard sigue con su propio i18n.
  */
-export const landingLocales = ["es", "en", "zh"] as const;
+export const landingLocales = ["es", "en", "pt", "zh"] as const;
 
 export type LandingLocale = (typeof landingLocales)[number];
 
@@ -14,12 +14,14 @@ export const landingLocaleCookieName = "HOLISTIC_LANDING_LANG";
 export const landingLocaleLabels: Record<LandingLocale, string> = {
   es: "Español",
   en: "English",
+  pt: "Português",
   zh: "中文",
 };
 
 export const landingLocaleShort: Record<LandingLocale, string> = {
   es: "ES",
   en: "EN",
+  pt: "PT",
   zh: "中文",
 };
 
@@ -27,6 +29,7 @@ export const landingLocaleShort: Record<LandingLocale, string> = {
 export const landingLocaleHtmlLang: Record<LandingLocale, string> = {
   es: "es",
   en: "en",
+  pt: "pt-BR",
   zh: "zh-CN",
 };
 
@@ -37,6 +40,7 @@ export function isLandingLocale(value: unknown): value is LandingLocale {
 function matchLanguageTag(tag: string): LandingLocale | null {
   const t = tag.trim().toLowerCase();
   if (t.startsWith("zh")) return "zh";
+  if (t.startsWith("pt")) return "pt";
   if (t.startsWith("en")) return "en";
   if (t.startsWith("es")) return "es";
   return null;
@@ -66,9 +70,10 @@ function fromAcceptLanguage(header: string | null | undefined): LandingLocale | 
 }
 
 const CHINESE_COUNTRIES = new Set(["CN", "TW", "HK", "MO", "SG"]);
+const PORTUGUESE_COUNTRIES = new Set(["BR", "PT", "AO", "MZ", "CV", "GW", "ST", "TL"]);
 const SPANISH_COUNTRIES = new Set([
   "PE", "AR", "BO", "CL", "CO", "CR", "CU", "DO", "EC", "ES", "GQ", "GT",
-  "HN", "MX", "NI", "PA", "PR", "PY", "SV", "UY", "VE", "BR",
+  "HN", "MX", "NI", "PA", "PR", "PY", "SV", "UY", "VE",
 ]);
 
 /** Respaldo por país (header `x-vercel-ip-country`). */
@@ -77,6 +82,7 @@ function fromCountry(country: string | null | undefined): LandingLocale | null {
   const code = country.trim().toUpperCase();
   if (!code) return null;
   if (CHINESE_COUNTRIES.has(code)) return "zh";
+  if (PORTUGUESE_COUNTRIES.has(code)) return "pt";
   if (SPANISH_COUNTRIES.has(code)) return "es";
   return "en";
 }
