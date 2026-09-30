@@ -244,6 +244,8 @@ export function PrepagoMonitor({
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
+      <RefreshBar active={loading} />
+
       {/* Barra de estado */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#6b645c]">
@@ -739,22 +741,108 @@ function EmptyState({ text }: { text: string }) {
   return <p className="px-4 py-10 text-center text-[13px] text-[#6b645c]">{text}</p>;
 }
 
-function MonitorSkeleton() {
+/** Pasos que sigue el servidor, en el orden en que suelen terminar (~15 s en total). */
+const LOADING_STEPS: Array<{ at: number; label: string }> = [
+  { at: 0, label: "Leyendo cartera y pagos de Ads Holistic…" },
+  { at: 2_500, label: "Revisando cuentas TikTok BM10 y BM30…" },
+  { at: 6_000, label: "Revisando cuentas cash BM200 y BM300…" },
+  { at: 9_500, label: "Buscando cargas directas y recargas de gerente…" },
+  { at: 12_500, label: "Cruzando con Hecom y armando alertas…" },
+];
+const EXPECTED_MS = 15_000;
+
+/** Progreso estimado: avanza rápido al inicio y se frena cerca del final (nunca llega a 100 sola). */
+function useLoadingProgress(active: boolean) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const started = Date.now();
+    const id = window.setInterval(() => setElapsed(Date.now() - started), 200);
+    return () => {
+      window.clearInterval(id);
+      setElapsed(0);
+    };
+  }, [active]);
+  const ratio = elapsed / EXPECTED_MS;
+  const percent = Math.min(96, Math.round((1 - Math.exp(-2.2 * ratio)) * 100));
+  const step = [...LOADING_STEPS].reverse().find((s) => elapsed >= s.at) ?? LOADING_STEPS[0]!;
+  return { percent, step: step.label, stepIndex: LOADING_STEPS.indexOf(step), slow: elapsed > EXPECTED_MS + 8_000 };
+}
+
+/** Barra fina animada mientras se actualiza con datos ya en pantalla. */
+function RefreshBar({ active }: { active: boolean }) {
+  const { percent } = useLoadingProgress(active);
+  if (!active) return null;
   return (
-    <div className="flex animate-pulse flex-col gap-4" aria-busy="true" aria-label="Cargando monitoreo">
-      <div className="h-4 w-64 rounded-full bg-[#efe8df]" />
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,2fr)]">
-        <div className="h-44 rounded-[22px] bg-[#e8e1d8]" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-[18px] bg-white ring-1 ring-[#e8dfd4]" />
-          ))}
+    <div className="h-1 w-full overflow-hidden rounded-full bg-[#efe8df]" role="progressbar" aria-label="Actualizando monitoreo" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+      <div
+        className="h-full rounded-full bg-gradient-to-r from-[#d47840] to-[#f0b889] transition-[width] duration-300 ease-out"
+        style={{ width: `${Math.max(6, percent)}%` }}
+      />
+    </div>
+  );
+}
+
+function MonitorSkeleton() {
+  const { percent, step, stepIndex, slow } = useLoadingProgress(true);
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Cargando monitoreo">
+      <div className="rounded-[22px] bg-white p-5 ring-1 ring-[#e8dfd4] sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[13px] font-semibold text-[#1a1714]">Revisando el sistema</p>
+          <span className="text-[12px] font-semibold tabular-nums text-[#9a6b4a]">{percent}%</span>
         </div>
+        <div
+          className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#f5f0ea]"
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Progreso de la revisión"
+        >
+          <div
+            className="relative h-full overflow-hidden rounded-full bg-gradient-to-r from-[#d47840] to-[#f0b889] transition-[width] duration-300 ease-out"
+            style={{ width: `${Math.max(4, percent)}%` }}
+          >
+            <span className="absolute inset-0 animate-pulse bg-white/25" aria-hidden />
+          </div>
+        </div>
+        <p className="mt-2.5 text-[12.5px] text-[#6b645c]" aria-live="polite">
+          {slow ? "Está tardando más de lo normal, TikTok responde lento. Sigue revisando…" : step}
+        </p>
+        <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+          {LOADING_STEPS.map((s, i) => (
+            <li key={s.label} className="flex items-center gap-1.5 text-[11.5px]">
+              <span
+                className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                  i < stepIndex
+                    ? "bg-[#3f8f5b] text-white"
+                    : i === stepIndex
+                      ? "bg-[#d47840] text-white"
+                      : "bg-[#f5f0ea] text-[#a39b92]"
+                }`}
+                aria-hidden
+              >
+                {i < stepIndex ? "✓" : i + 1}
+              </span>
+              <span className={i <= stepIndex ? "text-[#3f3a34]" : "text-[#a39b92]"}>
+                {["Cartera", "BM10/30", "BM200/300", "Movimientos", "Alertas"][i]}
+              </span>
+            </li>
+          ))}
+        </ol>
       </div>
-      <div className="h-80 rounded-[22px] bg-white ring-1 ring-[#e8dfd4]" />
-      <p className="text-center text-[12px] text-[#a39b92]">
-        Revisando TikTok, cartera y Hecom… tarda unos segundos.
-      </p>
+      <div className="flex animate-pulse flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,2fr)]">
+          <div className="h-44 rounded-[22px] bg-[#e8e1d8]" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-[18px] bg-white ring-1 ring-[#e8dfd4]" />
+            ))}
+          </div>
+        </div>
+        <div className="h-80 rounded-[22px] bg-white ring-1 ring-[#e8dfd4]" />
+      </div>
     </div>
   );
 }
