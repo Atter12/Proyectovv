@@ -3,10 +3,40 @@ import { serverEnv } from "@/lib/env/env.server";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import {
   importTikTokAdvertiserAccounts,
   syncTikTokAdvertiserSpend,
+  type TikTokSpendSyncResult,
 } from "@/lib/integrations/tiktok/client.server";
+
+// Recorre todas las cuentas TikTok de clientes (una consulta de reporte por
+// anunciante); con decenas de cuentas no cabe en el límite por defecto.
+export const maxDuration = 300;
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+type TikTokAdAccountRow = {
+  id: string;
+  organization_id: string;
+  external_account_id: string | null;
+  hecom_cliente_id: string | null;
+  hecom_cliente_id_alt: string | null;
+};
+
+/** Cuenta a sincronizar: la fila canónica de un anunciante de cliente Hecom. */
+type ClientSpendTarget = {
+  hecomClienteId: string;
+  organizationId: string;
+  adAccountId: string;
+  advertiserId: string;
+};
+
+type SkippedAdvertiser = {
+  advertiserId: string;
+  hecomClienteId: string | null;
+  reason: string;
+};
 
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
@@ -30,6 +60,113 @@ function resolveDateRange(request: Request): { startDate: string; endDate: strin
       requestedStart && datePattern.test(requestedStart) ? requestedStart : yesterdayLima,
     endDate: requestedEnd && datePattern.test(requestedEnd) ? requestedEnd : todayLima,
   };
+}
+
+/** Lee todas las cuentas TikTok con anunciante (Supabase devuelve de a 1000). */
+async function loadTikTokAdAccounts(admin: AdminClient): Promise<TikTokAdAccountRow[]> {
+  const rows: TikTokAdAccountRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("ad_accounts")
+      .select(
+        "id, organization_id, external_account_id, hecom_cliente_id:metadata->>hecom_cliente_id, hecom_cliente_id_alt:metadata->>hecomClienteId",
+      )
+      .eq("platform", "tiktok")
+      .not("external_account_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(`ad_accounts: ${error.message}`);
+    rows.push(...((data ?? []) as unknown as TikTokAdAccountRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  return rows;
+}
+
+/**
+ * Anunciantes de clientes Ads Holistic → fila donde se registra el gasto.
+ *
+ * Un mismo anunciante puede tener varias filas (espejos que crea el staff al
+ * "ver como" otra org). El gasto se registra una sola vez y solo en la fila de
+ * la org del cliente (resolveOrganizationIdForHecomCliente), que es la que
+ * recibe las asignaciones; registrarlo también en espejos lo duplicaría.
+ */
+async function resolveClientSpendTargets(
+  admin: AdminClient,
+  hecomClienteFilter: string,
+): Promise<{
+  targets: ClientSpendTarget[];
+  skipped: SkippedAdvertiser[];
+  advertiserIds: Set<string>;
+}> {
+  const rows = await loadTikTokAdAccounts(admin);
+  const byAdvertiser = new Map<string, TikTokAdAccountRow[]>();
+  for (const row of rows) {
+    const advertiserId = String(row.external_account_id ?? "").trim();
+    if (!advertiserId) continue;
+    const list = byAdvertiser.get(advertiserId) ?? [];
+    list.push(row);
+    byAdvertiser.set(advertiserId, list);
+  }
+
+  const orgByCliente = new Map<string, string | null>();
+  const targets: ClientSpendTarget[] = [];
+  const skipped: SkippedAdvertiser[] = [];
+  // Todos los anunciantes de clientes, incluso los omitidos: el camino OAuth no
+  // debe tocarlos (sus filas en otras orgs son espejos).
+  const advertiserIds = new Set<string>();
+
+  for (const [advertiserId, list] of byAdvertiser) {
+    const clienteIds = [
+      ...new Set(
+        list
+          .map((row) => String(row.hecom_cliente_id ?? row.hecom_cliente_id_alt ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (clienteIds.length === 0) continue;
+    advertiserIds.add(advertiserId);
+
+    if (clienteIds.length > 1) {
+      // Dos clientes reclamando la misma cuenta: no se adivina a quién cobrarle.
+      skipped.push({
+        advertiserId,
+        hecomClienteId: null,
+        reason: `varios clientes Hecom: ${clienteIds.join(", ")}`,
+      });
+      continue;
+    }
+
+    const hecomClienteId = clienteIds[0]!;
+    if (hecomClienteFilter && hecomClienteId !== hecomClienteFilter) continue;
+
+    if (!orgByCliente.has(hecomClienteId)) {
+      orgByCliente.set(
+        hecomClienteId,
+        await resolveOrganizationIdForHecomCliente(hecomClienteId),
+      );
+    }
+    const organizationId = orgByCliente.get(hecomClienteId) ?? null;
+    if (!organizationId) {
+      skipped.push({ advertiserId, hecomClienteId, reason: "sin org Holistic para el cliente" });
+      continue;
+    }
+
+    const canonical = list
+      .filter((row) => row.organization_id === organizationId)
+      .sort((a, b) => a.id.localeCompare(b.id))[0];
+    if (!canonical) {
+      skipped.push({
+        advertiserId,
+        hecomClienteId,
+        reason: "la org del cliente no tiene fila para este anunciante",
+      });
+      continue;
+    }
+
+    targets.push({ hecomClienteId, organizationId, adAccountId: canonical.id, advertiserId });
+  }
+
+  return { targets, skipped, advertiserIds };
 }
 
 async function runSync(request: Request) {
@@ -65,6 +202,100 @@ async function runSync(request: Request) {
     }
   }
 
+  let imported = 0;
+  let recordedCents = 0;
+  let recordedDays = 0;
+  let uncoveredCents = 0;
+  const failures: Array<{ organizationId: string; error: string }> = [];
+  const spendResults: Array<
+    { organizationId: string; source: "agency" | "oauth" } & Omit<
+      TikTokSpendSyncResult,
+      "uncovered" | "uncoveredCents"
+    >
+  > = [];
+  const uncovered: Array<{
+    organizationId: string;
+    adAccountId: string;
+    advertiserId: string;
+    date: string;
+    reportedCents: number;
+    alreadyRecordedCents: number;
+    recordedCents: number;
+    uncoveredCents: number;
+  }> = [];
+
+  const collect = (
+    organizationId: string,
+    adAccountId: string,
+    source: "agency" | "oauth",
+    spend: TikTokSpendSyncResult,
+  ) => {
+    const { uncovered: spendUncovered, uncoveredCents: spendUncoveredCents, ...rest } = spend;
+    recordedCents += spend.recordedCents;
+    recordedDays += spend.recordedDays;
+    uncoveredCents += spendUncoveredCents;
+    spendResults.push({ organizationId, source, ...rest });
+    for (const day of spendUncovered) {
+      uncovered.push({ organizationId, adAccountId, advertiserId: spend.advertiserId, ...day });
+    }
+  };
+
+  // 1) Cuentas de clientes Ads Holistic con el token de agencia. Casi ninguna
+  // org de cliente tiene OAuth propio; si solo se recorrieran las conexiones,
+  // el gasto no se registraría y el saldo asignado quedaría inflado (el tope
+  // de presupuesto, el guardián de prepago y los reclamos lo leen).
+  let clientAdvertiserIds = new Set<string>();
+  let skipped: SkippedAdvertiser[] = [];
+  try {
+    const plan = await resolveClientSpendTargets(admin, hecomClienteId);
+    clientAdvertiserIds = plan.advertiserIds;
+    skipped = plan.skipped;
+
+    for (const target of plan.targets) {
+      try {
+        const { token } = await resolveTikTokFinanceAccessToken(target.organizationId);
+        const spend = await syncTikTokAdvertiserSpend({
+          organizationId: target.organizationId,
+          adAccountId: target.adAccountId,
+          advertiserId: target.advertiserId,
+          startDate,
+          endDate,
+          accessToken: token,
+        });
+        collect(target.organizationId, target.adAccountId, "agency", spend);
+      } catch (spendError) {
+        failures.push({
+          organizationId: target.organizationId,
+          error: `Advertiser ${target.advertiserId}: ${
+            spendError instanceof Error ? spendError.message : "Error desconocido"
+          }`,
+        });
+      }
+    }
+  } catch (planError) {
+    // Sin la lista de clientes no se sabe qué filas son espejos: el camino
+    // OAuth se corta abajo para no registrar gasto en ellas.
+    failures.push({
+      organizationId: organizationFilter ?? "*",
+      error: `Cuentas de clientes: ${
+        planError instanceof Error ? planError.message : "Error desconocido"
+      }`,
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        range: { startDate, endDate, tz: "America/Lima" },
+        hecom_cliente_id: hecomClienteId || null,
+        organization_id: organizationFilter,
+        failures,
+      },
+      { status: 500 },
+    );
+  }
+
+  // 2) Orgs con TikTok conectado por OAuth (camino original). Se saltan los
+  // anunciantes de clientes: ya los cubrió el paso 1 en su fila canónica y
+  // aquí solo podrían ser espejos.
   let connectionsQuery = admin
     .from("integration_connections")
     .select("organization_id, created_by")
@@ -79,23 +310,6 @@ async function runSync(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  let imported = 0;
-  let recordedCents = 0;
-  let recordedDays = 0;
-  const failures: Array<{ organizationId: string; error: string }> = [];
-  const spendResults: Array<{
-    organizationId: string;
-    advertiserId: string;
-    reportedDays: number;
-    recordedDays: number;
-    recordedCents: number;
-    adjustments: Array<{
-      date: string;
-      reportedCents: number;
-      alreadyRecordedCents: number;
-    }>;
-  }> = [];
-
   for (const connection of data ?? []) {
     try {
       const result = await importTikTokAdvertiserAccounts({
@@ -104,16 +318,18 @@ async function runSync(request: Request) {
       });
       imported += result.imported;
 
-      let accountsQuery = admin
+      const { data: adAccounts, error: adAccountsError } = await admin
         .from("ad_accounts")
         .select("id, external_account_id, metadata")
         .eq("organization_id", connection.organization_id)
         .eq("platform", "tiktok")
         .not("external_account_id", "is", null);
-      const { data: adAccounts, error: adAccountsError } = await accountsQuery;
       if (adAccountsError) throw new Error(adAccountsError.message);
 
       const accounts = (adAccounts ?? []).filter((account) => {
+        if (clientAdvertiserIds.has(String(account.external_account_id ?? "").trim())) {
+          return false;
+        }
         if (!hecomClienteId) return true;
         const meta = (account.metadata ?? {}) as Record<string, unknown>;
         const metaId = String(meta.hecom_cliente_id ?? meta.hecomClienteId ?? "").trim();
@@ -130,12 +346,7 @@ async function runSync(request: Request) {
             startDate,
             endDate,
           });
-          recordedCents += spend.recordedCents;
-          recordedDays += spend.recordedDays;
-          spendResults.push({
-            organizationId: connection.organization_id,
-            ...spend,
-          });
+          collect(connection.organization_id, account.id, "oauth", spend);
         } catch (spendError) {
           failures.push({
             organizationId: connection.organization_id,
@@ -161,6 +372,11 @@ async function runSync(request: Request) {
     imported,
     recordedDays,
     recordedCents,
+    // Gasto real en TikTok sin saldo asignado detrás: pérdida de agencia a
+    // revisar. Se recalcula en cada corrida para los días del rango.
+    uncoveredCents,
+    uncovered,
+    skipped,
     spendResults,
     failures,
   });

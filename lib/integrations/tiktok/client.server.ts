@@ -39,16 +39,28 @@ interface TikTokReportData {
   }>;
 }
 
+export interface TikTokSpendUncoveredDay {
+  date: string;
+  reportedCents: number;
+  alreadyRecordedCents: number;
+  /** Parte del delta que sí se registró (tope = saldo asignado disponible). */
+  recordedCents: number;
+  /** Gasto real en TikTok sin saldo asignado que lo respalde: pérdida de agencia. */
+  uncoveredCents: number;
+}
+
 export interface TikTokSpendSyncResult {
   advertiserId: string;
   reportedDays: number;
   recordedDays: number;
   recordedCents: number;
+  uncoveredCents: number;
   adjustments: Array<{
     date: string;
     reportedCents: number;
     alreadyRecordedCents: number;
   }>;
+  uncovered: TikTokSpendUncoveredDay[];
 }
 
 function apiUrl(path: string): string {
@@ -261,9 +273,19 @@ export async function getTikTokDailySpend(input: {
   advertiserId: string;
   startDate: string;
   endDate: string;
+  /**
+   * Token con acceso al anunciante. Las cuentas de clientes viven en los BM de
+   * la agencia y sus orgs no tienen OAuth propio: el job pasa el token de
+   * agencia. Sin él se usa la conexión OAuth de la org, como antes.
+   */
+  accessToken?: string | null;
 }): Promise<Array<{ date: string; amountCents: number; raw: Record<string, unknown> }>> {
-  const connection = await getTikTokConnection(input.organizationId);
-  if (!connection) throw new Error("La organización no tiene TikTok conectado.");
+  let accessToken = input.accessToken?.trim() ?? "";
+  if (!accessToken) {
+    const connection = await getTikTokConnection(input.organizationId);
+    if (!connection) throw new Error("La organización no tiene TikTok conectado.");
+    accessToken = connection.accessToken;
+  }
 
   const url = new URL(apiUrl("/report/integrated/get/"));
   url.searchParams.set("advertiser_id", input.advertiserId);
@@ -278,7 +300,7 @@ export async function getTikTokDailySpend(input: {
   url.searchParams.set("page_size", "1000");
 
   const response = await fetch(url, {
-    headers: { "Access-Token": connection.accessToken },
+    headers: { "Access-Token": accessToken },
     cache: "no-store",
   });
   const json = (await response.json()) as TikTokApiResponse<TikTokReportData>;
@@ -328,21 +350,48 @@ function mapTikTokAdvertiserStatus(status?: string | null): "active" | "pending"
   return "pending";
 }
 
+/**
+ * Saldo asignado disponible de la cuenta (ad_account_available) leído del
+ * ledger. Lanza si falla la consulta: tratar un error como saldo 0 marcaría
+ * gasto real como pérdida de agencia sin serlo.
+ */
+async function readAdAccountAvailableCents(
+  admin: ReturnType<typeof createAdminClient>,
+  adAccountId: string,
+): Promise<number> {
+  const { data, error } = await admin
+    .from("v_ad_account_ledger_balances")
+    .select("available_balance_cents")
+    .eq("ad_account_id", adAccountId)
+    .maybeSingle<{ available_balance_cents: number | null }>();
+  if (error) throw new Error(error.message);
+  const cents = Number(data?.available_balance_cents ?? 0);
+  return Number.isFinite(cents) ? Math.max(0, cents) : 0;
+}
+
 export async function syncTikTokAdvertiserSpend(input: {
   organizationId: string;
   adAccountId: string;
   advertiserId: string;
   startDate: string;
   endDate: string;
+  /** Token de agencia para cuentas sin OAuth en su org (ver getTikTokDailySpend). */
+  accessToken?: string | null;
 }): Promise<TikTokSpendSyncResult> {
   const admin = createAdminClient();
-  const dailySpend = await getTikTokDailySpend(input);
+  // Del día más antiguo al más reciente: si el saldo no alcanza, se consume en
+  // el orden en que TikTok gastó y lo descubierto queda en los últimos días.
+  const dailySpend = (await getTikTokDailySpend(input)).sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
   const result: TikTokSpendSyncResult = {
     advertiserId: input.advertiserId,
     reportedDays: dailySpend.length,
     recordedDays: 0,
     recordedCents: 0,
+    uncoveredCents: 0,
     adjustments: [],
+    uncovered: [],
   };
 
   for (const day of dailySpend) {
@@ -373,12 +422,46 @@ export async function syncTikTokAdvertiserSpend(input: {
     }
     if (deltaCents === 0) continue;
 
+    // ledger_record_ad_spend lanza si el gasto supera el saldo asignado. Sin
+    // este tope, el día en que un cliente gasta de más no se registra nunca y
+    // el job reintenta para siempre, dejando el saldo inflado. Se registra lo
+    // que el saldo cubre y el resto se reporta como pérdida de agencia.
+    const availableCents = await readAdAccountAvailableCents(admin, input.adAccountId);
+    const recordCents = Math.min(deltaCents, availableCents);
+    const uncoveredCents = deltaCents - recordCents;
+
+    if (uncoveredCents > 0) {
+      console.warn("[tiktok-spend] gasto sin saldo asignado", {
+        advertiserId: input.advertiserId,
+        adAccountId: input.adAccountId,
+        date: day.date,
+        uncoveredCents,
+      });
+      result.uncoveredCents += uncoveredCents;
+      result.uncovered.push({
+        date: day.date,
+        reportedCents: day.amountCents,
+        alreadyRecordedCents,
+        recordedCents: recordCents,
+        uncoveredCents,
+      });
+    }
+    if (recordCents <= 0) continue;
+
+    // Un registro parcial usa una clave propia (incluye lo ya registrado): si
+    // luego llega saldo y se registra el resto del mismo total reportado, la
+    // clave normal sigue libre y el ledger no lo descarta como duplicado.
+    const externalSpendId =
+      uncoveredCents > 0
+        ? `tiktok:${input.advertiserId}:${day.date}:${day.amountCents}:desde:${alreadyRecordedCents}`
+        : `tiktok:${input.advertiserId}:${day.date}:${day.amountCents}`;
+
     await recordProviderAdSpend({
       organizationId: input.organizationId,
       adAccountId: input.adAccountId,
-      amountCents: deltaCents,
+      amountCents: recordCents,
       occurredAt: `${day.date}T12:00:00.000Z`,
-      externalSpendId: `tiktok:${input.advertiserId}:${day.date}:${day.amountCents}`,
+      externalSpendId,
       spendSource: "available",
       metadata: {
         source: "tiktok_reporting",
@@ -386,11 +469,14 @@ export async function syncTikTokAdvertiserSpend(input: {
         report_date: day.date,
         reported_total_cents: day.amountCents,
         previously_recorded_cents: alreadyRecordedCents,
+        ...(uncoveredCents > 0
+          ? { capped_to_available: true, uncovered_cents: uncoveredCents }
+          : {}),
         report: day.raw,
       },
     });
     result.recordedDays += 1;
-    result.recordedCents += deltaCents;
+    result.recordedCents += recordCents;
   }
 
   return result;
