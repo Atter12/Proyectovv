@@ -8,6 +8,7 @@ import {
 } from "@/lib/payments/funding-roles.server";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sessionMayOperateOnOrganization } from "@/lib/payments/operable-organization.server";
 import { transferBetweenAdAccountsWithTikTok } from "@/lib/payments/transfer-between-ad-accounts.server";
 
 export async function POST(request: Request) {
@@ -91,6 +92,19 @@ export async function POST(request: Request) {
   }
 
   const organizationId = fromRow.organization_id;
+
+  // La cuenta la elige el navegador: sin esto un cliente operaba carteras ajenas.
+  if (!(await sessionMayOperateOnOrganization(session, organizationId))) {
+    console.warn("[payments/transfer] org_denied", {
+      email: session.email,
+      organizationId,
+      sessionOrg: session.organizationId,
+    });
+    return NextResponse.json(
+      { error: "No tienes acceso a esa cuenta publicitaria." },
+      { status: 403 },
+    );
+  }
   const amountCents = Math.round(amount * 100);
 
   console.info("[payments/transfer]", {

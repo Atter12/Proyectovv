@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
-import { updateAdAccount } from "@/services/ad-accounts.service";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import {
+  AdAccountForbiddenFieldError,
+  updateAdAccount,
+} from "@/services/ad-accounts.service";
 import type { DbAdPlatform } from "@/types/database";
 
 const VALID_PLATFORMS: DbAdPlatform[] = ["meta", "google", "tiktok", "linkedin", "other"];
@@ -57,6 +61,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Estado inválido." }, { status: 400 });
   }
 
+  // Mismo criterio de staff que Pagos. Sin “ver como”: el gerente sigue siendo
+  // gerente aunque mire la vista cliente.
+  const capabilities = await resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const canManageStatusAndExternalIds =
+    capabilities.isStaff || capabilities.isSuperAdmin;
+
   try {
     const account = await updateAdAccount(session, id, {
       name: body.name,
@@ -70,9 +83,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       autoRechargeEnabled: body.autoRechargeEnabled,
       rechargeThreshold: parseOptionalAmount(body.rechargeThreshold),
       status: body.status,
-    });
+    }, { canManageStatusAndExternalIds });
     return NextResponse.json({ ok: true, account });
   } catch (error) {
+    if (error instanceof AdAccountForbiddenFieldError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     const message = error instanceof Error ? error.message : "No se pudo actualizar.";
     const status = message.includes("no encontrada") ? 404 : 500;
     return NextResponse.json({ error: message }, { status });

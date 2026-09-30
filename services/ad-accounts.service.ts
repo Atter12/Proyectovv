@@ -199,10 +199,26 @@ export interface UpdateAdAccountInput {
   status?: Exclude<AdAccountStatus, "archived">;
 }
 
+/** Error de permiso al editar una cuenta: la ruta lo devuelve como 403. */
+export class AdAccountForbiddenFieldError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AdAccountForbiddenFieldError";
+  }
+}
+
+function sameOptionalText(
+  next: string | null | undefined,
+  current: string | null | undefined,
+): boolean {
+  return (next?.trim() || null) === (current?.trim() || null);
+}
+
 export async function updateAdAccount(
   session: SessionUser,
   accountId: string,
   input: UpdateAdAccountInput,
+  options: { canManageStatusAndExternalIds?: boolean } = {},
 ): Promise<AdAccount> {
   if (!session.organizationId) {
     throw new Error("Organización no disponible.");
@@ -211,6 +227,31 @@ export async function updateAdAccount(
   const existing = await getAdAccountForMutation(session.organizationId, accountId);
   if (!existing) {
     throw new Error("Cuenta publicitaria no encontrada.");
+  }
+
+  // Estado e IDs externos los decide staff: reactivar una cuenta suspendida o
+  // apuntarla a otro advertiser/BC saltaba la revisión y podía mover gasto a
+  // una cuenta ajena. El modal de configuración manda siempre todos los campos,
+  // así que al cliente solo se le rechaza si intenta cambiarlos de verdad.
+  if (!options.canManageStatusAndExternalIds) {
+    const changesStatus =
+      input.status !== undefined && input.status !== existing.status;
+    const changesExternalIds =
+      (input.externalAccountId !== undefined &&
+        !sameOptionalText(input.externalAccountId, existing.external_account_id)) ||
+      (input.externalBusinessId !== undefined &&
+        !sameOptionalText(input.externalBusinessId, existing.external_business_id));
+    if (changesStatus || changesExternalIds) {
+      throw new AdAccountForbiddenFieldError(
+        "Solo staff puede cambiar el estado o los IDs externos de la cuenta.",
+      );
+    }
+    input = {
+      ...input,
+      status: undefined,
+      externalAccountId: undefined,
+      externalBusinessId: undefined,
+    };
   }
 
   const patch: Record<string, unknown> = {

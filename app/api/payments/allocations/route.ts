@@ -9,6 +9,7 @@ import {
 } from "@/lib/payments/funding-roles.server";
 import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sessionMayOperateOnOrganization } from "@/lib/payments/operable-organization.server";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -94,6 +95,19 @@ export async function POST(request: Request) {
   }
 
   const organizationId = accountRow.organization_id;
+
+  // La cuenta la elige el navegador: sin esto un cliente operaba carteras ajenas.
+  if (!(await sessionMayOperateOnOrganization(session, organizationId))) {
+    console.warn("[payments/allocations] org_denied", {
+      email: session.email,
+      organizationId,
+      sessionOrg: session.organizationId,
+    });
+    return NextResponse.json(
+      { error: "No tienes acceso a esa cuenta publicitaria." },
+      { status: 403 },
+    );
+  }
 
   console.info("[payments/allocations]", {
     email: session.email,
