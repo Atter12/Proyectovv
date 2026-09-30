@@ -1,5 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
 
 export const HECOM_CLIENTE_COOKIE_ID = "vv_hecom_cliente_id";
 export const HECOM_CLIENTE_COOKIE_NAME = "vv_hecom_cliente_name";
@@ -17,17 +19,20 @@ export type SelectedHecomCliente = {
  * Cliente activo en el panel.
  * Scope por usuario: al cambiar de cuenta (cliente ↔ gerente) no se reutiliza
  * la selección del otro.
+ *
+ * La cookie solo se fija al hacer login. Si se pierde (otro navegador, cookies
+ * borradas) y la sesión sigue viva, el cliente quedaba con el panel vacío: en
+ * ese caso se usa su única ficha vinculada (hecom_cliente_user_links).
+ * Gerentes no tienen fichas vinculadas: siguen eligiendo del CRM.
  */
 export async function getSelectedHecomCliente(
   userId?: string | null,
 ): Promise<SelectedHecomCliente | null> {
   const store = await cookies();
   const id = store.get(HECOM_CLIENTE_COOKIE_ID)?.value?.trim() ?? "";
-  if (!id) return null;
-
   const owner = store.get(HECOM_CLIENTE_COOKIE_OWNER)?.value?.trim() ?? "";
-  if (userId && owner && owner !== userId) {
-    return null;
+  if (!id || (userId && owner && owner !== userId)) {
+    return userId ? resolveOnlyLinkedCliente(userId) : null;
   }
 
   const name =
@@ -92,4 +97,28 @@ export async function clearSelectedHecomCliente(): Promise<void> {
   store.delete(HECOM_CLIENTE_COOKIE_NAME);
   store.delete(HECOM_CLIENTE_COOKIE_OWNER);
   store.delete(HECOM_ACT_AS_CLIENTE_COOKIE);
+}
+
+/** Única ficha Hecom vinculada al usuario (cliente con login). null si tiene 0 o varias. */
+async function resolveOnlyLinkedCliente(userId: string): Promise<SelectedHecomCliente | null> {
+  try {
+    const { data } = await createAdminClient()
+      .from("hecom_cliente_user_links")
+      .select("hecom_cliente_id")
+      .eq("user_id", userId)
+      .limit(2);
+    const ids = [...new Set((data ?? []).map((r) => String(r.hecom_cliente_id ?? "")).filter(Boolean))];
+    if (ids.length !== 1) return null;
+    const { data: cliente } = await createHecomAdminClient()
+      .from("clientes")
+      .select("name")
+      .eq("id", ids[0]!)
+      .maybeSingle<{ name: string | null }>();
+    return { id: ids[0]!, name: String(cliente?.name ?? "").trim() || "Cliente Hecom" };
+  } catch (error) {
+    console.warn("[selected-cliente] linked_fallback_failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
