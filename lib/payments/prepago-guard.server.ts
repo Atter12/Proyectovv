@@ -29,8 +29,11 @@ const TIKTOK_API = "https://business-api.tiktok.com/open_api/v1.3";
 const SHARED_BUCKETS = ["10", "30"] as const;
 /** Margen para no avisar por centavos. */
 const TOLERANCE_USD = 1;
-/** Si algo no se pudo corregir, se vuelve a avisar pasadas estas horas. */
-const REALERT_AFTER_HOURS = 1;
+/**
+ * Si algo no se pudo corregir, se vuelve a avisar cada hora. La ventana es
+ * 55 min porque las revisiones van cada 15: con 60 exactos salía cada 1 h 15.
+ */
+const REALERT_AFTER_HOURS = 55 / 60;
 /**
  * Freno de emergencia: con más cuentas que esto en una misma revisión no se
  * corrige ninguna. Un número así suele ser una falla (saldos que no cargaron),
