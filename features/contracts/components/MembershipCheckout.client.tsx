@@ -49,7 +49,7 @@ export function MembershipCheckout({
   return (
     <div className="w-full">
       <AuthFormHeading title="Activa tu acceso">
-        El contrato llega a tu WhatsApp y a tu correo. El panel se abre cuando la captura del pago queda aceptada.
+        El contrato llega a tu WhatsApp y a tu correo. El panel se abre cuando el correo del pago cuadra con la captura.
       </AuthFormHeading>
       <ol className="mb-6 grid gap-2">
         {STEPS.map((title, index) => (
@@ -70,7 +70,7 @@ export function MembershipCheckout({
       </ol>
       {step === "review" ? (
         <AuthNotice tone="info">
-          Recibimos la captura. Gerencia la revisa y, si cuadra, el panel se abre. Volver de NAS no alcanza.
+          Recibimos la captura. El panel se abre cuando el correo del pago cuadra con ella.
         </AuthNotice>
       ) : null}
       {step === "rejected" ? <AuthNotice tone="error">{reason ?? "La captura no se aceptó. Sube la del pago terminado."}</AuthNotice> : null}
@@ -83,7 +83,7 @@ export function MembershipCheckout({
           }}
         >
           <AuthNotice tone="info">
-            El pago se abre en NAS. Al volver, sube la captura donde se vea el cobro hecho.
+            El pago se abre en NAS. Al volver, sube la captura. La confirmamos con el correo que llega del cobro.
           </AuthNotice>
           {error && step === "pay" ? <AuthNotice tone="error">{error}</AuthNotice> : null}
           <AuthSubmitButton loading={pending && step === "pay"} loadingLabel="Abriendo el pago…">

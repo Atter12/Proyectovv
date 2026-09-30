@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { captureHasEditorMark, captureLooksLikeImage, decideMembershipCapture } from "./payment-capture.ts";
+import { captureHasEditorMark, captureLooksLikeImage, decideMembershipCapture, nasMailConfirmsCapture } from "./payment-capture.ts";
 
 const clear = {
   image: true,
@@ -14,8 +14,29 @@ const clear = {
   duplicateReference: false,
 };
 
-test("un pago de NAS claro abre el acceso", () => {
-  assert.equal(decideMembershipCapture(clear).decision, "approve");
+test("una captura clara espera el correo, no abre el panel", () => {
+  assert.equal(decideMembershipCapture(clear).decision, "review");
+});
+
+test("el correo confirma la captura cuando el cliente y la referencia coinciden", () => {
+  assert.equal(
+    nasMailConfirmsCapture({
+      mailEmail: "Abel@correo.com",
+      mailReference: "NAS-1042",
+      clientEmail: "abel@correo.com",
+      captureReference: "nas 1042",
+    }),
+    true,
+  );
+  assert.equal(
+    nasMailConfirmsCapture({
+      mailEmail: "abel@correo.com",
+      mailReference: null,
+      clientEmail: "abel@correo.com",
+      captureReference: "NAS-1042",
+    }),
+    false,
+  );
 });
 
 test("volver con una imagen repetida no abre el panel", () => {

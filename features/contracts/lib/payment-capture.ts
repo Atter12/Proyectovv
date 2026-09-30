@@ -51,14 +51,29 @@ export function decideMembershipCapture(input: {
     return { decision: "reject", reason: "Esta captura ya se usó en otro pago." };
   }
   if (input.editor || input.edited === true) {
-    return { decision: "review", reason: "La captura necesita revisión de gerencia antes de abrir el panel." };
+    return { decision: "review", reason: "La captura espera el correo del pago. Gerencia puede revisarla si el correo no llega." };
   }
-  const confidence = input.confidence ?? 0;
-  if (input.paid === true && input.looksLikeNas === true && confidence >= 0.86) {
-    return { decision: "approve", reason: "La captura muestra un pago de membresía terminado." };
-  }
-  if (input.paid === false && input.looksLikeNas === false && confidence >= 0.7) {
+  if (input.paid === false && input.looksLikeNas === false && (input.confidence ?? 0) >= 0.7) {
     return { decision: "reject", reason: "La captura no muestra un pago terminado en NAS." };
   }
-  return { decision: "review", reason: "No alcanza para abrir el panel. Gerencia revisa la captura." };
+  return {
+    decision: "review",
+    reason: "Recibimos la captura. El panel se abre cuando el correo del pago cuadra con ella.",
+  };
+}
+
+/** El correo del buzón confirma la captura. El monto solo no basta: muchos pagan lo mismo. */
+export function nasMailConfirmsCapture(input: {
+  mailEmail: string | null;
+  mailReference: string | null;
+  clientEmail: string;
+  captureReference: string | null;
+}): boolean {
+  const mailEmail = input.mailEmail?.trim().toLowerCase() ?? "";
+  const clientEmail = input.clientEmail.trim().toLowerCase();
+  const mailReference = (input.mailReference ?? "").replace(/[\s.\-_/]+/g, "").toUpperCase();
+  const captureReference = (input.captureReference ?? "").replace(/[\s.\-_/]+/g, "").toUpperCase();
+  if (!mailEmail || mailEmail !== clientEmail) return false;
+  if (mailReference.length < 4 || captureReference.length < 4) return false;
+  return mailReference === captureReference;
 }
