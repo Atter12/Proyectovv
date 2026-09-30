@@ -16,6 +16,7 @@ import {
   normalizePeriodoResumen,
 } from "@/lib/payments/missing-cobro.shared";
 import { ensureHecomMissingCobroFromClaim } from "@/lib/hecom/ensure-missing-cobro.server";
+import { isPaymentsSuperAdminEmail } from "@/lib/payments/funding-roles.server";
 
 export type ManualReviewActor = {
   id: string;
@@ -87,6 +88,57 @@ function revalidateManualPaymentPaths(paymentIntentId: string) {
   revalidatePath("/admin/payments");
   revalidatePath(`/admin/payments/${paymentIntentId}`);
   revalidatePath("/admin/overview");
+}
+
+/**
+ * Error de regla de negocio al aprobar; lleva el status HTTP para que la ruta
+ * no lo devuelva como 500.
+ */
+export class ManualApprovalPolicyError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 403,
+  ) {
+    super(message);
+    this.name = "ManualApprovalPolicyError";
+  }
+}
+
+/** Cuánto puede mover el monto cualquier gerente sin pedir a un super admin. */
+const STAFF_ADJUSTMENT_TOLERANCE = 0.1;
+
+/**
+ * El ajuste de monto existe para cuadrar la boleta real con lo esperado
+ * (redondeos, comisión del banco). Sin tope, un solo gerente podía aprobar un
+ * voucher de S/ 100 como S/ 10 000 y acreditar saldo que nadie pagó. Dentro
+ * de ±10 % lo decide cualquier gerente; fuera de eso, solo un super admin.
+ */
+function assertAdjustmentAllowed(input: {
+  expectedCents: number;
+  adjustedCents: number | null | undefined;
+  actorIsSuperAdmin: boolean;
+}): void {
+  const { expectedCents, adjustedCents } = input;
+  if (adjustedCents == null) return;
+  if (!Number.isFinite(adjustedCents) || adjustedCents <= 0) {
+    throw new ManualApprovalPolicyError("El monto ajustado no es válido.", 400);
+  }
+  if (input.actorIsSuperAdmin) return;
+  // Sin monto esperado no hay contra qué medir el ±10 %: que lo vea un super admin.
+  if (!Number.isFinite(expectedCents) || expectedCents <= 0) {
+    throw new ManualApprovalPolicyError(
+      "Este pago no tiene monto esperado; solo un super admin puede fijar el monto.",
+      403,
+    );
+  }
+  const deviation = Math.abs(Math.round(adjustedCents) - expectedCents) / expectedCents;
+  if (deviation > STAFF_ADJUSTMENT_TOLERANCE) {
+    const pct = Math.round(STAFF_ADJUSTMENT_TOLERANCE * 100);
+    throw new ManualApprovalPolicyError(
+      `El monto ajustado se aleja más de ${pct} % del esperado (${(expectedCents / 100).toFixed(2)}). Solo un super admin puede aprobar ese ajuste.`,
+      403,
+    );
+  }
 }
 
 async function loadVoucherIntent(paymentIntentId: string): Promise<IntentRow> {
@@ -513,6 +565,8 @@ export async function approveManualVoucherPayment(input: {
   adjustedGrossChargeCents?: number | null;
   /** Período Hecom AAAA-MM (solo claims de cobro faltante). */
   adjustedPeriodoResumen?: string | null;
+  /** Lo resuelve la ruta con las capacidades de pagos; el email se revisa igual. */
+  actorIsSuperAdmin?: boolean;
 }): Promise<{ journalId: string; creditUsdCents: number; grossChargeCents: number }> {
   const intent = await loadVoucherIntent(input.paymentIntentId);
   if (intent.status === "succeeded") {
@@ -534,6 +588,16 @@ export async function approveManualVoucherPayment(input: {
   if (intent.status === "failed" || intent.status === "cancelled") {
     throw new Error("No se puede aprobar un pago fallido o cancelado.");
   }
+
+  // Aplica a todos los propósitos (cartera, cobro faltante, deuda): en todos
+  // el monto ajustado es lo que termina contando como pagado.
+  // amount_cents está en la moneda de cobro, igual que adjustedGrossChargeCents.
+  assertAdjustmentAllowed({
+    expectedCents: intent.amount_cents,
+    adjustedCents: input.adjustedGrossChargeCents,
+    actorIsSuperAdmin:
+      input.actorIsSuperAdmin === true || isPaymentsSuperAdminEmail(input.actor.email),
+  });
 
   const admin = createAdminClient();
   const meta = (intent.metadata ?? {}) as Record<string, unknown>;

@@ -15,7 +15,34 @@ export type VoucherSecurityFlags = {
   duplicateOperationCode: boolean;
   rateLimitBlocksAutoApprove: boolean;
   uploadRateLimited: boolean;
+  /**
+   * La consulta de duplicados falló. No sabemos si el comprobante es repetido,
+   * así que se trata igual que uno repetido: nunca se acredita solo.
+   */
+  duplicateCheckFailed?: boolean;
 };
+
+/**
+ * Resultado de buscar duplicados. `checkFailed` separa "no hay duplicado" de
+ * "no pudimos mirar": antes un error de base se leía como "limpio" y dejaba
+ * pasar a acreditación automática un comprobante que nadie verificó.
+ */
+export type DuplicateCheckResult = {
+  duplicate: boolean;
+  checkFailed: boolean;
+};
+
+/**
+ * Estados donde un comprobante ya "está tomado". No basta con `succeeded`: la
+ * misma captura subida a dos pagos abiertos a la vez pasaba el filtro en los
+ * dos, porque ninguno estaba acreditado todavía.
+ */
+const VOUCHER_CLAIMING_STATUSES = [
+  "succeeded",
+  "processing",
+  "requires_payment",
+  "created",
+] as const;
 
 const MIN_OPERATION_CODE_LENGTH = 4;
 
@@ -48,15 +75,37 @@ function isWithinWindow(isoTimestamp: string, windowMs: number): boolean {
   return Date.now() - ts <= windowMs;
 }
 
-export async function isDuplicateOperationCode(
+/** ¿Otra intención manual ya tiene este mismo archivo de comprobante? */
+export async function checkDuplicateVoucherHash(
+  hash: string,
+  excludeIntentId: string,
+): Promise<DuplicateCheckResult> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("payment_intents")
+    .select("id")
+    .eq("provider", "manual")
+    .in("status", [...VOUCHER_CLAIMING_STATUSES])
+    .contains("metadata", { voucher_content_hash: hash })
+    .neq("id", excludeIntentId)
+    .limit(1);
+
+  if (error) {
+    console.error("[voucher-security] voucher hash duplicate check failed", error.message);
+    return { duplicate: false, checkFailed: true };
+  }
+
+  return { duplicate: Boolean(data?.length), checkFailed: false };
+}
+
+export async function checkDuplicateOperationCode(
   operationCode: string,
   excludeIntentId: string,
-): Promise<boolean> {
+): Promise<DuplicateCheckResult> {
   const normalized = normalizeOperationCode(operationCode);
-  if (!normalized) return false;
+  if (!normalized) return { duplicate: false, checkFailed: false };
 
   const admin = createAdminClient();
-  const statuses = ["succeeded", "processing", "requires_payment", "created"] as const;
 
   const [byOcr, byClaim] = await Promise.all([
     admin
@@ -64,7 +113,7 @@ export async function isDuplicateOperationCode(
       .select("id")
       .eq("provider", "manual")
       .contains("metadata", { voucher_operation_code: normalized })
-      .in("status", [...statuses])
+      .in("status", [...VOUCHER_CLAIMING_STATUSES])
       .neq("id", excludeIntentId)
       .limit(1),
     admin
@@ -72,7 +121,7 @@ export async function isDuplicateOperationCode(
       .select("id")
       .eq("provider", "manual")
       .contains("metadata", { claimed_operation_code: normalized })
-      .in("status", [...statuses])
+      .in("status", [...VOUCHER_CLAIMING_STATUSES])
       .neq("id", excludeIntentId)
       .limit(1),
   ]);
@@ -90,7 +139,13 @@ export async function isDuplicateOperationCode(
     );
   }
 
-  return Boolean(byOcr.data?.length || byClaim.data?.length);
+  const duplicate = Boolean(byOcr.data?.length || byClaim.data?.length);
+  // Si una de las dos consultas encontró el código, es duplicado aunque la
+  // otra haya fallado. Si no encontró nada pero alguna falló, no sabemos.
+  return {
+    duplicate,
+    checkFailed: !duplicate && Boolean(byOcr.error || byClaim.error),
+  };
 }
 
 /** Intento abierto que ya guardó este código (para retomar un voucher a medias). */

@@ -348,10 +348,13 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
 
     const alerts: string[] = [];
     if (security?.duplicateContentHash === true) {
-      alerts.push("Este voucher ya se usó en otro pago acreditado.");
+      alerts.push("Este voucher ya se subió en otro pago (acreditado o pendiente).");
     }
     if (security?.duplicateOperationCode === true) {
       alerts.push("Este N° de operación ya está registrado en otro pago.");
+    }
+    if (security?.duplicateCheckFailed === true) {
+      alerts.push("No se pudo verificar si el voucher o el N° de operación están repetidos.");
     }
 
     const checks: Array<{ label: string; ok: boolean }> = [];

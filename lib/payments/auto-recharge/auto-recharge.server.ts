@@ -265,6 +265,9 @@ export async function runCalendarAutoRechargeForRule(
     },
   });
 
+  // Si Stripe ya cobró, la intención nunca debe quedar en "failed" aunque falle
+  // algo después: el webhook de Stripe la termina de acreditar.
+  let stripeCharged = false;
   try {
     const charge = await chargeStripeOffSession({
       stripeCustomerId: billing.stripe_customer_id,
@@ -277,8 +280,14 @@ export async function runCalendarAutoRechargeForRule(
       idempotencyKey: `stripe:${idempotencyKey}`,
     });
 
+    stripeCharged = charge.status === "succeeded";
+
+    // Queda en "processing" aunque Stripe diga succeeded: la transición a
+    // succeeded la hace processSuccessfulPaymentIntent junto con el abono en
+    // el ledger. Si la marcáramos acá, esa función vería "Ya succeeded" y
+    // saldría sin acreditar la cartera (cobro sin saldo).
     await updatePaymentIntentRecord(intent.id, {
-      status: charge.status === "succeeded" ? "succeeded" : "processing",
+      status: "processing",
       providerReference: charge.stripePaymentIntentId,
     });
 
@@ -317,10 +326,17 @@ export async function runCalendarAutoRechargeForRule(
     return { ok: charge.status === "succeeded" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido";
-    await updatePaymentIntentRecord(intent.id, {
-      status: "failed",
-      failureReason: message,
-    });
+    if (!stripeCharged) {
+      await updatePaymentIntentRecord(intent.id, {
+        status: "failed",
+        failureReason: message,
+      });
+    } else {
+      console.error(
+        "[auto-recharge] Stripe cobró pero la acreditación falló; queda en processing para el webhook",
+        { paymentIntentId: intent.id, message },
+      );
+    }
     await recordAutoRechargeAttempt({
       ruleId: rule.id,
       organizationId: rule.organization_id,

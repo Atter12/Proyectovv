@@ -1,5 +1,4 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getPaymentIntentByIdInternal,
   updatePaymentIntentRecord,
@@ -12,8 +11,9 @@ import {
   type VoucherAnalysisResult,
 } from "@/lib/payments/voucher-analysis.server";
 import {
+  checkDuplicateOperationCode,
+  checkDuplicateVoucherHash,
   checkVoucherUploadRateLimits,
-  isDuplicateOperationCode,
   normalizeOperationCode,
   type VoucherSecurityFlags,
 } from "@/lib/payments/voucher-security.server";
@@ -61,27 +61,6 @@ function readCreditUsdCents(
   const raw = metadata?.credit_amount_cents;
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
-async function isDuplicateVoucherHash(
-  hash: string,
-  excludeIntentId: string,
-): Promise<boolean> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("payment_intents")
-    .select("id, metadata")
-    .eq("provider", "manual")
-    .eq("status", "succeeded")
-    .contains("metadata", { voucher_content_hash: hash })
-    .limit(5);
-
-  if (error) {
-    console.error("[manual-voucher] duplicate check failed", error.message);
-    return false;
-  }
-
-  return (data ?? []).some((row) => row.id !== excludeIntentId);
 }
 
 export class VoucherRateLimitError extends Error {
@@ -138,6 +117,7 @@ export async function processManualVoucherUpload(input: {
         duplicateOperationCode: false,
         rateLimitBlocksAutoApprove: false,
         uploadRateLimited: false,
+        duplicateCheckFailed: false,
       },
     };
   }
@@ -165,7 +145,8 @@ export async function processManualVoucherUpload(input: {
     holderNames: holders,
   });
 
-  const duplicateHash = await isDuplicateVoucherHash(contentHash, intent.id);
+  const hashCheck = await checkDuplicateVoucherHash(contentHash, intent.id);
+  const duplicateHash = hashCheck.duplicate;
   const normalizedOperationCode = normalizeOperationCode(analysis.operationCode);
   const claimedOperationCode = normalizeOperationCode(
     typeof metadata.claimed_operation_code === "string"
@@ -173,27 +154,37 @@ export async function processManualVoucherUpload(input: {
       : null,
   );
   const opCodeForDedupe = normalizedOperationCode ?? claimedOperationCode;
-  const duplicateOperationCode =
+  const opCodeCheck =
     opCodeForDedupe != null
-      ? await isDuplicateOperationCode(opCodeForDedupe, intent.id)
-      : false;
+      ? await checkDuplicateOperationCode(opCodeForDedupe, intent.id)
+      : { duplicate: false, checkFailed: false };
+  const duplicateOperationCode = opCodeCheck.duplicate;
+  // Falla cerrada: si no pudimos consultar duplicados, no damos el comprobante
+  // por limpio; lo mandamos a revisión como si fuera sospechoso.
+  const duplicateCheckFailed = hashCheck.checkFailed || opCodeCheck.checkFailed;
 
   const security: VoucherSecurityFlags = {
     duplicateContentHash: duplicateHash,
     duplicateOperationCode,
     rateLimitBlocksAutoApprove: !rateLimits.autoApproveAllowed,
     uploadRateLimited: !rateLimits.uploadAllowed,
+    duplicateCheckFailed,
   };
 
   if (duplicateHash) {
     analysis.confirmed = false;
     analysis.needsReview = true;
-    analysis.reason = "Este comprobante ya fue usado en otro pago.";
+    analysis.reason = "Este comprobante ya se subió en otro pago.";
   } else if (duplicateOperationCode) {
     analysis.confirmed = false;
     analysis.needsReview = true;
     analysis.reason =
       "Este código de operación ya fue registrado en otro pago.";
+  } else if (duplicateCheckFailed) {
+    analysis.confirmed = false;
+    analysis.needsReview = true;
+    analysis.reason =
+      "No pudimos verificar si este comprobante ya se usó. Un gerente lo revisará.";
   } else if (!rateLimits.autoApproveAllowed && rateLimits.reason) {
     // Solo bloquea auto si no hay confirmación bancaria; el cierre dual lo
     // reevalúa con la excepción de rate-limit (igual que Yape).
@@ -263,6 +254,12 @@ export async function processManualVoucherUpload(input: {
   const fresh = await getPaymentIntentByIdInternal(intent.id);
   const status = fresh?.status ?? "processing";
   const autoApproved = !skipWalletAuto && status === "succeeded";
+  // El cierre dual lo frenó por superar el tope de acreditación automática;
+  // los gerentes ya fueron avisados desde ahí.
+  const heldOverLimit =
+    !autoApproved &&
+    isRecord(fresh?.metadata) &&
+    isRecord(fresh.metadata.auto_approve_blocked);
 
   if (autoApproved) {
     return {
@@ -295,7 +292,9 @@ export async function processManualVoucherUpload(input: {
           (isDebtPayment
             ? "Tu comprobante fue recibido. Un gerente lo revisará antes de bajar la deuda del mes."
             : "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado.")
-      : analysis.confirmed
+      : heldOverLimit
+        ? "Recibimos tu comprobante y el abono. Por el monto, un gerente aprueba la acreditación antes de que entre el saldo."
+        : analysis.confirmed
         ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
         : analysis.reason ||
           "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",

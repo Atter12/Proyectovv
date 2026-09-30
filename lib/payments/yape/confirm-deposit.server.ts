@@ -9,6 +9,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeMetadata, isRecord, getString } from "@/lib/records";
 import { ensureHecomWalletCobroSyncedBestEffort } from "@/lib/hecom/ensure-wallet-cobro.server";
 import { RECHARGE_BOT_SOURCE } from "./recipient";
+import {
+  exceedsAutoApproveLimit,
+  holdForManagerReviewOverLimit,
+} from "@/lib/payments/auto-approve-limit.server";
 
 /**
  * Cierre de una recarga cuando el cobro real ya fue confirmado.
@@ -61,7 +65,9 @@ function hasConfirmedVoucher(metadata: unknown): boolean {
   const soloLimitePorHora =
     security.rateLimitBlocksAutoApprove === true &&
     security.duplicateContentHash !== true &&
-    security.duplicateOperationCode !== true;
+    security.duplicateOperationCode !== true &&
+    // Si no se pudo consultar duplicados, no hay base para relajar nada.
+    security.duplicateCheckFailed !== true;
 
   // El comprobante ademas tiene que ser coherente por si mismo.
   const analisisSano =
@@ -117,6 +123,23 @@ export async function completeBankConfirmedDeposit(input: {
     };
   }
 
+  const creditUsdCents = readCreditUsdCents(intent.metadata, intent.amountCents);
+
+  // Por encima del tope, las dos pruebas no alcanzan: la recarga pasa a la
+  // cola del gerente (igual que cuando el bot no puede validar el comprobante).
+  if (exceedsAutoApproveLimit(creditUsdCents)) {
+    await holdForManagerReviewOverLimit({
+      intent,
+      creditUsdCents,
+      chargeCurrency: "PEN",
+      channel: RECHARGE_BOT_SOURCE,
+    });
+    return {
+      completed: false,
+      reason: "El monto supera el tope de acreditación automática. Lo aprueba un gerente.",
+    };
+  }
+
   // provider_reference es la llave anti-doble-abono: el índice único
   // (provider, provider_reference) rechaza acreditar el mismo cobro dos veces
   // aunque el matcher corra repetido.
@@ -125,7 +148,6 @@ export async function completeBankConfirmedDeposit(input: {
     : `manual:yape:notif:${input.notificationId}`;
 
   const confirmedAt = new Date().toISOString();
-  const creditUsdCents = readCreditUsdCents(intent.metadata, intent.amountCents);
 
   const journalId = await confirmDepositInLedger({
     paymentIntentId: intent.id,

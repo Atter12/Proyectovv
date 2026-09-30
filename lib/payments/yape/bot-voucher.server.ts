@@ -11,8 +11,9 @@ import {
   hashVoucherBuffer,
 } from "@/lib/payments/voucher-analysis.server";
 import {
+  checkDuplicateOperationCode,
+  checkDuplicateVoucherHash,
   checkVoucherUploadRateLimits,
-  isDuplicateOperationCode,
   normalizeOperationCode,
   type VoucherSecurityFlags,
 } from "@/lib/payments/voucher-security.server";
@@ -45,22 +46,6 @@ export type BotVoucherResult = {
 function sanitizeFileName(name: string): string {
   const base = name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-");
   return base.slice(-80) || "comprobante";
-}
-
-async function isDuplicateVoucherHash(hash: string, excludeIntentId: string): Promise<boolean> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("payment_intents")
-    .select("id")
-    .eq("provider", "manual")
-    .eq("status", "succeeded")
-    .contains("metadata", { voucher_content_hash: hash })
-    .limit(5);
-  if (error) {
-    console.error("[recharge-bot/voucher] no se pudo revisar duplicados", error.message);
-    return false;
-  }
-  return (data ?? []).some((row) => (row as { id: string }).id !== excludeIntentId);
 }
 
 export async function processBotVoucher(input: {
@@ -139,27 +124,37 @@ export async function processBotVoucher(input: {
     strictCurrency: true,
   });
 
-  const duplicateHash = await isDuplicateVoucherHash(contentHash, intent.id);
+  const hashCheck = await checkDuplicateVoucherHash(contentHash, intent.id);
+  const duplicateHash = hashCheck.duplicate;
   const operationCode = normalizeOperationCode(analysis.operationCode);
-  const duplicateOperationCode = operationCode
-    ? await isDuplicateOperationCode(operationCode, intent.id)
-    : false;
+  const opCodeCheck = operationCode
+    ? await checkDuplicateOperationCode(operationCode, intent.id)
+    : { duplicate: false, checkFailed: false };
+  const duplicateOperationCode = opCodeCheck.duplicate;
+  // Falla cerrada: este camino acredita sin gerente, así que un error al
+  // consultar duplicados no puede leerse como "comprobante limpio".
+  const duplicateCheckFailed = hashCheck.checkFailed || opCodeCheck.checkFailed;
 
   const security: VoucherSecurityFlags = {
     duplicateContentHash: duplicateHash,
     duplicateOperationCode,
     rateLimitBlocksAutoApprove: !rateLimits.autoApproveAllowed,
     uploadRateLimited: false,
+    duplicateCheckFailed,
   };
 
   if (duplicateHash) {
     analysis.confirmed = false;
     analysis.needsReview = true;
-    analysis.reason = "Este comprobante ya fue usado en otro pago.";
+    analysis.reason = "Este comprobante ya se subió en otro pago.";
   } else if (duplicateOperationCode) {
     analysis.confirmed = false;
     analysis.needsReview = true;
     analysis.reason = "Este código de operación ya fue registrado en otro pago.";
+  } else if (duplicateCheckFailed) {
+    analysis.confirmed = false;
+    analysis.needsReview = true;
+    analysis.reason = "No pude verificar si este comprobante ya se usó. Lo revisa un gerente.";
   }
 
   const submittedAt = new Date().toISOString();
@@ -219,6 +214,17 @@ export async function processBotVoucher(input: {
     return {
       intent: { id: intent.id, status },
       replies: ["🎉 ¡Listo! Confirmé tu pago y el saldo ya está en tu cartera."],
+    };
+  }
+
+  // Superó el tope de acreditación automática: el cierre ya avisó a gerentes.
+  if (fresh && isRecord(fresh.metadata) && isRecord(fresh.metadata.auto_approve_blocked)) {
+    return {
+      intent: { id: intent.id, status },
+      replies: [
+        "Recibí tu comprobante y el pago ya figura en el banco.",
+        "Por el monto, un gerente aprueba la acreditación. Te avisamos apenas entre el saldo. No vuelvas a pagar.",
+      ],
     };
   }
 

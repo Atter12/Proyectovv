@@ -10,6 +10,10 @@ import { mergeMetadata, isRecord, getString } from "@/lib/records";
 import { ensureHecomWalletCobroSyncedBestEffort } from "@/lib/hecom/ensure-wallet-cobro.server";
 import { MANUAL_DASHBOARD_SOURCE } from "./source";
 import { isLoPagadoDebtPurpose } from "@/lib/payments/missing-cobro.shared";
+import {
+  exceedsAutoApproveLimit,
+  holdForManagerReviewOverLimit,
+} from "@/lib/payments/auto-approve-limit.server";
 
 /**
  * Cierre de pago manual (BCP / Binance) con doble prueba:
@@ -36,7 +40,9 @@ function hasConfirmedVoucher(metadata: unknown): boolean {
   const soloLimitePorHora =
     security.rateLimitBlocksAutoApprove === true &&
     security.duplicateContentHash !== true &&
-    security.duplicateOperationCode !== true;
+    security.duplicateOperationCode !== true &&
+    // Si no se pudo consultar duplicados, no hay base para relajar nada.
+    security.duplicateCheckFailed !== true;
 
   const analisisSano =
     analysis.beneficiaryMatch === true &&
@@ -101,12 +107,29 @@ export async function completeManualBankConfirmedDeposit(input: {
     };
   }
 
+  const creditUsdCents = readCreditUsdCents(intent.metadata, intent.amountCents);
+
+  // Por encima del tope, las dos pruebas no alcanzan: acredita un gerente.
+  // La confirmación del banco ya quedó guardada en metadata, así que el
+  // gerente ve la recarga con las dos pruebas a la vista.
+  if (exceedsAutoApproveLimit(creditUsdCents)) {
+    await holdForManagerReviewOverLimit({
+      intent,
+      creditUsdCents,
+      chargeCurrency: intent.metadata.charge_currency === "PEN" ? "PEN" : "USD",
+      channel: "manual_dashboard",
+    });
+    return {
+      completed: false,
+      reason: "El monto supera el tope de acreditación automática. Lo aprueba un gerente.",
+    };
+  }
+
   const providerReference = input.operationNumber
     ? `manual:bank:op:${input.operationNumber}`
     : `manual:bank:notif:${input.notificationId}`;
 
   const confirmedAt = new Date().toISOString();
-  const creditUsdCents = readCreditUsdCents(intent.metadata, intent.amountCents);
 
   const journalId = await confirmDepositInLedger({
     paymentIntentId: intent.id,

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
-import { approveManualVoucherPayment } from "@/lib/payments/review-manual-payment.server";
+import {
+  isPaymentsSuperAdminEmail,
+  resolvePaymentsFundingCapabilities,
+} from "@/lib/payments/funding-roles.server";
+import {
+  approveManualVoucherPayment,
+  ManualApprovalPolicyError,
+} from "@/lib/payments/review-manual-payment.server";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -66,6 +72,8 @@ export async function POST(request: Request, context: RouteContext) {
       approvedFrom: "dashboard",
       adjustedGrossChargeCents,
       adjustedPeriodoResumen,
+      // El modo tester "gerente" apaga isSuperAdmin en caps; el email manda.
+      actorIsSuperAdmin: caps.isSuperAdmin || isPaymentsSuperAdminEmail(session.email),
     });
     const isNonWallet =
       result.creditUsdCents === 0 && result.journalId === "";
@@ -79,6 +87,9 @@ export async function POST(request: Request, context: RouteContext) {
         : "Saldo disponible en cartera. El cliente ya puede asignar.",
     });
   } catch (error) {
+    if (error instanceof ManualApprovalPolicyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const message =
       error instanceof Error ? error.message : "No se pudo aprobar el pago.";
     return NextResponse.json({ error: message }, { status: 500 });
