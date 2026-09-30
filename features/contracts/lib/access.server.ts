@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 
 /** Gerente, super admin o allowlist de admin. El cliente final no entra. */
-export async function requireAllianceStaff() {
+export async function requireContractsStaff() {
   const session = await requireSession();
   const funding = await resolvePaymentsFundingCapabilities({
     email: session.email,

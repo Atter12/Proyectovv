@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { documentTokenFromWebhook, verifySignatureHmac } from "@/features/alliances/lib/signature";
-import { syncSignatureByExternalRef } from "@/features/alliances/lib/signature-sync.server";
 import { syncRegistrationSignature } from "@/features/contracts/lib/registration-signature-sync.server";
+import { documentTokenFromWebhook, verifySignatureHmac } from "@/features/contracts/lib/signature";
 import { serverEnv } from "@/lib/env/env.server";
 
 export async function POST(request: Request) {
@@ -28,10 +27,6 @@ export async function POST(request: Request) {
 
   const token = documentTokenFromWebhook(payload);
   if (!token) return NextResponse.json({ ok: true, ignored: true });
-
-  const synced = await syncSignatureByExternalRef(token);
-  if (!synced.ok) return NextResponse.json({ error: synced.error }, { status: 500 });
-  if (!synced.ignored) return NextResponse.json({ ok: true });
 
   const registration = await syncRegistrationSignature(token);
   if (!registration.ok) return NextResponse.json({ error: registration.error }, { status: 500 });

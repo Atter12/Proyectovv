@@ -27,7 +27,6 @@ const PRIVATE_PATHS = [
   "/creative-analyzer",
   "/profit",
   "/asistente",
-  "/alianzas",
   "/education",
   "/pixels",
   "/support",

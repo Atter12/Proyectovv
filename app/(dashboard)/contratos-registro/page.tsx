@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { requireAllianceStaff } from "@/features/alliances/lib/access.server";
+import { requireContractsStaff } from "@/features/contracts/lib/access.server";
 import { refreshRegistrationSignaturesAction, reviewMembershipCaptureAction } from "@/features/contracts/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -24,7 +24,7 @@ interface RegistrationContractRow {
 }
 
 export default async function RegistrationContractsPage() {
-  await requireAllianceStaff();
+  await requireContractsStaff();
   const admin = createAdminClient();
   const loaded = await admin
     .from("client_service_contracts")

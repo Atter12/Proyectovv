@@ -1,5 +1,5 @@
 import "server-only";
-import { downloadSignedPdf, fetchSignatureEnvelope } from "@/features/alliances/lib/signature.server";
+import { downloadSignedPdf, fetchSignatureEnvelope } from "@/features/contracts/lib/signature.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "registration-contracts";

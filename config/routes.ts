@@ -24,7 +24,6 @@ export const routes = {
   cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",
-  alliances: "/alianzas",
   registrationContracts: "/contratos-registro",
   creativeAnalyzer: "/creative-analyzer",
   pixels: "/pixels",
@@ -40,7 +39,6 @@ export const routes = {
   adminLogin: "/admin/login",
   adminOverview: "/admin/overview",
   adminEducation: "/admin/education",
-  adminAlliances: "/admin/alliances",
   adminUnauthorized: "/admin/unauthorized",
   api: {
     auth: {

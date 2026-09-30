@@ -53,11 +53,11 @@ test("un sobre firmado trae el PDF y la fecha del firmante", () => {
 });
 
 test("el borrador HTML sale como PDF de varias líneas", () => {
-  const html = "<h1>Contrato de alianza</h1><p>Holistic y el aliado acuerdan la comisión.</p>";
+  const html = "<h1>Contrato de servicios</h1><p>Holistic y el cliente acuerdan la comisión.</p>";
   const pdf = buildContractPdf(html);
   const source = Buffer.from(pdf.bytes).toString("latin1");
   assert.equal(pdf.pages, 1);
   assert.match(source, /^%PDF-1\.4/);
-  assert.match(source, /Contrato de alianza/);
+  assert.match(source, /Contrato de servicios/);
   assert.match(source, /%%EOF/);
 });

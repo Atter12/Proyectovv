@@ -1,6 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/env.server";
-import { parseRemoteEnvelope, type RemoteEnvelope } from "@/features/alliances/lib/signature";
+import { parseRemoteEnvelope, type RemoteEnvelope } from "@/features/contracts/lib/signature";
 
 export interface SignatureSignerInput {
   name: string;

@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { contractDocumentHtml } from "@/features/alliances/lib/templates";
-import { buildContractPdf } from "@/features/alliances/lib/signature";
-import { sendSignatureEnvelope } from "@/features/alliances/lib/signature.server";
-import { requireAllianceStaff } from "@/features/alliances/lib/access.server";
+import { requireContractsStaff } from "@/features/contracts/lib/access.server";
+import { contractDocumentHtml } from "@/features/contracts/lib/document-html";
+import { buildContractPdf } from "@/features/contracts/lib/signature";
+import { sendSignatureEnvelope } from "@/features/contracts/lib/signature.server";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { requireSession } from "@/lib/auth/guards.server";
 import { updateHecomClienteDocument } from "@/lib/hecom/clientes.server";
@@ -231,7 +231,7 @@ function isMissingTable(message: string | undefined): boolean {
 }
 
 export async function refreshRegistrationSignaturesAction(): Promise<void> {
-  await requireAllianceStaff();
+  await requireContractsStaff();
   const admin = createAdminClient();
   const pending = await admin
     .from("client_service_contracts")
@@ -345,7 +345,7 @@ export async function submitMembershipCaptureAction(
 }
 
 export async function reviewMembershipCaptureAction(formData: FormData): Promise<void> {
-  await requireAllianceStaff();
+  await requireContractsStaff();
   const id = String(formData.get("id") ?? "");
   const decision = formData.get("decision") === "approved" ? "approved" : "rejected";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
