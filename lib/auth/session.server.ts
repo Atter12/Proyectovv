@@ -65,7 +65,9 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     user.email?.split("@")[0] ||
     "Usuario";
   const role = membership?.role ?? "viewer";
-  const email = profile?.email ?? user.email ?? "";
+  // El correo de Auth es el que se verificó al iniciar sesión. El de `profiles`
+  // lo puede editar el propio usuario, así que no decide quién es gerente.
+  const email = user.email ?? profile?.email ?? "";
   const testerMode = await getTesterDashboardMode(email);
   const staffPayments =
     isHecomOtpStaffEmail(email) || testerMode === "gerente";

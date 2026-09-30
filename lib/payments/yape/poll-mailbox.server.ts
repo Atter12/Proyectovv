@@ -1,6 +1,8 @@
 import "server-only";
 import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail } from "mailparser";
+import { dkimVerify } from "mailauth/lib/dkim/verify.js";
+import { publicKeyResolver } from "@/lib/support/recharge-bot/bank-email.mjs";
 import { serverEnv } from "@/lib/env/env.server";
 import { ingestYapeNotification } from "./match.server";
 import { ingestManualBankNotification } from "@/lib/payments/manual-bank-match/match.server";
@@ -81,6 +83,58 @@ function senderAllowed(fromText: string): boolean {
   if (filters.length === 0) return true;
   const normalized = fromText.toLowerCase();
   return filters.some((allowed) => normalized.includes(allowed));
+}
+
+/** Dominios que firman los avisos reales de BCP, Yape y Binance. */
+const BANK_SIGNING_DOMAINS = [
+  "bcp.com.pe",
+  "viabcp.com",
+  "notificacionesbcp.com.pe",
+  "yape.com.pe",
+  "binance.com",
+];
+
+function isBankDomain(domain: string): boolean {
+  const d = domain.toLowerCase();
+  return BANK_SIGNING_DOMAINS.some((bank) => d === bank || d.endsWith(`.${bank}`));
+}
+
+/**
+ * El aviso cuenta como prueba de pago solo si lo firmó (DKIM) el dominio del
+ * banco y esa firma coincide con el remitente. Sin esto, un correo desde
+ * cualquier dominio con "viabcp.com" en el nombre visible pasaba el filtro.
+ *
+ * BANK_MAIL_DKIM_MODE=enforce descarta los que no pasan (quedan para revisión
+ * del gerente). Por defecto "observe": solo registra el resultado.
+ */
+async function verifyBankSignature(
+  source: Buffer,
+  fromAddress: string,
+): Promise<{ pass: boolean; signingDomains: string[] }> {
+  const fromDomain = fromAddress.split("@")[1]?.toLowerCase() ?? "";
+  try {
+    const auth = await dkimVerify(source, { resolver: publicKeyResolver });
+    const passing = (auth.results ?? []).filter(
+      (r: { status?: { result?: string } }) => r.status?.result === "pass",
+    );
+    const signingDomains = passing
+      .map((r: { signingDomain?: string }) => String(r.signingDomain ?? "").toLowerCase())
+      .filter(Boolean);
+    const pass = signingDomains.some(
+      (domain: string) =>
+        isBankDomain(domain) && (fromDomain === domain || fromDomain.endsWith(`.${domain}`)),
+    );
+    return { pass, signingDomains };
+  } catch (error) {
+    console.warn("[yape-mailbox] dkim_check_failed", error);
+    return { pass: false, signingDomains: [] };
+  }
+}
+
+function bankDkimMode(): "observe" | "enforce" {
+  return String(process.env.BANK_MAIL_DKIM_MODE ?? "").trim().toLowerCase() === "enforce"
+    ? "enforce"
+    : "observe";
 }
 
 type MailRoute = "yape" | "manual_bank" | "skip";
@@ -201,17 +255,38 @@ export async function pollYapeMailbox(): Promise<MailboxPollResult> {
         const receivedAt = new Date(
           parsed.date ?? message.internalDate ?? Date.now(),
         ).toISOString();
-        const metadata = {
-          from: fromText,
-          subject: parsed.subject ?? null,
-          uid: message.uid,
-        };
-
         const route = classifyMailRoute(rawText);
         if (route === "skip") {
           result.skipped += 1;
           continue;
         }
+
+        const signature = await verifyBankSignature(
+          message.source,
+          parsed.from?.value?.[0]?.address ?? "",
+        );
+        const dkimMode = bankDkimMode();
+        console.info("[yape-mailbox] dkim", {
+          uid: message.uid,
+          from: fromText,
+          pass: signature.pass,
+          signingDomains: signature.signingDomains,
+          mode: dkimMode,
+        });
+        if (dkimMode === "enforce" && !signature.pass) {
+          // Sin firma del banco no es prueba de pago: queda para el gerente.
+          result.skipped += 1;
+          continue;
+        }
+
+        const metadata = {
+          from: fromText,
+          subject: parsed.subject ?? null,
+          uid: message.uid,
+          dkim_pass: signature.pass,
+          dkim_signing_domains: signature.signingDomains,
+          dkim_mode: dkimMode,
+        };
 
         const outcome =
           route === "yape"

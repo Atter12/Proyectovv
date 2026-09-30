@@ -128,7 +128,14 @@ export async function createPaymentIntentForSession(
     throw new Error("El monto debe ser mayor a cero.");
   }
 
-  const currency = (input.currency ?? "USD").toUpperCase();
+  // La cartera siempre es en USD. Los soles (Yape / manual PEN) los calcula el
+  // servidor desde chargeCurrency con el tipo de cambio; nunca se toma la
+  // moneda que manda el cliente, porque cambiarla dejaba cobrar en una moneda
+  // barata (Stripe/cripto) y acreditar el mismo número en USD.
+  if (input.currency && input.currency.trim().toUpperCase() !== "USD") {
+    throw new Error("La recarga se hace en USD.");
+  }
+  const currency = "USD";
   const provider = input.provider;
   const providerImpl = getPaymentProvider(provider);
   const configured = providerImpl.isConfigured();
@@ -183,7 +190,7 @@ export async function createPaymentIntentForSession(
         : "USD";
 
   let amountCents = fee.grossCents;
-  let intentCurrency = (input.currency ?? "USD").toUpperCase();
+  let intentCurrency = currency;
   let manualQuoteMeta: Record<string, unknown> = {};
   let cobranaCustomer: {
     documentNumber: string;
