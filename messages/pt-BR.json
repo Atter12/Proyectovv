@@ -272,7 +272,7 @@
     "allocateModal": {
       "title": "Atribuir saldo",
       "titleBm": "Recarregar pelo BM",
-      "body": "Transfira saldo da carteira Holistic para esta conta TikTok. O que já está na conta não pode ser atribuído de novo.",
+      "body": "Passe saldo da sua carteira Holistic para esta conta TikTok.",
       "bodyBm": "Financie a conta no TikTok pelo BM (sem exigir saldo na carteira do cliente). BM 200 = cash; BM 10/30 = subir orçamento de crédito. Use contas aprovadas.",
       "oneToOne": "1 a 1:",
       "oneToOneBody": "se você atribuir {amount}, o TikTok recebe {amount}.",
@@ -300,7 +300,6 @@
       "errBmFallback": "Não foi possível recarregar pelo BM. Tente outra conta aprovada ou contate o suporte.",
       "errAssignFallback": "Não foi possível atribuir o saldo. Seu dinheiro continua na carteira. Tente outra conta ou contate o suporte.",
       "budgetHint": "Se aparecer erro de orçamento, a conta não está visível no BM do TikTok (ID mapeado errado ou conta antiga). Tente outra conta aprovada do mesmo cliente.",
-      "alreadyAssignedHint": "“Já nesta conta” não é atribuído de novo. Você só pode mover o saldo da carteira.",
       "ledgerBalance": "Saldo / ledger: {amount}",
       "advertiserLabel": "TikTok advertiser:",
       "disabledAlert": "Esta conta está desativada ou suspensa. Escolha uma conta aprovada da lista ou sincronize novamente as contas em Pagamentos.",

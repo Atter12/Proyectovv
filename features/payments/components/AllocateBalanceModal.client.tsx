@@ -257,9 +257,6 @@ export function AllocateBalanceModal({
                   {formatMoney(alreadyOnAccount)}
                 </span>
               </p>
-              <p className="pt-1 text-[11px] leading-4 text-[#6b645c]">
-                {t("allocateModal.alreadyAssignedHint")}
-              </p>
             </div>
           ) : (
             <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">

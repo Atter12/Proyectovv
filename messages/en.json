@@ -272,7 +272,7 @@
     "allocateModal": {
       "title": "Assign balance",
       "titleBm": "Top up from BM",
-      "body": "Transfer balance from your Holistic wallet to this TikTok account. What is already on the account cannot be assigned again.",
+      "body": "Move balance from your Holistic wallet to this TikTok account.",
       "bodyBm": "Fund the TikTok account from the BM (without requiring client wallet balance). BM 200 = cash; BM 10/30 = raise credit budget. Use approved accounts.",
       "oneToOne": "1:1:",
       "oneToOneBody": "if you assign {amount}, TikTok receives {amount}.",
@@ -300,7 +300,6 @@
       "errBmFallback": "Could not top up from the BM. Try another approved account or contact support.",
       "errAssignFallback": "Could not assign balance. Your money is still in the wallet. Try another account or contact support.",
       "budgetHint": "If you see a budget error, the account is not visible in the TikTok BM (bad ID mapping or old account). Try another approved account for the same client.",
-      "alreadyAssignedHint": "“Already on this account” is not assigned again. You can only move wallet balance.",
       "ledgerBalance": "Balance / ledger: {amount}",
       "advertiserLabel": "TikTok advertiser:",
       "disabledAlert": "This account is disabled or suspended. Pick an approved account from the list or re-sync accounts in Payments.",
