@@ -95,7 +95,11 @@ export async function GET(request: Request) {
   // alcanzaron, hasta 3 veces; después se sigue y quedan en el registro.
   const retry = new Set(result.pendingAdvertiserIds ?? []);
   if (attempt < MAX_RETRIES) {
-    for (const f of failures) if (f.advertiserId) retry.add(f.advertiserId);
+    for (const f of failures) {
+      // Sin permiso sobre el anunciante (cuenta fuera de los BM de la agencia):
+      // reintentar no lo arregla.
+      if (f.advertiserId && !/no permission/i.test(f.error)) retry.add(f.advertiserId);
+    }
   }
   const advanced = response.ok;
   if (advanced) {
