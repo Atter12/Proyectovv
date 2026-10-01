@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
+import { CLIENT_COBROS_FROM_MONTH } from "@/features/clientes/components/ClienteScopedCobros";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
@@ -20,10 +21,16 @@ function monthFromQuery(value: string | string[] | undefined): string | undefine
   return raw && /^\d{4}-\d{2}$/.test(raw) ? raw : undefined;
 }
 
+/** YYYY-MM de una fecha o periodo; null si no se puede leer. */
+function monthOf(value: string | null | undefined): string | null {
+  const match = String(value ?? "").trim().match(/^(\d{4}-\d{2})/);
+  return match ? match[1]! : null;
+}
+
 function publicLinkMonth(value: string | string[] | undefined): string {
   const now = todayYmdInTz("America/Lima").slice(0, 7);
   const raw = monthFromQuery(value);
-  if (raw && raw <= now) return raw;
+  if (raw && raw >= CLIENT_COBROS_FROM_MONTH && raw <= now) return raw;
   return now;
 }
 
@@ -47,12 +54,18 @@ export default async function LoPagadoPublicPage({
   });
   if (!data) notFound();
 
-  const { cliente, summary, cobros, gastos } = data;
+  const { cliente, summary } = data;
+  // Igual que la vista cliente: desde setiembre 2026; los meses anteriores no llegan al navegador.
+  const visible = (m: string | null) => m !== null && m >= CLIENT_COBROS_FROM_MONTH;
+  const gastos = data.gastos.filter((row) => visible(monthOf(row.fecha)));
+  const cobros = data.cobros.filter((row) => visible(monthOf(row.periodoResumen) ?? monthOf(row.fecha)));
   const month = publicLinkMonth(query.m);
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
   try {
-    claims = await listMissingCobroClaimsForCliente(clientId);
+    claims = (await listMissingCobroClaimsForCliente(clientId)).filter((claim) =>
+      visible(monthOf(claim.createdAt)),
+    );
   } catch {
     claims = [];
   }
@@ -109,14 +122,14 @@ export default async function LoPagadoPublicPage({
             Lo pagado
           </h1>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-            Gastos diarios de ads (con fee) y pagos de este mes. Solo ves el mes
-            del mensaje de cobranza. Desde aquí también puedes pagar o avisar
-            si no ves un pago de ese mes.
+            Gastos diarios de ads (con fee) y pagos desde setiembre 2026. Elige
+            el mes arriba; desde aquí también puedes pagar o avisar si no ves un
+            pago de ese mes.
           </p>
         </header>
         <ClienteCobrosMonthView
           initialMonth={month}
-          lockMonth
+          syncMonthToUrl
           hideStaff
           proofApiBase={apiBase}
           feePercent={summary.depositFeePercent}

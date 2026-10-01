@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CobrosPaymentHistory,
   type CobroHistoryRow,
@@ -65,6 +66,8 @@ type Props = {
   hideStaff?: boolean;
   /** Link público: solo el mes del mensaje, sin ir a meses anteriores. */
   lockMonth?: boolean;
+  /** Link público: el mes elegido va a la URL (?m=) para que pagar y reclamar usen ese mes. */
+  syncMonthToUrl?: boolean;
   /** Prefijo público de comprobantes. La función se arma en el cliente. */
   proofApiBase?: string;
 };
@@ -81,9 +84,12 @@ export function ClienteCobrosMonthView({
   initialMonth,
   hideStaff = false,
   lockMonth = false,
+  syncMonthToUrl = false,
   proofApiBase,
 }: Props) {
   const t = useTranslations("cobros");
+  const router = useRouter();
+  const pathname = usePathname();
   const locale = useLocale();
   const currentMonth = useMemo(() => limaMonthKey(), []);
   const [month, setMonth] = useState(() => {
@@ -120,6 +126,11 @@ export function ClienteCobrosMonthView({
     }
     return list;
   }, [currentMonth, oldestMonth]);
+
+  const selectMonth = (ym: string) => {
+    setMonth(ym);
+    if (syncMonthToUrl) router.replace(`${pathname}?m=${ym}`, { scroll: false });
+  };
 
   const canPrev = shiftMonthKey(month, -1) >= oldestMonth;
   const canNext = month < currentMonth;
@@ -162,7 +173,7 @@ export function ClienteCobrosMonthView({
             {!lockMonth && !isCurrent ? (
               <button
                 type="button"
-                onClick={() => setMonth(currentMonth)}
+                onClick={() => selectMonth(currentMonth)}
                 className="h-10 rounded-full bg-[#1a1714] px-4 text-[12px] font-semibold text-white transition hover:bg-[#2c2620] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
               >
                 {t("jumpCurrentMonth")}
@@ -175,7 +186,7 @@ export function ClienteCobrosMonthView({
                 type="button"
                 aria-label={t("prevMonth")}
                 disabled={!canPrev}
-                onClick={() => setMonth((m) => shiftMonthKey(m, -1))}
+                onClick={() => selectMonth(shiftMonthKey(month, -1))}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5c564e] transition hover:bg-white hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
@@ -200,7 +211,7 @@ export function ClienteCobrosMonthView({
                 type="button"
                 aria-label={t("nextMonth")}
                 disabled={!canNext}
-                onClick={() => setMonth((m) => shiftMonthKey(m, 1))}
+                onClick={() => selectMonth(shiftMonthKey(month, 1))}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5c564e] transition hover:bg-white hover:text-[#1a1714] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
@@ -226,7 +237,7 @@ export function ClienteCobrosMonthView({
                 <button
                   key={ym}
                   type="button"
-                  onClick={() => setMonth(ym)}
+                  onClick={() => selectMonth(ym)}
                   className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] ${
                     active
                       ? "bg-[#1a1714] text-white"
