@@ -131,7 +131,7 @@ export const serverEnv = {
    * TC USD→PEN fijo (1 USD = X PEN) que define gerencia. Se congela en el
    * intent al cotizar. Con FX_RATE_SOURCE=sbs es solo el respaldo si BCRP falla.
    */
-  holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.48"),
+  holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.37"),
   /** manual (por defecto) = TC fijo de HOLISTIC_USD_PEN_RATE; sbs = serie BCRP SBS venta. */
   fxRateSource: (process.env.FX_RATE_SOURCE ?? "manual").trim().toLowerCase() === "sbs"
     ? ("sbs" as const)

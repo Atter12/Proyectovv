@@ -34,7 +34,7 @@ export function quoteFromGrossCharge(input: {
   const rate =
     Number.isFinite(input.fxRateUsdPen) && input.fxRateUsdPen > 0
       ? input.fxRateUsdPen
-      : 3.48;
+      : 3.37;
   const grossChargeCents = Math.max(0, Math.round(input.grossChargeCents));
 
   if (input.chargeCurrency === "USD") {

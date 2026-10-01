@@ -438,7 +438,7 @@ async function resolveWalletId(organizationId: string): Promise<string> {
 
 /** Crédito mínimo en USD que produce un cobro por encima del umbral del banco. */
 function minimumCreditUsd(): number {
-  const rate = serverEnv.holisticUsdPenRate || 3.48;
+  const rate = serverEnv.holisticUsdPenRate || 3.37;
   const minPen = serverEnv.yapeMinNotifiablePen;
   // +1% de margen para no quedar pegado justo en el umbral.
   return Math.ceil((minPen / rate) * 1.01 * 100) / 100;

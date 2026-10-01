@@ -43,7 +43,7 @@ function round4(n: number): number {
 
 function envFallbackRate(): number {
   const raw = serverEnv.holisticUsdPenRate;
-  if (!Number.isFinite(raw) || raw <= 0) return 3.48;
+  if (!Number.isFinite(raw) || raw <= 0) return 3.37;
   return round4(raw);
 }
 

@@ -459,7 +459,7 @@ async function approveLoPagadoDebtPayment(input: {
       ? "PEN"
       : "USD";
   const fx = Number(meta.fx_rate_usd_pen);
-  const safeFx = Number.isFinite(fx) && fx > 0 ? fx : 3.48;
+  const safeFx = Number.isFinite(fx) && fx > 0 ? fx : 3.37;
   const storedCredit = Number(meta.credit_amount_cents);
 
   let cobroUsdCents =
@@ -639,7 +639,7 @@ export async function approveManualVoucherPayment(input: {
   const feePercent = Number(meta.fee_percent);
   const fxRate = Number(meta.fx_rate_usd_pen);
   const safeFee = Number.isFinite(feePercent) && feePercent >= 0 ? feePercent : 10;
-  const safeFx = Number.isFinite(fxRate) && fxRate > 0 ? fxRate : 3.48;
+  const safeFx = Number.isFinite(fxRate) && fxRate > 0 ? fxRate : 3.37;
 
   let amountCents = intent.amount_cents;
   let workingMeta = { ...meta };
