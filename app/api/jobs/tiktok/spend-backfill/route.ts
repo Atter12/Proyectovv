@@ -64,7 +64,8 @@ export async function GET(request: Request) {
     endDate = chunkEnd < lastDay ? chunkEnd : lastDay;
   }
 
-  const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  // Solo cuentas de clientes: el camino OAuth (reimporta cuentas) no entra en el tiempo.
+  const query = new URLSearchParams({ start_date: startDate, end_date: endDate, skip_oauth: "1" });
   if (resume.length) query.set("advertiser_ids", resume.join(","));
   const response = await runSpendSync(
     new Request(`${new URL(request.url).origin}/api/jobs/tiktok/sync?${query}`, {

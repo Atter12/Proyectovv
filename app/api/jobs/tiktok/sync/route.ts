@@ -363,9 +363,12 @@ async function runSync(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Al retomar anunciantes de clientes o sin tiempo, el camino OAuth espera a la próxima corrida.
-  const connections = onlyAdvertiserIds.size || Date.now() >= deadlineMs ? [] : (data ?? []);
+  // Al retomar anunciantes de clientes, con skip_oauth (gasto atrasado) o sin
+  // tiempo, el camino OAuth espera a la próxima corrida.
+  const skipOauth = onlyAdvertiserIds.size > 0 || url.searchParams.get("skip_oauth") === "1";
+  const connections = skipOauth ? [] : (data ?? []);
   for (const connection of connections) {
+    if (Date.now() >= deadlineMs) break;
     try {
       const result = await importTikTokAdvertiserAccounts({
         organizationId: connection.organization_id,
@@ -392,6 +395,7 @@ async function runSync(request: Request) {
       });
 
       for (const account of accounts) {
+        if (Date.now() >= deadlineMs) break;
         if (!account.external_account_id) continue;
         try {
           const spend = await syncTikTokAdvertiserSpend({
