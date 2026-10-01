@@ -28,6 +28,10 @@
     {
       "path": "/api/jobs/prepago-guard",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/jobs/tiktok/spend-backfill",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
