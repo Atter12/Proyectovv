@@ -249,7 +249,7 @@ async function runSync(request: Request) {
   let recordedCents = 0;
   let recordedDays = 0;
   let uncoveredCents = 0;
-  const failures: Array<{ organizationId: string; error: string }> = [];
+  const failures: Array<{ organizationId: string; advertiserId?: string; error: string }> = [];
   const spendResults: Array<
     { organizationId: string; source: "agency" | "oauth" } & Omit<
       TikTokSpendSyncResult,
@@ -315,6 +315,7 @@ async function runSync(request: Request) {
       } catch (spendError) {
         failures.push({
           organizationId: target.organizationId,
+          advertiserId: target.advertiserId,
           error: `Advertiser ${target.advertiserId}: ${
             spendError instanceof Error ? spendError.message : "Error desconocido"
           }`,

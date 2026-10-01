@@ -19,6 +19,7 @@ export const maxDuration = 300;
 const BACKFILL_FROM = "2026-07-06";
 const CHUNK_DAYS = 4;
 const AUDIT_ACTION = "tiktok.spend_backfill.chunk";
+const MAX_RETRIES = 3;
 
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
@@ -42,12 +43,18 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<{
-      metadata: { start_date?: string; end_date?: string; pending_advertiser_ids?: string[] } | null;
+      metadata: {
+        start_date?: string;
+        end_date?: string;
+        pending_advertiser_ids?: string[];
+        attempt?: number;
+      } | null;
     }>();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Si la corrida anterior no alcanzó a todos, se retoman esos en el mismo rango.
   const resume = last?.metadata?.pending_advertiser_ids ?? [];
+  const attempt = resume.length ? (last?.metadata?.attempt ?? 0) + 1 : 0;
   let startDate: string;
   let endDate: string;
   if (resume.length && last?.metadata?.start_date && last.metadata.end_date) {
@@ -79,13 +86,18 @@ export async function GET(request: Request) {
     uncovered?: unknown[];
     pendingAdvertiserIds?: string[];
     skipped?: unknown[];
-    failures?: Array<{ organizationId: string; error: string }>;
+    failures?: Array<{ organizationId: string; advertiserId?: string; error: string }>;
     error?: string;
   };
 
   const failures = result.failures ?? [];
-  // Si falló casi todo (token, TikTok caído) no se registra avance: se reintenta igual.
-  const advanced = response.ok && failures.length < 20;
+  // Los que fallaron (límite de TikTok, demora) se reintentan con los que no
+  // alcanzaron, hasta 3 veces; después se sigue y quedan en el registro.
+  const retry = new Set(result.pendingAdvertiserIds ?? []);
+  if (attempt < MAX_RETRIES) {
+    for (const f of failures) if (f.advertiserId) retry.add(f.advertiserId);
+  }
+  const advanced = response.ok;
   if (advanced) {
     await admin.from("audit_logs").insert({
       action: AUDIT_ACTION,
@@ -95,7 +107,8 @@ export async function GET(request: Request) {
         start_date: startDate,
         end_date: endDate,
         resumed: resume.length,
-        pending_advertiser_ids: result.pendingAdvertiserIds ?? [],
+        attempt,
+        pending_advertiser_ids: [...retry],
         recorded_days: result.recordedDays ?? 0,
         recorded_cents: result.recordedCents ?? 0,
         uncovered_cents: result.uncoveredCents ?? 0,
@@ -111,6 +124,7 @@ export async function GET(request: Request) {
       status: response.status,
       failures: failures.length,
       error: result.error,
+      sample: failures.slice(0, 3).map((f) => f.error),
     });
   }
 
@@ -118,7 +132,7 @@ export async function GET(request: Request) {
     ok: advanced,
     range: { startDate, endDate },
     resumed: resume.length,
-    pending: result.pendingAdvertiserIds?.length ?? 0,
+    pending: retry.size,
     recordedCents: result.recordedCents ?? 0,
     uncoveredCents: result.uncoveredCents ?? 0,
     failures: failures.length,
