@@ -38,6 +38,21 @@ type SkippedAdvertiser = {
   reason: string;
 };
 
+/** Anunciantes en paralelo: rápido sin pasar el límite de consultas de TikTok. */
+const SPEND_SYNC_CONCURRENCY = 6;
+
+async function forEachConcurrently<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) await worker(items[next++]!);
+  });
+  await Promise.all(runners);
+}
+
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
@@ -251,7 +266,10 @@ async function runSync(request: Request) {
     clientAdvertiserIds = plan.advertiserIds;
     skipped = plan.skipped;
 
-    for (const target of plan.targets) {
+    // Uno por uno, ~320 anunciantes no entran en los 300 s de Vercel y los
+    // últimos de la lista nunca se registraban. Cada anunciante escribe solo en
+    // su propia fila, así que se procesan de a varios.
+    await forEachConcurrently(plan.targets, SPEND_SYNC_CONCURRENCY, async (target) => {
       try {
         const { token } = await resolveTikTokFinanceAccessToken(target.organizationId);
         const spend = await syncTikTokAdvertiserSpend({
@@ -271,7 +289,7 @@ async function runSync(request: Request) {
           }`,
         });
       }
-    }
+    });
   } catch (planError) {
     // Sin la lista de clientes no se sabe qué filas son espejos: el camino
     // OAuth se corta abajo para no registrar gasto en ellas.

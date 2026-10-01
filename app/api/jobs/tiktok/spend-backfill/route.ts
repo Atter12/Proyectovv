@@ -11,13 +11,13 @@ export const maxDuration = 300;
 /**
  * Registro del gasto atrasado: hasta el 17/09/2026 el gasto de TikTok no se
  * asentaba en el libro, así que el saldo asignado de cada cuenta seguía
- * mostrando lo ya gastado. Cada corrida procesa una semana, desde la primera
+ * mostrando lo ya gastado. Cada corrida procesa cuatro días, desde la primera
  * asignación, hasta alcanzar los días que ya cubre el sync normal (ayer y hoy).
  * El sync solo asienta la diferencia contra lo ya registrado por día, así que
- * repetir un rango no duplica.
+ * repetir un rango no duplica (si una corrida se corta, la siguiente la repite).
  */
 const BACKFILL_FROM = "2026-07-06";
-const CHUNK_DAYS = 7;
+const CHUNK_DAYS = 4;
 const AUDIT_ACTION = "tiktok.spend_backfill.chunk";
 
 function isAuthorized(request: Request): boolean {
