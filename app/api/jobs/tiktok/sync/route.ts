@@ -40,17 +40,36 @@ type SkippedAdvertiser = {
 
 /** Anunciantes en paralelo: rápido sin pasar el límite de consultas de TikTok. */
 const SPEND_SYNC_CONCURRENCY = 6;
+/**
+ * Pasado este tiempo no se empieza otro anunciante: los que faltan se devuelven
+ * en `pendingAdvertiserIds` en vez de perder la corrida entera por el corte de
+ * Vercel (300 s).
+ */
+const SPEND_SYNC_BUDGET_MS = 230_000;
 
+/** Corre `worker` de a `concurrency`; devuelve los que no alcanzó a empezar. */
 async function forEachConcurrently<T>(
   items: T[],
   concurrency: number,
+  deadlineMs: number,
   worker: (item: T) => Promise<void>,
-): Promise<void> {
+): Promise<T[]> {
   let next = 0;
   const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (next < items.length) await worker(items[next++]!);
+    while (next < items.length && Date.now() < deadlineMs) await worker(items[next++]!);
   });
   await Promise.all(runners);
+  return items.slice(next);
+}
+
+/**
+ * Cada corrida empieza en otro punto de la lista para que, si alguna no
+ * alcanza, no sean siempre los mismos anunciantes los que quedan fuera.
+ */
+function rotate<T>(items: T[]): T[] {
+  if (items.length === 0) return items;
+  const offset = Math.floor(Date.now() / (30 * 60 * 1000)) * 97 % items.length;
+  return [...items.slice(offset), ...items.slice(0, offset)];
 }
 
 function isAuthorized(request: Request): boolean {
@@ -185,6 +204,7 @@ async function resolveClientSpendTargets(
 }
 
 async function runSync(request: Request) {
+  const deadlineMs = Date.now() + SPEND_SYNC_BUDGET_MS;
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
@@ -203,6 +223,14 @@ async function runSync(request: Request) {
     url.searchParams.get("client_id") ||
     ""
   ).trim();
+  // Para retomar una corrida cortada: solo estos anunciantes de clientes.
+  const onlyAdvertiserIds = new Set(
+    (url.searchParams.get("advertiser_ids") ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+  let pendingAdvertiserIds: string[] = [];
 
   const admin = createAdminClient();
 
@@ -269,7 +297,10 @@ async function runSync(request: Request) {
     // Uno por uno, ~320 anunciantes no entran en los 300 s de Vercel y los
     // últimos de la lista nunca se registraban. Cada anunciante escribe solo en
     // su propia fila, así que se procesan de a varios.
-    await forEachConcurrently(plan.targets, SPEND_SYNC_CONCURRENCY, async (target) => {
+    const targets = onlyAdvertiserIds.size
+      ? plan.targets.filter((target) => onlyAdvertiserIds.has(target.advertiserId))
+      : rotate(plan.targets);
+    const notStarted = await forEachConcurrently(targets, SPEND_SYNC_CONCURRENCY, deadlineMs, async (target) => {
       try {
         const { token } = await resolveTikTokFinanceAccessToken(target.organizationId);
         const spend = await syncTikTokAdvertiserSpend({
@@ -290,6 +321,10 @@ async function runSync(request: Request) {
         });
       }
     });
+    pendingAdvertiserIds = notStarted.map((target) => target.advertiserId);
+    if (pendingAdvertiserIds.length) {
+      console.warn("[tiktok-spend] sin tiempo para todos", { pending: pendingAdvertiserIds.length });
+    }
   } catch (planError) {
     // Sin la lista de clientes no se sabe qué filas son espejos: el camino
     // OAuth se corta abajo para no registrar gasto en ellas.
@@ -328,7 +363,9 @@ async function runSync(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  for (const connection of data ?? []) {
+  // Al retomar anunciantes de clientes o sin tiempo, el camino OAuth espera a la próxima corrida.
+  const connections = onlyAdvertiserIds.size || Date.now() >= deadlineMs ? [] : (data ?? []);
+  for (const connection of connections) {
     try {
       const result = await importTikTokAdvertiserAccounts({
         organizationId: connection.organization_id,
@@ -394,6 +431,8 @@ async function runSync(request: Request) {
     // revisar. Se recalcula en cada corrida para los días del rango.
     uncoveredCents,
     uncovered,
+    // Anunciantes que no alcanzaron en esta corrida (ver SPEND_SYNC_BUDGET_MS).
+    pendingAdvertiserIds,
     skipped,
     spendResults,
     failures,

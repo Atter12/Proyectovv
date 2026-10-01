@@ -41,37 +41,49 @@ export async function GET(request: Request) {
     .eq("action", AUDIT_ACTION)
     .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle<{ metadata: { end_date?: string } | null }>();
+    .maybeSingle<{
+      metadata: { start_date?: string; end_date?: string; pending_advertiser_ids?: string[] } | null;
+    }>();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // El sync normal ya cubre ayer y hoy.
-  const lastDay = shiftYmd(todayYmdInTz("America/Lima"), -2);
-  const startDate = last?.metadata?.end_date ? shiftYmd(last.metadata.end_date, 1) : BACKFILL_FROM;
-  if (startDate > lastDay) {
-    return NextResponse.json({ ok: true, done: true, through: last?.metadata?.end_date ?? null });
+  // Si la corrida anterior no alcanzó a todos, se retoman esos en el mismo rango.
+  const resume = last?.metadata?.pending_advertiser_ids ?? [];
+  let startDate: string;
+  let endDate: string;
+  if (resume.length && last?.metadata?.start_date && last.metadata.end_date) {
+    startDate = last.metadata.start_date;
+    endDate = last.metadata.end_date;
+  } else {
+    // El sync normal ya cubre ayer y hoy.
+    const lastDay = shiftYmd(todayYmdInTz("America/Lima"), -2);
+    startDate = last?.metadata?.end_date ? shiftYmd(last.metadata.end_date, 1) : BACKFILL_FROM;
+    if (startDate > lastDay) {
+      return NextResponse.json({ ok: true, done: true, through: last?.metadata?.end_date ?? null });
+    }
+    const chunkEnd = shiftYmd(startDate, CHUNK_DAYS - 1);
+    endDate = chunkEnd < lastDay ? chunkEnd : lastDay;
   }
-  const chunkEnd = shiftYmd(startDate, CHUNK_DAYS - 1);
-  const endDate = chunkEnd < lastDay ? chunkEnd : lastDay;
 
+  const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  if (resume.length) query.set("advertiser_ids", resume.join(","));
   const response = await runSpendSync(
-    new Request(
-      `${new URL(request.url).origin}/api/jobs/tiktok/sync?start_date=${startDate}&end_date=${endDate}`,
-      { headers: { authorization: `Bearer ${serverEnv.cronSecret || serverEnv.internalJobSecret}` } },
-    ),
+    new Request(`${new URL(request.url).origin}/api/jobs/tiktok/sync?${query}`, {
+      headers: { authorization: `Bearer ${serverEnv.cronSecret || serverEnv.internalJobSecret}` },
+    }),
   );
   const result = (await response.json()) as {
-    ok?: boolean;
     recordedDays?: number;
     recordedCents?: number;
     uncoveredCents?: number;
     uncovered?: unknown[];
+    pendingAdvertiserIds?: string[];
     skipped?: unknown[];
     failures?: Array<{ organizationId: string; error: string }>;
     error?: string;
   };
 
   const failures = result.failures ?? [];
-  // Si falló casi todo (token, TikTok caído) no se avanza: se reintenta la misma semana.
+  // Si falló casi todo (token, TikTok caído) no se registra avance: se reintenta igual.
   const advanced = response.ok && failures.length < 20;
   if (advanced) {
     await admin.from("audit_logs").insert({
@@ -81,6 +93,8 @@ export async function GET(request: Request) {
       metadata: {
         start_date: startDate,
         end_date: endDate,
+        resumed: resume.length,
+        pending_advertiser_ids: result.pendingAdvertiserIds ?? [],
         recorded_days: result.recordedDays ?? 0,
         recorded_cents: result.recordedCents ?? 0,
         uncovered_cents: result.uncoveredCents ?? 0,
@@ -90,7 +104,7 @@ export async function GET(request: Request) {
       },
     });
   } else {
-    console.error("[spend-backfill] semana no avanzada", {
+    console.error("[spend-backfill] rango no avanzado", {
       startDate,
       endDate,
       status: response.status,
@@ -102,6 +116,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: advanced,
     range: { startDate, endDate },
+    resumed: resume.length,
+    pending: result.pendingAdvertiserIds?.length ?? 0,
     recordedCents: result.recordedCents ?? 0,
     uncoveredCents: result.uncoveredCents ?? 0,
     failures: failures.length,

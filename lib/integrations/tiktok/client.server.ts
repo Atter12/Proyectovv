@@ -302,6 +302,8 @@ export async function getTikTokDailySpend(input: {
   const response = await fetch(url, {
     headers: { "Access-Token": accessToken },
     cache: "no-store",
+    // Sin tope, una respuesta colgada frena todo el job de gasto.
+    signal: AbortSignal.timeout(20_000),
   });
   const json = (await response.json()) as TikTokApiResponse<TikTokReportData>;
   if (!response.ok || json.code !== 0 || !json.data) {
