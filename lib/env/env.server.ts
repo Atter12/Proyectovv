@@ -128,14 +128,14 @@ export const serverEnv = {
   ),
 
   /**
-   * Fallback TC USD→PEN (1 USD = X PEN) si SBS/BCRP falla o FX_RATE_SOURCE=manual.
-   * Se congela en el intent al cotizar.
+   * TC USD→PEN fijo (1 USD = X PEN) que define gerencia. Se congela en el
+   * intent al cotizar. Con FX_RATE_SOURCE=sbs es solo el respaldo si BCRP falla.
    */
   holisticUsdPenRate: Number.parseFloat(process.env.HOLISTIC_USD_PEN_RATE ?? "3.48"),
-  /** sbs = serie BCRP SBS venta; manual = solo env. */
-  fxRateSource: (process.env.FX_RATE_SOURCE ?? "sbs").trim().toLowerCase() === "manual"
-    ? ("manual" as const)
-    : ("sbs" as const),
+  /** manual (por defecto) = TC fijo de HOLISTIC_USD_PEN_RATE; sbs = serie BCRP SBS venta. */
+  fxRateSource: (process.env.FX_RATE_SOURCE ?? "manual").trim().toLowerCase() === "sbs"
+    ? ("sbs" as const)
+    : ("manual" as const),
   /** Sumar a SBS venta (ej. 0.02) para margen; default 0. */
   holisticUsdPenSpread: Number.parseFloat(process.env.HOLISTIC_USD_PEN_SPREAD ?? "0"),
   /** Rechazar TC fuera de [min,max] absoluto. */
@@ -194,7 +194,6 @@ export const serverEnv = {
       "bcp.com.pe",
       "binance.com",
       "mail.binance.com",
-      "noreply@binance",
     ];
   })(),
   /** Ventana que mira cada corrida del cron; holgada frente a su intervalo. */

@@ -75,14 +75,25 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-function senderAllowed(fromText: string): boolean {
+/**
+ * Compara contra la dirección real del remitente, no contra el texto visible:
+ * "notificacionesbcp.com.pe <otro@gmail.com>" ya no pasa. Un filtro con "@"
+ * exige ese buzón exacto; uno sin "@" exige ese dominio o un subdominio.
+ */
+function senderAllowed(fromAddress: string): boolean {
   const filters = [
     ...serverEnv.yapeMailFromFilter,
     ...serverEnv.manualMailFromFilter,
   ];
   if (filters.length === 0) return true;
-  const normalized = fromText.toLowerCase();
-  return filters.some((allowed) => normalized.includes(allowed));
+  const address = fromAddress.trim().toLowerCase();
+  const domain = address.split("@")[1] ?? "";
+  if (!domain) return false;
+  return filters.some((allowed) =>
+    allowed.includes("@")
+      ? address === allowed
+      : domain === allowed || domain.endsWith(`.${allowed}`),
+  );
 }
 
 /** Dominios que firman los avisos reales de BCP, Yape y Binance. */
@@ -104,8 +115,9 @@ function isBankDomain(domain: string): boolean {
  * banco y esa firma coincide con el remitente. Sin esto, un correo desde
  * cualquier dominio con "viabcp.com" en el nombre visible pasaba el filtro.
  *
- * BANK_MAIL_DKIM_MODE=enforce descarta los que no pasan (quedan para revisión
- * del gerente). Por defecto "observe": solo registra el resultado.
+ * Por defecto descarta los que no pasan (quedan para revisión del gerente):
+ * desde el 30/09/2026 todos los avisos reales del BCP pasaron la firma.
+ * BANK_MAIL_DKIM_MODE=observe solo registra el resultado.
  */
 async function verifyBankSignature(
   source: Buffer,
@@ -132,9 +144,9 @@ async function verifyBankSignature(
 }
 
 function bankDkimMode(): "observe" | "enforce" {
-  return String(process.env.BANK_MAIL_DKIM_MODE ?? "").trim().toLowerCase() === "enforce"
-    ? "enforce"
-    : "observe";
+  return String(process.env.BANK_MAIL_DKIM_MODE ?? "").trim().toLowerCase() === "observe"
+    ? "observe"
+    : "enforce";
 }
 
 type MailRoute = "yape" | "manual_bank" | "skip";
@@ -242,8 +254,9 @@ export async function pollYapeMailbox(): Promise<MailboxPollResult> {
         // cast, TypeScript resuelve la version que no devuelve el correo.
         const parsed = (await simpleParser(message.source)) as ParsedMail;
         const fromText = parsed.from?.text ?? "";
+        const fromAddress = parsed.from?.value?.[0]?.address ?? "";
 
-        if (!senderAllowed(fromText)) {
+        if (!senderAllowed(fromAddress)) {
           result.skipped += 1;
           continue;
         }
@@ -261,10 +274,7 @@ export async function pollYapeMailbox(): Promise<MailboxPollResult> {
           continue;
         }
 
-        const signature = await verifyBankSignature(
-          message.source,
-          parsed.from?.value?.[0]?.address ?? "",
-        );
+        const signature = await verifyBankSignature(message.source, fromAddress);
         const dkimMode = bankDkimMode();
         console.info("[yape-mailbox] dkim", {
           uid: message.uid,

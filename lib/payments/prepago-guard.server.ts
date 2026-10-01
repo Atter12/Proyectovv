@@ -44,13 +44,14 @@ const REALERT_AFTER_HOURS = 55 / 60;
  */
 const MAX_CORRECTIONS_PER_RUN = 10;
 /**
- * Clientes que el guardián avisa pero no corrige, mientras el equipo los
- * resuelve a mano. Se suman los de PREPAGO_GUARD_EXCLUDE_HECOM_IDS (coma).
+ * Clientes con crédito confirmado por gerencia: pueden gastar sin saldo
+ * asignado, así que el guardián no los revisa. Se suman los de
+ * PREPAGO_GUARD_CREDIT_HECOM_IDS (coma).
  */
-const EXCLUDED_FROM_CORRECTION = new Set<string>([
-  // Julio Lirio: presupuesto puesto a mano en TikTok; lo revisa el equipo (30/09/2026).
+const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
+  // Julio Lirio: crédito confirmado (01/10/2026).
   "d6121f78-5eb3-42e3-b8d8-e3727c434f2c",
-  ...String(process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? "")
+  ...`${process.env.PREPAGO_GUARD_CREDIT_HECOM_IDS ?? ""},${process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? ""}`
     .split(",")
     .map((id) => id.trim().toLowerCase())
     .filter(Boolean),
@@ -98,7 +99,6 @@ export type PrepagoGuardIncident = {
       | "failed"
       | "skipped_alert_mode"
       | "skipped_circuit_breaker"
-      | "skipped_excluded"
       /** Al releer en vivo ya estaba en orden: no se toca ni se avisa. */
       | "not_needed";
     previousBudgetUsd?: number;
@@ -206,8 +206,10 @@ export async function runPrepagoGuard(
 
   const adsClienteIds = await loadAdsClienteIds();
 
-  // Cuenta TikTok → cliente Hecom y mejor saldo de cartera (mismo criterio que
-  // el script de tope: la fila con más saldo gana).
+  // Cuenta TikTok → cliente Hecom y su saldo asignado. Una misma cuenta tiene
+  // filas en varias organizaciones (la del cliente y las del staff) y desde
+  // cualquiera se puede asignar: TikTok tiene un solo presupuesto que alimentan
+  // todas, así que el saldo que lo respalda es la suma de todas las filas.
   const adAccounts = await fetchAllRows<{
     id: string;
     organization_id: string;
@@ -228,35 +230,41 @@ export async function runPrepagoGuard(
     balances.map((b) => [b.ad_account_id, Math.max(0, (Number(b.available_balance_cents) || 0) / 100)]),
   );
 
+  const rowsByAdvertiser = new Map<string, typeof adAccounts>();
+  for (const a of adAccounts) {
+    const adv = String(a.external_account_id ?? "").trim();
+    if (!adv) continue;
+    const list = rowsByAdvertiser.get(adv) ?? [];
+    list.push(a);
+    rowsByAdvertiser.set(adv, list);
+  }
+
   const byAdvertiser = new Map<
     string,
     {
       ledgerUsd: number;
-      hecomId: string | null;
-      clienteName: string | null;
-      organizationId: string | null;
+      hecomId: string;
+      clienteName: string;
+      organizationId: string;
       adAccountIds: string[];
     }
   >();
-  for (const a of adAccounts) {
-    const adv = String(a.external_account_id ?? "").trim();
-    if (!adv) continue;
-    const entry = byAdvertiser.get(adv) ?? {
-      ledgerUsd: 0,
-      hecomId: null,
-      clienteName: null,
-      organizationId: null,
-      adAccountIds: [],
-    };
-    entry.adAccountIds.push(a.id);
-    const rowLedger = balanceByAdAccount.get(a.id) ?? 0;
-    if (rowLedger >= entry.ledgerUsd || !entry.organizationId) entry.organizationId = a.organization_id;
-    entry.ledgerUsd = Math.max(entry.ledgerUsd, rowLedger);
-    if (a.hecom_cliente_id) {
-      entry.hecomId = String(a.hecom_cliente_id);
-      entry.clienteName = a.hecom_cliente_name || entry.clienteName || a.name;
-    }
-    byAdvertiser.set(adv, entry);
+  for (const [adv, rows] of rowsByAdvertiser) {
+    const tagged = rows.find((a) => a.hecom_cliente_id);
+    if (!tagged) continue;
+    const hecomId = String(tagged.hecom_cliente_id);
+    if (!adsClienteIds.has(hecomId)) continue;
+    if (CONFIRMED_CREDIT_CLIENTES.has(hecomId.toLowerCase())) continue;
+    const withBalance = rows.map((a) => ({ a, usd: balanceByAdAccount.get(a.id) ?? 0 }));
+    // Para corregir en TikTok se usa la organización de la fila con más saldo.
+    const main = withBalance.reduce((best, x) => (x.usd > best.usd ? x : best), withBalance[0]!);
+    byAdvertiser.set(adv, {
+      ledgerUsd: round2(withBalance.reduce((sum, x) => sum + x.usd, 0)),
+      hecomId,
+      clienteName: tagged.hecom_cliente_name || tagged.name || hecomId,
+      organizationId: main.a.organization_id,
+      adAccountIds: rows.map((a) => a.id),
+    });
   }
 
   const tiktokRows: TikTokBudgetRow[] = [];
@@ -270,8 +278,8 @@ export async function runPrepagoGuard(
 
   for (const row of tiktokRows) {
     const holistic = byAdvertiser.get(row.advertiserId);
-    if (!holistic?.hecomId || !adsClienteIds.has(holistic.hecomId)) continue;
-    const clienteName = holistic.clienteName ?? holistic.hecomId;
+    if (!holistic) continue;
+    const clienteName = holistic.clienteName;
     clientesSeen.set(holistic.hecomId, clienteName);
 
     const unlimited = row.mode === "UNLIMITED";
@@ -293,7 +301,7 @@ export async function runPrepagoGuard(
       targetBudgetUsd: round2(row.cost + holistic.ledgerUsd),
       costUsd: round2(row.cost),
       bcId: HECOM_BM_BUCKET_TO_BC[row.bm],
-      organizationId: holistic.organizationId ?? undefined,
+      organizationId: holistic.organizationId,
       adAccountIds: holistic.adAccountIds,
     });
   }
@@ -350,7 +358,7 @@ export async function runPrepagoGuard(
   };
 }
 
-/** Saldo asignado actual del advertiser (mismo criterio que la detección: la fila con más). */
+/** Saldo asignado actual del advertiser: suma de todas sus filas (mismo criterio que la detección). */
 async function readLiveLedgerUsd(adAccountIds: string[]): Promise<number> {
   if (adAccountIds.length === 0) return 0;
   const { data, error } = await createAdminClient()
@@ -358,7 +366,10 @@ async function readLiveLedgerUsd(adAccountIds: string[]): Promise<number> {
     .select("available_balance_cents")
     .in("ad_account_id", adAccountIds);
   if (error) throw new Error(`Saldo asignado: ${error.message}`);
-  return Math.max(0, ...(data ?? []).map((row) => (Number(row.available_balance_cents) || 0) / 100));
+  return (data ?? []).reduce(
+    (sum, row) => sum + Math.max(0, (Number(row.available_balance_cents) || 0) / 100),
+    0,
+  );
 }
 
 /**
@@ -377,11 +388,7 @@ async function correctIncidents(
     for (const i of budget) i.correction = { status: "skipped_alert_mode" };
     return;
   }
-  const toCorrect = budget.filter((i) => {
-    if (!EXCLUDED_FROM_CORRECTION.has(i.hecomClienteId.toLowerCase())) return true;
-    i.correction = { status: "skipped_excluded" };
-    return false;
-  });
+  const toCorrect = budget;
 
   if (toCorrect.length > MAX_CORRECTIONS_PER_RUN) {
     for (const i of toCorrect) i.correction = { status: "skipped_circuit_breaker" };
@@ -571,8 +578,6 @@ function actionLabel(i: PrepagoGuardIncident): { text: string; color: string } {
       return { text: "No se pudo corregir", color: "#8f1d12" };
     case "skipped_circuit_breaker":
       return { text: "Sin corregir (freno)", color: "#8f1d12" };
-    case "skipped_excluded":
-      return { text: "Excluido: lo corrige el equipo", color: "#8f1d12" };
     default:
       return { text: `Debería poder gastar ${usd(i.ledgerUsd)}`, color: "#57524b" };
   }
@@ -607,9 +612,7 @@ function buildGuardEmail(
       ? "Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, ajusta el presupuesto en TikTok al valor sugerido o asigna saldo desde la cartera."
       : breaker
         ? `Aparecieron más de ${MAX_CORRECTIONS_PER_RUN} cuentas a la vez, así que <b>no se corrigió ninguna</b> por seguridad: puede ser una falla al leer los saldos. Revisen antes de ajustar.`
-        : pending.some((i) => i.correction?.status === "skipped_excluded")
-          ? "Hay clientes excluidos de la corrección automática porque el equipo los está resolviendo a mano. Mientras tanto siguen pudiendo gastar de más; este aviso se repite cada hora hasta que se corrija."
-          : pending.length
+        : pending.length
           ? "Lo que no se pudo corregir sigue pudiendo gastar de más. Revísenlo en TikTok."
           : "El presupuesto en TikTok se bajó a lo ya gastado más el saldo asignado desde la cartera. Si el cliente necesita más, debe asignar saldo desde su cartera.";
 
