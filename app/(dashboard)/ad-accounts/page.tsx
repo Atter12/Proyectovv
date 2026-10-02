@@ -12,7 +12,7 @@ import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.serve
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import { getSearchParam } from "@/lib/search-params";
 import { resolveTikTokSelfServeAccountLimit } from "@/lib/integrations/tiktok/bc-create-profiles";
-import { countHecomTikTokAccountsForCliente } from "@/lib/hecom/link-tiktok-cuenta.server";
+import { countHecomTikTokAccountsForQuota } from "@/lib/hecom/link-tiktok-cuenta.server";
 import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
@@ -71,7 +71,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   // Cupo self-serve = filas Hecom (igual que create API), no solo las del overview.
   let accountCount = data.summary.totalAccounts;
   try {
-    accountCount = await countHecomTikTokAccountsForCliente(selected.id);
+    accountCount = await countHecomTikTokAccountsForQuota(selected.id);
   } catch {
     accountCount = data.summary.totalAccounts;
   }

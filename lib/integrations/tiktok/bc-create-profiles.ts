@@ -106,13 +106,34 @@ const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   // Jesus Fuentes — 2026-09-16, autorizado por gerencia: 2 cuentas más.
   "529cdfbf-8b74-44a6-afec-5212b6687a6e": 4,
   // Jesús Callupe — 2026-09-23: ya tiene 5 mapeadas; +2 → cupo 7.
+  // 2026-10-01, gerencia: +2 más → cupo 9 (y sus baneadas no cuentan, abajo).
   // BM300 mientras BM10 sigue sin cupo TikTok (max advertisers).
-  "6425e2d9-bb9b-4176-a126-ae889c1c8543": 7,
+  "6425e2d9-bb9b-4176-a126-ae889c1c8543": 9,
   // Abel Mogollon — 2026-09-23: ya tiene 6 mapeadas; +3 → cupo 9 (BM300).
   "673ac838-ce18-4074-a7a7-63407c72c80a": 9,
   // Fritzner Duran — 2026-09-29, autorizado por gerencia: ya tiene 3 mapeadas; +3 → cupo 6.
   "97780792-7dd8-43e1-9da2-42599e08e60e": 6,
 };
+
+/**
+ * Cuentas que no ocupan cupo self-serve, por pedido de gerencia.
+ * Solo afecta el conteo del cupo; el correlativo del nombre sigue contándolas.
+ */
+const SELF_SERVE_UNCOUNTED_ADVERTISERS: Record<string, string[]> = {
+  // Jesús Callupe — 2026-10-01: suspendidas por TikTok (STATUS_LIMIT).
+  "6425e2d9-bb9b-4176-a126-ae889c1c8543": [
+    "7675779052226789383", // 11.0 USD - Agencia (BM10)
+    "7663364786989744136", // 200.0 USD (BM200)
+  ],
+};
+
+/** Advertiser ids del cliente que no cuentan para su cupo self-serve. */
+export function resolveTikTokSelfServeUncountedAdvertisers(
+  hecomClienteId: string | null | undefined,
+): string[] {
+  const id = String(hecomClienteId ?? "").trim();
+  return id ? SELF_SERVE_UNCOUNTED_ADVERTISERS[id] ?? [] : [];
+}
 
 /**
  * Forzar BM de create self-serve por cliente (ops).

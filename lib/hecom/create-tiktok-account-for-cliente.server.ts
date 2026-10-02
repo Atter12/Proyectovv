@@ -2,6 +2,7 @@ import "server-only";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import {
   countHecomTikTokAccountsForCliente,
+  countHecomTikTokAccountsForQuota,
   linkTikTokCuentaToHecomCliente,
 } from "@/lib/hecom/link-tiktok-cuenta.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
@@ -55,7 +56,7 @@ export async function createTikTokAccountForCliente(input: {
   if (!cliente) throw new Error("Cliente Hecom no encontrado.");
 
   const accountLimit = resolveTikTokSelfServeAccountLimit(clienteId);
-  const existingCount = await countHecomTikTokAccountsForCliente(clienteId);
+  const existingCount = await countHecomTikTokAccountsForQuota(clienteId);
   if (existingCount >= accountLimit) {
     const prefill =
       `Hola Holistic, soy ${cliente.name}. Ya tengo ${existingCount} cuentas TikTok en Ads Holistic y necesito crear una más (límite self-serve: ${accountLimit}).`;

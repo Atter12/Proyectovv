@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createTikTokAccountForCliente } from "@/lib/hecom/create-tiktok-account-for-cliente.server";
-import { countHecomTikTokAccountsForCliente } from "@/lib/hecom/link-tiktok-cuenta.server";
+import { countHecomTikTokAccountsForQuota } from "@/lib/hecom/link-tiktok-cuenta.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   resolveTikTokCreateBmForCliente,
@@ -35,7 +35,7 @@ export async function GET() {
       );
     }
 
-    const used = await countHecomTikTokAccountsForCliente(selected.id);
+    const used = await countHecomTikTokAccountsForQuota(selected.id);
     const limit = resolveTikTokSelfServeAccountLimit(selected.id);
     const remaining = Math.max(0, limit - used);
 

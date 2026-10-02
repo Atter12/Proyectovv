@@ -1,5 +1,6 @@
 import "server-only";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
+import { resolveTikTokSelfServeUncountedAdvertisers } from "@/lib/integrations/tiktok/bc-create-profiles";
 
 export type LinkTikTokCuentaInput = {
   clientId: string;
@@ -39,6 +40,25 @@ export async function countHecomTikTokAccountsForCliente(
     throw new Error("No se pudo leer las cuentas TikTok del cliente en Hecom.");
   }
   return count ?? 0;
+}
+
+/** Cuentas que ocupan cupo self-serve: todas menos las excluidas por gerencia. */
+export async function countHecomTikTokAccountsForQuota(clientId: string): Promise<number> {
+  const id = clientId.trim();
+  if (!id) return 0;
+  const uncounted = resolveTikTokSelfServeUncountedAdvertisers(id);
+  if (uncounted.length === 0) return countHecomTikTokAccountsForCliente(id);
+  const hecom = createHecomAdminClient();
+  const { data, error } = await hecom
+    .from("cliente_tiktok_cuentas")
+    .select("advertiser_id")
+    .eq("client_id", id);
+  if (error) {
+    console.warn("[hecom] count_tiktok_cuentas_quota", { error: error.message });
+    throw new Error("No se pudo leer las cuentas TikTok del cliente en Hecom.");
+  }
+  const skip = new Set(uncounted);
+  return (data ?? []).filter((row) => !skip.has(String(row.advertiser_id ?? "").trim())).length;
 }
 
 /**
