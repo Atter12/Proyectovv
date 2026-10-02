@@ -5,6 +5,7 @@ import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPa
 import { CLIENT_COBROS_FROM_MONTH } from "@/features/clientes/components/ClienteScopedCobros";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
+import { resolvePublicDebtLinkMonth } from "@/lib/hecom/debt-link-month";
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { serverEnv } from "@/lib/env/env.server";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
@@ -29,9 +30,11 @@ function monthOf(value: string | null | undefined): string | null {
 
 function publicLinkMonth(value: string | string[] | undefined): string {
   const now = todayYmdInTz("America/Lima").slice(0, 7);
-  const raw = monthFromQuery(value);
-  if (raw && raw >= CLIENT_COBROS_FROM_MONTH && raw <= now) return raw;
-  return now;
+  return resolvePublicDebtLinkMonth(
+    monthFromQuery(value),
+    now,
+    CLIENT_COBROS_FROM_MONTH,
+  );
 }
 
 export default async function LoPagadoPublicPage({

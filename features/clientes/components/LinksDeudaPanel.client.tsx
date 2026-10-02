@@ -198,8 +198,8 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
               />
               <div className="relative">
                 <p className="text-[12px] text-white/60">
-                  Deuda, gastos y pagos del mes en curso. Puede pagar o subir un
-                  comprobante.
+                  Abre en el mes ya cerrado (en octubre, setiembre). Arriba puede
+                  pasar a otro mes, pagar o subir un comprobante.
                 </p>
                 <p className="mt-3 break-all rounded-2xl bg-white/[0.06] px-4 py-3 font-mono text-[12px] leading-5 text-white/90 ring-1 ring-white/10">
                   {selected.url}
