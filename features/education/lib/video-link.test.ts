@@ -30,9 +30,24 @@ test("acepta un archivo de Drive y lo convierte a preview", () => {
   );
 });
 
+test("acepta el enlace de la barra con varias cuentas de Google", () => {
+  assert.equal(
+    canonicalLessonVideoUrl(`https://drive.google.com/file/u/0/d/${DRIVE_ID}/view?usp=sharing`),
+    `https://drive.google.com/file/d/${DRIVE_ID}/view`,
+  );
+  assert.equal(
+    lessonEmbedUrl(`https://docs.google.com/file/d/${DRIVE_ID}/preview`),
+    `https://drive.google.com/file/d/${DRIVE_ID}/preview`,
+  );
+});
+
 test("rechaza carpetas y otros dominios", () => {
   assert.equal(
     canonicalLessonVideoUrl("https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz"),
+    null,
+  );
+  assert.equal(
+    canonicalLessonVideoUrl(`https://docs.google.com/document/d/${DRIVE_ID}/edit`),
     null,
   );
   assert.equal(canonicalLessonVideoUrl("https://example.com/file/d/abcd"), null);

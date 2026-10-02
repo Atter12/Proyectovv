@@ -80,13 +80,28 @@ function driveFileId(raw: string): string | null {
   }
 
   if (url.protocol !== "https:") return null;
-  if (url.hostname.toLowerCase() !== "drive.google.com") return null;
-
+  const host = url.hostname.toLowerCase();
   const parts = url.pathname.split("/").filter(Boolean);
   if (parts.includes("folders")) return null;
-  if (parts[0] === "file" && parts[1] === "d") return driveId(parts[2]);
-  if (parts[0] === "open" || parts[0] === "uc") return driveId(url.searchParams.get("id"));
+
+  if (host === "drive.google.com") {
+    if (parts[0] === "file") return driveId(fileIdAfterMarker(parts));
+    if (parts[0] === "open" || parts[0] === "uc") return driveId(url.searchParams.get("id"));
+    return null;
+  }
+
+  if (host === "docs.google.com" && (parts[0] === "file" || parts[0] === "uc")) {
+    if (parts[0] === "uc") return driveId(url.searchParams.get("id"));
+    return driveId(fileIdAfterMarker(parts));
+  }
+
   return null;
+}
+
+function fileIdAfterMarker(parts: string[]): string | null {
+  const marker = parts.indexOf("d");
+  if (marker < 0) return null;
+  return parts[marker + 1] ?? null;
 }
 
 function driveId(value: string | undefined | null): string | null {

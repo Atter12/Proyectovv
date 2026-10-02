@@ -32,7 +32,7 @@ const contentSecurityPolicy = [
     ...clerkCspHosts.connect,
   ].join(" "),
   [
-    "frame-src 'self' https://www.loom.com https://loom.com https://drive.google.com",
+    "frame-src 'self' https://www.loom.com https://loom.com https://drive.google.com https://docs.google.com https://accounts.google.com",
     ...clerkCspHosts.frames,
   ].join(" "),
   "frame-ancestors 'none'",

@@ -68,6 +68,15 @@ export function EducationPlayerDialog({
               </h2>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {ready && !lesson.videoUrl ? (
+                <button
+                  type="button"
+                  onClick={() => void toggleFullscreen()}
+                  className="inline-flex h-10 items-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white"
+                >
+                  {fullscreen ? t("exitFullscreen") : t("fullscreen")}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={onClose}
@@ -100,15 +109,6 @@ export function EducationPlayerDialog({
                     allowFullScreen
                     referrerPolicy="strict-origin-when-cross-origin"
                   />
-                )}
-                {lesson.videoUrl ? null : (
-                  <button
-                    type="button"
-                    onClick={() => void toggleFullscreen()}
-                    className="absolute bottom-3 right-3 inline-flex h-10 items-center rounded-xl bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white shadow-lg"
-                  >
-                    {fullscreen ? t("exitFullscreen") : t("fullscreen")}
-                  </button>
                 )}
               </div>
             </div>
