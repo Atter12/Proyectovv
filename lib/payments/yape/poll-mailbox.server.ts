@@ -199,7 +199,9 @@ export async function pollYapeMailboxThrottled(): Promise<
   ultimaCorrida = ahora;
 
   try {
-    return await pollYapeMailbox();
+    // Quien llama es una subida de voucher o el chat de recarga: no puede
+    // esperar a la casilla más que unos segundos. Si no alcanza, sigue el cron.
+    return await pollYapeMailbox({ deadlineMs: ON_DEMAND_DEADLINE_MS });
   } catch (error) {
     // Nunca debe romper la consulta del cliente: si la casilla falla, el cron
     // reintenta y el cliente sigue viendo su estado.
@@ -208,7 +210,15 @@ export async function pollYapeMailboxThrottled(): Promise<
   }
 }
 
-export async function pollYapeMailbox(): Promise<MailboxPollResult> {
+/** Tope de la revisión a demanda (subida de voucher, chat de recarga). */
+const ON_DEMAND_DEADLINE_MS = 10_000;
+
+export async function pollYapeMailbox(options?: {
+  /** Corta la corrida y cierra IMAP pasado este tiempo. */
+  deadlineMs?: number;
+  /** Pisa YAPE_MAIL_LOOKBACK_MIN, para ponerse al día tras una caída. */
+  lookbackMinutes?: number;
+}): Promise<MailboxPollResult> {
   const result: MailboxPollResult = {
     enabled: false,
     scanned: 0,
@@ -229,105 +239,155 @@ export async function pollYapeMailbox(): Promise<MailboxPollResult> {
     secure: true,
     auth: { user: serverEnv.yapeMailUser, pass: serverEnv.yapeMailPassword },
     logger: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
   });
 
-  await client.connect();
-  const lock = await client.getMailboxLock(serverEnv.yapeMailMailbox);
+  // Pasado el tope se cierra la conexión: lo que esté esperando a IMAP falla
+  // y la corrida termina en vez de colgar la función hasta el timeout de Vercel.
+  const deadline = options?.deadlineMs
+    ? setTimeout(() => {
+        result.errors.push(`Corte por tiempo (${options.deadlineMs} ms).`);
+        client.close();
+      }, options.deadlineMs)
+    : null;
 
   try {
-    const since = new Date(
-      Date.now() - serverEnv.yapeMailLookbackMinutes * 60_000,
-    );
+    await client.connect();
+    const lock = await client.getMailboxLock(serverEnv.yapeMailMailbox);
 
-    for await (const message of client.fetch(
-      { since },
-      { uid: true, source: true, internalDate: true },
-    )) {
-      result.scanned += 1;
-
-      try {
-        if (!message.source) {
-          result.skipped += 1;
-          continue;
-        }
-        // Los tipos de mailparser declaran un overload con callback; sin el
-        // cast, TypeScript resuelve la version que no devuelve el correo.
-        const parsed = (await simpleParser(message.source)) as ParsedMail;
-        const fromText = parsed.from?.text ?? "";
-        const fromAddress = parsed.from?.value?.[0]?.address ?? "";
-
-        if (!senderAllowed(fromAddress)) {
-          result.skipped += 1;
-          continue;
-        }
-
-        const body = parsed.html
-          ? htmlToText(parsed.html)
-          : (parsed.text?.trim() ?? "");
-        const rawText = `${parsed.subject ?? ""}\n${body}`;
-        const receivedAt = new Date(
-          parsed.date ?? message.internalDate ?? Date.now(),
-        ).toISOString();
-        const route = classifyMailRoute(rawText);
-        if (route === "skip") {
-          result.skipped += 1;
-          continue;
-        }
-
-        const signature = await verifyBankSignature(message.source, fromAddress);
-        const dkimMode = bankDkimMode();
-        console.info("[yape-mailbox] dkim", {
-          uid: message.uid,
-          from: fromText,
-          pass: signature.pass,
-          signingDomains: signature.signingDomains,
-          mode: dkimMode,
-        });
-        if (dkimMode === "enforce" && !signature.pass) {
-          // Sin firma del banco no es prueba de pago: queda para el gerente.
-          result.skipped += 1;
-          continue;
-        }
-
-        const metadata = {
-          from: fromText,
-          subject: parsed.subject ?? null,
-          uid: message.uid,
-          dkim_pass: signature.pass,
-          dkim_signing_domains: signature.signingDomains,
-          dkim_mode: dkimMode,
-        };
-
-        const outcome =
-          route === "yape"
-            ? await ingestYapeNotification({
-                source: "email",
-                rawText,
-                receivedAt,
-                metadata,
-              })
-            : await ingestManualBankNotification({
-                source: "email",
-                rawText,
-                receivedAt,
-                metadata,
-              });
-
-        if (outcome.result === "matched") result.matched += 1;
-        else if (outcome.result === "unmatched") result.unmatched += 1;
-        else if (outcome.result === "ignored") result.ignored += 1;
-        else if (outcome.result === "duplicate") result.duplicates += 1;
-        else result.skipped += 1;
-      } catch (error) {
-        // Un correo raro no puede frenar el resto de la tanda.
-        const message_ = error instanceof Error ? error.message : String(error);
-        result.errors.push(message_.slice(0, 200));
-      }
+    try {
+      await scanMailbox(
+        client,
+        result,
+        options?.lookbackMinutes ?? serverEnv.yapeMailLookbackMinutes,
+      );
+    } finally {
+      lock.release();
+      await client.logout().catch(() => undefined);
     }
   } finally {
-    lock.release();
-    await client.logout().catch(() => undefined);
+    if (deadline) clearTimeout(deadline);
   }
 
   return result;
+}
+
+/**
+ * SEARCH SINCE de IMAP solo mira el día, no la hora: sin más filtro se bajaba
+ * cada correo del día completo (adjuntos incluidos) en cada corrida, y al
+ * juntarse correos la corrida pasaba los 60 s. Primero se leen sobres, se
+ * filtra por hora y remitente, y solo se baja el cuerpo de lo que queda.
+ */
+async function scanMailbox(
+  client: ImapFlow,
+  result: MailboxPollResult,
+  lookbackMinutes: number,
+): Promise<void> {
+  const since = new Date(Date.now() - lookbackMinutes * 60_000);
+
+  const uids: number[] = [];
+  for await (const head of client.fetch(
+    { since },
+    { uid: true, envelope: true, internalDate: true },
+  )) {
+    const receivedAt = head.internalDate ? new Date(head.internalDate) : null;
+    if (receivedAt && receivedAt < since) continue;
+    const fromAddress = head.envelope?.from?.[0]?.address ?? "";
+    if (!senderAllowed(fromAddress)) {
+      result.scanned += 1;
+      result.skipped += 1;
+      continue;
+    }
+    uids.push(head.uid);
+  }
+  if (uids.length === 0) return;
+
+  for await (const message of client.fetch(
+    uids.join(","),
+    { uid: true, source: true, internalDate: true },
+    { uid: true },
+  )) {
+    result.scanned += 1;
+
+    try {
+      if (!message.source) {
+        result.skipped += 1;
+        continue;
+      }
+      // Los tipos de mailparser declaran un overload con callback; sin el
+      // cast, TypeScript resuelve la version que no devuelve el correo.
+      const parsed = (await simpleParser(message.source)) as ParsedMail;
+      const fromText = parsed.from?.text ?? "";
+      const fromAddress = parsed.from?.value?.[0]?.address ?? "";
+
+      if (!senderAllowed(fromAddress)) {
+        result.skipped += 1;
+        continue;
+      }
+
+      const body = parsed.html
+        ? htmlToText(parsed.html)
+        : (parsed.text?.trim() ?? "");
+      const rawText = `${parsed.subject ?? ""}\n${body}`;
+      const receivedAt = new Date(
+        parsed.date ?? message.internalDate ?? Date.now(),
+      ).toISOString();
+      const route = classifyMailRoute(rawText);
+      if (route === "skip") {
+        result.skipped += 1;
+        continue;
+      }
+
+      const signature = await verifyBankSignature(message.source, fromAddress);
+      const dkimMode = bankDkimMode();
+      console.info("[yape-mailbox] dkim", {
+        uid: message.uid,
+        from: fromText,
+        pass: signature.pass,
+        signingDomains: signature.signingDomains,
+        mode: dkimMode,
+      });
+      if (dkimMode === "enforce" && !signature.pass) {
+        // Sin firma del banco no es prueba de pago: queda para el gerente.
+        result.skipped += 1;
+        continue;
+      }
+
+      const metadata = {
+        from: fromText,
+        subject: parsed.subject ?? null,
+        uid: message.uid,
+        dkim_pass: signature.pass,
+        dkim_signing_domains: signature.signingDomains,
+        dkim_mode: dkimMode,
+      };
+
+      const outcome =
+        route === "yape"
+          ? await ingestYapeNotification({
+              source: "email",
+              rawText,
+              receivedAt,
+              metadata,
+            })
+          : await ingestManualBankNotification({
+              source: "email",
+              rawText,
+              receivedAt,
+              metadata,
+            });
+
+      if (outcome.result === "matched") result.matched += 1;
+      else if (outcome.result === "unmatched") result.unmatched += 1;
+      else if (outcome.result === "ignored") result.ignored += 1;
+      else if (outcome.result === "duplicate") result.duplicates += 1;
+      else result.skipped += 1;
+    } catch (error) {
+      // Un correo raro no puede frenar el resto de la tanda.
+      const message_ = error instanceof Error ? error.message : String(error);
+      result.errors.push(message_.slice(0, 200));
+    }
+  }
 }

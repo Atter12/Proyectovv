@@ -29,7 +29,15 @@ async function run(request: Request) {
   }
 
   try {
-    const result = await pollYapeMailbox();
+    // ?lookbackMin=… solo para ponerse al día a mano tras una caída del cron;
+    // los correos ya ingeridos vuelven como duplicados, no acreditan dos veces.
+    const lookbackParam = Number(new URL(request.url).searchParams.get("lookbackMin"));
+    const lookbackMinutes =
+      Number.isInteger(lookbackParam) && lookbackParam > 0
+        ? Math.min(lookbackParam, 3 * 24 * 60)
+        : undefined;
+    // Margen bajo los 60 s de maxDuration para devolver el resumen igual.
+    const result = await pollYapeMailbox({ deadlineMs: 50_000, lookbackMinutes });
     if (!result.enabled) {
       return NextResponse.json({
         ok: true,
