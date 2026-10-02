@@ -4,14 +4,23 @@ import { isRecord } from "@/lib/records";
 /** Clientes Hecom bloqueados por staff — no recargar ni reactivar en sync. */
 const STAFF_BLOCKED_HECOM_CLIENTE_IDS = new Set([
   "db572ee9-e816-4ac3-88fc-8db3c969f447", // Kevin Hernandez
+  "b5541d6f-b1f7-4720-bf93-87c512263016", // Hernan Lora — 2026-10-02, sin saldo por pedido de gerencia
 ]);
 
-/** Advertisers TikTok bloqueados (BM10 Kevin). */
+/** Advertisers TikTok bloqueados (BM10 Kevin, Hernan Lora). */
 const STAFF_BLOCKED_ADVERTISER_IDS = new Set([
   "7675788689846353927",
   "7675788433108860946",
   "7675789143745675282",
   "7675788301218185234",
+  // Hernan Lora (BM30, BM200, BM300)
+  "7626390352800006151",
+  "7626391513676906503",
+  "7647225635513040916",
+  "7647225268356300820",
+  "7647225049560219668",
+  "7688736873191784469",
+  "7688737182290378773",
 ]);
 
 export function isStaffBlockedHecomCliente(clienteId: string | null | undefined): boolean {
