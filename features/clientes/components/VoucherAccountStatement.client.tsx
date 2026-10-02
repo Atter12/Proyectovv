@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
+import { getAdAccountFromCamp } from "@/lib/hecom/gasto-label";
 
 export type StatementGasto = {
   fecha: string | null;
@@ -238,6 +239,36 @@ export function VoucherAccountStatement({
     const rangeSaldo = round2(cobrado - cargo);
     const owed = round2(cargo - cobrado);
 
+    // Gasto del mes por cuenta ads (id de la plantilla camp); suma = Gastado + fee.
+    const accountMap = new Map<
+      string,
+      { key: string; name: string | null; advertiserId: string | null; bm: string | null; gasto: number; fee: number }
+    >();
+    for (const row of rangeSpend) {
+      const account = getAdAccountFromCamp(row.camp);
+      const key = account.advertiserId ?? account.advertiserName ?? "";
+      const entry = accountMap.get(key) ?? {
+        key,
+        name: account.advertiserName,
+        advertiserId: account.advertiserId,
+        bm: account.bm,
+        gasto: 0,
+        fee: 0,
+      };
+      entry.gasto += row.gasto;
+      entry.fee += row.fee;
+      accountMap.set(key, entry);
+    }
+    const byAccount = [...accountMap.values()]
+      .map((entry) => ({
+        ...entry,
+        gasto: round2(entry.gasto),
+        fee: round2(entry.fee),
+        cargo: round2(round2(entry.gasto) + round2(entry.fee)),
+      }))
+      .filter((entry) => entry.cargo > 0.004)
+      .sort((a, b) => b.cargo - a.cargo);
+
     const buckets = new Map<string, Bucket>();
 
     function ensure(fecha: string) {
@@ -321,6 +352,7 @@ export function VoucherAccountStatement({
       surcharge,
       rangeSaldo,
       owed,
+      byAccount,
       series,
       peakCargo,
       rangeSpend: [...rangeSpend].sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
@@ -472,6 +504,26 @@ export function VoucherAccountStatement({
           className="col-span-2 sm:col-span-2 lg:col-span-1"
         />
       </div>
+
+      {view.byAccount.length > 0 ? (
+        <AccountBreakdown
+          title={t("byAccountTitle")}
+          lead={t("byAccountLead")}
+          count={t("byAccountCount", { count: view.byAccount.length })}
+          totalLabel={t("byAccountTotal")}
+          total={moneyUsd(view.cargo)}
+          rows={view.byAccount.map((row) => ({
+            key: row.key,
+            name: row.name || t("byAccountUnknown"),
+            meta: [row.bm, row.advertiserId ? `ID …${row.advertiserId.slice(-6)}` : null]
+              .filter(Boolean)
+              .join(" · "),
+            amount: moneyUsd(row.cargo),
+            detail: t("byAccountFee", { spend: moneyUsd(row.gasto), fee: moneyUsd(row.fee) }),
+            share: view.cargo > 0.004 ? row.cargo / view.cargo : 0,
+          }))}
+        />
+      ) : null}
 
       {/* Chart */}
       <div className="overflow-hidden rounded-[22px] bg-white ring-1 ring-[#e8dfd4]">
@@ -763,6 +815,72 @@ function Kpi({
       {hint ? (
         <p className="mt-auto pt-3 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
       ) : null}
+    </div>
+  );
+}
+
+function AccountBreakdown({
+  title,
+  lead,
+  count,
+  totalLabel,
+  total,
+  rows,
+}: {
+  title: string;
+  lead: string;
+  count: string;
+  totalLabel: string;
+  total: string;
+  rows: Array<{
+    key: string;
+    name: string;
+    meta: string;
+    amount: string;
+    detail: string;
+    share: number;
+  }>;
+}) {
+  return (
+    <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[#e8dfd4] sm:px-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#1a1714]">{title}</p>
+          <p className="mt-0.5 text-[12px] text-[#5c564e]">{lead}</p>
+        </div>
+        <span className="rounded-full bg-[#f5f0ea] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#5c564e]">
+          {count}
+        </span>
+      </div>
+      <ul className="mt-3">
+        {rows.map((row) => (
+          <li key={row.key} className="border-b border-[#f3eee8] py-2.5 last:border-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-medium text-[#1a1714]">{row.name}</p>
+                <p className="text-[11px] text-[#8a8177]">
+                  {row.meta ? `${row.meta} · ` : ""}
+                  {row.detail}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[13px] font-semibold tabular-nums text-[#1a1714]">{row.amount}</p>
+                <p className="text-[11px] tabular-nums text-[#8a8177]">{Math.round(row.share * 100)}%</p>
+              </div>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#f5f0ea]">
+              <div
+                className="h-full rounded-full bg-[#d47840]"
+                style={{ width: `${Math.max(1, row.share * 100)}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex items-center justify-between border-t border-[#e8dfd4] pt-2.5">
+        <p className="text-[12px] font-semibold text-[#5c564e]">{totalLabel}</p>
+        <p className="text-[14px] font-semibold tabular-nums text-[#1a1714]">{total}</p>
+      </div>
     </div>
   );
 }

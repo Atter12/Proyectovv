@@ -118,6 +118,17 @@ export function getAdvertiserIdFromCamp(camp: string | null): string | null {
   return parseCampPlantilla(camp).advertiserId;
 }
 
+/** Cuenta ads de un gasto: id, nombre y BM según la plantilla `camp`. */
+export function getAdAccountFromCamp(camp: string | null): {
+  advertiserId: string | null;
+  advertiserName: string | null;
+  bm: string | null;
+} {
+  const plantilla = parseCampPlantilla(camp);
+  const name = camp?.split("|")[0]?.trim() || null;
+  return { advertiserId: plantilla.advertiserId, advertiserName: name, bm: plantilla.bm };
+}
+
 /** Campaign name from TikTok sync notes (`notas`). */
 export function getCampaignNameFromHecomNotas(notas: string | null): string | null {
   return parseCampaignFromNotas(notas);

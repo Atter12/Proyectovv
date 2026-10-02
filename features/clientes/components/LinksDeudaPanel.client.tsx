@@ -31,7 +31,7 @@ function initialsOf(name: string): string {
 const LINK_FEATURES = [
   {
     title: "Cuánto debe",
-    body: "Saldo del mes con gasto + fee y lo cobrado.",
+    body: "Saldo del mes con gasto + fee, lo cobrado y el gasto de cada cuenta ads.",
     icon: "M4 15.5h12M6 12.5V9M10 12.5V5.5M14 12.5V8",
   },
   {
