@@ -89,12 +89,13 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("ref")?.trim() || null;
+  const fromLogin = searchParams.get("from") === "login";
   const [values, setValues] = useState<RegisterFormValues>({
     firstName: "",
     lastName: "",
     dni: "",
     phone: "",
-    email: "",
+    email: searchParams.get("email")?.trim() ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +185,10 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
       <AuthFormHeading title={t.title}>{t.subtitle}</AuthFormHeading>
 
       <form onSubmit={handleSubmit} className={styles.form} aria-busy={loading}>
+        {fromLogin && (
+          <AuthNotice tone="info">{t.notRegisteredNotice}</AuthNotice>
+        )}
+
         <div className={styles.twoColumns}>
           <div className={styles.fieldGroup}>
             <label

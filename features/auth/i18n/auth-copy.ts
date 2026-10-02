@@ -67,6 +67,7 @@ export type AuthCopy = {
     errEmail: string;
     failed: string;
     failedRetry: string;
+    notRegisteredNotice: string;
     creating: string;
     create: string;
     haveAccount: string;
@@ -166,6 +167,7 @@ const es: AuthCopy = {
     errEmail: "Escribe un correo electrónico válido.",
     failed: "No se pudo completar el registro.",
     failedRetry: "No se pudo completar el registro. Vuelve a intentar.",
+    notRegisteredNotice: "Ese correo aún no tiene cuenta, por eso no llegó el código. Completa tus datos para crearla.",
     creating: "Creando cuenta…",
     create: "Crear cuenta",
     haveAccount: "¿Ya tienes cuenta?",
@@ -265,6 +267,7 @@ const en: AuthCopy = {
     errEmail: "Enter a valid email address.",
     failed: "We couldn't complete your registration.",
     failedRetry: "We couldn't complete your registration. Please try again.",
+    notRegisteredNotice: "That email has no account yet, so no code was sent. Fill in your details to create it.",
     creating: "Creating account…",
     create: "Create account",
     haveAccount: "Already have an account?",
@@ -363,6 +366,7 @@ const zh: AuthCopy = {
     errEmail: "请输入有效的电子邮箱。",
     failed: "注册未能完成。",
     failedRetry: "注册未能完成，请重试。",
+    notRegisteredNotice: "该邮箱还没有账户，所以没有收到验证码。请填写信息创建账户。",
     creating: "正在创建账户…",
     create: "创建账户",
     haveAccount: "已有账户？",
@@ -462,6 +466,7 @@ const pt: AuthCopy = {
     errEmail: "Escreva um e-mail válido.",
     failed: "Não foi possível concluir o cadastro.",
     failedRetry: "Não foi possível concluir o cadastro. Tente de novo.",
+    notRegisteredNotice: "Esse e-mail ainda não tem conta, por isso o código não chegou. Preencha seus dados para criá-la.",
     creating: "Criando conta…",
     create: "Criar conta",
     haveAccount: "Já tem conta?",

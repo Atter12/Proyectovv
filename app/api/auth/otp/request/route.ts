@@ -39,6 +39,8 @@ export async function POST(request: Request) {
     message: result.message,
     email: result.email,
     sent: result.sent ?? result.allowed,
+    // Sin ficha Hecom no hay código: el login lo manda a registrarse.
+    notRegistered: !result.allowed,
     retryAfterSec: result.retryAfterSec ?? HECOM_OTP_COOLDOWN_SECONDS,
     ...(process.env.NODE_ENV !== "production"
       ? { allowed: result.allowed, clienteIds: result.clienteIds }

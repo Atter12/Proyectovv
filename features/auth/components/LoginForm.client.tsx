@@ -147,7 +147,17 @@ export function LoginForm({ hecomOtpEnabled = false, locale = "es" }: LoginFormP
         message?: string;
         email?: string;
         retryAfterSec?: number;
+        notRegistered?: boolean;
       };
+
+      if (response.ok && payload.notRegistered) {
+        // Correo sin cuenta: no llega código. Lo llevamos a crear la cuenta.
+        const registerUrl = new URL(routes.register, window.location.origin);
+        registerUrl.searchParams.set("email", email.trim().toLowerCase());
+        registerUrl.searchParams.set("from", "login");
+        router.push(`${registerUrl.pathname}${registerUrl.search}`);
+        return;
+      }
 
       if (!response.ok) {
         setError(
