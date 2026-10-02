@@ -239,6 +239,8 @@ export async function pollYapeMailbox(options?: {
     secure: true,
     auth: { user: serverEnv.yapeMailUser, pass: serverEnv.yapeMailPassword },
     logger: false,
+    // Desde el 01/10 la sesión se quedaba trabada en COMPRESS=DEFLATE.
+    disableCompression: true,
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 30_000,
