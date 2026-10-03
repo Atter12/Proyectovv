@@ -30,7 +30,7 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/jobs/tiktok/spend-backfill",
+      "path": "/api/jobs/tiktok/spend-snapshot",
       "schedule": "*/10 * * * *"
     }
   ]
