@@ -1,0 +1,417 @@
+.stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 85% 10%, #ffd9bd 0%, rgb(255 217 189 / 0) 55%),
+    radial-gradient(90% 70% at 0% 100%, #f6dccb 0%, rgb(246 220 203 / 0) 60%),
+    linear-gradient(160deg, #f7f2ec 0%, #efe6dc 100%);
+  container-type: size;
+}
+
+.glow {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 70%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(255 120 31 / 0.22) 0%, rgb(255 120 31 / 0) 65%);
+  filter: blur(8px);
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(90 70 50 / 0.13) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(80% 70% at 50% 45%, #000 30%, transparent 100%);
+}
+
+.cards {
+  position: absolute;
+  inset: 15% 8% 26% 8%;
+}
+
+.card {
+  position: absolute;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid rgb(232 222 210 / 0.9);
+  box-shadow:
+    0 1px 2px rgb(40 30 20 / 0.04),
+    0 18px 40px -18px rgb(70 45 20 / 0.28);
+  backdrop-filter: blur(6px);
+  padding: clamp(12px, 3.2cqw, 20px);
+}
+
+.accountCard {
+  top: 6%;
+  left: 8%;
+  right: 8%;
+  animation: float 7s ease-in-out infinite, enter 0.7s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.walletCard {
+  bottom: 0;
+  left: 0;
+  width: 46%;
+  animation: float 8s ease-in-out -2s infinite, enter 0.7s cubic-bezier(.2, .8, .2, 1) 0.15s both;
+}
+
+.resultsCard {
+  bottom: 4%;
+  right: 0;
+  width: 42%;
+  animation: float 7.5s ease-in-out -4s infinite, enter 0.7s cubic-bezier(.2, .8, .2, 1) 0.3s both;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tiktokDot {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background:
+    linear-gradient(135deg, #25f4ee 0%, #25f4ee 35%, transparent 36%),
+    linear-gradient(315deg, #fe2c55 0%, #fe2c55 35%, transparent 36%),
+    #111;
+}
+
+.accountName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(11px, 2.4cqw, 13px);
+  font-weight: 600;
+  color: #3a332d;
+}
+
+.livePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #067647;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #12b76a;
+  box-shadow: 0 0 0 0 rgb(18 183 106 / 0.6);
+  animation: pulse 1.6s ease-out infinite;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8177;
+}
+
+.bigNumber {
+  margin-top: 2px;
+  font-family: var(--font-jakarta), sans-serif;
+  font-size: clamp(24px, 6.4cqw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #1c1917;
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: clamp(36px, 9cqh, 64px);
+  margin-top: 6px;
+  overflow: visible;
+}
+
+.sparkLine {
+  fill: none;
+  stroke: #ff781f;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 2.4s cubic-bezier(.4, 0, .2, 1) 0.4s forwards;
+}
+
+.sparkFill {
+  opacity: 0;
+  animation: fadeIn 1s ease 1.6s forwards;
+}
+
+.budgetRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.budgetBar {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1ebe4;
+}
+
+.budgetBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffb27a, #ff781f);
+  transition: width 0.8s ease;
+}
+
+.budgetText {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6f675f;
+  font-variant-numeric: tabular-nums;
+}
+
+.walletNumber {
+  margin-top: 4px;
+  font-family: var(--font-jakarta), sans-serif;
+  font-size: clamp(17px, 4.2cqw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #1c1917;
+  font-variant-numeric: tabular-nums;
+}
+
+.walletHint {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #12804f;
+  font-weight: 600;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: clamp(38px, 10cqh, 64px);
+  margin-top: 8px;
+}
+
+.bars span {
+  flex: 1;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, #ff9a52, #ff781f);
+  transform-origin: bottom;
+  animation: grow 0.9s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.bars span:last-child {
+  background: linear-gradient(180deg, #ffb27a, #e8590c);
+}
+
+.toast {
+  position: absolute;
+  top: -10%;
+  right: -2%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 72%;
+  padding: 10px 14px 10px 10px;
+  border-radius: 14px;
+  background: #1c1917;
+  color: #fff;
+  box-shadow: 0 18px 36px -16px rgb(28 25 23 / 0.55);
+  animation: toastIn 3.2s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.toastIcon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toast_ok .toastIcon { background: #12b76a; }
+.toast_info .toastIcon { background: #ff781f; }
+.toast_spend .toastIcon { background: #6941c6; }
+
+.toastText {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.toastText strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toastText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #d6cfc8;
+}
+
+.captionBox {
+  position: absolute;
+  left: clamp(24px, 6cqw, 40px);
+  right: clamp(24px, 6cqw, 40px);
+  bottom: clamp(24px, 5cqh, 40px);
+}
+
+.captionTitle {
+  max-width: 30ch;
+  font-family: var(--font-jakarta), sans-serif;
+  font-size: clamp(18px, 4.2cqw, 26px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: #1c1917;
+  white-space: pre-line;
+  text-wrap: balance;
+}
+
+.captionSub {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #5f574f;
+}
+
+/* Versión compacta para celular: va arriba del formulario. */
+.compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding: 12px 14px;
+  border: 1px solid #efe4d8;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, #ffe6d3 0%, rgb(255 230 211 / 0) 60%),
+    #fff;
+  box-shadow: 0 12px 28px -20px rgb(70 45 20 / 0.35);
+  animation: enter 0.6s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.compactMain {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.compactTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compactNumber {
+  font-family: var(--font-jakarta), sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #1c1917;
+  font-variant-numeric: tabular-nums;
+}
+
+.compactToast {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #6f675f;
+  animation: compactIn 3.2s ease both;
+}
+
+.compactToast strong {
+  color: #1c1917;
+  font-weight: 700;
+}
+
+.compactSpark {
+  width: 52px;
+  height: 36px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+@keyframes compactIn {
+  0% { opacity: 0; transform: translateY(4px); }
+  10%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-3px); }
+}
+
+@media (min-width: 1024px) {
+  .compact { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compact, .compactToast { animation: none !important; }
+}
+
+@keyframes float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(18px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+@keyframes breathe {
+  0%, 100% { opacity: .75; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgb(18 183 106 / 0.55); }
+  100% { box-shadow: 0 0 0 8px rgb(18 183 106 / 0); }
+}
+
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateY(-10px) scale(.96); }
+  10%, 86% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-6px) scale(.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage *, .stage *::before, .stage *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .sparkLine { stroke-dashoffset: 0; }
+  .sparkFill { opacity: 1; }
+}

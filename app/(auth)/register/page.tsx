@@ -36,6 +36,7 @@ export default async function RegisterPage() {
   return (
     <AuthSplitShell
       locale={locale}
+      liveCompact
       topRight={{ label: copy.topRightLabel, href: routes.login }}
       caption={{
         title: copy.captionTitle,

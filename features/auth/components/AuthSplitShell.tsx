@@ -9,6 +9,7 @@ import {
   type LandingLocale,
 } from "@/features/landing/i18n/landing-locale";
 import { LandingLocaleSwitcher } from "@/features/landing/i18n/LandingLocaleSwitcher.client";
+import { AuthLiveCompact, AuthLivePreview } from "./AuthLivePreview.client";
 
 interface AuthSplitShellProps {
   children: React.ReactNode;
@@ -17,6 +18,8 @@ interface AuthSplitShellProps {
   accountLinkPosition?: "top" | "bottom";
   /** Si se pasa, muestra el selector de idioma y traduce el shell. */
   locale?: LandingLocale;
+  /** Tarjeta «en vivo» arriba del formulario en celular (login y registro). */
+  liveCompact?: boolean;
 }
 
 function BrandLogo({ className, homeAria }: { className?: string; homeAria: string }) {
@@ -28,7 +31,7 @@ function BrandLogo({ className, homeAria }: { className?: string; homeAria: stri
 }
 
 /** Shared canvas for the entire public authentication journey. */
-export function AuthSplitShell({ children, caption, topRight, accountLinkPosition = "top", locale }: AuthSplitShellProps) {
+export function AuthSplitShell({ children, caption, topRight, accountLinkPosition = "top", locale, liveCompact = false }: AuthSplitShellProps) {
   const shellCopy = getAuthCopy(locale ?? "es").shell;
   const accountLink = (
     <div className={`${styles.accountLink} ${accountLinkPosition === "bottom" ? styles.accountLinkBottom : ""}`}>
@@ -41,12 +44,9 @@ export function AuthSplitShell({ children, caption, topRight, accountLinkPositio
     <div className={`auth-shell ${styles.shell}`} lang={locale ? landingLocaleHtmlLang[locale] : undefined}>
       <a href="#auth-content" className={styles.skipLink}>{shellCopy.skipToForm}</a>
       <aside className={styles.brandPanel} aria-label="Ads Holistic">
-        <div className={styles.brandMedia}>
-          <Image src="/auth/holistic-studio-access-square.png" alt="" fill sizes="(min-width: 1024px) 52vw, 1px" loading="eager" fetchPriority="high" className={styles.brandArt} />
-        </div>
+        <AuthLivePreview locale={locale ?? "es"} caption={caption} />
         <div className={styles.brandContent}>
           <BrandLogo className={styles.brandLink} homeAria={shellCopy.homeAria} />
-          <p className={styles.brandCaption}>{caption.title}</p>
         </div>
       </aside>
       <div className={styles.formPanel}>
@@ -59,6 +59,7 @@ export function AuthSplitShell({ children, caption, topRight, accountLinkPositio
         </header>
         <main id="auth-content" className={styles.main} tabIndex={-1}>
           <div className={styles.formContent}>
+            {liveCompact ? <AuthLiveCompact locale={locale ?? "es"} /> : null}
             {children}
             {accountLinkPosition === "bottom" ? accountLink : null}
           </div>

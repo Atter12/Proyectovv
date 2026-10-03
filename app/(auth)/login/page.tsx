@@ -30,6 +30,7 @@ export default async function LoginPage() {
   return (
     <AuthSplitShell
       locale={locale}
+      liveCompact
       topRight={{ label: copy.topRightLabel, href: routes.register, prompt: copy.topRightPrompt }}
       accountLinkPosition="bottom"
       caption={{
