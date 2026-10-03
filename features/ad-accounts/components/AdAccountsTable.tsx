@@ -42,7 +42,7 @@ function StatusPill({ status }: { status: AdAccountStatus }) {
   const t = useTranslations("adAccounts");
   return (
     <span
-      className={`inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold ring-1 ring-inset ${statusStyles[status]}`}
+      className={`inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[11px] font-semibold ring-1 ring-inset ${statusStyles[status]}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${statusDot[status]}`} />
       {t(`status.${status}`)}
@@ -64,7 +64,7 @@ function MetaChip({
         ? "bg-[#f3eee8] font-mono text-[#6b645c]"
         : "bg-[#f3eee8] font-medium text-[#6b645c]";
   return (
-    <span className={`rounded px-1.5 py-0.5 text-[10px] ${cls}`}>{children}</span>
+    <span className={`max-w-full break-words rounded px-1.5 py-0.5 text-[11px] md:text-[10px] ${cls}`}>{children}</span>
   );
 }
 
@@ -242,7 +242,7 @@ export function AdAccountsTable({
       return (
         <div className={compact ? "flex flex-col gap-2" : "flex flex-col items-start gap-2"}>
           <GastosLinkButton account={account} compact={compact} />
-          <p className="text-[10px] font-normal uppercase tracking-[0.08em] text-[#9a9187]">
+          <p className="text-[11px] font-normal uppercase tracking-[0.08em] text-[#9a9187] md:text-[10px]">
             {t("table.pollHint", { seconds: live.pollSeconds })}
           </p>
         </div>
@@ -330,10 +330,10 @@ export function AdAccountsTable({
   function AccountCell({ account }: { account: AdAccount }) {
     const display = parseAccountDisplay(account, defaultName);
     return (
-      <div className="flex min-w-0 items-start gap-2.5">
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <PlatformMark platform={account.platform} />
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
+          <p className="line-clamp-2 break-words text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612] md:truncate">
             {display.title}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -367,7 +367,7 @@ export function AdAccountsTable({
             <button
               type="button"
               onClick={() => void live.refresh()}
-              className="text-[11px] font-semibold text-[#c45a18] hover:underline"
+              className="-mx-2 inline-flex min-h-10 items-center px-2 text-[12px] font-semibold text-[#c45a18] hover:underline md:min-h-0 md:text-[11px]"
             >
               {t("live.refreshNow")}
             </button>

@@ -114,7 +114,7 @@ export async function AdAccountsPageHeader({
               {t("header.goOverview")}
             </CrmHeroButton>
             {hideCreate && !enableTikTokCreate ? null : (
-              <AdAccountsOpenCreateModalButton className="inline-flex h-10 items-center rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)]">
+              <AdAccountsOpenCreateModalButton className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--auth-border)] bg-white px-4 text-[13px] font-semibold text-[var(--auth-text)] sm:w-auto">
                 {enableTikTokCreate
                   ? t("header.createTikTok")
                   : t("header.create")}

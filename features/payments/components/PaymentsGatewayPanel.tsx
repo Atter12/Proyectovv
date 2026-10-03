@@ -441,7 +441,7 @@ export async function PaymentsGatewayPanel({
         {hasClienteScope && scopedAccounts.length === 0 ? (
           <section
             id="asignar-saldo"
-            className="dashboard-surface-card rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
+            className="dashboard-surface-card scroll-mt-20 rounded-[1rem] px-5 py-5 sm:px-6 sm:py-6"
           >
             <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--auth-accent)]">
               {t("emptyAllocate.eyebrow", {

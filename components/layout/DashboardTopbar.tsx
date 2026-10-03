@@ -68,19 +68,20 @@ export function DashboardTopbar({
               Cartera general de gerencia
             </p>
           ) : selectedCliente ? (
-            <p className="mt-0.5 truncate text-[11.5px] font-medium text-[var(--auth-text-muted)] sm:text-[12px]">
+            // En celular solo se corta el nombre; «Cambiar» siempre queda visible.
+            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[11.5px] font-medium text-[var(--auth-text-muted)] sm:text-[12px]">
               {canPickClients ? (
-                <span className="hidden sm:inline">{t("clientPrefix")} </span>
+                <span className="hidden shrink-0 sm:inline">{t("clientPrefix")}</span>
               ) : null}
-              <span className="font-semibold text-[var(--auth-text)]">
+              <span className="min-w-0 truncate font-semibold text-[var(--auth-text)]">
                 {selectedCliente.name}
               </span>
               {canPickClients ? (
                 <>
-                  {" · "}
+                  <span aria-hidden className="shrink-0">·</span>
                   <Link
                     href={routes.clientes}
-                    className="font-semibold text-[var(--auth-accent)] hover:underline"
+                    className="shrink-0 font-semibold text-[var(--auth-accent)] hover:underline"
                   >
                     {t("changeClient")}
                   </Link>

@@ -265,7 +265,7 @@ export function PaymentsTable({
             type="button"
             className={
               mobile
-                ? "w-full text-center text-[12px] font-medium text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
+                ? "inline-flex min-h-10 w-full items-center justify-center text-center text-[12px] font-medium text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
                 : "px-2 text-[11px] font-medium text-[#8a8178] underline-offset-2 hover:text-[var(--brand-primary-deep)] hover:underline"
             }
             onClick={() => onEditTikTokIds(account)}
@@ -353,7 +353,7 @@ export function PaymentsTable({
       ) : null}
 
       {!isEmpty ? (
-        <div className="hidden md:block">
+        <div className="hidden overflow-x-auto md:block">
           <Table embedded className="rounded-none">
             <TableHeader>
               <TableRow className="border-b border-[rgb(20_18_16_/_0.07)] bg-[#faf7f3] hover:bg-[#faf7f3]">

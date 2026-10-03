@@ -344,7 +344,7 @@ export function CreditLockPanel({
                 type="button"
                 onClick={() => setExpanded(false)}
                 aria-label={t("creditLock.closeAria")}
-                className="ml-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-[#8a8177] transition-colors hover:bg-[#f0eae4] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35"
+                className="ml-1.5 inline-flex h-10 w-10 items-center sm:h-7 sm:w-7 justify-center rounded-full text-[#8a8177] transition-colors hover:bg-[#f0eae4] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35"
               >
                 <svg
                   viewBox="0 0 20 20"

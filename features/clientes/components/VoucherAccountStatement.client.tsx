@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
@@ -388,6 +388,14 @@ export function VoucherAccountStatement({
         : view.series[view.series.length - 1]?.key ?? null;
     return view.series.find((row) => row.key === key) ?? null;
   }, [activeDay, view.series]);
+  // En celular el gráfico es más ancho que la pantalla: abrirlo en el día más
+  // reciente (el seleccionado por defecto) y no en el 1 del mes.
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+  const lastSeriesKey = view.series[view.series.length - 1]?.key ?? null;
+  useEffect(() => {
+    const el = chartScrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [lastSeriesKey]);
   const owes = view.owed > 0.004;
   const favor = view.owed < -0.004;
   const heroLabel = owes ? t("youOwe") : favor ? t("inYourFavor") : t("settled");
@@ -448,7 +456,7 @@ export function VoucherAccountStatement({
               />
               {heroLabel}
             </span>
-            <p className="mt-3 text-[2.4rem] font-semibold leading-none tabular-nums tracking-[-0.045em] sm:text-[2.75rem]">
+            <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums tracking-[-0.045em] min-[400px]:text-[2.4rem] sm:text-[2.75rem]">
               {moneyUsd(Math.abs(view.owed))}
             </p>
             <p className="mt-2 text-[12px] capitalize text-white/60">{view.monthLabel}</p>
@@ -585,7 +593,7 @@ export function VoucherAccountStatement({
               </div>
             ) : null}
 
-            <div className="overflow-x-auto px-2 pb-2 pt-3 sm:px-3">
+            <div ref={chartScrollRef} className="overflow-x-auto px-2 pb-2 pt-3 sm:px-3">
               <div
                 className="flex items-end gap-1 px-1"
                 style={{ minWidth: `${Math.max(view.series.length * 36, 280)}px` }}
@@ -763,7 +771,7 @@ function DayMetric({
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
         <span className="truncate">{label}</span>
       </p>
-      <p className="mt-1 text-[1.15rem] font-semibold tabular-nums tracking-[-0.02em] text-[#1a1714]">
+      <p className="mt-1 text-base font-semibold tabular-nums tracking-[-0.02em] text-[#1a1714] [overflow-wrap:anywhere] sm:text-[1.15rem]">
         {value}
       </p>
       <p className="mt-0.5 text-[10px] leading-3.5 text-[#8a8177]">{hint}</p>
@@ -858,7 +866,7 @@ function AccountBreakdown({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-medium text-[#1a1714]">{row.name}</p>
-                <p className="text-[11px] text-[#8a8177]">
+                <p className="break-words text-[11px] text-[#8a8177]">
                   {row.meta ? `${row.meta} · ` : ""}
                   {row.detail}
                 </p>
@@ -917,7 +925,7 @@ function MovementList({
           {empty}
         </p>
       ) : (
-        <ul className="mt-3 max-h-72 overflow-y-auto pr-1">
+        <ul className="mt-3 pr-1 lg:max-h-72 lg:overflow-y-auto">
           {rows.map((row) => (
             <li
               key={row.key}
@@ -954,7 +962,7 @@ function MovementList({
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-medium text-[#1a1714]">{row.detail}</p>
-                  <p className="text-[11px] text-[#8a8177]">{row.date}</p>
+                  <p className="break-words text-[11px] text-[#8a8177]">{row.date}</p>
                   {row.extra ? (
                     <p className="text-[10px] text-[#9a9288]">{row.extra}</p>
                   ) : null}

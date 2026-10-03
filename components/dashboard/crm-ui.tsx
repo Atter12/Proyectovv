@@ -190,7 +190,7 @@ export function CrmScopeHero({
                 {title}
               </h1>
               {cliente?.biz || meta ? (
-                <p className="mt-1 truncate text-[12px] text-[var(--auth-text-muted)]">
+                <p className="mt-1 line-clamp-2 text-[12px] text-[var(--auth-text-muted)] sm:truncate">
                   {cliente?.biz ? (
                     <span className="font-medium text-[var(--auth-text)]">
                       {cliente.biz}

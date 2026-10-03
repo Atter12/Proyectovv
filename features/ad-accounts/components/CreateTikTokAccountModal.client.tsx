@@ -188,7 +188,7 @@ export function CreateTikTokAccountModal({
           <>
             <div className="rounded-2xl border border-[#e8e1d8] bg-[#f7f5f2] p-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-[#8a8278]">
                     {t("bmLabel")}
                   </p>
@@ -199,7 +199,7 @@ export function CreateTikTokAccountModal({
                     {t("bmHint")}
                   </p>
                 </div>
-                <span className="inline-flex items-center rounded-md bg-[#ecfdf5] px-2 py-1 text-[10px] font-bold text-[#047857]">
+                <span className="inline-flex shrink-0 items-center rounded-md bg-[#ecfdf5] px-2 py-1 text-[10px] font-bold text-[#047857]">
                   USD
                 </span>
               </div>
@@ -218,7 +218,7 @@ export function CreateTikTokAccountModal({
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                 <p className="font-semibold">{t("successTitle")}</p>
                 <p className="mt-1">{success.advertiserName}</p>
-                <p className="mt-1 font-mono text-[12px]">
+                <p className="mt-1 break-all font-mono text-[12px]">
                   {success.advertiserId}
                 </p>
                 <p className="mt-2 text-[12px] text-emerald-800">

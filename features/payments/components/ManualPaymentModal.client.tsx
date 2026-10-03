@@ -631,14 +631,14 @@ export function ManualPaymentModal({
                             <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
                               {t("manualModal.binanceEmailLabel")}
                             </p>
-                            <p className="mt-1 truncate font-mono text-[14px] font-semibold tracking-tight text-[#1c1917]">
+                            <p className="mt-1 break-all font-mono text-[14px] font-semibold tracking-tight text-[#1c1917] sm:truncate">
                               {config.binance.email}
                             </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => void copyText(config.binance!.email)}
-                            className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
+                            className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                           >
                             {t("addBalance.copy")}
                           </button>
@@ -701,14 +701,14 @@ export function ManualPaymentModal({
                               <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
                                 {t("manualModal.accountNumber")}
                               </p>
-                              <p className="mt-1 truncate font-mono text-[14px] font-semibold tracking-tight text-[#1c1917]">
+                              <p className="mt-1 break-all font-mono text-[14px] font-semibold tracking-tight text-[#1c1917] sm:truncate">
                                 {bank.accountNumber}
                               </p>
                             </div>
                             <button
                               type="button"
                               onClick={() => void copyText(bank.accountNumber)}
-                              className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
+                              className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                             >
                               {t("addBalance.copy")}
                             </button>
@@ -726,7 +726,7 @@ export function ManualPaymentModal({
                               <button
                                 type="button"
                                 onClick={() => void copyText(bank.cci!)}
-                                className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
+                                className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
                               >
                                 {t("addBalance.copy")}
                               </button>
@@ -802,7 +802,7 @@ export function ManualPaymentModal({
                     className="max-h-32 rounded-lg object-contain"
                   />
                 ) : proofFile ? (
-                  <p className="text-sm font-medium text-emerald-800">
+                  <p className="max-w-full break-all text-center text-sm font-medium text-emerald-800">
                     {proofFile.name}
                   </p>
                 ) : (
@@ -832,6 +832,7 @@ export function ManualPaymentModal({
                 <Button
                   variant="outline"
                   type="button"
+                  className="h-11"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {t("manualModal.gallery")}
@@ -839,6 +840,7 @@ export function ManualPaymentModal({
                 <Button
                   variant="outline"
                   type="button"
+                  className="h-11"
                   onClick={() => pasteZoneRef.current?.focus()}
                 >
                   {t("manualModal.paste")}

@@ -162,7 +162,7 @@ export function PaymentsAssignmentPanel({
               <button
                 type="button"
                 onClick={() => setAllocateToast(null)}
-                className="rounded-lg px-2 py-1 text-[11px] font-semibold text-[#64748b] hover:bg-[#f8fafc]"
+                className="min-h-10 rounded-lg px-3 py-1 text-[11px] font-semibold text-[#64748b] hover:bg-[#f8fafc] sm:min-h-0"
               >
                 {tCommon("close")}
               </button>

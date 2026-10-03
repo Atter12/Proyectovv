@@ -82,13 +82,13 @@ export function AdAccountLiveBalanceCell({
       <p className="text-[13px] font-semibold tabular-nums text-[#1a1612]">
         {metric?.balanceUsd != null ? formatMoney(metric.balanceUsd) : "—"}
       </p>
-      <p className="mt-0.5 text-[10px] text-[#9a9187]">{balanceLabel}</p>
+      <p className="mt-0.5 text-[11px] md:text-[10px] text-[#9a9187]">{balanceLabel}</p>
       {budgetLimitLine ? (
-        <p className="mt-0.5 text-[10px] leading-4 tabular-nums text-[#6b645c]">
+        <p className="mt-0.5 text-[11px] md:text-[10px] leading-4 tabular-nums text-[#6b645c]">
           {budgetLimitLine}
         </p>
       ) : null}
-      <p className="mt-0.5 text-[10px] text-[#9a9187]">
+      <p className="mt-0.5 text-[11px] md:text-[10px] text-[#9a9187]">
         {t("spendToday")}{" "}
         <span className="font-semibold tabular-nums text-[#c45a18]">
           {metric?.spendTodayUsd != null
@@ -96,7 +96,7 @@ export function AdAccountLiveBalanceCell({
             : "—"}
         </span>
       </p>
-      <p className="mt-0.5 text-[10px] text-[#b5aea6]">
+      <p className="mt-0.5 text-[11px] md:text-[10px] text-[#b5aea6]">
         {formatUpdatedAgo(metric?.fetchedAt)}
       </p>
     </div>

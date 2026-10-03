@@ -238,7 +238,7 @@ export function ClienteCobrosMonthView({
                   key={ym}
                   type="button"
                   onClick={() => selectMonth(ym)}
-                  className={`shrink-0 rounded-full px-3.5 py-2 text-[12px] font-semibold capitalize transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] ${
+                  className={`min-h-10 shrink-0 rounded-full px-3.5 py-2.5 text-[12px] font-semibold capitalize sm:min-h-0 sm:py-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840] ${
                     active
                       ? "bg-[#1a1714] text-white"
                       : "text-[#5c564e] hover:bg-white hover:text-[#1a1714]"

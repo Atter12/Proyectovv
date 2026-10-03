@@ -321,13 +321,13 @@ export function AllocateBalanceModal({
         )}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={resetAndClose} disabled={loading}>
+          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" onClick={resetAndClose} disabled={loading}>
             {tCommon("close")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading || !isValidAmount}
-            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
+            className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:h-9 sm:w-auto"
           >
             {loading
               ? agencyBmFunding

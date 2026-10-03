@@ -894,7 +894,7 @@ export function AddBalanceModal({
                       {t("addBalance.paymentCode")}
                     </p>
                     <div className="mt-1.5 flex items-center justify-between gap-3">
-                      <p className="font-mono text-2xl font-semibold tracking-[0.04em] text-[#1c1917]">
+                      <p className="min-w-0 break-all font-mono text-xl font-semibold tracking-[0.04em] text-[#1c1917] sm:text-2xl">
                         {cobranaCode}
                       </p>
                       <button
@@ -1067,7 +1067,7 @@ text={t("addBalance.yapeStep4", {
                 </p>
                 <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
                   {t("addBalance.intentId")}{" "}
-                  <span className="font-mono">{paymentIntentId}</span>
+                  <span className="break-all font-mono">{paymentIntentId}</span>
                 </p>
               </div>
               <div className="mt-4">

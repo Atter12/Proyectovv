@@ -59,7 +59,7 @@ export function PaymentsGatewaySection({
       {showClientDeposit ? (
         <section
           id="recargar-saldo"
-          className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
+          className="scroll-mt-20 overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
         >
           <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
             {/*

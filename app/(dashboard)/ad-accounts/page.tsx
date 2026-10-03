@@ -48,7 +48,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
 
   if (!selected) {
     return (
-      <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
+      <div className={`${dashboardClasses.page} pb-[env(safe-area-inset-bottom)] md:pb-0`}>
         <AdAccountsPageHeader
           summary={{
             totalAccounts: 0,
@@ -78,7 +78,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const accountLimit = resolveTikTokSelfServeAccountLimit(selected.id);
 
   return (
-    <div className={`${dashboardClasses.page} pb-24 md:pb-0`}>
+    <div className={`${dashboardClasses.page} pb-[env(safe-area-inset-bottom)] md:pb-0`}>
       <AdAccountsPageHeader
         summary={data.summary}
         hecomScoped

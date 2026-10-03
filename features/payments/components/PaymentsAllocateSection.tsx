@@ -26,7 +26,7 @@ export function PaymentsAllocateSection({
   return (
     <section
       id="asignar-saldo"
-      className="dashboard-surface-card overflow-hidden rounded-[1rem]"
+      className="dashboard-surface-card scroll-mt-20 overflow-hidden rounded-[1rem]"
     >
       <div className="border-b border-[var(--auth-border)] px-5 py-4 sm:px-6">
         <PaymentsAllocateSectionCopy

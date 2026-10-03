@@ -266,7 +266,7 @@ export function ProfitDateRangeField({
               onMouseEnter={() => {
                 if (draftStart && !cell.disabled) setHoverYmd(cell.ymd);
               }}
-              className={`h-8 text-[12px] font-semibold tabular-nums transition ${dayClass(cell)}`}
+              className={`h-10 text-[12px] font-semibold tabular-nums transition sm:h-8 ${dayClass(cell)}`}
             >
               {cell.day}
             </button>
@@ -327,7 +327,7 @@ export function ProfitDateRangeField({
                 type="button"
                 aria-label={t("prevYear")}
                 onClick={() => shiftLeft(-12)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] sm:h-8 sm:w-8 transition hover:bg-[#f3efe9]"
               >
                 «
               </button>
@@ -335,7 +335,7 @@ export function ProfitDateRangeField({
                 type="button"
                 aria-label={t("prevMonth")}
                 onClick={() => shiftLeft(-1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] sm:h-8 sm:w-8 transition hover:bg-[#f3efe9]"
               >
                 ‹
               </button>
@@ -348,7 +348,7 @@ export function ProfitDateRangeField({
                 type="button"
                 aria-label={t("nextMonth")}
                 onClick={() => shiftLeft(1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] sm:h-8 sm:w-8 transition hover:bg-[#f3efe9]"
               >
                 ›
               </button>
@@ -356,7 +356,7 @@ export function ProfitDateRangeField({
                 type="button"
                 aria-label={t("nextYear")}
                 onClick={() => shiftLeft(12)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#5c564e] transition hover:bg-[#f3efe9]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5c564e] sm:h-8 sm:w-8 transition hover:bg-[#f3efe9]"
               >
                 »
               </button>
@@ -373,14 +373,14 @@ export function ProfitDateRangeField({
             <button
               type="button"
               onClick={clearRange}
-              className="rounded-lg px-2 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
+              className="rounded-lg px-2 py-2.5 text-[12px] font-semibold text-[#8a8177] sm:py-1.5 transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
             >
               {t("clear")}
             </button>
             <button
               type="button"
               onClick={goToday}
-              className="rounded-lg px-2 py-1.5 text-[12px] font-semibold text-[var(--auth-accent)] transition hover:bg-[#fff7f0]"
+              className="rounded-lg px-2 py-2.5 text-[12px] font-semibold text-[var(--auth-accent)] sm:py-1.5 transition hover:bg-[#fff7f0]"
             >
               {t("today")}
             </button>

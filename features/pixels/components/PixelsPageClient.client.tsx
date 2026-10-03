@@ -523,7 +523,7 @@ export function PixelsPageClient({
                 type="button"
                 onClick={selectAllAdvertisers}
                 disabled={loading || allSelected}
-                className="rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-2.5 py-1.5 text-[11px] font-semibold text-[#1c1917] disabled:opacity-40"
+                className="min-h-10 rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 py-1.5 text-[11px] font-semibold text-[#1c1917] disabled:opacity-40 sm:min-h-0 sm:px-2.5"
               >
                 {t("selectAll")}
               </button>
@@ -531,7 +531,7 @@ export function PixelsPageClient({
                 type="button"
                 onClick={clearAdvertisers}
                 disabled={loading || selectedAdvertiserIds.length === 0}
-                className="rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5c564e] disabled:opacity-40"
+                className="min-h-10 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5c564e] disabled:opacity-40 sm:min-h-0 sm:px-2.5"
               >
                 {t("clear")}
               </button>
@@ -602,7 +602,7 @@ export function PixelsPageClient({
             </div>
             <button
               type="button"
-              className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#1c1917]"
+              className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1c1917] sm:min-h-0 sm:px-2.5"
               onClick={() =>
                 void copyText(
                   selectedAccounts[0]!.advertiserId,
@@ -616,7 +616,7 @@ export function PixelsPageClient({
         ) : null}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
             {t("btn1")}
@@ -797,8 +797,8 @@ export function PixelsPageClient({
       </section>
 
       {selectedPixel ? (
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="min-w-0 rounded-2xl border border-[#ece7e0] bg-white p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               {t("step3Subtitle")}
             </p>
@@ -821,7 +821,7 @@ export function PixelsPageClient({
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                  className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
                   onClick={() =>
                     void copyText(
                       pixelIdDisplay,
@@ -845,7 +845,7 @@ export function PixelsPageClient({
                   </div>
                   <button
                     type="button"
-                    className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                    className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
                     onClick={() =>
                       void copyText(
                         selectedPixel.pixelCode!,
@@ -868,7 +868,7 @@ export function PixelsPageClient({
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-2.5 py-1.5 text-[11px] font-semibold"
+                  className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
                   onClick={() =>
                     void copyText(
                       selectedPixel.advertiserId,
@@ -906,16 +906,16 @@ export function PixelsPageClient({
                   t("copied", { label: "Snippet" }),
                 ).then(setNotice)
               }
-              className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#1c1917] px-3 text-[12px] font-semibold text-white transition hover:bg-[#3a342e]"
+              className="mt-3 inline-flex h-10 items-center rounded-lg bg-[#1c1917] sm:h-9 px-3 text-[12px] font-semibold text-white transition hover:bg-[#3a342e]"
             >
               {t("copySnippet")}
             </button>
-            <pre className="mt-3 max-h-40 overflow-auto rounded-xl border border-[#2a2520] bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
+            <pre className="mt-3 max-h-40 max-w-full overflow-auto rounded-xl border border-[#2a2520] bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
               {snippetFor(pixelCode)}
             </pre>
           </div>
 
-          <div className="rounded-2xl border border-[#ece7e0] bg-white p-5">
+          <div className="min-w-0 rounded-2xl border border-[#ece7e0] bg-white p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
               {t("step5")}
             </p>
@@ -931,7 +931,7 @@ export function PixelsPageClient({
                 onClick={() =>
                   void ensureSdk().catch((e) => setError(mapSdkError(e)))
                 }
-                className="inline-flex h-9 items-center rounded-lg bg-[#ff781f] px-3 text-[12px] font-semibold text-white transition hover:bg-[#f06a12]"
+                className="inline-flex h-10 items-center rounded-lg bg-[#ff781f] sm:h-9 px-3 text-[12px] font-semibold text-white transition hover:bg-[#f06a12]"
               >
                 {sdkReady ? t("sdkReady") : t("loadSdk")}
               </button>
@@ -940,7 +940,7 @@ export function PixelsPageClient({
                   key={ev}
                   type="button"
                   onClick={() => void fireEvent(ev)}
-                  className="inline-flex h-9 items-center rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 text-[11px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white"
+                  className="inline-flex h-10 items-center rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 text-[11px] sm:h-9 font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white"
                 >
                   {ev}
                 </button>

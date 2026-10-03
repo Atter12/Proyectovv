@@ -223,7 +223,7 @@ export function MissingCobroClaimPanel({
           <Button
             type="button"
             size="sm"
-            className="shrink-0 self-start rounded-full px-4 sm:self-center"
+            className="h-10 shrink-0 self-start rounded-full px-4 sm:h-8 sm:self-center"
             onClick={() => {
               setOpen((v) => !v);
               setError(null);
@@ -248,7 +248,7 @@ export function MissingCobroClaimPanel({
                   {t("missingCobro.period")}
                 </span>
                 <select
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.periodoResumen}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, periodoResumen: e.target.value }))
@@ -267,7 +267,7 @@ export function MissingCobroClaimPanel({
                 </span>
                 <input
                   type="date"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.paymentFecha}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, paymentFecha: e.target.value }))
@@ -283,7 +283,7 @@ export function MissingCobroClaimPanel({
                   min="1"
                   step="0.01"
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.amountUsd}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, amountUsd: e.target.value }))
@@ -300,7 +300,7 @@ export function MissingCobroClaimPanel({
                   min="0"
                   step="0.01"
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.amountPen}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, amountPen: e.target.value }))
@@ -313,7 +313,7 @@ export function MissingCobroClaimPanel({
                   {t("missingCobro.method")}
                 </span>
                 <select
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.metodo}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, metodo: e.target.value }))
@@ -332,7 +332,7 @@ export function MissingCobroClaimPanel({
                 </span>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                   value={form.operationCode}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, operationCode: e.target.value }))
@@ -346,7 +346,7 @@ export function MissingCobroClaimPanel({
                 {t("missingCobro.notes")}
               </span>
               <textarea
-                className="mt-1 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
+                className="mt-1 min-h-11 w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2"
                 rows={2}
                 value={form.notes}
                 onChange={(e) =>
@@ -379,8 +379,8 @@ export function MissingCobroClaimPanel({
                 >
                   {file ? "✓" : "↑"}
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold text-[var(--auth-text)]">
+                <span className="w-full min-w-0">
+                  <span className="block truncate text-[13px] font-semibold text-[var(--auth-text)]">
                     {file ? file.name : t("missingCobro.voucherPick")}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-[var(--auth-text-muted)]">

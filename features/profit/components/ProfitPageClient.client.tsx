@@ -194,7 +194,7 @@ function Kpi({
 }) {
   return (
     <div
-      className={`rounded-xl border px-3.5 py-3.5 ${
+      className={`min-w-0 rounded-xl border px-3.5 py-3.5 ${
         accent
           ? "border-[#ffd7b8] bg-[#fff7f0]"
           : "border-[#ece7e0] bg-white"
@@ -204,13 +204,13 @@ function Kpi({
         {label}
       </p>
       <p
-        className={`mt-1 text-[1.25rem] font-bold tabular-nums tracking-[-0.02em] ${
+        className={`mt-1 break-words text-[1.05rem] font-bold tabular-nums tracking-[-0.02em] sm:text-[1.25rem] ${
           accent ? "text-[#c2410c]" : "text-[#1c1917]"
         }`}
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[11px] text-[#8a8177]">{hint}</p>
+      <p className="mt-0.5 break-words text-[11px] text-[#8a8177]">{hint}</p>
     </div>
   );
 }
@@ -1081,7 +1081,7 @@ export function ProfitPageClient({
               type="button"
               onClick={() => void live.refresh({ force: true })}
               disabled={live.loading}
-              className="rounded-full border border-[#ffd7b8] bg-white px-3 py-1.5 text-[11px] font-bold text-[#c2410c] transition hover:bg-[#fff7f0] disabled:opacity-55"
+              className="rounded-full border border-[#ffd7b8] bg-white px-3 py-2.5 text-[11px] font-bold text-[#c2410c] sm:py-1.5 transition hover:bg-[#fff7f0] disabled:opacity-55"
             >
               {live.loading ? tCommon("loading") : t("refreshLive")}
             </button>
@@ -1467,7 +1467,7 @@ export function ProfitPageClient({
                 <table className="min-w-[960px] w-full border-collapse text-left text-[11.5px]">
                   <thead className="sticky top-0 z-[1] bg-[#f7f4ef] text-[10px] uppercase tracking-[0.07em] text-[#9a9187]">
                     <tr>
-                      <th className="sticky left-0 z-[2] bg-[#f7f4ef] px-3 py-2.5">
+                      <th className="sticky left-0 z-[2] bg-[#f7f4ef] px-2.5 py-2.5 sm:px-3">
                         <button
                           type="button"
                           className="font-bold uppercase tracking-[0.07em]"
@@ -1553,7 +1553,7 @@ export function ProfitPageClient({
                           key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
                           className="border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
                         >
-                          <td className="sticky left-0 z-[1] max-w-[240px] bg-white px-3 py-2.5 hover:bg-[#fffaf6]">
+                          <td className="sticky left-0 z-[1] max-w-[150px] bg-white px-2.5 py-2.5 hover:bg-[#fffaf6] sm:max-w-[240px] sm:px-3">
                             <p className="truncate font-semibold text-[#1c1917]">
                               {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
                             </p>
@@ -2063,7 +2063,7 @@ function ShopifyConnectModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white"
+        className="max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
@@ -2084,7 +2084,7 @@ function ShopifyConnectModal({
                     : tm("offerTitle")}
             </h3>
             {domain ? (
-              <p className="mt-1.5 font-mono text-[12px] text-[#8a8177]">
+              <p className="mt-1.5 break-all font-mono text-[12px] text-[#8a8177]">
                 {domain}
               </p>
             ) : null}
@@ -2092,7 +2092,7 @@ function ShopifyConnectModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917]"
+            className="min-h-10 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917] sm:min-h-0 sm:px-2.5"
           >
             {tCommon("close")}
           </button>
@@ -2232,11 +2232,11 @@ function ShopifyConnectModal({
                   <p className="mt-1 text-[12px] text-[#5c564e]">
                     {tm("holder", { name: acc.holder })}
                   </p>
-                  <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
+                  <p className="mt-0.5 break-all font-mono text-[12px] text-[#1c1917]">
                     {tm("account", { number: acc.accountNumber })}
                   </p>
                   {acc.cci ? (
-                    <p className="mt-0.5 font-mono text-[12px] text-[#1c1917]">
+                    <p className="mt-0.5 break-all font-mono text-[12px] text-[#1c1917]">
                       {tm("cci", { cci: acc.cci })}
                     </p>
                   ) : null}
