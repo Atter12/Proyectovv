@@ -15,7 +15,9 @@ export const maxDuration = 300;
  * desde julio hasta hoy, para calcular cuánto devolverles. No toca saldos ni
  * presupuestos. Corre una vez: si ya hay una foto completa, no hace nada.
  */
-const AUDIT_ACTION = "tiktok.spend_snapshot";
+/** v2: la primera foto chocó con el límite de 10 consultas/s de TikTok. */
+const AUDIT_ACTION = "tiktok.spend_snapshot.v2";
+const CONCURRENCY = 2;
 const BACKFILL_FROM = "2026-10-01T15:00:00Z";
 const BACKFILL_TO = "2026-10-03T06:00:00Z";
 /** TikTok acepta hasta 30 días por consulta diaria. */
@@ -24,6 +26,19 @@ const WINDOWS: Array<[string, string]> = [
   ["2026-07-31", "2026-08-29"],
   ["2026-08-30", "2026-09-28"],
 ];
+
+/** TikTok corta con "QPS limit": espera y reintenta. */
+async function withQpsRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/qps limit/i.test(message) || attempt >= 4) throw e;
+      await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+    }
+  }
+}
 
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
@@ -38,12 +53,21 @@ export async function GET(request: Request) {
   }
   const admin = createAdminClient();
 
-  const { count } = await admin
+  // Se retoma: cada corrida guarda lo que consiguió y la siguiente sigue con el resto.
+  const { data: previous } = await admin
     .from("audit_logs")
-    .select("id", { count: "exact", head: true })
-    .eq("action", AUDIT_ACTION)
-    .eq("metadata->>complete", "true");
-  if ((count ?? 0) > 0) return NextResponse.json({ ok: true, done: true });
+    .select("metadata")
+    .eq("action", AUDIT_ACTION);
+  if ((previous ?? []).some((r) => r.metadata?.complete)) {
+    return NextResponse.json({ ok: true, done: true });
+  }
+  const finished = new Set<string>();
+  for (const r of previous ?? []) {
+    for (const a of (r.metadata?.advertisers ?? []) as Array<{ advertiserId: string; error?: string }>) {
+      // Sin permiso no se arregla reintentando.
+      if (!a.error || /no permission/i.test(a.error)) finished.add(a.advertiserId);
+    }
+  }
 
   // Clientes con gasto atrasado asentado en esa ventana → todos sus anunciantes.
   const { data: spends, error } = await admin
@@ -83,23 +107,25 @@ export async function GET(request: Request) {
     days: Array<[string, number]>;
     error?: string;
   }> = [];
-  const queue = [...advertisers.entries()];
+  const queue = [...advertisers.entries()].filter(([adv]) => !finished.has(adv));
   let next = 0;
   await Promise.all(
-    Array.from({ length: 6 }, async () => {
+    Array.from({ length: CONCURRENCY }, async () => {
       while (next < queue.length && Date.now() < deadline) {
         const [advertiserId, meta] = queue[next++]!;
         const entry = { advertiserId, hecomId: meta.hecomId, days: [] as Array<[string, number]>, error: undefined as string | undefined };
         try {
           const { token } = await resolveTikTokFinanceAccessToken(meta.organizationId);
           for (const [startDate, endDate] of windows) {
-            const days = await getTikTokDailySpend({
-              organizationId: meta.organizationId,
-              advertiserId,
-              startDate,
-              endDate,
-              accessToken: token,
-            });
+            const days = await withQpsRetry(() =>
+              getTikTokDailySpend({
+                organizationId: meta.organizationId,
+                advertiserId,
+                startDate,
+                endDate,
+                accessToken: token,
+              }),
+            );
             for (const d of days) if (d.amountCents > 0) entry.days.push([d.date, d.amountCents]);
           }
         } catch (e) {
@@ -110,7 +136,8 @@ export async function GET(request: Request) {
     }),
   );
 
-  const complete = result.length === queue.length;
+  const complete =
+    result.length === queue.length && result.every((r) => !r.error || /no permission/i.test(r.error));
   await admin.from("audit_logs").insert({
     action: AUDIT_ACTION,
     entity_type: "tiktok_spend_snapshot",
