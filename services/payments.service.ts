@@ -579,9 +579,11 @@ export const getPaymentPageCore = cache(async (
   const walletReservedCents = walletLedger?.reservedBalanceCents ?? 0;
 
   const { isProviderConfigured } = await import("@/lib/payments/providers");
-  const visibleGateways = gateways.filter(
-    (g) => g.id !== "cobrana" || isProviderConfigured("cobrana"),
-  );
+  const visibleGateways = gateways.filter((g) => {
+    if (g.id === "cobrana") return isProviderConfigured("cobrana");
+    if (g.id === "crypto") return isProviderConfigured("crypto");
+    return true;
+  });
   const selectedGateway = visibleGateways.some((g) => g.id === preferredGateway)
     ? preferredGateway
     : (visibleGateways[0]?.id ?? preferredGateway);

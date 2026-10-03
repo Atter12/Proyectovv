@@ -395,7 +395,7 @@ export async function createPaymentIntentForSession(
     },
   });
 
-  // Manual siempre voucher. Crypto: voucher solo si no hay checkout automático (NOWPayments).
+  // Manual siempre voucher. Crypto ahora sale por checkout NOWPayments.
   // Cobrana: requiere pago en Yape/banco (sin voucher Holistic).
   const voucherFlow =
     provider === "manual" ||

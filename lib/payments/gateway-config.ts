@@ -3,7 +3,7 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Stripe + Yape/Plin + Pago manual + Cripto (USDT / NOWPayments).
+ * Stripe + Yape/Plin + Pago manual + Cripto (USDT / NOWPayments, si hay API key).
  * Culqi / Mercado Pago ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [

@@ -270,7 +270,7 @@ export const serverEnv = {
       ? "customer"
       : "merchant",
 
-  /** NOWPayments (cripto). Sandbox: api-sandbox.nowpayments.io */
+  /** NOWPayments (cripto). Sin API key e IPN secret el canal no aparece. Sandbox: api-sandbox.nowpayments.io */
   nowPaymentsApiKey: process.env.NOWPAYMENTS_API_KEY ?? "",
   nowPaymentsIpnSecret: process.env.NOWPAYMENTS_IPN_SECRET ?? "",
   nowPaymentsSandbox: parseBoolean(process.env.NOWPAYMENTS_SANDBOX, !isProduction),
