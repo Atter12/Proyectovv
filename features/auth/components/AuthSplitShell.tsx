@@ -9,7 +9,8 @@ import {
   type LandingLocale,
 } from "@/features/landing/i18n/landing-locale";
 import { LandingLocaleSwitcher } from "@/features/landing/i18n/LandingLocaleSwitcher.client";
-import { AuthLiveCompact, AuthLivePreview } from "./AuthLivePreview.client";
+import { AuthLiveCompact } from "./AuthLivePreview.client";
+import { AuthRechargeDemo } from "./AuthRechargeDemo.client";
 
 interface AuthSplitShellProps {
   children: React.ReactNode;
@@ -44,7 +45,7 @@ export function AuthSplitShell({ children, caption, topRight, accountLinkPositio
     <div className={`auth-shell ${styles.shell}`} lang={locale ? landingLocaleHtmlLang[locale] : undefined}>
       <a href="#auth-content" className={styles.skipLink}>{shellCopy.skipToForm}</a>
       <aside className={styles.brandPanel} aria-label="Ads Holistic">
-        <AuthLivePreview locale={locale ?? "es"} caption={caption} />
+        <AuthRechargeDemo locale={locale ?? "es"} caption={caption} />
         <div className={styles.brandContent}>
           <BrandLogo className={styles.brandLink} homeAria={shellCopy.homeAria} />
         </div>
