@@ -168,6 +168,7 @@ test("la factura lleva order_id, invoice IPN y USDT TRC20 sin rate fijo", () => 
     paymentIntentId: INTENT,
     appUrl: "https://adsholistic.com/",
     payCurrency: "usdttrc20",
+    minUsd: 12,
   });
   assert.equal(built.ok, true);
   if (!built.ok) return;
@@ -188,6 +189,7 @@ test("menos de 12 USD no arma checkout", () => {
     paymentIntentId: INTENT,
     appUrl: "https://adsholistic.com",
     payCurrency: "usdttrc20",
+    minUsd: 12,
   });
   assert.equal(built.ok, false);
   if (built.ok) return;

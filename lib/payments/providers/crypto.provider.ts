@@ -57,6 +57,7 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
       paymentIntentId: input.paymentIntentId,
       appUrl: serverEnv.appUrl,
       payCurrency: serverEnv.nowPaymentsPayCurrency,
+      minUsd: CRYPTO_MIN_USD,
     });
     if (!invoice.ok) {
       throw new CryptoAmountTooSmallError(invoice.amountUsd);

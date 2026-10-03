@@ -1,16 +1,15 @@
-import { isBelowCryptoMinimum } from "../crypto-limits.ts";
-
 export function buildNowPaymentsInvoiceBody(input: {
   amountCents: number;
   currency: string;
   paymentIntentId: string;
   appUrl: string;
   payCurrency: string;
+  minUsd: number;
 }):
   | { ok: true; priceAmount: number; body: Record<string, unknown> }
   | { ok: false; reason: "too_small"; amountUsd: number } {
   const priceAmount = Number((input.amountCents / 100).toFixed(2));
-  if (isBelowCryptoMinimum(priceAmount)) {
+  if (!Number.isFinite(priceAmount) || priceAmount < input.minUsd) {
     return { ok: false, reason: "too_small", amountUsd: priceAmount };
   }
 
