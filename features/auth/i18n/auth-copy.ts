@@ -112,7 +112,7 @@ const es: AuthCopy = {
   login: {
     topRightLabel: "Crear cuenta",
     topRightPrompt: "¿Aún no tienes cuenta?",
-    caption: "Recarga en soles o dólares.\nImpulsa tus campañas.",
+    caption: "Recarga desde cualquier país.\nImpulsa tus campañas.",
     title: "Entra a AdsHolistic.",
     subtitleOtp: "Te enviaremos un código a tu correo.",
     subtitlePassword: "Qué bueno verte de nuevo. Accede a tu panel de anunciante.",
@@ -212,7 +212,7 @@ const en: AuthCopy = {
   login: {
     topRightLabel: "Create account",
     topRightPrompt: "Don't have an account yet?",
-    caption: "Top up in soles or dollars.\nBoost your campaigns.",
+    caption: "Top up from any country.\nBoost your campaigns.",
     title: "Sign in to AdsHolistic.",
     subtitleOtp: "We'll send a code to your email.",
     subtitlePassword: "Good to see you again. Access your advertiser dashboard.",
@@ -312,7 +312,7 @@ const zh: AuthCopy = {
   login: {
     topRightLabel: "创建账户",
     topRightPrompt: "还没有账户？",
-    caption: "支持索尔或美元充值。\n助力你的广告投放。",
+    caption: "在任何国家都能充值。\n助力你的广告投放。",
     title: "登录 AdsHolistic",
     subtitleOtp: "我们会向你的邮箱发送验证码。",
     subtitlePassword: "欢迎回来。进入你的广告主面板。",
@@ -411,7 +411,7 @@ const pt: AuthCopy = {
   login: {
     topRightLabel: "Criar conta",
     topRightPrompt: "Ainda não tem conta?",
-    caption: "Recarregue em reais, soles ou dólares.\nImpulsione suas campanhas.",
+    caption: "Recarregue de qualquer país.\nImpulsione suas campanhas.",
     title: "Entre na AdsHolistic.",
     subtitleOtp: "Vamos enviar um código para o seu e-mail.",
     subtitlePassword: "Que bom te ver de novo. Acesse seu painel de anunciante.",

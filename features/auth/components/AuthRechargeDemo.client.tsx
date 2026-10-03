@@ -7,7 +7,8 @@ import styles from "./authRechargeDemo.module.css";
 /**
  * Demo del panel de login/registro: un celular que reproduce, como una
  * grabación de pantalla, el flujo real de Ads Holistic — recargar la cartera
- * con Yape y asignar ese saldo a la cuenta de TikTok. Montos ilustrativos.
+ * y asignar ese saldo a la cuenta de TikTok. En cada vuelta cambia de país y de
+ * método de pago (solo métodos que la app acepta hoy). Montos ilustrativos.
  */
 
 type Copy = {
@@ -41,10 +42,16 @@ type Copy = {
   tiktokBalance: string;
   active: string;
   ready: string;
+  cardLabel: string;
+  processing: string;
+  sendExactly: string;
+  network: string;
+  methodsLine: string;
+  countriesLine: string;
 };
 
 const ES: Copy = {
-  steps: ["Recarga tu cartera", "Paga con Yape o Plin", "Se acredita al instante", "Asígnalo a TikTok"],
+  steps: ["Recarga tu cartera", "Paga como prefieras", "Se acredita al instante", "Asígnalo a TikTok"],
   appTitle: "Pagos y recargas",
   walletEyebrow: "Cartera Holistic",
   walletHint: "Listo para asignar a cuentas TikTok",
@@ -74,6 +81,12 @@ const ES: Copy = {
   tiktokBalance: "Saldo TikTok",
   active: "Activa",
   ready: "Lista para anunciar",
+  cardLabel: "Tarjeta",
+  processing: "Procesando el pago…",
+  sendExactly: "Envía exactamente",
+  network: "Red",
+  methodsLine: "Tarjeta · Yape · Plin · USDT",
+  countriesLine: "Clientes en Perú, Brasil, Colombia, Ecuador y más",
 };
 
 const EN: Copy = {
@@ -107,6 +120,12 @@ const EN: Copy = {
   tiktokBalance: "TikTok balance",
   active: "Active",
   ready: "Ready to advertise",
+  cardLabel: "Card",
+  processing: "Processing payment…",
+  sendExactly: "Send exactly",
+  network: "Network",
+  methodsLine: "Card · Yape · Plin · USDT",
+  countriesLine: "Clients in Peru, Brazil, Colombia, Ecuador and more",
 };
 
 const COPY: Record<LandingLocale, Copy> = {
@@ -115,6 +134,12 @@ const COPY: Record<LandingLocale, Copy> = {
   pt: {
     ...EN,
     steps: ["Recarregue sua carteira", "Pague como preferir", "Creditado na hora", "Envie para o TikTok"],
+    cardLabel: "Cartão",
+    processing: "Processando o pagamento…",
+    sendExactly: "Envie exatamente",
+    network: "Rede",
+    methodsLine: "Cartão · Yape · Plin · USDT",
+    countriesLine: "Clientes no Peru, Brasil, Colômbia, Equador e mais",
     appTitle: "Pagamentos e recargas",
     walletEyebrow: "Carteira Holistic",
     reload: "Recarregar saldo",
@@ -136,6 +161,72 @@ const COPY: Record<LandingLocale, Copy> = {
   },
 };
 
+// Un país y un método por vuelta. Solo métodos que la app acepta hoy:
+// Yape/Plin (Perú, Cobrana), tarjeta (Stripe, global) y USDT (global).
+type Lang = "es" | "en" | "pt";
+type L = Record<Lang, string>;
+type Persona = {
+  country: L;
+  method: L;
+  kind: "code" | "card" | "usdt";
+  badge: { text: string; className: "yapeBadge" | "visaBadge" | "mcBadge" | "usdtBadge" };
+  pay: string;
+  cardNumber?: string;
+  notifTitle: L;
+  notifDetail: string;
+  store: string;
+};
+
+const same = (s: string): L => ({ es: s, en: s, pt: s });
+
+const PERSONAS: Persona[] = [
+  {
+    country: same("Perú"),
+    method: { es: "Yape, Plin y bancos", en: "Yape, Plin & banks", pt: "Yape, Plin e bancos" },
+    kind: "code",
+    badge: { text: "yape", className: "yapeBadge" },
+    pay: "S/ 370.70",
+    notifTitle: { es: "¡Yapeaste!", en: "Paid with Yape", pt: "Pago com Yape" },
+    notifDetail: "S/ 370.70 · Pago de servicios",
+    store: "Tienda Lima 300.0 USD",
+  },
+  {
+    country: { es: "Brasil", en: "Brazil", pt: "Brasil" },
+    method: { es: "Tarjeta Visa", en: "Visa card", pt: "Cartão Visa" },
+    kind: "card",
+    badge: { text: "VISA", className: "visaBadge" },
+    pay: "$110.00 USD",
+    cardNumber: "•••• 4242",
+    notifTitle: { es: "Compra aprobada", en: "Purchase approved", pt: "Compra aprovada" },
+    notifDetail: "US$ 110.00 · Ads Holistic",
+    store: "Loja São Paulo 301.0 USD",
+  },
+  {
+    country: same("Colombia"),
+    method: same("USDT · Binance"),
+    kind: "usdt",
+    badge: { text: "USDT", className: "usdtBadge" },
+    pay: "110.00 USDT",
+    notifTitle: { es: "Retiro completado", en: "Withdrawal complete", pt: "Saque concluído" },
+    notifDetail: "110.00 USDT · TRC20",
+    store: "Tienda Bogotá 302.0 USD",
+  },
+  {
+    country: { es: "Ecuador", en: "Ecuador", pt: "Equador" },
+    method: { es: "Tarjeta Mastercard", en: "Mastercard", pt: "Cartão Mastercard" },
+    kind: "card",
+    badge: { text: "MC", className: "mcBadge" },
+    pay: "$110.00 USD",
+    cardNumber: "•••• 5100",
+    notifTitle: { es: "Compra aprobada", en: "Purchase approved", pt: "Compra aprovada" },
+    notifDetail: "US$ 110.00 · Ads Holistic",
+    store: "Tienda Quito 303.0 USD",
+  },
+];
+
+// Por idioma, con qué país arranca (portugués → Brasil, inglés → tarjeta).
+const FIRST_PERSONA: Record<LandingLocale, number> = { es: 0, en: 1, pt: 1, zh: 1 };
+
 // Escenas y cuánto dura cada una (ms). El paso resaltado a la izquierda
 // avanza con ellas: 0-1 → paso 1, 2 → paso 2, 3 → paso 3, 4-5 → paso 4.
 const SCENES = [2600, 3600, 3400, 2600, 3600, 3200] as const;
@@ -153,18 +244,22 @@ function useReducedMotion(): boolean {
 
 export function AuthRechargeDemo({ locale = "es", caption }: { locale?: LandingLocale; caption: { title: string; sub?: string } }) {
   const t = COPY[locale] ?? ES;
+  const lang: Lang = locale === "pt" ? "pt" : locale === "es" ? "es" : "en";
   const reduced = useReducedMotion();
-  const [scene, setScene] = useState(0);
+  // `tick` cuenta escenas desde el inicio: escena = tick % 6, vuelta = tick / 6.
+  const [tick, setTick] = useState(0);
+  const scene = tick % SCENES.length;
 
   useEffect(() => {
     if (reduced) return;
-    const timer = window.setTimeout(() => setScene((s) => (s + 1) % SCENES.length), SCENES[scene]);
+    const timer = window.setTimeout(() => setTick((n) => n + 1), SCENES[scene]);
     return () => window.clearTimeout(timer);
-  }, [scene, reduced]);
+  }, [tick, scene, reduced]);
 
   // Con «reducir movimiento» se queda en la pantalla final (saldo en TikTok).
   const shown = reduced ? 5 : scene;
   const step = STEP_OF_SCENE[shown];
+  const persona = PERSONAS[(FIRST_PERSONA[locale] + Math.floor(tick / SCENES.length)) % PERSONAS.length]!;
 
   return (
     <div className={styles.stage} aria-hidden="true">
@@ -177,7 +272,18 @@ export function AuthRechargeDemo({ locale = "es", caption }: { locale?: LandingL
             <span>{label}</span>
           </li>
         ))}
+        <li className={styles.reach}>
+          <span className={styles.reachMethods}>{t.methodsLine}</span>
+          <span>{t.countriesLine}</span>
+        </li>
       </ol>
+
+      <div key={`badge-${persona.store}`} className={styles.countryBadge}>
+        <span className={`${styles.miniBadge} ${styles[persona.badge.className]}`}>{persona.badge.text}</span>
+        <span>
+          <strong>{persona.country[lang]}</strong> · {persona.method[lang]}
+        </span>
+      </div>
 
       <div className={styles.phone}>
         <div className={styles.island} />
@@ -190,11 +296,11 @@ export function AuthRechargeDemo({ locale = "es", caption }: { locale?: LandingL
         <div className={styles.screen}>
           <div key={shown} className={styles.scene}>
             {shown === 0 ? <ScenePagos t={t} balance="$0.00" tapOn="reload" /> : null}
-            {shown === 1 ? <SceneAmount t={t} /> : null}
-            {shown === 2 ? <ScenePay t={t} /> : null}
+            {shown === 1 ? <SceneAmount t={t} p={persona} lang={lang} /> : null}
+            {shown === 2 ? <ScenePay t={t} p={persona} lang={lang} /> : null}
             {shown === 3 ? <SceneDone t={t} /> : null}
-            {shown === 4 ? <SceneAssign t={t} /> : null}
-            {shown === 5 ? <SceneAds t={t} /> : null}
+            {shown === 4 ? <SceneAssign t={t} p={persona} /> : null}
+            {shown === 5 ? <SceneAds t={t} p={persona} /> : null}
           </div>
         </div>
         <div className={styles.homeBar} />
@@ -257,7 +363,11 @@ function Stepper({ t, active }: { t: Copy; active: number }) {
   );
 }
 
-function SceneAmount({ t }: { t: Copy }) {
+function MethodBadge({ p }: { p: Persona }) {
+  return <span className={`${styles.miniBadge} ${styles[p.badge.className]}`}>{p.badge.text}</span>;
+}
+
+function SceneAmount({ t, p, lang }: { t: Copy; p: Persona; lang: Lang }) {
   return (
     <div className={styles.sheet}>
       <Stepper t={t} active={0} />
@@ -273,8 +383,8 @@ function SceneAmount({ t }: { t: Copy }) {
         <div className={styles.summaryTotal}><span>{t.totalPay}</span><span>$110.00</span></div>
       </div>
       <div className={styles.gateway}>
-        <span className={styles.yapeBadge}>yape</span>
-        <span>{t.gatewayLocal}</span>
+        <MethodBadge p={p} />
+        <span>{p.method[lang]}</span>
         <span className={styles.radioOn} />
       </div>
       <span className={`${styles.btnPrimary} ${styles.btnBlock} ${styles.pressLate}`}>
@@ -285,28 +395,48 @@ function SceneAmount({ t }: { t: Copy }) {
   );
 }
 
-function ScenePay({ t }: { t: Copy }) {
+function ScenePay({ t, p, lang }: { t: Copy; p: Persona; lang: Lang }) {
   return (
     <div className={styles.sheet}>
       <Stepper t={t} active={2} />
       <p className={styles.sheetTitle}>{t.titlePay}</p>
       <div className={styles.payBox}>
-        <p className={styles.eyebrow}>{t.paymentCode}</p>
-        <p className={styles.payCode}>4821 0937</p>
+        {p.kind === "code" ? (
+          <>
+            <p className={styles.eyebrow}>{t.paymentCode}</p>
+            <p className={styles.payCode}>4821 0937</p>
+          </>
+        ) : null}
+        {p.kind === "card" ? (
+          <>
+            <p className={styles.eyebrow}>{t.cardLabel}</p>
+            <p className={styles.payCard}>
+              <MethodBadge p={p} />
+              <span>{p.cardNumber}</span>
+            </p>
+          </>
+        ) : null}
+        {p.kind === "usdt" ? (
+          <>
+            <p className={styles.eyebrow}>{t.sendExactly}</p>
+            <p className={styles.payCode}>110.00 USDT</p>
+            <p className={styles.payAddress}>TQ4x…9fA2 · {t.network} TRC20</p>
+          </>
+        ) : null}
         <div className={styles.payRow}>
           <span>{t.youPay}</span>
-          <strong>S/ 370.70</strong>
+          <strong>{p.pay}</strong>
         </div>
       </div>
       <div className={styles.waiting}>
         <span className={styles.spinner} />
-        <span>{t.waiting}</span>
+        <span>{p.kind === "card" ? t.processing : t.waiting}</span>
       </div>
       <div className={styles.yapeNotif}>
-        <span className={styles.yapeBadge}>yape</span>
+        <MethodBadge p={p} />
         <span>
-          <strong>¡Yapeaste!</strong>
-          <span>S/ 370.70 · Pago de servicios</span>
+          <strong>{p.notifTitle[lang]}</strong>
+          <span>{p.notifDetail}</span>
         </span>
       </div>
     </div>
@@ -327,13 +457,13 @@ function SceneDone({ t }: { t: Copy }) {
   );
 }
 
-function SceneAssign({ t }: { t: Copy }) {
+function SceneAssign({ t, p }: { t: Copy; p: Persona }) {
   return (
     <div className={styles.sheet}>
       <p className={styles.sheetTitle}>{t.titleAssign}</p>
       <div className={styles.accountRow}>
         <span className={styles.tiktokDot} />
-        <span className={styles.accountName}>{t.account}</span>
+        <span className={styles.accountName}>{p.store}</span>
         <span className={styles.radioOn} />
       </div>
       <p className={styles.fieldLabel}>{t.amountLabel}</p>
@@ -351,14 +481,14 @@ function SceneAssign({ t }: { t: Copy }) {
   );
 }
 
-function SceneAds({ t }: { t: Copy }) {
+function SceneAds({ t, p }: { t: Copy; p: Persona }) {
   return (
     <>
       <AppHeader title={t.adsTitle} />
       <div className={styles.adCard}>
         <div className={styles.adHead}>
           <span className={styles.tiktokDot} />
-          <span className={styles.accountName}>{t.account}</span>
+          <span className={styles.accountName}>{p.store}</span>
           <span className={styles.activePill}>{t.active}</span>
         </div>
         <p className={styles.eyebrow}>{t.tiktokBalance}</p>
