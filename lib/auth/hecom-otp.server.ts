@@ -25,6 +25,7 @@ import {
   normalizeHecomOtpEmail,
 } from "@/lib/auth/hecom-otp-email";
 import type { User } from "@supabase/supabase-js";
+import { recordSignupAttribution } from "@/lib/partners/partners.server";
 
 const OTP_COOLDOWN_SECONDS = HECOM_OTP_COOLDOWN_SECONDS;
 const GENERIC_OK =
@@ -374,6 +375,11 @@ export async function registerHecomClientOtp(input: {
   dni: string;
   phone: string;
   email: string;
+  attribution?: {
+    partnerSlug: string | null;
+    referralCode: string | null;
+    visitorId: string | null;
+  };
 }): Promise<
   | {
       ok: true;
@@ -455,6 +461,19 @@ export async function registerHecomClientOtp(input: {
     docNumber: dni,
     phone,
   });
+
+  // Aliado o referido que trajo al cliente. Nunca frena el registro.
+  if (input.attribution) {
+    try {
+      await recordSignupAttribution({
+        email,
+        hecomClienteId: created.cliente.id,
+        ...input.attribution,
+      });
+    } catch (error) {
+      console.warn("[hecom-otp] signup_attribution_failed", error);
+    }
+  }
 
   return requestHecomClientOtp({ email });
 }

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
+import { referralCodeForEmail } from "@/lib/partners/partners.server";
 
 interface ProvisioningResult {
   ready: boolean;
@@ -235,7 +236,11 @@ async function recordReferralAttribution(
   user: User,
   organizationId: string,
 ): Promise<void> {
-  const referralCode = getMetadataString(user.user_metadata, "referral_code");
+  // Registro con OTP: el código se guardó por email al crear el cliente,
+  // antes de que existiera el usuario.
+  const referralCode =
+    getMetadataString(user.user_metadata, "referral_code") ??
+    (await referralCodeForEmail(user.email));
   if (!referralCode) return;
 
   const { data: codeRow, error } = await admin

@@ -1,14 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { registerHecomClientOtp } from "@/lib/auth/hecom-otp.server";
 import { HECOM_OTP_COOLDOWN_SECONDS } from "@/lib/auth/hecom-otp-email";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let body: {
     name?: string;
     dni?: string;
     phone?: string;
     email?: string;
+    /** Slug del aliado (landing /a/<slug>) o código de referido (/r/<code>). */
+    partner?: string;
+    referralCode?: string;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -25,6 +28,15 @@ export async function POST(request: Request) {
     dni: body.dni ?? "",
     phone: body.phone ?? "",
     email: body.email ?? "",
+    // El formulario los manda; las cookies cubren el caso en que no llegaron.
+    attribution: {
+      partnerSlug: body.partner || request.cookies.get("ah_partner")?.value || null,
+      referralCode:
+        body.referralCode ||
+        decodeURIComponent(request.cookies.get("vv_referral_code")?.value ?? "") ||
+        null,
+      visitorId: request.cookies.get("ah_vid")?.value ?? null,
+    },
   });
 
   if (!result.ok) {

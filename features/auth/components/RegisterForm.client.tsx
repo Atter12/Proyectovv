@@ -89,6 +89,8 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("ref")?.trim() || null;
+  // Slug del aliado cuando llega desde su landing (/a/<slug> → /register?a=<slug>).
+  const partnerSlug = searchParams.get("a")?.trim().toLowerCase() || null;
   const fromLogin = searchParams.get("from") === "login";
   const [values, setValues] = useState<RegisterFormValues>({
     firstName: "",
@@ -126,8 +128,6 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
     setLoading(true);
 
     try {
-      // Mantener referral en cookie/localStorage para provision post-OTP.
-      void readStoredReferralCode();
 
       const response = await fetch(routes.api.auth.otpRegister, {
         method: "POST",
@@ -138,6 +138,9 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
           dni: values.dni.trim().replace(/\D/g, ""),
           phone: values.phone.trim(),
           email: values.email.trim(),
+          // Se guardan al crear el cliente: el usuario recién existe tras el OTP.
+          referralCode: referralCode ?? readStoredReferralCode(),
+          partner: partnerSlug,
         }),
       });
       const payload = (await response.json()) as {
