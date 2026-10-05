@@ -1,4 +1,5 @@
 import "server-only";
+import { STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
@@ -40,7 +41,7 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
  * Crédito Holistic + candado Stripe. OFF por defecto hasta que gerencia lo active.
  * Env: CREDIT_STRIPE_LOCK_ENABLED=true
  */
-export const CREDIT_STRIPE_LOCK_ENABLED = parseBoolean(
+export const CREDIT_STRIPE_LOCK_ENABLED = STRIPE_PAYMENTS_ENABLED && parseBoolean(
   process.env.CREDIT_STRIPE_LOCK_ENABLED,
   false,
 );

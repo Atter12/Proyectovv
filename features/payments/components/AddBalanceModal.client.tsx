@@ -104,7 +104,7 @@ type Step = "form" | "confirm" | "proof" | "yape" | "result";
 export function AddBalanceModal({
   open,
   onClose,
-  selectedGateway = "stripe",
+  selectedGateway = "cobrana",
   feePercent = 10,
   stripeSurchargePercent = DEFAULT_STRIPE_DEPOSIT_SURCHARGE_PERCENT,
 }: AddBalanceModalProps) {

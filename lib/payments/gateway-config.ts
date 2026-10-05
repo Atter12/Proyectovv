@@ -3,15 +3,10 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Stripe + Yape/Plin + Pago manual + Cripto (USDT / NOWPayments, si hay API key).
+ * Yape/Plin + Pago manual + Cripto (USDT / NOWPayments, si hay API key).
  * Culqi / Mercado Pago ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
-  {
-    id: "stripe",
-    name: "Stripe",
-    description: "Tarjetas y pagos globales",
-  },
   {
     id: "cobrana",
     name: "Yape / Plin",
@@ -30,6 +25,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
 ];
 
 export function isGatewayInMaintenance(id: PaymentGatewayId): boolean {
+  if (id === "stripe") return true;
   return Boolean(PAYMENT_GATEWAYS.find((g) => g.id === id)?.maintenance);
 }
 
@@ -39,5 +35,5 @@ export function getDefaultGatewayId(): PaymentGatewayId {
   if (visible) return visible.id;
 
   const firstActive = PAYMENT_GATEWAYS.find((g) => !g.maintenance);
-  return firstActive?.id ?? "stripe";
+  return firstActive?.id ?? "manual";
 }

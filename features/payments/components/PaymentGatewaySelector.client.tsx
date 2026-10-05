@@ -25,7 +25,7 @@ export function PaymentGatewaySelector({
       aria-label={t("gatewaySelector.aria")}
       className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
     >
-      {gateways.map((gateway) => {
+      {gateways.filter((gateway) => gateway.id !== "stripe").map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
         const isSelected = selected === gateway.id && !inMaintenance;
         const localizedName =

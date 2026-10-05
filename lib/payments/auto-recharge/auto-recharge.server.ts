@@ -1,4 +1,5 @@
 import "server-only";
+import { assertStripePaymentsEnabled } from "../stripe-policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { depositFromDesiredCredit } from "@/lib/payments/deposit-fee";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
@@ -216,6 +217,7 @@ export async function saveAutoRechargeSchedule(input: {
 export async function runCalendarAutoRechargeForRule(
   rule: AutoRechargeRuleRow,
 ): Promise<{ ok: boolean; error?: string }> {
+  assertStripePaymentsEnabled();
   const billing = await getBillingCustomer(rule.organization_id);
   if (
     !billing?.default_payment_method_id ||

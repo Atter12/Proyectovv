@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assertStripePaymentsEnabled } from "./stripe-policy";
 import type { SessionUser } from "@/types/auth";
 import {
   getPaymentProvider,
@@ -107,6 +108,7 @@ export async function createPaymentIntentForSession(
   session: SessionUser,
   input: CreatePaymentIntentRequest,
 ): Promise<CreatePaymentIntentResponse> {
+  if (input.provider === "stripe") assertStripePaymentsEnabled();
   const organizationId =
     input.organizationId?.trim() || session.organizationId || null;
   if (!organizationId) {
@@ -119,7 +121,7 @@ export async function createPaymentIntentForSession(
 
   if (isGatewayInMaintenance(input.provider)) {
     throw new Error(
-      "Este método de pago está en mantenimiento. Usa Stripe por ahora.",
+      "Este método de pago está en mantenimiento. Elige otro método disponible.",
     );
   }
 

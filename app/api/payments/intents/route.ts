@@ -17,6 +17,7 @@ import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-client
 import { isPaymentGatewayId } from "@/types/payment";
 import type { PaymentGatewayId } from "@/types/payment";
 import { getDefaultGatewayId } from "@/lib/payments/gateway-config";
+import { STRIPE_DISABLED_MESSAGE } from "@/lib/payments/stripe-policy";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Los gerentes recargan desde el BM. Solo el super admin o el cliente pueden recargar la cartera con Stripe o Yape.",
+          "Los gerentes recargan desde el BM. Solo el super admin o el cliente pueden recargar la cartera.",
       },
       { status: 403 },
     );
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   }
 
   const providerCandidate = body.provider ?? body.gatewayId ?? getDefaultGatewayId();
+  if (providerCandidate === "stripe") {
+    return NextResponse.json({ error: STRIPE_DISABLED_MESSAGE }, { status: 503 });
+  }
   if (!isPaymentGatewayId(providerCandidate)) {
     return NextResponse.json({ error: "Proveedor inválido." }, { status: 400 });
   }

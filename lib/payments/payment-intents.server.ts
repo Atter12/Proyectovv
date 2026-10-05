@@ -276,7 +276,7 @@ function mapIntentRow(row: {
     provider: row.provider,
     status: row.status,
     providerReference: row.provider_reference,
-    checkoutUrl: row.checkout_url,
+    checkoutUrl: row.provider === "stripe" ? null : row.checkout_url,
     idempotencyKey: row.idempotency_key,
     createdBy: row.created_by ?? null,
     metadata: row.metadata ?? {},

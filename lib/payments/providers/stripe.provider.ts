@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { assertStripePaymentsEnabled, STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
 import {
   ProviderNotConfiguredError,
@@ -10,7 +11,7 @@ import {
 } from "./types";
 
 function stripeConfigured(): boolean {
-  return Boolean(serverEnv.stripeSecretKey);
+  return STRIPE_PAYMENTS_ENABLED && Boolean(serverEnv.stripeSecretKey);
 }
 
 function parseStripeSignatureHeader(signatureHeader: string): {
@@ -67,6 +68,7 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
   }
 
   async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
+    assertStripePaymentsEnabled();
     if (!stripeConfigured()) {
       throw new ProviderNotConfiguredError("stripe");
     }

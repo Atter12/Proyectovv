@@ -1,4 +1,5 @@
 import "server-only";
+import { assertStripePaymentsEnabled } from "./stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
 
 type StripeErrorBody = { error?: { message?: string } };
@@ -9,6 +10,7 @@ async function stripeRequest<T>(
   body?: URLSearchParams,
   idempotencyKey?: string,
 ): Promise<T> {
+  assertStripePaymentsEnabled();
   const secret = serverEnv.stripeSecretKey?.trim();
   if (!secret) {
     throw new Error("Stripe no configurado.");
