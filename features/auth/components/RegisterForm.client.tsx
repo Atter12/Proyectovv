@@ -9,6 +9,15 @@ import { AuthFormHeading, AuthNotice, AuthSubmitButton } from "./AuthFormUi";
 import styles from "./auth.module.css";
 import { getAuthCopy, type AuthCopy } from "../i18n/auth-copy";
 import type { LandingLocale } from "@/features/landing/i18n/landing-locale";
+import {
+  REGISTER_COUNTRIES,
+  getRegisterCountry,
+  isValidDoc,
+  isValidPhone,
+  type RegisterCountry,
+  type RegisterCountryRule,
+} from "@/lib/auth/register-countries.shared";
+import { CountryFlag } from "./CountryFlag";
 
 interface RegisterFormValues {
   firstName: string;
@@ -63,6 +72,8 @@ async function trackReferralClick(code: string): Promise<void> {
 function validateForm(
   values: RegisterFormValues,
   t: AuthCopy["register"],
+  country: RegisterCountryRule,
+  lang: "es" | "en" | "pt" | "zh",
 ): string | null {
   if (values.firstName.trim().length < 2) {
     return t.errFirstName;
@@ -70,12 +81,10 @@ function validateForm(
   if (values.lastName.trim().length < 2) {
     return t.errLastName;
   }
-  const dni = values.dni.trim().replace(/\D/g, "");
-  if (!/^\d{8}$/.test(dni)) {
-    return t.errDni;
+  if (!isValidDoc(country, values.dni)) {
+    return country.docError[lang];
   }
-  const phoneDigits = values.phone.replace(/\D/g, "");
-  if (phoneDigits.length < 9) {
+  if (!isValidPhone(country, values.phone)) {
     return t.errPhone;
   }
   if (!values.email.trim().includes("@")) {
@@ -92,6 +101,10 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
   // Slug del aliado cuando llega desde su landing (/a/<slug> → /register?a=<slug>).
   const partnerSlug = searchParams.get("a")?.trim().toLowerCase() || null;
   const fromLogin = searchParams.get("from") === "login";
+  const lang = locale === "pt" ? "pt" : locale === "en" ? "en" : locale === "zh" ? "zh" : "es";
+  // Portugués arranca en Brasil; el resto en Perú (la mayoría de clientes).
+  const [countryCode, setCountryCode] = useState<RegisterCountry>(locale === "pt" ? "BR" : "PE");
+  const country = getRegisterCountry(countryCode);
   const [values, setValues] = useState<RegisterFormValues>({
     firstName: "",
     lastName: "",
@@ -119,7 +132,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
     event.preventDefault();
     setError(null);
 
-    const validationError = validateForm(values, t);
+    const validationError = validateForm(values, t, country, lang);
     if (validationError) {
       setError(validationError);
       return;
@@ -137,6 +150,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
           name: joinFullName(values),
           dni: values.dni.trim().replace(/\D/g, ""),
           phone: values.phone.trim(),
+          country: country.code,
           email: values.email.trim(),
           // Se guardan al crear el cliente: el usuario recién existe tras el OTP.
           referralCode: referralCode ?? readStoredReferralCode(),
@@ -191,6 +205,36 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
         {fromLogin && (
           <AuthNotice tone="info">{t.notRegisteredNotice}</AuthNotice>
         )}
+
+        <fieldset className={styles.fieldGroup}>
+          <legend className={styles.fieldLabel}>{lang === "en" ? "Country" : lang === "zh" ? "国家" : "País"}</legend>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup">
+            {REGISTER_COUNTRIES.map((c) => {
+              const selected = c.code === country.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => {
+                    setCountryCode(c.code);
+                    // El documento y el teléfono cambian de formato con el país.
+                    setValues((v) => ({ ...v, dni: "", phone: "" }));
+                  }}
+                  className={`flex h-11 items-center gap-2 rounded-xl border px-3 text-[13.5px] font-semibold transition ${
+                    selected
+                      ? "border-[#ff781f] bg-[#fff6ef] text-[#1c1917] shadow-[0_0_0_3px_#ffeadb]"
+                      : "border-[var(--auth-input-border)] bg-white text-[var(--auth-text-muted)] hover:border-[var(--auth-input-border-hover)]"
+                  }`}
+                >
+                  <CountryFlag code={c.code} className="h-[15px] w-[22px] shrink-0 overflow-hidden rounded-[3px] ring-1 ring-black/10" />
+                  <span className="truncate">{c.name[lang]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
 
         <div className={styles.twoColumns}>
           <div className={styles.fieldGroup}>
@@ -249,7 +293,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
             htmlFor="dni"
             className={styles.fieldLabel}
           >
-            {t.dni}
+            {country.docLabel[lang]}
           </label>
           <div className="relative">
             <FieldIcon>
@@ -262,16 +306,16 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
               inputMode="numeric"
               autoComplete="off"
               required
-              maxLength={8}
-              pattern="[0-9]{8}"
+              maxLength={country.docMax}
+              pattern={`[0-9]{${country.docMin},${country.docMax}}`}
               value={values.dni}
               onChange={(event) =>
                 updateField(
                   "dni",
-                  event.target.value.replace(/\D/g, "").slice(0, 8),
+                  event.target.value.replace(/\D/g, "").slice(0, country.docMax),
                 )
               }
-              placeholder={t.dniPlaceholder}
+              placeholder={country.docPlaceholder[lang]}
               className={inputClassName}
             />
           </div>
@@ -291,7 +335,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
               </svg>
             </FieldIcon>
             <div className="pointer-events-none absolute left-11 top-1/2 z-[1] -translate-y-1/2 text-[13px] font-semibold text-[var(--auth-text-muted)]">
-              +51
+              +{country.dial}
             </div>
             <input
               id="phone"
@@ -301,8 +345,10 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
               required
               value={values.phone}
               onChange={(event) => updateField("phone", event.target.value)}
-              placeholder="987 654 321"
+              placeholder={country.phonePlaceholder}
               className={`${inputClassName} auth-field--phone`}
+              // +593 es más largo que +51: el texto arranca después del prefijo.
+              style={{ paddingLeft: country.dial.length >= 3 ? "5.35rem" : undefined }}
             />
           </div>
         </div>

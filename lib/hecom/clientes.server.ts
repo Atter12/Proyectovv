@@ -1,6 +1,14 @@
 import "server-only";
 import { cache } from "react";
 import {
+  getRegisterCountry,
+  isValidDoc,
+  isValidPhone,
+  storedDoc,
+  storedPhone,
+  type RegisterCountry,
+} from "@/lib/auth/register-countries.shared";
+import {
   getHecomClienteFromBackup,
   listHecomClientesFromBackup,
 } from "@/lib/hecom/backup.server";
@@ -466,35 +474,34 @@ export async function createHecomCliente(input: {
   dni: string;
   email: string;
   phone: string;
+  /** País del registro (documento y teléfono). Perú si no viene. */
+  country?: RegisterCountry;
 }): Promise<
   | { ok: true; cliente: HecomCliente }
   | { ok: false; message: string; code?: "duplicate_email" | "config" | "insert" }
 > {
+  const country = getRegisterCountry(input.country);
   const name = String(input.name ?? "").trim();
-  const dni = String(input.dni ?? "").replace(/\D/g, "");
   const email = String(input.email ?? "").trim().toLowerCase();
-  const phoneDigits = String(input.phone ?? "").replace(/\D/g, "");
 
   if (name.length < 2) {
     return { ok: false, message: "Ingresa tu nombre completo.", code: "insert" };
   }
-  if (!/^\d{8}$/.test(dni)) {
-    return {
-      ok: false,
-      message: "Ingresa tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
-      code: "insert",
-    };
+  if (!isValidDoc(country, input.dni)) {
+    return { ok: false, message: country.docError.es, code: "insert" };
   }
   if (!email.includes("@")) {
     return { ok: false, message: "Correo electrónico inválido.", code: "insert" };
   }
-  if (phoneDigits.length < 9) {
+  if (!isValidPhone(country, input.phone)) {
     return {
       ok: false,
-      message: "Ingresa un número telefónico válido (mín. 9 dígitos).",
+      message: `Ingresa un teléfono válido de ${country.name.es}.`,
       code: "insert",
     };
   }
+  // Perú sin prefijo (como siempre); el resto «CO-…», «EC-…», «BR-…».
+  const dni = storedDoc(country, input.dni);
 
   const cfg = getHecomSupabaseConfig();
   if (!cfg.configured) {
@@ -514,12 +521,7 @@ export async function createHecomCliente(input: {
     };
   }
 
-  const phoneNormalized =
-    phoneDigits.length === 9
-      ? `+51${phoneDigits}`
-      : phoneDigits.startsWith("51") && phoneDigits.length >= 11
-        ? `+${phoneDigits}`
-        : `+${phoneDigits}`;
+  const phoneNormalized = storedPhone(country, input.phone);
 
   try {
     const hecom = createHecomAdminClient();

@@ -26,6 +26,12 @@ import {
 } from "@/lib/auth/hecom-otp-email";
 import type { User } from "@supabase/supabase-js";
 import { recordSignupAttribution } from "@/lib/partners/partners.server";
+import {
+  getRegisterCountry,
+  isValidDoc,
+  isValidPhone,
+  type RegisterCountry,
+} from "@/lib/auth/register-countries.shared";
 
 const OTP_COOLDOWN_SECONDS = HECOM_OTP_COOLDOWN_SECONDS;
 const GENERIC_OK =
@@ -375,6 +381,7 @@ export async function registerHecomClientOtp(input: {
   dni: string;
   phone: string;
   email: string;
+  country?: RegisterCountry;
   attribution?: {
     partnerSlug: string | null;
     referralCode: string | null;
@@ -397,6 +404,7 @@ export async function registerHecomClientOtp(input: {
     return { ok: false, error: "OTP Hecom deshabilitado.", status: 403 };
   }
 
+  const country = getRegisterCountry(input.country);
   const name = String(input.name ?? "").trim();
   const dni = String(input.dni ?? "").replace(/\D/g, "");
   const phone = String(input.phone ?? "").trim();
@@ -406,18 +414,14 @@ export async function registerHecomClientOtp(input: {
   if (name.length < 2) {
     return { ok: false, error: "Ingresa tu nombre completo.", status: 400 };
   }
-  if (!/^\d{8}$/.test(dni)) {
-    return {
-      ok: false,
-      error: "Ingresa tu DNI (exactamente 8 dígitos). No se acepta RUC ni pasaporte.",
-      status: 400,
-    };
+  if (!isValidDoc(country, dni)) {
+    return { ok: false, error: country.docError.es, status: 400 };
   }
   const phoneDigits = phone.replace(/\D/g, "");
-  if (phoneDigits.length < 9) {
+  if (!isValidPhone(country, phone)) {
     return {
       ok: false,
-      error: "Ingresa un teléfono válido (mín. 9 dígitos).",
+      error: `Ingresa un teléfono válido de ${country.name.es}.`,
       status: 400,
     };
   }
@@ -437,6 +441,7 @@ export async function registerHecomClientOtp(input: {
     dni,
     email,
     phone,
+    country: country.code,
   });
 
   if (!created.ok) {

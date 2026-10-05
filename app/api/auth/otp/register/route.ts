@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { registerHecomClientOtp } from "@/lib/auth/hecom-otp.server";
+import { isRegisterCountry } from "@/lib/auth/register-countries.shared";
 import { HECOM_OTP_COOLDOWN_SECONDS } from "@/lib/auth/hecom-otp-email";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
 
@@ -12,6 +13,8 @@ export async function POST(request: NextRequest) {
     /** Slug del aliado (landing /a/<slug>) o código de referido (/r/<code>). */
     partner?: string;
     referralCode?: string;
+    /** PE, CO, EC o BR. */
+    country?: string;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -28,6 +31,7 @@ export async function POST(request: NextRequest) {
     dni: body.dni ?? "",
     phone: body.phone ?? "",
     email: body.email ?? "",
+    country: isRegisterCountry(body.country) ? body.country : "PE",
     // El formulario los manda; las cookies cubren el caso en que no llegaron.
     attribution: {
       partnerSlug: body.partner || request.cookies.get("ah_partner")?.value || null,

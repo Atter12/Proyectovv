@@ -149,7 +149,7 @@ const es: AuthCopy = {
     captionSub: "Ads Holistic, la plataforma de Holistic Marketing.",
     title: "Crea tu cuenta",
     subtitle:
-      "Completa tus datos y tu DNI. Te enviaremos un código por correo para verificar tu cuenta.",
+      "Elige tu país y completa tus datos. Te enviaremos un código por correo para verificar tu cuenta.",
     firstName: "Nombres",
     firstNamePlaceholder: "María Fernanda",
     lastName: "Apellidos",
@@ -249,7 +249,7 @@ const en: AuthCopy = {
     captionSub: "Ads Holistic, the Holistic Marketing platform.",
     title: "Create your account",
     subtitle:
-      "Fill in your details and your DNI (Peruvian ID). We'll email you a code to verify your account.",
+      "Choose your country and fill in your details. We'll email you a code to verify your account.",
     firstName: "First names",
     firstNamePlaceholder: "Maria Fernanda",
     lastName: "Last names",
@@ -348,7 +348,7 @@ const zh: AuthCopy = {
     captionTitle: "一个钱包，管理你的所有账户。",
     captionSub: "Ads Holistic，Holistic Marketing 旗下平台。",
     title: "创建账户",
-    subtitle: "请填写你的信息和 DNI（秘鲁身份证）。我们会通过邮件发送验证码来验证你的账户。",
+    subtitle: "请选择国家并填写你的信息。我们会通过邮件发送验证码来验证你的账户。",
     firstName: "名字",
     firstNamePlaceholder: "María Fernanda",
     lastName: "姓氏",
@@ -448,7 +448,7 @@ const pt: AuthCopy = {
     captionSub: "Ads Holistic, a plataforma da Holistic Marketing.",
     title: "Crie sua conta",
     subtitle:
-      "Preencha seus dados e seu documento (DNI). Vamos enviar um código por e-mail para verificar sua conta.",
+      "Escolha seu país e preencha seus dados. Vamos enviar um código por e-mail para verificar sua conta.",
     firstName: "Nome",
     firstNamePlaceholder: "Maria Fernanda",
     lastName: "Sobrenome",
