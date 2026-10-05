@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import type { PartnerWithStats } from "@/lib/partners/partners-admin.server";
 import {
+  assignClientToPartnerAction,
   markPartnerCommissionsPaidAction,
   savePartnerAction,
   setPartnerStatusAction,
@@ -220,6 +221,23 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" className={btnSmall} onClick={() => void copy(url)}>Copiar link</button>
+                    {p.panelUrl ? (
+                      <button type="button" className={btnSmall} onClick={() => void copy(p.panelUrl!)} title="Link privado: el aliado ve sus visitas, clientes y comisiones">
+                        Link de su panel
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={btnSmall}
+                      disabled={pending}
+                      onClick={() => {
+                        const email = window.prompt(`Correo del cliente que trajo ${p.name}:`);
+                        if (!email) return;
+                        run(() => assignClientToPartnerAction(p.id, email), "Cliente asignado al aliado.");
+                      }}
+                    >
+                      Asignar cliente
+                    </button>
                     <a className={btnSmall} href={`/a/${p.slug}`} target="_blank" rel="noreferrer">Abrir</a>
                     <button type="button" className={btnSmall} onClick={() => setForm(toInput(p))}>Editar</button>
                     <button

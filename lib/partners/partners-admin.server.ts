@@ -1,5 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { serverEnv } from "@/lib/env/env.server";
+import { partnerPanelUrl } from "./partner-panel-token";
 
 export type PartnerWithStats = {
   id: string;
@@ -16,6 +18,8 @@ export type PartnerWithStats = {
   status: "active" | "paused";
   notes: string | null;
   createdAt: string;
+  /** Link privado del panel del aliado (null si falta el secreto). */
+  panelUrl: string | null;
   stats: {
     visits30d: number;
     uniqueVisitors30d: number;
@@ -64,6 +68,7 @@ export async function listPartnersWithStats(): Promise<PartnerWithStats[]> {
       status: p.status,
       notes: p.notes,
       createdAt: p.created_at,
+      panelUrl: serverEnv.holisticWaSnapshotSecret ? partnerPanelUrl(p.id, serverEnv.holisticWaSnapshotSecret) : null,
       stats: {
         visits30d: mine30.length,
         uniqueVisitors30d: new Set(mine30.map((v) => v.visitor_id).filter(Boolean)).size,

@@ -5,6 +5,7 @@ import { routes } from "@/config/routes";
 import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
 import { PARTNER_SLUG_RE } from "@/lib/partners/partners.shared";
 
 export type PartnerActionResult = { ok: true } | { ok: false; error: string };
@@ -95,6 +96,48 @@ export async function setPartnerStatusAction(id: string, status: "active" | "pau
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  revalidatePath(routes.alianzas);
+  return { ok: true };
+}
+
+/**
+ * Asigna a mano un cliente que ya existía (por su correo) a un aliado. Para los
+ * clientes que el aliado trajo antes de tener landing. No pisa otro aliado.
+ */
+export async function assignClientToPartnerAction(partnerId: string, email: string): Promise<PartnerActionResult> {
+  const staff = await assertStaff();
+  if (!staff.ok) return staff;
+  const normalized = String(email ?? "").trim().toLowerCase();
+  if (!normalized.includes("@")) return { ok: false, error: "Escribe el correo del cliente." };
+
+  const admin = createAdminClient();
+  const { data: partner } = await admin.from("partners").select("id,commission_months").eq("id", partnerId).maybeSingle();
+  if (!partner) return { ok: false, error: "Aliado no encontrado." };
+
+  const { data: matches, error: findError } = await createHecomAdminClient()
+    .from("clientes")
+    .select("id,name")
+    .contains("emails", [normalized])
+    .limit(2);
+  if (findError) return { ok: false, error: findError.message };
+  if (!matches?.length) return { ok: false, error: "No hay ningún cliente con ese correo en Hecom." };
+  if (matches.length > 1) return { ok: false, error: "Hay más de un cliente con ese correo: asígnalo desde soporte." };
+
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setMonth(expires.getMonth() + Number(partner.commission_months));
+  const { error } = await admin.from("partner_clients").insert({
+    partner_id: partnerId,
+    hecom_cliente_id: String(matches[0]!.id),
+    email: normalized,
+    source: "manual",
+    attributed_at: now.toISOString(),
+    expires_at: expires.toISOString(),
+    created_by: staff.userId,
+  });
+  if (error) {
+    return { ok: false, error: error.code === "23505" ? "Ese cliente ya pertenece a un aliado." : error.message };
+  }
   revalidatePath(routes.alianzas);
   return { ok: true };
 }
