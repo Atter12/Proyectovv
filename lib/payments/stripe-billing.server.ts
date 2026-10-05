@@ -1,8 +1,7 @@
 import "server-only";
-import { assertStripePaymentsEnabled } from "./stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
+import { STRIPE_DISABLED_MESSAGE } from "./stripe-policy";
 
-type StripeErrorBody = { error?: { message?: string } };
 
 async function stripeRequest<T>(
   method: "GET" | "POST",
@@ -10,34 +9,9 @@ async function stripeRequest<T>(
   body?: URLSearchParams,
   idempotencyKey?: string,
 ): Promise<T> {
-  assertStripePaymentsEnabled();
-  const secret = serverEnv.stripeSecretKey?.trim();
-  if (!secret) {
-    throw new Error("Stripe no configurado.");
-  }
-
-  const url = `https://api.stripe.com/v1${path.startsWith("/") ? path : `/${path}`}`;
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${secret}`,
-    Accept: "application/json",
-  };
-  if (method === "POST") {
-    headers["Content-Type"] = "application/x-www-form-urlencoded";
-    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
-  }
-
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: method === "POST" ? body?.toString() : undefined,
-    cache: "no-store",
-  });
-
-  const json = (await response.json()) as T & StripeErrorBody;
-  if (!response.ok) {
-    throw new Error(json.error?.message ?? `Stripe HTTP ${response.status}`);
-  }
-  return json;
+  // Outbound Stripe access has been removed, including setup and off-session charges.
+  void [method, path, body, idempotencyKey];
+  throw new Error(STRIPE_DISABLED_MESSAGE);
 }
 
 export type StripePaymentMethodSummary = {

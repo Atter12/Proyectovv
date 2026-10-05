@@ -1,18 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { assertStripePaymentsEnabled, STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
+import { STRIPE_DISABLED_MESSAGE } from "../stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
 import {
-  ProviderNotConfiguredError,
   type CreateCheckoutInput,
   type CreateCheckoutResult,
   type PaymentProviderAdapter,
   type VerifiedWebhookEvent,
   type VerifyWebhookInput,
 } from "./types";
-
-function stripeConfigured(): boolean {
-  return STRIPE_PAYMENTS_ENABLED && Boolean(serverEnv.stripeSecretKey);
-}
 
 function parseStripeSignatureHeader(signatureHeader: string): {
   timestamp?: number;
@@ -64,72 +59,12 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
   id = "stripe" as const;
 
   isConfigured(): boolean {
-    return stripeConfigured();
+    return false;
   }
 
   async createCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
-    assertStripePaymentsEnabled();
-    if (!stripeConfigured()) {
-      throw new ProviderNotConfiguredError("stripe");
-    }
-
-    const params = new URLSearchParams();
-    params.set("mode", "payment");
-    params.set("success_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=success`);
-    params.set("cancel_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=cancelled`);
-    params.set("client_reference_id", input.paymentIntentId);
-    // Metadata en la Checkout Session…
-    params.set("metadata[payment_intent_id]", input.paymentIntentId);
-    params.set("metadata[organization_id]", input.organizationId);
-    params.set("metadata[wallet_id]", input.walletId);
-    // …y también en el PaymentIntent (si no, payment_intent.succeeded llega sin id interno → 500).
-    params.set(
-      "payment_intent_data[metadata][payment_intent_id]",
-      input.paymentIntentId,
-    );
-    params.set(
-      "payment_intent_data[metadata][organization_id]",
-      input.organizationId,
-    );
-    params.set("payment_intent_data[metadata][wallet_id]", input.walletId);
-    params.set("line_items[0][price_data][currency]", input.currency.toLowerCase());
-    params.set("line_items[0][price_data][unit_amount]", String(input.amountCents));
-    params.set("line_items[0][price_data][product_data][name]", "Recarga de cartera");
-    params.set("line_items[0][quantity]", "1");
-    // Solo tarjeta: Klarna/Afterpay/Affirm/etc. rompen Checkout fuera de US
-    // ("Something went wrong" en Safari / clientes internacionales).
-    params.append("payment_method_types[]", "card");
-    params.set("adaptive_pricing[enabled]", "false");
-    if (input.customerEmail) {
-      params.set("customer_email", input.customerEmail);
-    }
-
-    const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${serverEnv.stripeSecretKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Idempotency-Key": input.idempotencyKey,
-      },
-      body: params.toString(),
-    });
-
-    const data = (await response.json()) as {
-      id?: string;
-      url?: string;
-      error?: { message?: string };
-    };
-
-    if (!response.ok || !data.id) {
-      throw new Error(data.error?.message ?? "No se pudo crear la sesión de Stripe.");
-    }
-
-    return {
-      providerReference: data.id,
-      checkoutUrl: data.url ?? null,
-      status: "requires_payment",
-      message: "Redirigiendo al checkout de Stripe…",
-    };
+    void input;
+    throw new Error(STRIPE_DISABLED_MESSAGE);
   }
 
   async verifyWebhook(input: VerifyWebhookInput): Promise<VerifiedWebhookEvent | null> {
