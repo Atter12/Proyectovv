@@ -238,6 +238,8 @@ export const config = {
     "/payments/:path*",
     "/links-deuda",
     "/links-deuda/:path*",
+    "/alianzas",
+    "/alianzas/:path*",
     "/monitoreo",
     "/monitoreo/:path*",
     "/cobros",

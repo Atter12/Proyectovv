@@ -11,6 +11,7 @@ export type NavItemKey =
   | "cobros"
   | "gastos"
   | "affiliates"
+  | "alliances"
   | "registrationContracts"
   | "creativeAnalyzer"
   | "pixels"

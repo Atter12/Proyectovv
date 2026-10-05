@@ -27,6 +27,7 @@ export const mainNavigation: NavItem[] = [
   { key: "prepagoMonitor", href: routes.monitoreo, icon: "monitor" },
   { key: "cobros", href: routes.cobros, icon: "cobros" },
   { key: "affiliates", href: routes.affiliates, icon: "affiliates" },
+  { key: "alliances", href: routes.alianzas, icon: "affiliates" },
   { key: "registrationContracts", href: routes.registrationContracts, icon: "contracts" },
   {
     key: "creativeAnalyzer",

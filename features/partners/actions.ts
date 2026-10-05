@@ -1,0 +1,114 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { routes } from "@/config/routes";
+import { requireSession } from "@/lib/auth/guards.server";
+import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { PARTNER_SLUG_RE } from "@/lib/partners/partners.shared";
+
+export type PartnerActionResult = { ok: true } | { ok: false; error: string };
+
+export type PartnerInput = {
+  id?: string | null;
+  slug: string;
+  name: string;
+  headline: string;
+  subheadline: string;
+  logoUrl: string;
+  photoUrl: string;
+  accentColor: string;
+  whatsapp: string;
+  commissionPercent: number;
+  commissionMonths: number;
+  notes: string;
+};
+
+async function assertStaff(): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const session = await requireSession();
+  const caps = await resolvePaymentsFundingCapabilities({ email: session.email, role: session.role });
+  if (!caps.isStaff && !caps.isSuperAdmin) return { ok: false, error: "Solo gerentes pueden gestionar alianzas." };
+  return { ok: true, userId: session.id };
+}
+
+const clean = (v: string, max = 300) => {
+  const s = String(v ?? "").trim();
+  return s ? s.slice(0, max) : null;
+};
+const isHttpUrl = (v: string | null) => !v || /^https:\/\/\S+$/i.test(v);
+
+export async function savePartnerAction(input: PartnerInput): Promise<PartnerActionResult> {
+  const staff = await assertStaff();
+  if (!staff.ok) return staff;
+
+  const slug = String(input.slug ?? "").trim().toLowerCase();
+  if (!PARTNER_SLUG_RE.test(slug)) {
+    return { ok: false, error: "El link debe tener 2–40 letras minúsculas, números o guiones (ej. mentor-juan)." };
+  }
+  const name = clean(input.name, 80);
+  if (!name) return { ok: false, error: "Pon el nombre del aliado." };
+  const logoUrl = clean(input.logoUrl, 500);
+  const photoUrl = clean(input.photoUrl, 500);
+  if (!isHttpUrl(logoUrl) || !isHttpUrl(photoUrl)) {
+    return { ok: false, error: "Logo y foto deben ser links https://." };
+  }
+  const accent = /^#[0-9a-fA-F]{6}$/.test(input.accentColor) ? input.accentColor : "#ff781f";
+  const percent = Number(input.commissionPercent);
+  if (!Number.isFinite(percent) || percent < 0 || percent > 50) {
+    return { ok: false, error: "La comisión debe estar entre 0% y 50% del fee." };
+  }
+  const months = Math.round(Number(input.commissionMonths));
+  if (!Number.isFinite(months) || months < 1 || months > 120) {
+    return { ok: false, error: "Los meses de comisión deben estar entre 1 y 120." };
+  }
+
+  const row = {
+    slug,
+    name,
+    headline: clean(input.headline, 120),
+    subheadline: clean(input.subheadline, 300),
+    logo_url: logoUrl,
+    photo_url: photoUrl,
+    accent_color: accent,
+    whatsapp: clean(String(input.whatsapp ?? "").replace(/[^\d+]/g, ""), 20),
+    commission_rate: Math.round(percent * 100) / 10000,
+    commission_months: months,
+    notes: clean(input.notes, 1000),
+    updated_at: new Date().toISOString(),
+  };
+  const admin = createAdminClient();
+  const { error } = input.id
+    ? await admin.from("partners").update(row).eq("id", input.id)
+    : await admin.from("partners").insert({ ...row, created_by: staff.userId });
+  if (error) {
+    return { ok: false, error: error.code === "23505" ? "Ese link ya lo usa otro aliado." : error.message };
+  }
+  revalidatePath(routes.alianzas);
+  return { ok: true };
+}
+
+export async function setPartnerStatusAction(id: string, status: "active" | "paused"): Promise<PartnerActionResult> {
+  const staff = await assertStaff();
+  if (!staff.ok) return staff;
+  const { error } = await createAdminClient()
+    .from("partners")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(routes.alianzas);
+  return { ok: true };
+}
+
+/** Marca como pagadas todas las comisiones pendientes del aliado (liquidación). */
+export async function markPartnerCommissionsPaidAction(partnerId: string, note: string): Promise<PartnerActionResult> {
+  const staff = await assertStaff();
+  if (!staff.ok) return staff;
+  const { error } = await createAdminClient()
+    .from("partner_commissions")
+    .update({ status: "paid", paid_at: new Date().toISOString(), payout_note: clean(note, 300) })
+    .eq("partner_id", partnerId)
+    .eq("status", "pending");
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(routes.alianzas);
+  return { ok: true };
+}

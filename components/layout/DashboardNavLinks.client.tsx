@@ -191,6 +191,7 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
     if (item.href === "/payments/profit") return false;
     if (item.href === "/payments/missing-cobros") return false;
     if (item.href === "/links-deuda") return false;
+    if (item.href === "/alianzas") return false;
     if (item.href === "/monitoreo") return false;
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;

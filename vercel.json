@@ -32,6 +32,10 @@
     {
       "path": "/api/jobs/tiktok/spend-snapshot",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/jobs/partner-commissions",
+      "schedule": "20 * * * *"
     }
   ]
 }
