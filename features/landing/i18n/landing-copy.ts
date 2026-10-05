@@ -143,9 +143,9 @@ export type LandingCopy = {
 
 const es: LandingCopy = {
   meta: {
-    title: "Agencia de TikTok Ads · Recarga con billetera, cripto o Stripe | Ads Holistic",
+    title: "Agencia de TikTok Ads · Recarga con billetera o cripto | Ads Holistic",
     description:
-      "Publica tus anuncios en TikTok: crea cuentas publicitarias, recarga con billetera, cripto o Stripe y mide el ROAS real. Para marcas y agencias en varios países.",
+      "Publica tus anuncios en TikTok: crea cuentas publicitarias, recarga con billetera o cripto y mide el ROAS real. Para marcas y agencias en varios países.",
   },
   skipToContent: "Saltar al contenido",
   nav: {
@@ -167,12 +167,12 @@ const es: LandingCopy = {
     titlePrefix: "Controla tus",
     rotating: ["campañas TikTok", "recargas", "creativos", "ganancias"],
     titleSuffix: "desde un solo panel.",
-    lead: "Recarga con billetera, cripto o Stripe, crea tus cuentas TikTok, reparte el saldo y mide el ROAS real de cada campaña. Sin planillas ni dashboards genéricos.",
+    lead: "Recarga con billetera o cripto, crea tus cuentas TikTok, reparte el saldo y mide el ROAS real de cada campaña. Sin planillas ni dashboards genéricos.",
     imageAlt: `${n} — panel de cartera, cuentas TikTok y operación Hecom`,
   },
   payments: {
     label: "Recarga como prefieras",
-    methods: ["Billetera", "Stripe", "Cripto (USDT)", "Tarjeta", "Transferencia"],
+    methods: ["Billetera", "Cripto (USDT)", "Transferencia"],
   },
   showcase: {
     pill: "Producto",
@@ -197,7 +197,7 @@ const es: LandingCopy = {
         title: "Tu saldo, donde lo necesitas",
         body: "Recarga tu cartera Holistic y reparte el saldo entre tus cuentas en segundos.",
         bullets: [
-          "Billetera, Stripe, cripto (USDT) o tarjeta.",
+          "Billetera o cripto (USDT) o transferencia.",
           "Asigna saldo a cada cuenta y muévelo entre cuentas cuando quieras.",
           "Recupera el saldo de una cuenta suspendida a tu cartera, sin tickets.",
         ],
@@ -289,7 +289,7 @@ const es: LandingCopy = {
     lead: "Sin onboarding eterno: en cuatro pasos estás anunciando.",
     steps: [
       { title: "Regístrate", body: "Con tus datos y DNI. Te llega un código al correo y entras." },
-      { title: "Recarga tu cartera", body: "Con billetera, Stripe, cripto o tarjeta." },
+      { title: "Recarga tu cartera", body: "Con billetera o cripto o transferencia." },
       { title: "Crea y asigna", body: "Crea tus cuentas TikTok y reparte el saldo entre ellas." },
       { title: "Mide y escala", body: "Revisa gasto, ROAS y creativos, y escala lo que funciona." },
     ],
@@ -367,7 +367,7 @@ const es: LandingCopy = {
     items: [
       {
         q: "¿Qué es Ads Holistic?",
-        a: `Es la plataforma de ${n} para publicar y gestionar tus anuncios en TikTok: cuentas publicitarias, recargas con billetera, cripto o Stripe, píxel, creativos con IA y reportes de ROAS en un solo panel.`,
+        a: `Es la plataforma de ${n} para publicar y gestionar tus anuncios en TikTok: cuentas publicitarias, recargas con billetera o cripto, píxel, creativos con IA y reportes de ROAS en un solo panel.`,
       },
       {
         q: "¿Con qué plataformas de anuncios trabajan?",
@@ -375,7 +375,7 @@ const es: LandingCopy = {
       },
       {
         q: "¿Cómo recargo saldo?",
-        a: "Desde tu cartera, con billetera, Stripe, cripto (USDT) o tarjeta. Luego asignas el saldo a tus cuentas.",
+        a: "Desde tu cartera, con billetera o cripto (USDT) o transferencia. Luego asignas el saldo a tus cuentas.",
       },
       {
         q: "¿Puedo crear mis propias cuentas TikTok?",
@@ -418,9 +418,9 @@ const es: LandingCopy = {
 
 const en: LandingCopy = {
   meta: {
-    title: "TikTok Ads agency · Top up with wallet, crypto or Stripe | Ads Holistic",
+    title: "TikTok Ads agency · Top up with wallet or crypto | Ads Holistic",
     description:
-      "Run your TikTok ads: create ad accounts, top up with a wallet, crypto or Stripe and measure real ROAS. For brands and agencies in many countries.",
+      "Run your TikTok ads: create ad accounts, top up with a wallet or crypto and measure real ROAS. For brands and agencies in many countries.",
   },
   skipToContent: "Skip to content",
   nav: {
@@ -442,12 +442,12 @@ const en: LandingCopy = {
     titlePrefix: "Run your",
     rotating: ["TikTok campaigns", "top-ups", "creatives", "profits"],
     titleSuffix: "from one dashboard.",
-    lead: "Top up with a wallet, crypto or Stripe, create your TikTok ad accounts, split your balance and measure the real ROAS of every campaign. No spreadsheets, no generic dashboards.",
+    lead: "Top up with a wallet or crypto, create your TikTok ad accounts, split your balance and measure the real ROAS of every campaign. No spreadsheets, no generic dashboards.",
     imageAlt: `${n} — wallet, TikTok accounts and Hecom operations dashboard`,
   },
   payments: {
     label: "Top up your way",
-    methods: ["Wallet", "Stripe", "Crypto (USDT)", "Card", "Bank transfer"],
+    methods: ["Wallet", "Crypto (USDT)", "Bank transfer"],
   },
   showcase: {
     pill: "Product",
@@ -472,7 +472,7 @@ const en: LandingCopy = {
         title: "Your balance, where you need it",
         body: "Top up your Holistic wallet and split the balance across your accounts in seconds.",
         bullets: [
-          "Wallet, Stripe, crypto (USDT) or card.",
+          "Wallet or crypto (USDT) or bank transfer.",
           "Assign balance to each account and move it between accounts anytime.",
           "Pull the balance of a suspended account back to your wallet, no tickets needed.",
         ],
@@ -564,7 +564,7 @@ const en: LandingCopy = {
     lead: "No endless onboarding: four steps and you're advertising.",
     steps: [
       { title: "Sign up", body: "With your details and Peruvian DNI. A code arrives by email and you're in." },
-      { title: "Top up your wallet", body: "With a wallet, Stripe, crypto or card." },
+      { title: "Top up your wallet", body: "With a wallet or crypto or bank transfer." },
       { title: "Create and assign", body: "Create your TikTok accounts and split the balance between them." },
       { title: "Measure and scale", body: "Check spend, ROAS and creatives, and scale what works." },
     ],
@@ -642,7 +642,7 @@ const en: LandingCopy = {
     items: [
       {
         q: "What is Ads Holistic?",
-        a: `It's the platform of ${n} to publish and manage your TikTok ads: ad accounts, top-ups with a wallet, crypto or Stripe, pixel, AI creative analysis and ROAS reports in one dashboard.`,
+        a: `It's the platform of ${n} to publish and manage your TikTok ads: ad accounts, top-ups with a wallet or crypto, pixel, AI creative analysis and ROAS reports in one dashboard.`,
       },
       {
         q: "Which ad platforms do you work with?",
@@ -650,7 +650,7 @@ const en: LandingCopy = {
       },
       {
         q: "How do I top up my balance?",
-        a: "From your wallet, with a wallet, Stripe, crypto (USDT) or card. Then you assign the balance to your accounts.",
+        a: "From your wallet, with a wallet or crypto (USDT) or bank transfer. Then you assign the balance to your accounts.",
       },
       {
         q: "Can I create my own TikTok accounts?",
@@ -693,9 +693,9 @@ const en: LandingCopy = {
 
 const zh: LandingCopy = {
   meta: {
-    title: "TikTok 广告代理 · 支持钱包、加密货币或 Stripe 充值 | Ads Holistic",
+    title: "TikTok 广告代理 · 支持钱包、加密货币充值 | Ads Holistic",
     description:
-      "投放你的 TikTok 广告：创建广告账户，使用钱包、加密货币或 Stripe 充值，并衡量真实 ROAS。面向多个国家的品牌与代理商。",
+      "投放你的 TikTok 广告：创建广告账户，使用钱包、加密货币充值，并衡量真实 ROAS。面向多个国家的品牌与代理商。",
   },
   skipToContent: "跳到内容",
   nav: {
@@ -717,12 +717,12 @@ const zh: LandingCopy = {
     titlePrefix: "一个面板，掌控你的",
     rotating: ["TikTok 广告", "充值", "创意素材", "利润"],
     titleSuffix: "",
-    lead: "通过钱包、加密货币或 Stripe 充值，自助创建 TikTok 广告账户，分配余额，并衡量每个广告系列的真实 ROAS。告别电子表格和千篇一律的仪表盘。",
+    lead: "通过钱包、加密货币充值，自助创建 TikTok 广告账户，分配余额，并衡量每个广告系列的真实 ROAS。告别电子表格和千篇一律的仪表盘。",
     imageAlt: `${n} — 钱包、TikTok 账户与 Hecom 运营面板`,
   },
   payments: {
     label: "多种充值方式",
-    methods: ["钱包", "Stripe", "加密货币 (USDT)", "银行卡", "银行转账"],
+    methods: ["钱包", "加密货币 (USDT)", "银行转账"],
   },
   showcase: {
     pill: "产品",
@@ -747,7 +747,7 @@ const zh: LandingCopy = {
         title: "余额随需分配",
         body: "为 Holistic 钱包充值，几秒内即可将余额分配到各个账户。",
         bullets: [
-          "钱包、Stripe、加密货币 (USDT) 或银行卡。",
+          "钱包、加密货币 (USDT) 或银行转账。",
           "为每个账户分配余额，并可随时在账户之间转移。",
           "被封禁账户的余额可直接转回钱包，无需提交工单。",
         ],
@@ -839,7 +839,7 @@ const zh: LandingCopy = {
     lead: "无需冗长的上手流程：四步即可开始投放。",
     steps: [
       { title: "注册", body: "填写资料和秘鲁 DNI，邮箱收到验证码即可登录。" },
-      { title: "为钱包充值", body: "使用钱包、Stripe、加密货币或银行卡。" },
+      { title: "为钱包充值", body: "使用钱包、加密货币或银行转账。" },
       { title: "创建并分配", body: "创建你的 TikTok 账户，并在账户之间分配余额。" },
       { title: "衡量并扩量", body: "查看消耗、ROAS 和创意表现，放大有效的投放。" },
     ],
@@ -917,7 +917,7 @@ const zh: LandingCopy = {
     items: [
       {
         q: "Ads Holistic 是什么？",
-        a: `它是 ${n} 的平台，用于投放和管理你的 TikTok 广告：广告账户、通过钱包、加密货币或 Stripe 充值、Pixel、AI 创意分析和 ROAS 报表，全部集中在一个面板中。`,
+        a: `它是 ${n} 的平台，用于投放和管理你的 TikTok 广告：广告账户、通过钱包、加密货币充值、Pixel、AI 创意分析和 ROAS 报表，全部集中在一个面板中。`,
       },
       {
         q: "你们支持哪些广告平台？",
@@ -925,7 +925,7 @@ const zh: LandingCopy = {
       },
       {
         q: "如何充值余额？",
-        a: "在钱包中使用 Stripe、加密货币 (USDT) 或银行卡充值，然后将余额分配到你的账户。",
+        a: "在钱包中使用 加密货币 (USDT) 或银行转账充值，然后将余额分配到你的账户。",
       },
       {
         q: "我可以自己创建 TikTok 账户吗？",
@@ -968,9 +968,9 @@ const zh: LandingCopy = {
 
 const pt: LandingCopy = {
   meta: {
-    title: "Agência de TikTok Ads · Recarregue com carteira, cripto ou Stripe | Ads Holistic",
+    title: "Agência de TikTok Ads · Recarregue com carteira ou cripto | Ads Holistic",
     description:
-      "Publique seus anúncios no TikTok: crie contas de anúncios, recarregue com carteira, cripto ou Stripe e meça o ROAS real. Para marcas e agências em vários países.",
+      "Publique seus anúncios no TikTok: crie contas de anúncios, recarregue com carteira ou cripto e meça o ROAS real. Para marcas e agências em vários países.",
   },
   skipToContent: "Pular para o conteúdo",
   nav: {
@@ -992,12 +992,12 @@ const pt: LandingCopy = {
     titlePrefix: "Controle",
     rotating: ["suas campanhas TikTok", "suas recargas", "seus criativos", "seus lucros"],
     titleSuffix: "em um só painel.",
-    lead: "Recarregue com carteira, cripto ou Stripe, crie suas contas TikTok, distribua o saldo e meça o ROAS real de cada campanha. Sem planilhas nem dashboards genéricos.",
+    lead: "Recarregue com carteira ou cripto, crie suas contas TikTok, distribua o saldo e meça o ROAS real de cada campanha. Sem planilhas nem dashboards genéricos.",
     imageAlt: `${n} — painel de carteira, contas TikTok e operação Hecom`,
   },
   payments: {
     label: "Recarregue como preferir",
-    methods: ["Carteira", "Stripe", "Cripto (USDT)", "Cartão", "Transferência"],
+    methods: ["Carteira", "Cripto (USDT)", "Transferência"],
   },
   showcase: {
     pill: "Produto",
@@ -1022,7 +1022,7 @@ const pt: LandingCopy = {
         title: "Seu saldo onde você precisa",
         body: "Recarregue sua carteira Holistic e distribua o saldo entre suas contas em segundos.",
         bullets: [
-          "Carteira, Stripe, cripto (USDT) ou cartão.",
+          "Carteira ou cripto (USDT) ou transferência.",
           "Atribua saldo a cada conta e mova entre contas quando quiser.",
           "Recupere o saldo de uma conta suspensa para sua carteira, sem abrir chamado.",
         ],
@@ -1114,7 +1114,7 @@ const pt: LandingCopy = {
     lead: "Sem onboarding infinito: em quatro passos você já está anunciando.",
     steps: [
       { title: "Cadastre-se", body: "Com seus dados e documento. Você recebe um código no e-mail e entra." },
-      { title: "Recarregue sua carteira", body: "Com carteira, Stripe, cripto ou cartão." },
+      { title: "Recarregue sua carteira", body: "Com carteira ou cripto ou transferência." },
       { title: "Crie e atribua", body: "Crie suas contas TikTok e distribua o saldo entre elas." },
       { title: "Meça e escale", body: "Revise gasto, ROAS e criativos, e escale o que funciona." },
     ],
@@ -1192,7 +1192,7 @@ const pt: LandingCopy = {
     items: [
       {
         q: "O que é a Ads Holistic?",
-        a: `É a plataforma da ${n} para publicar e gerenciar seus anúncios no TikTok: contas de anúncios, recargas com carteira, cripto ou Stripe, pixel, criativos com IA e relatórios de ROAS em um só painel.`,
+        a: `É a plataforma da ${n} para publicar e gerenciar seus anúncios no TikTok: contas de anúncios, recargas com carteira ou cripto, pixel, criativos com IA e relatórios de ROAS em um só painel.`,
       },
       {
         q: "Com quais plataformas de anúncios vocês trabalham?",
@@ -1200,7 +1200,7 @@ const pt: LandingCopy = {
       },
       {
         q: "Como recarrego saldo?",
-        a: "Pela sua carteira, com carteira digital, Stripe, cripto (USDT) ou cartão. Depois você atribui o saldo às suas contas.",
+        a: "Pela sua carteira, com carteira digital, cripto (USDT) ou transferência. Depois você atribui o saldo às suas contas.",
       },
       {
         q: "Posso criar minhas próprias contas TikTok?",

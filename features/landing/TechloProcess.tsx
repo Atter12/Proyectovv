@@ -2,7 +2,7 @@ const STEPS = [
   {
     title: "Recargar cartera",
     description:
-      "Ingresa saldo con Stripe, pasarelas locales o flujo manual revisado.",
+      "Ingresa saldo con transferencia, pasarelas locales o flujo manual revisado.",
     image: "/landing/techlo/process/step-01.png",
   },
   {

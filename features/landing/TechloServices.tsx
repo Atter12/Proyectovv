@@ -82,7 +82,7 @@ const SERVICES: ReadonlyArray<{
   },
   {
     title: "Pagos & ledger",
-    hint: "Stripe, BM y historial Hecom",
+    hint: "transferencia, BM y historial Hecom",
     tag: "Finanzas",
     icon: <LedgerIcon />,
   },

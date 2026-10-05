@@ -6,7 +6,7 @@ const services = [
   {
     title: "Cartera y recargas",
     description:
-      "Saldo central para operar. Stripe para clientes; recarga BM para el equipo Holistic.",
+      "Saldo central para operar. transferencia para clientes; recarga BM para el equipo Holistic.",
   },
   {
     title: "Cuentas TikTok Ads",

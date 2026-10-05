@@ -85,7 +85,7 @@ const ES: Copy = {
   processing: "Procesando el pago…",
   sendExactly: "Envía exactamente",
   network: "Red",
-  methodsLine: "Tarjeta · Yape · Plin · USDT",
+  methodsLine: "Yape · Plin · USDT",
   countriesLine: "Clientes en Perú, Brasil, Colombia, Ecuador y más",
 };
 
@@ -124,7 +124,7 @@ const EN: Copy = {
   processing: "Processing payment…",
   sendExactly: "Send exactly",
   network: "Network",
-  methodsLine: "Card · Yape · Plin · USDT",
+  methodsLine: "Yape · Plin · USDT",
   countriesLine: "Clients in Peru, Brazil, Colombia, Ecuador and more",
 };
 
@@ -138,7 +138,7 @@ const COPY: Record<LandingLocale, Copy> = {
     processing: "Processando o pagamento…",
     sendExactly: "Envie exatamente",
     network: "Rede",
-    methodsLine: "Cartão · Yape · Plin · USDT",
+    methodsLine: "Yape · Plin · USDT",
     countriesLine: "Clientes no Peru, Brasil, Colômbia, Equador e mais",
     appTitle: "Pagamentos e recargas",
     walletEyebrow: "Carteira Holistic",
@@ -162,7 +162,7 @@ const COPY: Record<LandingLocale, Copy> = {
 };
 
 // Un país y un método por vuelta. Solo métodos que la app acepta hoy:
-// Yape/Plin (Perú, Cobrana), tarjeta (Stripe, global) y USDT (global).
+// Yape/Plin (Perú, Cobrana) y USDT (global).
 type Lang = "es" | "en" | "pt";
 type L = Record<Lang, string>;
 type Persona = {
@@ -222,7 +222,7 @@ const PERSONAS: Persona[] = [
     notifDetail: "US$ 110.00 · Ads Holistic",
     store: "Tienda Quito 303.0 USD",
   },
-];
+].filter((persona) => persona.kind !== "card") as Persona[];
 
 // Por idioma, con qué país arranca (portugués → Brasil, inglés → tarjeta).
 const FIRST_PERSONA: Record<LandingLocale, number> = { es: 0, en: 1, pt: 1, zh: 1 };

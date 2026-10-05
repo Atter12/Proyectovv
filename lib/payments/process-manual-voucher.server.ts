@@ -89,7 +89,7 @@ export async function processManualVoucherUpload(input: {
   }
   if (isGatewayInMaintenance("manual")) {
     throw new Error(
-      "El pago manual está deshabilitado temporalmente. Contacta con soporte o usa Stripe.",
+      "El pago manual está deshabilitado temporalmente. Contacta con soporte.",
     );
   }
   if (intent.status === "succeeded") {

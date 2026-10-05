@@ -352,7 +352,7 @@ export async function startCreditLockSetupSession(input: {
     throw new Error("El candado Stripe de crédito está desactivado.");
   }
 
-  let billing = await getBillingCustomer(input.organizationId);
+  const billing = await getBillingCustomer(input.organizationId);
   let stripeCustomerId = billing?.stripe_customer_id;
 
   if (!stripeCustomerId) {

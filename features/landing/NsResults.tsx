@@ -25,7 +25,7 @@ const results = [
   },
   {
     label: "Recargas",
-    value: "Stripe + BM",
+    value: "Cartera + BM",
     description: "Recarga del cliente y trasferencia BC de agencia.",
   },
 ] as const;

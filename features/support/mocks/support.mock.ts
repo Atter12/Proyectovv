@@ -111,7 +111,7 @@ export const supportMock: SupportConfig = {
       title: "¿Cómo recargo?",
       audience: "cliente",
       content:
-        "Como cliente: ve a Pagos → Recargar cartera (Stripe / método disponible). Eliges el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tienes saldo en cartera para asignar a una cuenta ads.",
+        "Como cliente: ve a Pagos → Recargar cartera (transferencia / método disponible). Eliges el neto; el fee Holistic se suma al cobro. Cuando el pago confirma, tienes saldo en cartera para asignar a una cuenta ads.",
       bullets: [
         "Abre Pagos",
         "Recargar cartera → monto neto",
@@ -167,7 +167,7 @@ export const supportMock: SupportConfig = {
       title: "Cobros Hecom vs recarga BM",
       audience: "gerente",
       content:
-        "Recargar BM sube presupuesto TikTok pero no registra cobro en Hecom. Para bajar deuda neta del cliente necesitas un cobro en el CRM (transferencia, Stripe del cliente, etc.).",
+        "Recargar BM sube presupuesto TikTok pero no registra cobro en Hecom. Para bajar deuda neta del cliente necesitas un cobro en el CRM (transferencia, transferencia del cliente, etc.).",
       bullets: [
         "BM → presupuesto TikTok del advertiser",
         "Cobro Hecom → baja saldo/deuda en CRM",

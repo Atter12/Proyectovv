@@ -16,7 +16,7 @@ const steps = [
     n: "02",
     title: "Recarga ads.",
     description:
-      "Cliente con Stripe; gerente con recarga BM. La plata llega a la cuenta que importa.",
+      "Cliente con transferencia; gerente con recarga BM. La plata llega a la cuenta que importa.",
   },
   {
     n: "03",

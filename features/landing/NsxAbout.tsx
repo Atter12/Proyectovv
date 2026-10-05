@@ -7,7 +7,7 @@ const images = {
   wide: "/landing/holistic/about-wide.png",
 };
 
-const STAT_VALUES = ["+180", "TikTok", "Stripe + Hecom"] as const;
+const STAT_VALUES = ["+180", "TikTok", "Pagos + Hecom"] as const;
 
 export function NsxAbout({ copy }: { copy: LandingCopy["about"] }) {
   const stats = STAT_VALUES.map((value, i) => ({ value, label: copy.stats[i] }));

@@ -19,7 +19,7 @@ const TOOLS = [
   },
 ] as const;
 
-const PLATFORMS = ["TikTok Ads", "Hecom Club", "Stripe", "Pagos locales"] as const;
+const PLATFORMS = ["TikTok Ads", "Hecom Club", "Pagos locales"] as const;
 
 export function LandingTools() {
   return (
