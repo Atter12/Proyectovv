@@ -15,6 +15,7 @@ import { CreativeUploadPanel } from "@/features/creative-analyzer/components/Cre
 import { CreativeAssetsPanel } from "@/features/creative-analyzer/components/CreativeAssetsPanel.client";
 import { AgentProDraftsPanel } from "@/features/creative-analyzer/components/AgentProDraftsPanel.client";
 import { CreativePipelineStrip } from "@/features/creative-analyzer/components/CreativePipelineStrip.client";
+import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
   HecomClienteDashboard,
   HecomCreativoCliente,
@@ -74,6 +75,7 @@ export async function ClienteScopedCreatives({
   expectDiscoverRefresh?: boolean;
 }) {
   const t = await getTranslations("creatives");
+  const h = await getTranslations("help");
   const { cliente, creativosClientes, creativosProyectos } = data;
   const analyzed = assets.filter((a) => a.insight).length;
   const pendingDrafts = drafts.filter(
@@ -125,6 +127,20 @@ export async function ClienteScopedCreatives({
       />
 
       <CreativePipelineStrip activeStep={activeStep} />
+
+      <HelpGuide
+        className="-mt-2"
+        summary={h("creatives.summary")}
+        intro={h("creatives.intro")}
+        steps={[h("creatives.step1"), h("creatives.step2"), h("creatives.step3"), h("creatives.step4")]}
+        time={h("creatives.time")}
+        tip={h("creatives.tip")}
+        faqTitle={h("faqTitle")}
+        faq={(["whyRejected", "appeal", "score", "paused"] as const).map((id) => ({
+          q: h(`creatives.faq.${id}.q`),
+          a: h(`creatives.faq.${id}.a`),
+        }))}
+      />
 
       <CrmMetricsStrip>
         <div className="grid grid-cols-2 sm:flex sm:divide-x sm:divide-[var(--auth-divider)] lg:grid-cols-4">

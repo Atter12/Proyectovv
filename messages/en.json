@@ -1,4 +1,62 @@
 {
+  "help": {
+    "faqTitle": "Frequent questions",
+    "allocate": {
+      "summary": "How do I move balance to TikTok? Quick guide",
+      "intro": "Your wallet holds the balance you topped up. For TikTok to spend it, move it to one of your accounts:",
+      "step1": "In the list below, find the TikTok account you want to use. Only approved accounts are shown.",
+      "step2": "Tap “Assign balance” and enter the amount. It comes from your wallet; no fee is charged again here.",
+      "step3": "Confirm. The balance reaches the account and you can use it in your campaigns.",
+      "time": "Arrives in seconds",
+      "tip": "Balance left over in an account? Use “Reclaim to wallet” to return what was not spent, or “Transfer to another account” to move it directly.",
+      "faq": {
+        "notListed": {
+          "q": "My TikTok account is not listed",
+          "a": "Only approved accounts linked to your profile are shown. If one of your accounts is missing, message us on WhatsApp with its ID."
+        },
+        "notShowing": {
+          "q": "I assigned, but I do not see the balance in TikTok",
+          "a": "Refresh TikTok Ads Manager: the balance arrives in seconds. If it still does not show after a few minutes, message us."
+        },
+        "move": {
+          "q": "Can I move balance from one account to another?",
+          "a": "Yes. Use “Transfer to another account” on the source account, or reclaim it to your wallet and assign it to the other one."
+        },
+        "fee": {
+          "q": "Am I charged a fee when assigning?",
+          "a": "No. The fee is charged once, when you top up your wallet. Assigning and reclaiming are free."
+        }
+      }
+    },
+    "creatives": {
+      "summary": "How does it work? From video to approved ad",
+      "intro": "This is how your video reaches TikTok and what to do if it is rejected:",
+      "step1": "Upload your video or image in “Upload the video” and choose the TikTok account (up to 50 MB).",
+      "step2": "The AI gives it a score and tells you what to improve before spending.",
+      "step3": "Send the campaign to TikTok: it is created paused so you can turn it on whenever you want.",
+      "step4": "TikTok reviews the ad. If it is rejected, it shows up above with what to change and a button to upload the fixed video.",
+      "time": "We check TikTok’s verdict every 15 minutes",
+      "tip": "Do not upload the same video again: TikTok rejects it again. Change what “What to do” says.",
+      "faq": {
+        "whyRejected": {
+          "q": "Why does TikTok reject videos?",
+          "a": "Most often: promising health or weight-loss results, showing before and after, talking about cures or diseases, or focusing on body parts. Each video card tells you the exact reason."
+        },
+        "appeal": {
+          "q": "Should I appeal?",
+          "a": "Only if the video is fine and TikTok made a mistake. In prohibited topics, like weight loss, appealing does not work: upload a fixed video."
+        },
+        "score": {
+          "q": "What does the AI score mean?",
+          "a": "It estimates how clear and safe your video is before spending. It helps avoid rejections but does not guarantee sales."
+        },
+        "paused": {
+          "q": "My ad was approved, why is it not spending?",
+          "a": "The campaign is created paused. Turn it on in TikTok Ads Manager when you want to start, and check the account has balance assigned."
+        }
+      }
+    }
+  },
   "common": {
     "logout": "Sign out",
     "loggingOut": "Signing out…",

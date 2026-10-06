@@ -1,4 +1,62 @@
 {
+  "help": {
+    "faqTitle": "Perguntas frequentes",
+    "allocate": {
+      "summary": "Como passo o saldo para o TikTok? Guia rápido",
+      "intro": "Sua carteira guarda o saldo que você recarregou. Para o TikTok gastar, passe-o para uma das suas contas:",
+      "step1": "Na lista abaixo, encontre a conta do TikTok que quer usar. Só aparecem contas aprovadas.",
+      "step2": "Toque em “Atribuir saldo” e digite o valor. Sai da sua carteira; aqui não se cobra a taxa de novo.",
+      "step3": "Confirme. O saldo chega à conta e você já pode usá-lo nas campanhas.",
+      "time": "Chega em segundos",
+      "tip": "Sobrou saldo numa conta? Use “Recuperar para a carteira” para devolver o que não foi gasto, ou “Transferir para outra conta” para movê-lo direto.",
+      "faq": {
+        "notListed": {
+          "q": "Minha conta do TikTok não aparece",
+          "a": "Só aparecem contas aprovadas e vinculadas ao seu perfil. Se uma conta sua não aparece, fale conosco no WhatsApp com o ID dela."
+        },
+        "notShowing": {
+          "q": "Atribuí, mas não vejo o saldo no TikTok",
+          "a": "Atualize o TikTok Ads Manager: o saldo chega em segundos. Se depois de alguns minutos não aparecer, fale conosco."
+        },
+        "move": {
+          "q": "Posso passar saldo de uma conta para outra?",
+          "a": "Sim. Use “Transferir para outra conta” na conta de origem, ou recupere para a carteira e atribua à outra."
+        },
+        "fee": {
+          "q": "Cobram taxa ao atribuir?",
+          "a": "Não. A taxa é cobrada uma vez, quando você recarrega a carteira. Atribuir e recuperar não têm custo."
+        }
+      }
+    },
+    "creatives": {
+      "summary": "Como funciona? Do vídeo ao anúncio aprovado",
+      "intro": "Assim seu vídeo chega ao TikTok e o que fazer se for recusado:",
+      "step1": "Envie seu vídeo ou imagem em “Envie o vídeo” e escolha a conta do TikTok (até 50 MB).",
+      "step2": "A IA dá uma nota e diz o que melhorar antes de gastar.",
+      "step3": "Envie a campanha ao TikTok: ela é criada pausada para você ligar quando quiser.",
+      "step4": "O TikTok revisa o anúncio. Se recusar, ele aparece acima com o que mudar e um botão para enviar o vídeo corrigido.",
+      "time": "Verificamos o veredito do TikTok a cada 15 minutos",
+      "tip": "Não envie o mesmo vídeo de novo: o TikTok recusa outra vez. Mude o que diz “O que fazer”.",
+      "faq": {
+        "whyRejected": {
+          "q": "Por que o TikTok recusa vídeos?",
+          "a": "O mais comum é prometer resultados de saúde ou perda de peso, mostrar antes e depois, falar de curas ou doenças, ou focar partes do corpo. O cartão de cada vídeo mostra o motivo exato."
+        },
+        "appeal": {
+          "q": "Vale a pena recorrer?",
+          "a": "Só se o vídeo estiver certo e o TikTok errou. Em temas proibidos, como perda de peso, recorrer não funciona: envie um vídeo corrigido."
+        },
+        "score": {
+          "q": "O que significa a nota da IA?",
+          "a": "É uma estimativa de quão claro e seguro é seu vídeo antes de gastar. Ajuda a evitar recusas, mas não garante vendas."
+        },
+        "paused": {
+          "q": "Aprovaram meu anúncio, por que não gasta?",
+          "a": "A campanha é criada pausada. Ligue-a no TikTok Ads Manager quando quiser começar e confira se a conta tem saldo atribuído."
+        }
+      }
+    }
+  },
   "common": {
     "logout": "Sair",
     "loggingOut": "Saindo…",

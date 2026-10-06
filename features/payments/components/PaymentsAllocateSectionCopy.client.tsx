@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import { usePaymentsFundingMode } from "./PaymentsFundingModeContext.client";
 
 export function PaymentsAllocateSectionCopy({
@@ -13,6 +14,7 @@ export function PaymentsAllocateSectionCopy({
   clienteName?: string;
 }) {
   const t = useTranslations("payments");
+  const h = useTranslations("help");
   const { agencyBmFunding } = usePaymentsFundingMode();
 
   if (agencyBmFunding) {
@@ -53,6 +55,18 @@ export function PaymentsAllocateSectionCopy({
           </>
         )}
       </p>
+      <HelpGuide
+        summary={h("allocate.summary")}
+        intro={h("allocate.intro")}
+        steps={[h("allocate.step1"), h("allocate.step2"), h("allocate.step3")]}
+        time={h("allocate.time")}
+        tip={h("allocate.tip")}
+        faqTitle={h("faqTitle")}
+        faq={(["notListed", "notShowing", "move", "fee"] as const).map((id) => ({
+          q: h(`allocate.faq.${id}.q`),
+          a: h(`allocate.faq.${id}.a`),
+        }))}
+      />
     </>
   );
 }
