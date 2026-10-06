@@ -154,6 +154,13 @@ export async function ClienteScopedCreatives({
         </div>
       </CrmMetricsStrip>
 
+      {/* Lo que hay que resolver primero: rechazados y por enviar, a todo el ancho */}
+      <AgentProDraftsPanel
+        drafts={drafts}
+        publishEnabled={publishEnabled}
+        expectDiscoverRefresh={expectDiscoverRefresh}
+      />
+
       <Suspense
         fallback={
           <div
@@ -169,14 +176,7 @@ export async function ClienteScopedCreatives({
         />
       </Suspense>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <CreativeAssetsPanel assets={assets} />
-        <AgentProDraftsPanel
-          drafts={drafts}
-          publishEnabled={publishEnabled}
-          expectDiscoverRefresh={expectDiscoverRefresh}
-        />
-      </div>
+      <CreativeAssetsPanel assets={assets} />
 
       <CrmQuickLinks
         links={[
