@@ -176,6 +176,44 @@
     }
   },
   "payments": {
+    "myRecharges": {
+      "title": "Mis recargas",
+      "subtitle": "Últimos 30 días. Primero lo que te falta completar.",
+      "pendingCount": "{count, plural, one {# por completar} other {# por completar}}",
+      "credit": "entra {amount} a tu cartera",
+      "uploadProof": "Subir comprobante",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyPrompt": "Copia el código:",
+      "payCrypto": "Pagar con cripto",
+      "providerManual": "Pago manual",
+      "providerYape": "Yape / Plin",
+      "providerCrypto": "Cripto (USDT)",
+      "providerCard": "Tarjeta",
+      "providerOther": "Recarga",
+      "state": {
+        "credited": "Acreditada",
+        "in_review": "En revisión",
+        "needs_proof": "Falta comprobante",
+        "pay_yape": "Por pagar en Yape",
+        "pay_crypto": "Esperando pago",
+        "processing": "Procesando",
+        "replaced": "Reemplazada",
+        "cancelled": "Cancelada",
+        "failed": "Rechazada"
+      },
+      "hint": {
+        "credited": "El saldo ya está en tu cartera.",
+        "in_review": "Recibimos tu comprobante. Te avisamos al aprobarlo.",
+        "needs_proof": "Si ya transferiste, sube la captura para que la revisemos.",
+        "pay_yape": "En Yape: Pago de servicios → 360Pay → este código.",
+        "pay_crypto": "Completa el pago en NOWPayments; se acredita solo.",
+        "processing": "Estamos confirmando el pago.",
+        "replaced": "Se canceló porque generaste un recibo más nuevo.",
+        "cancelled": "Esta recarga se canceló.",
+        "failed": "No se pudo acreditar esta recarga."
+      }
+    },
     "title": "Pagos",
     "hero": {
       "ofClient": "Pagos de {name}",

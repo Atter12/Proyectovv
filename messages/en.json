@@ -176,6 +176,44 @@
     }
   },
   "payments": {
+    "myRecharges": {
+      "title": "My top-ups",
+      "subtitle": "Last 30 days. What you still need to finish comes first.",
+      "pendingCount": "{count, plural, one {# to finish} other {# to finish}}",
+      "credit": "{amount} goes to your wallet",
+      "uploadProof": "Upload receipt",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyPrompt": "Copy the code:",
+      "payCrypto": "Pay with crypto",
+      "providerManual": "Manual payment",
+      "providerYape": "Yape / Plin",
+      "providerCrypto": "Crypto (USDT)",
+      "providerCard": "Card",
+      "providerOther": "Top-up",
+      "state": {
+        "credited": "Credited",
+        "in_review": "In review",
+        "needs_proof": "Receipt missing",
+        "pay_yape": "Pay in Yape",
+        "pay_crypto": "Awaiting payment",
+        "processing": "Processing",
+        "replaced": "Replaced",
+        "cancelled": "Cancelled",
+        "failed": "Rejected"
+      },
+      "hint": {
+        "credited": "The balance is already in your wallet.",
+        "in_review": "We got your receipt. We will let you know once approved.",
+        "needs_proof": "If you already transferred, upload the screenshot so we can review it.",
+        "pay_yape": "In Yape: Pay services → 360Pay → this code.",
+        "pay_crypto": "Finish the payment on NOWPayments; it is credited automatically.",
+        "processing": "We are confirming the payment.",
+        "replaced": "Cancelled because you created a newer receipt.",
+        "cancelled": "This top-up was cancelled.",
+        "failed": "This top-up could not be credited."
+      }
+    },
     "title": "Payments",
     "hero": {
       "ofClient": "Payments for {name}",

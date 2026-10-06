@@ -8,6 +8,8 @@ import { PaymentsGatewayPanel } from "@/features/payments/components/PaymentsGat
 import { PaymentsPageHero } from "@/features/payments/components/PaymentsPageHero";
 import { PaymentsSectionSkeleton } from "@/features/payments/components/PaymentsSectionSkeleton";
 import { CreditLockPanel } from "@/features/payments/components/CreditLockPanel.client";
+import { MyRechargesPanel } from "@/features/payments/components/MyRechargesPanel.client";
+import { listMyRecharges } from "@/lib/payments/my-recharges.server";
 import { CREDIT_STRIPE_LOCK_ENABLED } from "@/lib/payments/credit-lock/credit-lock.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
@@ -169,6 +171,10 @@ export default async function PaymentsPage({
     });
   }
 
+  const myRecharges = session.organizationId
+    ? await listMyRecharges({ organizationId: session.organizationId, hecomClienteId: cliente.id })
+    : [];
+
   const introCopy =
     capabilities.canAgencyBmFund && !capabilities.canClientStripeFund
       ? t("intro.manager", { name: cliente.name })
@@ -204,6 +210,8 @@ export default async function PaymentsPage({
           }
         />
       </Suspense>
+
+      <MyRechargesPanel rows={myRecharges} feePercent={hecomFinance.depositFeePercent} />
 
       <details className="group overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 text-[13px] font-semibold text-[var(--auth-text)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--auth-accent)]/30 sm:px-6">

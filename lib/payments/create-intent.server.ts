@@ -36,6 +36,7 @@ import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 import { ensureHecomWalletCobroSynced } from "@/lib/hecom/ensure-wallet-cobro.server";
+import { cancelStaleCobranaCharges } from "@/lib/payments/cobrana/cancel-stale.server";
 import {
   reserveUniquePenAmount,
   reserveUniqueUsdAmount,
@@ -427,6 +428,21 @@ export async function createPaymentIntentForSession(
 
   if (checkoutResult.resultMetadata) {
     await mergePaymentIntentMetadata(intent.id, checkoutResult.resultMetadata);
+  }
+
+  // Yape cobra del recibo más antiguo al más nuevo: los pendientes anteriores
+  // bloquean este. Se cancelan solos (sin frenar la recarga si algo falla).
+  if (isCobrana) {
+    await cancelStaleCobranaCharges({
+      organizationId,
+      hecomClienteId: fee.hecomClienteId ?? null,
+      documentNumber: cobranaCustomer?.documentNumber ?? null,
+      keepIntentId: intent.id,
+    }).catch((error) => {
+      console.warn("[create-intent] cobrana_stale_cleanup_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    });
   }
 
   if (voucherFlow && session.email.includes("@")) {

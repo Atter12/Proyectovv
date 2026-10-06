@@ -76,6 +76,12 @@ interface ManualPaymentModalProps {
   paysDebt?: boolean;
   /** YYYY-MM de la deuda. */
   debtMonth?: string;
+  /** Retomar una recarga ya creada: abre en «Pago» con su monto exacto. */
+  resume?: {
+    paymentIntentId: string;
+    chargeCents: number;
+    chargeCurrency: ChargeCurrency;
+  } | null;
 }
 
 interface CreateIntentResponse {
@@ -125,6 +131,7 @@ export function ManualPaymentModal({
   endpoints,
   paysDebt = false,
   debtMonth,
+  resume = null,
 }: ManualPaymentModalProps) {
   const router = useRouter();
   const t = useTranslations("payments");
@@ -144,19 +151,20 @@ export function ManualPaymentModal({
       ] as const,
     [t],
   );
-  const [step, setStep] = useState<Step>("form");
+  // Al retomar una recarga se monta con key propia y arranca en «Pago».
+  const [step, setStep] = useState<Step>(resume ? "banks" : "form");
   const [amount, setAmount] = useState("");
-  const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>("PEN");
+  const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>(resume?.chargeCurrency ?? "PEN");
   const [payMethod, setPayMethod] = useState<PayMethod>("bank");
   const [config, setConfig] = useState<ManualConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(resume?.paymentIntentId ?? null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [creditResult, setCreditResult] = useState<number | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-  const [serverChargeCents, setServerChargeCents] = useState<number | null>(null);
+  const [serverChargeCents, setServerChargeCents] = useState<number | null>(resume?.chargeCents ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteZoneRef = useRef<HTMLDivElement>(null);
 
@@ -232,7 +240,7 @@ export function ManualPaymentModal({
         ? formatMoney(quote.usd.grossCents / 100)
         : "";
   const chargeLabel =
-    paysDebt && serverChargeCents != null
+    (paysDebt || resume) && serverChargeCents != null
       ? chargeCurrency === "PEN"
         ? formatPenAmount(serverChargeCents)
         : formatMoney(serverChargeCents / 100)
