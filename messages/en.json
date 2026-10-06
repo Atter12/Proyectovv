@@ -163,6 +163,16 @@
       "quickLinks": "Shortcuts",
       "last30": "Last 30 days",
       "peakDay": "Highest spend day: {date} · {amount}"
+    },
+    "byAccount": {
+      "title": "Spend by account",
+      "subtitle": "How much each account spent in the last 30 days",
+      "count": "{count, plural, one {# account} other {# accounts}}",
+      "total": "Total",
+      "empty": "No spend by account in the last 30 days.",
+      "unknown": "No account assigned",
+      "account": "Account",
+      "others": "{count, plural, one {One other account} other {# other accounts}}"
     }
   },
   "payments": {

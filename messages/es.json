@@ -163,6 +163,16 @@
       "quickLinks": "Accesos",
       "last30": "Últimos 30 días",
       "peakDay": "Día con más gasto: {date} · {amount}"
+    },
+    "byAccount": {
+      "title": "Gasto por cuenta",
+      "subtitle": "Cuánto gastó cada cuenta en los últimos 30 días",
+      "count": "{count, plural, one {# cuenta} other {# cuentas}}",
+      "total": "Total",
+      "empty": "Sin gasto por cuenta en los últimos 30 días.",
+      "unknown": "Sin cuenta asignada",
+      "account": "Cuenta",
+      "others": "{count, plural, one {Otra cuenta} other {Otras # cuentas}}"
     }
   },
   "payments": {

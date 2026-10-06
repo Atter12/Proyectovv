@@ -97,7 +97,7 @@ export async function ClienteScopedOverview({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={routes.payments}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1a1714] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2c2620] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-[#c46d3c] px-4 text-[13px] font-semibold text-white transition hover:bg-[#b0602f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e2a074]"
           >
             <WalletIcon />
             {canChangeCliente ? t("ctaReloadAssign") : t("ctaReload")}
@@ -120,28 +120,28 @@ export async function ClienteScopedOverview({
       {/* Cifra principal + KPIs */}
       <section className="rounded-[24px] bg-[#faf8f5] p-3 ring-1 ring-[#e8dfd4] sm:p-4">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-[#1a1714] px-5 py-5 text-white sm:px-6 sm:py-6">
-            <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#d47840]/25 blur-2xl" aria-hidden />
+          <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-gradient-to-br from-[#fffaf5] to-[#fbefe4] px-5 py-5 ring-1 ring-[#f0e0d1] sm:px-6 sm:py-6">
+            <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#f3c9a8]/30 blur-2xl" aria-hidden />
             <div className="relative">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#d47840]/20 px-2.5 py-1 text-[11px] font-semibold text-[#f0b889]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#e8955a]" aria-hidden />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#9a5a32] ring-1 ring-[#f0e0d1]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e2a074]" aria-hidden />
                 {t("hero.badge")}
               </span>
-              <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums tracking-[-0.045em] min-[400px]:text-[2.4rem] sm:text-[2.75rem]">
+              <p className={`mt-3 text-[2rem] font-semibold leading-none tabular-nums tracking-[-0.045em] min-[400px]:text-[2.4rem] sm:text-[2.75rem] ${INK}`}>
                 {moneyUsd(summary.gasto30d)}
               </p>
-              <p className="mt-2 text-[12px] text-white/60">{t("hero.caption")}</p>
+              <p className={`mt-2 text-[12px] ${SOFT}`}>{t("hero.caption")}</p>
               <div className="mt-5">
-                <div className="flex items-center justify-between text-[11px] text-white/70">
+                <div className={`flex items-center justify-between text-[11px] ${SOFT}`}>
                   <span>
                     {t("spend7d")} {moneyUsd(summary.gasto7d)}
                   </span>
                   <span className="tabular-nums">{Math.round(share7d * 100)}%</span>
                 </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-[#d47840]" style={{ width: `${share7d * 100}%` }} />
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f1e4d8]">
+                  <div className="h-full rounded-full bg-[#e2a074]" style={{ width: `${share7d * 100}%` }} />
                 </div>
-                <p className="mt-2 text-[11px] leading-4 text-white/50">
+                <p className={`mt-2 text-[11px] leading-4 ${MUTED}`}>
                   {t("spendToday")}: {moneyUsd(summary.gastoHoy)} · {todayHint}
                 </p>
               </div>
@@ -159,6 +159,13 @@ export async function ClienteScopedOverview({
           />
         </div>
       </section>
+
+      <AccountSpendPanel
+        rows={data.campaignSpendRows}
+        accounts={accounts}
+        anchorDate={summary.dailyAnchorDate}
+        moneyUsd={moneyUsd}
+      />
 
       <DailySpendPanel
         series={summary.dailySeries}
@@ -183,7 +190,7 @@ export async function ClienteScopedOverview({
             className={`inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[12.5px] font-semibold ring-1 ring-[#e8dfd4] transition hover:bg-[#faf8f5] hover:ring-[#d9c9b8] ${INK}`}
           >
             {link.label}
-            <span aria-hidden className="text-[#d47840]">→</span>
+            <span aria-hidden className="text-[#e2a074]">→</span>
           </Link>
         ))}
       </nav>
@@ -310,14 +317,14 @@ async function DailySpendPanel({
             </span>
             <div
               className={`w-full max-w-[1.6rem] rounded-t-[5px] transition-colors ${
-                isToday || isPeak ? "bg-[#d47840]" : point.spend > 0 ? "bg-[#e9c2a3] group-hover:bg-[#d47840]" : "bg-[#efe8e0]"
+                isToday || isPeak ? "bg-[#e2a074]" : point.spend > 0 ? "bg-[#f3dccb] group-hover:bg-[#e2a074]" : "bg-[#f1ebe4]"
               }`}
               style={{ height: barPx }}
             />
             <span className={`text-[9.5px] font-semibold tabular-nums ${isToday ? "text-[#b85f2e]" : MUTED}`}>
               {shortDayLabel(point.date)}
             </span>
-            {isToday ? <span className="h-0.5 w-3 rounded-full bg-[#d47840]" aria-hidden /> : <span className="h-0.5" aria-hidden />}
+            {isToday ? <span className="h-0.5 w-3 rounded-full bg-[#e2a074]" aria-hidden /> : <span className="h-0.5" aria-hidden />}
           </div>
         );
       })}
@@ -356,11 +363,109 @@ async function DailySpendPanel({
   );
 }
 
+/** Gasto de cada cuenta en los últimos 30 días (snapshots TikTok o gastos Hecom). */
+async function AccountSpendPanel({
+  rows,
+  accounts,
+  anchorDate,
+  moneyUsd,
+}: {
+  rows: HecomClienteDashboard["campaignSpendRows"];
+  accounts: HecomTiktokAccount[];
+  anchorDate: string;
+  moneyUsd: (value: number) => string;
+}) {
+  const t = await getTranslations("overview");
+  const end = anchorDate.slice(0, 10);
+  const startMs = Date.parse(`${end}T00:00:00Z`) - 29 * 86_400_000;
+  const start = Number.isFinite(startMs) ? new Date(startMs).toISOString().slice(0, 10) : "";
+  const byAccount = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.date || row.date < start || row.date > end) continue;
+    const key = row.advertiserId ?? "otros";
+    byAccount.set(key, (byAccount.get(key) ?? 0) + row.spend);
+  }
+  const accountById = new Map(accounts.map((a) => [a.advertiserId, a]));
+  const items = [...byAccount.entries()]
+    .map(([id, spend]) => {
+      const account = accountById.get(id);
+      const label = parseAdvertiserLabel(account?.advertiserName ?? null);
+      return {
+        id,
+        spend: Math.round(spend * 100) / 100,
+        name: account ? `${label.title}${label.code ? ` · ${label.code}` : ""}` : id === "otros" ? t("byAccount.unknown") : `${t("byAccount.account")} ${shortId(id)}`,
+        meta: [account?.bmBucket ? `BM ${account.bmBucket}` : null, id !== "otros" ? `ID ${shortId(id)}` : null].filter(Boolean).join(" · "),
+      };
+    })
+    .filter((item) => item.spend > 0.004)
+    .sort((a, b) => b.spend - a.spend);
+  const total = items.reduce((sum, item) => sum + item.spend, 0);
+  const TOP = 6;
+  const rest = items.slice(TOP);
+  const shown =
+    rest.length > 1
+      ? [
+          ...items.slice(0, TOP),
+          {
+            id: "resto",
+            name: t("byAccount.others", { count: rest.length }),
+            meta: "",
+            spend: Math.round(rest.reduce((sum, item) => sum + item.spend, 0) * 100) / 100,
+          },
+        ]
+      : items;
+
+  return (
+    <Panel
+      title={t("byAccount.title")}
+      subtitle={t("byAccount.subtitle")}
+      action={
+        <span className={`rounded-full bg-[#f3eee8] px-2.5 py-1 text-[11px] font-semibold ${SOFT}`}>
+          {t("byAccount.count", { count: items.length })}
+        </span>
+      }
+    >
+      {items.length === 0 ? (
+        <p className={`px-4 pb-8 pt-2 text-[13px] font-medium sm:px-5 ${SOFT}`}>{t("byAccount.empty")}</p>
+      ) : (
+        <div className="px-4 pb-4 sm:px-5">
+          <ul>
+            {shown.map((item) => {
+              const share = total > 0 ? item.spend / total : 0;
+              return (
+                <li key={item.id} className="border-t border-[#f1ebe4] py-3 first:border-t-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`truncate text-[13.5px] font-semibold ${INK}`}>{item.name}</p>
+                      {item.meta ? <p className={`mt-0.5 truncate text-[11.5px] ${MUTED}`}>{item.meta}</p> : null}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={`text-[13.5px] font-semibold tabular-nums ${INK}`}>{moneyUsd(item.spend)}</p>
+                      <p className={`text-[11px] tabular-nums ${MUTED}`}>{Math.round(share * 100)}%</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f3ece5]">
+                    <div className="h-full rounded-full bg-[#e2a074]" style={{ width: `${Math.max(2, share * 100)}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-1 flex items-center justify-between border-t border-[#efe8e0] pt-3">
+            <span className={`text-[12.5px] font-semibold ${SOFT}`}>{t("byAccount.total")}</span>
+            <span className={`text-[14px] font-semibold tabular-nums ${INK}`}>{moneyUsd(total)}</span>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 function DayMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="rounded-[14px] bg-[#faf8f5] px-3 py-2.5">
       <p className={`flex items-center gap-1.5 text-[11px] font-medium ${SOFT}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${accent ? "bg-[#d47840]" : "bg-[#d9cfc4]"}`} aria-hidden />
+        <span className={`h-1.5 w-1.5 rounded-full ${accent ? "bg-[#e2a074]" : "bg-[#d9cfc4]"}`} aria-hidden />
         {label}
       </p>
       <p className={`mt-0.5 text-[15px] font-semibold tabular-nums tracking-[-0.02em] sm:text-[17px] ${INK}`}>{value}</p>
@@ -475,7 +580,7 @@ async function GastosPanel({
             const label = formatHecomGastoDisplay(row.camp, { notas: row.notas, fee: row.fee, fecha: null });
             return (
               <li key={row.id} className="flex items-center gap-3 border-t border-[#f1ebe4] py-3 first:border-t-0">
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#fbeee3] text-[#d47840]" aria-hidden>
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#fbeee3] text-[#e2a074]" aria-hidden>
                   <TrendIcon />
                 </span>
                 <div className="min-w-0 flex-1">
