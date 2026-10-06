@@ -154,6 +154,15 @@
       "subtitle": "Consumo recente de campanhas",
       "viewProfit": "Ver Profit",
       "empty": "Sem gastos registrados para este cliente."
+    },
+    "hero": {
+      "badge": "Gasto em anúncios",
+      "caption": "Últimos 30 dias · todas as suas contas",
+      "cobrosHint": "Total pago registrado",
+      "adSpendHint": "Total gasto no TikTok Ads",
+      "quickLinks": "Atalhos",
+      "last30": "Últimos 30 dias",
+      "peakDay": "Dia com mais gasto: {date} · {amount}"
     }
   },
   "payments": {

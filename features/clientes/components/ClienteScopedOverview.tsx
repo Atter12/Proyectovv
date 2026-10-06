@@ -1,14 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
-import {
-  CrmHeroButton,
-  CrmMetricCell,
-  CrmMetricsStrip,
-  CrmPanel,
-  CrmQuickLinks,
-  CrmScopeHero,
-} from "@/components/dashboard/crm-ui";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
@@ -22,44 +15,44 @@ import {
 import { getAppFormatter } from "@/lib/i18n/get-app-formatter";
 import type { HecomTiktokAccount } from "@/lib/hecom/clientes.server";
 
+/*
+ * Resumen del cliente con el mismo lenguaje visual de «Lo pagado» (links deuda):
+ * tarjeta oscura con la cifra principal, tarjetas blancas con borde cálido y
+ * listas ordenadas. No mostramos «Deuda neta» Hecom aquí: suele estar
+ * incompleta (cobros faltantes) y asusta al cliente.
+ */
+
+const CARD = "rounded-[22px] bg-white ring-1 ring-[#e8dfd4]";
+const INK = "text-[#1a1714]";
+const SOFT = "text-[#5c564e]";
+const MUTED = "text-[#8a8177]";
+
+/** «Jesus Fuentes 201.0 USD - Agencia» → nombre + número de cuenta (no es saldo). */
 function parseAdvertiserLabel(raw: string | null) {
-  if (!raw?.trim()) {
-    return {
-      title: "TikTok Ads",
-      balance: null as string | null,
-      tag: null as string | null,
-    };
-  }
-  const match = raw.match(
-    /^(.*?)\s+(\d+(?:\.\d+)?\s*USD)\s*[-–]\s*(.+)$/i,
-  );
-  if (match) {
-    return {
-      title: match[1].trim(),
-      balance: match[2].replace(/\s+/g, " ").trim(),
-      tag: match[3].trim(),
-    };
-  }
-  return { title: raw.trim(), balance: null, tag: null };
+  if (!raw?.trim()) return { title: "TikTok Ads", code: null as string | null };
+  const match = raw.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*(?:USD)?\s*(?:[-–]\s*.+)?$/i);
+  if (match && match[1].trim()) return { title: match[1].trim(), code: match[2].replace(/\.0+$/, "") };
+  return { title: raw.trim(), code: null };
 }
 
 function shortId(id: string) {
-  if (id.length <= 12) return id;
-  return `${id.slice(0, 6)}…${id.slice(-4)}`;
+  return id.length <= 10 ? id : `…${id.slice(-6)}`;
 }
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "TT";
+  if (parts.length === 0) return "HC";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
-/**
- * Overview del cliente — consola operativa Ads Holistic.
- * No mostramos “Deuda neta” Hecom aquí: suele estar incompleta (cobros faltantes)
- * y asusta al cliente. Staff ve cobros/gastos en el strip de métricas.
- */
+function shortDayLabel(dateYmd: string) {
+  const iso = dateYmd.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return dateYmd;
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 export async function ClienteScopedOverview({
   data,
   canChangeCliente = false,
@@ -74,58 +67,98 @@ export async function ClienteScopedOverview({
   const recentGastos = gastos.slice(0, 8);
   const activeAccounts = accounts.filter((a) => a.syncEnabled !== false).length;
   const pausedAccounts = Math.max(0, accounts.length - activeAccounts);
+  const share7d = summary.gasto30d > 0.004 ? Math.min(1, summary.gasto7d / summary.gasto30d) : 0;
+  const todayHint =
+    summary.dailySource === "none"
+      ? t("noDaySync")
+      : summary.gastoHoy > 0
+        ? t("timezoneLima")
+        : t("noActivityToday");
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <CrmScopeHero
-        module={t("module")}
-        title={cliente.name}
-        cliente={{ name: cliente.name, avatarUrl: cliente.avatarUrl, biz: cliente.biz }}
-        meta={t("feeMeta", { percent: summary.depositFeePercent })}
-        actions={
-          <>
-            <CrmHeroButton href={routes.payments}>
-              <WalletIcon />
-              {canChangeCliente ? t("ctaReloadAssign") : t("ctaReload")}
-            </CrmHeroButton>
-            <CrmHeroButton href={routes.adAccounts} variant="secondary">
-              <ChartIcon />
-              {t("ctaAccounts")}
-            </CrmHeroButton>
-            {canChangeCliente ? (
-              <CrmHeroButton href={routes.clientes} variant="ghost">
-                {t("changeClient")}
-              </CrmHeroButton>
-            ) : null}
-          </>
-        }
-        aside={
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--auth-text-soft)]">
-              {t("spendToday")}
-            </p>
-            <p className="mt-1 break-words text-[1.65rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)] sm:text-[1.85rem]">
-              {moneyUsd(summary.gastoHoy)}
-            </p>
-            <p className="mt-1 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-              {t("spend7dAside", {
-                amount: moneyUsd(summary.gasto7d),
-                percent: summary.depositFeePercent,
-              })}
-            </p>
+    <div className="space-y-4 sm:space-y-5">
+      {/* Cabecera: quién es y qué puede hacer */}
+      <header className={`${CARD} flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5`}>
+        <div className="flex min-w-0 items-center gap-3">
+          {cliente.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cliente.avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-[#e8dfd4]" />
+          ) : (
+            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fbeee3] text-[14px] font-bold text-[#b85f2e]" aria-hidden>
+              {initials(cliente.name)}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">{t("module")}</p>
+            <h1 className={`truncate text-[1.35rem] font-semibold tracking-[-0.03em] ${INK}`}>{cliente.name}</h1>
+            <p className={`text-[12px] ${SOFT}`}>{t("feeMeta", { percent: summary.depositFeePercent })}</p>
           </div>
-        }
-      />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={routes.payments}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-[#1a1714] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2c2620] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d47840]"
+          >
+            <WalletIcon />
+            {canChangeCliente ? t("ctaReloadAssign") : t("ctaReload")}
+          </Link>
+          <Link
+            href={routes.adAccounts}
+            className={`inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-[13px] font-semibold ring-1 ring-[#e8dfd4] transition hover:bg-[#faf8f5] ${INK}`}
+          >
+            <ChartIcon />
+            {t("ctaAccounts")}
+          </Link>
+          {canChangeCliente ? (
+            <Link href={routes.clientes} className={`px-2 text-[13px] font-semibold underline-offset-4 hover:underline ${SOFT}`}>
+              {t("changeClient")}
+            </Link>
+          ) : null}
+        </div>
+      </header>
 
-      {/* Métricas — una sola superficie */}
-      <OverviewMetricsStrip
-        summary={summary}
-        activeAccounts={activeAccounts}
-        pausedAccounts={pausedAccounts}
-        accountCount={summary.accountCount}
-        dailySource={summary.dailySource}
-        moneyUsd={moneyUsd}
-      />
+      {/* Cifra principal + KPIs */}
+      <section className="rounded-[24px] bg-[#faf8f5] p-3 ring-1 ring-[#e8dfd4] sm:p-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <div className="relative col-span-2 overflow-hidden rounded-[22px] bg-[#1a1714] px-5 py-5 text-white sm:px-6 sm:py-6">
+            <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-[#d47840]/25 blur-2xl" aria-hidden />
+            <div className="relative">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#d47840]/20 px-2.5 py-1 text-[11px] font-semibold text-[#f0b889]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e8955a]" aria-hidden />
+                {t("hero.badge")}
+              </span>
+              <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums tracking-[-0.045em] min-[400px]:text-[2.4rem] sm:text-[2.75rem]">
+                {moneyUsd(summary.gasto30d)}
+              </p>
+              <p className="mt-2 text-[12px] text-white/60">{t("hero.caption")}</p>
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-[11px] text-white/70">
+                  <span>
+                    {t("spend7d")} {moneyUsd(summary.gasto7d)}
+                  </span>
+                  <span className="tabular-nums">{Math.round(share7d * 100)}%</span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-[#d47840]" style={{ width: `${share7d * 100}%` }} />
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-white/50">
+                  {t("spendToday")}: {moneyUsd(summary.gastoHoy)} · {todayHint}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Kpi label={t("cobros")} value={moneyUsd(summary.cobroTotal)} tone="paid" hint={t("hero.cobrosHint")} className="col-span-1" />
+          <Kpi label={t("adSpend")} value={moneyUsd(summary.gastoTotal)} hint={t("hero.adSpendHint")} className="col-span-1" />
+          <Kpi
+            label={t("tiktokAccounts")}
+            value={String(summary.accountCount)}
+            hint={summary.accountCount > 0 ? t("accountsHint", { active: activeAccounts, paused: pausedAccounts }) : undefined}
+            footer={t("feeMeta", { percent: summary.depositFeePercent })}
+            className="col-span-2 lg:col-span-1"
+          />
+        </div>
+      </section>
 
       <DailySpendPanel
         series={summary.dailySeries}
@@ -136,143 +169,96 @@ export async function ClienteScopedOverview({
         moneyUsd={moneyUsd}
       />
 
-      <CrmQuickLinks
-        links={[
+      {/* Accesos */}
+      <nav className="flex flex-wrap items-center gap-2" aria-label={t("hero.quickLinks")}>
+        {[
           { href: routes.adAccounts, label: t("quickAdAccounts") },
           { href: routes.payments, label: t("quickPayments") },
           { href: routes.profit, label: t("quickProfit") },
           { href: `${routes.payments}#asignar-saldo`, label: t("quickAssign") },
-        ]}
-      />
+        ].map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[12.5px] font-semibold ring-1 ring-[#e8dfd4] transition hover:bg-[#faf8f5] hover:ring-[#d9c9b8] ${INK}`}
+          >
+            {link.label}
+            <span aria-hidden className="text-[#d47840]">→</span>
+          </Link>
+        ))}
+      </nav>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <AccountsPanel accounts={accounts} />
-        <GastosPanel
-          gastos={recentGastos}
-          accounts={accounts}
-          source={data.source}
-          moneyUsd={moneyUsd}
-        />
+        <GastosPanel gastos={recentGastos} accounts={accounts} source={data.source} moneyUsd={moneyUsd} />
       </div>
     </div>
   );
 }
 
-async function OverviewMetricsStrip({
-  summary,
-  activeAccounts,
-  pausedAccounts,
-  accountCount,
-  dailySource,
-  moneyUsd,
+function Kpi({
+  label,
+  value,
+  hint,
+  footer,
+  tone = "neutral",
+  className = "",
 }: {
-  summary: HecomClienteDashboard["summary"];
-  activeAccounts: number;
-  pausedAccounts: number;
-  accountCount: number;
-  dailySource: HecomClienteDashboard["summary"]["dailySource"];
-  moneyUsd: (value: number) => string;
+  label: string;
+  value: string;
+  hint?: string;
+  footer?: string;
+  tone?: "neutral" | "paid";
+  className?: string;
 }) {
-  const t = await getTranslations("overview");
-  const gastoHoyHint =
-    dailySource === "none"
-      ? t("noDaySync")
-      : summary.gastoHoy > 0
-        ? t("timezoneLima")
-        : t("noActivityToday");
-  const accountsHint =
-    accountCount > 0
-      ? t("accountsHint", { active: activeAccounts, paused: pausedAccounts })
-      : undefined;
-
   return (
-    <CrmMetricsStrip>
-      <div className="border-b border-[var(--auth-divider)] sm:hidden">
-        <CrmMetricCell
-          label={t("spendToday")}
-          value={moneyUsd(summary.gastoHoy)}
-          hint={gastoHoyHint}
-          emphasis="primary"
-        />
+    <div className={`${CARD} flex flex-col px-4 py-4 sm:px-5 ${className}`}>
+      <p className={`text-[12px] font-medium ${SOFT}`}>{label}</p>
+      <p className={`mt-1 text-[1.45rem] font-semibold tabular-nums tracking-[-0.03em] ${tone === "paid" ? "text-[#2f7a4a]" : INK}`}>
+        {value}
+      </p>
+      {hint ? <p className={`mt-1 text-[11.5px] leading-4 ${MUTED}`}>{hint}</p> : null}
+      {footer ? (
+        <p className="mt-auto pt-3">
+          <span className="inline-flex rounded-full bg-[#fbeee3] px-2 py-0.5 text-[11px] font-semibold text-[#b85f2e]">{footer}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  subtitle,
+  count,
+  action,
+  children,
+  className = "",
+}: {
+  title: string;
+  subtitle?: string;
+  count?: number;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`${CARD} flex flex-col overflow-hidden ${className}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4 sm:px-5">
+        <div className="min-w-0">
+          <h2 className={`text-[15px] font-semibold tracking-[-0.02em] ${INK}`}>{title}</h2>
+          {subtitle ? <p className={`mt-0.5 text-[12px] ${SOFT}`}>{subtitle}</p> : null}
+        </div>
+        <div className="flex items-center gap-2">
+          {count != null ? (
+            <span className={`rounded-full bg-[#f3eee8] px-2 py-0.5 text-[11px] font-semibold tabular-nums ${SOFT}`}>{count}</span>
+          ) : null}
+          {action}
+        </div>
       </div>
-      <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:divide-x sm:divide-[var(--auth-divider)] [&>*]:min-w-0">
-        <CrmMetricCell
-          className="hidden sm:block"
-          label={t("spendToday")}
-          value={moneyUsd(summary.gastoHoy)}
-          hint={gastoHoyHint}
-          emphasis="primary"
-        />
-        <CrmMetricCell
-          className="border-r border-[var(--auth-divider)] sm:border-r-0"
-          label={t("spend7d")}
-          value={moneyUsd(summary.gasto7d)}
-        />
-        <CrmMetricCell
-          className="border-b border-[var(--auth-divider)] sm:border-b-0"
-          label={t("cobros")}
-          value={moneyUsd(summary.cobroTotal)}
-        />
-        <CrmMetricCell label={t("adSpend")} value={moneyUsd(summary.gastoTotal)} />
-        <CrmMetricCell
-          className="border-r border-[var(--auth-divider)] sm:border-r-0"
-          label={t("feeHolistic")}
-          value={`${summary.depositFeePercent}%`}
-          emphasis="muted"
-        />
-        <CrmMetricCell
-          label={t("tiktokAccounts")}
-          value={String(accountCount)}
-          hint={accountsHint}
-          emphasis="muted"
-        />
-      </div>
-    </CrmMetricsStrip>
+      {children}
+    </section>
   );
-}
-
-function WalletIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 8.5h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M4 8.5 6 5.2A1.8 1.8 0 0 1 7.6 4.5h8.8A1.8 1.8 0 0 1 18 5.2L20 8.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <circle cx="16.5" cy="13.2" r="1.1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 19V5M4 19h16"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 15v-3M12 15V8M16 15v-5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function shortDayLabel(dateYmd: string) {
-  const iso = dateYmd.slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return dateYmd;
-  const [, m, d] = iso.split("-");
-  return `${d}/${m}`;
 }
 
 async function DailySpendPanel({
@@ -294,314 +280,156 @@ async function DailySpendPanel({
   const max = Math.max(...series.map((p) => p.spend), 0);
   const peak = max > 0 ? max : 1;
   const hasAny = series.some((p) => p.spend > 0);
-  // Móvil: últimos 7 días para no aplastar barras
-  const mobileSeries = series.slice(-7);
+  const peakPoint = hasAny ? series.reduce((best, p) => (p.spend > best.spend ? p : best), series[0]) : null;
   const sourceLabel =
     source === "snapshots"
       ? t("dailySpend.sourceTiktok")
       : source === "gastos"
         ? t("dailySpend.sourceGastos")
         : t("dailySpend.sourceNone");
+  const mobileSeries = series.slice(-7);
+
+  const bars = (points: typeof series, height: number) => (
+    <div className="flex items-end gap-1.5 sm:gap-2" style={{ height: height + 34 }}>
+      {points.map((point, index) => {
+        const isToday = index === points.length - 1;
+        const isPeak = peakPoint?.date === point.date;
+        const barPx = point.spend > 0 ? Math.max(6, Math.round((point.spend / peak) * height)) : 3;
+        return (
+          <div
+            key={point.date}
+            className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+            title={`${shortDayLabel(point.date)}: ${moneyUsd(point.spend)}`}
+          >
+            <span
+              className={`max-w-full truncate text-[9.5px] font-semibold tabular-nums transition-opacity ${
+                isPeak || isToday ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              } ${isPeak ? "text-[#b85f2e]" : MUTED}`}
+            >
+              {point.spend > 0 ? moneyUsd(point.spend) : " "}
+            </span>
+            <div
+              className={`w-full max-w-[1.6rem] rounded-t-[5px] transition-colors ${
+                isToday || isPeak ? "bg-[#d47840]" : point.spend > 0 ? "bg-[#e9c2a3] group-hover:bg-[#d47840]" : "bg-[#efe8e0]"
+              }`}
+              style={{ height: barPx }}
+            />
+            <span className={`text-[9.5px] font-semibold tabular-nums ${isToday ? "text-[#b85f2e]" : MUTED}`}>
+              {shortDayLabel(point.date)}
+            </span>
+            {isToday ? <span className="h-0.5 w-3 rounded-full bg-[#d47840]" aria-hidden /> : <span className="h-0.5" aria-hidden />}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <CrmPanel
+    <Panel
       title={t("dailySpend.title")}
       subtitle={t("dailySpend.subtitle", { days: series.length })}
-      className="shadow-none"
       action={
-        <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4 sm:text-right">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-              {t("dailySpend.today")}
-            </p>
-            <p className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
-              {moneyUsd(gastoHoy)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-              7d
-            </p>
-            <p className="mt-0.5 text-[14px] font-semibold tabular-nums text-[var(--auth-text)]">
-              {moneyUsd(gasto7d)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-              30d
-            </p>
-            <p className="mt-0.5 text-[14px] font-semibold tabular-nums text-[var(--auth-text)]">
-              {moneyUsd(gasto30d)}
-            </p>
-          </div>
-        </div>
+        <span className={`rounded-full bg-[#f3eee8] px-2.5 py-1 text-[11px] font-medium ${SOFT}`}>
+          {t("dailySpend.source")} <span className={INK}>{sourceLabel}</span>
+        </span>
       }
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--auth-divider)] px-4 pb-3 pt-0.5">
-        <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-          {t("dailySpend.source")}{" "}
-          <span
-            className={
-              source === "none"
-                ? "text-[var(--auth-text-soft)]"
-                : "text-[var(--auth-text)]"
-            }
-          >
-            {sourceLabel}
-          </span>
-        </span>
+      <div className="grid grid-cols-3 gap-2 px-4 sm:px-5">
+        <DayMetric label={t("dailySpend.today")} value={moneyUsd(gastoHoy)} accent />
+        <DayMetric label={t("spend7d")} value={moneyUsd(gasto7d)} />
+        <DayMetric label={t("hero.last30")} value={moneyUsd(gasto30d)} />
       </div>
-
       {!hasAny ? (
-        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:py-10">
-          {t("dailySpend.empty")}
-        </p>
+        <p className={`px-4 py-10 text-center text-[13px] font-medium sm:px-5 ${SOFT}`}>{t("dailySpend.empty")}</p>
       ) : (
         <>
-          {/* Mobile: 7 días legibles */}
-          <div className="px-3 pb-4 pt-4 sm:hidden">
-            <div className="flex h-36 items-end gap-2">
-              {mobileSeries.map((point, index) => {
-                const barPx =
-                  point.spend > 0
-                    ? Math.max(10, Math.round((point.spend / peak) * 108))
-                    : 4;
-                const isToday = index === mobileSeries.length - 1;
-                return (
-                  <div
-                    key={point.date}
-                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
-                    title={`${shortDayLabel(point.date)}: ${moneyUsd(point.spend)}`}
-                  >
-                    <span className="max-w-full truncate text-[9px] font-semibold tabular-nums text-[var(--auth-text-soft)]">
-                      {point.spend > 0
-                        ? moneyUsd(point.spend).replace(/^\$/, "")
-                        : "\u00a0"}
-                    </span>
-                    <div
-                      className={`w-full max-w-[2.5rem] rounded-t-md ${
-                        isToday
-                          ? "bg-[var(--auth-accent)]"
-                          : point.spend > 0
-                            ? "bg-[var(--auth-accent)]/55"
-                            : "bg-[var(--auth-divider)]"
-                      }`}
-                      style={{ height: barPx }}
-                    />
-                    <span
-                      className={`text-[9px] font-semibold tabular-nums ${
-                        isToday
-                          ? "text-[var(--auth-accent)]"
-                          : "text-[var(--auth-text-soft)]"
-                      }`}
-                    >
-                      {shortDayLabel(point.date)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Desktop / tablet: serie completa */}
-          <div className="hidden px-4 pb-4 pt-5 sm:block sm:px-5">
-            <div className="flex h-40 items-end gap-1.5 sm:gap-2">
-              {series.map((point, index) => {
-                const barPx =
-                  point.spend > 0
-                    ? Math.max(8, Math.round((point.spend / peak) * 112))
-                    : 4;
-                const isToday = index === series.length - 1;
-                return (
-                  <div
-                    key={point.date}
-                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5"
-                    title={`${shortDayLabel(point.date)}: ${moneyUsd(point.spend)}`}
-                  >
-                    <span className="max-w-full truncate text-[9px] font-semibold tabular-nums text-[var(--auth-text-soft)] sm:text-[10px]">
-                      {point.spend > 0
-                        ? moneyUsd(point.spend).replace(/^\$/, "")
-                        : "\u00a0"}
-                    </span>
-                    <div
-                      className={`w-full max-w-[2.25rem] rounded-t-md ${
-                        isToday
-                          ? "bg-[var(--auth-accent)]"
-                          : point.spend > 0
-                            ? "bg-[var(--auth-accent)]/55"
-                            : "bg-[var(--auth-divider)]"
-                      }`}
-                      style={{ height: barPx }}
-                    />
-                    <span
-                      className={`text-[9px] font-semibold tabular-nums sm:text-[10px] ${
-                        isToday
-                          ? "text-[var(--auth-accent)]"
-                          : "text-[var(--auth-text-soft)]"
-                      }`}
-                    >
-                      {shortDayLabel(point.date)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <div className="px-3 pb-2 pt-5 sm:hidden">{bars(mobileSeries, 110)}</div>
+          <div className="hidden px-5 pb-2 pt-5 sm:block">{bars(series, 130)}</div>
+          {peakPoint ? (
+            <p className={`border-t border-[#efe8e0] px-4 py-3 text-[11.5px] sm:px-5 ${MUTED}`}>
+              {t("hero.peakDay", { date: shortDayLabel(peakPoint.date), amount: moneyUsd(peakPoint.spend) })}
+            </p>
+          ) : null}
         </>
       )}
-    </CrmPanel>
+    </Panel>
   );
 }
 
-function statusMeta(
-  syncEnabled: boolean | undefined,
-  labels: { paused: string; inCampaign: string },
-) {
-  if (syncEnabled === false) {
-    return {
-      label: labels.paused,
-      className:
-        "bg-[var(--auth-bg)] text-[var(--auth-text-muted)] ring-1 ring-[var(--auth-divider)]",
-      dot: "bg-[var(--auth-text-soft)]",
-    };
-  }
-  return {
-    label: labels.inCampaign,
-    className: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80",
-    dot: "bg-emerald-500",
-  };
+function DayMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="rounded-[14px] bg-[#faf8f5] px-3 py-2.5">
+      <p className={`flex items-center gap-1.5 text-[11px] font-medium ${SOFT}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${accent ? "bg-[#d47840]" : "bg-[#d9cfc4]"}`} aria-hidden />
+        {label}
+      </p>
+      <p className={`mt-0.5 text-[15px] font-semibold tabular-nums tracking-[-0.02em] sm:text-[17px] ${INK}`}>{value}</p>
+    </div>
+  );
 }
 
 async function AccountsPanel({ accounts }: { accounts: HecomTiktokAccount[] }) {
   const t = await getTranslations("overview");
-  const statusLabels = {
-    paused: t("accountsPanel.paused"),
-    inCampaign: t("accountsPanel.inCampaign"),
-  };
 
   return (
-    <CrmPanel
+    <Panel
       title={t("tiktokAccounts")}
       subtitle={t("accountsPanel.hecomReadonly")}
-      className="flex h-full flex-col overflow-hidden"
       action={
-        <Link
-          href={routes.adAccounts}
-          className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
-        >
+        <Link href={routes.adAccounts} className={`text-[12px] font-semibold underline-offset-4 hover:underline ${INK}`}>
           {t("accountsPanel.viewAll", { count: accounts.length })}
         </Link>
       }
+      className="h-full"
     >
       {accounts.length === 0 ? (
-        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
-          {t("accountsPanel.empty")}
-        </p>
+        <p className={`px-4 pb-8 pt-4 text-[13px] font-medium sm:px-5 ${SOFT}`}>{t("accountsPanel.empty")}</p>
       ) : (
-        <ul className="max-h-[28rem] flex-1 overflow-y-auto sm:max-h-[24rem]">
+        <ul className="max-h-[26rem] flex-1 overflow-y-auto px-4 pb-3 sm:px-5">
           {accounts.map((account) => {
             const label = parseAdvertiserLabel(account.advertiserName);
-            const status = statusMeta(account.syncEnabled, statusLabels);
+            const active = account.syncEnabled !== false;
             return (
-              <li
-                key={account.advertiserId}
-                className="border-b border-[var(--auth-divider)] px-4 py-3.5 last:border-0 hover:bg-[var(--auth-bg)] sm:px-5"
-              >
-                {/* Mobile card row */}
-                <div className="flex gap-3 sm:hidden">
-                  <span
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--auth-accent-soft)] text-[11px] font-bold text-[var(--auth-accent)]"
-                    aria-hidden
-                  >
-                    {initials(label.title)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-[13.5px] font-semibold text-[var(--auth-text)]">
-                        {label.title}
-                      </p>
-                      {label.balance ? (
-                        <p className="shrink-0 text-[13px] font-bold tabular-nums text-[var(--auth-accent)]">
-                          {label.balance}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${status.className}`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
-                        />
-                        {status.label}
-                      </span>
-                      {account.bmBucket ? (
-                        <span className="rounded-full bg-[var(--auth-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--auth-text-muted)]">
-                          {account.bmBucket}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+              <li key={account.advertiserId} className="flex items-center gap-3 border-t border-[#f1ebe4] py-3 first:border-t-0">
+                <span
+                  className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[11px] font-bold ${
+                    active ? "bg-[#eaf5ee] text-[#2f7a4a]" : "bg-[#f3eee8] text-[#8a8177]"
+                  }`}
+                  aria-hidden
+                >
+                  {label.code ?? initials(label.title)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-[13.5px] font-semibold ${INK}`}>
+                    {label.title}
+                    {label.code ? <span className={`font-medium ${MUTED}`}> · {label.code}</span> : null}
+                  </p>
+                  <p className={`mt-0.5 truncate text-[11.5px] ${MUTED}`}>
+                    {[account.bmBucket ? `BM ${account.bmBucket}` : null, `ID ${shortId(account.advertiserId)}`, account.fee != null ? `Fee ${account.fee}%` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                 </div>
-
-                {/* Desktop row */}
-                <div className="hidden items-center gap-3 sm:flex">
-                  <span
-                    aria-hidden
-                    className={`h-8 w-[3px] shrink-0 rounded-full ${
-                      account.syncEnabled !== false
-                        ? "bg-emerald-500"
-                        : "bg-[var(--auth-text-soft)]"
-                    }`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
-                      {label.title}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="rounded bg-[var(--auth-bg)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--auth-text-muted)]">
-                        {shortId(account.advertiserId)}
-                      </span>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${status.className}`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
-                        />
-                        {status.label}
-                      </span>
-                      {account.bmBucket ? (
-                        <span className="rounded bg-[var(--auth-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--auth-text-muted)]">
-                          BM {account.bmBucket}
-                        </span>
-                      ) : null}
-                      {account.fee != null ? (
-                        <span className="rounded bg-[var(--auth-accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--auth-accent)]">
-                          Fee {account.fee}%
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  {label.balance ? (
-                    <p className="shrink-0 text-[13px] font-semibold tabular-nums text-[var(--auth-accent)]">
-                      {label.balance}
-                    </p>
-                  ) : null}
-                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
+                    active ? "bg-[#eaf5ee] text-[#2f7a4a]" : "bg-[#f3eee8] text-[#8a8177]"
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-[#3f9a62]" : "bg-[#b5aaa0]"}`} aria-hidden />
+                  {active ? t("accountsPanel.inCampaign") : t("accountsPanel.paused")}
+                </span>
               </li>
             );
           })}
         </ul>
       )}
-    </CrmPanel>
+    </Panel>
   );
 }
 
 function bmMapFromAccounts(accounts: HecomTiktokAccount[]) {
   const map = new Map<string, string | null>();
-  for (const account of accounts) {
-    map.set(account.advertiserId, formatBmBucketLabel(account.bmBucket));
-  }
+  for (const account of accounts) map.set(account.advertiserId, formatBmBucketLabel(account.bmBucket));
   return map;
 }
 
@@ -618,76 +446,78 @@ async function GastosPanel({
 }) {
   const t = await getTranslations("overview");
   const bmByAdvertiser = bmMapFromAccounts(accounts);
-  const sourceLabel = source === "hecom_live" ? t("live") : t("backup");
+  const live = source === "hecom_live";
 
   return (
-    <CrmPanel
+    <Panel
       title={t("gastosPanel.title")}
       subtitle={t("gastosPanel.subtitle")}
       action={
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-medium text-[var(--auth-text-muted)]">
-            {sourceLabel}
+          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${SOFT}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-[#3f9a62]" : "bg-[#b5aaa0]"}`} aria-hidden />
+            {live ? t("live") : t("backup")}
           </span>
-          <Link
-            href={routes.profit}
-            className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] hover:underline"
-          >
+          <Link href={routes.profit} className={`text-[12px] font-semibold underline-offset-4 hover:underline ${INK}`}>
             {t("gastosPanel.viewProfit")}
           </Link>
         </div>
       }
-      className="flex h-full flex-col overflow-hidden"
+      className="h-full"
     >
       {gastos.length === 0 ? (
-        <p className="px-4 py-8 text-[13px] font-medium text-[var(--auth-text-muted)] sm:px-5 sm:py-10">
-          {t("gastosPanel.empty")}
-        </p>
+        <p className={`px-4 pb-8 pt-4 text-[13px] font-medium sm:px-5 ${SOFT}`}>{t("gastosPanel.empty")}</p>
       ) : (
-        <ul className="max-h-[28rem] flex-1 overflow-y-auto sm:max-h-[24rem]">
+        <ul className="max-h-[26rem] flex-1 overflow-y-auto px-4 pb-3 sm:px-5">
           {gastos.map((row) => {
             const fecha = formatHecomFecha(row.fecha ?? row.mes);
             const bm = resolveBmForGasto(row, bmByAdvertiser);
-            const label = formatHecomGastoDisplay(row.camp, {
-              notas: row.notas,
-              fee: row.fee,
-              fecha: null,
-            });
+            const label = formatHecomGastoDisplay(row.camp, { notas: row.notas, fee: row.fee, fecha: null });
             return (
-              <li
-                key={row.id}
-                className="flex items-start justify-between gap-3 border-b border-[var(--auth-divider)] px-4 py-3.5 last:border-0 hover:bg-[var(--auth-bg)] sm:px-5"
-              >
+              <li key={row.id} className="flex items-center gap-3 border-t border-[#f1ebe4] py-3 first:border-t-0">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#fbeee3] text-[#d47840]" aria-hidden>
+                  <TrendIcon />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-[var(--auth-text)] sm:text-[13.5px]">
-                    {label.title}
+                  <p className={`truncate text-[13.5px] font-semibold ${INK}`}>{label.title}</p>
+                  <p className={`mt-0.5 truncate text-[11.5px] ${MUTED}`}>
+                    {[fecha, bm, row.fee != null ? `Fee ${row.fee}%` : null].filter(Boolean).join(" · ")}
                   </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    {fecha ? (
-                      <span className="rounded-full bg-[var(--auth-bg)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--auth-text-muted)]">
-                        {fecha}
-                      </span>
-                    ) : null}
-                    {bm ? (
-                      <span className="rounded-full bg-[var(--auth-bg)] px-2 py-0.5 text-[10px] font-semibold text-[var(--auth-text)]">
-                        {bm}
-                      </span>
-                    ) : null}
-                    {row.fee != null ? (
-                      <span className="rounded-full bg-[var(--auth-accent-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--auth-accent)]">
-                        Fee {row.fee}%
-                      </span>
-                    ) : null}
-                  </div>
                 </div>
-                <p className="shrink-0 pt-0.5 text-[13px] font-bold tabular-nums text-[var(--auth-text)]">
-                  {moneyUsd(row.gasto)}
-                </p>
+                <p className={`shrink-0 text-[13.5px] font-semibold tabular-nums ${INK}`}>{moneyUsd(row.gasto)}</p>
               </li>
             );
           })}
         </ul>
       )}
-    </CrmPanel>
+    </Panel>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 8.5h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 8.5 6 5.2A1.8 1.8 0 0 1 7.6 4.5h8.8A1.8 1.8 0 0 1 18 5.2L20 8.5" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="16.5" cy="13.2" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 19V5M4 19h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 15v-3M12 15V8M16 15v-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TrendIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="m4 16 5-5 4 4 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 8h5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

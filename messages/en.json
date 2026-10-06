@@ -154,6 +154,15 @@
       "subtitle": "Recent campaign consumption",
       "viewProfit": "View Profit",
       "empty": "No spend recorded for this client."
+    },
+    "hero": {
+      "badge": "Ad spend",
+      "caption": "Last 30 days · all your accounts",
+      "cobrosHint": "Total payments recorded",
+      "adSpendHint": "Total spent on TikTok Ads",
+      "quickLinks": "Shortcuts",
+      "last30": "Last 30 days",
+      "peakDay": "Highest spend day: {date} · {amount}"
     }
   },
   "payments": {
