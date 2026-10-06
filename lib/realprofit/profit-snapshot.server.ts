@@ -350,6 +350,11 @@ function mergeCampaignsWithTikTokPerf(input: {
   }
 
   const used = new Set<string>();
+  // El reporte TikTok a veces trae el id en lugar del nombre: se prefiere el
+  // nombre real que guardan los snapshots.
+  const isIdLike = (value: string | null | undefined) => /^\d{8,}$/.test(String(value ?? "").trim());
+  const pickName = (fromPerf: string | null | undefined, fromHolistic: string) =>
+    fromPerf && !isIdLike(fromPerf) ? fromPerf : fromHolistic || String(fromPerf ?? "");
   const merged: PerfMergeRow[] = input.holisticCampaigns.map((c) => {
     const cid = c.campaignExternalId.startsWith("name:")
       ? ""
@@ -358,7 +363,7 @@ function mergeCampaignsWithTikTokPerf(input: {
     if (perf) used.add(perf.campaignId);
     return {
       campaignExternalId: c.campaignExternalId,
-      campaignName: perf?.campaignName || c.campaignName,
+      campaignName: pickName(perf?.campaignName, c.campaignName),
       platform: c.platform,
       spend: c.spend,
       bm: c.bm,

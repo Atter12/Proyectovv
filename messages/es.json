@@ -1247,6 +1247,35 @@
     }
   },
   "profit": {
+    "products": {
+      "title": "Rendimiento por producto",
+      "subtitle": "Qué producto conviene escalar y cuál apagar, según tus campañas del período.",
+      "average": "Tu costo por resultado promedio: {amount}",
+      "noConversions": "TikTok todavía no envía resultados de este período: por ahora solo vemos el gasto por producto.",
+      "campaignsCount": "{count, plural, one {# campaña} other {# campañas}}",
+      "spend": "Gasto",
+      "results": "Resultados",
+      "costPerResult": "Costo por resultado",
+      "footnote": "El producto se toma del nombre de la campaña. Resultado = conversión que reporta TikTok.",
+      "showAll": "Ver los {count} productos",
+      "showLess": "Ver menos",
+      "verdict": {
+        "scale": "Escalar",
+        "keep": "Mantener",
+        "review": "Revisar",
+        "stop": "Apagar o cambiar",
+        "low_data": "Poca data",
+        "no_data": "Sin resultados"
+      },
+      "reason": {
+        "scale": "cuesta {pct}% menos que tu promedio",
+        "keep": "en tu promedio",
+        "review": "cuesta {pct}% más que tu promedio",
+        "stop": "gastó {spend} sin resultados",
+        "low_data": "necesita al menos {min} de gasto para opinar",
+        "no_data": "sin datos de resultados"
+      }
+    },
     "heroModule": "Análisis de campañas",
     "heroTitle": "Profit · {name}",
     "heroSubtitle": "Gasto TikTok live, ranking de campañas y CTR/CPC del rango — incluido en Holistic.",

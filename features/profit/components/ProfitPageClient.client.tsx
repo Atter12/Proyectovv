@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { ProfitAdvisorBot } from "@/features/profit/components/ProfitAdvisorBot.client";
+import { ProductPerformancePanel } from "@/features/profit/components/ProductPerformancePanel.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
@@ -1278,6 +1279,8 @@ export function ProfitPageClient({
               </ul>
             </section>
           ) : null}
+
+          <ProductPerformancePanel campaigns={analysis.campaigns} />
 
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">

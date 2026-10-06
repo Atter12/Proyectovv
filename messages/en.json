@@ -1247,6 +1247,35 @@
     }
   },
   "profit": {
+    "products": {
+      "title": "Performance by product",
+      "subtitle": "Which product to scale and which to turn off, based on your campaigns in this period.",
+      "average": "Your average cost per result: {amount}",
+      "noConversions": "TikTok has not sent results for this period yet: for now we only see spend by product.",
+      "campaignsCount": "{count, plural, one {# campaign} other {# campaigns}}",
+      "spend": "Spend",
+      "results": "Results",
+      "costPerResult": "Cost per result",
+      "footnote": "The product is taken from the campaign name. Result = conversion reported by TikTok.",
+      "showAll": "See all {count} products",
+      "showLess": "See less",
+      "verdict": {
+        "scale": "Scale",
+        "keep": "Keep",
+        "review": "Review",
+        "stop": "Turn off or change",
+        "low_data": "Little data",
+        "no_data": "No results"
+      },
+      "reason": {
+        "scale": "costs {pct}% less than your average",
+        "keep": "at your average",
+        "review": "costs {pct}% more than your average",
+        "stop": "spent {spend} with no results",
+        "low_data": "needs at least {min} in spend to judge",
+        "no_data": "no result data"
+      }
+    },
     "heroModule": "Campaign analysis",
     "heroTitle": "Profit · {name}",
     "heroSubtitle": "Live TikTok spend, campaign ranking, and range CTR/CPC — included in Holistic.",
