@@ -176,6 +176,70 @@
     }
   },
   "payments": {
+    "guide": {
+      "summary": "Como recarregar? Guia passo a passo",
+      "intro": "O saldo entra primeiro na sua carteira Holistic e depois você o atribui à sua conta do TikTok. Escolha como vai pagar:",
+      "tabsLabel": "Forma de pagamento",
+      "faqTitle": "Perguntas frequentes",
+      "tabs": {
+        "yape": "Yape / Plin",
+        "manual": "Transferência ou Binance",
+        "crypto": "Cripto (USDT)",
+        "abroad": "Estou em outro país"
+      },
+      "yape": {
+        "step1": "Escolha “Yape / Plin” e digite quanto quer na carteira (em dólares). Mostramos quanto você paga em soles, já com a taxa de {fee}%.",
+        "step2": "Você recebe um código. No Yape abra “Pagamento de serviços”, busque “360Pay” e cole o código. Também pode pagar pelo app do BCP, Interbank, BBVA ou Scotiabank, em “Pagamento de serviços”.",
+        "step3": "Pague. Não precisa avisar nem mandar print.",
+        "time": "Chega sozinho em poucos minutos",
+        "tip": "Se você gerar um recibo novo, o anterior não pago é cancelado automaticamente."
+      },
+      "manual": {
+        "step1": "Escolha “Pagamento manual”, digite quanto quer na carteira e se vai pagar em soles ou dólares.",
+        "step2": "Transfira para a conta BCP mostrada, ou envie USDT pela Binance ao e-mail que aparece. Pague o valor exato, com os centavos: é assim que reconhecemos seu pagamento.",
+        "step3": "Envie o print do comprovante na mesma etapa.",
+        "step4": "Revisamos e o saldo entra na sua carteira.",
+        "time": "Chega quando aprovamos o comprovante",
+        "tip": "Transferiu e não enviou o print? Vá em “Minhas recargas”, mais abaixo, e toque em “Enviar comprovante”."
+      },
+      "crypto": {
+        "step1": "Escolha “Cripto (USDT)” e digite quanto quer na carteira (mínimo $12).",
+        "step2": "Abre a página de pagamento da NOWPayments com um endereço USDT.",
+        "step3": "Envie os USDT da Binance ou da sua carteira pela rede TRC20 (Tron). Se usar outra rede, o pagamento se perde.",
+        "step4": "Quando a rede confirma, o saldo entra sozinho.",
+        "time": "Chega sozinho em poucos minutos",
+        "tip": "A Binance cobra uma pequena taxa de rede ao enviar: considere-a para que chegue o valor completo."
+      },
+      "abroad": {
+        "step1": "Yape, Plin e transferência BCP são do Peru. Da Colômbia, Equador ou Brasil o mais fácil é pagar com USDT.",
+        "step2": "Compre USDT na Binance P2P com seu banco local (Nequi, Bancolombia, Banco Pichincha, Pix…) ou com cartão.",
+        "step3": "Escolha “Cripto (USDT)” aqui e envie os USDT pela rede TRC20. O saldo entra sozinho.",
+        "time": "Chega sozinho em poucos minutos",
+        "tip": "Você também pode enviar por Binance Pay ao e-mail do “Pagamento manual”, mas esse pagamento passa por revisão."
+      },
+      "faq": {
+        "notCredited": {
+          "q": "Paguei e não vejo meu saldo",
+          "a": "Com Yape ou cripto entra sozinho em poucos minutos. Com pagamento manual, veja “Minhas recargas”: se diz “Falta comprovante”, envie; se diz “Em revisão”, estamos aprovando."
+        },
+        "invalidPayment": {
+          "q": "O Yape diz “Pagamento inválido”",
+          "a": "O Yape exige pagar primeiro o recibo mais antigo. Gere uma recarga nova: os recibos anteriores não pagos são cancelados sozinhos."
+        },
+        "card": {
+          "q": "Posso pagar com cartão?",
+          "a": "Por enquanto não diretamente. Você pode comprar USDT com cartão na Binance e pagar com “Cripto (USDT)”."
+        },
+        "fee": {
+          "q": "O que é a taxa de {fee}%?",
+          "a": "É a comissão da Holistic. Ela é somada ao pagar: na carteira entra exatamente o valor que você pediu."
+        },
+        "assign": {
+          "q": "Tenho saldo na carteira, mas o TikTok não gasta",
+          "a": "O saldo precisa ir para uma conta do TikTok. Use “Atribuir ao TikTok”, escolha a conta e o valor."
+        }
+      }
+    },
     "myRecharges": {
       "title": "Minhas recargas",
       "subtitle": "Últimos 30 dias. Primeiro o que falta concluir.",

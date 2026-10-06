@@ -176,6 +176,70 @@
     }
   },
   "payments": {
+    "guide": {
+      "summary": "How to top up? Step-by-step guide",
+      "intro": "Your balance goes to your Holistic wallet first, then you assign it to your TikTok account. Choose how you will pay:",
+      "tabsLabel": "Payment method",
+      "faqTitle": "Frequent questions",
+      "tabs": {
+        "yape": "Yape / Plin",
+        "manual": "Transfer or Binance",
+        "crypto": "Crypto (USDT)",
+        "abroad": "I am in another country"
+      },
+      "yape": {
+        "step1": "Choose “Yape / Plin” and enter how much you want in your wallet (in dollars). We show what you pay in soles, including the {fee}% service fee.",
+        "step2": "You get a code. In Yape open “Pay services”, search “360Pay” and paste the code. You can also pay it from the BCP, Interbank, BBVA or Scotiabank app, under “Pay services”.",
+        "step3": "Pay. No need to tell us or send a screenshot.",
+        "time": "Arrives automatically in a few minutes",
+        "tip": "If you create a new receipt, the previous unpaid one is cancelled automatically."
+      },
+      "manual": {
+        "step1": "Choose “Manual payment”, enter how much you want in your wallet and whether you pay in soles or dollars.",
+        "step2": "Transfer to the BCP account we show, or send USDT via Binance to the email shown. Pay the exact amount, including cents: that is how we recognize your payment.",
+        "step3": "Upload the receipt screenshot in the same step.",
+        "step4": "We review it and the balance goes to your wallet.",
+        "time": "Arrives once we approve the receipt",
+        "tip": "Transferred but did not upload the screenshot? Go to “My top-ups” below and tap “Upload receipt”."
+      },
+      "crypto": {
+        "step1": "Choose “Crypto (USDT)” and enter how much you want in your wallet (minimum $12).",
+        "step2": "The NOWPayments page opens with a USDT address.",
+        "step3": "Send the USDT from Binance or your wallet on the TRC20 (Tron) network. If you use another network the payment is lost.",
+        "step4": "When the network confirms, the balance arrives automatically.",
+        "time": "Arrives automatically in a few minutes",
+        "tip": "Binance charges a small network fee when sending: account for it so the full amount arrives."
+      },
+      "abroad": {
+        "step1": "Yape, Plin and BCP transfers are Peruvian. From Colombia, Ecuador or Brazil the easiest way is to pay with USDT.",
+        "step2": "Buy USDT on Binance P2P with your local bank (Nequi, Bancolombia, Banco Pichincha, Pix…) or with your card.",
+        "step3": "Choose “Crypto (USDT)” here and send the USDT on the TRC20 network. The balance arrives automatically.",
+        "time": "Arrives automatically in a few minutes",
+        "tip": "You can also send via Binance Pay to the “Manual payment” email, but that payment goes through review."
+      },
+      "faq": {
+        "notCredited": {
+          "q": "I paid and do not see my balance",
+          "a": "With Yape or crypto it arrives automatically in a few minutes. With manual payment, check “My top-ups”: if it says “Receipt missing”, upload it; if it says “In review”, we are approving it."
+        },
+        "invalidPayment": {
+          "q": "Yape says “Invalid payment”",
+          "a": "Yape makes you pay the oldest receipt first. Create a new top-up: previous unpaid receipts are cancelled automatically."
+        },
+        "card": {
+          "q": "Can I pay with a card?",
+          "a": "Not directly for now. You can buy USDT with your card on Binance and pay with “Crypto (USDT)”."
+        },
+        "fee": {
+          "q": "What is the {fee}% service fee?",
+          "a": "It is the Holistic commission. It is added when you pay: your wallet receives exactly the amount you asked for."
+        },
+        "assign": {
+          "q": "I have balance in my wallet but TikTok does not spend",
+          "a": "The balance must move to a TikTok account. Use “Assign to TikTok”, pick the account and the amount."
+        }
+      }
+    },
     "myRecharges": {
       "title": "My top-ups",
       "subtitle": "Last 30 days. What you still need to finish comes first.",
