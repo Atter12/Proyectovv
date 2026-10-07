@@ -586,8 +586,10 @@ export function AddBalanceModal({
                   {isCardGateway && stripeExtra > 0 ? (
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-[#625b54]">
-                        {t("addBalance.feeStripe")} (
-                        {formatFeePercentLabel(stripeExtra)})
+                        {isWhop
+                          ? t("addBalance.feeGateway")
+                          : t("addBalance.feeStripe")}{" "}
+                        ({formatFeePercentLabel(stripeExtra)})
                       </span>
                       <span className="font-medium tabular-nums text-[#1c1917]">
                         {formatMoney((parsedAmount * stripeExtra) / 100)}
@@ -766,8 +768,10 @@ export function AddBalanceModal({
                   {isCardGateway && stripeExtra > 0 ? (
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-[#625b54]">
-                        {t("addBalance.feeStripe")} (
-                        {formatFeePercentLabel(stripeExtra)})
+                        {isWhop
+                          ? t("addBalance.feeGateway")
+                          : t("addBalance.feeStripe")}{" "}
+                        ({formatFeePercentLabel(stripeExtra)})
                       </dt>
                       <dd className="font-medium tabular-nums text-[#1c1917]">
                         {formatMoney((parsedAmount * stripeExtra) / 100)}

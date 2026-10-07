@@ -562,6 +562,7 @@
       "receiveWallet": "You will receive in wallet",
       "feeHolistic": "Holistic fee",
       "feeStripe": "Stripe fee",
+      "feeGateway": "Gateway fee",
       "totalPay": "Total to pay",
       "gatewayCrypto": "Crypto (USDT)",
       "gatewayManual": "Manual payment",

@@ -2,6 +2,17 @@ export const WHOP_CHECKOUT_TIMEOUT_MS = 20_000;
 
 export const WHOP_WALLET_PRODUCT_EXTERNAL_ID = "adsholistic-wallet-topup";
 
+/** Whop valida título de plan dinámico a máximo 30 caracteres. */
+export const WHOP_PLAN_TITLE_MAX = 30;
+
+export const WHOP_DEFAULT_PLAN_TITLE = "Recarga Holistic";
+
+export function truncateWhopPlanTitle(value: string | undefined): string {
+  const trimmed = value?.trim() || WHOP_DEFAULT_PLAN_TITLE;
+  if (trimmed.length <= WHOP_PLAN_TITLE_MAX) return trimmed;
+  return trimmed.slice(0, WHOP_PLAN_TITLE_MAX).trimEnd();
+}
+
 export type WhopCheckoutCreateInput = {
   companyId: string;
   amountCents: number;
@@ -18,8 +29,9 @@ export type WhopCheckoutCreateInput = {
 export function buildWhopCheckoutBody(input: WhopCheckoutCreateInput): Record<string, unknown> {
   const currency = input.currency.trim().toLowerCase() || "usd";
   const initialPrice = Math.round(input.amountCents) / 100;
-  const title =
-    input.concept?.trim() || "Recarga Ads Holistic";
+  // Concepto largo (cliente Hecom) va a metadata/notas; el título del plan ≤ 30.
+  const title = truncateWhopPlanTitle(WHOP_DEFAULT_PLAN_TITLE);
+  const notes = input.concept?.trim();
 
   const plan: Record<string, unknown> = {
     company_id: input.companyId,
@@ -28,6 +40,7 @@ export function buildWhopCheckoutBody(input: WhopCheckoutCreateInput): Record<st
     plan_type: "one_time",
     title,
     visibility: "hidden",
+    ...(notes && notes !== title ? { internal_notes: notes.slice(0, 200) } : {}),
   };
 
   if (input.productId) {
@@ -35,7 +48,7 @@ export function buildWhopCheckoutBody(input: WhopCheckoutCreateInput): Record<st
   } else {
     plan.product = {
       external_identifier: WHOP_WALLET_PRODUCT_EXTERNAL_ID,
-      title: "Recarga Ads Holistic",
+      title: WHOP_DEFAULT_PLAN_TITLE,
       description: "Saldo de cartera Ads Holistic",
       visibility: "hidden",
     };

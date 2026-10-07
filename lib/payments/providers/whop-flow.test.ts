@@ -35,6 +35,9 @@ test("buildWhopCheckoutBody usa plan one_time y metadata del intent", () => {
   assert.equal(plan.plan_type, "one_time");
   assert.equal(plan.currency, "usd");
   assert.equal(plan.initial_price, 113);
+  assert.equal(plan.title, "Recarga Holistic");
+  assert.ok(String(plan.title).length <= 30);
+  assert.equal(plan.internal_notes, "Recarga Holistic · Demo");
   const product = plan.product as Record<string, unknown>;
   assert.equal(product.external_identifier, WHOP_WALLET_PRODUCT_EXTERNAL_ID);
   const metadata = body.metadata as Record<string, unknown>;

@@ -562,6 +562,7 @@
       "receiveWallet": "Recibirás en cartera",
       "feeHolistic": "Fee Holistic",
       "feeStripe": "Fee de Stripe",
+      "feeGateway": "Fee de pasarela",
       "totalPay": "Total a pagar",
       "gatewayCrypto": "Cripto (USDT)",
       "gatewayManual": "Pago manual",
