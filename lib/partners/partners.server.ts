@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
 
 const PARTNER_SELECT =
-  "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_months,status,theme";
+  "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_days,status,theme";
 
 type PartnerRow = {
   id: string;
@@ -17,7 +17,7 @@ type PartnerRow = {
   accent_color: string;
   whatsapp: string | null;
   commission_rate: number | string;
-  commission_months: number;
+  commission_days: number;
   status: "active" | "paused";
   theme?: string | null;
 };
@@ -35,7 +35,7 @@ function toPartner(row: PartnerRow): Partner {
     accentColor: row.accent_color,
     whatsapp: row.whatsapp,
     commissionRate: Number(row.commission_rate),
-    commissionMonths: row.commission_months,
+    commissionDays: row.commission_days,
     status: row.status,
     theme: row.theme === "dark" ? "dark" : "light",
   };
@@ -143,7 +143,7 @@ export async function recordSignupAttribution(input: {
   if (!partner) return;
   const now = new Date();
   const expires = new Date(now);
-  expires.setMonth(expires.getMonth() + partner.commissionMonths);
+  expires.setDate(expires.getDate() + partner.commissionDays);
   // Un cliente es de un solo aliado: si ya tenía, se respeta el primero.
   const { error: clientError } = await admin.from("partner_clients").insert({
     partner_id: partner.id,

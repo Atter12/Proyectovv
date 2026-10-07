@@ -97,7 +97,7 @@ export function MiAlianza({ partner, panel }: Props) {
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
           Comparte tu link. Quien se registre por ahí queda a tu nombre y ganas el{" "}
           <strong>{Math.round(partner.commissionRate * 100)}% del fee</strong> que le cobramos durante{" "}
-          {partner.commissionMonths} meses. Contrato firmado el {fecha(partner.contractSignedAt)}.
+          {partner.commissionDays} días desde que se registra. Contrato firmado el {fecha(partner.contractSignedAt)}.
         </p>
       </header>
 

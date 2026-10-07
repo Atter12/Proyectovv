@@ -21,7 +21,7 @@ export type PartnerInput = {
   accentColor: string;
   whatsapp: string;
   commissionPercent: number;
-  commissionMonths: number;
+  commissionDays: number;
   notes: string;
 };
 
@@ -58,9 +58,9 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
   if (!Number.isFinite(percent) || percent < 0 || percent > 50) {
     return { ok: false, error: "La comisión debe estar entre 0% y 50% del fee." };
   }
-  const months = Math.round(Number(input.commissionMonths));
-  if (!Number.isFinite(months) || months < 1 || months > 120) {
-    return { ok: false, error: "Los meses de comisión deben estar entre 1 y 120." };
+  const days = Math.round(Number(input.commissionDays));
+  if (!Number.isFinite(days) || days < 1 || days > 3650) {
+    return { ok: false, error: "Los días de comisión deben estar entre 1 y 3650." };
   }
 
   const row = {
@@ -73,7 +73,7 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
     accent_color: accent,
     whatsapp: clean(String(input.whatsapp ?? "").replace(/[^\d+]/g, ""), 20),
     commission_rate: Math.round(percent * 100) / 10000,
-    commission_months: months,
+    commission_days: days,
     notes: clean(input.notes, 1000),
     updated_at: new Date().toISOString(),
   };
@@ -111,7 +111,7 @@ export async function assignClientToPartnerAction(partnerId: string, email: stri
   if (!normalized.includes("@")) return { ok: false, error: "Escribe el correo del cliente." };
 
   const admin = createAdminClient();
-  const { data: partner } = await admin.from("partners").select("id,commission_months").eq("id", partnerId).maybeSingle();
+  const { data: partner } = await admin.from("partners").select("id,commission_days").eq("id", partnerId).maybeSingle();
   if (!partner) return { ok: false, error: "Aliado no encontrado." };
 
   const { data: matches, error: findError } = await createHecomAdminClient()
@@ -125,7 +125,7 @@ export async function assignClientToPartnerAction(partnerId: string, email: stri
 
   const now = new Date();
   const expires = new Date(now);
-  expires.setMonth(expires.getMonth() + Number(partner.commission_months));
+  expires.setDate(expires.getDate() + Number(partner.commission_days));
   const { error } = await admin.from("partner_clients").insert({
     partner_id: partnerId,
     hecom_cliente_id: String(matches[0]!.id),

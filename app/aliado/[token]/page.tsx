@@ -43,7 +43,7 @@ export default async function PartnerPanelPage({ params }: { params: Promise<{ t
           <h1 className="text-[26px] font-bold tracking-[-0.03em] sm:text-[30px]">Hola, {data.partner.name}</h1>
           <p className="mt-1 text-[14px] text-[#5f574f]">
             Ganas el <strong>{ratePct}% del fee</strong> que Holistic cobra a cada cliente que traes, durante{" "}
-            <strong>{data.partner.commissionMonths} meses</strong> desde que se registra. Se paga una vez al mes.
+            <strong>{data.partner.commissionDays} días</strong> desde que se registra. Se paga una vez al mes.
           </p>
           {data.partner.status === "paused" ? (
             <p className="mt-3 rounded-xl bg-[#fff4ea] px-4 py-3 text-[13px] text-[#765037]">

@@ -13,7 +13,7 @@ export const maxDuration = 30;
 /**
  * Aliado de Ads Holistic de una alianza de Hecom.
  * GET  ?allianceId=<uuid>  → { ok, partner | null }
- * POST { allianceId, name, slug?, whatsapp?, commissionPercent?, commissionMonths?, hecomClienteId?, contractSignedAt? }
+ * POST { allianceId, name, slug?, whatsapp?, commissionPercent?, commissionDays?, hecomClienteId?, contractSignedAt? }
  * Auth: Bearer con el mismo secreto del puente de cobros.
  */
 function guard(request: Request): Response | null {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       slug: typeof body.slug === "string" ? body.slug : null,
       whatsapp: typeof body.whatsapp === "string" ? body.whatsapp : null,
       commissionPercent: num(body.commissionPercent),
-      commissionMonths: num(body.commissionMonths),
+      commissionDays: num(body.commissionDays),
       hecomClienteId: typeof body.hecomClienteId === "string" ? body.hecomClienteId : null,
       contractSignedAt: typeof body.contractSignedAt === "string" ? body.contractSignedAt : null,
     });

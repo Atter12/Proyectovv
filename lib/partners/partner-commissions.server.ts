@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   ajustes de staff, saldos a favor ni puentes desde el BM.
  * - Fee de Holistic en USD = crédito × fee_holistic_percent. Deja fuera el
  *   recargo de Stripe, que no es ganancia nuestra.
- * - Solo pagos entre la atribución y su vencimiento (commission_months).
+ * - Solo pagos entre la atribución y su vencimiento (commission_days).
  * - Idempotente: una comisión por pago (payment_intent_id único).
  */
 

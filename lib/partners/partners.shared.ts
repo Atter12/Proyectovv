@@ -21,7 +21,7 @@ export type Partner = {
   accentColor: string;
   whatsapp: string | null;
   commissionRate: number;
-  commissionMonths: number;
+  commissionDays: number;
   status: "active" | "paused";
   theme: PartnerTheme;
 };

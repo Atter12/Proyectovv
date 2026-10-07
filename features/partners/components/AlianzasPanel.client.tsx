@@ -25,7 +25,7 @@ const EMPTY: PartnerInput = {
   accentColor: "#ff781f",
   whatsapp: "",
   commissionPercent: 20,
-  commissionMonths: 12,
+  commissionDays: 50,
   notes: "",
 };
 
@@ -41,7 +41,7 @@ function toInput(p: PartnerWithStats): PartnerInput {
     accentColor: p.accentColor,
     whatsapp: p.whatsapp ?? "",
     commissionPercent: Math.round(p.commissionRate * 10000) / 100,
-    commissionMonths: p.commissionMonths,
+    commissionDays: p.commissionDays,
     notes: p.notes ?? "",
   };
 }
@@ -172,8 +172,8 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
               <Field label="Comisión (% del fee)">
                 <input type="number" min={0} max={50} step={0.5} className={inputCls} value={form.commissionPercent} onChange={(e) => update("commissionPercent", Number(e.target.value))} />
               </Field>
-              <Field label="Durante (meses)">
-                <input type="number" min={1} max={120} className={inputCls} value={form.commissionMonths} onChange={(e) => update("commissionMonths", Number(e.target.value))} />
+              <Field label="Durante (días)">
+                <input type="number" min={1} max={3650} className={inputCls} value={form.commissionDays} onChange={(e) => update("commissionDays", Number(e.target.value))} />
               </Field>
             </div>
             <Field label="Notas internas" wide>
@@ -216,7 +216,7 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
                     </p>
                     <p className="mt-0.5 break-all text-[12px] text-[#8a8177]">{url}</p>
                     <p className="mt-0.5 text-[12px] text-[#8a8177]">
-                      Comisión {Math.round(p.commissionRate * 1000) / 10}% del fee · {p.commissionMonths} meses por cliente
+                      Comisión {Math.round(p.commissionRate * 1000) / 10}% del fee · {p.commissionDays} días por cliente
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

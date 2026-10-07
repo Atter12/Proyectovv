@@ -18,7 +18,7 @@ export type HecomAlliancePartner = {
   name: string;
   status: "active" | "paused";
   commissionPercent: number;
-  commissionMonths: number;
+  commissionDays: number;
   landingUrl: string;
   panelUrl: string | null;
   createdAt: string;
@@ -31,7 +31,7 @@ export type CreateAlliancePartnerInput = {
   slug?: string | null;
   whatsapp?: string | null;
   commissionPercent?: number | null;
-  commissionMonths?: number | null;
+  commissionDays?: number | null;
   /** Contrato de alianza firmado: amarra el aliado al cliente y le abre la sección Alianzas. */
   hecomClienteId?: string | null;
   contractSignedAt?: string | null;
@@ -48,7 +48,7 @@ function toBridgePartner(p: PartnerWithStats): HecomAlliancePartner {
     name: p.name,
     status: p.status,
     commissionPercent: Math.round(p.commissionRate * 10000) / 100,
-    commissionMonths: p.commissionMonths,
+    commissionDays: p.commissionDays,
     landingUrl: `${PUBLIC_BASE}${partnerLandingPath(p.slug)}`,
     panelUrl: p.panelUrl,
     createdAt: p.createdAt,
@@ -125,9 +125,9 @@ export async function createAlliancePartner(
   if (!Number.isFinite(percent) || percent < 0 || percent > 50) {
     return { ok: false, error: "La comisión debe estar entre 0% y 50% del fee.", status: 400 };
   }
-  const months = input.commissionMonths == null ? 12 : Math.round(Number(input.commissionMonths));
-  if (!Number.isFinite(months) || months < 1 || months > 120) {
-    return { ok: false, error: "Los meses de comisión deben estar entre 1 y 120.", status: 400 };
+  const days = input.commissionDays == null ? 50 : Math.round(Number(input.commissionDays));
+  if (!Number.isFinite(days) || days < 1 || days > 3650) {
+    return { ok: false, error: "Los días de comisión deben estar entre 1 y 3650.", status: 400 };
   }
 
   const slug = requested || (await freeSlug(slugFromName(name)));
@@ -137,7 +137,7 @@ export async function createAlliancePartner(
     name: name.replace(/^alianza\s+(con\s+)?/i, "").trim() || name,
     whatsapp,
     commission_rate: Math.round(percent * 100) / 10000,
-    commission_months: months,
+    commission_days: days,
     hecom_alliance_id: input.allianceId.toLowerCase(),
     ...(signed ? { hecom_cliente_id: signed.hecomClienteId, contract_signed_at: signed.contractSignedAt } : {}),
     notes: signed

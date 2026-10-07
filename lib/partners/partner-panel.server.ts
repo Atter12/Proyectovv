@@ -13,7 +13,7 @@ export type PartnerPanelClient = {
 };
 
 export type PartnerPanelData = {
-  partner: { id: string; slug: string; name: string; commissionRate: number; commissionMonths: number; status: "active" | "paused" };
+  partner: { id: string; slug: string; name: string; commissionRate: number; commissionDays: number; status: "active" | "paused" };
   visits30d: number;
   uniqueVisitors30d: number;
   visitsTotal: number;
@@ -37,7 +37,7 @@ export async function getPartnerPanelData(partnerId: string): Promise<PartnerPan
   const admin = createAdminClient();
   const { data: p } = await admin
     .from("partners")
-    .select("id,slug,name,commission_rate,commission_months,status")
+    .select("id,slug,name,commission_rate,commission_days,status")
     .eq("id", partnerId)
     .maybeSingle();
   if (!p) return null;
@@ -96,7 +96,7 @@ export async function getPartnerPanelData(partnerId: string): Promise<PartnerPan
       slug: p.slug,
       name: p.name,
       commissionRate: Number(p.commission_rate),
-      commissionMonths: p.commission_months,
+      commissionDays: p.commission_days,
       status: p.status,
     },
     visits30d: visits30?.length ?? 0,
