@@ -105,13 +105,17 @@ export async function createAlliancePartner(
   if (signed && "error" in signed) return { ok: false, error: signed.error, status: 400 };
   const existing = await getAlliancePartner(input.allianceId);
   if (existing) {
+    // La duración sale del contrato (formulario de la alianza en Hecom).
+    if (input.commissionDays != null && Number(input.commissionDays) !== existing.commissionDays) {
+      const synced = await setCommissionDays(existing.id, Number(input.commissionDays));
+      if (!synced.ok) return synced;
+    }
     if (signed) {
       const linked = await linkSignedCliente(existing.id, signed);
       if (!linked.ok) return linked;
-      const fresh = await getAlliancePartner(input.allianceId);
-      return { ok: true, partner: fresh ?? existing, created: false };
     }
-    return { ok: true, partner: existing, created: false };
+    const fresh = await getAlliancePartner(input.allianceId);
+    return { ok: true, partner: fresh ?? existing, created: false };
   }
 
   const name = String(input.name ?? "").trim().slice(0, 80);
@@ -191,4 +195,28 @@ async function linkSignedCliente(
   if (!error) return { ok: true };
   if (error.code === "23505") return { ok: false, error: "Ese cliente ya es aliado con otra alianza.", status: 409 };
   return { ok: false, error: error.message, status: 500 };
+}
+
+/** Cambia la duración de la comisión y recalcula hasta cuándo genera cada cliente ya atribuido. */
+async function setCommissionDays(
+  partnerId: string,
+  days: number,
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const n = Math.round(days);
+  if (!Number.isFinite(n) || n < 1 || n > 3650) {
+    return { ok: false, error: "Los días de comisión deben estar entre 1 y 3650.", status: 400 };
+  }
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("partners")
+    .update({ commission_days: n, updated_at: new Date().toISOString() })
+    .eq("id", partnerId);
+  if (error) return { ok: false, error: error.message, status: 500 };
+  const { data: clients } = await admin.from("partner_clients").select("id,attributed_at").eq("partner_id", partnerId);
+  for (const c of clients ?? []) {
+    const expires = new Date(c.attributed_at);
+    expires.setDate(expires.getDate() + n);
+    await admin.from("partner_clients").update({ expires_at: expires.toISOString() }).eq("id", c.id);
+  }
+  return { ok: true };
 }
