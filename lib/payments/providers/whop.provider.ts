@@ -73,13 +73,16 @@ export class WhopPaymentProvider implements PaymentProviderAdapter {
 
     if (!response.ok) {
       const err = data?.error;
-      const message =
-        (err &&
-          typeof err === "object" &&
-          typeof (err as { message?: unknown }).message === "string" &&
-          (err as { message: string }).message) ||
-        (typeof data?.message === "string" && data.message) ||
-        `Whop checkout falló (${response.status}).`;
+      let message = `Whop checkout falló (${response.status}).`;
+      if (
+        err &&
+        typeof err === "object" &&
+        typeof (err as { message?: unknown }).message === "string"
+      ) {
+        message = (err as { message: string }).message;
+      } else if (typeof data?.message === "string") {
+        message = data.message;
+      }
       throw new Error(message);
     }
 
