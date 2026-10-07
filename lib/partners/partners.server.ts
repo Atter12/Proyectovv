@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
+import { notifyPartnerEvent } from "./partner-notify.server";
 
 const PARTNER_SELECT =
   "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_days,status,theme";
@@ -155,6 +156,9 @@ export async function recordSignupAttribution(input: {
   });
   if (clientError && clientError.code !== "23505") {
     console.warn("[partners] partner_client_insert_failed", { error: clientError.message });
+  }
+  if (!clientError) {
+    await notifyPartnerEvent({ kind: "signup", partnerId: partner.id, clienteEmail: email, hecomClienteId: input.hecomClienteId });
   }
 }
 

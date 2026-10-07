@@ -4,6 +4,7 @@ import {
   createAlliancePartner,
   getAlliancePartner,
   isAllianceId,
+  payAlliancePartner,
 } from "@/lib/partners/hecom-alliance-bridge.server";
 
 export const runtime = "nodejs";
@@ -13,6 +14,7 @@ export const maxDuration = 30;
 /**
  * Aliado de Ads Holistic de una alianza de Hecom.
  * GET  ?allianceId=<uuid>  → { ok, partner | null }
+ * POST { action: "payout", allianceId, method, reference?, paidBy? } → liquida la comisión pendiente
  * POST { allianceId, name, slug?, whatsapp?, commissionPercent?, commissionDays?, hecomClienteId?, contractSignedAt? }
  * Auth: Bearer con el mismo secreto del puente de cobros.
  */
@@ -46,6 +48,21 @@ export async function POST(request: Request) {
     return reply({ ok: false, error: "invalid_body" }, 400);
   }
   if (!isAllianceId(body.allianceId)) return reply({ ok: false, error: "invalid_alliance" }, 400);
+  if (body.action === "payout") {
+    try {
+      const paid = await payAlliancePartner({
+        allianceId: body.allianceId,
+        method: String(body.method ?? ""),
+        reference: typeof body.reference === "string" ? body.reference : null,
+        paidBy: typeof body.paidBy === "string" ? body.paidBy : null,
+      });
+      if (!paid.ok) return reply({ ok: false, error: paid.error }, paid.status);
+      return reply({ ok: true, paidCents: paid.paidCents, count: paid.count });
+    } catch (error) {
+      console.error("[internal/hecom/partner] payout_failed", error);
+      return reply({ ok: false, error: "payout_failed" }, 500);
+    }
+  }
   const num = (v: unknown) => (v == null || v === "" ? null : Number(v));
   try {
     const result = await createAlliancePartner({

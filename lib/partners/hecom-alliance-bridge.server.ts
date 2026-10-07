@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listPartnersWithStats, type PartnerWithStats } from "./partners-admin.server";
 import { PARTNER_SLUG_RE, partnerLandingPath } from "./partners.shared";
+import { notifyPartnerEvent } from "./partner-notify.server";
 
 /**
  * Puente Hecom → Ads Holistic para alianzas. La alianza se registra en Hecom y,
@@ -148,6 +149,10 @@ export async function createAlliancePartner(
       ? "Creado al firmar el contrato de alianza en Hecom."
       : "Creado desde la ficha de la alianza en Hecom.",
   });
+  if (!error && signed) {
+    const made = await getAlliancePartner(input.allianceId);
+    if (made) await notifyPartnerEvent({ kind: "signed", partnerId: made.id });
+  }
   if (error) {
     if (error.code === "23505") {
       // Otra pestaña la creó al mismo tiempo, o el link pedido ya existe.
@@ -183,6 +188,11 @@ async function linkSignedCliente(
   partnerId: string,
   signed: SignedLink,
 ): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const { data: before } = await createAdminClient()
+    .from("partners")
+    .select("contract_signed_at")
+    .eq("id", partnerId)
+    .maybeSingle<{ contract_signed_at: string | null }>();
   const { error } = await createAdminClient()
     .from("partners")
     .update({
@@ -192,7 +202,10 @@ async function linkSignedCliente(
       updated_at: new Date().toISOString(),
     })
     .eq("id", partnerId);
-  if (!error) return { ok: true };
+  if (!error) {
+    if (!before?.contract_signed_at) await notifyPartnerEvent({ kind: "signed", partnerId });
+    return { ok: true };
+  }
   if (error.code === "23505") return { ok: false, error: "Ese cliente ya es aliado con otra alianza.", status: 409 };
   return { ok: false, error: error.message, status: 500 };
 }
@@ -219,4 +232,42 @@ async function setCommissionDays(
     await admin.from("partner_clients").update({ expires_at: expires.toISOString() }).eq("id", c.id);
   }
   return { ok: true };
+}
+
+export const PAYOUT_METHODS = ["Yape", "Plin", "BCP", "Interbank", "Transferencia", "Efectivo", "Otro"] as const;
+
+/**
+ * Liquida la comisión de un aliado desde Hecom: marca como pagadas todas sus
+ * comisiones pendientes, deja el medio y la referencia, y le avisa.
+ */
+export async function payAlliancePartner(input: {
+  allianceId: string;
+  method: string;
+  reference?: string | null;
+  paidBy?: string | null;
+}): Promise<{ ok: true; paidCents: number; count: number } | { ok: false; error: string; status: number }> {
+  const partnerId = await partnerIdForAlliance(input.allianceId);
+  if (!partnerId) return { ok: false, error: "Esta alianza no tiene aliado en Ads Holistic.", status: 404 };
+  const method = (PAYOUT_METHODS as readonly string[]).includes(input.method) ? input.method : null;
+  if (!method) return { ok: false, error: "Elige el medio de pago.", status: 400 };
+  const reference = String(input.reference ?? "").trim().slice(0, 120) || null;
+  const admin = createAdminClient();
+  const { data: pending, error: readError } = await admin
+    .from("partner_commissions")
+    .select("id,commission_cents")
+    .eq("partner_id", partnerId)
+    .eq("status", "pending");
+  if (readError) return { ok: false, error: readError.message, status: 500 };
+  if (!pending?.length) return { ok: false, error: "No hay comisión pendiente por pagar.", status: 409 };
+  const ids = pending.map((c) => c.id as string);
+  const paidCents = pending.reduce((s, c) => s + Number(c.commission_cents), 0);
+  const note = [method, reference, input.paidBy ? `por ${input.paidBy}` : null].filter(Boolean).join(" · ").slice(0, 300);
+  const { error } = await admin
+    .from("partner_commissions")
+    .update({ status: "paid", paid_at: new Date().toISOString(), payout_note: note })
+    .in("id", ids)
+    .eq("status", "pending");
+  if (error) return { ok: false, error: error.message, status: 500 };
+  await notifyPartnerEvent({ kind: "payout", partnerId, paidCents, method, reference });
+  return { ok: true, paidCents, count: ids.length };
 }

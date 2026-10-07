@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyPartnerEvent } from "./partner-notify.server";
 
 /**
  * Comisiones de aliados: por cada recarga confirmada de un cliente referido,
@@ -96,6 +97,13 @@ export async function syncPartnerCommissions(): Promise<{ scanned: number; creat
     scanned += intents?.length ?? 0;
     if (!rows.length) continue;
 
+    // ¿Es su primera comisión? Se mira antes de insertar para avisar una sola vez.
+    const { count: before } = await admin
+      .from("partner_commissions")
+      .select("id", { count: "exact", head: true })
+      .eq("partner_id", client.partner_id)
+      .eq("hecom_cliente_id", client.hecom_cliente_id);
+
     const { data: inserted, error: insertError } = await admin
       .from("partner_commissions")
       .upsert(rows, { onConflict: "payment_intent_id", ignoreDuplicates: true })
@@ -105,6 +113,16 @@ export async function syncPartnerCommissions(): Promise<{ scanned: number; creat
       continue;
     }
     created += inserted?.length ?? 0;
+    if (!before && inserted?.length) {
+      const first = [...rows].sort((a, b) => a.earned_at.localeCompare(b.earned_at))[0]!;
+      await notifyPartnerEvent({
+        kind: "first_recharge",
+        partnerId: client.partner_id,
+        hecomClienteId: client.hecom_cliente_id,
+        paymentIntentId: first.payment_intent_id,
+        commissionCents: first.commission_cents,
+      });
+    }
   }
   return { scanned, created };
 }
