@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
 
 const PARTNER_SELECT =
-  "id,slug,name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_months,status";
+  "id,slug,name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_months,status,theme";
 
 type PartnerRow = {
   id: string;
@@ -18,6 +18,7 @@ type PartnerRow = {
   commission_rate: number | string;
   commission_months: number;
   status: "active" | "paused";
+  theme?: string | null;
 };
 
 function toPartner(row: PartnerRow): Partner {
@@ -34,7 +35,32 @@ function toPartner(row: PartnerRow): Partner {
     commissionRate: Number(row.commission_rate),
     commissionMonths: row.commission_months,
     status: row.status,
+    theme: row.theme === "dark" ? "dark" : "light",
   };
+}
+
+/**
+ * Aliado del cliente Hecom con contrato de alianza firmado y activo.
+ * Es la única llave para que un cliente vea «Alianzas» en Ads Holistic.
+ * Si la columna aún no existe (migración 054 sin aplicar) responde null.
+ */
+export async function getSignedPartnerForCliente(
+  hecomClienteId: string | null | undefined,
+): Promise<(Partner & { contractSignedAt: string }) | null> {
+  const id = String(hecomClienteId ?? "").trim().toLowerCase();
+  if (!id) return null;
+  const { data, error } = await createAdminClient()
+    .from("partners")
+    .select(`${PARTNER_SELECT},contract_signed_at`)
+    .eq("hecom_cliente_id", id)
+    .eq("status", "active")
+    .not("contract_signed_at", "is", null)
+    .maybeSingle<PartnerRow & { contract_signed_at: string }>();
+  if (error) {
+    console.warn("[partners] signed_partner_failed", { error: error.message });
+    return null;
+  }
+  return data ? { ...toPartner(data), contractSignedAt: data.contract_signed_at } : null;
 }
 
 export function normalizePartnerSlug(raw: string | null | undefined): string | null {
@@ -46,12 +72,11 @@ export function normalizePartnerSlug(raw: string | null | undefined): string | n
 export async function getActivePartnerBySlug(rawSlug: string | null | undefined): Promise<Partner | null> {
   const slug = normalizePartnerSlug(rawSlug);
   if (!slug) return null;
-  const { data, error } = await createAdminClient()
-    .from("partners")
-    .select(PARTNER_SELECT)
-    .eq("slug", slug)
-    .eq("status", "active")
-    .maybeSingle<PartnerRow>();
+  const read = (cols: string) =>
+    createAdminClient().from("partners").select(cols).eq("slug", slug).eq("status", "active").maybeSingle<PartnerRow>();
+  let { data, error } = await read(PARTNER_SELECT);
+  // Migración 054 sin aplicar (sin columna theme): la landing sigue funcionando.
+  if (error?.code === "42703") ({ data, error } = await read(PARTNER_SELECT.replace(",theme", "")));
   if (error) {
     console.warn("[partners] get_by_slug_failed", { slug, error: error.message });
     return null;

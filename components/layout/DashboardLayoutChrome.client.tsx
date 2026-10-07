@@ -30,6 +30,8 @@ interface DashboardLayoutChromeProps {
   actingAsCliente?: boolean;
   canSwitchMode?: boolean;
   testerMode?: TesterDashboardMode;
+  /** Cliente con contrato de alianza firmado: ve «Alianzas». */
+  showAlliances?: boolean;
 }
 
 export function DashboardLayoutChrome({
@@ -40,6 +42,7 @@ export function DashboardLayoutChrome({
   actingAsCliente = false,
   canSwitchMode = false,
   testerMode = "cliente",
+  showAlliances = false,
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
   const pathname = usePathname();
@@ -98,6 +101,7 @@ export function DashboardLayoutChrome({
               actingAsCliente={actingAsCliente}
               canSwitchMode={canSwitchMode}
               testerMode={testerMode}
+              showAlliances={showAlliances}
             />
           </div>
         </div>

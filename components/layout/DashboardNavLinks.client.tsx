@@ -184,14 +184,15 @@ function NavIcon({ icon }: { icon: NavItem["icon"] }) {
 }
 
 /** Cliente final (y vista “como cliente”) no elige CRM ni ve cola de boletas. */
-function navItemsForPersona(persona: DashboardPersona): NavItem[] {
+function navItemsForPersona(persona: DashboardPersona, showAlliances: boolean): NavItem[] {
   return mainNavigation.filter((item) => {
     if (persona !== "cliente") return true;
+    // Alianzas solo para el cliente que ya firmó su contrato de alianza.
+    if (item.href === "/alianzas") return showAlliances;
     if (item.href === "/payments/manual") return false;
     if (item.href === "/payments/profit") return false;
     if (item.href === "/payments/missing-cobros") return false;
     if (item.href === "/links-deuda") return false;
-    if (item.href === "/alianzas") return false;
     if (item.href === "/monitoreo") return false;
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;
@@ -203,15 +204,17 @@ function navItemsForPersona(persona: DashboardPersona): NavItem[] {
 interface DashboardNavLinksProps {
   onNavigate?: () => void;
   persona?: DashboardPersona;
+  showAlliances?: boolean;
 }
 
 export function DashboardNavLinks({
   onNavigate,
   persona = "cliente",
+  showAlliances = false,
 }: DashboardNavLinksProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const items = navItemsForPersona(persona);
+  const items = navItemsForPersona(persona, showAlliances);
 
   return (
     <nav className="dashboard-sidebar-nav">

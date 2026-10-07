@@ -17,6 +17,7 @@ import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertis
 import { canSwitchTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
 import type { DashboardPersona } from "@/types/dashboard-persona";
+import { getSignedPartnerForCliente } from "@/lib/partners/partners.server";
 
 export default async function DashboardLayout({
   children,
@@ -113,6 +114,12 @@ export default async function DashboardLayout({
     }
   }
 
+  // «Alianzas» para el cliente: solo si firmó su contrato de alianza (lo marca Hecom al firmar).
+  const showAlliances =
+    chromePersona === "cliente" && selected
+      ? Boolean(await getSignedPartnerForCliente(selected.id).catch(() => null))
+      : false;
+
   const user = {
     id: session.id,
     name: session.name,
@@ -141,6 +148,7 @@ export default async function DashboardLayout({
             actingAsCliente={actingAsCliente && Boolean(selected)}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
+            showAlliances={showAlliances}
           />
         </aside>
 
@@ -152,6 +160,7 @@ export default async function DashboardLayout({
             actingAsCliente={actingAsCliente && Boolean(selected)}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
+            showAlliances={showAlliances}
           >
             {children}
           </DashboardLayoutChrome>

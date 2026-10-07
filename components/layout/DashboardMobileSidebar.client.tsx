@@ -23,6 +23,8 @@ interface DashboardMobileSidebarProps {
   actingAsCliente?: boolean;
   canSwitchMode?: boolean;
   testerMode?: TesterDashboardMode;
+  /** Cliente con contrato de alianza firmado: ve «Alianzas». */
+  showAlliances?: boolean;
 }
 
 export function DashboardMobileSidebar({
@@ -33,6 +35,7 @@ export function DashboardMobileSidebar({
   actingAsCliente = false,
   canSwitchMode = false,
   testerMode = "cliente",
+  showAlliances = false,
 }: DashboardMobileSidebarProps) {
   const t = useTranslations("nav");
 
@@ -70,6 +73,7 @@ export function DashboardMobileSidebar({
       <DashboardNavLinks
         onNavigate={onNavigate}
         persona={persona}
+        showAlliances={showAlliances}
       />
 
       <div className="mt-auto border-t border-[var(--auth-divider)] p-4">

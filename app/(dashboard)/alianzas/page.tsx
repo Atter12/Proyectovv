@@ -1,18 +1,29 @@
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { AlianzasPanel } from "@/features/partners/components/AlianzasPanel.client";
-import { requirePermission } from "@/lib/auth/guards.server";
-import { getActingAsCliente } from "@/lib/hecom/selected-cliente.server";
+import { MiAlianza } from "@/features/partners/components/MiAlianza.client";
+import { requireSession } from "@/lib/auth/guards.server";
+import { getActingAsCliente, getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { getPartnerPanelData } from "@/lib/partners/partner-panel.server";
+import { getSignedPartnerForCliente } from "@/lib/partners/partners.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { listPartnersWithStats, type PartnerWithStats } from "@/lib/partners/partners-admin.server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AlianzasPage() {
-  const session = await requirePermission("payments:read");
+  const session = await requireSession();
   const capabilities = await resolvePaymentsFundingCapabilities({ email: session.email, role: session.role });
-  if (!capabilities.isStaff && !capabilities.isSuperAdmin) redirect(routes.overview);
-  if (await getActingAsCliente(session.id)) redirect(routes.overview);
+  const staff = capabilities.isStaff || capabilities.isSuperAdmin;
+
+  // Cliente (o staff «viendo como cliente»): solo entra si firmó su contrato de alianza.
+  if (!staff || (await getActingAsCliente(session.id))) {
+    const selected = await getSelectedHecomCliente(session.id);
+    const partner = selected ? await getSignedPartnerForCliente(selected.id) : null;
+    if (!partner) redirect(routes.overview);
+    const panel = await getPartnerPanelData(partner.id).catch(() => null);
+    return <MiAlianza partner={partner} panel={panel} />;
+  }
 
   let partners: PartnerWithStats[] = [];
   let loadError: string | null = null;

@@ -32,6 +32,9 @@ export type CreateAlliancePartnerInput = {
   whatsapp?: string | null;
   commissionPercent?: number | null;
   commissionMonths?: number | null;
+  /** Contrato de alianza firmado: amarra el aliado al cliente y le abre la sección Alianzas. */
+  hecomClienteId?: string | null;
+  contractSignedAt?: string | null;
 };
 
 export function isAllianceId(value: unknown): value is string {
@@ -98,8 +101,18 @@ async function freeSlug(wanted: string): Promise<string> {
 export async function createAlliancePartner(
   input: CreateAlliancePartnerInput,
 ): Promise<{ ok: true; partner: HecomAlliancePartner; created: boolean } | { ok: false; error: string; status: number }> {
+  const signed = signedLink(input);
+  if (signed && "error" in signed) return { ok: false, error: signed.error, status: 400 };
   const existing = await getAlliancePartner(input.allianceId);
-  if (existing) return { ok: true, partner: existing, created: false };
+  if (existing) {
+    if (signed) {
+      const linked = await linkSignedCliente(existing.id, signed);
+      if (!linked.ok) return linked;
+      const fresh = await getAlliancePartner(input.allianceId);
+      return { ok: true, partner: fresh ?? existing, created: false };
+    }
+    return { ok: true, partner: existing, created: false };
+  }
 
   const name = String(input.name ?? "").trim().slice(0, 80);
   if (name.length < 2) return { ok: false, error: "La alianza necesita un nombre.", status: 400 };
@@ -126,13 +139,19 @@ export async function createAlliancePartner(
     commission_rate: Math.round(percent * 100) / 10000,
     commission_months: months,
     hecom_alliance_id: input.allianceId.toLowerCase(),
-    notes: "Creado desde la ficha de la alianza en Hecom.",
+    ...(signed ? { hecom_cliente_id: signed.hecomClienteId, contract_signed_at: signed.contractSignedAt } : {}),
+    notes: signed
+      ? "Creado al firmar el contrato de alianza en Hecom."
+      : "Creado desde la ficha de la alianza en Hecom.",
   });
   if (error) {
     if (error.code === "23505") {
       // Otra pestaña la creó al mismo tiempo, o el link pedido ya existe.
       const again = await getAlliancePartner(input.allianceId);
       if (again) return { ok: true, partner: again, created: false };
+      if (signed && /hecom_cliente/.test(error.message)) {
+        return { ok: false, error: "Ese cliente ya es aliado con otra alianza.", status: 409 };
+      }
       return { ok: false, error: "Ese link ya lo usa otro aliado.", status: 409 };
     }
     return { ok: false, error: error.message, status: 500 };
@@ -140,4 +159,36 @@ export async function createAlliancePartner(
   const partner = await getAlliancePartner(input.allianceId);
   if (!partner) return { ok: false, error: "El aliado se creó pero no se pudo leer.", status: 500 };
   return { ok: true, partner, created: true };
+}
+
+type SignedLink = { hecomClienteId: string; contractSignedAt: string };
+
+function signedLink(input: CreateAlliancePartnerInput): SignedLink | { error: string } | null {
+  const clienteId = String(input.hecomClienteId ?? "").trim().toLowerCase();
+  if (!clienteId) return null;
+  if (!UUID_RE.test(clienteId)) return { error: "Cliente Hecom inválido." };
+  const at = input.contractSignedAt ? Date.parse(input.contractSignedAt) : NaN;
+  return {
+    hecomClienteId: clienteId,
+    contractSignedAt: new Date(Number.isFinite(at) ? at : Date.now()).toISOString(),
+  };
+}
+
+/** Aliado ya creado: le pone el cliente y la fecha de firma (y lo reactiva). */
+async function linkSignedCliente(
+  partnerId: string,
+  signed: SignedLink,
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  const { error } = await createAdminClient()
+    .from("partners")
+    .update({
+      hecom_cliente_id: signed.hecomClienteId,
+      contract_signed_at: signed.contractSignedAt,
+      status: "active",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", partnerId);
+  if (!error) return { ok: true };
+  if (error.code === "23505") return { ok: false, error: "Ese cliente ya es aliado con otra alianza.", status: 409 };
+  return { ok: false, error: error.message, status: 500 };
 }

@@ -20,6 +20,8 @@ interface DashboardSidebarProps {
   actingAsCliente?: boolean;
   canSwitchMode?: boolean;
   testerMode?: TesterDashboardMode;
+  /** Cliente con contrato de alianza firmado: ve «Alianzas». */
+  showAlliances?: boolean;
 }
 
 export async function DashboardSidebar({
@@ -29,6 +31,7 @@ export async function DashboardSidebar({
   actingAsCliente = false,
   canSwitchMode = false,
   testerMode = "cliente",
+  showAlliances = false,
 }: DashboardSidebarProps) {
   const t = await getTranslations("nav");
 
@@ -59,7 +62,7 @@ export async function DashboardSidebar({
 
       <p className="dashboard-sidebar-menu-label">{t("menu")}</p>
 
-      <DashboardNavLinks persona={persona} />
+      <DashboardNavLinks persona={persona} showAlliances={showAlliances} />
     </aside>
   );
 }
