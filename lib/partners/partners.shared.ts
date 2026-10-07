@@ -12,6 +12,8 @@ export type Partner = {
   id: string;
   slug: string;
   name: string;
+  /** Empresa o marca del aliado (la landing la muestra junto a su logo). */
+  companyName: string | null;
   headline: string | null;
   subheadline: string | null;
   logoUrl: string | null;

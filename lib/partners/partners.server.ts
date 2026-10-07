@@ -3,12 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
 
 const PARTNER_SELECT =
-  "id,slug,name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_months,status,theme";
+  "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_months,status,theme";
 
 type PartnerRow = {
   id: string;
   slug: string;
   name: string;
+  company_name?: string | null;
   headline: string | null;
   subheadline: string | null;
   logo_url: string | null;
@@ -26,6 +27,7 @@ function toPartner(row: PartnerRow): Partner {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    companyName: row.company_name ?? null,
     headline: row.headline,
     subheadline: row.subheadline,
     logoUrl: row.logo_url,
@@ -76,7 +78,7 @@ export async function getActivePartnerBySlug(rawSlug: string | null | undefined)
     createAdminClient().from("partners").select(cols).eq("slug", slug).eq("status", "active").maybeSingle<PartnerRow>();
   let { data, error } = await read(PARTNER_SELECT);
   // Migración 054 sin aplicar (sin columna theme): la landing sigue funcionando.
-  if (error?.code === "42703") ({ data, error } = await read(PARTNER_SELECT.replace(",theme", "")));
+  if (error?.code === "42703") ({ data, error } = await read(PARTNER_SELECT.replace(",theme", "").replace(",company_name", "")));
   if (error) {
     console.warn("[partners] get_by_slug_failed", { slug, error: error.message });
     return null;

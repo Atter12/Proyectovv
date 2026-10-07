@@ -19,6 +19,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 export type MyPartnerInput = {
   name: string;
+  companyName: string;
   headline: string;
   subheadline: string;
   accentColor: string;
@@ -55,7 +56,7 @@ export async function saveMyPartnerAction(input: MyPartnerInput): Promise<MyPart
   const mine = await myPartner();
   if (!mine.ok) return mine;
   const name = clip(input.name, 80);
-  if (!name || name.length < 2) return { ok: false, error: "Escribe el nombre de tu marca." };
+  if (!name || name.length < 2) return { ok: false, error: "Escribe tu nombre." };
   const whatsapp = String(input.whatsapp ?? "").replace(/[^\d]/g, "").slice(0, 15);
   if (whatsapp && whatsapp.length < 8) return { ok: false, error: "Revisa tu WhatsApp: número con código de país, ej. 51987654321." };
   const accent = PARTNER_ACCENT_RE.test(input.accentColor) ? input.accentColor.toLowerCase() : PARTNER_DEFAULT_ACCENT;
@@ -64,6 +65,7 @@ export async function saveMyPartnerAction(input: MyPartnerInput): Promise<MyPart
     .from("partners")
     .update({
       name,
+      company_name: clip(input.companyName, 80),
       headline: clip(input.headline, 120),
       subheadline: clip(input.subheadline, 240),
       accent_color: accent,

@@ -28,6 +28,7 @@ type Props = {
 export function MiAlianza({ partner, panel }: Props) {
   const [form, setForm] = useState<MyPartnerInput>({
     name: partner.name,
+    companyName: partner.companyName ?? "",
     headline: partner.headline ?? "",
     subheadline: partner.subheadline ?? "",
     accentColor: partner.accentColor,
@@ -157,7 +158,16 @@ export function MiAlianza({ partner, panel }: Props) {
               onPick={(f) => upload("logo", f)}
               onRemove={() => upload("logo", null)}
             />
-            <Field label="Nombre de tu marca">
+            <Field label="Nombre de tu empresa">
+              <input
+                value={form.companyName}
+                maxLength={80}
+                placeholder="Ej. Autoecompro"
+                onChange={(e) => set("companyName", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Tu nombre">
               <input value={form.name} maxLength={80} onChange={(e) => set("name", e.target.value)} className={inputCls} />
             </Field>
             <ImageField
@@ -386,7 +396,8 @@ function LandingPreview({
   const accent = PARTNER_ACCENT_RE.test(form.accentColor) ? form.accentColor : "#ff781f";
   const ink = partnerInkOn(accent);
   const dark = form.theme === "dark";
-  const name = form.name.trim() || "Tu marca";
+  const person = form.name.trim() || "Tu nombre";
+  const name = form.companyName.trim() || person;
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e3dbd1] shadow-[0_24px_50px_-32px_rgb(60_35_15/0.45)]">
       <div className="flex items-center gap-1.5 border-b border-[#ece4da] bg-[#f4efe9] px-3 py-2">
@@ -437,12 +448,13 @@ function LandingPreview({
               Hablar por WhatsApp
             </span>
           </div>
-          {photoUrl ? (
+          {photoUrl || form.name.trim() ? (
             <div className="mt-5 flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+              {photoUrl ? <img src={photoUrl} alt="" className="h-8 w-8 rounded-full object-cover" /> : null}
               <p className={`text-[12px] ${dark ? "text-[#bdb4ab]" : "text-[#5f574f]"}`}>
-                Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{name}</strong>
+                Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{person}</strong>
+                {form.companyName.trim() ? ` · ${form.companyName.trim()}` : ""}
               </p>
             </div>
           ) : null}

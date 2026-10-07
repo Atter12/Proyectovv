@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const partner = await getActivePartnerBySlug(slug);
   if (!partner) return { title: "Ads Holistic", robots: { index: false, follow: false } };
   return {
-    title: `Ads Holistic × ${partner.name}`,
+    title: `Ads Holistic × ${partner.companyName?.trim() || partner.name}`,
     description: partner.subheadline ?? "Cuentas de agencia de TikTok, recarga desde cualquier país y saldo al instante.",
     // Cada aliado comparte su link; no hace falta que Google indexe estas páginas.
     robots: { index: false, follow: false },
@@ -62,6 +62,8 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   const accent = /^#[0-9a-fA-F]{6}$/.test(partner.accentColor) ? partner.accentColor : "#ff781f";
   const headline = partner.headline ?? "Lanza y escala tus campañas de TikTok";
   const ink = partnerInkOn(accent);
+  // Empresa del aliado (con su logo) y la persona que recomienda.
+  const brand = partner.companyName?.trim() || partner.name;
   const dark = partner.theme === "dark";
   // Fondo claro u oscuro que elige el aliado en su sección Alianzas.
   const c = dark
@@ -82,9 +84,9 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           {partner.logoUrl ? (
             // Logos externos de cada aliado: <img> evita configurar dominios en next/image.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={partner.logoUrl} alt={partner.name} className="h-8 w-auto max-w-[140px] object-contain" />
+            <img src={partner.logoUrl} alt={brand} className="h-8 w-auto max-w-[140px] object-contain" />
           ) : (
-            <span className="truncate text-[15px] font-bold tracking-[-0.02em]">{partner.name}</span>
+            <span className="truncate text-[15px] font-bold tracking-[-0.02em]">{brand}</span>
           )}
         </div>
         <Link href={routes.login} className="shrink-0 text-[14px] font-semibold underline underline-offset-4">
@@ -97,7 +99,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           <div>
             <p className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold ${c.pill}`}>
               <span className="h-2 w-2 rounded-full" style={{ background: accent }} />
-              Alianza oficial · {partner.name}
+              Alianza oficial · {brand}
             </p>
             <h1 className="mt-5 text-[34px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[48px]">{headline}</h1>
             <p className={`mt-4 max-w-xl text-[16px] leading-relaxed sm:text-[18px] ${c.muted}`}>{subheadline}</p>
@@ -120,15 +122,16 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               </a>
             </div>
 
-            {partner.photoUrl ? (
-              <div className="mt-8 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="mt-8 flex items-center gap-3">
+              {partner.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={partner.photoUrl} alt={partner.name} className="h-12 w-12 rounded-full object-cover ring-2 ring-white" />
-                <p className={`text-[14px] ${c.muted}`}>
-                  Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{partner.name}</strong>
-                </p>
-              </div>
-            ) : null}
+              ) : null}
+              <p className={`text-[14px] ${c.muted}`}>
+                Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{partner.name}</strong>
+                {partner.companyName ? ` · ${partner.companyName}` : ""}
+              </p>
+            </div>
           </div>
 
           <div className={`relative h-[560px] overflow-hidden rounded-[28px] border ${c.frame} shadow-[0_30px_60px_-30px_rgb(60_35_15/0.35)] sm:h-[620px]`}>
