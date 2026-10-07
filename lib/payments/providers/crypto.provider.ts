@@ -9,7 +9,11 @@ import {
 } from "./types";
 import { CRYPTO_MIN_USD } from "@/lib/payments/crypto-limits";
 import { parseNowPaymentsIpn, verifyNowPaymentsIpnSignature } from "./nowpayments-ipn";
-import { buildNowPaymentsInvoiceBody } from "./nowpayments-checkout";
+import {
+  buildNowPaymentsInvoiceBody,
+  NOWPAYMENTS_INVOICE_TIMEOUT_MS,
+  parseNowPaymentsInvoiceResponse,
+} from "./nowpayments-checkout";
 
 export class CryptoAmountTooSmallError extends Error {
   constructor(amountUsd: number) {
@@ -20,13 +24,6 @@ export class CryptoAmountTooSmallError extends Error {
     this.name = "CryptoAmountTooSmallError";
   }
 }
-
-type NowPaymentsInvoiceResponse = {
-  id?: string | number;
-  invoice_id?: string | number;
-  invoice_url?: string;
-  message?: string;
-};
 
 function nowPaymentsConfigured(): boolean {
   return Boolean(serverEnv.nowPaymentsApiKey && serverEnv.nowPaymentsIpnSecret);
@@ -63,29 +60,37 @@ export class CryptoPaymentProvider implements PaymentProviderAdapter {
       throw new CryptoAmountTooSmallError(invoice.amountUsd);
     }
 
-    const response = await fetch(`${nowPaymentsBaseUrl()}/invoice`, {
-      method: "POST",
-      headers: {
-        "x-api-key": serverEnv.nowPaymentsApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(invoice.body),
-    });
-
-    const data = (await response.json()) as NowPaymentsInvoiceResponse;
-    const invoiceId = data.id ?? data.invoice_id;
-    const invoiceUrl = data.invoice_url ?? null;
-
-    if (!response.ok || invoiceId == null || !invoiceUrl) {
+    let response: Response;
+    try {
+      response = await fetch(`${nowPaymentsBaseUrl()}/invoice`, {
+        method: "POST",
+        headers: {
+          "x-api-key": serverEnv.nowPaymentsApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoice.body),
+        signal: AbortSignal.timeout(NOWPAYMENTS_INVOICE_TIMEOUT_MS),
+      });
+    } catch (error) {
+      const timedOut =
+        error instanceof Error &&
+        (error.name === "TimeoutError" || error.name === "AbortError");
       throw new Error(
-        data.message ??
-          `NOWPayments no pudo crear la factura cripto (HTTP ${response.status}).`,
+        timedOut
+          ? "NOWPayments tardó demasiado en crear la factura. Inténtalo de nuevo."
+          : "No se pudo conectar con NOWPayments. Inténtalo de nuevo.",
       );
     }
 
+    const raw = await response.text();
+    const parsed = parseNowPaymentsInvoiceResponse(raw, response.status);
+    if (!parsed.ok) {
+      throw new Error(parsed.message);
+    }
+
     return {
-      providerReference: String(invoiceId),
-      checkoutUrl: invoiceUrl,
+      providerReference: parsed.invoiceId,
+      checkoutUrl: parsed.invoiceUrl,
       status: "requires_payment",
       message: serverEnv.nowPaymentsSandbox
         ? "Redirigiendo a NOWPayments (sandbox)…"

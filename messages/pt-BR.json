@@ -354,7 +354,9 @@
       "successBefore": "Pagamento confirmado. Em alguns segundos será creditado na carteira. Depois vá em",
       "successLink": "Atribuir saldo",
       "successAfter": "e transfira para uma conta TikTok.",
-      "cancelled": "O checkout do Stripe foi cancelado. Você pode tentar de novo quando quiser."
+      "cancelled": "O checkout do Stripe foi cancelado. Você pode tentar de novo quando quiser.",
+      "cryptoPending": "Você voltou do checkout cripto. O saldo entra quando a NOWPayments marca o pagamento como finalizado, depois das confirmações na TRON. Pode levar alguns minutos: não recarregue de novo até ver o saldo.",
+      "whopPending": "Você voltou do checkout Whop. O saldo é creditado quando a Whop confirma o pagamento (webhook), não só ao voltar para esta página. Aguarde alguns segundos e confira a carteira."
     },
     "intro": {
       "client": "Adicione saldo à carteira de {name} e atribua a uma conta TikTok.",
@@ -579,6 +581,8 @@
       "copy": "Copiar",
       "copied": "Copiado",
       "stripeSecure": "Processamento seguro via Stripe",
+      "whopSecure": "Processamento seguro via Whop Payments",
+      "payWhop": "Pagar com Whop",
       "cobranaProcessed": "Pagamento com Yape, Plin ou bancos",
       "yapeServiceHint": "No Yape, o serviço aparecerá como {company}.",
       "cobranaConfirmHint": "Vamos gerar um código para pagar em soles pelo Yape, Plin ou seu banco.",
@@ -609,7 +613,8 @@
       "stripeAmountHint": "Informe o saldo que deseja receber. Antes de pagar você verá o total exato, incluindo as taxas.",
       "defaultAmountHint": "Informe o saldo que deseja receber na sua carteira Holistic.",
       "confirmDefaultHint": "Confirme se o saldo e o total a pagar estão corretos antes de continuar.",
-      "cryptoConfirmHint": "Vamos te levar à NOWPayments para pagar com USDT (TRC20). Envie pela rede TRON (TRC20) o valor exato indicado na página. O saldo entra quando a rede confirmar.",
+      "cryptoConfirmHint": "Vamos te levar à NOWPayments para pagar com USDT (TRC20). Envie pela rede TRON (TRC20) o valor exato indicado na página. O saldo entra quando a NOWPayments marca o pagamento como finalizado, não no primeiro confirm da rede.",
+      "whopConfirmHint": "Vamos te levar ao checkout Whop para pagar com cartão ou wallet. O saldo é creditado quando a Whop confirma o pagamento, não só ao voltar para esta tela.",
       "cryptoMinAmount": "Pagamentos em USDT (TRC20) têm mínimo de ${min}. Para valores menores use Yape ou transferência.",
       "gatewayYapePlin": "Yape / Plin",
       "fxReferential": "Câmbio referencial",
@@ -625,7 +630,7 @@
       "errUploadProof": "Não foi possível enviar o comprovante.",
       "feeTotalHint": "Taxa total {fee} (Holistic + gateway). Transferência não inclui o +{stripe}.",
       "feeExample": "Ex.: se quiser $100 com taxa de 10%, cobra-se $110.",
-      "cryptoCheckoutHint": "Checkout só USDT (TRC20). Se o NOWPayments estiver inativo, envie os USDT e envie uma captura ou o TxID.",
+      "cryptoCheckoutHint": "Checkout automático com USDT (TRC20). A NOWPayments mostra a carteira e o valor. Não envie captura: o saldo entra sozinho quando o pagamento ficar finalizado.",
       "manualAfterCreateHint": "Depois de criar a solicitação você poderá enviar o comprovante para revisão.",
       "fxNeedDni": "{fx} {rate} · você precisa de um DNI registrado no Hecom CRM.",
       "payWithCard": "Pagar com cartão",
@@ -807,6 +812,7 @@
     },
     "gateways": {
       "stripeDesc": "Cartões e pagamentos globais",
+      "whopDesc": "Cartão, Apple Pay e wallets globais",
       "cobranaDesc": "Pague com Yape, Plin ou transferência bancária",
       "manualName": "Pagamento manual",
       "manualDesc": "BCP ou Binance · comprovante em análise"

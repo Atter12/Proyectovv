@@ -25,7 +25,6 @@ import { CRYPTO_MIN_USD } from "@/lib/payments/crypto-limits";
 import { COBRANA_YAPE_SERVICE_COMPANY } from "@/lib/payments/cobrana/service-brand";
 import { normalizeYapeDocument } from "@/lib/payments/cobrana/document";
 import type { PaymentGatewayId } from "@/types/payment";
-import { isVoucherPaymentProvider } from "@/types/payment";
 import {
   PaymentAppIcon,
   paymentAppButtonClass,
@@ -129,6 +128,7 @@ export function AddBalanceModal({
   const gatewayLabels = useMemo(
     (): Record<PaymentGatewayId, string> => ({
       stripe: "Stripe",
+      whop: "Whop",
       culqi: "Culqi",
       mercadopago: "Mercado Pago",
       crypto: t("addBalance.gatewayCrypto"),
@@ -161,8 +161,10 @@ export function AddBalanceModal({
 
   const isCobrana = selectedGateway === "cobrana";
   const isStripe = selectedGateway === "stripe";
+  const isWhop = selectedGateway === "whop";
+  const isCardGateway = isStripe || isWhop;
   const isCrypto = selectedGateway === "crypto";
-  const stripeExtra = isStripe ? Math.max(0, stripeSurchargePercent) : 0;
+  const stripeExtra = isCardGateway ? Math.max(0, stripeSurchargePercent) : 0;
   const chargeFeePercent = effectiveDepositFeePercent({
     holisticFeePercent: feePercent,
     provider: selectedGateway,
@@ -288,7 +290,7 @@ export function AddBalanceModal({
     parsedAmount <= MAX_AMOUNT;
   const belowCryptoMinimum =
     isCrypto && Number.isFinite(parsedAmount) && parsedAmount < CRYPTO_MIN_USD;
-  const isVoucher = isVoucherPaymentProvider(selectedGateway);
+  const isVoucher = selectedGateway === "manual";
 
   const feePreview = useMemo(() => {
     if (!isValidAmount) return null;
@@ -472,7 +474,7 @@ export function AddBalanceModal({
   const modalStepIndex = step === "form" ? 0 : step === "confirm" ? 1 : 2;
   const gatewayIdentityDescription = isCobrana
     ? t("addBalance.gatewayLocal")
-    : isStripe
+    : isCardGateway
       ? t("addBalance.gatewayCards")
       : t("addBalance.gatewayWallet");
 
@@ -500,7 +502,7 @@ export function AddBalanceModal({
               description={
                 isCobrana
                   ? t("addBalance.cobranaUsdHint")
-                  : isStripe
+                  : isCardGateway
                     ? t("addBalance.stripeAmountHint")
                     : t("addBalance.defaultAmountHint")
               }
@@ -581,7 +583,7 @@ export function AddBalanceModal({
                         : formatMoney((parsedAmount * feePercent) / 100)}
                     </span>
                   </div>
-                  {isStripe && stripeExtra > 0 ? (
+                  {isCardGateway && stripeExtra > 0 ? (
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-[#625b54]">
                         {t("addBalance.feeStripe")} (
@@ -608,7 +610,7 @@ export function AddBalanceModal({
                           fx: fxSourceLabel,
                           rate: fxRate.toFixed(3),
                         })
-                      : isStripe
+                      : isCardGateway
                         ? t("addBalance.feeTotalHint", {
                             fee: formatFeePercentLabel(chargeFeePercent),
                             stripe: formatFeePercentLabel(stripeExtra),
@@ -618,14 +620,16 @@ export function AddBalanceModal({
                 </div>
               ) : null}
 
-              {isStripe ? (
+              {isCardGateway ? (
                 <div className="flex items-center justify-between gap-4 rounded-xl bg-[#faf6f1] px-4 py-3">
                   <div>
                     <p className="text-[12px] font-semibold text-[#1c1917]">
                       {t("addBalance.payWithCard")}
                     </p>
                     <p className="mt-0.5 text-[11px] text-[#6f675f]">
-                      {t("addBalance.stripeSecure")}
+                      {isWhop
+                        ? t("addBalance.whopSecure")
+                        : t("addBalance.stripeSecure")}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -663,11 +667,13 @@ export function AddBalanceModal({
                     </div>
                   </div>
                 </div>
+              ) : isCrypto ? (
+                <p className="rounded-xl bg-[#f7f5f2] px-4 py-3 text-xs leading-5 text-[#625b54]">
+                  {t("addBalance.cryptoCheckoutHint")}
+                </p>
               ) : isVoucher ? (
                 <p className="rounded-xl bg-[#f7f5f2] px-4 py-3 text-xs leading-5 text-[#625b54]">
-                  {selectedGateway === "crypto"
-                    ? t("addBalance.cryptoCheckoutHint")
-                    : t("addBalance.manualAfterCreateHint")}
+                  {t("addBalance.manualAfterCreateHint")}
                 </p>
               ) : null}
 
@@ -698,7 +704,9 @@ export function AddBalanceModal({
                   ? t("addBalance.cobranaConfirmHint")
                   : selectedGateway === "crypto"
                     ? t("addBalance.cryptoConfirmHint")
-                    : t("addBalance.confirmDefaultHint")
+                    : isWhop
+                      ? t("addBalance.whopConfirmHint")
+                      : t("addBalance.confirmDefaultHint")
               }
               identityIcon={
                 <GatewayLogo gatewayId={selectedGateway} size="sm" />
@@ -755,7 +763,7 @@ export function AddBalanceModal({
                         : formatMoney((parsedAmount * feePercent) / 100)}
                     </dd>
                   </div>
-                  {isStripe && stripeExtra > 0 ? (
+                  {isCardGateway && stripeExtra > 0 ? (
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-[#625b54]">
                         {t("addBalance.feeStripe")} (
@@ -846,9 +854,11 @@ export function AddBalanceModal({
                         ? t("addBalance.payCrypto")
                         : selectedGateway === "stripe"
                           ? t("addBalance.payStripe")
-                          : t("reloadSection.reloadWith", {
-                              name: gatewayLabels[selectedGateway],
-                            })}
+                          : selectedGateway === "whop"
+                            ? t("addBalance.payWhop")
+                            : t("reloadSection.reloadWith", {
+                                name: gatewayLabels[selectedGateway],
+                              })}
                 </Button>
               </PaymentModalFooter>
             </div>

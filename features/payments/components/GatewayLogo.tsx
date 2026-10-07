@@ -47,6 +47,8 @@ function shellClass(id: PaymentGatewayId) {
       return "bg-[#00A19A]";
     case "mercadopago":
       return "bg-[#009EE3]";
+    case "whop":
+      return "bg-[#FF4D00]";
     case "crypto":
       return "bg-black";
     case "manual":
@@ -60,6 +62,8 @@ function GatewayMark({ id }: { id: PaymentGatewayId }) {
   switch (id) {
     case "stripe":
       return null;
+    case "whop":
+      return <WhopMark />;
     case "culqi":
       return <CulqiMark />;
     case "mercadopago":
@@ -71,6 +75,18 @@ function GatewayMark({ id }: { id: PaymentGatewayId }) {
     case "cobrana":
       return null;
   }
+}
+
+/** Whop wordmark W on brand orange tile. */
+function WhopMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[62%] w-[62%]" aria-hidden>
+      <path
+        fill="#fff"
+        d="M3.2 5.2h3.1l2.55 9.4L11.7 5.2h2.7l2.85 9.4 2.55-9.4h3l-4.05 13.6h-2.95L12.9 9.45l-2.2 9.35H7.75L3.2 5.2Z"
+      />
+    </svg>
+  );
 }
 
 /** Culqi — open C + accent (brand teal tile) */

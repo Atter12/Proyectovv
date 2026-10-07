@@ -2,7 +2,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeJsonMetadata } from "@/lib/types/json";
-import { isVoucherPaymentProvider } from "@/types/payment";
+import { cryptoIntentAcceptsVoucherProof, isVoucherPaymentProvider } from "@/types/payment";
 import { quoteFromGrossCharge } from "@/lib/payments/manual-deposit.shared";
 import {
   activateRealProfitSubscription,
@@ -154,6 +154,14 @@ async function loadVoucherIntent(paymentIntentId: string): Promise<IntentRow> {
   if (error) throw new Error(error.message);
   if (!data || !isVoucherPaymentProvider(data.provider)) {
     throw new Error("Pago con comprobante no encontrado.");
+  }
+  if (
+    data.provider === "crypto" &&
+    !cryptoIntentAcceptsVoucherProof(
+      (data.metadata ?? {}) as Record<string, unknown>,
+    )
+  ) {
+    throw new Error("Este pago cripto se confirma por NOWPayments, no por voucher.");
   }
   return data;
 }

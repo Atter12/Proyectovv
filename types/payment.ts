@@ -5,7 +5,8 @@ export type PaymentGatewayId =
   | "mercadopago"
   | "manual"
   | "crypto"
-  | "cobrana";
+  | "cobrana"
+  | "whop";
 
 export type PaymentTabKey =
   | "assignment"
@@ -78,6 +79,7 @@ export const PAYMENT_GATEWAY_IDS: PaymentGatewayId[] = [
   "manual",
   "crypto",
   "cobrana",
+  "whop",
 ];
 
 export function isPaymentGatewayId(value: string): value is PaymentGatewayId {
@@ -89,6 +91,14 @@ export function isVoucherPaymentProvider(
   provider: string,
 ): provider is "manual" | "crypto" {
   return provider === "manual" || provider === "crypto";
+}
+
+/** Recarga cripto automática: no acepta captura. Vouchers viejos sí. */
+export function cryptoIntentAcceptsVoucherProof(
+  metadata: Record<string, unknown> | null | undefined,
+): boolean {
+  const mode = metadata?.crypto_mode;
+  return mode !== "nowpayments";
 }
 
 export const VOUCHER_PAYMENT_PROVIDERS = ["manual", "crypto"] as const;

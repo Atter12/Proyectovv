@@ -47,7 +47,8 @@ function bridgeConfigured(): boolean {
 /**
  * POST cobro a Hecom (Ads Holistic → Lo pagado).
  * Idempotente por codigo según canal:
- *   stripe → AH-STRIPE-{pi} · manual → AH-BCP-{pi} · cobrana → AH-YAPE-{pi}
+ *   stripe → AH-STRIPE-{pi} · whop → AH-WHOP-{pi} · manual → AH-BCP-{pi}
+ *   cobrana → AH-YAPE-{pi} · crypto → AH-CRYPTO-{pi}
  * Soft-fail: no tumba el webhook / aprobación si Hecom cae.
  */
 export async function postHolisticWalletCobroToHecom(

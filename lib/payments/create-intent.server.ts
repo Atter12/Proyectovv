@@ -2,9 +2,11 @@ import { randomUUID } from "node:crypto";
 import { assertStripePaymentsEnabled } from "./stripe-policy";
 import type { SessionUser } from "@/types/auth";
 import {
+  CryptoAmountTooSmallError,
   getPaymentProvider,
   ProviderNotConfiguredError,
 } from "@/lib/payments/providers";
+import { isBelowCryptoMinimum } from "@/lib/payments/crypto-limits";
 import {
   createPaymentIntentRecord,
   getPaymentIntentByIdInternal,
@@ -169,7 +171,9 @@ export async function createPaymentIntentForSession(
     ? 0
     : provider === "stripe"
       ? normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent)
-      : 0;
+      : provider === "whop"
+        ? normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent)
+        : 0;
   const feePercent = settlesDebt
     ? 0
     : effectiveDepositFeePercent({
@@ -323,6 +327,14 @@ export async function createPaymentIntentForSession(
     throw new Error("El monto a cobrar debe ser mayor a cero.");
   }
 
+  if (provider === "crypto") {
+    const chargeUsd = amountCents / 100;
+    const creditUsd = creditCents / 100;
+    if (isBelowCryptoMinimum(chargeUsd) || isBelowCryptoMinimum(creditUsd)) {
+      throw new CryptoAmountTooSmallError(Math.min(chargeUsd, creditUsd));
+    }
+  }
+
   const walletId = await resolveWalletId(organizationId);
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
 
@@ -398,11 +410,16 @@ export async function createPaymentIntentForSession(
     },
   });
 
-  // Manual siempre voucher. Crypto ahora sale por checkout NOWPayments.
+  // Manual siempre voucher. Cripto solo por checkout NOWPayments.
   // Cobrana: requiere pago en Yape/banco (sin voucher Holistic).
-  const voucherFlow =
-    provider === "manual" ||
-    (provider === "crypto" && !checkoutResult.checkoutUrl);
+  // Whop / Stripe: redirect a checkout hospedado.
+  if (provider === "crypto" && !checkoutResult.checkoutUrl) {
+    throw new Error("NOWPayments no devolvió el enlace de pago cripto.");
+  }
+  if (provider === "whop" && !checkoutResult.checkoutUrl) {
+    throw new Error("Whop no devolvió el enlace de pago.");
+  }
+  const voucherFlow = provider === "manual";
 
   const nextStatus = voucherFlow
     ? "requires_payment"
@@ -421,7 +438,7 @@ export async function createPaymentIntentForSession(
   // Anotar modo cripto sin pisar metadata de fee.
   if (provider === "crypto") {
     await mergePaymentIntentMetadata(intent.id, {
-      crypto_mode: voucherFlow ? "manual_proof" : "nowpayments",
+      crypto_mode: "nowpayments",
       nowpayments_invoice_id: checkoutResult.providerReference,
     });
   }

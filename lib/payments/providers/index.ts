@@ -5,6 +5,7 @@ import { CulqiPaymentProvider } from "./culqi.provider";
 import { ManualPaymentProvider } from "./manual.provider";
 import { MercadoPagoPaymentProvider } from "./mercadopago.provider";
 import { StripePaymentProvider } from "./stripe.provider";
+import { WhopPaymentProvider } from "./whop.provider";
 import type { PaymentProviderAdapter } from "./types";
 
 const providers: Record<PaymentGatewayId, PaymentProviderAdapter> = {
@@ -14,6 +15,7 @@ const providers: Record<PaymentGatewayId, PaymentProviderAdapter> = {
   manual: new ManualPaymentProvider(),
   crypto: new CryptoPaymentProvider(),
   cobrana: new CobranaPaymentProvider(),
+  whop: new WhopPaymentProvider(),
 };
 
 export function getPaymentProvider(provider: PaymentGatewayId): PaymentProviderAdapter {
@@ -31,3 +33,4 @@ export function getConfiguredProviders(): PaymentGatewayId[] {
 }
 
 export { ProviderNotConfiguredError } from "./types";
+export { CryptoAmountTooSmallError } from "./crypto.provider";

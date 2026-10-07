@@ -17,7 +17,7 @@ import {
 } from "@/lib/payments/process-manual-voucher.server";
 import { isMissingCobroPurpose } from "@/lib/payments/missing-cobro.shared";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
-import { isVoucherPaymentProvider } from "@/types/payment";
+import { cryptoIntentAcceptsVoucherProof, isVoucherPaymentProvider } from "@/types/payment";
 import { mergeMetadata } from "@/lib/records";
 import type { SessionUser } from "@/types/auth";
 
@@ -263,6 +263,14 @@ export async function uploadPublicLoPagadoProof(input: {
   }
   if (!isVoucherPaymentProvider(intent.provider)) {
     throw new PublicLoPagadoError("Este pago no acepta comprobante.");
+  }
+  if (
+    intent.provider === "crypto" &&
+    !cryptoIntentAcceptsVoucherProof(intent.metadata)
+  ) {
+    throw new PublicLoPagadoError(
+      "El pago cripto se confirma por NOWPayments, no con captura.",
+    );
   }
   if (["succeeded", "cancelled"].includes(intent.status)) {
     throw new PublicLoPagadoError("Este pago ya no acepta comprobantes.", 409);

@@ -44,6 +44,10 @@ export interface VerifiedWebhookEvent {
   succeeded: boolean;
   failed: boolean;
   cancelled: boolean;
+  /** NOWPayments: pagó de menos (partially_paid o finished corto). */
+  underpaid?: boolean;
+  actuallyPaid?: number;
+  payAmount?: number;
 }
 
 export interface PaymentProviderAdapter {

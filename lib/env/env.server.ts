@@ -120,11 +120,20 @@ export const serverEnv = {
   paymentsAllowSandboxSuccess: parseBoolean(process.env.PAYMENTS_ALLOW_SANDBOX_SUCCESS),
 
   /**
-   * Recargo % solo Stripe (pasarela / fee tarjeta), sumado al fee Holistic.
+   * Recargo % Stripe (pasarela / fee tarjeta), sumado al fee Holistic.
    * Default 3. Transferencia BCP / Yape no lo incluyen.
    */
   stripeDepositSurchargePercent: Number.parseFloat(
     process.env.STRIPE_DEPOSIT_SURCHARGE_PERCENT ?? "3",
+  ),
+  /**
+   * Recargo % Whop (tarjeta / wallets), sumado al fee Holistic.
+   * Default = mismo que Stripe (3). Override con WHOP_DEPOSIT_SURCHARGE_PERCENT.
+   */
+  whopDepositSurchargePercent: Number.parseFloat(
+    process.env.WHOP_DEPOSIT_SURCHARGE_PERCENT ??
+      process.env.STRIPE_DEPOSIT_SURCHARGE_PERCENT ??
+      "3",
   ),
 
   /**
@@ -278,6 +287,21 @@ export const serverEnv = {
   // Victor: solo USDT por ahora. Default TRC20 (fees bajos). Override con NOWPAYMENTS_PAY_CURRENCY.
   nowPaymentsPayCurrency:
     process.env.NOWPAYMENTS_PAY_CURRENCY?.trim() || "usdttrc20",
+
+  /** Whop Payments. Requiere API key + company (biz_…) + webhook secret. */
+  whopApiKey: process.env.WHOP_API_KEY?.trim() || "",
+  whopWebhookSecret: process.env.WHOP_WEBHOOK_SECRET?.trim() || "",
+  whopCompanyId: process.env.WHOP_COMPANY_ID?.trim() || "",
+  /** Opcional: producto fijo. Si vacío, se crea/reusa por external_identifier. */
+  whopProductId: process.env.WHOP_PRODUCT_ID?.trim() || "",
+  whopApiBaseUrl:
+    process.env.WHOP_API_BASE_URL?.trim() || "https://api.whop.com/api/v1",
+  whopApiVersionDate:
+    process.env.WHOP_API_VERSION_DATE?.trim() || "2026-10-06",
+  whopWebhookToleranceSeconds: parseInteger(
+    process.env.WHOP_WEBHOOK_TOLERANCE_SECONDS,
+    300,
+  ),
 
   // Si hay RESEND_API_KEY y no fijaron provider, usamos Resend.
   emailProvider:

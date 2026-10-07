@@ -24,11 +24,38 @@ import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
 import { requirePermission } from "@/lib/auth/guards.server";
 
 async function StripeReturnBanner({ status }: { status?: string }) {
-  if (status !== "success" && status !== "cancelled") {
+  if (
+    status !== "success" &&
+    status !== "cancelled" &&
+    status !== "pending_crypto" &&
+    status !== "whop_return"
+  ) {
     return null;
   }
 
   const t = await getTranslations("payments");
+
+  if (status === "pending_crypto") {
+    return (
+      <div
+        className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
+        role="status"
+      >
+        {t("stripe.cryptoPending")}
+      </div>
+    );
+  }
+
+  if (status === "whop_return") {
+    return (
+      <div
+        className="rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-950"
+        role="status"
+      >
+        {t("stripe.whopPending")}
+      </div>
+    );
+  }
 
   if (status === "success") {
     return (
@@ -67,7 +94,10 @@ export default async function PaymentsPage({
   const t = await getTranslations("payments");
   const params = await searchParams;
   const status = typeof params.status === "string" ? params.status : undefined;
-  const isStripeReturn = status === "success" || status === "cancelled";
+  const isStripeReturn =
+    status === "success" ||
+    status === "cancelled" ||
+    status === "pending_crypto";
   const selected = await getSelectedHecomCliente(session.id);
   const actingAsCliente = await getActingAsCliente(session.id);
   const rawCapabilities = await resolvePaymentsFundingCapabilities({

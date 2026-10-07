@@ -2,7 +2,10 @@
 import {
   createPaymentIntentForSession,
 } from "@/lib/payments/create-intent.server";
-import { ProviderNotConfiguredError } from "@/lib/payments/providers";
+import {
+  CryptoAmountTooSmallError,
+  ProviderNotConfiguredError,
+} from "@/lib/payments/providers";
 import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
@@ -114,6 +117,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ProviderNotConfiguredError) {
       return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    if (error instanceof CryptoAmountTooSmallError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     const message =
       error instanceof Error ? error.message : "No se pudo crear la intención de pago.";

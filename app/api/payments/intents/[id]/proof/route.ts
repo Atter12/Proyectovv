@@ -1,4 +1,4 @@
-import { isVoucherPaymentProvider } from "@/types/payment";
+import { cryptoIntentAcceptsVoucherProof, isVoucherPaymentProvider } from "@/types/payment";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth/session.server";
@@ -104,7 +104,20 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (!isVoucherPaymentProvider(intent.provider)) {
     return NextResponse.json(
-      { error: "El voucher solo aplica para pago manual o cripto." },
+      { error: "El voucher solo aplica para pago manual." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    intent.provider === "crypto" &&
+    !cryptoIntentAcceptsVoucherProof(intent.metadata)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "El pago cripto se confirma por NOWPayments, no con captura. Espera a que el saldo entre solo.",
+      },
       { status: 400 },
     );
   }

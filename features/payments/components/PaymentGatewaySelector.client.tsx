@@ -23,7 +23,7 @@ export function PaymentGatewaySelector({
     <div
       role="radiogroup"
       aria-label={t("gatewaySelector.aria")}
-      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
     >
       {gateways.filter((gateway) => gateway.id !== "stripe").map((gateway) => {
         const inMaintenance = Boolean(gateway.maintenance);
@@ -33,11 +33,13 @@ export function PaymentGatewaySelector({
         const localizedDescription =
           gateway.id === "stripe"
             ? t("gateways.stripeDesc")
-            : gateway.id === "cobrana"
-              ? t("gateways.cobranaDesc")
-              : gateway.id === "manual"
-                ? t("gateways.manualDesc")
-                : gateway.description;
+            : gateway.id === "whop"
+              ? t("gateways.whopDesc")
+              : gateway.id === "cobrana"
+                ? t("gateways.cobranaDesc")
+                : gateway.id === "manual"
+                  ? t("gateways.manualDesc")
+                  : gateway.description;
         return (
           <button
             key={gateway.id}
@@ -75,7 +77,7 @@ export function PaymentGatewaySelector({
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
                 {localizedDescription}
               </p>
-              {gateway.id === "stripe" ? (
+              {gateway.id === "stripe" || gateway.id === "whop" ? (
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   {(["visa", "mastercard"] as const).map((app) => (
                     <PaymentAppIcon key={app} app={app} size="sm" />

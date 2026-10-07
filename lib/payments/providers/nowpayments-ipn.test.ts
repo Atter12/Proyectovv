@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
 import { isBelowCryptoMinimum } from "../crypto-limits.ts";
-import { buildNowPaymentsInvoiceBody } from "./nowpayments-checkout.ts";
+import {
+  buildNowPaymentsInvoiceBody,
+  parseNowPaymentsInvoiceResponse,
+} from "./nowpayments-checkout.ts";
 import {
   nowPaymentsAmountMatchesIntent,
   nowPaymentsPaidInFull,
+  nowPaymentsPhpDefaultJson,
+  nowPaymentsSortedJson,
   nowPaymentsWebhookStep,
   parseNowPaymentsIpn,
   verifyNowPaymentsIpnSignature,
@@ -37,22 +42,9 @@ function body(status: string, extra: Record<string, unknown> = {}) {
 
 function sign(raw: string, secret: string): string {
   const parsed = JSON.parse(raw) as Record<string, unknown>;
-  const sorted = JSON.stringify(sortKeys(parsed));
-  return createHmac("sha512", secret).update(sorted).digest("hex");
-}
-
-function sortKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortKeys);
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return Object.keys(record)
-      .sort()
-      .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = sortKeys(record[key]);
-        return acc;
-      }, {});
-  }
-  return value;
+  return createHmac("sha512", secret)
+    .update(nowPaymentsSortedJson(parsed))
+    .digest("hex");
 }
 
 test("el HMAC usa el JSON con claves anidadas ordenadas", () => {
@@ -72,6 +64,29 @@ test("el HMAC usa el JSON con claves anidadas ordenadas", () => {
   assert.equal(verifyNowPaymentsIpnSignature(raw, header, secret), true);
   assert.equal(verifyNowPaymentsIpnSignature(raw, header, "otro"), false);
   assert.equal(verifyNowPaymentsIpnSignature(body("finished", { actually_paid: 1 }), header, secret), false);
+});
+
+test("acepta la firma PHP que escapa las barras de las URLs", () => {
+  const raw = JSON.stringify({
+    payment_status: "finished",
+    order_id: INTENT,
+    invoice_id: INVOICE,
+    ipn_callback_url: "https://www.adsholistic.com/api/webhooks/payments/crypto",
+    pay_amount: 12,
+    actually_paid: 12,
+  });
+  const secret = "ipn-secreto";
+  const parsed = JSON.parse(raw) as unknown;
+  const phpSig = createHmac("sha512", secret)
+    .update(nowPaymentsPhpDefaultJson(parsed))
+    .digest("hex");
+  const jsSig = createHmac("sha512", secret)
+    .update(nowPaymentsSortedJson(parsed))
+    .digest("hex");
+  assert.notEqual(phpSig, jsSig);
+  assert.equal(verifyNowPaymentsIpnSignature(raw, phpSig, secret), true);
+  assert.equal(verifyNowPaymentsIpnSignature(raw, jsSig, secret), true);
+  assert.equal(verifyNowPaymentsIpnSignature(raw, createHmac("sha512", secret).update(raw).digest("hex"), secret), true);
 });
 
 test("solo finished con el USDT completo acredita, y usa el invoice_id", () => {
@@ -98,24 +113,38 @@ test("confirmed no acredita aunque el monto ya esté", () => {
   assert.equal(nowPaymentsWebhookStep(event!), "ack");
 });
 
-test("partially_paid y un finished corto no acreditan", () => {
-  assert.equal(nowPaymentsWebhookStep(parseNowPaymentsIpn(body("partially_paid", { actually_paid: 10 }))!), "ack");
+test("partially_paid avisa y deja la recarga abierta", () => {
+  const event = parseNowPaymentsIpn(body("partially_paid", { actually_paid: 10 }));
+  assert.equal(event?.underpaid, true);
+  assert.equal(nowPaymentsWebhookStep(event!), "flag_underpaid");
+});
+
+test("un finished corto cierra la recarga como fallida", () => {
   const short = parseNowPaymentsIpn(body("finished", { actually_paid: 10 }));
-  assert.equal(nowPaymentsWebhookStep(short!), "ack");
+  assert.equal(short?.succeeded, false);
+  assert.equal(short?.underpaid, true);
+  assert.equal(nowPaymentsWebhookStep(short!), "mark_failed");
   assert.equal(nowPaymentsPaidInFull(ipn("finished", { actually_paid: 10 })), false);
   assert.equal(nowPaymentsPaidInFull(ipn("finished", { actually_paid: 25.119 })), true);
 });
 
-test("finished sin actually_paid no acredita", () => {
+test("finished sin actually_paid no acredita y cierra", () => {
   const event = parseNowPaymentsIpn(body("finished", { actually_paid: undefined }));
   assert.equal(event?.succeeded, false);
-  assert.equal(nowPaymentsWebhookStep(event!), "ack");
+  assert.equal(nowPaymentsWebhookStep(event!), "mark_failed");
 });
 
 test("expired cancela y failed/refunded no acreditan", () => {
   assert.equal(nowPaymentsWebhookStep(parseNowPaymentsIpn(body("expired"))!), "mark_cancelled");
   assert.equal(nowPaymentsWebhookStep(parseNowPaymentsIpn(body("failed"))!), "mark_failed");
   assert.equal(nowPaymentsWebhookStep(parseNowPaymentsIpn(body("refunded"))!), "mark_failed");
+});
+
+test("un refunded después de acreditar no baja el estado", () => {
+  const refunded = parseNowPaymentsIpn(body("refunded"));
+  assert.equal(nowPaymentsWebhookStep(refunded!, "succeeded"), "ignore_after_credit");
+  const expired = parseNowPaymentsIpn(body("expired"));
+  assert.equal(nowPaymentsWebhookStep(expired!, "succeeded"), "ignore_after_credit");
 });
 
 test("un monto USD distinto al de la recarga no se acepta", () => {
@@ -161,12 +190,12 @@ test("sin invoice ni pedido no entra; payment_id solo no basta", () => {
   assert.equal(byOrder?.succeeded, true);
 });
 
-test("la factura lleva order_id, invoice IPN y USDT TRC20 sin rate fijo", () => {
+test("la factura lleva order_id, invoice IPN, USDT TRC20 y return pending", () => {
   const built = buildNowPaymentsInvoiceBody({
     amountCents: 2500,
     currency: "USD",
     paymentIntentId: INTENT,
-    appUrl: "https://adsholistic.com/",
+    appUrl: "https://www.adsholistic.com/",
     payCurrency: "usdttrc20",
     minUsd: 12,
   });
@@ -177,7 +206,15 @@ test("la factura lleva order_id, invoice IPN y USDT TRC20 sin rate fijo", () => 
   assert.equal(built.body.price_currency, "usd");
   assert.equal(built.body.is_fixed_rate, false);
   assert.equal(built.body.pay_currency, "usdttrc20");
-  assert.equal(built.body.ipn_callback_url, "https://adsholistic.com/api/webhooks/payments/crypto");
+  assert.equal(built.body.ipn_callback_url, "https://www.adsholistic.com/api/webhooks/payments/crypto");
+  assert.equal(
+    built.body.success_url,
+    "https://www.adsholistic.com/payments?tab=wallet-tx&status=pending_crypto",
+  );
+  assert.equal(
+    built.body.cancel_url,
+    "https://www.adsholistic.com/payments?tab=wallet-tx&status=cancelled",
+  );
 });
 
 test("menos de 12 USD no arma checkout", () => {
@@ -194,4 +231,19 @@ test("menos de 12 USD no arma checkout", () => {
   assert.equal(built.ok, false);
   if (built.ok) return;
   assert.equal(built.reason, "too_small");
+});
+
+test("la respuesta de factura exige JSON, id y URL", () => {
+  assert.equal(parseNowPaymentsInvoiceResponse("no-json", 200).ok, false);
+  assert.equal(parseNowPaymentsInvoiceResponse("", 502).ok, false);
+  const bad = parseNowPaymentsInvoiceResponse(JSON.stringify({ message: "amountTo is too small" }), 400);
+  assert.equal(bad.ok, false);
+  if (!bad.ok) assert.match(bad.message, /too small/);
+  const ok = parseNowPaymentsInvoiceResponse(
+    JSON.stringify({ id: 4302578480, invoice_url: "https://nowpayments.io/payment/?iid=4302578480" }),
+    201,
+  );
+  assert.equal(ok.ok, true);
+  if (!ok.ok) return;
+  assert.equal(ok.invoiceId, "4302578480");
 });

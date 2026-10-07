@@ -49,14 +49,19 @@ export function normalizeStripeSurchargePercent(
   return Math.round(raw * 100) / 100;
 }
 
-/** Fee total a cobrar según pasarela (Holistic + surcharge Stripe si aplica). */
+/** Pasarelas con recargo de procesamiento (tarjeta / wallets). */
+export function providerUsesGatewaySurcharge(provider: string): boolean {
+  return provider === "stripe" || provider === "whop";
+}
+
+/** Fee total a cobrar según pasarela (Holistic + surcharge tarjeta si aplica). */
 export function effectiveDepositFeePercent(input: {
   holisticFeePercent: number;
   provider: string;
   stripeSurchargePercent?: number;
 }): number {
   const base = Math.max(0, input.holisticFeePercent);
-  if (input.provider !== "stripe") return base;
+  if (!providerUsesGatewaySurcharge(input.provider)) return base;
   const surcharge = normalizeStripeSurchargePercent(
     input.stripeSurchargePercent,
   );

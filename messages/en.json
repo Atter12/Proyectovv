@@ -354,7 +354,9 @@
       "successBefore": "Payment confirmed. It will credit to your wallet in a few seconds. Then go to",
       "successLink": "Assign balance",
       "successAfter": "and transfer it to a TikTok account.",
-      "cancelled": "Stripe checkout was cancelled. You can try again anytime."
+      "cancelled": "Stripe checkout was cancelled. You can try again anytime.",
+      "cryptoPending": "You’re back from crypto checkout. Balance credits when NOWPayments marks the payment finished, after TRON confirmations. That can take a few minutes — don’t top up again until you see the balance.",
+      "whopPending": "You’re back from Whop checkout. Balance credits when Whop confirms the payment (webhook), not just when you return here. Wait a few seconds and check your wallet."
     },
     "intro": {
       "client": "Add balance to {name}’s wallet and assign it to a TikTok account.",
@@ -579,6 +581,8 @@
       "copy": "Copy",
       "copied": "Copied",
       "stripeSecure": "Secure processing via Stripe",
+      "whopSecure": "Secure processing via Whop Payments",
+      "payWhop": "Pay with Whop",
       "cobranaProcessed": "Pay with Yape, Plin, or banks",
       "yapeServiceHint": "In Yape, the service will appear as {company}.",
       "cobranaConfirmHint": "We will give you a code to pay in soles from Yape, Plin, or your bank.",
@@ -609,7 +613,8 @@
       "stripeAmountHint": "Enter the balance you want to receive. Before paying you will see the exact total, including fees.",
       "defaultAmountHint": "Enter the balance you want to receive in your Holistic wallet.",
       "confirmDefaultHint": "Confirm that the balance and total to pay are correct before continuing.",
-      "cryptoConfirmHint": "We'll take you to NOWPayments to pay with USDT (TRC20). Send the exact amount shown, over the TRON (TRC20) network. Balance credits once the network confirms.",
+      "cryptoConfirmHint": "We'll take you to NOWPayments to pay with USDT (TRC20). Send the exact amount shown over TRON (TRC20). Balance credits when NOWPayments marks the payment finished, not on the first network confirm.",
+      "whopConfirmHint": "We'll take you to Whop checkout to pay by card or wallet. Balance credits when Whop confirms the payment, not just when you return to this screen.",
       "cryptoMinAmount": "USDT (TRC20) payments have a ${min} minimum. For smaller amounts use Yape or bank transfer.",
       "gatewayYapePlin": "Yape / Plin",
       "fxReferential": "Reference FX",
@@ -625,7 +630,7 @@
       "errUploadProof": "Could not upload the proof.",
       "feeTotalHint": "Total fee {fee} (Holistic + gateway). Bank transfer does not include the +{stripe}.",
       "feeExample": "E.g.: if you want $100 with a 10% fee, $110 is charged.",
-      "cryptoCheckoutHint": "USDT (TRC20) checkout only. If NOWPayments is inactive, send USDT and upload a screenshot or TxID.",
+      "cryptoCheckoutHint": "Automatic USDT (TRC20) checkout. NOWPayments shows the wallet and amount. Don’t upload a screenshot — balance credits only when the payment is finished.",
       "manualAfterCreateHint": "After creating the request you can upload the proof for review.",
       "fxNeedDni": "{fx} {rate} · you need a DNI registered in Hecom CRM.",
       "payWithCard": "Pay by card",
@@ -807,6 +812,7 @@
     },
     "gateways": {
       "stripeDesc": "Cards and global payments",
+      "whopDesc": "Card, Apple Pay, and global wallets",
       "cobranaDesc": "Pay with Yape, Plin, or bank transfer",
       "manualName": "Manual payment",
       "manualDesc": "BCP or Binance · proof under review"

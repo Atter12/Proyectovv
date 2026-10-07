@@ -75,7 +75,7 @@ export function buildWalletFunding(
   const client = text(meta.hecom_cliente_id);
   const provider = intent.provider.trim().toLowerCase();
   if (intent.id !== expected.paymentIntentId || client !== expected.clientId || provider !== expected.provider ||
-      !["stripe", "manual", "cobrana", "crypto"].includes(provider)) return null;
+      !["stripe", "manual", "cobrana", "crypto", "whop"].includes(provider)) return null;
   const charge = cents(intent.amountCents);
   const usd = cents(meta.gross_usd_cents);
   const currency = intent.currency.toUpperCase();
@@ -125,7 +125,7 @@ export function buildWalletFunding(
   const totalRate = percent(meta.fee_percent);
   if (ownRate === null || gatewayRate === null || totalRate === null ||
       Math.round((ownRate + gatewayRate) * 100) !== Math.round(totalRate * 100) ||
-      (provider !== "stripe" && gatewayRate !== 0)) return result;
+      (provider !== "stripe" && provider !== "whop" && gatewayRate !== 0)) return result;
   const totalFee = feeAtRate(credit, totalRate);
   const ownFee = feeAtRate(credit, ownRate);
   const adjustedOwnOnly = provider === "manual" && gatewayRate === 0 &&

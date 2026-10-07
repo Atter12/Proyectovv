@@ -33,7 +33,9 @@ export async function GET(request: Request) {
   });
 
   const stripeSurchargePercent = normalizeStripeSurchargePercent(
-    serverEnv.stripeDepositSurchargePercent,
+    provider === "whop"
+      ? serverEnv.whopDepositSurchargePercent
+      : serverEnv.stripeDepositSurchargePercent,
   );
   const feePercent = effectiveDepositFeePercent({
     holisticFeePercent: preview.feePercent,
@@ -52,7 +54,7 @@ export async function GET(request: Request) {
     feePercent,
     feeHolisticPercent: preview.feePercent,
     stripeSurchargePercent:
-      provider === "stripe" ? stripeSurchargePercent : 0,
+      provider === "stripe" || provider === "whop" ? stripeSurchargePercent : 0,
     feeSource: preview.feeSource,
     hecomClienteId: preview.hecomClienteId,
     hecomClienteName: preview.hecomClienteName,

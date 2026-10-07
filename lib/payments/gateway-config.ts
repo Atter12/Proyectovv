@@ -3,10 +3,15 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Gateways visibles en Pagos.
- * Yape/Plin + Pago manual + Cripto (USDT / NOWPayments, si hay API key).
- * Culqi / Mercado Pago ocultos.
+ * Whop + Yape/Plin + Pago manual + Cripto (si hay API key).
+ * Stripe queda en mantenimiento; Culqi / Mercado Pago ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
+  {
+    id: "whop",
+    name: "Whop",
+    description: "Tarjeta, Apple Pay y wallets globales",
+  },
   {
     id: "cobrana",
     name: "Yape / Plin",

@@ -582,6 +582,7 @@ export const getPaymentPageCore = cache(async (
   const visibleGateways = gateways.filter((g) => {
     if (g.id === "cobrana") return isProviderConfigured("cobrana");
     if (g.id === "crypto") return isProviderConfigured("crypto");
+    if (g.id === "whop") return isProviderConfigured("whop");
     return true;
   });
   const selectedGateway = visibleGateways.some((g) => g.id === preferredGateway)

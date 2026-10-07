@@ -16,6 +16,14 @@ export interface NowPaymentsIpnBody {
   purchase_id?: string | number;
 }
 
+export type NowPaymentsWebhookStep =
+  | "credit"
+  | "mark_failed"
+  | "mark_cancelled"
+  | "ack"
+  | "flag_underpaid"
+  | "ignore_after_credit";
+
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortKeysDeep);
@@ -31,23 +39,62 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-/** HMAC-SHA512 del JSON con claves ordenadas, como documenta NOWPayments. */
+/** JSON con claves ordenadas (Node). */
+export function nowPaymentsSortedJson(value: unknown): string {
+  return JSON.stringify(sortKeysDeep(value));
+}
+
+/**
+ * PHP `json_encode(..., JSON_UNESCAPED_SLASHES)` no escapa `/`.
+ * El `json_encode` por defecto sí (`\/`). NOWPayments documenta ambos mundos.
+ */
+export function nowPaymentsPhpDefaultJson(value: unknown): string {
+  return nowPaymentsSortedJson(value).replace(/\//g, "\\/");
+}
+
+function hmacSha512Hex(secret: string, payload: string): string {
+  return createHmac("sha512", secret).update(payload).digest("hex");
+}
+
+function hexEqual(left: string, right: string): boolean {
+  try {
+    const a = Buffer.from(left.trim(), "utf8");
+    const b = Buffer.from(right.trim(), "utf8");
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+/** Candidatos de firma: JS sorted, PHP slash-escaped, y el raw del body. */
+export function nowPaymentsIpnSignatureCandidates(
+  rawBody: string,
+  secret: string,
+): string[] {
+  const digest = new Set<string>();
+  digest.add(hmacSha512Hex(secret, rawBody));
+  try {
+    const parsed = JSON.parse(rawBody) as unknown;
+    digest.add(hmacSha512Hex(secret, nowPaymentsSortedJson(parsed)));
+    digest.add(hmacSha512Hex(secret, nowPaymentsPhpDefaultJson(parsed)));
+  } catch {
+    /* raw ya cubierto */
+  }
+  return [...digest];
+}
+
+/** HMAC-SHA512 como documenta NOWPayments; acepta variantes PHP/JSON. */
 export function verifyNowPaymentsIpnSignature(
   rawBody: string,
   signature: string,
   secret: string,
 ): boolean {
-  try {
-    const parsed = JSON.parse(rawBody) as Record<string, unknown>;
-    const sorted = JSON.stringify(sortKeysDeep(parsed));
-    const digest = createHmac("sha512", secret).update(sorted).digest("hex");
-    const left = Buffer.from(digest, "utf8");
-    const right = Buffer.from(signature.trim(), "utf8");
-    if (left.length !== right.length) return false;
-    return timingSafeEqual(left, right);
-  } catch {
-    return false;
-  }
+  if (!rawBody || !signature || !secret) return false;
+  const expected = signature.trim();
+  return nowPaymentsIpnSignatureCandidates(rawBody, secret).some((candidate) =>
+    hexEqual(candidate, expected),
+  );
 }
 
 function asNumber(value: number | string | undefined): number | null {
@@ -83,13 +130,29 @@ function toUsdCents(amount: number | string | undefined, currency?: string): num
 /**
  * Solo `finished` acredita. `confirmed` todavía puede fallar.
  * El id que guardamos al crear la factura es `invoice_id`, no `payment_id`.
+ *
+ * Si la recarga ya está `succeeded`, un refund/fail posterior no baja el estado
+ * (el ledger no se revierte desde el IPN).
  */
 export function nowPaymentsWebhookStep(
   event: VerifiedWebhookEvent,
-): "credit" | "mark_failed" | "mark_cancelled" | "ack" {
+  intentStatus?: string | null,
+): NowPaymentsWebhookStep {
+  if (intentStatus === "succeeded") {
+    if (event.succeeded) return "credit";
+    if (event.failed || event.cancelled || event.underpaid) {
+      return "ignore_after_credit";
+    }
+    return "ack";
+  }
   if (event.failed) return "mark_failed";
   if (event.cancelled) return "mark_cancelled";
   if (event.succeeded) return "credit";
+  if (event.underpaid) {
+    return event.eventType === "nowpayments.finished"
+      ? "mark_failed"
+      : "flag_underpaid";
+  }
   return "ack";
 }
 
@@ -120,14 +183,21 @@ export function parseNowPaymentsIpn(rawBody: string): VerifiedWebhookEvent | nul
 
   const status = String(body.payment_status ?? "").toLowerCase();
   const paid = nowPaymentsPaidInFull(body);
-  const succeeded = status === "finished" && paid;
+  const actuallyPaid = asNumber(body.actually_paid);
+  const payAmount = asNumber(body.pay_amount);
+  const finished = status === "finished";
+  const underpaid =
+    status === "partially_paid" || (finished && !paid);
+  const succeeded = finished && paid;
   const failed = status === "failed" || status === "refunded";
   const cancelled = status === "expired";
 
   const amountCents = toUsdCents(body.price_amount, body.price_currency);
+  const underpaidKey =
+    underpaid && actuallyPaid != null ? `:${actuallyPaid}` : "";
 
   return {
-    eventId: `nowpayments:${invoiceId ?? orderId}:${paymentId ?? "ipn"}:${status || "update"}`,
+    eventId: `nowpayments:${invoiceId ?? orderId}:${paymentId ?? "ipn"}:${status || "update"}${underpaidKey}`,
     eventType: `nowpayments.${status || "update"}`,
     providerReference: invoiceId,
     paymentIntentId: orderId ?? undefined,
@@ -136,5 +206,8 @@ export function parseNowPaymentsIpn(rawBody: string): VerifiedWebhookEvent | nul
     succeeded,
     failed: failed && !succeeded,
     cancelled: cancelled && !succeeded,
+    underpaid,
+    actuallyPaid: actuallyPaid ?? undefined,
+    payAmount: payAmount ?? undefined,
   };
 }

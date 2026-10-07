@@ -53,7 +53,7 @@ export function paymentApplicableAmount(row: HecomCobroForDebt): number {
   const value = (row?.funding_breakdown ?? row?.fundingBreakdown) || null;
   const gross = Math.round(amount * 100);
   const clientId = String(row?.client_id ?? row?.clientId ?? "");
-  const match = /^AH-(STRIPE|BCP|YAPE|CRYPTO)-(.+)$/.exec(
+  const match = /^AH-(STRIPE|BCP|YAPE|CRYPTO|WHOP)-(.+)$/.exec(
     String(row?.codigo || ""),
   );
   const providers: Record<string, string> = {
@@ -61,6 +61,7 @@ export function paymentApplicableAmount(row: HecomCobroForDebt): number {
     BCP: "manual",
     YAPE: "cobrana",
     CRYPTO: "crypto",
+    WHOP: "whop",
   };
 
   if (!Number.isFinite(amount) || !money(gross) || !match || !value || typeof value !== "object" || Array.isArray(value)) {
