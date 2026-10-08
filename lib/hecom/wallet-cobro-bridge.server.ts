@@ -12,7 +12,7 @@ export type HolisticWalletCobroPayload = {
   montoNeto?: number;
   feeHolistic?: number;
   currency?: string;
-  /** Canal Holistic: stripe | manual (BCP) | cobrana (Yape) | crypto */
+  /** Canal Holistic: stripe | whop | manual (BCP) | cobrana (Yape) | crypto */
   provider?: string;
   paidAt?: string | null;
   receiptUrl?: string | null;
@@ -228,7 +228,7 @@ export async function alignCobroPeriodoToPaymentMonth(
   }
 }
 
-/** Best-effort tras depósito succeeded (Stripe / manual / Yape). Nunca lanza. */
+/** Best-effort tras depósito succeeded (Stripe / Whop / manual / Yape / cripto). Nunca lanza. */
 export async function syncWalletDepositCobroBestEffort(input: {
   hecomClienteId: string | null | undefined;
   paymentIntentId: string;
@@ -243,7 +243,7 @@ export async function syncWalletDepositCobroBestEffort(input: {
   ledgerJournalId?: string;
 }): Promise<HolisticWalletCobroResult | null> {
   const provider = String(input.provider || "").toLowerCase();
-  if (!["stripe", "manual", "cobrana", "crypto"].includes(provider)) {
+  if (!["stripe", "whop", "manual", "cobrana", "crypto"].includes(provider)) {
     return { ok: true, skipped: true, reason: "provider_not_bridged", status: 0 };
   }
   const clientId = input.hecomClienteId?.trim();

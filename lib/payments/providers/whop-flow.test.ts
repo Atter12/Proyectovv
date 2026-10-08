@@ -34,6 +34,7 @@ test("buildWhopCheckoutBody usa plan one_time y metadata del intent", () => {
   assert.equal(plan.company_id, "biz_test123");
   assert.equal(plan.plan_type, "one_time");
   assert.equal(plan.currency, "usd");
+  assert.equal(plan.adaptive_pricing_enabled, false);
   assert.equal(plan.initial_price, 113);
   assert.equal(plan.title, "Recarga Holistic");
   assert.ok(String(plan.title).length <= 30);
@@ -61,6 +62,21 @@ test("buildWhopCheckoutBody respeta product_id fijo", () => {
   const plan = body.plan as Record<string, unknown>;
   assert.equal(plan.product_id, "prod_fixed");
   assert.equal(plan.product, undefined);
+});
+
+test("buildWhopCheckoutBody cobra siempre en USD aunque llegue otra moneda", () => {
+  const body = buildWhopCheckoutBody({
+    companyId: "biz_test123",
+    amountCents: 5650,
+    currency: "PEN",
+    paymentIntentId: INTENT,
+    organizationId: "org_1",
+    walletId: "wal_1",
+    redirectUrl: "https://example.com/return",
+  });
+  const plan = body.plan as Record<string, unknown>;
+  assert.equal(plan.currency, "usd");
+  assert.equal(plan.adaptive_pricing_enabled, false);
 });
 
 test("absoluteWhopPurchaseUrl normaliza paths relativos", () => {
@@ -158,6 +174,24 @@ test("parseWhopWebhookPayload mapea payment.succeeded y failed", () => {
   assert.equal(succeeded.providerReference, "pay_ok");
   assert.equal(succeeded.amountCents, 11300);
   assert.equal(succeeded.currency, "USD");
+
+  // Cliente que pagó en soles: usd_total sigue en USD y se compara en USD.
+  const paidInPen = parseWhopWebhookPayload(
+    JSON.stringify({
+      id: "msg_pen",
+      type: "payment.succeeded",
+      data: {
+        id: "pay_pen",
+        usd_total: 56.5,
+        total: 200.19,
+        currency: "pen",
+        metadata: { payment_intent_id: INTENT },
+      },
+    }),
+  );
+  assert.ok(paidInPen);
+  assert.equal(paidInPen.amountCents, 5650);
+  assert.equal(paidInPen.currency, "USD");
 
   const failed = parseWhopWebhookPayload(
     JSON.stringify({

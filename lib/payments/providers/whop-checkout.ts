@@ -27,7 +27,8 @@ export type WhopCheckoutCreateInput = {
 };
 
 export function buildWhopCheckoutBody(input: WhopCheckoutCreateInput): Record<string, unknown> {
-  const currency = input.currency.trim().toLowerCase() || "usd";
+  // Whop es solo para dólares: soles van por Yape/Plin/BCP.
+  const currency = "usd";
   const initialPrice = Math.round(input.amountCents) / 100;
   // Concepto largo (cliente Hecom) va a metadata/notas; el título del plan ≤ 30.
   const title = truncateWhopPlanTitle(WHOP_DEFAULT_PLAN_TITLE);
@@ -38,6 +39,9 @@ export function buildWhopCheckoutBody(input: WhopCheckoutCreateInput): Record<st
     currency,
     initial_price: initialPrice,
     plan_type: "one_time",
+    // Sin conversión a moneda local: el cliente paga en USD y el webhook
+    // llega en USD, igual que el intent.
+    adaptive_pricing_enabled: false,
     title,
     visibility: "hidden",
     ...(notes && notes !== title ? { internal_notes: notes.slice(0, 200) } : {}),
