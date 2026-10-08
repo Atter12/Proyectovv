@@ -111,6 +111,11 @@ export async function createAlliancePartner(
       const synced = await setCommissionDays(existing.id, Number(input.commissionDays));
       if (!synced.ok) return synced;
     }
+    // El % también sale del acuerdo en Hecom.
+    if (input.commissionPercent != null && Number(input.commissionPercent) !== existing.commissionPercent) {
+      const synced = await setCommissionPercent(existing.id, Number(input.commissionPercent));
+      if (!synced.ok) return synced;
+    }
     if (signed) {
       const linked = await linkSignedCliente(existing.id, signed);
       if (!linked.ok) return linked;
@@ -234,7 +239,23 @@ async function setCommissionDays(
   return { ok: true };
 }
 
-export const PAYOUT_METHODS = ["Yape", "Plin", "BCP", "Interbank", "Transferencia", "Efectivo", "Otro"] as const;
+/** Cambia el % del fee que gana el aliado. Solo afecta las comisiones que se generen desde ahora. */
+async function setCommissionPercent(
+  partnerId: string,
+  percent: number,
+): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+  if (!Number.isFinite(percent) || percent < 0 || percent > 50) {
+    return { ok: false, error: "La comisión debe estar entre 0% y 50% del fee.", status: 400 };
+  }
+  const { error } = await createAdminClient()
+    .from("partners")
+    .update({ commission_rate: Math.round(percent * 100) / 10000, updated_at: new Date().toISOString() })
+    .eq("id", partnerId);
+  if (error) return { ok: false, error: error.message, status: 500 };
+  return { ok: true };
+}
+
+export const PAYOUT_METHODS =["Yape", "Plin", "BCP", "Interbank", "Transferencia", "Efectivo", "Otro"] as const;
 
 /**
  * Liquida la comisión de un aliado desde Hecom: marca como pagadas todas sus
