@@ -8,6 +8,7 @@ import {
 } from "./nowpayments-checkout.ts";
 import {
   nowPaymentsAmountMatchesIntent,
+  nowPaymentsCoversFirstQuote,
   nowPaymentsPaidInFull,
   nowPaymentsPhpDefaultJson,
   nowPaymentsSortedJson,
@@ -246,4 +247,13 @@ test("la respuesta de factura exige JSON, id y URL", () => {
   assert.equal(ok.ok, true);
   if (!ok.ok) return;
   assert.equal(ok.invoiceId, "4302578480");
+});
+
+test("recotización: si pagó la primera cotización, el pago cubre", () => {
+  // Wilder Remolina 08/10/2026: pidió 75.494282, pagó 75.494282, NOWPayments recotizó a 75.736217.
+  assert.equal(nowPaymentsCoversFirstQuote(75.494282, 75.494282), true);
+  assert.equal(nowPaymentsCoversFirstQuote(75.49, 75.494282), true); // polvo de red < 0.01
+  assert.equal(nowPaymentsCoversFirstQuote(70, 75.494282), false);
+  assert.equal(nowPaymentsCoversFirstQuote(75.5, null), false);
+  assert.equal(nowPaymentsCoversFirstQuote(0, 75.49), false);
 });

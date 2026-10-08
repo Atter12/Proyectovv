@@ -118,6 +118,17 @@ export function nowPaymentsPaidInFull(body: NowPaymentsIpnBody): boolean {
   return actuallyPaid + PAID_EPS >= payAmount;
 }
 
+/**
+ * NOWPayments a veces recotiza mientras confirma y deja el pago «partially_paid»
+ * por centavos aunque el cliente mandó exactamente lo que se le pidió primero.
+ * Si lo pagado cubre la PRIMERA cotización, el pago está completo.
+ */
+export function nowPaymentsCoversFirstQuote(actuallyPaid: number | null | undefined, firstQuote: number | null | undefined): boolean {
+  if (actuallyPaid == null || !Number.isFinite(actuallyPaid) || actuallyPaid <= 0) return false;
+  if (firstQuote == null || !Number.isFinite(firstQuote) || firstQuote <= 0) return false;
+  return actuallyPaid + PAID_EPS >= firstQuote;
+}
+
 function toUsdCents(amount: number | string | undefined, currency?: string): number | undefined {
   if (amount == null) return undefined;
   const n = asNumber(amount);

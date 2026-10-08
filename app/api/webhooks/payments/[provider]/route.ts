@@ -3,6 +3,7 @@ import { processSuccessfulPaymentIntent } from "@/lib/payments/create-intent.ser
 import { recordCryptoIpnOpsEvent } from "@/lib/payments/crypto-ipn-ops.server";
 import { getPaymentProvider } from "@/lib/payments/providers";
 import { nowPaymentsWebhookStep } from "@/lib/payments/providers/nowpayments-ipn";
+import { nowPaymentsPaidFirstQuote } from "@/lib/payments/providers/nowpayments-first-quote.server";
 import {
   getPaymentIntentByProviderReference,
   getPaymentIntentByIdInternal,
@@ -102,7 +103,22 @@ export async function POST(request: Request, context: RouteContext) {
         : null);
 
     if (provider === "crypto") {
-      const step = nowPaymentsWebhookStep(parsed, intent?.status ?? null);
+      let step = nowPaymentsWebhookStep(parsed, intent?.status ?? null);
+      // Recotización: si «falta» plata pero el cliente pagó la primera cotización, se acredita.
+      if ((step === "flag_underpaid" || (step === "mark_failed" && parsed.underpaid)) && intent && intent.status !== "succeeded") {
+        const quote = await nowPaymentsPaidFirstQuote(intent.id, parsed.actuallyPaid);
+        if (quote.covers) {
+          step = "credit";
+          await mergePaymentIntentMetadata(intent.id, {
+            crypto_credited_on_first_quote: {
+              first_quote: quote.firstQuote,
+              actually_paid: parsed.actuallyPaid ?? null,
+              requoted_pay_amount: parsed.payAmount ?? null,
+              status: parsed.eventType,
+            },
+          });
+        }
+      }
       const gapMeta = {
         crypto_ipn_status: parsed.eventType,
         crypto_underpaid: Boolean(parsed.underpaid),
