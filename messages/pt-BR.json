@@ -263,10 +263,10 @@
       "crypto": {
         "step1": "Escolha “Cripto (USDT)” e digite quanto quer na carteira (mínimo $12).",
         "step2": "Abre a página de pagamento da NOWPayments com um endereço USDT.",
-        "step3": "Envie os USDT da Binance ou da sua carteira pela rede TRC20 (Tron). Se usar outra rede, o pagamento se perde.",
+        "step3": "Envie os USDT pela rede TRC20 (Tron). Tem que chegar o valor exato que a NOWPayments mostra. Se usar outra rede, o pagamento se perde.",
         "step4": "Quando a rede confirma, o saldo entra sozinho.",
         "time": "Chega sozinho em poucos minutos",
-        "tip": "A Binance cobra uma pequena taxa de rede ao enviar: considere-a para que chegue o valor completo."
+        "tip": "A Binance desconta a taxa de rede do que você digita. Digite o valor da NOWPayments mais a taxa e confira que o «valor a receber» seja igual ao da NOWPayments. Se chegar menos, a recarga não é creditada."
       },
       "abroad": {
         "step1": "Yape, Plin e transferência BCP são do Peru. Da Colômbia, Equador ou Brasil o mais fácil é pagar com USDT.",
@@ -329,7 +329,8 @@
         "in_review": "Recebemos seu comprovante. Avisaremos ao aprovar.",
         "needs_proof": "Se já transferiu, envie o print para revisarmos.",
         "pay_yape": "No Yape: Pagamento de serviços → 360Pay → este código.",
-        "pay_crypto": "Conclua o pagamento no NOWPayments; é creditado automaticamente.",
+        "pay_crypto": "Conclua o pagamento na NOWPayments. Tem que chegar o valor exato em USDT: se usar a Binance, some a taxa de rede.",
+        "pay_crypto_short": "Faltaram {amount} USDT: chegou menos porque sua carteira ou a Binance descontou a taxa de rede. Fale com a gente e completamos sua recarga.",
         "processing": "Estamos confirmando o pagamento.",
         "replaced": "Cancelada porque você gerou um recibo mais novo.",
         "cancelled": "Esta recarga foi cancelada.",
@@ -614,7 +615,7 @@
       "stripeAmountHint": "Informe o saldo que deseja receber. Antes de pagar você verá o total exato, incluindo as taxas.",
       "defaultAmountHint": "Informe o saldo que deseja receber na sua carteira Holistic.",
       "confirmDefaultHint": "Confirme se o saldo e o total a pagar estão corretos antes de continuar.",
-      "cryptoConfirmHint": "Vamos te levar à NOWPayments para pagar com USDT (TRC20). Envie pela rede TRON (TRC20) o valor exato indicado na página. O saldo entra quando a NOWPayments marca o pagamento como finalizado, não no primeiro confirm da rede.",
+      "cryptoConfirmHint": "Vamos te levar à NOWPayments. Lá aparece o valor exato em USDT: esse valor tem que CHEGAR completo, pela rede TRON (TRC20). Se enviar pela Binance, a taxa de rede é descontada do que você digita: some a taxa e confira que o «valor a receber» seja igual ao da NOWPayments. O saldo entra sozinho quando o pagamento fica finalizado.",
       "whopConfirmHint": "Vamos te levar ao checkout Whop para pagar com cartão ou wallet. O saldo é creditado quando a Whop confirma o pagamento, não só ao voltar para esta tela.",
       "cryptoMinAmount": "Pagamentos em USDT (TRC20) têm mínimo de ${min}. Para valores menores use Yape ou transferência.",
       "gatewayYapePlin": "Yape / Plin",
@@ -631,7 +632,7 @@
       "errUploadProof": "Não foi possível enviar o comprovante.",
       "feeTotalHint": "Taxa total {fee} (Holistic + gateway). Transferência não inclui o +{stripe}.",
       "feeExample": "Ex.: se quiser $100 com taxa de 10%, cobra-se $110.",
-      "cryptoCheckoutHint": "Checkout automático com USDT (TRC20). A NOWPayments mostra a carteira e o valor. Não envie captura: o saldo entra sozinho quando o pagamento ficar finalizado.",
+      "cryptoCheckoutHint": "Checkout automático com USDT (TRC20). A NOWPayments mostra o endereço e o valor exato, que tem que chegar completo: se usar a Binance, some a taxa de rede. Não envie captura, o saldo entra sozinho.",
       "manualAfterCreateHint": "Depois de criar a solicitação você poderá enviar o comprovante para revisão.",
       "fxNeedDni": "{fx} {rate} · você precisa de um DNI registrado no Hecom CRM.",
       "payWithCard": "Pagar com cartão",

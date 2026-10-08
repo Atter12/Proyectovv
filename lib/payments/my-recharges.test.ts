@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rechargeState, sortRecharges, toRechargeRow } from "./my-recharges.shared.ts";
+import { cryptoMissingUsdt, rechargeState, sortRecharges, toRechargeRow } from "./my-recharges.shared.ts";
 
 const base = { id: "a", created_at: "2026-10-06T15:00:00Z", amount_cents: 11000, currency: "USD" };
 
@@ -52,4 +52,29 @@ test("primero lo que necesita acción, después por fecha", () => {
     toRechargeRow({ ...base, id: "falta", created_at: "2026-10-06T10:00:00Z", status: "requires_payment", provider: "manual", metadata: {} }),
   ]);
   assert.deepEqual(rows.map((r) => r.id), ["falta", "ok"]);
+});
+
+test("cripto con pago parcial: dice cuántos USDT faltaron, redondeado hacia arriba", () => {
+  const base = {
+    id: "i-short",
+    created_at: "2026-10-08T01:49:13Z",
+    status: "requires_payment",
+    provider: "crypto",
+    amount_cents: 10900,
+    currency: "USD",
+    metadata: {
+      crypto_mode: "nowpayments",
+      crypto_awaiting_remaining: true,
+      crypto_pay_amount: 108.775182,
+      crypto_actually_paid: 108.445185,
+    },
+  };
+  assert.equal(cryptoMissingUsdt(base), 0.33);
+  assert.equal(toRechargeRow(base).cryptoMissingUsdt, 0.33);
+  // Ya acreditada o sin faltante: no muestra nada.
+  assert.equal(cryptoMissingUsdt({ ...base, status: "succeeded" }), null);
+  assert.equal(cryptoMissingUsdt({ ...base, metadata: { ...base.metadata, crypto_awaiting_remaining: false } }), null);
+  assert.equal(cryptoMissingUsdt({ ...base, metadata: { ...base.metadata, crypto_actually_paid: 108.775182 } }), null);
+  // 0.301 → 0.31: lo que mande tiene que alcanzar.
+  assert.equal(cryptoMissingUsdt({ ...base, metadata: { ...base.metadata, crypto_actually_paid: 108.474182 } }), 0.31);
 });

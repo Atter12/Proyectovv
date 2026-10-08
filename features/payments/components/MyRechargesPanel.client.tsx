@@ -82,7 +82,10 @@ export function MyRechargesPanel({ rows, feePercent }: { rows: RechargeRow[]; fe
                 {[t(PROVIDER_KEY[row.provider] ?? "providerOther"), when(row.createdAt)].join(" · ")}
               </p>
               <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
-                {row.note ?? t(`hint.${row.state}`)}
+                {row.note ??
+                  (row.cryptoMissingUsdt != null
+                    ? t("hint.pay_crypto_short", { amount: row.cryptoMissingUsdt.toFixed(2) })
+                    : t(`hint.${row.state}`))}
               </p>
             </div>
 

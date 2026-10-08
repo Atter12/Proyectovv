@@ -263,10 +263,10 @@
       "crypto": {
         "step1": "Choose “Crypto (USDT)” and enter how much you want in your wallet (minimum $12).",
         "step2": "The NOWPayments page opens with a USDT address.",
-        "step3": "Send the USDT from Binance or your wallet on the TRC20 (Tron) network. If you use another network the payment is lost.",
+        "step3": "Send the USDT on the TRC20 (Tron) network. The exact amount shown by NOWPayments must arrive. If you use another network the payment is lost.",
         "step4": "When the network confirms, the balance arrives automatically.",
         "time": "Arrives automatically in a few minutes",
-        "tip": "Binance charges a small network fee when sending: account for it so the full amount arrives."
+        "tip": "Binance takes the network fee from what you type. Enter the NOWPayments amount plus the fee, and check that the «receive amount» matches NOWPayments. If less arrives, the top-up is not credited."
       },
       "abroad": {
         "step1": "Yape, Plin and BCP transfers are Peruvian. From Colombia, Ecuador or Brazil the easiest way is to pay with USDT.",
@@ -329,7 +329,8 @@
         "in_review": "We got your receipt. We will let you know once approved.",
         "needs_proof": "If you already transferred, upload the screenshot so we can review it.",
         "pay_yape": "In Yape: Pay services → 360Pay → this code.",
-        "pay_crypto": "Finish the payment on NOWPayments; it is credited automatically.",
+        "pay_crypto": "Finish the payment on NOWPayments. The exact USDT amount must arrive: if you use Binance, add the network fee.",
+        "pay_crypto_short": "You were {amount} USDT short: less arrived because your wallet or Binance took the network fee. Contact us and we’ll complete your top-up.",
         "processing": "We are confirming the payment.",
         "replaced": "Cancelled because you created a newer receipt.",
         "cancelled": "This top-up was cancelled.",
@@ -614,7 +615,7 @@
       "stripeAmountHint": "Enter the balance you want to receive. Before paying you will see the exact total, including fees.",
       "defaultAmountHint": "Enter the balance you want to receive in your Holistic wallet.",
       "confirmDefaultHint": "Confirm that the balance and total to pay are correct before continuing.",
-      "cryptoConfirmHint": "We'll take you to NOWPayments to pay with USDT (TRC20). Send the exact amount shown over TRON (TRC20). Balance credits when NOWPayments marks the payment finished, not on the first network confirm.",
+      "cryptoConfirmHint": "We'll take you to NOWPayments. It shows the exact USDT amount: that amount must ARRIVE in full, on the TRON (TRC20) network. If you send from Binance, the network fee is taken from what you type: add it and check that the «receive amount» matches NOWPayments. Balance credits automatically once the payment is finished.",
       "whopConfirmHint": "We'll take you to Whop checkout to pay by card or wallet. Balance credits when Whop confirms the payment, not just when you return to this screen.",
       "cryptoMinAmount": "USDT (TRC20) payments have a ${min} minimum. For smaller amounts use Yape or bank transfer.",
       "gatewayYapePlin": "Yape / Plin",
@@ -631,7 +632,7 @@
       "errUploadProof": "Could not upload the proof.",
       "feeTotalHint": "Total fee {fee} (Holistic + gateway). Bank transfer does not include the +{stripe}.",
       "feeExample": "E.g.: if you want $100 with a 10% fee, $110 is charged.",
-      "cryptoCheckoutHint": "Automatic USDT (TRC20) checkout. NOWPayments shows the wallet and amount. Don’t upload a screenshot — balance credits only when the payment is finished.",
+      "cryptoCheckoutHint": "Automatic USDT (TRC20) checkout. NOWPayments shows the address and the exact amount, which must arrive in full: if you use Binance, add the network fee. Don’t upload a screenshot — balance credits automatically.",
       "manualAfterCreateHint": "After creating the request you can upload the proof for review.",
       "fxNeedDni": "{fx} {rate} · you need a DNI registered in Hecom CRM.",
       "payWithCard": "Pay by card",

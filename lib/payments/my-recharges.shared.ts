@@ -26,6 +26,8 @@ export type RechargeRow = {
   yapeCode: string | null;
   checkoutUrl: string | null;
   note: string | null;
+  /** USDT que faltó enviar cuando NOWPayments marcó el pago como parcial. */
+  cryptoMissingUsdt: number | null;
 };
 
 type IntentLike = {
@@ -64,6 +66,20 @@ export function rechargeState(intent: IntentLike): RechargeState {
   return "processing";
 }
 
+/**
+ * Cuánto USDT le faltó al cliente, redondeado hacia arriba a 2 decimales para
+ * que lo que mande alcance. Solo si la recarga sigue abierta.
+ */
+export function cryptoMissingUsdt(intent: IntentLike): number | null {
+  const m = intent.metadata ?? {};
+  if (intent.provider !== "crypto" || m.crypto_awaiting_remaining !== true) return null;
+  if (rechargeState(intent) !== "pay_crypto") return null;
+  const asked = num(m.crypto_pay_amount);
+  const paid = num(m.crypto_actually_paid);
+  if (asked == null || paid == null || paid >= asked) return null;
+  return Math.ceil(Math.round((asked - paid) * 1e6) / 1e4) / 100;
+}
+
 export function toRechargeRow(intent: IntentLike): RechargeRow {
   const m = intent.metadata ?? {};
   const currency = String(m.charge_currency ?? intent.currency ?? "USD").toUpperCase() === "PEN" ? "PEN" : "USD";
@@ -78,6 +94,7 @@ export function toRechargeRow(intent: IntentLike): RechargeRow {
     yapeCode: typeof m.cobrana_code === "string" && m.cobrana_code.trim() ? m.cobrana_code.trim() : null,
     checkoutUrl: typeof intent.checkout_url === "string" && /^https:\/\//.test(intent.checkout_url) ? intent.checkout_url : null,
     note: intent.status === "failed" && intent.failure_reason ? String(intent.failure_reason).slice(0, 200) : null,
+    cryptoMissingUsdt: cryptoMissingUsdt(intent),
   };
 }
 
