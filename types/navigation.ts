@@ -8,6 +8,7 @@ export type NavItemKey =
   | "paymentsMissingCobros"
   | "debtLinks"
   | "prepagoMonitor"
+  | "appeals"
   | "cobros"
   | "gastos"
   | "affiliates"

@@ -242,6 +242,8 @@ export const config = {
     "/alianzas/:path*",
     "/monitoreo",
     "/monitoreo/:path*",
+    "/apelaciones",
+    "/apelaciones/:path*",
     "/cobros",
     "/cobros/:path*",
     "/pixels",

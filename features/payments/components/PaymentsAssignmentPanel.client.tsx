@@ -18,6 +18,8 @@ import { ReclaimBalanceModal } from "./ReclaimBalanceModal.client";
 import { TransferBalanceModal } from "./TransferBalanceModal.client";
 import { PaymentsGerenteAccountsSummary } from "./PaymentsGerenteAccountsSummary.client";
 import { PaymentsTable } from "./PaymentsTable";
+import { AppealAccountModal } from "./AppealAccountModal.client";
+import type { AppealStatus } from "@/lib/appeals/account-appeals.shared";
 import type { PaymentAccountAllocation } from "@/types/payment";
 
 interface PaymentsAssignmentPanelProps {
@@ -48,6 +50,26 @@ export function PaymentsAssignmentPanel({
     useState<PaymentAccountAllocation | null>(null);
   const [editAccount, setEditAccount] =
     useState<PaymentAccountAllocation | null>(null);
+  const [appealAccount, setAppealAccount] =
+    useState<PaymentAccountAllocation | null>(null);
+  const [appealStatus, setAppealStatus] = useState<Record<string, AppealStatus>>({});
+  const hasSuspended = accounts.some((a) => a.status === "disabled");
+
+  // Estado de apelación de las cuentas suspendidas (chip verde «en revisión»).
+  useEffect(() => {
+    if (!hasSuspended) return;
+    let alive = true;
+    void fetch("/api/appeals", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json: { appeals?: Array<{ advertiserId: string; status: AppealStatus }> }) => {
+        if (!alive || !json.appeals) return;
+        setAppealStatus(Object.fromEntries(json.appeals.map((a) => [a.advertiserId, a.status])));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [hasSuspended]);
   const [allocateToast, setAllocateToast] = useState<{
     amount: number;
     accountName: string;
@@ -216,7 +238,19 @@ export function PaymentsAssignmentPanel({
         clientSelfService={!agencyBmFunding}
         liveMetricsByAdvertiser={metricsByAdvertiser}
         liveMetricsLoading={loading}
+        appealStatusByAdvertiser={appealStatus}
+        onAppeal={setAppealAccount}
       />
+      {appealAccount ? (
+        <AppealAccountModal
+          key={appealAccount.id}
+          account={appealAccount}
+          onClose={() => setAppealAccount(null)}
+          onSubmitted={(advertiserId) =>
+            setAppealStatus((prev) => ({ ...prev, [advertiserId]: "pending" }))
+          }
+        />
+      ) : null}
       <AllocateBalanceModal
         account={selectedAccount}
         open={selectedAccount !== null}

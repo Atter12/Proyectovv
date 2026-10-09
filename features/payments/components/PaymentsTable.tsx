@@ -19,6 +19,7 @@ import { PaymentsAccountBalanceCell } from "./PaymentsAccountBalanceCell.client"
 import type { AdAccountLiveMetricsClient } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import type { AdAccountStatus } from "@/types/ad-account";
 import type { PaymentAccountAllocation } from "@/types/payment";
+import { appealIsOpen, type AppealStatus } from "@/lib/appeals/account-appeals.shared";
 
 interface PaymentsTableProps {
   accounts: PaymentAccountAllocation[];
@@ -32,6 +33,9 @@ interface PaymentsTableProps {
   clientSelfService?: boolean;
   liveMetricsByAdvertiser?: Record<string, AdAccountLiveMetricsClient>;
   liveMetricsLoading?: boolean;
+  /** Última apelación por advertiser (cuentas suspendidas). */
+  appealStatusByAdvertiser?: Record<string, AppealStatus>;
+  onAppeal?: (account: PaymentAccountAllocation) => void;
 }
 
 interface AllocationResponse {
@@ -59,6 +63,16 @@ function hasTransferableBalance(
   return Number(account.balance) > 0;
 }
 
+const APPEAL_CHIP: Record<AppealStatus, string> = {
+  pending:
+    "rounded-full bg-[#ecfdf3] px-2 py-0.5 text-[10px] font-semibold text-[#067647] ring-1 ring-[#abefc6]",
+  sent: "rounded-full bg-[#ecfdf3] px-2 py-0.5 text-[10px] font-semibold text-[#067647] ring-1 ring-[#abefc6]",
+  approved:
+    "rounded-full bg-[#d1fadf] px-2 py-0.5 text-[10px] font-bold text-[#05603a] ring-1 ring-[#6ce9a6]",
+  rejected:
+    "rounded-full bg-[#fef3f2] px-2 py-0.5 text-[10px] font-semibold text-[#b42318] ring-1 ring-[#fecdca]",
+};
+
 function statusBadgeClass(status: string): string {
   if (status === "disabled") {
     return "rounded-md bg-[#fef2f2] px-1.5 py-0.5 text-[10px] font-semibold text-[#991b1b] ring-1 ring-[#fecaca]";
@@ -79,7 +93,10 @@ export function PaymentsTable({
   clientSelfService = false,
   liveMetricsByAdvertiser,
   liveMetricsLoading = false,
+  appealStatusByAdvertiser,
+  onAppeal,
 }: PaymentsTableProps) {
+  const tAppeal = useTranslations("appeals");
   const router = useRouter();
   const t = useTranslations("payments");
   const tAd = useTranslations("adAccounts");
@@ -175,6 +192,44 @@ export function PaymentsTable({
     if (onTransfer) onTransfer(account);
   }
 
+  function appealStatusOf(account: PaymentAccountAllocation): AppealStatus | null {
+    const adv = account.externalAccountId?.trim();
+    return adv ? (appealStatusByAdvertiser?.[adv] ?? null) : null;
+  }
+
+  function renderAppealChip(account: PaymentAccountAllocation) {
+    const status = appealStatusOf(account);
+    if (!status) return null;
+    return (
+      <span className={`inline-flex items-center gap-1 ${APPEAL_CHIP[status]}`}>
+        {status !== "rejected" ? (
+          <span aria-hidden className="size-1.5 rounded-full bg-current" />
+        ) : null}
+        {tAppeal(`chip.${status}`)}
+      </span>
+    );
+  }
+
+  function renderAppealAction(account: PaymentAccountAllocation, mobile: boolean) {
+    if (!onAppeal || account.status !== "disabled") return null;
+    const status = appealStatusOf(account);
+    if (appealIsOpen(status) || status === "approved") return null;
+    return (
+      <Button
+        className={
+          mobile
+            ? "h-11 w-full rounded-lg border border-[#1c1917] bg-[#1c1917] text-[13px] font-semibold text-white hover:bg-[#3a342e]"
+            : "font-semibold text-[#1c1917]"
+        }
+        variant={mobile ? undefined : "ghost"}
+        size={mobile ? undefined : "sm"}
+        onClick={() => onAppeal(account)}
+      >
+        {status === "rejected" ? tAppeal("appealAgain") : tAppeal("appealCta")}
+      </Button>
+    );
+  }
+
   function renderActions(account: PaymentAccountAllocation, mobile: boolean) {
     const reclaimable = isReclaimableSuspended(account);
     const advertiserId = account.externalAccountId?.trim();
@@ -185,6 +240,7 @@ export function PaymentsTable({
 
     return (
       <div className={mobile ? "mt-4 space-y-2" : "flex flex-col items-start gap-1"}>
+        {renderAppealAction(account, mobile)}
         {transferable && onTransfer ? (
           <Button
             className={
@@ -316,6 +372,7 @@ export function PaymentsTable({
                   <span className={statusBadgeClass(account.status)}>
                     {statusLabel(account.status)}
                   </span>
+                  {renderAppealChip(account)}
                   {!agencyBmFunding ? (
                     <span
                       className={
@@ -409,9 +466,12 @@ export function PaymentsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={statusBadgeClass(account.status)}>
-                      {statusLabel(account.status)}
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={statusBadgeClass(account.status)}>
+                        {statusLabel(account.status)}
+                      </span>
+                      {renderAppealChip(account)}
+                    </div>
                   </TableCell>
                   <TableCell>{renderBalanceCell(account)}</TableCell>
                   <TableCell className="w-[15rem] whitespace-normal align-top sm:whitespace-normal">

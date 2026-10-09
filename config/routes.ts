@@ -22,6 +22,7 @@ export const routes = {
   linksDeuda: "/links-deuda",
   alianzas: "/alianzas",
   monitoreo: "/monitoreo",
+  apelaciones: "/apelaciones",
   cobros: "/cobros",
   gastos: "/gastos",
   affiliates: "/affiliates",
