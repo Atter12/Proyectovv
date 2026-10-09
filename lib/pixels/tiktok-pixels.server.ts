@@ -582,27 +582,36 @@ export async function setupCodEventsForStoredPixel(input: {
     (n) => !ev.skipped.includes(n),
   );
 
+  // Los eventos son del píxel, no de la cuenta: se marcan todas sus filas
+  // (un píxel compartido tiene una fila por cuenta vinculada).
+  const now = new Date().toISOString();
+  const { error: siblingsErr } = await admin
+    .from("tiktok_pixels")
+    .update({ events_json: eventsJson, updated_at: now })
+    .eq("pixel_id", stored.pixelId)
+    .eq("hecom_cliente_id", input.hecomClienteId);
+  if (siblingsErr) throw new Error(siblingsErr.message);
+
   const { data: updated, error: upErr } = await admin
     .from("tiktok_pixels")
     .update({
-      events_json: eventsJson,
       metadata: {
         ...((data as { metadata?: Record<string, unknown> }).metadata ?? {}),
         events_setup: { applied: ev.applied, skipped: ev.skipped },
       },
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq("id", stored.id)
-    .select("*")
-    .single();
+    .select("*");
 
-  if (upErr || !updated) {
+  const own = (updated ?? []).find((row) => String(row.id) === stored.id);
+  if (upErr || !own) {
     throw new Error(upErr?.message ?? "No se pudo actualizar eventos.");
   }
 
   return {
     applied: ev.applied,
     skipped: ev.skipped,
-    pixel: mapStored(updated as Record<string, unknown>),
+    pixel: mapStored(own as Record<string, unknown>),
   };
 }

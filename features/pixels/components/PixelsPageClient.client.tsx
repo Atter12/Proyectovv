@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
-import { TIKTOK_BROWSER_TEST_EVENTS } from "@/lib/integrations/tiktok/pixel-events.shared";
 
 type AccountOpt = {
   id: string;
@@ -23,184 +21,130 @@ type PixelRow = {
   createdAt: string;
 };
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ttq?: any;
-    TiktokAnalyticsObject?: string;
-  }
-}
+/** Un píxel compartido se guarda una vez por cuenta vinculada: acá se ve uno solo. */
+type PixelGroup = {
+  key: string;
+  rowId: string;
+  name: string;
+  pixelCode: string;
+  advertiserIds: string[];
+  events: string[];
+};
 
-function loadTikTokPixelSdk(pixelCode: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") {
-      reject(new Error("BROWSER_ONLY"));
-      return;
-    }
-    const w = window as Window & {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ttq?: any;
-      TiktokAnalyticsObject?: string;
-    };
-    w.TiktokAnalyticsObject = "ttq";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ttq: any = w.ttq || [];
-    w.ttq = ttq;
-    if (!ttq.loaded) {
-      ttq.methods = [
-        "page",
-        "track",
-        "identify",
-        "instances",
-        "debug",
-        "on",
-        "off",
-        "once",
-        "ready",
-        "alias",
-        "group",
-        "enableCookie",
-        "disableCookie",
-      ];
-      ttq.setAndDefer = function (t: typeof ttq, e: string) {
-        t[e] = function (...args: unknown[]) {
-          t.push([e, ...args]);
-        };
-      };
-      for (const m of ttq.methods) ttq.setAndDefer(ttq, m);
-      ttq.instance = function (id: string) {
-        const e = ttq._i?.[id] || [];
-        for (const m of ttq.methods) ttq.setAndDefer(e, m);
-        return e;
-      };
-      ttq.load = function (id: string) {
-        const n = "https://analytics.tiktok.com/i18n/pixel/events.js";
-        ttq._i = ttq._i || {};
-        ttq._i[id] = [];
-        ttq._i[id]._u = n;
-        ttq._t = ttq._t || {};
-        ttq._t[id] = +new Date();
-        ttq._o = ttq._o || {};
-        ttq._o[id] = {};
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.async = true;
-        script.src = `${n}?sdkid=${id}&lib=ttq`;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("SDK_LOAD"));
-        const first = document.getElementsByTagName("script")[0];
-        first?.parentNode?.insertBefore(script, first);
-      };
-      ttq.loaded = true;
-    }
-    try {
-      w.ttq.load(pixelCode);
-      w.ttq.page?.();
-      setTimeout(() => resolve(), 800);
-    } catch (e) {
-      reject(e instanceof Error ? e : new Error(String(e)));
-    }
-  });
-}
-
+/** Código base tal cual lo entrega TikTok en Events Manager. */
 function snippetFor(pixelCode: string) {
-  return `<!-- TikTok Pixel Code -->
+  return `<!-- TikTok Pixel Code Start -->
 <script>
 !function (w, d, t) {
-  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];
-  ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];
-  ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};
-  for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);
-  ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};
-  ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";
-  ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};
-  var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;
-  var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
+  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
   ttq.load('${pixelCode}');
   ttq.page();
 }(window, document, 'ttq');
 </script>
-<!-- End TikTok Pixel Code -->`;
+<!-- TikTok Pixel Code End -->`;
 }
 
 function eventNamesFromJson(eventsJson: unknown): string[] {
-  if (Array.isArray(eventsJson)) {
-    return eventsJson.map((x) => String(x)).filter(Boolean);
+  return Array.isArray(eventsJson)
+    ? eventsJson.map((x) => String(x)).filter(Boolean)
+    : [];
+}
+
+function groupPixels(rows: PixelRow[]): PixelGroup[] {
+  const map = new Map<string, PixelGroup>();
+  for (const p of rows) {
+    const code = p.pixelCode?.trim() || p.pixelId;
+    const key = p.pixelId || code;
+    const events = eventNamesFromJson(p.eventsJson);
+    const hit = map.get(key);
+    if (!hit) {
+      map.set(key, {
+        key,
+        rowId: p.id,
+        name: p.name,
+        pixelCode: code,
+        advertiserIds: [p.advertiserId],
+        events,
+      });
+      continue;
+    }
+    if (!hit.advertiserIds.includes(p.advertiserId)) {
+      hit.advertiserIds.push(p.advertiserId);
+    }
+    // Si alguna fila ya tiene eventos, el píxel los tiene (son del píxel).
+    if (events.length > hit.events.length) {
+      hit.events = events;
+      hit.rowId = p.id;
+    }
   }
-  return [];
+  return [...map.values()];
 }
 
-async function copyText(value: string, copiedMsg: string) {
-  await navigator.clipboard.writeText(value);
-  return copiedMsg;
-}
-
-export function PixelsPageClient({
-  clienteName,
+function CopyButton({
+  value,
+  label,
+  copiedLabel,
+  dark,
 }: {
-  clienteName: string;
+  value: string;
+  label: string;
+  copiedLabel: string;
+  dark?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        void navigator.clipboard.writeText(value).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1600);
+        })
+      }
+      className={
+        dark
+          ? "inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
+          : "inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-[#e7e0d8] bg-white px-3 text-[12px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb]"
+      }
+    >
+      {copied ? copiedLabel : label}
+    </button>
+  );
+}
+
+export function PixelsPageClient({ clienteName }: { clienteName: string }) {
   const t = useTranslations("pixels");
   const tCommon = useTranslations("common");
-  const { bcp47 } = useAppFormatter();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [activatingEvents, setActivatingEvents] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
-  const [pixels, setPixels] = useState<PixelRow[]>([]);
-  const [selectedAdvertiserIds, setSelectedAdvertiserIds] = useState<string[]>(
-    [],
-  );
+  const [rows, setRows] = useState<PixelRow[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [pixelName, setPixelName] = useState("");
-  const [selectedPixelId, setSelectedPixelId] = useState<string | null>(null);
-  const [testLog, setTestLog] = useState<string[]>([]);
-  const [sdkReady, setSdkReady] = useState(false);
-  const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
 
-  const selectedAccounts = useMemo(
-    () =>
-      accounts.filter((a) => selectedAdvertiserIds.includes(a.advertiserId)),
-    [accounts, selectedAdvertiserIds],
+  const pixels = useMemo(() => groupPixels(rows), [rows]);
+  const selected =
+    pixels.find((p) => p.key === selectedKey) ?? pixels[0] ?? null;
+  const accountName = useCallback(
+    (id: string) => accounts.find((a) => a.advertiserId === id)?.name ?? id,
+    [accounts],
   );
+  const creatorOpen = showCreate || (!loading && pixels.length === 0);
 
-  const allSelected =
-    accounts.length > 0 && selectedAdvertiserIds.length === accounts.length;
+  type LoadResult =
+    | { ok: true; pixels: PixelRow[]; accounts: AccountOpt[] }
+    | { ok: false; error: string };
 
-  const pixelsForAccount = useMemo(() => {
-    if (selectedAdvertiserIds.length === 0) return pixels;
-    const set = new Set(selectedAdvertiserIds);
-    return pixels.filter((p) => set.has(p.advertiserId));
-  }, [pixels, selectedAdvertiserIds]);
-
-  const selectedPixel = useMemo(() => {
-    if (selectedPixelId) {
-      const hit = pixelsForAccount.find((p) => p.id === selectedPixelId);
-      if (hit) return hit;
-    }
-    return pixelsForAccount[0] ?? null;
-  }, [pixelsForAccount, selectedPixelId]);
-
-  const pixelCode =
-    selectedPixel?.pixelCode?.trim() || selectedPixel?.pixelId || "";
-  const pixelIdDisplay = selectedPixel?.pixelId?.trim() || "";
-  const codEvents = eventNamesFromJson(selectedPixel?.eventsJson);
-  const hasCodEvents = codEvents.length > 0;
-  const hasPixels = pixelsForAccount.length > 0;
-
-  function mapSdkError(e: unknown): string {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg === "BROWSER_ONLY") return t("browserOnly");
-    if (msg === "SDK_LOAD") return t("sdkLoadError");
-    if (msg === "NO_PIXEL_CODE") return t("noPixelCode");
-    return msg || t("fireError");
-  }
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchPixels = useCallback(async (): Promise<LoadResult> => {
     try {
       const res = await fetch("/api/pixels", { cache: "no-store" });
       const json = (await res.json()) as {
@@ -209,66 +153,51 @@ export function PixelsPageClient({
         pixels?: PixelRow[];
         accounts?: AccountOpt[];
       };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || t("loadError"));
-      }
-      setPixels(json.pixels ?? []);
-      const nextAccounts = json.accounts ?? [];
-      setAccounts(nextAccounts);
-      setSelectedAdvertiserIds((prev) => {
-        const valid = prev.filter((id) =>
-          nextAccounts.some((a) => a.advertiserId === id),
-        );
-        if (valid.length > 0) return valid;
-        return nextAccounts[0] ? [nextAccounts[0].advertiserId] : [];
-      });
+      if (!res.ok || !json.ok) return { ok: false, error: json.error || t("loadError") };
+      return { ok: true, pixels: json.pixels ?? [], accounts: json.accounts ?? [] };
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("loadErrorShort"));
-    } finally {
-      setLoading(false);
+      return { ok: false, error: e instanceof Error ? e.message : t("loadError") };
     }
   }, [t]);
 
-  useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyLoad = useCallback((r: LoadResult) => {
+    setLoading(false);
+    if (!r.ok) {
+      setError(r.error);
+      return;
+    }
+    setRows(r.pixels);
+    setAccounts(r.accounts);
+    setPickedIds((prev) => {
+      const valid = prev.filter((id) => r.accounts.some((a) => a.advertiserId === id));
+      return valid.length ? valid : r.accounts.map((a) => a.advertiserId);
+    });
   }, []);
 
-  useEffect(() => {
-    setSdkReady(false);
-    setTestLog([]);
-    if (
-      selectedPixelId &&
-      !pixelsForAccount.some((p) => p.id === selectedPixelId)
-    ) {
-      setSelectedPixelId(pixelsForAccount[0]?.id ?? null);
-    } else if (!selectedPixelId && pixelsForAccount[0]) {
-      setSelectedPixelId(pixelsForAccount[0].id);
-    }
-  }, [selectedAdvertiserIds, pixelsForAccount, selectedPixelId]);
+  // `loading` arranca en true; al recargar se siguen mostrando los datos actuales.
+  const refresh = useCallback(
+    async () => applyLoad(await fetchPixels()),
+    [applyLoad, fetchPixels],
+  );
 
-  function toggleAdvertiser(id: string) {
-    setLastSyncCount(null);
-    setSdkReady(false);
-    setSelectedAdvertiserIds((prev) =>
+  useEffect(() => {
+    let alive = true;
+    void fetchPixels().then((r) => {
+      if (alive) applyLoad(r);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [fetchPixels, applyLoad]);
+
+  function togglePicked(id: string) {
+    setPickedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
-  function selectAllAdvertisers() {
-    setLastSyncCount(null);
-    setSdkReady(false);
-    setSelectedAdvertiserIds(accounts.map((a) => a.advertiserId));
-  }
-
-  function clearAdvertisers() {
-    setLastSyncCount(null);
-    setSdkReady(false);
-    setSelectedAdvertiserIds([]);
-  }
-
-  async function handleCreatePixelOnly() {
-    if (selectedAdvertiserIds.length === 0) {
+  async function handleCreate() {
+    if (pickedIds.length === 0) {
       setError(t("pickAccounts"));
       return;
     }
@@ -280,7 +209,7 @@ export function PixelsPageClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          advertiserIds: selectedAdvertiserIds,
+          advertiserIds: pickedIds,
           pixelName: pixelName.trim() || undefined,
           setupCodEvents: false,
         }),
@@ -288,104 +217,40 @@ export function PixelsPageClient({
       const json = (await res.json()) as {
         ok?: boolean;
         error?: string;
-        mode?: "single" | "shared";
         pixel?: PixelRow;
-        pixels?: PixelRow[];
-        createdCount?: number;
-        requestedCount?: number;
-        linkedAdvertiserIds?: string[];
         failures?: { advertiserId: string; error: string }[];
       };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || t("createError"));
-      }
-      const linked = json.linkedAdvertiserIds?.length ?? selectedAdvertiserIds.length;
-      const failN = json.failures?.length ?? 0;
-      const id = json.pixel?.pixelId ?? "";
-      const code = json.pixel?.pixelCode ?? "";
-      if (json.mode === "shared" || selectedAdvertiserIds.length > 1) {
-        setNotice(
-          failN > 0
-            ? t("createdSharedPartial", {
-                id,
-                linked,
-                failN,
-                codePart: code || "—",
-              })
-            : t("createdSharedOk", {
-                id,
-                linked,
-                codePart: code ? ` · Code: ${code}` : "",
-              }),
-        );
-      } else {
-        setNotice(t("createdSingle", { id }));
-      }
-      if (failN > 0 && json.failures?.[0]?.error) {
+      if (!res.ok || !json.ok) throw new Error(json.error || t("createError"));
+      if (json.failures?.length) {
         setError(
-          json.failures.map((f) => `${f.advertiserId}: ${f.error}`).join(" · "),
+          t("linkFailed", {
+            accounts: json.failures.map((f) => accountName(f.advertiserId)).join(", "),
+          }),
         );
       }
+      setNotice(t("created"));
       setPixelName("");
-      setLastSyncCount(null);
+      setShowCreate(false);
       await refresh();
-      if (json.pixel?.id) setSelectedPixelId(json.pixel.id);
-      else if (json.pixels?.[0]?.id) setSelectedPixelId(json.pixels[0].id);
+      if (json.pixel?.pixelId) setSelectedKey(json.pixel.pixelId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("createErrorShort"));
+      setError(e instanceof Error ? e.message : t("createError"));
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleActivateEvents() {
-    if (!selectedPixel) {
-      setError(t("pickPixel"));
+  async function handleImport() {
+    if (pickedIds.length === 0) {
+      setError(t("pickAccounts"));
       return;
     }
-    setActivatingEvents(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const res = await fetch("/api/pixels/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pixelRowId: selectedPixel.id }),
-      });
-      const json = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        applied?: number;
-        skipped?: string[];
-      };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || t("eventsActivateError"));
-      }
-      const skippedPart = json.skipped?.length
-        ? t("eventsSkipped", { skipped: json.skipped.join(", ") })
-        : "";
-      setNotice(
-        t("eventsActivated", {
-          applied: json.applied ?? 0,
-          skippedPart,
-        }),
-      );
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("eventsErrorShort"));
-    } finally {
-      setActivatingEvents(false);
-    }
-  }
-
-  async function handleSync() {
-    if (selectedAdvertiserIds.length === 0) return;
     setSyncing(true);
     setError(null);
     setNotice(null);
     try {
-      let totalRemote = 0;
-      for (const advertiserId of selectedAdvertiserIds) {
+      let found = 0;
+      for (const advertiserId of pickedIds) {
         const res = await fetch(
           `/api/pixels?syncAdvertiser=${encodeURIComponent(advertiserId)}`,
           { cache: "no-store" },
@@ -395,96 +260,85 @@ export function PixelsPageClient({
           error?: string;
           remoteCount?: number;
         };
-        if (!res.ok || !json.ok) {
-          throw new Error(json.error || t("syncError"));
-        }
-        totalRemote += json.remoteCount ?? 0;
+        if (!res.ok || !json.ok) throw new Error(json.error || t("syncError"));
+        found += json.remoteCount ?? 0;
       }
-      setLastSyncCount(totalRemote);
       await refresh();
-      const nAcc = selectedAdvertiserIds.length;
-      if (totalRemote === 0) {
-        setNotice(nAcc > 1 ? t("syncEmptyMany") : t("syncEmptyOne"));
+      if (found === 0) {
+        setNotice(t("importNone"));
       } else {
-        setNotice(
-          t("syncFound", { total: totalRemote, accounts: nAcc }),
-        );
+        setNotice(t("importFound", { count: found }));
+        setShowCreate(false);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("syncErrorShort"));
+      setError(e instanceof Error ? e.message : t("syncError"));
     } finally {
       setSyncing(false);
     }
   }
 
-  async function ensureSdk() {
-    if (!pixelCode) throw new Error("NO_PIXEL_CODE");
-    await loadTikTokPixelSdk(pixelCode);
-    setSdkReady(true);
-  }
-
-  async function fireEvent(eventName: string) {
+  async function handleActivate() {
+    if (!selected) return;
+    setActivating(true);
     setError(null);
+    setNotice(null);
     try {
-      if (!sdkReady) await ensureSdk();
-      window.ttq?.track(eventName, {
-        content_type: "product",
-        content_id: "holistic-test",
-        value: 1,
-        currency: "USD",
+      const res = await fetch("/api/pixels/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pixelRowId: selected.rowId }),
       });
-      setTestLog((prev) =>
-        [
-          `${new Date().toLocaleTimeString(bcp47)} · ${eventName}`,
-          ...prev,
-        ].slice(0, 20),
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        skipped?: string[];
+      };
+      if (!res.ok || !json.ok) throw new Error(json.error || t("eventsError"));
+      setNotice(
+        json.skipped?.length
+          ? t("eventsDonePartial", { skipped: json.skipped.join(", ") })
+          : t("eventsDone"),
       );
+      await refresh();
     } catch (e) {
-      setError(mapSdkError(e));
+      setError(e instanceof Error ? e.message : t("eventsError"));
+    } finally {
+      setActivating(false);
     }
   }
 
+  const emailHref = selected
+    ? `mailto:?subject=${encodeURIComponent(t("emailSubject"))}&body=${encodeURIComponent(
+        `${t("emailIntro")}\n\nPixel ID: ${selected.pixelCode}\n\n${snippetFor(selected.pixelCode)}`,
+      )}`
+    : "";
+
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <header className="rounded-2xl border border-[#ece7e0] bg-white px-5 py-6 sm:px-7">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
-          {t("module")}
-        </p>
-        <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
-          {clienteName || t("title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-          {t("subtitleBefore")}{" "}
-          <span className="font-semibold text-[#1c1917]">
-            {t("subtitleCreate")}
-          </span>{" "}
-          {t("subtitleMid")}{" "}
-          <span className="font-semibold text-[#1c1917]">
-            {t("subtitleEvents")}
-          </span>{" "}
-          {t("subtitleAfter")}
-        </p>
-        <ol className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {[
-            { n: "1", label: t("stepAccount") },
-            { n: "2", label: t("stepCreate") },
-            { n: "3", label: t("stepConnect") },
-            { n: "4", label: t("stepEvents") },
-            { n: "5", label: t("stepTest") },
-          ].map((step) => (
-            <li
-              key={step.n}
-              className="flex items-center gap-2.5 rounded-xl border border-[#f0ebe4] bg-[#faf8f5] px-3 py-2.5"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1c1917] text-[11px] font-bold text-white">
-                {step.n}
-              </span>
-              <span className="text-[12px] font-semibold text-[#1c1917]">
-                {step.label}
-              </span>
-            </li>
-          ))}
-        </ol>
+    <div className="mx-auto max-w-4xl space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
+            {t("module")}
+          </p>
+          <h1 className="mt-1 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
+            {clienteName || t("title")}
+          </h1>
+          <p className="mt-1 text-[13px] leading-5 text-[#5c564e]">
+            {t("subtitle")}
+          </p>
+        </div>
+        {pixels.length > 0 && !showCreate ? (
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreate(true);
+              setNotice(null);
+            }}
+            className="inline-flex h-10 items-center rounded-xl border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:border-[#cfc6bb]"
+          >
+            {t("newPixel")}
+          </button>
+        ) : null}
       </header>
 
       {error ? (
@@ -504,454 +358,241 @@ export function PixelsPageClient({
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              {t("step1Badge")}
-            </p>
-            <h2 className="mt-0.5 text-[15px] font-bold text-[#1c1917]">
-              {t("step1Title")}
-            </h2>
-            <p className="mt-1 text-[12px] text-[#5c564e]">
-              {t("step1Hint")}
-            </p>
-          </div>
-          {accounts.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={selectAllAdvertisers}
-                disabled={loading || allSelected}
-                className="min-h-10 rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 py-1.5 text-[11px] font-semibold text-[#1c1917] disabled:opacity-40 sm:min-h-0 sm:px-2.5"
-              >
-                {t("selectAll")}
-              </button>
-              <button
-                type="button"
-                onClick={clearAdvertisers}
-                disabled={loading || selectedAdvertiserIds.length === 0}
-                className="min-h-10 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#5c564e] disabled:opacity-40 sm:min-h-0 sm:px-2.5"
-              >
-                {t("clear")}
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        {accounts.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-3 py-4 text-[13px] text-[#8a8177]">
-            {t("noAccounts")}
-          </p>
-        ) : (
-          <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto rounded-xl border border-[#ece7e0] bg-[#faf8f5] p-2">
-            {accounts.map((a) => {
-              const checked = selectedAdvertiserIds.includes(a.advertiserId);
-              return (
-                <li key={a.advertiserId}>
-                  <label
-                    className={`flex cursor-pointer items-start gap-2.5 rounded-lg px-2.5 py-2 transition ${
-                      checked ? "bg-white shadow-sm ring-1 ring-[#ff781f]/35" : "hover:bg-white/70"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 accent-[#ff781f]"
-                      checked={checked}
-                      onChange={() => toggleAdvertiser(a.advertiserId)}
-                      disabled={loading}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold text-[#1c1917]">
-                        {a.name}
-                      </span>
-                      <span className="block truncate font-mono text-[11px] text-[#8a8177]">
-                        {a.advertiserId}
-                      </span>
-                    </span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <p className="mt-2 text-[12px] font-medium text-[#5c564e]">
-          {selectedAdvertiserIds.length === 0
-            ? t("noneSelected")
-            : selectedAdvertiserIds.length === 1
-              ? t("selectedCountOne", {
-                  selected: selectedAdvertiserIds.length,
-                  total: accounts.length,
-                })
-              : t("selectedCount", {
-                  selected: selectedAdvertiserIds.length,
-                  total: accounts.length,
-                })}
+      {loading && pixels.length === 0 ? (
+        <p className="rounded-2xl border border-[#ece7e0] bg-white px-5 py-8 text-center text-[13px] text-[#8a8177]">
+          {tCommon("loading")}
         </p>
+      ) : null}
 
-        {selectedAccounts.length === 1 ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-[#faf8f5] px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                {t("advertiserIdLabel")}
-              </p>
-              <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
-                {selectedAccounts[0]!.advertiserId}
+      {creatorOpen && !loading ? (
+        <section className="rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[1.1rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+                {pixels.length === 0 ? t("createFirstTitle") : t("createTitle")}
+              </h2>
+              <p className="mt-1 text-[13px] leading-5 text-[#5c564e]">
+                {t("createBody")}
               </p>
             </div>
-            <button
-              type="button"
-              className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1c1917] sm:min-h-0 sm:px-2.5"
-              onClick={() =>
-                void copyText(
-                  selectedAccounts[0]!.advertiserId,
-                  t("copied", { label: t("advertiserIdLabel") }),
-                ).then(setNotice)
-              }
-            >
-              {t("copyId")}
-            </button>
+            {pixels.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="text-[12px] font-semibold text-[#8a8177] hover:text-[#1c1917]"
+              >
+                {tCommon("cancel")}
+              </button>
+            ) : null}
           </div>
-        ) : null}
-      </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-            {t("btn1")}
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            {t("createPixel")}
-          </h2>
-          <p className="mt-2 text-[12.5px] leading-5 text-[#5c564e]">
-            {t("createHint")}
-          </p>
-          <label className="mt-4 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-            {t("nameOptional")}
-            <input
-              className="mt-1.5 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none transition focus:border-[#cfc6bb] focus:bg-white focus:ring-2 focus:ring-[#1c1917]/8"
-              value={pixelName}
-              onChange={(e) => setPixelName(e.target.value)}
-              placeholder={`${clienteName} · Pixel`}
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void handleCreatePixelOnly()}
-            disabled={creating || selectedAdvertiserIds.length === 0}
-            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
-          >
-            {creating
-              ? t("creatingLinking")
-              : selectedAdvertiserIds.length > 1
-                ? t("createLinkMany", {
-                    count: selectedAdvertiserIds.length,
-                  })
-                : t("createAction")}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSync()}
-            disabled={
-              selectedAdvertiserIds.length === 0 || loading || syncing
-            }
-            className="mt-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-4 text-[12px] font-semibold text-[#1c1917] transition hover:bg-white disabled:opacity-50"
-          >
-            {syncing ? t("querying") : t("importExisting")}
-          </button>
-          {lastSyncCount === 0 ? (
-            <p className="mt-2 text-[12px] text-[#8a8177]">
-              {t("noRemotePixels")}
-            </p>
-          ) : null}
-        </article>
-
-        <article className="flex flex-col rounded-2xl border border-[#ece7e0] bg-white p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0f766e]">
-            {t("btn2")}
-          </p>
-          <h2 className="mt-1 text-[1.05rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-            {t("activateEventsTitle")}
-          </h2>
-          <p className="mt-2 flex-1 text-[12.5px] leading-5 text-[#5c564e]">
-            {t("activateEventsBody")}
-          </p>
-          {!selectedPixel ? (
-            <p className="mt-4 text-[12px] font-medium text-[#8a8177]">
-              {t("pickOrCreateFirst")}
-            </p>
-          ) : hasCodEvents ? (
-            <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-900">
-              {t("eventsAlreadyOn", { count: codEvents.length })}
+          {accounts.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-5 text-[13px] text-[#8a8177]">
+              {t("noAccounts")}
             </p>
           ) : (
-            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-950">
-              {t("eventsNotOn")}
-            </p>
+            <>
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                {t("accountsLabel")}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {accounts.map((a) => {
+                  const on = pickedIds.includes(a.advertiserId);
+                  return (
+                    <button
+                      key={a.advertiserId}
+                      type="button"
+                      onClick={() => togglePicked(a.advertiserId)}
+                      aria-pressed={on}
+                      className={`max-w-full truncate rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition ${
+                        on
+                          ? "border-[#ff781f] bg-[#fff4ec] text-[#1c1917]"
+                          : "border-[#e7e0d8] bg-white text-[#8a8177] hover:border-[#cfc6bb]"
+                      }`}
+                    >
+                      {on ? "✓ " : ""}
+                      {a.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label className="mt-5 block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                {t("nameOptional")}
+                <input
+                  className="mt-1.5 w-full rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3.5 py-2.5 text-[13px] font-medium normal-case tracking-normal text-[#1c1917] outline-none transition focus:border-[#cfc6bb] focus:bg-white focus:ring-2 focus:ring-[#1c1917]/8"
+                  value={pixelName}
+                  onChange={(e) => setPixelName(e.target.value)}
+                  placeholder={`${clienteName} · Pixel`}
+                />
+              </label>
+
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleCreate()}
+                  disabled={creating || syncing || pickedIds.length === 0}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-50"
+                >
+                  {creating ? t("creating") : t("createAction")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleImport()}
+                  disabled={creating || syncing || pickedIds.length === 0}
+                  className="text-[13px] font-semibold text-[#c2410c] underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  {syncing ? t("importing") : t("importExisting")}
+                </button>
+              </div>
+            </>
           )}
-          <button
-            type="button"
-            onClick={() => void handleActivateEvents()}
-            disabled={!selectedPixel || activatingEvents}
-            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e] disabled:opacity-50"
-          >
-            {activatingEvents
-              ? t("activatingEvents")
-              : hasCodEvents
-                ? t("reapplyEvents")
-                : t("activateEventsCta")}
-          </button>
-        </article>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="rounded-2xl border border-[#ece7e0] bg-white p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              {t("yourPixels")}
-            </p>
-            <h2 className="mt-0.5 text-[1.05rem] font-bold text-[#1c1917]">
-              {selectedAdvertiserIds.length > 0
-                ? selectedAdvertiserIds.length === 1
-                  ? t("pixelsOnThisAccount", {
-                      count: pixelsForAccount.length,
-                    })
-                  : t("pixelsOnAccounts", {
-                      count: pixelsForAccount.length,
-                      accounts: selectedAdvertiserIds.length,
-                    })
-                : t("pixelsTotal", { count: pixels.length })}
-            </h2>
-          </div>
-          <a
-            href="https://ads.tiktok.com/i18n/events_manager"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline"
-          >
-            {t("openEventsManager")}
-          </a>
+      {pixels.length > 1 ? (
+        <div className="flex flex-wrap gap-2" role="tablist">
+          {pixels.map((p) => {
+            const active = selected?.key === p.key;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setSelectedKey(p.key)}
+                className={`flex max-w-full items-center gap-2 rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition ${
+                  active
+                    ? "border-[#1c1917] bg-[#1c1917] text-white"
+                    : "border-[#e7e0d8] bg-white text-[#1c1917] hover:border-[#cfc6bb]"
+                }`}
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    p.events.length ? "bg-emerald-500" : "bg-amber-400"
+                  }`}
+                />
+                <span className="truncate">{p.name}</span>
+              </button>
+            );
+          })}
         </div>
+      ) : null}
 
-        {loading ? (
-          <p className="mt-4 text-[13px] text-[#8a8177]">{tCommon("loading")}</p>
-        ) : !hasPixels ? (
-          <div className="mt-4 rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
-            <p className="text-[14px] font-semibold text-[#1c1917]">
-              {t("noPixels")}
+      {selected ? (
+        <section className="rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-[1.25rem] font-bold tracking-[-0.025em] text-[#1c1917]">
+                {selected.name}
+              </h2>
+              <p className="mt-1 text-[13px] leading-5 text-[#5c564e]">
+                {t("installBody")}
+              </p>
+            </div>
+            <a
+              href={emailHref}
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e]"
+            >
+              <span aria-hidden>✉</span>
+              {t("emailInstructions")}
+            </a>
+          </div>
+
+          <div className="mt-5 rounded-xl bg-[#f6f4f1] px-4 py-4 sm:px-5">
+            <p className="text-[13.5px] font-bold text-[#1c1917]">
+              {t("gettingStarted")}
             </p>
-            <p className="mx-auto mt-1 max-w-sm text-[12.5px] leading-5 text-[#5c564e]">
-              {t("emptyHint")}
+            <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+              {t("gettingStartedBody")}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p className="min-w-0 break-all text-[14px] font-bold text-[#1c1917]">
+                Pixel ID:{" "}
+                <span className="font-mono tracking-wide">{selected.pixelCode}</span>
+              </p>
+              <CopyButton
+                value={selected.pixelCode}
+                label={t("copy")}
+                copiedLabel={t("copied")}
+              />
+            </div>
+            <p className="mt-2 text-[11.5px] text-[#8a8177]">
+              {t("linkedTo", {
+                accounts: selected.advertiserIds.map(accountName).join(" · "),
+              })}
             </p>
           </div>
-        ) : (
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-            {pixelsForAccount.map((p) => {
-              const active = selectedPixel?.id === p.id;
-              const code = p.pixelCode || p.pixelId;
-              const eventsOn = eventNamesFromJson(p.eventsJson).length > 0;
-              return (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedPixelId(p.id);
-                      setSdkReady(false);
-                      setTestLog([]);
-                    }}
-                    className={`w-full rounded-xl border px-3.5 py-3 text-left transition ${
-                      active
-                        ? "border-[#1c1917] bg-[#faf8f5]"
-                        : "border-[#ece7e0] bg-white hover:border-[#d6cec4]"
+
+          <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-bold text-[#1c1917]">
+                  {t("step1Title")}
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+                  {t("step1Body")}
+                </p>
+              </div>
+              <CopyButton
+                value={snippetFor(selected.pixelCode)}
+                label={t("copyCode")}
+                copiedLabel={t("copied")}
+                dark
+              />
+            </div>
+            <pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-[#f6f4f1] p-4 font-mono text-[11.5px] leading-5 text-[#5c564e]">
+              {snippetFor(selected.pixelCode)}
+            </pre>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-[#1c1917]">
+                  {t("step2Title")}
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      selected.events.length
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "bg-amber-100 text-amber-950"
                     }`}
                   >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold text-[#1c1917]">
-                        {p.name}
-                      </span>
-                      <span
-                        className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                          eventsOn
-                            ? "bg-emerald-100 text-emerald-900"
-                            : "bg-amber-100 text-amber-950"
-                        }`}
-                      >
-                        {eventsOn ? t("eventsOn") : t("eventsOff")}
-                      </span>
-                    </span>
-                    <span className="mt-1 block truncate font-mono text-[11px] text-[#6b645c]">
-                      ID {p.pixelId}
-                    </span>
-                    {p.pixelCode && p.pixelCode !== p.pixelId ? (
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-[#8a8177]">
-                        Code {code}
-                      </span>
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {selectedPixel ? (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="min-w-0 rounded-2xl border border-[#ece7e0] bg-white p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              {t("step3Subtitle")}
-            </p>
-            <h2 className="mt-1 text-[1.05rem] font-bold text-[#1c1917]">
-              {t("step3Title")}
-            </h2>
-            <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              {t("step3Body")}
-            </p>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                    {t("pixelIdLabel")}
-                  </p>
-                  <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
-                    {pixelIdDisplay}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
-                  onClick={() =>
-                    void copyText(
-                      pixelIdDisplay,
-                      t("copied", { label: t("pixelIdLabel") }),
-                    ).then(setNotice)
-                  }
-                >
-                  {t("copyCode")}
-                </button>
+                    {selected.events.length ? t("eventsOn") : t("eventsOff")}
+                  </span>
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+                  {t("step2Body")}
+                </p>
               </div>
-              {selectedPixel.pixelCode &&
-              selectedPixel.pixelCode !== selectedPixel.pixelId ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                      {t("pixelCodeLabel")}
-                    </p>
-                    <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
-                      {selectedPixel.pixelCode}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
-                    onClick={() =>
-                      void copyText(
-                        selectedPixel.pixelCode!,
-                        t("copied", { label: t("pixelCodeLabel") }),
-                      ).then(setNotice)
-                    }
-                  >
-                    {t("copyCode")}
-                  </button>
-                </div>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                    {t("advertiserIdLabel")}
-                  </p>
-                  <p className="truncate font-mono text-[12px] font-semibold text-[#1c1917]">
-                    {selectedPixel.advertiserId}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="min-h-10 shrink-0 rounded-lg border border-[#e7e0d8] bg-white px-3 py-1.5 text-[11px] font-semibold sm:min-h-0 sm:px-2.5"
-                  onClick={() =>
-                    void copyText(
-                      selectedPixel.advertiserId,
-                      t("copied", { label: t("advertiserIdLabel") }),
-                    ).then(setNotice)
-                  }
-                >
-                  {t("copyCode")}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => void handleActivate()}
+                disabled={activating}
+                className={`inline-flex h-10 shrink-0 items-center justify-center rounded-lg px-4 text-[13px] font-semibold transition disabled:opacity-50 ${
+                  selected.events.length
+                    ? "border border-[#e7e0d8] bg-white text-[#1c1917] hover:border-[#cfc6bb]"
+                    : "bg-[#ff781f] text-white hover:bg-[#f06a12]"
+                }`}
+              >
+                {activating
+                  ? t("activating")
+                  : selected.events.length
+                    ? t("reactivate")
+                    : t("activate")}
+              </button>
             </div>
-
-            {hasCodEvents ? (
+            {selected.events.length ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {codEvents.map((ev) => (
+                {selected.events.map((ev) => (
                   <span
                     key={ev}
-                    className="rounded-md bg-[#f3efe9] px-2 py-0.5 text-[10px] font-semibold text-[#5c564e]"
+                    className="rounded-md bg-[#f3efe9] px-2 py-0.5 text-[11px] font-semibold text-[#5c564e]"
                   >
                     {ev}
                   </span>
                 ))}
               </div>
-            ) : (
-              <p className="mt-3 text-[12px] text-amber-800">
-                {t("eventsPending")}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={() =>
-                void copyText(
-                  snippetFor(pixelCode),
-                  t("copied", { label: "Snippet" }),
-                ).then(setNotice)
-              }
-              className="mt-3 inline-flex h-10 items-center rounded-lg bg-[#1c1917] sm:h-9 px-3 text-[12px] font-semibold text-white transition hover:bg-[#3a342e]"
-            >
-              {t("copySnippet")}
-            </button>
-            <pre className="mt-3 max-h-40 max-w-full overflow-auto rounded-xl border border-[#2a2520] bg-[#1c1917] p-3 text-[10px] leading-4 text-[#f5f0ea]">
-              {snippetFor(pixelCode)}
-            </pre>
-          </div>
-
-          <div className="min-w-0 rounded-2xl border border-[#ece7e0] bg-white p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-              {t("step5")}
-            </p>
-            <h2 className="mt-1 text-[1.05rem] font-bold text-[#1c1917]">
-              {t("testEvents")}
-            </h2>
-            <p className="mt-1 text-[12px] leading-5 text-[#5c564e]">
-              {t("testStepBody")}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  void ensureSdk().catch((e) => setError(mapSdkError(e)))
-                }
-                className="inline-flex h-10 items-center rounded-lg bg-[#ff781f] sm:h-9 px-3 text-[12px] font-semibold text-white transition hover:bg-[#f06a12]"
-              >
-                {sdkReady ? t("sdkReady") : t("loadSdk")}
-              </button>
-              {TIKTOK_BROWSER_TEST_EVENTS.slice(0, 8).map((ev) => (
-                <button
-                  key={ev}
-                  type="button"
-                  onClick={() => void fireEvent(ev)}
-                  className="inline-flex h-10 items-center rounded-lg border border-[#e7e0d8] bg-[#faf8f5] px-3 text-[11px] sm:h-9 font-semibold text-[#1c1917] transition hover:border-[#cfc6bb] hover:bg-white"
-                >
-                  {ev}
-                </button>
-              ))}
-            </div>
-            {testLog.length > 0 ? (
-              <ul className="mt-3 space-y-1 border-t border-[#f0ebe4] pt-3 font-mono text-[11px] text-[#6b645c]">
-                {testLog.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
             ) : null}
           </div>
         </section>
