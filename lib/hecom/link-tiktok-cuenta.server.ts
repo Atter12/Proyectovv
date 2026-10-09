@@ -1,5 +1,6 @@
 import "server-only";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
+import { DEFAULT_DEPOSIT_FEE_PERCENT, normalizeFeePercent } from "@/lib/payments/deposit-fee";
 import { resolveTikTokSelfServeUncountedAdvertisers } from "@/lib/integrations/tiktok/bc-create-profiles";
 
 export type LinkTikTokCuentaInput = {
@@ -77,12 +78,23 @@ export async function linkTikTokCuentaToHecomCliente(
   }
 
   const hecom = createHecomAdminClient();
-  // `fee` es el % de comisión Hecom (5–10), no el tier del BM. Sin valor se deja
-  // null para que resolveFeePercentFromHecomCliente caiga al fee del cliente.
-  const fee =
+  // `fee` es el % de comisión Hecom (5–10), no el tier del BM. Sin valor se copia
+  // el fee del cliente (o 10 %): vacío, la sync de Hecom cobra 10 % igual y soporte
+  // lo ve en blanco (pedido de Annie, 09/10/2026).
+  let fee =
     input.fee != null && Number.isFinite(Number(input.fee))
       ? Number(input.fee)
       : null;
+  if (fee == null) {
+    const { data: cliente } = await hecom
+      .from("clientes")
+      .select("tiktok_default_fee")
+      .eq("id", clientId)
+      .maybeSingle();
+    fee =
+      normalizeFeePercent(cliente?.tiktok_default_fee ?? null) ??
+      DEFAULT_DEPOSIT_FEE_PERCENT;
+  }
 
   const { data: existing } = await hecom
     .from("cliente_tiktok_cuentas")

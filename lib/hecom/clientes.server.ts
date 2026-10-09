@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { DEFAULT_DEPOSIT_FEE_PERCENT } from "@/lib/payments/deposit-fee";
 import {
   getRegisterCountry,
   isValidDoc,
@@ -532,6 +533,8 @@ export async function createHecomCliente(input: {
       phones: [phoneNormalized],
       notes: "Alta desde Ads Holistic · registro OTP",
       tiktok_sync_enabled: false,
+      // Sin fee, Hecom cobra 10 % igual pero la ficha queda en blanco.
+      tiktok_default_fee: DEFAULT_DEPOSIT_FEE_PERCENT,
     };
 
     const { data, error } = await hecom
