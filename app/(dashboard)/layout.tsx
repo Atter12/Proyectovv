@@ -1,18 +1,17 @@
 import { redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { DashboardLayoutChrome } from "@/components/layout/DashboardLayoutChrome.client";
+import { SidebarClienteWalletBoundary } from "@/components/layout/SidebarClienteWallet";
 import { registrationNextPath } from "@/features/contracts/lib/registration-contract.server";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardSpanishLock } from "@/components/layout/DashboardSpanishLock.client";
 import { requireSession } from "@/lib/auth/guards.server";
-import { getHecomClienteShell } from "@/lib/hecom/cliente-dashboard.server";
 import {
   getActingAsCliente,
   getSelectedHecomCliente,
 } from "@/lib/hecom/selected-cliente.server";
 import { isOtpTestClienteId } from "@/lib/hecom/clientes.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
-import { getWalletLedgerBalance } from "@/lib/ledger/ledger.server";
 import { warmHolisticBcAdvertisers } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import { canSwitchTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 import { getTesterDashboardMode } from "@/lib/auth/tester-dashboard-mode.server";
@@ -26,11 +25,19 @@ export default async function DashboardLayout({
 }>) {
   const started = Date.now();
   const session = await requireSession();
-  const funding = await resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
+
+  // No bloquea: el listado de BM se usa después en Cuentas ads y Pagos.
+  warmHolisticBcAdvertisers({
+    organizationId: session.organizationId ?? undefined,
   });
-  const testerMode = await getTesterDashboardMode(session.email);
+
+  const [funding, testerMode] = await Promise.all([
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+    getTesterDashboardMode(session.email),
+  ]);
   const canSwitchMode = canSwitchTesterDashboardMode(session.email);
 
   const persona: DashboardPersona = funding.isSuperAdmin
@@ -45,8 +52,10 @@ export default async function DashboardLayout({
     if (next === "/pago") redirect(routes.membershipCheckout);
   }
 
-  let selected = await getSelectedHecomCliente(session.id);
-  let actingAsCliente = await getActingAsCliente(session.id);
+  let [selected, actingAsCliente] = await Promise.all([
+    getSelectedHecomCliente(session.id),
+    getActingAsCliente(session.id),
+  ]);
 
   if (
     selected &&
@@ -64,61 +73,33 @@ export default async function DashboardLayout({
   const chromePersona: DashboardPersona =
     actingAsCliente && selected ? "cliente" : persona;
 
-  // Precalienta cache TikTok BC en background (Cuentas ads / Pagos más rápidos).
-  warmHolisticBcAdvertisers({
-    organizationId: session.organizationId ?? undefined,
-  });
-
-  let selectedCliente: {
-    id: string;
-    name: string;
-    saldoEstimado?: number | null;
-    walletBalanceCents?: number | null;
-    walletCurrency?: string;
-    avatarUrl: string | null;
-  } | null = null;
-
-  if (selected) {
-    try {
-      const shell = await getHecomClienteShell(selected.id, {
-        // Sidebar: solo nombre/avatar. Saldo Hecom pesa en cada navegación.
-        includeSaldo: false,
-      });
-
-      // Cartera Holistic del cliente seleccionado (no la org del staff al “ver como”).
-      const { resolveOrganizationIdForHecomCliente } = await import(
-        "@/lib/hecom/resolve-cliente-organization.server"
-      );
-      const clienteOrgId =
-        (await resolveOrganizationIdForHecomCliente(selected.id)) ??
-        session.organizationId;
-      const wallet = clienteOrgId
-        ? await getWalletLedgerBalance(clienteOrgId)
-        : null;
-
-      selectedCliente = {
-        id: shell?.id ?? selected.id,
-        name: shell?.name ?? selected.name,
-        walletBalanceCents: wallet?.availableBalanceCents ?? 0,
-        walletCurrency: wallet?.currency ?? "USD",
-        avatarUrl: shell?.avatarUrl ?? null,
-      };
-    } catch {
-      selectedCliente = {
+  // Nombre de la cookie para el topbar. Avatar y saldo van en la tarjeta, sin bloquear la página.
+  const selectedCliente = selected
+    ? {
         id: selected.id,
         name: selected.name,
-        walletBalanceCents: 0,
-        walletCurrency: "USD",
-        avatarUrl: null,
-      };
-    }
-  }
+        avatarUrl: null as string | null,
+      }
+    : null;
+  const sessionOrganizationId = session.organizationId || null;
+  const viewingAsCliente = actingAsCliente && Boolean(selected);
 
-  // «Alianzas» para el cliente: solo si firmó su contrato de alianza (lo marca Hecom al firmar).
-  const showAlliances =
+  // «Alianzas» solo si el chrome es de cliente y firmó el contrato (lo marca Hecom).
+  const showAlliances = Boolean(
     chromePersona === "cliente" && selected
-      ? Boolean(await getSignedPartnerForCliente(selected.id).catch(() => null))
-      : false;
+      ? await getSignedPartnerForCliente(selected.id).catch(() => null)
+      : false,
+  );
+
+  const mobileWalletCard = selected ? (
+    <SidebarClienteWalletBoundary
+      clienteId={selected.id}
+      fallbackName={selected.name}
+      sessionOrganizationId={sessionOrganizationId}
+      persona={chromePersona}
+      actingAsCliente={viewingAsCliente}
+    />
+  ) : null;
 
   const user = {
     id: session.id,
@@ -145,10 +126,11 @@ export default async function DashboardLayout({
             className="h-full w-full"
             selectedCliente={selectedCliente}
             persona={chromePersona}
-            actingAsCliente={actingAsCliente && Boolean(selected)}
+            actingAsCliente={viewingAsCliente}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
             showAlliances={showAlliances}
+            sessionOrganizationId={sessionOrganizationId}
           />
         </aside>
 
@@ -157,10 +139,11 @@ export default async function DashboardLayout({
             user={user}
             selectedCliente={selectedCliente}
             persona={chromePersona}
-            actingAsCliente={actingAsCliente && Boolean(selected)}
+            actingAsCliente={viewingAsCliente}
             canSwitchMode={canSwitchMode}
             testerMode={testerMode ?? "cliente"}
             showAlliances={showAlliances}
+            walletCard={mobileWalletCard}
           >
             {children}
           </DashboardLayoutChrome>

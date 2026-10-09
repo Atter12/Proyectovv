@@ -25,6 +25,7 @@ interface DashboardMobileSidebarProps {
   testerMode?: TesterDashboardMode;
   /** Cliente con contrato de alianza firmado: ve «Alianzas». */
   showAlliances?: boolean;
+  walletCard?: React.ReactNode;
 }
 
 export function DashboardMobileSidebar({
@@ -36,6 +37,7 @@ export function DashboardMobileSidebar({
   canSwitchMode = false,
   testerMode = "cliente",
   showAlliances = false,
+  walletCard = null,
 }: DashboardMobileSidebarProps) {
   const t = useTranslations("nav");
 
@@ -59,12 +61,23 @@ export function DashboardMobileSidebar({
           </Link>
         </div>
 
-        <SidebarWalletCard
-          onNavigate={onNavigate}
-          selectedCliente={selectedCliente}
-          persona={persona}
-          actingAsCliente={actingAsCliente}
-        />
+        {selectedCliente && walletCard ? (
+          <div
+            onClick={(event) => {
+              const target = event.target;
+              if (target instanceof Element && target.closest("a")) onNavigate();
+            }}
+          >
+            {walletCard}
+          </div>
+        ) : (
+          <SidebarWalletCard
+            onNavigate={onNavigate}
+            selectedCliente={selectedCliente}
+            persona={persona}
+            actingAsCliente={actingAsCliente}
+          />
+        )}
         {canSwitchMode ? <TesterModeSwitch mode={testerMode} /> : null}
       </div>
 

@@ -7,6 +7,10 @@ import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import { cn } from "@/lib/cn";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import type { DashboardPersona } from "@/types/dashboard-persona";
+import {
+  showsHolisticSidebarBalance,
+  sidebarBalanceIsUnknown,
+} from "./sidebar-wallet-balance";
 
 export type SidebarSelectedCliente = {
   id: string;
@@ -37,10 +41,13 @@ export function SidebarWalletCard({
   const t = useTranslations("wallet");
   const { formatMoney } = useAppFormatter();
   const canPickClients = persona !== "cliente" || actingAsCliente;
-  // Cliente y staff: mostrar cartera Holistic (no el estimado Hecom con “…”).
-  const showClientWallet =
-    persona === "cliente" ||
-    selectedCliente?.walletBalanceCents != null;
+  const showClientWallet = showsHolisticSidebarBalance({
+    hasCliente: Boolean(selectedCliente),
+    persona,
+    actingAsCliente,
+    walletBalanceCents: selectedCliente?.walletBalanceCents,
+    saldoEstimado: selectedCliente?.saldoEstimado,
+  });
 
   if (!selectedCliente) {
     if (!canPickClients) {
@@ -113,7 +120,7 @@ export function SidebarWalletCard({
             {t("balance")}
           </p>
           <p className="mt-1 text-[1.35rem] font-bold tracking-[-0.03em] tabular-nums text-[var(--auth-text)]">
-            {selectedCliente.walletBalanceCents == null
+            {sidebarBalanceIsUnknown(selectedCliente.walletBalanceCents)
               ? "…"
               : formatMoney(
                   selectedCliente.walletBalanceCents / 100,
@@ -153,6 +160,90 @@ export function SidebarWalletCard({
           className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
         >
           {showClientWallet ? t("payments") : t("recharge")}
+        </Link>
+        {canPickClients ? (
+          <Link
+            href={routes.clientes}
+            prefetch
+            onClick={onNavigate}
+            className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--auth-control-border)] bg-white text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)]"
+          >
+            {t("change")}
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Misma tarjeta, con el monto en blanco hasta que llegue la cartera del cliente. */
+export function SidebarWalletCardSkeleton({
+  name,
+  onNavigate,
+  className,
+  persona = "cliente",
+  actingAsCliente = false,
+}: {
+  name: string;
+  onNavigate?: () => void;
+  className?: string;
+  persona?: DashboardPersona;
+  actingAsCliente?: boolean;
+}) {
+  const t = useTranslations("wallet");
+  const canPickClients = persona !== "cliente" || actingAsCliente;
+
+  return (
+    <div
+      className={cn("dashboard-rail-glass mt-5 p-4", className)}
+      aria-busy="true"
+    >
+      <div className="flex items-center gap-3">
+        <HecomClienteAvatar
+          name={name}
+          size="sidebar"
+          className="ring-2 ring-white"
+        />
+        <div className="min-w-0">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
+            {actingAsCliente
+              ? t("viewingAs")
+              : canPickClients
+                ? t("operating")
+                : t("yourAccount")}
+          </p>
+          <p className="mt-1 truncate text-[14px] font-bold leading-snug tracking-[-0.02em] text-[var(--auth-text)]">
+            {name}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 border-t border-[var(--auth-divider)] pt-4">
+        <p className="text-[11px] font-medium text-[var(--auth-text-muted)]">
+          {t("balance")}
+        </p>
+        <div
+          className="mt-2 h-7 w-28 animate-pulse rounded-md bg-[var(--auth-divider)]"
+          aria-hidden
+        />
+        <p className="mt-1.5 text-[11px] leading-snug text-[var(--auth-text-muted)]">
+          {t("availableHint")}
+        </p>
+      </div>
+
+      <div
+        className={cn(
+          "mt-4 grid gap-2",
+          canPickClients ? "grid-cols-2" : "grid-cols-1",
+        )}
+      >
+        <Link
+          href={routes.payments}
+          prefetch
+          onClick={onNavigate}
+          className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--auth-accent)] text-[12px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+        >
+          {t("payments")}
         </Link>
         {canPickClients ? (
           <Link

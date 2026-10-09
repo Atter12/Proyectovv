@@ -9,6 +9,7 @@ import {
 } from "@/lib/hecom/gasto-label";
 import { formatBmBucketLabel } from "@/lib/hecom/bm-bucket.shared";
 import {
+  getHecomCampaignSpendRows,
   type HecomClienteDashboard,
   type HecomGastoRow,
 } from "@/lib/hecom/cliente-dashboard.server";
@@ -56,9 +57,12 @@ function shortDayLabel(dateYmd: string) {
 export async function ClienteScopedOverview({
   data,
   canChangeCliente = false,
+  accountSpend,
 }: {
   data: HecomClienteDashboard;
   canChangeCliente?: boolean;
+  /** Gasto por cuenta. Si viene de fuera, el overview no espera las filas de campaña. */
+  accountSpend?: ReactNode;
 }) {
   const t = await getTranslations("overview");
   const { formatMoney } = await getAppFormatter();
@@ -160,12 +164,14 @@ export async function ClienteScopedOverview({
         </div>
       </section>
 
-      <AccountSpendPanel
-        rows={data.campaignSpendRows}
-        accounts={accounts}
-        anchorDate={summary.dailyAnchorDate}
-        moneyUsd={moneyUsd}
-      />
+      {accountSpend ?? (
+        <AccountSpendPanel
+          rows={data.campaignSpendRows}
+          accounts={accounts}
+          anchorDate={summary.dailyAnchorDate}
+          moneyUsd={moneyUsd}
+        />
+      )}
 
       <DailySpendPanel
         series={summary.dailySeries}
@@ -360,6 +366,58 @@ async function DailySpendPanel({
         </>
       )}
     </Panel>
+  );
+}
+
+export function OverviewAccountSpendFallback() {
+  return (
+    <section
+      className={`${CARD} animate-pulse px-4 py-4 sm:px-5`}
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="h-4 w-40 rounded-full bg-[#f3eee8]" />
+      <div className="mt-1.5 h-3 w-64 max-w-full rounded-full bg-[#f7f2ec]" />
+      <div className="mt-4 space-y-3 pb-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="h-12 rounded-xl bg-[#faf8f5]" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Mismas filas que el overview completo, sin bloquear los KPIs. */
+export async function OverviewAccountSpend({
+  clienteId,
+  accounts,
+  gastos,
+  anchorDate,
+}: {
+  clienteId: string;
+  accounts: HecomClienteDashboard["accounts"];
+  gastos: HecomClienteDashboard["gastos"];
+  anchorDate: string;
+}) {
+  const { formatMoney } = await getAppFormatter();
+  const moneyUsd = (value: number) => formatMoney(value, "USD");
+  let rows: HecomClienteDashboard["campaignSpendRows"] = [];
+  try {
+    rows = await getHecomCampaignSpendRows({ clienteId, accounts, gastos });
+  } catch (error) {
+    console.error("[overview] campaign spend failed", {
+      clienteId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+
+  return (
+    <AccountSpendPanel
+      rows={rows}
+      accounts={accounts}
+      anchorDate={anchorDate}
+      moneyUsd={moneyUsd}
+    />
   );
 }
 

@@ -8,6 +8,11 @@ import type { ChatMessage } from "@/features/support/types/support.types";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import { ChatConversation } from "@/features/support/components/ChatConversation";
 import { useSupportThreadPolling } from "@/features/support/hooks/useSupportPolling";
+import {
+  SUPPORT_BACKGROUND_POLL_MS,
+  planBackgroundStaffNotice,
+  shouldPollSupportBackground,
+} from "@/features/support/lib/background-poll";
 import { supportChatTimestampsNow } from "@/lib/support/chat-time";
 import { playSupportNotifySound } from "@/lib/support/notify-sound.client";
 import { useRechargeBot } from "@/features/support/hooks/useRechargeBot";
@@ -173,11 +178,24 @@ export function SupportChatWidget({
     void loadConversation({ force: !conversationLoaded });
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps -- open trigger
 
-  // Cerrado: avisar si el gerente respondió.
+  // Cerrado: avisar si el gerente respondió. El hilo abierto tiene su propio poll.
   useEffect(() => {
+    if (isOpen) return;
+
     let cancelled = false;
+    let inFlight = false;
+
     async function pollBackground() {
-      if (isOpen) return;
+      if (
+        !shouldPollSupportBackground({
+          cancelled,
+          inFlight,
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        return;
+      }
+      inFlight = true;
       try {
         const ticketsData = await apiClient<TicketsResponse>(
           "/api/support/tickets",
@@ -192,36 +210,45 @@ export function SupportChatWidget({
         const messagesData = await apiClient<MessagesResponse>(
           `/api/support/tickets/${activeTicket.id}/messages`,
         );
-        const msgs = messagesData.messages ?? [];
-        const lastStaff = [...msgs]
-          .reverse()
-          .find((m) => m.role === "bot" && m.id !== "support-greeting");
-        if (!lastStaff) return;
-
-        if (!backgroundSeededRef.current) {
+        const notice = planBackgroundStaffNotice({
+          messages: messagesData.messages ?? [],
+          seeded: backgroundSeededRef.current,
+          lastSeenStaffMessageId: lastSeenStaffMsgIdRef.current,
+          fallbackPreview: t("floatNewMessage"),
+        });
+        if (notice.action === "ignore") return;
+        if (notice.action === "seed") {
           backgroundSeededRef.current = true;
-          lastSeenStaffMsgIdRef.current = lastStaff.id;
+          lastSeenStaffMsgIdRef.current = notice.messageId;
           return;
         }
-
-        if (lastStaff.id !== lastSeenStaffMsgIdRef.current) {
-          lastSeenStaffMsgIdRef.current = lastStaff.id;
-          setUnreadFromStaff((n) => n + 1);
-          setPreviewText(
-            (lastStaff.text || t("floatNewMessage")).slice(0, 80),
-          );
-          playSupportNotifySound();
-        }
+        backgroundSeededRef.current = true;
+        lastSeenStaffMsgIdRef.current = notice.messageId;
+        setUnreadFromStaff((n) => n + 1);
+        setPreviewText(notice.preview);
+        playSupportNotifySound();
       } catch {
         // ignore
+      } finally {
+        inFlight = false;
       }
     }
 
     void pollBackground();
-    const id = window.setInterval(() => void pollBackground(), 5000);
+    const id = window.setInterval(
+      () => void pollBackground(),
+      SUPPORT_BACKGROUND_POLL_MS,
+    );
+
+    function onVisible() {
+      if (document.visibilityState === "visible") void pollBackground();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [isOpen, t, ticketId]);
 

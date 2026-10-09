@@ -1,6 +1,12 @@
+import { Suspense } from "react";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
-import { ClienteScopedOverview } from "@/features/clientes/components/ClienteScopedOverview";
+import {
+  ClienteScopedOverview,
+  OverviewAccountSpend,
+  OverviewAccountSpendFallback,
+} from "@/features/clientes/components/ClienteScopedOverview";
 import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpty";
+import { overviewFirstPaintDashboard } from "@/features/clientes/lib/overview-dashboard-query";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import {
   getActingAsCliente,
@@ -49,9 +55,7 @@ export default async function OverviewPage() {
 
   let data: Awaited<ReturnType<typeof getHecomClienteDashboard>> = null;
   try {
-    data = await getHecomClienteDashboard(selected.id, {
-      includeCampaignSpend: true,
-    });
+    data = await getHecomClienteDashboard(selected.id, overviewFirstPaintDashboard);
   } catch (error) {
     console.error("[overview] dashboard failed", {
       clienteId: selected.id,
@@ -75,6 +79,16 @@ export default async function OverviewPage() {
       <ClienteScopedOverview
         data={data}
         canChangeCliente={canChangeCliente}
+        accountSpend={
+          <Suspense fallback={<OverviewAccountSpendFallback />}>
+            <OverviewAccountSpend
+              clienteId={selected.id}
+              accounts={data.accounts}
+              gastos={data.gastos}
+              anchorDate={data.summary.dailyAnchorDate}
+            />
+          </Suspense>
+        }
       />
     </div>
   );

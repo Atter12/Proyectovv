@@ -806,6 +806,25 @@ function scopeGastosToAdvertisers(
   });
 }
 
+/**
+ * Filas de gasto por cuenta/campaña del overview.
+ * Misma función que el dashboard completo; no vuelve a armar KPIs ni creativos.
+ */
+export async function getHecomCampaignSpendRows(input: {
+  clienteId: string;
+  accounts: HecomTiktokAccount[];
+  gastos: HecomGastoRow[];
+}): Promise<HecomCampaignSpendRow[]> {
+  if (isOtpTestClienteId(input.clienteId)) return [];
+  const cfg = getHecomSupabaseConfig();
+  return loadCampaignSpendRows(
+    input.clienteId,
+    input.accounts,
+    input.gastos,
+    cfg.configured,
+  );
+}
+
 export const getHecomClienteDashboard = cache(
   async (
     clienteId: string,

@@ -10,6 +10,7 @@ import {
   SidebarWalletCard,
   type SidebarSelectedCliente,
 } from "./SidebarWalletCard.client";
+import { SidebarClienteWalletBoundary } from "./SidebarClienteWallet";
 import type { DashboardPersona } from "@/types/dashboard-persona";
 import type { TesterDashboardMode } from "@/lib/auth/tester-dashboard-mode";
 
@@ -22,6 +23,8 @@ interface DashboardSidebarProps {
   testerMode?: TesterDashboardMode;
   /** Cliente con contrato de alianza firmado: ve «Alianzas». */
   showAlliances?: boolean;
+  /** Respaldo si el cliente no tiene organización propia. */
+  sessionOrganizationId?: string | null;
 }
 
 export async function DashboardSidebar({
@@ -32,6 +35,7 @@ export async function DashboardSidebar({
   canSwitchMode = false,
   testerMode = "cliente",
   showAlliances = false,
+  sessionOrganizationId = null,
 }: DashboardSidebarProps) {
   const t = await getTranslations("nav");
 
@@ -52,11 +56,21 @@ export async function DashboardSidebar({
           </Link>
         </div>
 
-        <SidebarWalletCard
-          selectedCliente={selectedCliente}
-          persona={persona}
-          actingAsCliente={actingAsCliente}
-        />
+        {selectedCliente ? (
+          <SidebarClienteWalletBoundary
+            clienteId={selectedCliente.id}
+            fallbackName={selectedCliente.name}
+            sessionOrganizationId={sessionOrganizationId}
+            persona={persona}
+            actingAsCliente={actingAsCliente}
+          />
+        ) : (
+          <SidebarWalletCard
+            selectedCliente={null}
+            persona={persona}
+            actingAsCliente={actingAsCliente}
+          />
+        )}
         {canSwitchMode ? <TesterModeSwitch mode={testerMode} /> : null}
       </div>
 

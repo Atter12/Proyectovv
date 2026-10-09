@@ -32,6 +32,8 @@ interface DashboardLayoutChromeProps {
   testerMode?: TesterDashboardMode;
   /** Cliente con contrato de alianza firmado: ve «Alianzas». */
   showAlliances?: boolean;
+  /** Tarjeta de cartera ya envuelta en Suspense. El menú móvil la muestra al abrir. */
+  walletCard?: React.ReactNode;
 }
 
 export function DashboardLayoutChrome({
@@ -43,6 +45,7 @@ export function DashboardLayoutChrome({
   canSwitchMode = false,
   testerMode = "cliente",
   showAlliances = false,
+  walletCard = null,
 }: DashboardLayoutChromeProps) {
   const t = useTranslations("nav");
   const pathname = usePathname();
@@ -102,6 +105,7 @@ export function DashboardLayoutChrome({
               canSwitchMode={canSwitchMode}
               testerMode={testerMode}
               showAlliances={showAlliances}
+              walletCard={walletCard}
             />
           </div>
         </div>

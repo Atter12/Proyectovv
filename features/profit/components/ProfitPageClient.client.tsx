@@ -1,16 +1,64 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
-import { ProfitAdvisorBot } from "@/features/profit/components/ProfitAdvisorBot.client";
-import { ProductPerformancePanel } from "@/features/profit/components/ProductPerformancePanel.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import type { ClienteScore } from "@/lib/realprofit/client-score";
+
+const ProfitAdvisorBot = dynamic(
+  () =>
+    import("@/features/profit/components/ProfitAdvisorBot.client").then(
+      (m) => m.ProfitAdvisorBot,
+    ),
+  { ssr: false, loading: () => <ProfitAdvisorBotFallback /> },
+);
+
+const ProductPerformancePanel = dynamic(
+  () =>
+    import("@/features/profit/components/ProductPerformancePanel.client").then(
+      (m) => m.ProductPerformancePanel,
+    ),
+  // Vacío si no hay productos: un esqueleto aparecería y se iría.
+  { ssr: false, loading: () => null },
+);
+
+function ProfitAdvisorBotFallback() {
+  const t = useTranslations("profit");
+  return (
+    <section
+      id="profit-advisor"
+      aria-busy="true"
+      aria-label={t("advisorTitle")}
+      className="overflow-hidden rounded-[1.4rem] border border-[#eadfd5] bg-[#fffdfb]"
+    >
+      <header className="flex items-center gap-4 border-b border-[#eee3da] px-6 py-5">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#1c1917]">
+          <span className="text-[11px] font-black tracking-tight text-[#ff8a45]">
+            AI
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#cf5a20]">
+            {t("advisorEyebrow")}
+          </p>
+          <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.025em] text-[#1c1917]">
+            {t("advisorTitle")}
+          </h2>
+        </div>
+      </header>
+      <div className="min-h-[220px] animate-pulse bg-[#fffaf6]" />
+      <div className="border-t border-[#eee3da] px-5 py-4 sm:px-6">
+        <div className="h-12 rounded-2xl bg-[#fffaf6]" />
+      </div>
+    </section>
+  );
+}
 
 function limaTodayYmd(): string {
   return new Intl.DateTimeFormat("en-CA", {
