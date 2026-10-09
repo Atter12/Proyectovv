@@ -1754,7 +1754,19 @@
     "eventsError": "Não foi possível ativar os eventos.",
     "loadError": "Não foi possível carregar os pixels.",
     "createError": "Não foi possível criar o pixel.",
-    "syncError": "Não foi possível consultar o TikTok."
+    "syncError": "Não foi possível consultar o TikTok.",
+    "optional": "Opcional",
+    "tokenTitle": "3. Access token (Events API)",
+    "tokenBody": "Só se sua plataforma ou programador pedir. Com o pixel e os eventos ativos já funciona.",
+    "tokenGenerate": "Gerar access token",
+    "tokenRegenerate": "Gerar novo token",
+    "tokenGenerating": "Gerando…",
+    "tokenSaveNow": "Copie e guarde este token. Por segurança não vamos mostrá-lo de novo.",
+    "tokenActive": "Token ativo {hint} · criado em {date} · {events} eventos enviados.",
+    "tokenEndpoint": "Endereço para enviar eventos",
+    "tokenEndpointHint": "Funciona igual ao Events API do TikTok (mesmo formato e cabeçalho Access-Token); só muda o endereço.",
+    "tokenReplaceConfirm": "Um novo token será criado e o anterior deixará de funcionar. Continuar?",
+    "tokenError": "Não foi possível gerar o token."
   },
   "affiliates": {
     "module": "Afiliados",

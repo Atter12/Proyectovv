@@ -9,6 +9,7 @@ import {
 } from "@/lib/pixels/tiktok-pixels.server";
 import { TikTokPixelApiError } from "@/lib/integrations/tiktok/pixel.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
+import { listActivePixelTokens } from "@/lib/pixels/pixel-tokens.server";
 
 export const runtime = "nodejs";
 
@@ -44,17 +45,19 @@ export async function GET(request: Request) {
       });
     }
 
-    const [pixels, overview] = await Promise.all([
+    const [pixels, overview, tokens] = await Promise.all([
       listStoredPixelsForCliente({
         organizationId: session.organizationId,
         hecomClienteId: selected.id,
       }),
       getHecomClienteAdAccountsOverview(selected.id, "fast"),
+      listActivePixelTokens(selected.id),
     ]);
 
     return NextResponse.json({
       ok: true,
       pixels,
+      tokens,
       accounts: overview.accounts
         .filter(
           (a) =>

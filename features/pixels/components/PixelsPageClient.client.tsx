@@ -21,6 +21,18 @@ type PixelRow = {
   createdAt: string;
 };
 
+type TokenInfo = {
+  pixelCode: string;
+  hint: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  eventsSent: number;
+};
+
+/** Mismo camino que el Events API de TikTok; solo cambia el dominio. */
+const EVENTS_ENDPOINT =
+  "https://www.adsholistic.com/api/tiktok/open_api/v1.3/event/track";
+
 /** Un píxel compartido se guarda una vez por cuenta vinculada: acá se ve uno solo. */
 type PixelGroup = {
   key: string;
@@ -126,6 +138,9 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [rows, setRows] = useState<PixelRow[]>([]);
+  const [tokens, setTokens] = useState<TokenInfo[]>([]);
+  const [newToken, setNewToken] = useState<{ pixelCode: string; token: string } | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [pickedIds, setPickedIds] = useState<string[]>([]);
@@ -141,7 +156,7 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
   const creatorOpen = showCreate || (!loading && pixels.length === 0);
 
   type LoadResult =
-    | { ok: true; pixels: PixelRow[]; accounts: AccountOpt[] }
+    | { ok: true; pixels: PixelRow[]; accounts: AccountOpt[]; tokens: TokenInfo[] }
     | { ok: false; error: string };
 
   const fetchPixels = useCallback(async (): Promise<LoadResult> => {
@@ -152,9 +167,15 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
         error?: string;
         pixels?: PixelRow[];
         accounts?: AccountOpt[];
+        tokens?: TokenInfo[];
       };
       if (!res.ok || !json.ok) return { ok: false, error: json.error || t("loadError") };
-      return { ok: true, pixels: json.pixels ?? [], accounts: json.accounts ?? [] };
+      return {
+        ok: true,
+        pixels: json.pixels ?? [],
+        accounts: json.accounts ?? [],
+        tokens: json.tokens ?? [],
+      };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : t("loadError") };
     }
@@ -168,6 +189,7 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
     }
     setRows(r.pixels);
     setAccounts(r.accounts);
+    setTokens(r.tokens);
     setPickedIds((prev) => {
       const valid = prev.filter((id) => r.accounts.some((a) => a.advertiserId === id));
       return valid.length ? valid : r.accounts.map((a) => a.advertiserId);
@@ -306,6 +328,44 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
       setActivating(false);
     }
   }
+
+  async function handleGenerateToken() {
+    if (!selected) return;
+    const current = tokens.find((x) => x.pixelCode === selected.pixelCode);
+    if (current && !window.confirm(t("tokenReplaceConfirm"))) return;
+    setGenerating(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/pixels/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pixelRowId: selected.rowId }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        token?: string;
+        info?: TokenInfo;
+      };
+      if (!res.ok || !json.ok || !json.token || !json.info) {
+        throw new Error(json.error || t("tokenError"));
+      }
+      const info = json.info;
+      setNewToken({ pixelCode: info.pixelCode, token: json.token });
+      setTokens((prev) => [...prev.filter((x) => x.pixelCode !== info.pixelCode), info]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("tokenError"));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const activeToken = selected
+    ? tokens.find((x) => x.pixelCode === selected.pixelCode) ?? null
+    : null;
+  const shownToken =
+    selected && newToken?.pixelCode === selected.pixelCode ? newToken.token : null;
 
   const emailHref = selected
     ? `mailto:?subject=${encodeURIComponent(t("emailSubject"))}&body=${encodeURIComponent(
@@ -592,6 +652,73 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
                     {ev}
                   </span>
                 ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-[#1c1917]">
+                  {t("tokenTitle")}
+                  <span className="rounded-md bg-[#f3efe9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5c564e]">
+                    {t("optional")}
+                  </span>
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+                  {t("tokenBody")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleGenerateToken()}
+                disabled={generating}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e] disabled:opacity-50"
+              >
+                {generating
+                  ? t("tokenGenerating")
+                  : activeToken
+                    ? t("tokenRegenerate")
+                    : t("tokenGenerate")}
+              </button>
+            </div>
+
+            {shownToken ? (
+              <div className="mt-4 rounded-lg bg-[#f6f4f1] p-4">
+                <p className="text-[13px] font-bold text-[#1c1917]">
+                  {t("tokenSaveNow")}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <code className="min-w-0 flex-1 break-all rounded-lg bg-white px-3 py-2.5 font-mono text-[12.5px] text-[#5c564e]">
+                    {shownToken}
+                  </code>
+                  <CopyButton value={shownToken} label={t("copy")} copiedLabel={t("copied")} />
+                </div>
+              </div>
+            ) : activeToken ? (
+              <p className="mt-3 text-[12px] text-[#5c564e]">
+                {t("tokenActive", {
+                  hint: activeToken.hint,
+                  date: new Date(activeToken.createdAt).toLocaleDateString(),
+                  events: activeToken.eventsSent,
+                })}
+              </p>
+            ) : null}
+
+            {shownToken || activeToken ? (
+              <div className="mt-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                  {t("tokenEndpoint")}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <code className="min-w-0 flex-1 break-all rounded-lg bg-[#f6f4f1] px-3 py-2.5 font-mono text-[12px] text-[#5c564e]">
+                    {EVENTS_ENDPOINT}
+                  </code>
+                  <CopyButton value={EVENTS_ENDPOINT} label={t("copy")} copiedLabel={t("copied")} />
+                </div>
+                <p className="mt-2 text-[11.5px] leading-5 text-[#8a8177]">
+                  {t("tokenEndpointHint")}
+                </p>
               </div>
             ) : null}
           </div>

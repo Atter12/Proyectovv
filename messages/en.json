@@ -1754,7 +1754,19 @@
     "eventsError": "Could not activate events.",
     "loadError": "Could not load pixels.",
     "createError": "Could not create the pixel.",
-    "syncError": "Could not reach TikTok."
+    "syncError": "Could not reach TikTok.",
+    "optional": "Optional",
+    "tokenTitle": "3. Access token (Events API)",
+    "tokenBody": "Only if your platform or developer asks for it. The pixel with active events already works.",
+    "tokenGenerate": "Generate access token",
+    "tokenRegenerate": "Generate new token",
+    "tokenGenerating": "Generating…",
+    "tokenSaveNow": "Copy and save this token. For security we won't show it again.",
+    "tokenActive": "Active token {hint} · created {date} · {events} events sent.",
+    "tokenEndpoint": "Endpoint to send events",
+    "tokenEndpointHint": "Works like TikTok's Events API (same format and Access-Token header); only the address changes.",
+    "tokenReplaceConfirm": "A new token will be created and the previous one will stop working. Continue?",
+    "tokenError": "Could not generate the token."
   },
   "affiliates": {
     "module": "Affiliates",
