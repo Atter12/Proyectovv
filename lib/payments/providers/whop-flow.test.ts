@@ -175,6 +175,24 @@ test("parseWhopWebhookPayload mapea payment.succeeded y failed", () => {
   assert.equal(succeeded.amountCents, 11300);
   assert.equal(succeeded.currency, "USD");
 
+  // Cobro en USD con usd_total redondeado por Whop (Jheferson, 09/10/2026): vale total.
+  const roundedUsd = parseWhopWebhookPayload(
+    JSON.stringify({
+      id: "msg_round",
+      type: "payment.succeeded",
+      data: {
+        id: "pay_round",
+        total: 113,
+        usd_total: 112.95,
+        currency: "usd",
+        metadata: { payment_intent_id: INTENT },
+      },
+    }),
+  );
+  assert.ok(roundedUsd);
+  assert.equal(roundedUsd.amountCents, 11300);
+  assert.equal(roundedUsd.currency, "USD");
+
   // Cliente que pagó en soles: usd_total sigue en USD y se compara en USD.
   const paidInPen = parseWhopWebhookPayload(
     JSON.stringify({

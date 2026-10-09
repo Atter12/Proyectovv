@@ -112,16 +112,17 @@ export function parseWhopWebhookPayload(payload: string): VerifiedWebhookEvent |
       metadataString(metadata, "payment_intent_id") ??
       metadataString(metadata, "paymentIntentId");
 
-    // usd_total siempre viene en USD (el intent de Whop es USD). Si el
-    // cliente pagó en otra moneda, `currency` dice esa moneda y no debe
-    // compararse contra el monto en USD.
+    // Cobro en USD: vale `total`, lo que se cobró. `usd_total` es la conversión
+    // de Whop y puede venir redondeada (Jheferson 09/10/2026: total 113,
+    // usd_total 112.95 → se rechazó un pago completo). `usd_total` solo se usa
+    // si el cliente pagó en otra moneda.
+    const paidCurrency = data?.currency?.toUpperCase();
+    const paidCents = dollarsToCents(data?.total) ?? dollarsToCents(data?.subtotal);
     const usdCents = dollarsToCents(data?.usd_total);
-    const amountCents =
-      usdCents ??
-      dollarsToCents(data?.total) ??
-      dollarsToCents(data?.subtotal);
+    const inUsd = paidCurrency === "USD" || paidCurrency === undefined;
+    const amountCents = inUsd ? (paidCents ?? usdCents) : (usdCents ?? paidCents);
     const currency =
-      usdCents !== undefined ? "USD" : data?.currency?.toUpperCase();
+      inUsd ? paidCurrency : usdCents !== undefined ? "USD" : paidCurrency;
 
     return {
       eventId,
