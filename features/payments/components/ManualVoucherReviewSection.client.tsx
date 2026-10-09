@@ -64,13 +64,15 @@ function VoucherCard({
       ? 0
       : (intent.feePercent ?? 10);
   const fxRate = intent.fxRateUsdPen ?? 3.48;
-  const defaultAmount =
-    intent.detectedAmount != null && intent.detectedAmount > 0
-      ? intent.detectedAmount
-      : intent.amount;
+  // Si la IA no leyó el comprobante, el monto queda vacío: soporte escribe lo que ve.
+  // Antes se ponía el monto del pedido y se aprobó $1,100 con un voucher de $1,000 (Marcelo, 09/10/2026).
+  const aiReadAmount =
+    intent.detectedAmount != null && intent.detectedAmount > 0;
 
-  const [amountInput, setAmountInput] = useState(
-    () => String(Math.round(defaultAmount * 100) / 100),
+  const [amountInput, setAmountInput] = useState(() =>
+    aiReadAmount
+      ? String(Math.round(intent.detectedAmount! * 100) / 100)
+      : "",
   );
   const [periodoInput, setPeriodoInput] = useState(
     () => intent.periodoResumen ?? "",
@@ -284,6 +286,12 @@ function VoucherCard({
                 <label className="text-xs font-medium text-[var(--auth-muted)]">
                   {t("voucherReview.realAmount", { currency: chargeCurrency })}
                 </label>
+                {!aiReadAmount ? (
+                  <p className="mt-1 text-[11px] font-semibold text-[#b45309]">
+                    La IA no leyó este comprobante. Escribe el monto que ves en
+                    la imagen, no el del pedido.
+                  </p>
+                ) : null}
                 <div className="mt-1 flex items-center gap-2">
                   <input
                     type="number"
