@@ -55,6 +55,11 @@ export function HecomClienteAvatar({
           className="h-full w-full object-cover"
           loading="lazy"
           referrerPolicy="no-referrer"
+          // Si la foto falla antes de hidratar, onError ya no se dispara y se veía el
+          // nombre roto encima del círculo: se revisa al montar.
+          ref={(img) => {
+            if (img?.complete && img.naturalWidth === 0) setFailed(true);
+          }}
           onError={() => setFailed(true)}
         />
       ) : (

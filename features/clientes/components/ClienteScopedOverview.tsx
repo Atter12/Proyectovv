@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
+import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import {
   formatHecomFecha,
   formatHecomGastoDisplay,
@@ -84,14 +85,7 @@ export async function ClienteScopedOverview({
       {/* Cabecera: quién es y qué puede hacer */}
       <header className={`${CARD} flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5`}>
         <div className="flex min-w-0 items-center gap-3">
-          {cliente.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={cliente.avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-[#e8dfd4]" />
-          ) : (
-            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fbeee3] text-[14px] font-bold text-[#b85f2e]" aria-hidden>
-              {initials(cliente.name)}
-            </span>
-          )}
+          <HecomClienteAvatar name={cliente.name} avatarUrl={cliente.avatarUrl} size="md" />
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">{t("module")}</p>
             <h1 className={`truncate text-[1.35rem] font-semibold tracking-[-0.03em] ${INK}`}>{cliente.name}</h1>
