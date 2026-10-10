@@ -66,7 +66,7 @@ async function SidebarClienteWallet({
           id: shell?.id ?? clienteId,
           name: shell?.name ?? fallbackName,
           avatarUrl: shell?.avatarUrl ?? null,
-          walletBalanceCents: sidebarWalletCents(wallet ?? {}),
+          walletBalanceCents: sidebarWalletCents(wallet ?? { availableBalanceCents: null }),
           walletCurrency: wallet?.currency ?? "USD",
         }}
       />

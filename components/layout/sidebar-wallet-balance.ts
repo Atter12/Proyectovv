@@ -40,6 +40,6 @@ export function showsHolisticSidebarBalance(input: {
 /** null no es cero: la tarjeta muestra «…» para no inventar un saldo. */
 export function sidebarBalanceIsUnknown(
   walletBalanceCents: number | null | undefined,
-): boolean {
+): walletBalanceCents is null | undefined {
   return walletBalanceCents == null;
 }
