@@ -34,6 +34,8 @@ export type Partner = {
   bannerUrl: string | null;
   bannerMobileUrl: string | null;
   bannerLink: string | null;
+  /** Fee preferencial que pagan sus clientes (null = el fee normal de cada cliente). */
+  clientFeePercent: number | null;
 };
 
 export type PartnerTheme = "light" | "dark";

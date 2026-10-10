@@ -126,7 +126,13 @@ export function MiAlianza({ partner, panel }: Props) {
               {partner.commissionDays} días desde que se registra
             </>
           ) : null}
-          . Contrato firmado el {fecha(partner.contractSignedAt)}.
+          .
+          {partner.clientFeePercent != null ? (
+            <>
+              {" "}Tú y tus clientes pagan <strong>{partner.clientFeePercent}% de fee</strong> en cada recarga.
+            </>
+          ) : null}{" "}
+          Contrato firmado el {fecha(partner.contractSignedAt)}.
         </p>
       </header>
 

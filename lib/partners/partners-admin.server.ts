@@ -15,6 +15,7 @@ export type PartnerWithStats = {
   whatsapp: string | null;
   commissionRate: number;
   commissionDays: number;
+  clientFeePercent: number | null;
   status: "active" | "paused";
   notes: string | null;
   createdAt: string;
@@ -65,6 +66,7 @@ export async function listPartnersWithStats(): Promise<PartnerWithStats[]> {
       whatsapp: p.whatsapp,
       commissionRate: Number(p.commission_rate),
       commissionDays: p.commission_days,
+      clientFeePercent: p.client_fee_percent == null ? null : Number(p.client_fee_percent),
       status: p.status,
       notes: p.notes,
       createdAt: p.created_at,

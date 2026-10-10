@@ -26,6 +26,7 @@ const EMPTY: PartnerInput = {
   whatsapp: "",
   commissionPercent: 20,
   commissionDays: 50,
+  clientFeePercent: null,
   notes: "",
 };
 
@@ -42,6 +43,7 @@ function toInput(p: PartnerWithStats): PartnerInput {
     whatsapp: p.whatsapp ?? "",
     commissionPercent: Math.round(p.commissionRate * 10000) / 100,
     commissionDays: p.commissionDays,
+    clientFeePercent: p.clientFeePercent,
     notes: p.notes ?? "",
   };
 }
@@ -176,6 +178,18 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
                 <input type="number" min={1} max={3650} className={inputCls} value={form.commissionDays} onChange={(e) => update("commissionDays", Number(e.target.value))} />
               </Field>
             </div>
+            <Field label="Fee de sus clientes (%) · opcional" wide>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                step={0.5}
+                className={inputCls}
+                value={form.clientFeePercent ?? ""}
+                placeholder="Vacío = cada cliente con su fee normal"
+                onChange={(e) => update("clientFeePercent", e.target.value === "" ? null : Number(e.target.value))}
+              />
+            </Field>
             <Field label="Notas internas" wide>
               <input className={inputCls} value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Acuerdo, contacto, forma de pago…" />
             </Field>
@@ -216,7 +230,10 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
                     </p>
                     <p className="mt-0.5 break-all text-[12px] text-[#8a8177]">{url}</p>
                     <p className="mt-0.5 text-[12px] text-[#8a8177]">
-                      Comisión {Math.round(p.commissionRate * 1000) / 10}% del fee · {p.commissionDays} días por cliente
+                      {p.commissionRate > 0
+                        ? `Comisión ${Math.round(p.commissionRate * 1000) / 10}% del fee · ${p.commissionDays} días por cliente`
+                        : "Sin comisión"}
+                      {p.clientFeePercent != null ? ` · Sus clientes pagan ${p.clientFeePercent}% de fee` : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

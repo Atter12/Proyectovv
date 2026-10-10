@@ -1,11 +1,15 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
+import { applyPartnerClientFee } from "./partner-client-fee.server";
 import { notifyPartnerEvent } from "./partner-notify.server";
 
 const PARTNER_BASE_SELECT =
   "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_days,status,theme";
-const PARTNER_SELECT = `${PARTNER_BASE_SELECT},secondary_color,background_color,text_color,logo_size,favicon_url,banner_url,banner_mobile_url,banner_link`;
+const PARTNER_BRANDING_SELECT = `${PARTNER_BASE_SELECT},secondary_color,background_color,text_color,logo_size,favicon_url,banner_url,banner_mobile_url,banner_link`;
+const PARTNER_SELECT = `${PARTNER_BRANDING_SELECT},client_fee_percent`;
+/** De la más completa a la básica: si falta una migración (060, 059), se usa la siguiente. */
+const PARTNER_SELECTS = [PARTNER_SELECT, PARTNER_BRANDING_SELECT, PARTNER_BASE_SELECT];
 
 type PartnerRow = {
   id: string;
@@ -30,6 +34,7 @@ type PartnerRow = {
   banner_url?: string | null;
   banner_mobile_url?: string | null;
   banner_link?: string | null;
+  client_fee_percent?: number | string | null;
 };
 
 function toPartner(row: PartnerRow): Partner {
@@ -56,6 +61,7 @@ function toPartner(row: PartnerRow): Partner {
     bannerUrl: row.banner_url ?? null,
     bannerMobileUrl: row.banner_mobile_url ?? null,
     bannerLink: row.banner_link ?? null,
+    clientFeePercent: row.client_fee_percent == null ? null : Number(row.client_fee_percent),
   };
 }
 
@@ -77,9 +83,12 @@ export async function getSignedPartnerForCliente(
       .eq("status", "active")
       .not("contract_signed_at", "is", null)
       .maybeSingle<PartnerRow & { contract_signed_at: string }>();
-  let { data, error } = await read(PARTNER_SELECT);
-  // Migración 059 sin aplicar: sigue con la marca básica.
-  if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT));
+  let { data, error } = await read(PARTNER_SELECTS[0]!);
+  // Migraciones 060 / 059 sin aplicar: sigue con lo que haya.
+  for (const cols of PARTNER_SELECTS.slice(1)) {
+    if (error?.code !== "42703") break;
+    ({ data, error } = await read(cols));
+  }
   if (error) {
     console.warn("[partners] signed_partner_failed", { error: error.message });
     return null;
@@ -98,9 +107,12 @@ export async function getActivePartnerBySlug(rawSlug: string | null | undefined)
   if (!slug) return null;
   const read = (cols: string) =>
     createAdminClient().from("partners").select(cols).eq("slug", slug).eq("status", "active").maybeSingle<PartnerRow>();
-  let { data, error } = await read(PARTNER_SELECT);
-  // Migraciones 059 / 054 sin aplicar: la landing sigue funcionando con lo que haya.
-  if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT));
+  let { data, error } = await read(PARTNER_SELECTS[0]!);
+  // Migraciones 060 / 059 / 054 sin aplicar: la landing sigue funcionando con lo que haya.
+  for (const cols of PARTNER_SELECTS.slice(1)) {
+    if (error?.code !== "42703") break;
+    ({ data, error } = await read(cols));
+  }
   if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT.replace(",theme", "").replace(",company_name", "")));
   if (error) {
     console.warn("[partners] get_by_slug_failed", { slug, error: error.message });
@@ -180,6 +192,8 @@ export async function recordSignupAttribution(input: {
     console.warn("[partners] partner_client_insert_failed", { error: clientError.message });
   }
   if (!clientError) {
+    // Alianza con fee preferencial: el cliente nuevo ya paga ese fee desde su primera recarga.
+    await applyPartnerClientFee({ hecomClienteIds: [input.hecomClienteId], feePercent: partner.clientFeePercent });
     await notifyPartnerEvent({ kind: "signup", partnerId: partner.id, clienteEmail: email, hecomClienteId: input.hecomClienteId });
   }
 }

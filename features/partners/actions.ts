@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createHecomAdminClient } from "@/lib/hecom/supabase.server";
+import { applyPartnerClientFee } from "@/lib/partners/partner-client-fee.server";
 import { PARTNER_SLUG_RE } from "@/lib/partners/partners.shared";
 
 export type PartnerActionResult = { ok: true } | { ok: false; error: string };
@@ -22,6 +23,8 @@ export type PartnerInput = {
   whatsapp: string;
   commissionPercent: number;
   commissionDays: number;
+  /** Fee preferencial de sus clientes; vacío = cada cliente con su fee normal. */
+  clientFeePercent: number | null;
   notes: string;
 };
 
@@ -63,6 +66,12 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
     return { ok: false, error: "Los días de comisión deben estar entre 1 y 3650." };
   }
 
+  const clientFee =
+    input.clientFeePercent == null || String(input.clientFeePercent) === "" ? null : Number(input.clientFeePercent);
+  if (clientFee != null && (!Number.isFinite(clientFee) || clientFee < 0 || clientFee > 50)) {
+    return { ok: false, error: "El fee de sus clientes debe estar entre 0% y 50%." };
+  }
+
   const row = {
     slug,
     name,
@@ -74,6 +83,7 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
     whatsapp: clean(String(input.whatsapp ?? "").replace(/[^\d+]/g, ""), 20),
     commission_rate: Math.round(percent * 100) / 10000,
     commission_days: days,
+    client_fee_percent: clientFee == null ? null : Math.round(clientFee * 100) / 100,
     notes: clean(input.notes, 1000),
     updated_at: new Date().toISOString(),
   };
@@ -83,6 +93,17 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
     : await admin.from("partners").insert({ ...row, created_by: staff.userId });
   if (error) {
     return { ok: false, error: error.code === "23505" ? "Ese link ya lo usa otro aliado." : error.message };
+  }
+  // Fee preferencial: también para los clientes que el aliado ya tiene.
+  if (input.id && clientFee != null) {
+    const { data: clients } = await admin.from("partner_clients").select("hecom_cliente_id").eq("partner_id", input.id);
+    const applied = await applyPartnerClientFee({
+      hecomClienteIds: (clients ?? []).map((c) => String(c.hecom_cliente_id)),
+      feePercent: clientFee,
+    });
+    if (!applied) {
+      return { ok: false, error: "Se guardó el aliado, pero no se pudo poner el fee a sus clientes en Hecom. Vuelve a guardar." };
+    }
   }
   revalidatePath(routes.alianzas);
   return { ok: true };
@@ -111,7 +132,11 @@ export async function assignClientToPartnerAction(partnerId: string, email: stri
   if (!normalized.includes("@")) return { ok: false, error: "Escribe el correo del cliente." };
 
   const admin = createAdminClient();
-  const { data: partner } = await admin.from("partners").select("id,commission_days").eq("id", partnerId).maybeSingle();
+  const { data: partner } = await admin
+    .from("partners")
+    .select("id,commission_days,client_fee_percent")
+    .eq("id", partnerId)
+    .maybeSingle();
   if (!partner) return { ok: false, error: "Aliado no encontrado." };
 
   const { data: matches, error: findError } = await createHecomAdminClient()
@@ -138,6 +163,11 @@ export async function assignClientToPartnerAction(partnerId: string, email: stri
   if (error) {
     return { ok: false, error: error.code === "23505" ? "Ese cliente ya pertenece a un aliado." : error.message };
   }
+  const applied = await applyPartnerClientFee({
+    hecomClienteIds: [String(matches[0]!.id)],
+    feePercent: partner.client_fee_percent == null ? null : Number(partner.client_fee_percent),
+  });
+  if (!applied) return { ok: false, error: "Cliente asignado, pero no se pudo poner su fee en Hecom. Revísalo en su ficha." };
   revalidatePath(routes.alianzas);
   return { ok: true };
 }
