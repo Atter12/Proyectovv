@@ -3,8 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
 import { notifyPartnerEvent } from "./partner-notify.server";
 
-const PARTNER_SELECT =
+const PARTNER_BASE_SELECT =
   "id,slug,name,company_name,headline,subheadline,logo_url,photo_url,accent_color,whatsapp,commission_rate,commission_days,status,theme";
+const PARTNER_SELECT = `${PARTNER_BASE_SELECT},secondary_color,background_color,text_color,logo_size,favicon_url,banner_url,banner_mobile_url,banner_link`;
 
 type PartnerRow = {
   id: string;
@@ -21,6 +22,14 @@ type PartnerRow = {
   commission_days: number;
   status: "active" | "paused";
   theme?: string | null;
+  secondary_color?: string | null;
+  background_color?: string | null;
+  text_color?: string | null;
+  logo_size?: number | null;
+  favicon_url?: string | null;
+  banner_url?: string | null;
+  banner_mobile_url?: string | null;
+  banner_link?: string | null;
 };
 
 function toPartner(row: PartnerRow): Partner {
@@ -39,6 +48,14 @@ function toPartner(row: PartnerRow): Partner {
     commissionDays: row.commission_days,
     status: row.status,
     theme: row.theme === "dark" ? "dark" : "light",
+    secondaryColor: row.secondary_color ?? null,
+    backgroundColor: row.background_color ?? null,
+    textColor: row.text_color ?? null,
+    logoSize: row.logo_size ?? null,
+    faviconUrl: row.favicon_url ?? null,
+    bannerUrl: row.banner_url ?? null,
+    bannerMobileUrl: row.banner_mobile_url ?? null,
+    bannerLink: row.banner_link ?? null,
   };
 }
 
@@ -52,13 +69,17 @@ export async function getSignedPartnerForCliente(
 ): Promise<(Partner & { contractSignedAt: string }) | null> {
   const id = String(hecomClienteId ?? "").trim().toLowerCase();
   if (!id) return null;
-  const { data, error } = await createAdminClient()
-    .from("partners")
-    .select(`${PARTNER_SELECT},contract_signed_at`)
-    .eq("hecom_cliente_id", id)
-    .eq("status", "active")
-    .not("contract_signed_at", "is", null)
-    .maybeSingle<PartnerRow & { contract_signed_at: string }>();
+  const read = (cols: string) =>
+    createAdminClient()
+      .from("partners")
+      .select(`${cols},contract_signed_at`)
+      .eq("hecom_cliente_id", id)
+      .eq("status", "active")
+      .not("contract_signed_at", "is", null)
+      .maybeSingle<PartnerRow & { contract_signed_at: string }>();
+  let { data, error } = await read(PARTNER_SELECT);
+  // Migración 059 sin aplicar: sigue con la marca básica.
+  if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT));
   if (error) {
     console.warn("[partners] signed_partner_failed", { error: error.message });
     return null;
@@ -78,8 +99,9 @@ export async function getActivePartnerBySlug(rawSlug: string | null | undefined)
   const read = (cols: string) =>
     createAdminClient().from("partners").select(cols).eq("slug", slug).eq("status", "active").maybeSingle<PartnerRow>();
   let { data, error } = await read(PARTNER_SELECT);
-  // Migración 054 sin aplicar (sin columna theme): la landing sigue funcionando.
-  if (error?.code === "42703") ({ data, error } = await read(PARTNER_SELECT.replace(",theme", "").replace(",company_name", "")));
+  // Migraciones 059 / 054 sin aplicar: la landing sigue funcionando con lo que haya.
+  if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT));
+  if (error?.code === "42703") ({ data, error } = await read(PARTNER_BASE_SELECT.replace(",theme", "").replace(",company_name", "")));
   if (error) {
     console.warn("[partners] get_by_slug_failed", { slug, error: error.message });
     return null;

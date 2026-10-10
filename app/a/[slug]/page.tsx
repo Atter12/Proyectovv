@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,7 +7,7 @@ import { getActivePartnerBySlug } from "@/lib/partners/partners.server";
 import { routes } from "@/config/routes";
 import { AuthRechargeDemo } from "@/features/auth/components/AuthRechargeDemo.client";
 import { PartnerVisitTracker } from "@/features/partners/components/PartnerVisitTracker.client";
-import { partnerInkOn } from "@/lib/partners/partners.shared";
+import { partnerLogoSize, partnerPalette } from "@/lib/partners/partners.shared";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `Ads Holistic × ${partner.companyName?.trim() || partner.name}`,
     description: partner.subheadline ?? "Cuentas de agencia de TikTok, recarga desde cualquier país y saldo al instante.",
+    ...(partner.faviconUrl ? { icons: { icon: partner.faviconUrl, shortcut: partner.faviconUrl, apple: partner.faviconUrl } } : {}),
     // Cada aliado comparte su link; no hace falta que Google indexe estas páginas.
     robots: { index: false, follow: false },
   };
@@ -59,37 +61,76 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   const whatsappHref = `https://wa.me/${whatsapp}?text=${encodeURIComponent(
     `Hola, vengo de parte de ${partner.name} y quiero empezar con Ads Holistic.`,
   )}`;
-  const accent = /^#[0-9a-fA-F]{6}$/.test(partner.accentColor) ? partner.accentColor : "#ff781f";
   const headline = partner.headline ?? "Lanza y escala tus campañas de TikTok";
-  const ink = partnerInkOn(accent);
   // Empresa del aliado (con su logo) y la persona que recomienda.
   const brand = partner.companyName?.trim() || partner.name;
-  const dark = partner.theme === "dark";
-  // Fondo claro u oscuro que elige el aliado en su sección Alianzas.
-  const c = dark
-    ? { page: "bg-[#14110f] text-white", muted: "text-[#bdb4ab]", faint: "text-[#6b625a]", pill: "border-white/10 bg-white/5 text-[#d6cfc8]", ghost: "border-white/15 bg-transparent text-white hover:bg-white/5", band: "border-white/10 bg-[#1b1714]", card: "border-white/10 bg-white/5", card2: "border-white/10 bg-[#1b1714]", foot: "border-white/10 text-[#8a8177]", frame: "border-white/10" }
-    : { page: "bg-[#fcfbf9] text-[#1c1917]", muted: "text-[#5f574f]", faint: "text-[#b5ada5]", pill: "border-[#efe4d8] bg-white text-[#5f574f]", ghost: "border-[#e3dbd1] bg-white text-[#3a332d] hover:bg-[#f7f5f2]", band: "border-[#efe7de] bg-white", card: "border-[#efe7de] bg-[#fcfbf9]", card2: "border-[#efe7de] bg-white", foot: "border-[#efe7de] text-[#8a8177]", frame: "border-[#efe4d8]" };
+  // Colores que el aliado arma en su sección Alianzas (o el tema claro/oscuro de siempre).
+  const pal = partnerPalette(partner);
+  const logoSize = partnerLogoSize(partner.logoSize);
+  const vars = {
+    "--accent": pal.accent,
+    "--bg": pal.background,
+    "--ink": pal.text,
+    "--muted": pal.muted,
+    "--faint": pal.faint,
+    "--line": pal.border,
+    "--card": pal.card,
+    "--band": pal.band,
+  } as CSSProperties;
+  // Si el secundario es igual al principal, el botón de la franja final se invierte para que se vea.
+  const bandButton =
+    pal.secondary.toLowerCase() === pal.accent.toLowerCase()
+      ? { background: pal.secondaryInk, color: pal.secondary }
+      : { background: pal.accent, color: pal.accentInk };
+  const c = {
+    muted: "text-[var(--muted)]",
+    faint: "text-[var(--faint)]",
+    pill: "border-[var(--line)] bg-[var(--card)] text-[var(--muted)]",
+    ghost: "border-[var(--line)] bg-transparent text-[var(--ink)] hover:bg-[var(--card)]",
+    band: "border-[var(--line)] bg-[var(--band)]",
+    card: "border-[var(--line)] bg-[var(--card)]",
+    foot: "border-[var(--line)] text-[var(--faint)]",
+    frame: "border-[var(--line)]",
+  };
   const subheadline =
     partner.subheadline ??
     "Cuentas de agencia, recarga desde cualquier país y saldo al instante. Todo en una sola app.";
+  const bannerSrc = partner.bannerUrl ?? partner.bannerMobileUrl;
+  const banner = bannerSrc ? (
+    <picture>
+      {partner.bannerMobileUrl && partner.bannerUrl ? <source media="(max-width: 640px)" srcSet={partner.bannerMobileUrl} /> : null}
+      <img src={bannerSrc} alt={`Banner de ${brand}`} className="block h-auto w-full" />
+    </picture>
+  ) : null;
 
   return (
-    <div className={`min-h-dvh ${c.page}`} style={{ ["--accent" as string]: accent }}>
+    <div className="min-h-dvh bg-[var(--bg)] text-[var(--ink)]" style={vars}>
       <PartnerVisitTracker slug={partner.slug} />
 
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
-        <div className="flex min-w-0 items-center gap-3">
-          <Image src="/brand/holistic-marketing-logo.png" alt="Holistic Marketing" width={506} height={187} className={`h-auto w-[112px] sm:w-[132px] ${dark ? "brightness-0 invert" : ""}`} priority />
+      {/* Logos al centro; «Iniciar sesión» a la derecha. */}
+      <header className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-5 sm:px-8">
+        <span aria-hidden />
+        <div className="flex min-w-0 items-center justify-center gap-3">
+          <Image
+            src="/brand/holistic-marketing-logo.png"
+            alt="Holistic Marketing"
+            width={506}
+            height={187}
+            className={`w-auto ${pal.dark ? "brightness-0 invert" : ""}`}
+            style={{ height: Math.round(logoSize * 0.9) }}
+            priority
+          />
           <span className={`text-[18px] font-light ${c.faint}`} aria-hidden>×</span>
           {partner.logoUrl ? (
             // Logos externos de cada aliado: <img> evita configurar dominios en next/image.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={partner.logoUrl} alt={brand} className="h-8 w-auto max-w-[140px] object-contain" />
+            <img src={partner.logoUrl} alt={brand} className="w-auto max-w-[40vw] object-contain" style={{ height: logoSize }} />
           ) : (
             <span className="truncate text-[15px] font-bold tracking-[-0.02em]">{brand}</span>
           )}
         </div>
-        <Link href={routes.login} className="shrink-0 text-[14px] font-semibold underline underline-offset-4">
+        {/* En celular no entra al lado de los logos: baja debajo de los botones. */}
+        <Link href={routes.login} className="hidden justify-self-end text-[14px] font-semibold underline underline-offset-4 sm:block">
           Iniciar sesión
         </Link>
       </header>
@@ -98,7 +139,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-6 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pt-10">
           <div>
             <p className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold ${c.pill}`}>
-              <span className="h-2 w-2 rounded-full" style={{ background: accent }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: pal.secondary }} />
               Alianza oficial · {brand}
             </p>
             <h1 className="mt-5 text-[34px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[48px]">{headline}</h1>
@@ -108,7 +149,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               <Link
                 href={registerHref}
                 className="inline-flex h-12 items-center justify-center rounded-xl px-7 text-[15px] font-bold shadow-[0_10px_22px_-12px_rgb(0_0_0/0.45)] transition hover:brightness-95"
-                style={{ background: accent, color: ink }}
+                style={{ background: pal.accent, color: pal.accentInk }}
               >
                 Crear mi cuenta gratis →
               </Link>
@@ -122,13 +163,20 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               </a>
             </div>
 
+            <p className={`mt-4 text-[14px] sm:hidden ${c.muted}`}>
+              ¿Ya tienes cuenta?{" "}
+              <Link href={routes.login} className="font-semibold text-[var(--ink)] underline underline-offset-4">
+                Inicia sesión
+              </Link>
+            </p>
+
             <div className="mt-8 flex items-center gap-3">
               {partner.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={partner.photoUrl} alt={partner.name} className="h-12 w-12 rounded-full object-cover ring-2 ring-white" />
               ) : null}
               <p className={`text-[14px] ${c.muted}`}>
-                Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{partner.name}</strong>
+                Recomendado por <strong className="text-[var(--ink)]">{partner.name}</strong>
                 {partner.companyName ? ` · ${partner.companyName}` : ""}
               </p>
             </div>
@@ -139,11 +187,25 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           </div>
         </section>
 
+        {banner ? (
+          <section className="mx-auto max-w-6xl px-5 pb-14 sm:px-8">
+            <div className={`overflow-hidden rounded-[20px] border ${c.frame}`}>
+              {partner.bannerLink ? (
+                <a href={partner.bannerLink} target="_blank" rel="noreferrer">
+                  {banner}
+                </a>
+              ) : (
+                banner
+              )}
+            </div>
+          </section>
+        ) : null}
+
         <section className={`border-y ${c.band}`}>
           <div className="mx-auto grid max-w-6xl gap-4 px-5 py-14 sm:grid-cols-2 sm:px-8 lg:grid-cols-4">
             {BENEFITS.map((b) => (
               <div key={b.title} className={`rounded-2xl border p-5 ${c.card}`}>
-                <span className="block h-1.5 w-8 rounded-full" style={{ background: accent }} />
+                <span className="block h-1.5 w-8 rounded-full" style={{ background: pal.secondary }} />
                 <h2 className="mt-4 text-[16px] font-bold tracking-[-0.02em]">{b.title}</h2>
                 <p className={`mt-2 text-[14px] leading-relaxed ${c.muted}`}>{b.body}</p>
               </div>
@@ -155,8 +217,8 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           <h2 className="text-[26px] font-bold tracking-[-0.03em] sm:text-[32px]">Empieza en 3 pasos</h2>
           <ol className="mt-8 grid gap-4 sm:grid-cols-3">
             {STEPS.map((s, i) => (
-              <li key={s.title} className={`rounded-2xl border p-5 ${c.card2}`}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-bold" style={{ background: accent, color: ink }}>
+              <li key={s.title} className={`rounded-2xl border p-5 ${c.card}`}>
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-bold" style={{ background: pal.secondary, color: pal.secondaryInk }}>
                   {i + 1}
                 </span>
                 <h3 className="mt-4 text-[16px] font-bold">{s.title}</h3>
@@ -165,15 +227,19 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             ))}
           </ol>
 
-          <div className={`mt-12 flex flex-col items-start justify-between gap-5 rounded-[24px] px-6 py-8 text-white sm:flex-row sm:items-center sm:px-10 ${dark ? "border border-white/10 bg-[#211c19]" : "bg-[#1c1917]"}`}>
+          {/* Franja final en el color secundario. */}
+          <div
+            className="mt-12 flex flex-col items-start justify-between gap-5 rounded-[24px] px-6 py-8 sm:flex-row sm:items-center sm:px-10"
+            style={{ background: pal.secondary, color: pal.secondaryInk }}
+          >
             <div>
               <p className="text-[22px] font-bold tracking-[-0.03em]">¿Listo para anunciar?</p>
-              <p className="mt-1 text-[14px] text-[#d6cfc8]">Crea tu cuenta y recarga cuando quieras. Sin mensualidades.</p>
+              <p className="mt-1 text-[14px] opacity-80">Crea tu cuenta y recarga cuando quieras. Sin mensualidades.</p>
             </div>
             <Link
               href={registerHref}
               className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl px-7 text-[15px] font-bold"
-              style={{ background: accent, color: ink }}
+              style={bandButton}
             >
               Crear mi cuenta →
             </Link>

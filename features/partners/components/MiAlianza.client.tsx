@@ -5,13 +5,20 @@ import { useRef, useState, useTransition } from "react";
 import {
   saveMyPartnerAction,
   uploadMyPartnerImageAction,
+  type MyPartnerImageKind,
   type MyPartnerInput,
 } from "../my-partner-actions";
-import { PARTNER_ACCENT_RE, partnerInkOn, type Partner } from "@/lib/partners/partners.shared";
+import {
+  PARTNER_ACCENT_RE,
+  PARTNER_LOGO_SIZE,
+  PARTNER_THEME_COLORS,
+  partnerLogoSize,
+  partnerPalette,
+  type Partner,
+} from "@/lib/partners/partners.shared";
 import type { PartnerPanelData } from "@/lib/partners/partner-panel.server";
 
 const SITE = "https://www.adsholistic.com";
-const PRESETS = ["#ff781f", "#e11d48", "#db2777", "#7c3aed", "#2563eb", "#0891b2", "#16a34a", "#ca8a04", "#1c1917"];
 const DEFAULT_HEADLINE = "Lanza y escala tus campañas de TikTok";
 const DEFAULT_SUB = "Cuentas de agencia, recarga desde cualquier país y saldo al instante. Todo en una sola app.";
 
@@ -34,15 +41,25 @@ export function MiAlianza({ partner, panel }: Props) {
     accentColor: partner.accentColor,
     theme: partner.theme,
     whatsapp: partner.whatsapp ?? "",
+    secondaryColor: partner.secondaryColor ?? partner.accentColor,
+    backgroundColor: partner.backgroundColor ?? PARTNER_THEME_COLORS[partner.theme].background,
+    textColor: partner.textColor ?? PARTNER_THEME_COLORS[partner.theme].text,
+    logoSize: partnerLogoSize(partner.logoSize),
+    bannerLink: partner.bannerLink ?? "",
   });
-  const [logoUrl, setLogoUrl] = useState(partner.logoUrl);
-  const [photoUrl, setPhotoUrl] = useState(partner.photoUrl);
+  const [images, setImages] = useState<Record<MyPartnerImageKind, string | null>>({
+    logo: partner.logoUrl,
+    photo: partner.photoUrl,
+    favicon: partner.faviconUrl,
+    banner: partner.bannerUrl,
+    banner_mobile: partner.bannerMobileUrl,
+  });
   const [saved, setSaved] = useState<MyPartnerInput>(form);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [uploading, setUploading] = useState<"logo" | "photo" | null>(null);
+  const [uploading, setUploading] = useState<MyPartnerImageKind | null>(null);
 
   const link = `${SITE}/a/${partner.slug}`;
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
@@ -61,7 +78,7 @@ export function MiAlianza({ partner, panel }: Props) {
     });
   };
 
-  const upload = async (kind: "logo" | "photo", file: File | null) => {
+  const upload = async (kind: MyPartnerImageKind, file: File | null) => {
     setError(null);
     setNotice(null);
     setUploading(kind);
@@ -71,8 +88,7 @@ export function MiAlianza({ partner, panel }: Props) {
     const r = await uploadMyPartnerImageAction(data);
     setUploading(null);
     if (!r.ok) return setError(r.error);
-    if (kind === "logo") setLogoUrl(r.url ?? null);
-    else setPhotoUrl(r.url ?? null);
+    setImages((prev) => ({ ...prev, [kind]: r.url ?? null }));
     setNotice(file ? "Imagen actualizada." : "Imagen quitada.");
   };
 
@@ -88,6 +104,14 @@ export function MiAlianza({ partner, panel }: Props) {
 
   const signups = panel?.clients.length ?? 0;
   const paying = panel?.clients.filter((c) => c.payments > 0).length ?? 0;
+  // Alianza sin comisión (p. ej. el aliado y sus clientes pagan fee preferencial).
+  const earns = partner.commissionRate > 0;
+  const imageField = (kind: MyPartnerImageKind) => ({
+    url: images[kind],
+    busy: uploading === kind,
+    onPick: (f: File) => upload(kind, f),
+    onRemove: () => upload(kind, null),
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -95,9 +119,14 @@ export function MiAlianza({ partner, panel }: Props) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9a6b4a]">Tu alianza</p>
         <h1 className="mt-0.5 text-[1.15rem] font-semibold tracking-[-0.02em] text-[#1a1714]">Alianzas</h1>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6b645c]">
-          Comparte tu link. Quien se registre por ahí queda a tu nombre y ganas el{" "}
-          <strong>{Math.round(partner.commissionRate * 100)}% del fee</strong> que le cobramos durante{" "}
-          {partner.commissionDays} días desde que se registra. Contrato firmado el {fecha(partner.contractSignedAt)}.
+          Comparte tu link. Quien se registre por ahí queda a tu nombre
+          {earns ? (
+            <>
+              {" "}y ganas el <strong>{Math.round(partner.commissionRate * 100)}% del fee</strong> que le cobramos durante{" "}
+              {partner.commissionDays} días desde que se registra
+            </>
+          ) : null}
+          . Contrato firmado el {fecha(partner.contractSignedAt)}.
         </p>
       </header>
 
@@ -129,16 +158,18 @@ export function MiAlianza({ partner, panel }: Props) {
       </section>
 
       {/* Números */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className={`grid grid-cols-2 gap-3 ${earns ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         <Stat label="Visitas · 30 días" value={String(panel?.visits30d ?? 0)} hint={`${panel?.uniqueVisitors30d ?? 0} personas`} />
         <Stat label="Registros" value={String(signups)} hint="a tu nombre" />
         <Stat label="Clientes que pagan" value={String(paying)} hint={signups ? `${Math.round((paying / signups) * 100)}% de registros` : "—"} />
-        <Stat
-          label="Comisión por cobrar"
-          value={usd(panel?.commissionPendingCents ?? 0)}
-          hint={`Cobrado ${usd(panel?.commissionPaidCents ?? 0)}`}
-          accent
-        />
+        {earns ? (
+          <Stat
+            label="Comisión por cobrar"
+            value={usd(panel?.commissionPendingCents ?? 0)}
+            hint={`Cobrado ${usd(panel?.commissionPaidCents ?? 0)}`}
+            accent
+          />
+        ) : null}
       </section>
 
       {/* Editor + vista previa */}
@@ -150,13 +181,24 @@ export function MiAlianza({ partner, panel }: Props) {
           </div>
 
           <Group title="Marca">
+            <ImageField label="Logo de tu empresa" hint="PNG con fondo transparente se ve mejor. Máx. 2 MB." {...imageField("logo")} />
+            <Field label="Tamaño del logo" counter={`${form.logoSize} px`}>
+              <input
+                type="range"
+                min={PARTNER_LOGO_SIZE.min}
+                max={PARTNER_LOGO_SIZE.max}
+                step={2}
+                value={form.logoSize}
+                onChange={(e) => set("logoSize", Number(e.target.value))}
+                className="w-full cursor-pointer"
+                style={{ accentColor: "#1a1714" }}
+              />
+            </Field>
             <ImageField
-              label="Logo de tu empresa"
-              hint="PNG con fondo transparente se ve mejor. Máx. 2 MB."
-              url={logoUrl}
-              busy={uploading === "logo"}
-              onPick={(f) => upload("logo", f)}
-              onRemove={() => upload("logo", null)}
+              label="Favicon"
+              hint="El iconito de la pestaña del navegador. Cuadrado (64 × 64), PNG o ICO, máx. 512 KB."
+              small
+              {...imageField("favicon")}
             />
             <Field label="Nombre de tu empresa">
               <input
@@ -173,53 +215,78 @@ export function MiAlianza({ partner, panel }: Props) {
             <ImageField
               label="Tu foto (opcional)"
               hint="Aparece como «Recomendado por». Cuadrada, máx. 2 MB."
-              url={photoUrl}
               round
-              busy={uploading === "photo"}
-              onPick={(f) => upload("photo", f)}
-              onRemove={() => upload("photo", null)}
+              {...imageField("photo")}
             />
           </Group>
 
           <Group title="Colores">
-            <div className="flex flex-wrap items-center gap-2">
-              {PRESETS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-label={`Color ${c}`}
-                  onClick={() => set("accentColor", c)}
-                  className="h-8 w-8 rounded-full ring-offset-2 transition hover:scale-105"
-                  style={{
-                    background: c,
-                    boxShadow: form.accentColor.toLowerCase() === c ? `0 0 0 2px #fff, 0 0 0 4px ${c}` : undefined,
-                  }}
-                />
-              ))}
-              <label className="ml-1 inline-flex h-8 items-center gap-2 rounded-full border border-[#e3dbd1] pl-1 pr-3 text-[12px] font-semibold text-[#3a332d]">
-                <input
-                  type="color"
-                  value={PARTNER_ACCENT_RE.test(form.accentColor) ? form.accentColor : "#ff781f"}
-                  onChange={(e) => set("accentColor", e.target.value)}
-                  className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0"
-                />
-                {form.accentColor.toUpperCase()}
-              </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ColorField
+                label="Color principal"
+                hint="Botones de «Crear mi cuenta»."
+                value={form.accentColor}
+                onChange={(v) => set("accentColor", v)}
+              />
+              <ColorField
+                label="Color secundario"
+                hint="Detalles, pasos y franja final."
+                value={form.secondaryColor}
+                onChange={(v) => set("secondaryColor", v)}
+              />
+              <ColorField
+                label="Color de fondo"
+                hint="Fondo de toda la página."
+                value={form.backgroundColor}
+                onChange={(v) => set("backgroundColor", v)}
+              />
+              <ColorField
+                label="Color del texto"
+                hint="Títulos y textos."
+                value={form.textColor}
+                onChange={(v) => set("textColor", v)}
+              />
             </div>
-            <div className="mt-1 inline-flex rounded-xl bg-[#f4efe9] p-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12px] text-[#9b928a]">Empezar desde:</span>
               {(["light", "dark"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
-                  onClick={() => set("theme", t)}
-                  className={`h-8 rounded-lg px-4 text-[12.5px] font-semibold transition ${
-                    form.theme === t ? "bg-white text-[#1a1714] shadow-sm" : "text-[#6b645c]"
-                  }`}
+                  onClick={() => {
+                    setNotice(null);
+                    setForm((f) => ({
+                      ...f,
+                      theme: t,
+                      backgroundColor: PARTNER_THEME_COLORS[t].background,
+                      textColor: PARTNER_THEME_COLORS[t].text,
+                    }));
+                  }}
+                  className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#e3dbd1] px-3 text-[12px] font-semibold text-[#3a332d] transition hover:bg-[#f7f5f2]"
                 >
+                  <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ background: PARTNER_THEME_COLORS[t].background }} />
                   {t === "light" ? "Fondo claro" : "Fondo oscuro"}
                 </button>
               ))}
             </div>
+          </Group>
+
+          <Group title="Banners">
+            <p className="-mt-1 text-[12px] text-[#9b928a]">
+              Van debajo del inicio de tu landing. En celular se ve el de celular; si subes uno solo, se usa en los dos.
+            </p>
+            <BannerField label="Banner para computadora" size="1224 × 270" {...imageField("banner")} />
+            <BannerField label="Banner para celular" size="800 × 270" {...imageField("banner_mobile")} />
+            <Field label="Link del banner (opcional)">
+              <input
+                value={form.bannerLink}
+                maxLength={300}
+                inputMode="url"
+                placeholder="https://…"
+                onChange={(e) => set("bannerLink", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
           </Group>
 
           <Group title="Textos">
@@ -282,7 +349,7 @@ export function MiAlianza({ partner, panel }: Props) {
 
         <div className="lg:sticky lg:top-4 lg:self-start">
           <p className="mb-2 text-[12px] font-semibold text-[#6b645c]">Vista previa</p>
-          <LandingPreview form={form} logoUrl={logoUrl} photoUrl={photoUrl} link={link} />
+          <LandingPreview form={form} images={images} link={link} />
         </div>
       </section>
     </div>
@@ -328,6 +395,7 @@ function ImageField(props: {
   hint: string;
   url: string | null;
   round?: boolean;
+  small?: boolean;
   busy: boolean;
   onPick: (file: File) => void;
   onRemove: () => void;
@@ -336,9 +404,9 @@ function ImageField(props: {
   return (
     <div className="flex items-center gap-3">
       <div
-        className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden border border-[#efe7de] bg-[#fcfbf9] ${
-          props.round ? "rounded-full" : "rounded-xl"
-        }`}
+        className={`flex shrink-0 items-center justify-center overflow-hidden border border-[#efe7de] bg-[#fcfbf9] ${
+          props.small ? "h-10 w-10" : "h-14 w-14"
+        } ${props.round ? "rounded-full" : "rounded-xl"}`}
       >
         {props.url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -368,7 +436,7 @@ function ImageField(props: {
         <input
           ref={input}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={props.small ? "image/png,image/x-icon,image/vnd.microsoft.icon,.ico" : "image/png,image/jpeg,image/webp"}
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -381,91 +449,200 @@ function ImageField(props: {
   );
 }
 
+/** Muestra del color + su código, como en el panel de Ecomdy. */
+function ColorField(props: { label: string; hint: string; value: string; onChange: (hex: string) => void }) {
+  const valid = PARTNER_ACCENT_RE.test(props.value);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[12.5px] font-medium text-[#3a332d]">{props.label}</span>
+      <div className="flex items-center gap-2">
+        <label
+          className="relative h-10 w-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-[#e3dbd1]"
+          style={{ background: valid ? props.value : "#ffffff" }}
+          title="Elegir color"
+        >
+          <input
+            type="color"
+            value={valid ? props.value.toLowerCase() : "#ffffff"}
+            onChange={(e) => props.onChange(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+        <input
+          value={props.value.toUpperCase()}
+          maxLength={7}
+          spellCheck={false}
+          aria-label={`${props.label} (código)`}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/[^#0-9a-fA-F]/g, "").replace(/(?!^)#/g, "");
+            props.onChange(raw.startsWith("#") ? raw : `#${raw}`);
+          }}
+          className={`${inputCls} font-mono uppercase ${valid ? "" : "border-[#f0b4ab] focus:border-[#e0786a] focus:ring-[#fde2dd]"}`}
+        />
+      </div>
+      <span className="text-[11.5px] text-[#9b928a]">{valid ? props.hint : "Usa un código de 6 dígitos, ej. #FF5A2A."}</span>
+    </div>
+  );
+}
+
+/** Banner ancho con su medida recomendada (como «Tablet / Laptop Banner» de Ecomdy). */
+function BannerField(props: {
+  label: string;
+  size: string;
+  url: string | null;
+  busy: boolean;
+  onPick: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="flex justify-between text-[12.5px] font-medium text-[#3a332d]">
+        {props.label}
+        <span className="font-normal text-[#b5ada5]">{props.size} px</span>
+      </span>
+      <button
+        type="button"
+        disabled={props.busy}
+        onClick={() => input.current?.click()}
+        className="flex aspect-[1224/270] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-[#dcd2c6] bg-[#fcfbf9] px-3 text-center text-[12px] font-semibold text-[#9b928a] transition hover:bg-[#f7f5f2] disabled:opacity-60"
+      >
+        {props.busy ? (
+          "Subiendo…"
+        ) : props.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={props.url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          "Subir banner · PNG, JPG o WEBP, máx. 4 MB"
+        )}
+      </button>
+      {props.url && !props.busy ? (
+        <div className="flex gap-3">
+          <button type="button" onClick={() => input.current?.click()} className="text-[12px] font-semibold text-[#3a332d]">
+            Cambiar
+          </button>
+          <button type="button" onClick={props.onRemove} className="text-[12px] font-semibold text-[#a32e23]">
+            Quitar
+          </button>
+        </div>
+      ) : null}
+      <input
+        ref={input}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) props.onPick(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
 /** Mini versión de /a/<link> con los cambios en vivo. */
 function LandingPreview({
   form,
-  logoUrl,
-  photoUrl,
+  images,
   link,
 }: {
   form: MyPartnerInput;
-  logoUrl: string | null;
-  photoUrl: string | null;
+  images: Record<MyPartnerImageKind, string | null>;
   link: string;
 }) {
-  const accent = PARTNER_ACCENT_RE.test(form.accentColor) ? form.accentColor : "#ff781f";
-  const ink = partnerInkOn(accent);
-  const dark = form.theme === "dark";
+  const pal = partnerPalette(form);
   const person = form.name.trim() || "Tu nombre";
   const name = form.companyName.trim() || person;
+  // La vista previa va a ~60 % del tamaño real.
+  const logoH = Math.round(partnerLogoSize(form.logoSize) * 0.6);
+  const banner = images.banner ?? images.banner_mobile;
+  const sameTone = pal.secondary.toLowerCase() === pal.accent.toLowerCase();
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e3dbd1] shadow-[0_24px_50px_-32px_rgb(60_35_15/0.45)]">
       <div className="flex items-center gap-1.5 border-b border-[#ece4da] bg-[#f4efe9] px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
-        <span className="ml-2 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[#8a8177]">{link.replace("https://", "")}</span>
+        <span className="ml-2 inline-flex min-w-0 items-center gap-1.5 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[#8a8177]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {images.favicon ? <img src={images.favicon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" /> : null}
+          {link.replace("https://", "")}
+        </span>
       </div>
-      <div className={dark ? "bg-[#14110f] text-white" : "bg-[#fcfbf9] text-[#1c1917]"}>
-        <div className="flex items-center gap-2.5 px-5 py-4">
+      <div style={{ background: pal.background, color: pal.text }}>
+        <div className="flex items-center justify-center gap-2.5 px-5 py-4">
           <Image
             src="/brand/holistic-marketing-logo.png"
             alt="Holistic Marketing"
             width={506}
             height={187}
-            className={`h-auto w-[84px] ${dark ? "brightness-0 invert" : ""}`}
+            className={`w-auto ${pal.dark ? "brightness-0 invert" : ""}`}
+            style={{ height: Math.round(logoH * 0.9) }}
           />
-          <span className={dark ? "text-[#6b625a]" : "text-[#b5ada5]"}>×</span>
-          {logoUrl ? (
+          <span style={{ color: pal.faint }}>×</span>
+          {images.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={name} className="h-6 w-auto max-w-[110px] object-contain" />
+            <img src={images.logo} alt={name} className="w-auto max-w-[160px] object-contain" style={{ height: logoH }} />
           ) : (
             <span className="truncate text-[13px] font-bold">{name}</span>
           )}
         </div>
-        <div className="px-5 pb-7 pt-2">
+        <div className="px-5 pb-6 pt-2">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-semibold ${
-              dark ? "border-white/10 bg-white/5 text-[#d6cfc8]" : "border-[#efe4d8] bg-white text-[#5f574f]"
-            }`}
+            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-semibold"
+            style={{ borderColor: pal.border, background: pal.card, color: pal.muted }}
           >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: pal.secondary }} />
             Alianza oficial · {name}
           </span>
           <p className="mt-3 text-[24px] font-bold leading-[1.1] tracking-[-0.035em]">{form.headline.trim() || DEFAULT_HEADLINE}</p>
-          <p className={`mt-2 text-[13px] leading-relaxed ${dark ? "text-[#bdb4ab]" : "text-[#5f574f]"}`}>
+          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: pal.muted }}>
             {form.subheadline.trim() || DEFAULT_SUB}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="inline-flex h-9 items-center rounded-lg px-4 text-[12.5px] font-bold" style={{ background: accent, color: ink }}>
+            <span className="inline-flex h-9 items-center rounded-lg px-4 text-[12.5px] font-bold" style={{ background: pal.accent, color: pal.accentInk }}>
               Crear mi cuenta gratis →
             </span>
-            <span
-              className={`inline-flex h-9 items-center rounded-lg border px-4 text-[12.5px] font-semibold ${
-                dark ? "border-white/15 text-white" : "border-[#e3dbd1] bg-white text-[#3a332d]"
-              }`}
-            >
+            <span className="inline-flex h-9 items-center rounded-lg border px-4 text-[12.5px] font-semibold" style={{ borderColor: pal.border }}>
               Hablar por WhatsApp
             </span>
           </div>
-          {photoUrl || form.name.trim() ? (
+          {images.photo || form.name.trim() ? (
             <div className="mt-5 flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {photoUrl ? <img src={photoUrl} alt="" className="h-8 w-8 rounded-full object-cover" /> : null}
-              <p className={`text-[12px] ${dark ? "text-[#bdb4ab]" : "text-[#5f574f]"}`}>
-                Recomendado por <strong className={dark ? "text-white" : "text-[#1c1917]"}>{person}</strong>
+              {images.photo ? <img src={images.photo} alt="" className="h-8 w-8 rounded-full object-cover" /> : null}
+              <p className="text-[12px]" style={{ color: pal.muted }}>
+                Recomendado por <strong style={{ color: pal.text }}>{person}</strong>
                 {form.companyName.trim() ? ` · ${form.companyName.trim()}` : ""}
               </p>
             </div>
           ) : null}
         </div>
-        <div className={`grid grid-cols-2 gap-2 border-t px-5 py-4 ${dark ? "border-white/10" : "border-[#efe7de] bg-white"}`}>
+        {banner ? (
+          <div className="px-5 pb-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={banner} alt="" className="block h-auto w-full rounded-xl border" style={{ borderColor: pal.border }} />
+          </div>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2 border-t px-5 py-4" style={{ borderColor: pal.border, background: pal.band }}>
           {["Cuentas de agencia", "Recarga como prefieras"].map((t) => (
-            <div key={t} className={`rounded-xl border p-3 ${dark ? "border-white/10 bg-white/5" : "border-[#efe7de] bg-[#fcfbf9]"}`}>
-              <span className="block h-1 w-6 rounded-full" style={{ background: accent }} />
+            <div key={t} className="rounded-xl border p-3" style={{ borderColor: pal.border, background: pal.card }}>
+              <span className="block h-1 w-6 rounded-full" style={{ background: pal.secondary }} />
               <p className="mt-2 text-[11.5px] font-bold">{t}</p>
             </div>
           ))}
+        </div>
+        <div className="px-5 pb-5 pt-1">
+          <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: pal.secondary, color: pal.secondaryInk }}>
+            <p className="text-[12.5px] font-bold">¿Listo para anunciar?</p>
+            <span
+              className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+              style={sameTone ? { background: pal.secondaryInk, color: pal.secondary } : { background: pal.accent, color: pal.accentInk }}
+            >
+              Crear mi cuenta →
+            </span>
+          </div>
         </div>
       </div>
     </div>
