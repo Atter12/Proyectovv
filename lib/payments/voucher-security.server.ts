@@ -276,3 +276,43 @@ export async function checkVoucherUploadRateLimits(
     reason,
   };
 }
+
+/**
+ * ¿Este comprobante ya se acreditó en OTRA recarga? Solo cuenta recargas pagadas
+ * (succeeded). Se usa al aprobar: Ximena Jaño, 09/10/2026, se aprobó la misma
+ * imagen (op. 03259646) que ya se había acreditado el 22/09.
+ */
+export async function findApprovedDuplicateVoucher(input: {
+  intentId: string;
+  contentHash?: string | null;
+  operationCode?: string | null;
+}): Promise<{ intentId: string; by: "imagen" | "operacion" } | null> {
+  const admin = createAdminClient();
+  const hash = input.contentHash?.trim();
+  if (hash) {
+    const { data, error } = await admin
+      .from("payment_intents")
+      .select("id")
+      .eq("status", "succeeded")
+      .contains("metadata", { voucher_content_hash: hash })
+      .neq("id", input.intentId)
+      .limit(1);
+    if (error) throw new Error("No se pudo revisar si el comprobante ya se usó. Intenta de nuevo.");
+    if (data?.length) return { intentId: String(data[0]!.id), by: "imagen" };
+  }
+  const op = input.operationCode ? normalizeOperationCode(input.operationCode) : "";
+  if (op) {
+    for (const key of ["voucher_operation_code", "claimed_operation_code"]) {
+      const { data, error } = await admin
+        .from("payment_intents")
+        .select("id")
+        .eq("status", "succeeded")
+        .contains("metadata", { [key]: op })
+        .neq("id", input.intentId)
+        .limit(1);
+      if (error) throw new Error("No se pudo revisar si el comprobante ya se usó. Intenta de nuevo.");
+      if (data?.length) return { intentId: String(data[0]!.id), by: "operacion" };
+    }
+  }
+  return null;
+}

@@ -17,6 +17,7 @@ import {
 } from "@/lib/payments/missing-cobro.shared";
 import { ensureHecomMissingCobroFromClaim } from "@/lib/hecom/ensure-missing-cobro.server";
 import { isPaymentsSuperAdminEmail } from "@/lib/payments/funding-roles.server";
+import { findApprovedDuplicateVoucher } from "@/lib/payments/voucher-security.server";
 
 export type ManualReviewActor = {
   id: string;
@@ -595,6 +596,26 @@ export async function approveManualVoucherPayment(input: {
   }
   if (intent.status === "failed" || intent.status === "cancelled") {
     throw new Error("No se puede aprobar un pago fallido o cancelado.");
+  }
+
+  // El mismo comprobante no se acredita dos veces (misma imagen o misma operación).
+  {
+    const m = (intent.metadata ?? {}) as Record<string, unknown>;
+    const dup = await findApprovedDuplicateVoucher({
+      intentId: intent.id,
+      contentHash: typeof m.voucher_content_hash === "string" ? m.voucher_content_hash : null,
+      operationCode:
+        typeof m.voucher_operation_code === "string"
+          ? m.voucher_operation_code
+          : typeof m.claimed_operation_code === "string"
+            ? m.claimed_operation_code
+            : null,
+    });
+    if (dup) {
+      throw new Error(
+        `Este comprobante ya se acreditó en otra recarga (${dup.by === "imagen" ? "misma imagen" : "mismo n.º de operación"}, ${dup.intentId.slice(0, 8)}). Recházalo.`,
+      );
+    }
   }
 
   // Aplica a todos los propósitos (cartera, cobro faltante, deuda): en todos
