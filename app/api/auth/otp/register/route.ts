@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const promo = typedCode ? await resolveSignupCode(typedCode) : null;
   if (typedCode && !promo) {
     return NextResponse.json(
-      { error: "Ese código no existe o ya no está activo. Revísalo o déjalo vacío." },
+      { error: "Ese código no existe, ya se usó o fue anulado. Revísalo o déjalo vacío." },
       { status: 400 },
     );
   }
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         decodeURIComponent(request.cookies.get("vv_referral_code")?.value ?? "") ||
         null,
       visitorId: request.cookies.get("ah_vid")?.value ?? null,
+      inviteCode: promo?.kind === "partner" ? promo.inviteCode : null,
     },
   });
 

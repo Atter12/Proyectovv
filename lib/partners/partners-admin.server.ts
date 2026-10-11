@@ -40,7 +40,7 @@ export async function listPartnersWithStats(): Promise<PartnerWithStats[]> {
 
   const [{ data: partners, error }, { data: clients }, { data: commissions }, { data: visits30 }] = await Promise.all([
     admin.from("partners").select("*").order("created_at", { ascending: false }),
-    admin.from("partner_clients").select("partner_id,hecom_cliente_id"),
+    admin.from("partner_clients").select("partner_id,hecom_cliente_id").eq("status", "approved"),
     admin.from("partner_commissions").select("partner_id,hecom_cliente_id,commission_cents,fee_cents,status"),
     admin.from("partner_visits").select("partner_id,visitor_id").gte("visited_at", since).limit(100000),
   ]);

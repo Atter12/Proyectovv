@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { routes } from "@/config/routes";
 import { requireSession } from "@/lib/auth/guards.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { getSignedPartnerForCliente } from "@/lib/partners/partners.server";
+import {
+  createPartnerInvite,
+  getSignedPartnerForCliente,
+  reviewPartnerClient,
+  revokePartnerInvite,
+} from "@/lib/partners/partners.server";
 import {
   PARTNER_ACCENT_RE,
   PARTNER_DEFAULT_ACCENT,
@@ -146,4 +151,30 @@ export async function uploadMyPartnerImageAction(formData: FormData): Promise<My
   if (error) return { ok: false, error: "La imagen se subió pero no se guardó." };
   refresh(mine.partner.slug);
   return { ok: true, url };
+}
+
+/** Crea un código de invitación de un solo uso para una persona de su equipo. */
+export async function createMyInviteAction(note: string): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  const mine = await myPartner();
+  if (!mine.ok) return mine;
+  const r = await createPartnerInvite({ partner: mine.partner, note: clip(note, 80) });
+  if (r.ok) revalidatePath(routes.alianzas);
+  return r;
+}
+
+export async function revokeMyInviteAction(inviteId: string): Promise<MyPartnerResult> {
+  const mine = await myPartner();
+  if (!mine.ok) return mine;
+  const r = await revokePartnerInvite(mine.partner.id, String(inviteId ?? ""));
+  if (r.ok) revalidatePath(routes.alianzas);
+  return r;
+}
+
+/** «Sí es mío» / «No lo conozco» sobre un registro pendiente. */
+export async function reviewMyClientAction(hecomClienteId: string, approve: boolean): Promise<MyPartnerResult> {
+  const mine = await myPartner();
+  if (!mine.ok) return mine;
+  const r = await reviewPartnerClient({ partner: mine.partner, hecomClienteId, approve: approve === true });
+  if (r.ok) revalidatePath(routes.alianzas);
+  return r;
 }

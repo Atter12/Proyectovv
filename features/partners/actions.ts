@@ -96,7 +96,11 @@ export async function savePartnerAction(input: PartnerInput): Promise<PartnerAct
   }
   // Fee preferencial: también para los clientes que el aliado ya tiene.
   if (input.id && clientFee != null) {
-    const { data: clients } = await admin.from("partner_clients").select("hecom_cliente_id").eq("partner_id", input.id);
+    const { data: clients } = await admin
+      .from("partner_clients")
+      .select("hecom_cliente_id")
+      .eq("partner_id", input.id)
+      .eq("status", "approved");
     const applied = await applyPartnerClientFee({
       hecomClienteIds: (clients ?? []).map((c) => String(c.hecom_cliente_id)),
       feePercent: clientFee,
@@ -151,6 +155,13 @@ export async function assignClientToPartnerAction(partnerId: string, email: stri
   const now = new Date();
   const expires = new Date(now);
   expires.setDate(expires.getDate() + Number(partner.commission_days));
+  // Registro pendiente de este mismo aliado: gerencia lo confirma.
+  await admin
+    .from("partner_clients")
+    .delete()
+    .eq("partner_id", partnerId)
+    .eq("hecom_cliente_id", String(matches[0]!.id))
+    .eq("status", "pending");
   const { error } = await admin.from("partner_clients").insert({
     partner_id: partnerId,
     hecom_cliente_id: String(matches[0]!.id),

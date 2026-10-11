@@ -118,8 +118,9 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Código de aliado o referido: viene lleno si llegó por link, o se escribe a mano.
-  const [promoCode, setPromoCode] = useState(() => (partnerSlug ?? referralCode ?? "").toUpperCase());
+  // Código de invitación del aliado o de referido. El link del aliado (?a=) va
+  // aparte: no es un código y no se escribe aquí.
+  const [promoCode, setPromoCode] = useState(() => (referralCode ?? "").toUpperCase());
   const [promo, setPromo] = useState<PromoState>({ status: "idle" });
 
   useEffect(() => {

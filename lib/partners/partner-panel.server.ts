@@ -12,6 +12,26 @@ export type PartnerPanelClient = {
   commissionCents: number;
 };
 
+/** Registro por link o código que el aliado todavía no confirma. */
+export type PartnerPanelPending = {
+  hecomClienteId: string;
+  /** Nombre completo: el aliado tiene que poder reconocer a su gente. */
+  name: string;
+  emailMasked: string;
+  registeredAt: string;
+  inviteCode: string | null;
+};
+
+export type PartnerPanelInvite = {
+  id: string;
+  code: string;
+  note: string | null;
+  createdAt: string;
+  status: "open" | "used" | "revoked";
+  usedAt: string | null;
+  usedBy: string | null;
+};
+
 export type PartnerPanelData = {
   partner: { id: string; slug: string; name: string; commissionRate: number; commissionDays: number; status: "active" | "paused" };
   visits30d: number;
@@ -19,6 +39,8 @@ export type PartnerPanelData = {
   visitsTotal: number;
   topSources: Array<{ source: string; visits: number }>;
   clients: PartnerPanelClient[];
+  pending: PartnerPanelPending[];
+  invites: PartnerPanelInvite[];
   commissionPendingCents: number;
   commissionPaidCents: number;
   months: Array<{ month: string; commissionCents: number; status: "pending" | "paid" | "mixed" }>;
@@ -33,6 +55,13 @@ function maskName(name: string | null | undefined): string {
   return `${first}${initial}`;
 }
 
+/** «juanperez@gmail.com» → «ju•••@gmail.com». */
+function maskEmail(email: string | null | undefined): string {
+  const [user, domain] = String(email ?? "").split("@");
+  if (!user || !domain) return "";
+  return `${user.slice(0, 2)}•••@${domain}`;
+}
+
 export async function getPartnerPanelData(partnerId: string): Promise<PartnerPanelData | null> {
   const admin = createAdminClient();
   const { data: p } = await admin
@@ -43,12 +72,24 @@ export async function getPartnerPanelData(partnerId: string): Promise<PartnerPan
   if (!p) return null;
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-  const [{ data: visits30 }, { count: visitsTotal }, { data: clientRows }, { data: commissions }] = await Promise.all([
+  const [{ data: visits30 }, { count: visitsTotal }, { data: allClientRows }, { data: commissions }, { data: inviteRows }] = await Promise.all([
     admin.from("partner_visits").select("visitor_id,utm_source,referrer").eq("partner_id", partnerId).gte("visited_at", since).limit(50000),
     admin.from("partner_visits").select("id", { count: "exact", head: true }).eq("partner_id", partnerId),
-    admin.from("partner_clients").select("hecom_cliente_id,attributed_at,expires_at").eq("partner_id", partnerId).order("attributed_at", { ascending: false }),
+    admin
+      .from("partner_clients")
+      .select("hecom_cliente_id,attributed_at,expires_at,status,email,invite_code")
+      .eq("partner_id", partnerId)
+      .order("attributed_at", { ascending: false }),
     admin.from("partner_commissions").select("hecom_cliente_id,fee_cents,commission_cents,status,earned_at").eq("partner_id", partnerId).neq("status", "void"),
+    admin
+      .from("partner_invite_codes")
+      .select("id,code,note,created_at,used_at,used_hecom_cliente_id,revoked_at")
+      .eq("partner_id", partnerId)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+  const clientRows = (allClientRows ?? []).filter((c) => c.status !== "pending");
+  const pendingRows = (allClientRows ?? []).filter((c) => c.status === "pending");
 
   const sourceOf = (v: { utm_source: string | null; referrer: string | null }) => {
     if (v.utm_source) return v.utm_source.toLowerCase();
@@ -62,14 +103,17 @@ export async function getPartnerPanelData(partnerId: string): Promise<PartnerPan
   const bySource = new Map<string, number>();
   for (const v of visits30 ?? []) bySource.set(sourceOf(v), (bySource.get(sourceOf(v)) ?? 0) + 1);
 
-  const ids = (clientRows ?? []).map((c) => c.hecom_cliente_id);
+  const ids = [
+    ...(allClientRows ?? []).map((c) => c.hecom_cliente_id),
+    ...(inviteRows ?? []).map((i) => i.used_hecom_cliente_id).filter(Boolean),
+  ] as string[];
   const names = new Map<string, string>();
   if (ids.length) {
     const { data: hecomClientes } = await createHecomAdminClient().from("clientes").select("id,name").in("id", ids);
     for (const c of hecomClientes ?? []) names.set(String(c.id), String(c.name ?? ""));
   }
 
-  const clients: PartnerPanelClient[] = (clientRows ?? []).map((c) => {
+  const clients: PartnerPanelClient[] = clientRows.map((c) => {
     const mine = (commissions ?? []).filter((x) => x.hecom_cliente_id === c.hecom_cliente_id);
     return {
       displayName: maskName(names.get(c.hecom_cliente_id)),
@@ -104,6 +148,22 @@ export async function getPartnerPanelData(partnerId: string): Promise<PartnerPan
     visitsTotal: visitsTotal ?? 0,
     topSources: [...bySource.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([source, visits]) => ({ source, visits })),
     clients,
+    pending: pendingRows.map((c) => ({
+      hecomClienteId: c.hecom_cliente_id,
+      name: names.get(c.hecom_cliente_id) || "Sin nombre",
+      emailMasked: maskEmail(c.email),
+      registeredAt: c.attributed_at,
+      inviteCode: c.invite_code ?? null,
+    })),
+    invites: (inviteRows ?? []).map((i) => ({
+      id: i.id,
+      code: i.code,
+      note: i.note,
+      createdAt: i.created_at,
+      status: i.used_at ? "used" : i.revoked_at ? "revoked" : "open",
+      usedAt: i.used_at,
+      usedBy: i.used_hecom_cliente_id ? maskName(names.get(i.used_hecom_cliente_id)) : null,
+    })),
     commissionPendingCents: (commissions ?? []).filter((c) => c.status === "pending").reduce((s, c) => s + Number(c.commission_cents), 0),
     commissionPaidCents: (commissions ?? []).filter((c) => c.status === "paid").reduce((s, c) => s + Number(c.commission_cents), 0),
     months: [...monthMap.entries()]

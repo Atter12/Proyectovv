@@ -386,6 +386,7 @@ export async function registerHecomClientOtp(input: {
     partnerSlug: string | null;
     referralCode: string | null;
     visitorId: string | null;
+    inviteCode?: string | null;
   };
 }): Promise<
   | {

@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PARTNER_SLUG_RE, type Partner } from "./partners.shared";
+import { randomInt } from "crypto";
+import { normalizeInviteCode, PARTNER_INVITE_RE, PARTNER_SLUG_RE, type Partner } from "./partners.shared";
 import { applyPartnerClientFee } from "./partner-client-fee.server";
 import { notifyPartnerEvent } from "./partner-notify.server";
 
@@ -159,6 +160,8 @@ export async function recordSignupAttribution(input: {
   partnerSlug: string | null;
   referralCode: string | null;
   visitorId: string | null;
+  /** Código de invitación de un solo uso que escribió el cliente. */
+  inviteCode?: string | null;
 }): Promise<void> {
   const partner = await getActivePartnerBySlug(input.partnerSlug);
   const referralCode = input.referralCode && /^[a-zA-Z0-9_-]{2,64}$/.test(input.referralCode) ? input.referralCode : null;
@@ -179,12 +182,31 @@ export async function recordSignupAttribution(input: {
   const now = new Date();
   const expires = new Date(now);
   expires.setDate(expires.getDate() + partner.commissionDays);
+
+  // El código se gasta aquí (una sola vez). Si otro lo usó primero, igual queda pendiente.
+  let inviteCode: string | null = null;
+  const typedInvite = normalizeInviteCode(input.inviteCode);
+  if (PARTNER_INVITE_RE.test(typedInvite)) {
+    const { data: claimed } = await admin
+      .from("partner_invite_codes")
+      .update({ used_at: now.toISOString(), used_email: email, used_hecom_cliente_id: input.hecomClienteId })
+      .eq("code", typedInvite)
+      .eq("partner_id", partner.id)
+      .is("used_at", null)
+      .is("revoked_at", null)
+      .select("code");
+    inviteCode = claimed?.[0]?.code ?? null;
+  }
+
   // Un cliente es de un solo aliado: si ya tenía, se respeta el primero.
+  // Queda pendiente: cuenta (y paga el fee del aliado) recién cuando el aliado confirma que es suyo.
   const { error: clientError } = await admin.from("partner_clients").insert({
     partner_id: partner.id,
     hecom_cliente_id: input.hecomClienteId,
     email,
     source: "landing",
+    status: "pending",
+    invite_code: inviteCode,
     attributed_at: now.toISOString(),
     expires_at: expires.toISOString(),
   });
@@ -192,27 +214,131 @@ export async function recordSignupAttribution(input: {
     console.warn("[partners] partner_client_insert_failed", { error: clientError.message });
   }
   if (!clientError) {
-    // Alianza con fee preferencial: el cliente nuevo ya paga ese fee desde su primera recarga.
-    await applyPartnerClientFee({ hecomClienteIds: [input.hecomClienteId], feePercent: partner.clientFeePercent });
     await notifyPartnerEvent({ kind: "signup", partnerId: partner.id, clienteEmail: email, hecomClienteId: input.hecomClienteId });
   }
 }
 
+/**
+ * El aliado confirma que un registro pendiente es suyo: pasa a contar desde hoy
+ * y se le pone el fee del aliado. Si dice que no, deja de estar a su nombre.
+ */
+export async function reviewPartnerClient(input: {
+  partner: Pick<Partner, "id" | "commissionDays" | "clientFeePercent">;
+  hecomClienteId: string;
+  approve: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const id = String(input.hecomClienteId ?? "").trim();
+  if (!input.approve) {
+    const { error } = await admin
+      .from("partner_clients")
+      .delete()
+      .eq("partner_id", input.partner.id)
+      .eq("hecom_cliente_id", id)
+      .eq("status", "pending");
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setDate(expires.getDate() + input.partner.commissionDays);
+  const { data, error } = await admin
+    .from("partner_clients")
+    .update({ status: "approved", reviewed_at: now.toISOString(), attributed_at: now.toISOString(), expires_at: expires.toISOString() })
+    .eq("partner_id", input.partner.id)
+    .eq("hecom_cliente_id", id)
+    .eq("status", "pending")
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "Ese registro ya no está pendiente." };
+  const applied = await applyPartnerClientFee({ hecomClienteIds: [id], feePercent: input.partner.clientFeePercent });
+  if (!applied) return { ok: false, error: "Quedó confirmado, pero no se pudo poner su fee. Avísale a Holistic." };
+  return { ok: true };
+}
+
+const INVITE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const MAX_OPEN_INVITES = 50;
+
+/** Crea un código de invitación de un solo uso (JA-7K2PQ) para una persona. */
+export async function createPartnerInvite(input: {
+  partner: Pick<Partner, "id" | "slug">;
+  note: string | null;
+}): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("partner_invite_codes")
+    .select("id", { count: "exact", head: true })
+    .eq("partner_id", input.partner.id)
+    .is("used_at", null)
+    .is("revoked_at", null);
+  if ((count ?? 0) >= MAX_OPEN_INVITES) {
+    return { ok: false, error: `Tienes ${MAX_OPEN_INVITES} códigos sin usar. Anula alguno antes de crear otro.` };
+  }
+  const prefix =
+    input.partner.slug
+      .split("-")
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((w) => w[0]!.toUpperCase())
+      .join("") || "AH";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let tail = "";
+    for (let i = 0; i < 5; i++) tail += INVITE_ALPHABET[randomInt(INVITE_ALPHABET.length)];
+    const code = `${prefix}-${tail}`;
+    const { error } = await admin
+      .from("partner_invite_codes")
+      .insert({ partner_id: input.partner.id, code, note: input.note });
+    if (!error) return { ok: true, code };
+    if (error.code !== "23505") return { ok: false, error: error.message };
+  }
+  return { ok: false, error: "No se pudo crear el código. Vuelve a intentar." };
+}
+
+/** Anula un código que todavía no se usó. */
+export async function revokePartnerInvite(partnerId: string, inviteId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await createAdminClient()
+    .from("partner_invite_codes")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", inviteId)
+    .eq("partner_id", partnerId)
+    .is("used_at", null)
+    .is("revoked_at", null)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  return data?.length ? { ok: true } : { ok: false, error: "Ese código ya se usó o ya estaba anulado." };
+}
+
 export type SignupCode =
-  | { kind: "partner"; slug: string; label: string }
+  | { kind: "partner"; slug: string; label: string; inviteCode: string }
   | { kind: "referral"; code: string };
 
 /**
- * Código que el cliente escribe al registrarse. El código de un aliado es su
- * link (JERSON-ARTEZANO = /a/jerson-artezano); si no es de un aliado, se busca
- * en los códigos de referido activos. Null = no existe o está inactivo.
+ * Código que el cliente escribe al registrarse: primero un código de invitación
+ * de un solo uso de un aliado (sin usar ni anular); si no, un código de
+ * referido activo. Null = no existe, ya se usó o está inactivo.
  */
 export async function resolveSignupCode(raw: string | null | undefined): Promise<SignupCode | null> {
   const typed = String(raw ?? "").trim();
   if (!typed || typed.length > 64) return null;
 
-  const partner = await getActivePartnerBySlug(typed.toLowerCase().replace(/[\s_]+/g, "-"));
-  if (partner) return { kind: "partner", slug: partner.slug, label: partner.companyName || partner.name };
+  const invite = normalizeInviteCode(typed);
+  if (PARTNER_INVITE_RE.test(invite)) {
+    const { data } = await createAdminClient()
+      .from("partner_invite_codes")
+      .select("code,partner_id")
+      .eq("code", invite)
+      .is("used_at", null)
+      .is("revoked_at", null)
+      .maybeSingle<{ code: string; partner_id: string }>();
+    if (data) {
+      const { data: p } = await createAdminClient()
+        .from("partners")
+        .select("slug,name,company_name")
+        .eq("id", data.partner_id)
+        .eq("status", "active")
+        .maybeSingle<{ slug: string; name: string; company_name: string | null }>();
+      if (p) return { kind: "partner", slug: p.slug, label: p.company_name || p.name, inviteCode: data.code };
+    }
+  }
 
   if (!/^[a-zA-Z0-9_-]{2,64}$/.test(typed)) return null;
   const { data, error } = await createAdminClient()

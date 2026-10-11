@@ -2,6 +2,14 @@
 
 export const PARTNER_SLUG_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 
+/** Código de invitación de un solo uso: iniciales del aliado + 5 caracteres (JA-7K2PQ). */
+export const PARTNER_INVITE_RE = /^[A-Z0-9-]{4,24}$/;
+
+/** Lo que el cliente escribe → forma guardada (mayúsculas, sin espacios). */
+export function normalizeInviteCode(raw: string | null | undefined): string {
+  return String(raw ?? "").toUpperCase().replace(/\s+/g, "");
+}
+
 /** Cookies de la landing del aliado: quién lo trajo y un id anónimo de visitante. */
 export const PARTNER_COOKIE = "ah_partner";
 export const VISITOR_COOKIE = "ah_vid";

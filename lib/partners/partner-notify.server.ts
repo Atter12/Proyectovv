@@ -86,16 +86,16 @@ export async function notifyPartnerEvent(event: PartnerEvent): Promise<void> {
       const c = await clienteInfo(event.hecomClienteId);
       const name = c.name ?? event.clienteEmail;
       if (managers.length) {
-        await send(managers, `Nuevo registro por el link de ${brand}`, layout(`${esc(name)} se registró por el link de ${esc(who)}`, [
+        await send(managers, `Nuevo registro por el link de ${brand}`, layout(`${esc(name)} se registró por el link o código de ${esc(who)}`, [
           `Correo: ${esc(event.clienteEmail)}`,
-          `Queda a nombre del aliado durante ${p.commission_days} días: gana el ${pct}% del fee de sus recargas.`,
+          `Queda pendiente: cuenta para el aliado recién cuando él confirme que es suyo.`,
         ]), `partners:signup:${event.hecomClienteId}:managers`, event.kind);
       }
       if (aliado.email) {
-        await send(aliado.email, `🎉 Nuevo registro con tu link`, layout(`${esc(mask(name))} se registró con tu link`, [
-          `Desde ahora, por ${p.commission_days} días ganas el ${pct}% de lo que cobramos en sus recargas.`,
-          `Sigue compartiendo: <a href="${link}">${link.replace("https://", "")}</a>`,
-        ], { href: `${SITE}/alianzas`, label: "Ver mis números" }), `partners:signup:${event.hecomClienteId}:aliado`, event.kind);
+        await send(aliado.email, `Nuevo registro: confirma si es tuyo`, layout(`${esc(name)} se registró con tu link o código`, [
+          `Entra a tu panel y confirma si es de tu gente. Recién ahí queda a tu nombre${Number(p.commission_rate) > 0 ? ` y ganas el ${pct}% de lo que cobramos en sus recargas` : ""}.`,
+          `Si no lo conoces, márcalo como «No lo conozco».`,
+        ], { href: `${SITE}/alianzas`, label: "Confirmar registro" }), `partners:signup:${event.hecomClienteId}:aliado`, event.kind);
       }
       return;
     }

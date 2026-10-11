@@ -52,7 +52,9 @@ export async function syncPartnerCommissions(): Promise<{ scanned: number; creat
 
   const { data: clients, error } = await admin
     .from("partner_clients")
-    .select("partner_id,hecom_cliente_id,attributed_at,expires_at");
+    .select("partner_id,hecom_cliente_id,attributed_at,expires_at")
+    // Los pendientes no generan comisión hasta que el aliado confirma que son suyos.
+    .eq("status", "approved");
   if (error) throw new Error(error.message);
   if (!clients?.length) return { scanned: 0, created: 0 };
 
