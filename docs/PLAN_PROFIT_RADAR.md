@@ -466,10 +466,13 @@ rehace un día ya completo):
 `radar_ad_daily` tiene las métricas de ayer de todas las cuentas con gasto.
 
 ### Fase 2 · Perfil y rondas
-- [ ] `profile-seed.server.ts`, `tag-video.server.ts`, `rounds.ts`, `taste.ts` (+ tests de los puros)
-- [ ] Rutas `GET /radar`, `POST /profile`, `GET /round`, `POST /reactions`, `POST /video-dead`
-- [ ] Subruta `/profit/radar`, selector en el encabezado, tarjeta de primera visita
-- [ ] Pantallas de categorías y rondas, `TikTokEmbed.client.tsx`, CSP, i18n, bandera
+- [x] `profile-seed.server.ts`, `tag-video.server.ts`, `rounds.ts`, `taste.ts` (+ tests de los puros)
+- [x] Rutas `GET /radar`, `POST /profile`, `GET /round`, `POST /reactions`, `POST /video-dead`
+- [x] Subruta `/profit/radar` y selector Análisis · Radar en el encabezado de Profit
+- [x] Estructura elegida: **conversación guiada** (Impeccable, contrato en `.impeccable/surfaces/`). Línea "Tu perfil" fija, rubro → productos → quién sale en cámara → objetivo → consentimiento → ronda amplia (12, de a 3) → lo aprendido → ronda reducida (8, elegir) → listo
+- [x] `TikTokEmbed.client.tsx` (reproductor oficial, uno a la vez, reemplazo silencioso), CSP `frame-src` con tiktok.com, textos `profit.radar.*` en es/en/pt-BR, bandera y solo staff
+- [ ] Revisión visual en el navegador (requiere `.env.local`), revisión final de Impeccable y DESIGN.md
+- [ ] Tarjeta de primera visita en Profit (hoy solo el selector)
 
 **Hecho cuando:** un usuario de staff completa las dos rondas y su perfil de gusto queda guardado.
 

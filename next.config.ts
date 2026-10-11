@@ -32,7 +32,8 @@ const contentSecurityPolicy = [
     ...clerkCspHosts.connect,
   ].join(" "),
   [
-    "frame-src 'self' https://www.loom.com https://loom.com https://drive.google.com https://docs.google.com https://accounts.google.com",
+    // tiktok.com: reproductor oficial del Radar en Profit (tiktok.com/player/v1).
+    "frame-src 'self' https://www.loom.com https://loom.com https://drive.google.com https://docs.google.com https://accounts.google.com https://www.tiktok.com",
     ...clerkCspHosts.frames,
   ].join(" "),
   "frame-ancestors 'none'",

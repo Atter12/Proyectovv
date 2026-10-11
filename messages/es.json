@@ -1378,6 +1378,171 @@
     }
   },
   "profit": {
+    "radar": {
+      "switch": {
+        "label": "Secciones de Profit",
+        "analysis": "Análisis",
+        "radar": "Radar"
+      },
+      "title": "Radar",
+      "subtitle": "Videos que hoy funcionan en TikTok para tu rubro, para que armes los tuyos a tu manera.",
+      "skip": "Saltar por ahora",
+      "profileLine": "Tu perfil",
+      "profileEmpty": "Se arma solo mientras respondes.",
+      "speaker": {
+        "profit": "Profit",
+        "you": "Tú"
+      },
+      "intro": {
+        "withSummary": "{summary} ¿En qué rubro buscamos videos?",
+        "withProducts": "Vi que anuncias {products}. ¿En qué rubro buscamos videos?",
+        "plain": "Te voy a mostrar videos que hoy funcionan en TikTok para negocios como el tuyo. Primero, ¿en qué rubro estás?",
+        "suggested": "Sugerido",
+        "confirm": "Sí, es eso",
+        "choose": "Elige tu rubro"
+      },
+      "products": {
+        "ask": "¿Qué productos quieres anunciar? Quita los que no van y agrega otros.",
+        "add": "Agregar",
+        "placeholder": "Nombre del producto",
+        "remove": "Quitar {name}",
+        "continue": "Seguir",
+        "none": "Seguir sin productos",
+        "answer": "{products}",
+        "answerNone": "Prefiero no decir productos"
+      },
+      "appear": {
+        "ask": "¿Quién puede salir en tus videos? Así no te propongo algo que no puedas grabar.",
+        "owner": "Yo",
+        "team": "Alguien de mi equipo",
+        "hire": "Contrataría a alguien",
+        "nobody": "Nadie, solo el producto",
+        "continue": "Seguir"
+      },
+      "objective": {
+        "ask": "¿Qué buscas con tus anuncios?",
+        "messages": "Que me escriban por WhatsApp",
+        "sales": "Ventas en mi tienda o web",
+        "followers": "Más seguidores"
+      },
+      "consent": {
+        "ask": "Para encontrar lo que funciona, el Radar junta resultados de muchas cuentas y nunca muestra los de nadie. ¿Participas con los tuyos, también de forma anónima?",
+        "accept": "Sí, participo",
+        "decline": "Ahora no",
+        "answerYes": "Sí, participo con mis resultados",
+        "answerNo": "Por ahora no participo"
+      },
+      "round1": {
+        "intro": "Estos videos están funcionando en {category} estas semanas. Marca los que te gustaría hacer a tu manera.",
+        "more": "Bien, eso me ayuda. Aquí van tres más.",
+        "showMore": "Ver tres más",
+        "progress": "{done} de {total} marcados",
+        "finish": "Listo, sigamos",
+        "needMore": "Marca al menos {min} para seguir.",
+        "answer": "Marqué {liked, plural, one {# que me gusta} other {# que me gustan}} y {disliked, plural, one {# que no} other {# que no}}."
+      },
+      "learned": {
+        "intro": "Esto es lo que veo en tus respuestas:",
+        "none": "Todavía no veo un estilo claro. La siguiente selección me va a ayudar."
+      },
+      "round2": {
+        "intro": "Con eso armé una selección más cercana a ti. Elige los que quieras tomar como referencia: uno, varios o todos.",
+        "submit": "Usar como referencia",
+        "count": "{count, plural, =0 {Elige al menos uno} one {# elegido} other {# elegidos}}",
+        "answer": "Me quedo con {count, plural, one {este} other {estos #}}."
+      },
+      "done": {
+        "message": "Listo. Con lo que elegiste voy a armar tu receta: el gancho, la estructura y tres guiones para tu producto, sin copiar ningún video.",
+        "soon": "La receta llega en la próxima versión del Radar.",
+        "redo": "Rehacer mis preferencias"
+      },
+      "skipped": {
+        "message": "Cuando quieras armamos tu perfil. Toma menos de dos minutos.",
+        "start": "Empezar"
+      },
+      "region": "No encontré suficientes videos de Perú en tu rubro, así que también te muestro tendencias de la región.",
+      "emptyPool": "Todavía estoy juntando videos de tu rubro. Vuelve mañana y los tendré listos.",
+      "card": {
+        "like": "Me gusta",
+        "dislike": "No es para mí",
+        "pick": "Elegir",
+        "picked": "Elegido",
+        "play": "Ver video de {author}",
+        "openTikTok": "Ver en TikTok",
+        "unknownAuthor": "una cuenta de TikTok"
+      },
+      "errors": {
+        "load": "No pude cargar el Radar. Intenta de nuevo en un momento.",
+        "save": "No pude guardar tu respuesta. Intenta de nuevo.",
+        "retry": "Reintentar"
+      },
+      "categories": {
+        "HEALTH": "Salud y bienestar",
+        "BEAUTY_AND_PERSONAL_CARE": "Belleza y cuidado personal",
+        "APPAREL_AND_ACCESSORIES": "Moda y accesorios",
+        "HOME_IMPROVEMENT": "Hogar y decoración",
+        "HOUSEHOLD_PRODUCTS": "Productos para el hogar",
+        "FOOD_AND_BEVERAGE": "Comida y bebidas",
+        "TECHNOLOGY": "Tecnología",
+        "BABY_KIDS_AND_MATERNITY": "Bebés, niños y maternidad",
+        "PETS": "Mascotas",
+        "SPORTS_AND_OUTDOOR": "Deporte y aire libre",
+        "BUSINESS_SERVICES": "Servicios para negocios",
+        "EDUCATION": "Educación y cursos"
+      },
+      "tags": {
+        "presenter": {
+          "owner": "Dueño a cámara",
+          "presenter": "Presentador",
+          "hands_product": "Solo manos y producto",
+          "no_person": "Sin personas",
+          "avatar": "Avatar"
+        },
+        "production": {
+          "homemade": "Casero, con celular",
+          "produced": "Producido"
+        },
+        "format": {
+          "testimonial": "Testimonio",
+          "demo": "Demostración",
+          "before_after": "Antes y después",
+          "unboxing": "Unboxing",
+          "tutorial": "Tutorial",
+          "humor": "Humor",
+          "story": "Historia",
+          "pov": "POV"
+        },
+        "tone": {
+          "direct": "Tono directo",
+          "emotional": "Emocional",
+          "educational": "Educativo",
+          "funny": "Divertido",
+          "aspirational": "Aspiracional"
+        },
+        "pace": {
+          "fast": "Ritmo rápido",
+          "medium": "Ritmo medio",
+          "slow": "Ritmo pausado"
+        },
+        "audio": {
+          "talking": "Habla a cámara",
+          "voiceover": "Voz en off",
+          "trending_music": "Música de tendencia",
+          "text_only": "Solo texto"
+        },
+        "hook": {
+          "price": "Gancho con precio",
+          "problem": "Gancho con un problema",
+          "result": "Gancho con el resultado",
+          "question": "Gancho con pregunta",
+          "curiosity": "Gancho de curiosidad"
+        },
+        "positioning": {
+          "mass": "Masivo",
+          "premium": "Premium"
+        }
+      }
+    },
     "products": {
       "title": "Rendimiento por producto",
       "subtitle": "Qué producto conviene escalar y cuál apagar, según tus campañas del período.",

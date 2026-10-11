@@ -9,6 +9,7 @@ import {
 import {
   resolvePaymentsFundingCapabilities,
 } from "@/lib/payments/funding-roles.server";
+import { canSeeRadar } from "@/lib/radar/api-context.server";
 
 export default async function ProfitPage({
   searchParams,
@@ -38,6 +39,8 @@ export default async function ProfitPage({
     );
   }
 
+  const radar = await canSeeRadar(session);
+
   return (
     <div className={dashboardClasses.page}>
       <ProfitPageClient
@@ -45,6 +48,7 @@ export default async function ProfitPage({
         isStaff={isStaffViewer}
         initialFrom={initialFrom}
         initialTo={initialTo}
+        radarEnabled={radar.allowed}
       />
     </div>
   );

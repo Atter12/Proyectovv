@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
+import { ProfitSectionSwitch } from "@/features/profit/radar/components/ProfitSectionSwitch";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
@@ -813,11 +814,14 @@ export function ProfitPageClient({
   isStaff,
   initialFrom,
   initialTo,
+  radarEnabled = false,
 }: {
   clienteName: string;
   isStaff: boolean;
   initialFrom?: string;
   initialTo?: string;
+  /** Muestra el selector Análisis · Radar (PROFIT_RADAR_ENABLED). */
+  radarEnabled?: boolean;
 }) {
   const t = useTranslations("profit");
   const tCommon = useTranslations("common");
@@ -1084,6 +1088,11 @@ export function ProfitPageClient({
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
         />
+        {radarEnabled ? (
+          <div className="relative mb-4 flex justify-end sm:absolute sm:right-7 sm:top-6 sm:mb-0">
+            <ProfitSectionSwitch active="analysis" />
+          </div>
+        ) : null}
         <div className="relative">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
             {t("heroModule")}

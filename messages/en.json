@@ -1378,6 +1378,171 @@
     }
   },
   "profit": {
+    "radar": {
+      "switch": {
+        "label": "Profit sections",
+        "analysis": "Analysis",
+        "radar": "Radar"
+      },
+      "title": "Radar",
+      "subtitle": "Videos working on TikTok today for your industry, so you can make your own your way.",
+      "skip": "Skip for now",
+      "profileLine": "Your profile",
+      "profileEmpty": "It builds itself as you answer.",
+      "speaker": {
+        "profit": "Profit",
+        "you": "You"
+      },
+      "intro": {
+        "withSummary": "{summary} Which industry should we look in?",
+        "withProducts": "I saw you advertise {products}. Which industry should we look in?",
+        "plain": "I'll show you videos working on TikTok today for businesses like yours. First, what's your industry?",
+        "suggested": "Suggested",
+        "confirm": "Yes, that's it",
+        "choose": "Choose your industry"
+      },
+      "products": {
+        "ask": "Which products do you want to advertise? Remove the ones that don't fit and add others.",
+        "add": "Add",
+        "placeholder": "Product name",
+        "remove": "Remove {name}",
+        "continue": "Continue",
+        "none": "Continue without products",
+        "answer": "{products}",
+        "answerNone": "I'd rather not name products"
+      },
+      "appear": {
+        "ask": "Who can appear in your videos? That way I won't suggest something you can't film.",
+        "owner": "Me",
+        "team": "Someone on my team",
+        "hire": "I'd hire someone",
+        "nobody": "Nobody, just the product",
+        "continue": "Continue"
+      },
+      "objective": {
+        "ask": "What do you want from your ads?",
+        "messages": "Messages on WhatsApp",
+        "sales": "Sales in my store or website",
+        "followers": "More followers"
+      },
+      "consent": {
+        "ask": "To find what works, Radar pools results from many accounts and never shows anyone's. Will you take part with yours, also anonymously?",
+        "accept": "Yes, I'm in",
+        "decline": "Not now",
+        "answerYes": "Yes, I'll share my results",
+        "answerNo": "Not taking part for now"
+      },
+      "round1": {
+        "intro": "These videos are working in {category} these weeks. Mark the ones you'd like to make your own way.",
+        "more": "Good, that helps. Here are three more.",
+        "showMore": "Show three more",
+        "progress": "{done} of {total} marked",
+        "finish": "Done, let's continue",
+        "needMore": "Mark at least {min} to continue.",
+        "answer": "I liked {liked} and passed on {disliked}."
+      },
+      "learned": {
+        "intro": "Here's what I see in your answers:",
+        "none": "I don't see a clear style yet. The next selection will help."
+      },
+      "round2": {
+        "intro": "With that I put together a selection closer to you. Pick the ones you want as reference: one, several or all.",
+        "submit": "Use as reference",
+        "count": "{count, plural, =0 {Pick at least one} one {# picked} other {# picked}}",
+        "answer": "I'll keep {count, plural, one {this one} other {these #}}."
+      },
+      "done": {
+        "message": "Done. With your picks I'll build your recipe: the hook, the structure and three scripts for your product, without copying any video.",
+        "soon": "The recipe arrives in the next version of Radar.",
+        "redo": "Redo my preferences"
+      },
+      "skipped": {
+        "message": "Whenever you want, we'll build your profile. It takes under two minutes.",
+        "start": "Start"
+      },
+      "region": "I didn't find enough videos from Peru in your industry, so I'm also showing regional trends.",
+      "emptyPool": "I'm still gathering videos for your industry. Come back tomorrow and they'll be ready.",
+      "card": {
+        "like": "I like it",
+        "dislike": "Not for me",
+        "pick": "Pick",
+        "picked": "Picked",
+        "play": "Play video by {author}",
+        "openTikTok": "View on TikTok",
+        "unknownAuthor": "a TikTok account"
+      },
+      "errors": {
+        "load": "I couldn't load Radar. Try again in a moment.",
+        "save": "I couldn't save your answer. Try again.",
+        "retry": "Try again"
+      },
+      "categories": {
+        "HEALTH": "Health and wellness",
+        "BEAUTY_AND_PERSONAL_CARE": "Beauty and personal care",
+        "APPAREL_AND_ACCESSORIES": "Fashion and accessories",
+        "HOME_IMPROVEMENT": "Home and decor",
+        "HOUSEHOLD_PRODUCTS": "Household products",
+        "FOOD_AND_BEVERAGE": "Food and drinks",
+        "TECHNOLOGY": "Technology",
+        "BABY_KIDS_AND_MATERNITY": "Babies, kids and maternity",
+        "PETS": "Pets",
+        "SPORTS_AND_OUTDOOR": "Sports and outdoors",
+        "BUSINESS_SERVICES": "Business services",
+        "EDUCATION": "Education and courses"
+      },
+      "tags": {
+        "presenter": {
+          "owner": "Owner on camera",
+          "presenter": "Presenter",
+          "hands_product": "Hands and product only",
+          "no_person": "No people",
+          "avatar": "Avatar"
+        },
+        "production": {
+          "homemade": "Homemade, on a phone",
+          "produced": "Produced"
+        },
+        "format": {
+          "testimonial": "Testimonial",
+          "demo": "Demo",
+          "before_after": "Before and after",
+          "unboxing": "Unboxing",
+          "tutorial": "Tutorial",
+          "humor": "Humor",
+          "story": "Story",
+          "pov": "POV"
+        },
+        "tone": {
+          "direct": "Direct tone",
+          "emotional": "Emotional",
+          "educational": "Educational",
+          "funny": "Funny",
+          "aspirational": "Aspirational"
+        },
+        "pace": {
+          "fast": "Fast pace",
+          "medium": "Medium pace",
+          "slow": "Slow pace"
+        },
+        "audio": {
+          "talking": "Talking to camera",
+          "voiceover": "Voiceover",
+          "trending_music": "Trending music",
+          "text_only": "Text only"
+        },
+        "hook": {
+          "price": "Price hook",
+          "problem": "Problem hook",
+          "result": "Result hook",
+          "question": "Question hook",
+          "curiosity": "Curiosity hook"
+        },
+        "positioning": {
+          "mass": "Mass market",
+          "premium": "Premium"
+        }
+      }
+    },
     "products": {
       "title": "Performance by product",
       "subtitle": "Which product to scale and which to turn off, based on your campaigns in this period.",
