@@ -1378,6 +1378,34 @@
     }
   },
   "profit": {
+    "ads": {
+      "title": "Performance by ad",
+      "subtitle": "Every ad with spend in the range, from data saved from TikTok every night.",
+      "dataThrough": "Data through {date}",
+      "average": "Your average: {amount} per result",
+      "columns": {
+        "ad": "Ad",
+        "spend": "Spend",
+        "ctr": "CTR",
+        "results": "Results",
+        "cpr": "Cost per result",
+        "hold2": "Still watching at 2 s",
+        "hold6": "Still watching at 6 s",
+        "days": "Days"
+      },
+      "sortBy": "Sort by {column}",
+      "vs": {
+        "better": "{pct}% cheaper",
+        "worse": "{pct}% more expensive",
+        "same": "At your average"
+      },
+      "holdHint": "Of the people who start the video, the share still watching at 2 and 6 seconds.",
+      "showAll": "Show all {count}",
+      "showLess": "Show less",
+      "empty": "No per-ad metrics in this range yet. They are saved every night.",
+      "error": "I couldn't load the ads.",
+      "retry": "Try again"
+    },
     "radar": {
       "invite": {
         "title": "Find out which videos are worth filming",

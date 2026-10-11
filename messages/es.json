@@ -1378,6 +1378,34 @@
     }
   },
   "profit": {
+    "ads": {
+      "title": "Rendimiento por anuncio",
+      "subtitle": "Cada anuncio con gasto en el rango, con datos que se guardan cada madrugada desde TikTok.",
+      "dataThrough": "Datos hasta el {date}",
+      "average": "Tu promedio: {amount} por resultado",
+      "columns": {
+        "ad": "Anuncio",
+        "spend": "Gasto",
+        "ctr": "CTR",
+        "results": "Resultados",
+        "cpr": "Costo por resultado",
+        "hold2": "Siguen a los 2 s",
+        "hold6": "Siguen a los 6 s",
+        "days": "Días"
+      },
+      "sortBy": "Ordenar por {column}",
+      "vs": {
+        "better": "{pct}% más barato",
+        "worse": "{pct}% más caro",
+        "same": "En tu promedio"
+      },
+      "holdHint": "De quienes empiezan el video, qué parte sigue viéndolo a los 2 y a los 6 segundos.",
+      "showAll": "Ver los {count}",
+      "showLess": "Ver menos",
+      "empty": "Todavía no hay métricas por anuncio en este rango. Se guardan cada madrugada.",
+      "error": "No pude cargar los anuncios.",
+      "retry": "Reintentar"
+    },
     "radar": {
       "invite": {
         "title": "Descubre qué videos te convienen grabar",

@@ -2,6 +2,7 @@ import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { fetchCampaignPerformanceForAdvertisers } from "@/lib/integrations/tiktok/campaign-performance.server";
+import { fetchCampaignPerformancePreferStored } from "@/lib/radar/stored-campaign-perf.server";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
   defaultProfitDateRange,
@@ -884,7 +885,8 @@ export async function loadClienteProfitPromo(input: {
     .map((a) => (a.externalAccountId ?? "").trim())
     .filter(Boolean);
 
-  const perfPromise = fetchCampaignPerformanceForAdvertisers({
+  // Desde radar_ad_daily si los procesos diarios cubren el rango; si no, en vivo.
+  const perfPromise = fetchCampaignPerformancePreferStored({
     advertiserIds,
     from: range.from,
     to: range.to,
@@ -894,7 +896,7 @@ export async function loadClienteProfitPromo(input: {
   const uiCoversScoreWindow = range.from === from30 && range.to === today;
   const scorePerfPromise = uiCoversScoreWindow
     ? perfPromise
-    : fetchCampaignPerformanceForAdvertisers({
+    : fetchCampaignPerformancePreferStored({
         advertiserIds,
         from: from30,
         to: today,

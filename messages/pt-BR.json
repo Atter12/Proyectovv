@@ -1378,6 +1378,34 @@
     }
   },
   "profit": {
+    "ads": {
+      "title": "Desempenho por anúncio",
+      "subtitle": "Cada anúncio com gasto no período, com dados salvos do TikTok toda madrugada.",
+      "dataThrough": "Dados até {date}",
+      "average": "Sua média: {amount} por resultado",
+      "columns": {
+        "ad": "Anúncio",
+        "spend": "Gasto",
+        "ctr": "CTR",
+        "results": "Resultados",
+        "cpr": "Custo por resultado",
+        "hold2": "Seguem aos 2 s",
+        "hold6": "Seguem aos 6 s",
+        "days": "Dias"
+      },
+      "sortBy": "Ordenar por {column}",
+      "vs": {
+        "better": "{pct}% mais barato",
+        "worse": "{pct}% mais caro",
+        "same": "Na sua média"
+      },
+      "holdHint": "De quem começa o vídeo, a parte que continua assistindo aos 2 e aos 6 segundos.",
+      "showAll": "Ver os {count}",
+      "showLess": "Ver menos",
+      "empty": "Ainda não há métricas por anúncio neste período. Elas são salvas toda madrugada.",
+      "error": "Não consegui carregar os anúncios.",
+      "retry": "Tentar de novo"
+    },
     "radar": {
       "invite": {
         "title": "Descubra quais vídeos vale a pena gravar",

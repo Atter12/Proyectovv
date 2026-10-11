@@ -486,8 +486,10 @@ rehace un día ya completo):
 **Hecho cuando:** la receta sale en menos de 30 s, con 3 guiones que pasan el filtro anti-copia.
 
 ### Fase 4 · Profit más rápido, Radar agregado y diseño
-- [ ] Profit lee métricas de `radar_ad_daily` en lugar de consultar TikTok en vivo
-- [ ] Ganadores agregados por rubro (≥5 cuentas) alimentan la receta y las referencias de costo
+- [x] Tabla "Rendimiento por anuncio" en Profit (`ProfitAdsTable.client.tsx`, `GET /api/profit/ads`): gasto, CTR, resultados, costo por resultado vs. el promedio del cliente, retención a 2 s y 6 s, días; ordenable; desde `radar_ad_daily`
+- [x] Profit arma el rendimiento por campaña desde `radar_ad_daily` cuando las corridas completas de ad-daily cubren todo el rango (`stored-campaign-perf.server.ts`); si falta un día, consulta en vivo como antes. Solo con `RADAR_JOBS_ENABLED`. La ventana del puntaje (30 días hasta hoy) sigue en vivo porque incluye el día en curso
+- [x] Referencias de costo por rubro (≥5 clientes) en la receta (Fase 3)
+- [ ] Ganadores por rubro a partir de anuncios (necesita etiquetar los videos de los anuncios de clientes)
 - [ ] Mejora de diseño de Profit (naranja como acento, botón carbón, jerarquía)
 - [ ] Lanzamiento a clientes (quitar el filtro de staff)
 

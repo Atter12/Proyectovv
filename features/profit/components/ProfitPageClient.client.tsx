@@ -30,6 +30,11 @@ const ProductPerformancePanel = dynamic(
   { ssr: false, loading: () => null },
 );
 
+const ProfitAdsTable = dynamic(
+  () => import("@/features/profit/components/ProfitAdsTable.client").then((m) => m.ProfitAdsTable),
+  { ssr: false, loading: () => null },
+);
+
 function ProfitAdvisorBotFallback() {
   const t = useTranslations("profit");
   return (
@@ -1344,6 +1349,8 @@ export function ProfitPageClient({
           ) : null}
 
           <ProductPerformancePanel campaigns={analysis.campaigns} />
+          {/* Por anuncio, desde radar_ad_daily (Fase 4 del Radar). */}
+          {radarEnabled && from && to ? <ProfitAdsTable from={from} to={to} /> : null}
 
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
