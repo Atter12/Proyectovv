@@ -1378,6 +1378,50 @@
     }
   },
   "profit": {
+    "pilot": {
+      "title": "Pilot",
+      "subtitle": "Suggestions about your ads from the last 14 days. Nothing changes until you confirm.",
+      "average": "Your average: {amount} per result",
+      "kinds": {
+        "pause_loser_same_group": {
+          "title": "Pause “{loser}”",
+          "body": "“{winner}” gets results at {winnerCpr} while “{loser}”, in the same group, costs you {loserCpr}. Pause it and the group's budget goes to the winner.",
+          "bodyNoResults": "“{winner}” gets results at {winnerCpr} while “{loser}”, in the same group, hasn't gotten any. Pause it and the group's budget goes to the winner."
+        },
+        "pause_loser": {
+          "title": "Pause “{loser}”",
+          "body": "It costs you {loserCpr} per result, well above your {avg} average.",
+          "bodyNoResults": "It spent {spend} without any results."
+        },
+        "scale_winner": {
+          "title": "“{winner}” is winning",
+          "body": "It gets results {pct}% cheaper than your average. You can raise its group's budget by up to {max}% in TikTok Ads Manager and wait 2 days before another change."
+        },
+        "refresh_fatigued": {
+          "title": "“{ad}” is wearing out",
+          "body": "Its CTR dropped {pct}% from its first days. Film a new version with your Radar recipe before it stops selling."
+        },
+        "all_losing": {
+          "title": "No ad is performing",
+          "body": "Moving money between losing ads won't help. Try new videos with your Radar recipe."
+        }
+      },
+      "actions": {
+        "pause": "Pause “{name}”",
+        "confirm": "Yes, pause",
+        "confirmText": "It gets paused on TikTok and you can turn it back on anytime.",
+        "cancel": "Cancel",
+        "dismiss": "Not now",
+        "toRadar": "Go to Radar",
+        "done": "Done, “{name}” is paused.",
+        "viewOnly": "Your user can only view these suggestions.",
+        "actionsOff": "To pause from here, ask your manager. Meanwhile you can do it in TikTok Ads Manager."
+      },
+      "empty": "Nothing to change for now: your ads are within normal range or still learning.",
+      "rules": "It never acts on its own, doesn't touch ads still learning and never raises budgets by itself.",
+      "error": "I couldn't load the suggestions.",
+      "retry": "Try again"
+    },
     "ads": {
       "title": "Performance by ad",
       "subtitle": "Every ad with spend in the range, from data saved from TikTok every night.",

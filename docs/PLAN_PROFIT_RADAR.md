@@ -493,10 +493,21 @@ rehace un día ya completo):
 - [ ] Mejora de diseño de Profit (naranja como acento, botón carbón, jerarquía)
 - [ ] Lanzamiento a clientes (quitar el filtro de staff)
 
-### Fase 5 · Piloto (después)
-Propuestas con confirmación del cliente: pausar el perdedor, subir el grupo ganador (máx. 50%,
-cada 2 días, fuera de la fase de aprendizaje, nunca sin saldo). Detalle de escenarios en la
-página para el equipo.
+### Fase 5 · Piloto
+- [x] `lib/radar/pilot.ts` (puro, 7 tests): con los últimos 14 días por anuncio propone
+  pausar el perdedor del mismo grupo que un ganador, pausar perdedores, escalar ganadores
+  (recomendación, máx. 50%), renovar anuncios cansados (CTR −30% frente a sus primeros días)
+  y "todo pierde" (cambiar de creativo). Nada en aprendizaje: 4 días con gasto y $15 mínimo;
+  solo anuncios que gastaron en los últimos 2 días; máximo 4 propuestas
+- [x] `GET|POST /api/profit/pilot`: el servidor recalcula y revalida todo; el navegador solo
+  manda el id. Ver: `adAccounts:read`. Confirmar o descartar: `adAccounts:create`
+- [x] Única acción ejecutable: **pausar** (`/ad/status/update/`, DISABLE, reversible), detrás
+  de `PILOT_ACTIONS_ENABLED` (apagado por defecto) y comprobando que la cuenta es del cliente.
+  Subir presupuesto nunca se ejecuta: el Copiloto no compromete saldo
+- [x] Auditoría en `radar_pilot_actions` (migración 063): quién, qué, cuándo, respuesta de
+  TikTok; lo hecho o descartado no se vuelve a proponer por 7 días
+- [x] Panel "Piloto" en Profit con confirmación en dos pasos y "Ahora no"
+- [ ] Probar la pausa con una cuenta de prueba antes de encender `PILOT_ACTIONS_ENABLED`
 
 ---
 
@@ -513,6 +524,7 @@ página para el equipo.
 | `RADAR_DISCOVERY_DATE_RANGE` | `30DAY` | Ventana de tendencia |
 | `RADAR_HASHTAGS_PER_CATEGORY` | `10` | Hashtags por categoría y país en `video_list` (máx. 10) |
 | `RADAR_TIKTOK_QPS` | `5` | Freno de los procesos del Radar (máx. 9) |
+| `PILOT_ACTIONS_ENABLED` | `false` | Permite que el cliente confirme "pausar anuncio" y se ejecute en TikTok |
 
 ---
 

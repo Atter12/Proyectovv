@@ -389,6 +389,11 @@ export const serverEnv = {
   })(),
   /** Hashtags por categoría y país que se consultan en video_list (máx. 10). */
   radarHashtagsPerCategory: Math.min(10, Math.max(1, parseInteger(process.env.RADAR_HASHTAGS_PER_CATEGORY, 10))),
+  /**
+   * Piloto: si es true, el cliente puede confirmar "pausar anuncio" y se
+   * ejecuta en TikTok (/ad/status/update/). Si es false, solo ve propuestas.
+   */
+  pilotActionsEnabled: parseBoolean(process.env.PILOT_ACTIONS_ENABLED, false),
   /** Freno de los procesos del Radar hacia TikTok (consultas por segundo). */
   radarTiktokQps: Math.min(9, Math.max(1, parseInteger(process.env.RADAR_TIKTOK_QPS, 5))),
   /**

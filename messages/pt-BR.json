@@ -1378,6 +1378,50 @@
     }
   },
   "profit": {
+    "pilot": {
+      "title": "Piloto",
+      "subtitle": "Sugestões sobre seus anúncios dos últimos 14 dias. Nada muda até você confirmar.",
+      "average": "Sua média: {amount} por resultado",
+      "kinds": {
+        "pause_loser_same_group": {
+          "title": "Pause “{loser}”",
+          "body": "“{winner}” consegue resultados a {winnerCpr} e “{loser}”, no mesmo grupo, custa {loserCpr}. Se você pausar, o orçamento do grupo vai para o que está ganhando.",
+          "bodyNoResults": "“{winner}” consegue resultados a {winnerCpr} e “{loser}”, no mesmo grupo, não conseguiu nenhum. Se você pausar, o orçamento do grupo vai para o que está ganhando."
+        },
+        "pause_loser": {
+          "title": "Pause “{loser}”",
+          "body": "Custa {loserCpr} por resultado, bem acima da sua média de {avg}.",
+          "bodyNoResults": "Gastou {spend} sem conseguir resultados."
+        },
+        "scale_winner": {
+          "title": "“{winner}” está ganhando",
+          "body": "Consegue resultados {pct}% mais barato que a sua média. Você pode aumentar o orçamento do grupo em até {max}% no TikTok Ads Manager e esperar 2 dias antes de outra mudança."
+        },
+        "refresh_fatigued": {
+          "title": "“{ad}” está cansando",
+          "body": "O CTR caiu {pct}% em relação aos primeiros dias. Grave uma versão nova com sua receita do Radar antes que pare de vender."
+        },
+        "all_losing": {
+          "title": "Nenhum anúncio está rendendo",
+          "body": "Não vale mover dinheiro entre anúncios que perdem. Teste vídeos novos com sua receita do Radar."
+        }
+      },
+      "actions": {
+        "pause": "Pausar “{name}”",
+        "confirm": "Sim, pausar",
+        "confirmText": "É pausado no TikTok e você pode reativar quando quiser.",
+        "cancel": "Cancelar",
+        "dismiss": "Agora não",
+        "toRadar": "Ir ao Radar",
+        "done": "Pronto, “{name}” foi pausado.",
+        "viewOnly": "Seu usuário só pode ver estas sugestões.",
+        "actionsOff": "Para pausar daqui, peça ao seu gerente. Enquanto isso, você pode fazer no TikTok Ads Manager."
+      },
+      "empty": "Nada a mudar por agora: seus anúncios estão dentro do normal ou ainda aprendendo.",
+      "rules": "Nunca age sozinho, não mexe em anúncios em aprendizado e não aumenta orçamentos por conta própria.",
+      "error": "Não consegui carregar as sugestões.",
+      "retry": "Tentar de novo"
+    },
     "ads": {
       "title": "Desempenho por anúncio",
       "subtitle": "Cada anúncio com gasto no período, com dados salvos do TikTok toda madrugada.",
