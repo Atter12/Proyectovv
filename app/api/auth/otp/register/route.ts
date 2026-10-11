@@ -3,6 +3,7 @@ import { registerHecomClientOtp } from "@/lib/auth/hecom-otp.server";
 import { isRegisterCountry } from "@/lib/auth/register-countries.shared";
 import { HECOM_OTP_COOLDOWN_SECONDS } from "@/lib/auth/hecom-otp-email";
 import { logHecomOtp, maskEmail } from "@/lib/auth/hecom-otp-log.server";
+import { resolveSignupCode } from "@/lib/partners/partners.server";
 
 export async function POST(request: NextRequest) {
   let body: {
@@ -13,6 +14,8 @@ export async function POST(request: NextRequest) {
     /** Slug del aliado (landing /a/<slug>) o código de referido (/r/<code>). */
     partner?: string;
     referralCode?: string;
+    /** Código que el cliente escribió (aliado o referido); manda sobre el link. */
+    promoCode?: string;
     /** PE, CO, EC o BR. */
     country?: string;
   };
@@ -26,6 +29,16 @@ export async function POST(request: NextRequest) {
   const emailMasked = maskEmail(body.email ?? "");
   logHecomOtp("info", "api_register_hit", { email: emailMasked });
 
+  // Código escrito a mano: se valida antes de crear la cuenta para que no se pierda.
+  const typedCode = typeof body.promoCode === "string" ? body.promoCode.trim() : "";
+  const promo = typedCode ? await resolveSignupCode(typedCode) : null;
+  if (typedCode && !promo) {
+    return NextResponse.json(
+      { error: "Ese código no existe o ya no está activo. Revísalo o déjalo vacío." },
+      { status: 400 },
+    );
+  }
+
   const result = await registerHecomClientOtp({
     name: body.name ?? "",
     dni: body.dni ?? "",
@@ -34,8 +47,13 @@ export async function POST(request: NextRequest) {
     country: isRegisterCountry(body.country) ? body.country : "PE",
     // El formulario los manda; las cookies cubren el caso en que no llegaron.
     attribution: {
-      partnerSlug: body.partner || request.cookies.get("ah_partner")?.value || null,
+      partnerSlug:
+        (promo?.kind === "partner" ? promo.slug : null) ||
+        body.partner ||
+        request.cookies.get("ah_partner")?.value ||
+        null,
       referralCode:
+        (promo?.kind === "referral" ? promo.code : null) ||
         body.referralCode ||
         decodeURIComponent(request.cookies.get("vv_referral_code")?.value ?? "") ||
         null,

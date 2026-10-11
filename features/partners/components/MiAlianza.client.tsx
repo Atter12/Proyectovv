@@ -58,6 +58,7 @@ export function MiAlianza({ partner, panel }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState<MyPartnerImageKind | null>(null);
 
@@ -99,6 +100,17 @@ export function MiAlianza({ partner, panel }: Props) {
       setTimeout(() => setCopied(false), 1600);
     } catch {
       window.prompt("Copia tu link:", link);
+    }
+  };
+
+  const copyCode = async () => {
+    const code = partner.slug.toUpperCase();
+    try {
+      await navigator.clipboard.writeText(code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1600);
+    } catch {
+      window.prompt("Copia tu código:", code);
     }
   };
 
@@ -160,6 +172,21 @@ export function MiAlianza({ partner, panel }: Props) {
               Ver mi landing
             </a>
           </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-2 border-t border-[#f2ece5] pt-3 sm:flex-row sm:items-center">
+          <p className="text-[13px] text-[#6b645c] sm:flex-1">
+            O que pongan tu <strong className="text-[#1a1714]">código</strong> al registrarse:
+            <code className="ml-2 rounded-lg bg-[#fff6ef] px-2 py-1 text-[14px] font-bold tracking-wide text-[#c2410c]">
+              {partner.slug.toUpperCase()}
+            </code>
+          </p>
+          <button
+            type="button"
+            onClick={copyCode}
+            className="h-9 rounded-xl border border-[#e3dbd1] px-4 text-[13px] font-semibold text-[#3a332d] transition hover:bg-[#f7f5f2]"
+          >
+            {codeCopied ? "Copiado ✓" : "Copiar código"}
+          </button>
         </div>
       </section>
 

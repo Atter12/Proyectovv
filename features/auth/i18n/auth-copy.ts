@@ -60,6 +60,12 @@ export type AuthCopy = {
     email: string;
     emailPlaceholder: string;
     referral: string;
+    promoLabel: string;
+    promoPlaceholder: string;
+    promoChecking: string;
+    promoPartner: string;
+    promoReferral: string;
+    promoInvalid: string;
     errFirstName: string;
     errLastName: string;
     errDni: string;
@@ -160,6 +166,12 @@ const es: AuthCopy = {
     email: "Correo electrónico",
     emailPlaceholder: "tu@correo.com",
     referral: "Código de referido:",
+    promoLabel: "Código de aliado o promoción (opcional)",
+    promoPlaceholder: "Ej. JERSON-ARTEZANO",
+    promoChecking: "Revisando código…",
+    promoPartner: "Código válido · vienes de parte de",
+    promoReferral: "Código de referido válido:",
+    promoInvalid: "Ese código no existe o ya no está activo.",
     errFirstName: "Escribe tus nombres.",
     errLastName: "Escribe tus apellidos.",
     errDni: "El DNI tiene 8 dígitos. No se acepta RUC ni pasaporte.",
@@ -260,6 +272,12 @@ const en: AuthCopy = {
     email: "Email",
     emailPlaceholder: "you@email.com",
     referral: "Referral code:",
+    promoLabel: "Partner or promo code (optional)",
+    promoPlaceholder: "e.g. JERSON-ARTEZANO",
+    promoChecking: "Checking code…",
+    promoPartner: "Valid code · referred by",
+    promoReferral: "Valid referral code:",
+    promoInvalid: "That code doesn't exist or is no longer active.",
     errFirstName: "Enter your first names.",
     errLastName: "Enter your last names.",
     errDni: "The DNI has 8 digits. RUC or passport numbers are not accepted.",
@@ -359,6 +377,12 @@ const zh: AuthCopy = {
     email: "电子邮箱",
     emailPlaceholder: "you@email.com",
     referral: "推荐码：",
+    promoLabel: "合作伙伴或优惠码（可选）",
+    promoPlaceholder: "例如 JERSON-ARTEZANO",
+    promoChecking: "正在核对代码…",
+    promoPartner: "代码有效 · 推荐人",
+    promoReferral: "推荐码有效：",
+    promoInvalid: "该代码不存在或已失效。",
     errFirstName: "请输入你的名字。",
     errLastName: "请输入你的姓氏。",
     errDni: "DNI 为 8 位数字，不接受 RUC 或护照号码。",
@@ -459,6 +483,12 @@ const pt: AuthCopy = {
     email: "E-mail",
     emailPlaceholder: "voce@email.com",
     referral: "Código de indicação:",
+    promoLabel: "Código de parceiro ou promoção (opcional)",
+    promoPlaceholder: "Ex. JERSON-ARTEZANO",
+    promoChecking: "Verificando código…",
+    promoPartner: "Código válido · indicado por",
+    promoReferral: "Código de indicação válido:",
+    promoInvalid: "Esse código não existe ou não está mais ativo.",
     errFirstName: "Escreva seu nome.",
     errLastName: "Escreva seu sobrenome.",
     errDni: "O DNI tem 8 dígitos. Não aceitamos RUC nem passaporte.",

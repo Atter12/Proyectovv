@@ -34,6 +34,10 @@ function joinFullName(values: RegisterFormValues): string {
 
 const inputClassName = "auth-field";
 
+type PromoState =
+  | { status: "idle" | "checking" | "invalid" }
+  | { status: "valid"; kind: "partner" | "referral"; label: string };
+
 function FieldIcon({ children }: { children: React.ReactNode }) {
   return (
     <span
@@ -114,12 +118,43 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Código de aliado o referido: viene lleno si llegó por link, o se escribe a mano.
+  const [promoCode, setPromoCode] = useState(() => (partnerSlug ?? referralCode ?? "").toUpperCase());
+  const [promo, setPromo] = useState<PromoState>({ status: "idle" });
 
   useEffect(() => {
     if (!referralCode) return;
     persistReferralCode(referralCode);
     void trackReferralClick(referralCode);
   }, [referralCode]);
+
+  useEffect(() => {
+    const code = promoCode.trim();
+    if (!code) {
+      setPromo({ status: "idle" });
+      return;
+    }
+    setPromo({ status: "checking" });
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/partners/code?code=${encodeURIComponent(code)}`, { signal: controller.signal });
+        const data = (await res.json()) as { ok?: boolean; kind?: "partner" | "referral"; label?: string };
+        setPromo(
+          data.ok && data.kind && data.label
+            ? { status: "valid", kind: data.kind, label: data.label }
+            : { status: "invalid" },
+        );
+      } catch {
+        // Sin red o cancelado: el servidor vuelve a validar al enviar.
+        if (!controller.signal.aborted) setPromo({ status: "idle" });
+      }
+    }, 450);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [promoCode]);
 
   function updateField<K extends keyof RegisterFormValues>(
     key: K,
@@ -135,6 +170,10 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
     const validationError = validateForm(values, t, country, lang);
     if (validationError) {
       setError(validationError);
+      return;
+    }
+    if (promo.status === "invalid") {
+      setError(t.promoInvalid);
       return;
     }
 
@@ -155,6 +194,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
           // Se guardan al crear el cliente: el usuario recién existe tras el OTP.
           referralCode: referralCode ?? readStoredReferralCode(),
           partner: partnerSlug,
+          promoCode: promoCode.trim() || undefined,
         }),
       });
       const payload = (await response.json()) as {
@@ -379,14 +419,41 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
           </div>
         </div>
 
-        {referralCode && (
-          <AuthNotice tone="info">
-            {t.referral}{" "}
-            <span className="font-semibold text-[var(--auth-text)]">
-              {referralCode}
-            </span>
-          </AuthNotice>
-        )}
+        <div className={styles.fieldGroup}>
+          <label htmlFor="promoCode" className={styles.fieldLabel}>
+            {t.promoLabel}
+          </label>
+          <div className="relative">
+            <FieldIcon>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+              </svg>
+            </FieldIcon>
+            <input
+              id="promoCode"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={64}
+              value={promoCode}
+              onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
+              placeholder={t.promoPlaceholder}
+              aria-invalid={promo.status === "invalid"}
+              aria-describedby="promoCode-status"
+              className={inputClassName}
+            />
+          </div>
+          <p id="promoCode-status" className="min-h-[18px] text-[12.5px]" aria-live="polite">
+            {promo.status === "checking" && <span className="text-[var(--auth-text-soft)]">{t.promoChecking}</span>}
+            {promo.status === "valid" && (
+              <span className="font-semibold text-[#15803d]">
+                ✓ {promo.kind === "partner" ? t.promoPartner : t.promoReferral} {promo.label}
+              </span>
+            )}
+            {promo.status === "invalid" && <span className="font-semibold text-[#b91c1c]">{t.promoInvalid}</span>}
+          </p>
+        </div>
 
         {error && (
           <AuthNotice tone="error" id="register-error">{error}</AuthNotice>

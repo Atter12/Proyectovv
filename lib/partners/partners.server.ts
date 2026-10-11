@@ -198,6 +198,34 @@ export async function recordSignupAttribution(input: {
   }
 }
 
+export type SignupCode =
+  | { kind: "partner"; slug: string; label: string }
+  | { kind: "referral"; code: string };
+
+/**
+ * Código que el cliente escribe al registrarse. El código de un aliado es su
+ * link (JERSON-ARTEZANO = /a/jerson-artezano); si no es de un aliado, se busca
+ * en los códigos de referido activos. Null = no existe o está inactivo.
+ */
+export async function resolveSignupCode(raw: string | null | undefined): Promise<SignupCode | null> {
+  const typed = String(raw ?? "").trim();
+  if (!typed || typed.length > 64) return null;
+
+  const partner = await getActivePartnerBySlug(typed.toLowerCase().replace(/[\s_]+/g, "-"));
+  if (partner) return { kind: "partner", slug: partner.slug, label: partner.companyName || partner.name };
+
+  if (!/^[a-zA-Z0-9_-]{2,64}$/.test(typed)) return null;
+  const { data, error } = await createAdminClient()
+    .from("referral_codes")
+    .select("code")
+    .ilike("code", typed.replace(/_/g, "\\_"))
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle<{ code: string }>();
+  if (error) console.warn("[partners] referral_code_lookup_failed", { error: error.message });
+  return data ? { kind: "referral", code: data.code } : null;
+}
+
 /** Código de referido guardado al registrarse (para el programa de referidos). */
 export async function referralCodeForEmail(email: string | null | undefined): Promise<string | null> {
   const normalized = String(email ?? "").trim().toLowerCase();
