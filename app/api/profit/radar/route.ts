@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { radarApiContext, radarApiError } from "@/lib/radar/api-context.server";
 import { getRadarProfile, saveRadarProfile } from "@/lib/radar/profiles.server";
 import { generateRadarSeed } from "@/lib/radar/profile-seed.server";
+import { listRadarRecipes } from "@/lib/radar/recipe.server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,11 +21,13 @@ export async function GET() {
         ...(profile ? {} : { onboardingStep: "pending" as const }),
       });
     }
+    const [latestRecipe] = await listRadarRecipes(ctx.clienteId, 1).catch(() => []);
     return NextResponse.json({
       ok: true,
       cliente: { id: ctx.clienteId, name: ctx.clienteName },
       isStaff: ctx.isStaff,
       profile,
+      latestRecipe: latestRecipe ?? null,
     });
   } catch (error) {
     return radarApiError(error, "No se pudo cargar el Radar.");

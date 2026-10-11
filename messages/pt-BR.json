@@ -1379,6 +1379,38 @@
   },
   "profit": {
     "radar": {
+      "invite": {
+        "title": "Descubra quais vídeos vale a pena gravar",
+        "body": "O Profit mostra o que funciona hoje no TikTok no seu segmento e monta uma receita própria para você, em menos de dois minutos.",
+        "cta": "Começar"
+      },
+      "recipe": {
+        "ask": "Para qual produto monto a receita?",
+        "generate": "Montar minha receita",
+        "generating": "Montando sua receita. Leva alguns segundos.",
+        "again": "Montar outra receita",
+        "title": "Sua receita para {product}",
+        "titleNoProduct": "Sua receita",
+        "hook": "Gancho",
+        "format": "Formato",
+        "duration": "Duração",
+        "durationValue": "{seconds} segundos",
+        "structure": "Estrutura",
+        "onScreen": "Texto na tela",
+        "cta": "Chamada para ação",
+        "why": "Por que funciona",
+        "avoid": "Evite",
+        "benchmark": "No seu segmento, o custo por resultado típico vai de {low} a {high}, com base em {accounts} contas nos últimos 14 dias.",
+        "scripts": "Três roteiros para gravar",
+        "who": "Aparece: {who}",
+        "show": "O que se vê",
+        "say": "O que se diz",
+        "copy": "Copiar roteiro",
+        "copied": "Copiado",
+        "copyFailed": "Não foi possível copiar. Selecione o texto.",
+        "original": "Conferi que nenhum roteiro repete frases dos vídeos que você escolheu.",
+        "toCreatives": "Enviar meu vídeo em Criativos"
+      },
       "switch": {
         "label": "Seções do Profit",
         "analysis": "Análise",
@@ -1453,7 +1485,6 @@
       },
       "done": {
         "message": "Pronto. Com o que você escolheu vou montar sua receita: o gancho, a estrutura e três roteiros para o seu produto, sem copiar nenhum vídeo.",
-        "soon": "A receita chega na próxima versão do Radar.",
         "redo": "Refazer minhas preferências"
       },
       "skipped": {

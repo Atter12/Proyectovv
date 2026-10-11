@@ -472,13 +472,16 @@ rehace un día ya completo):
 - [x] Estructura elegida: **conversación guiada** (Impeccable, contrato en `.impeccable/surfaces/`). Línea "Tu perfil" fija, rubro → productos → quién sale en cámara → objetivo → consentimiento → ronda amplia (12, de a 3) → lo aprendido → ronda reducida (8, elegir) → listo
 - [x] `TikTokEmbed.client.tsx` (reproductor oficial, uno a la vez, reemplazo silencioso), CSP `frame-src` con tiktok.com, textos `profit.radar.*` en es/en/pt-BR, bandera y solo staff
 - [ ] Revisión visual en el navegador (requiere `.env.local`), revisión final de Impeccable y DESIGN.md
-- [ ] Tarjeta de primera visita en Profit (hoy solo el selector)
+- [x] Tarjeta de primera visita en Profit (mientras el cliente no arme su perfil)
 
 **Hecho cuando:** un usuario de staff completa las dos rondas y su perfil de gusto queda guardado.
 
 ### Fase 3 · Receta única
-- [ ] `recipe.server.ts` + `originality.ts`
-- [ ] `POST /recipe`, `GET /recipes`, pantalla de receta, enlace a Creativos
+- [x] `recipe.server.ts`: referencias (elegidos primero), perfil, gusto, reglas de publicidad del rubro y referencia de costos del rubro (`benchmarks.ts`: por cuenta, mínimo 5 clientes distintos, percentiles)
+- [x] `originality.ts`: trigramas y racha de palabras contra los textos de referencia; regenera una vez y descarta lo copiado; resultado guardado en `radar_recipes.originality`
+- [x] `GET|POST /api/profit/radar/recipe` y la última receta en `GET /api/profit/radar`
+- [x] Pantalla de receta: ingredientes, estructura, por qué funciona, qué evitar, 3 guiones (se ve / se dice) con copiar, enlace a Creativos
+- [x] Tests: `lib/radar/recipe.test.ts` (34 en total en el Radar)
 
 **Hecho cuando:** la receta sale en menos de 30 s, con 3 guiones que pasan el filtro anti-copia.
 

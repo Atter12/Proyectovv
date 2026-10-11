@@ -10,6 +10,7 @@ import {
   resolvePaymentsFundingCapabilities,
 } from "@/lib/payments/funding-roles.server";
 import { canSeeRadar } from "@/lib/radar/api-context.server";
+import { getRadarProfile } from "@/lib/radar/profiles.server";
 
 export default async function ProfitPage({
   searchParams,
@@ -40,6 +41,10 @@ export default async function ProfitPage({
   }
 
   const radar = await canSeeRadar(session);
+  // Invitación al Radar mientras el cliente no haya armado su perfil.
+  const radarProfile = radar.allowed ? await getRadarProfile(selected.id).catch(() => null) : null;
+  const radarInvite =
+    radar.allowed && (!radarProfile || ["pending", "categories"].includes(radarProfile.onboardingStep));
 
   return (
     <div className={dashboardClasses.page}>
@@ -49,6 +54,7 @@ export default async function ProfitPage({
         initialFrom={initialFrom}
         initialTo={initialTo}
         radarEnabled={radar.allowed}
+        radarInvite={radarInvite}
       />
     </div>
   );

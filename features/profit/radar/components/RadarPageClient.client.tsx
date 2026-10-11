@@ -16,6 +16,8 @@ import {
 import { topPreferences } from "@/lib/radar/taste";
 import { ProfitSectionSwitch } from "./ProfitSectionSwitch";
 import { RadarVideoCard, type CardReaction } from "./RadarVideoCard.client";
+import { RadarRecipeView } from "./RadarRecipeView.client";
+import type { StoredRecipe } from "@/lib/radar/recipe.server";
 
 type Step =
   | "intro"
@@ -158,6 +160,10 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   const [picks, setPicks] = useState<Set<string>>(new Set());
   const [pickedCount, setPickedCount] = useState<number | null>(null);
 
+  const [latestRecipe, setLatestRecipe] = useState<StoredRecipe | null>(null);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [recipeProduct, setRecipeProduct] = useState<string | null>(null);
+
   const endRef = useRef<HTMLDivElement>(null);
   const acted = useRef(false);
 
@@ -211,9 +217,11 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   /* Carga inicial */
   useEffect(() => {
     let cancelled = false;
-    api<{ profile: RadarProfile }>("/api/profit/radar")
+    api<{ profile: RadarProfile; latestRecipe: StoredRecipe | null }>("/api/profit/radar")
       .then((data) => {
-        if (!cancelled) applyProfile(data.profile);
+        if (cancelled) return;
+        applyProfile(data.profile);
+        setLatestRecipe(data.latestRecipe ?? null);
       })
       .catch(() => {
         if (!cancelled) setLoadError(t("errors.load"));
@@ -317,6 +325,23 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
     }
   }
 
+  async function buildRecipe() {
+    setRecipeLoading(true);
+    setActionError(null);
+    acted.current = true;
+    try {
+      const data = await api<{ recipe: StoredRecipe }>("/api/profit/radar/recipe", {
+        method: "POST",
+        body: JSON.stringify({ product: recipeProduct ?? products[0] ?? null }),
+      });
+      setLatestRecipe(data.recipe);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : t("errors.save"));
+    } finally {
+      setRecipeLoading(false);
+    }
+  }
+
   async function skip() {
     setBusy(true);
     try {
@@ -404,7 +429,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   useEffect(() => {
     if (!acted.current) return;
     endRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
-  }, [step, shownGroups, round1, round2, round1Summary, pickedCount, reduceMotion]);
+  }, [step, shownGroups, round1, round2, round1Summary, pickedCount, recipeLoading, latestRecipe, reduceMotion]);
 
 
   const learned = useMemo(
@@ -840,13 +865,60 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
             {pickedCount ? <YouSay>{t("round2.answer", { count: pickedCount })}</YouSay> : null}
             <ProfitSays speaker={t("speaker.profit")}>
               <p className="max-w-[62ch]">{t("done.message")}</p>
-              <p className="mt-2 text-[13.5px] text-[#5c564e]">{t("done.soon")}</p>
+              {products.length > 1 ? (
+                <>
+                  <p className="mt-3 text-[14px] text-[#5c564e]">{t("recipe.ask")}</p>
+                  <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t("recipe.ask")}>
+                    {products.map((name) => {
+                      const selected = (recipeProduct ?? products[0]) === name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setRecipeProduct(name)}
+                          className={`${chipBase} ${
+                            selected
+                              ? "border-[#17150f] bg-[#17150f] text-white"
+                              : "border-[#e0d9d0] bg-white text-[#1c1917] hover:border-[#cfc6bb]"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
               <Actions>
-                <button type="button" className={secondaryBtn} onClick={restart}>
+                <button type="button" className={primaryBtn} disabled={recipeLoading} onClick={() => void buildRecipe()}>
+                  {latestRecipe ? t("recipe.again") : t("recipe.generate")}
+                </button>
+                <button type="button" className={secondaryBtn} disabled={recipeLoading} onClick={restart}>
                   {t("done.redo")}
                 </button>
               </Actions>
             </ProfitSays>
+            {recipeLoading ? (
+              <ProfitSays speaker={t("speaker.profit")}>
+                <p aria-live="polite">{t("recipe.generating")}</p>
+                <div className="mt-4 flex flex-col gap-2.5" aria-hidden>
+                  {[92, 78, 85, 60].map((w) => (
+                    <div
+                      key={w}
+                      className="h-3 animate-pulse rounded-full bg-[#f0ece6] motion-reduce:animate-none"
+                      style={{ width: `${w}%` }}
+                    />
+                  ))}
+                </div>
+              </ProfitSays>
+            ) : latestRecipe ? (
+              <Enter className="flex flex-col gap-1.5">
+                <span className="pl-1 text-[12px] font-semibold text-[#8a8177]">{t("speaker.profit")}</span>
+                <RadarRecipeView stored={latestRecipe} />
+              </Enter>
+            ) : null}
           </>
         ) : null}
 

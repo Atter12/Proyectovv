@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccountLiveMetrics";
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { ProfitSectionSwitch } from "@/features/profit/radar/components/ProfitSectionSwitch";
+import { RadarInviteCard } from "@/features/profit/radar/components/RadarInviteCard";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
@@ -815,6 +816,7 @@ export function ProfitPageClient({
   initialFrom,
   initialTo,
   radarEnabled = false,
+  radarInvite = false,
 }: {
   clienteName: string;
   isStaff: boolean;
@@ -822,6 +824,8 @@ export function ProfitPageClient({
   initialTo?: string;
   /** Muestra el selector Análisis · Radar (PROFIT_RADAR_ENABLED). */
   radarEnabled?: boolean;
+  /** Muestra la invitación al Radar (el cliente aún no armó su perfil). */
+  radarInvite?: boolean;
 }) {
   const t = useTranslations("profit");
   const tCommon = useTranslations("common");
@@ -1105,6 +1109,8 @@ export function ProfitPageClient({
           </p>
         </div>
       </header>
+
+      {radarInvite ? <RadarInviteCard /> : null}
 
       {error ? (
         <div

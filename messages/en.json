@@ -1379,6 +1379,38 @@
   },
   "profit": {
     "radar": {
+      "invite": {
+        "title": "Find out which videos are worth filming",
+        "body": "Profit shows you what's working on TikTok today for your industry and builds you your own recipe, in under two minutes.",
+        "cta": "Start"
+      },
+      "recipe": {
+        "ask": "Which product should I build the recipe for?",
+        "generate": "Build my recipe",
+        "generating": "Building your recipe. It takes a few seconds.",
+        "again": "Build another recipe",
+        "title": "Your recipe for {product}",
+        "titleNoProduct": "Your recipe",
+        "hook": "Hook",
+        "format": "Format",
+        "duration": "Length",
+        "durationValue": "{seconds} seconds",
+        "structure": "Structure",
+        "onScreen": "On-screen text",
+        "cta": "Call to action",
+        "why": "Why it works",
+        "avoid": "Avoid",
+        "benchmark": "In your industry, the typical cost per result runs from {low} to {high}, based on {accounts} accounts over the last 14 days.",
+        "scripts": "Three scripts to film",
+        "who": "On camera: {who}",
+        "show": "Shown",
+        "say": "Said",
+        "copy": "Copy script",
+        "copied": "Copied",
+        "copyFailed": "Couldn't copy. Select the text instead.",
+        "original": "I checked that no script repeats lines from the videos you picked.",
+        "toCreatives": "Upload my video in Creatives"
+      },
       "switch": {
         "label": "Profit sections",
         "analysis": "Analysis",
@@ -1453,7 +1485,6 @@
       },
       "done": {
         "message": "Done. With your picks I'll build your recipe: the hook, the structure and three scripts for your product, without copying any video.",
-        "soon": "The recipe arrives in the next version of Radar.",
         "redo": "Redo my preferences"
       },
       "skipped": {
