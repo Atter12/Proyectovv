@@ -511,6 +511,22 @@ rehace un día ya completo):
 
 ---
 
+## 9.5 Cómo encenderlo, paso a paso
+
+Todo llega a `main` apagado. Encender en este orden y verificar cada paso antes del siguiente.
+
+| # | Paso | Quién | Cómo se verifica |
+|---|---|---|---|
+| 1 | Aplicar las migraciones `061_profit_radar.sql` y `063_radar_pilot_actions.sql` en Supabase (proyecto principal, editor SQL) | Quien administre Supabase | Las tablas `radar_*` existen |
+| 2 | Activar el permiso **Creative Management › Discovery** en la app de TikTok for Business (revisión de 2–3 días hábiles) | Admin de la app de TikTok | `node --use-system-ca --env-file=.env.local scripts/probe-tiktok-discovery.mjs --advertiser=<id>` dice si hay videos para PE |
+| 3 | Probar a mano los procesos con el secreto del cron: `ad-daily`, `discovery`, `tag` y `liveness` con `?force=1` (ver Fase 1) | Desarrollo | Filas en `radar_ad_daily`, `radar_videos`, `radar_video_sources`; `radar_job_runs` en `complete` |
+| 4 | `RADAR_JOBS_ENABLED=true` en Vercel | Desarrollo | Al día siguiente, `radar_job_runs` tiene corridas de madrugada |
+| 5 | `PROFIT_RADAR_ENABLED=true` con `PROFIT_RADAR_STAFF_ONLY=true` | Desarrollo | Solo el staff ve el selector Análisis · Radar, la tabla por anuncio y el Piloto |
+| 6 | Revisión visual e Impeccable (capturas en escritorio y celular, revisión final, `DESIGN.md`) | Desarrollo | Veredicto de la revisión final |
+| 7 | Probar la pausa en una cuenta de **prueba**: `node --use-system-ca --env-file=.env.local scripts/probe-pilot-pause.mjs --advertiser=<id> --ad=<ad_id>` (solo mira), luego `--confirm` y `--confirm --enable` | Desarrollo con el staff | El anuncio pasa a `DISABLE` y vuelve a `ENABLE` |
+| 8 | `PILOT_ACTIONS_ENABLED=true` | Atter | Una pausa confirmada queda en `radar_pilot_actions` con `status=done` |
+| 9 | `PROFIT_RADAR_STAFF_ONLY=false`: abrir a los clientes | Equipo | Clientes ven la invitación al Radar en Profit |
+
 ## 10. Variables de entorno nuevas
 
 | Variable | Por defecto | Uso |

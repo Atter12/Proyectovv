@@ -3,6 +3,9 @@
 > Para el agente que retome esto. Leé todo antes de tocar código. Español Perú, tono directo.
 > Fuente: propuesta `Propuesta-Copiloto-de-anuncios.pdf` (octubre 2026, 6 págs.), resumida abajo.
 > Estado al 11/10/2026: **solo análisis, nada implementado.**
+>
+> **Actualización 11/10/2026 (noche):** Radar, receta, tabla por anuncio y Piloto ya están en `main`, apagados por defecto.
+> El estado, el diseño y la guía para encenderlo paso a paso están en `docs/PLAN_PROFIT_RADAR.md` (sección 9.5).
 
 ## 1. Qué es
 
