@@ -36,6 +36,22 @@
     {
       "path": "/api/jobs/partner-commissions",
       "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/jobs/radar/ad-daily",
+      "schedule": "0 13,14 * * *"
+    },
+    {
+      "path": "/api/jobs/radar/discovery",
+      "schedule": "30 13,14 * * *"
+    },
+    {
+      "path": "/api/jobs/radar/liveness",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/jobs/radar/tag",
+      "schedule": "45 13,14,15 * * *"
     }
   ]
 }

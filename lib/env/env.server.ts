@@ -359,6 +359,38 @@ export const serverEnv = {
     process.env.TIKTOK_CREATIVE_PUBLISH_ENABLED,
     false,
   ),
+  /** Radar dentro de Profit (docs/PLAN_PROFIT_RADAR.md). Apagado por defecto. */
+  profitRadarEnabled: parseBoolean(process.env.PROFIT_RADAR_ENABLED, false),
+  /** Mientras se prueba, el Radar solo se muestra a staff. */
+  profitRadarStaffOnly: parseBoolean(process.env.PROFIT_RADAR_STAFF_ONLY, true),
+  /** Procesos diarios del Radar (discovery, ad-daily, liveness). */
+  radarJobsEnabled: parseBoolean(process.env.RADAR_JOBS_ENABLED, false),
+  /** Países de la Discovery API en orden de preferencia. */
+  radarCountryCodes: (() => {
+    const codes = splitCsv(process.env.RADAR_COUNTRY_CODES).map((c) => c.toUpperCase());
+    return codes.length > 0 ? codes : ["PE", "MX", "CO"];
+  })(),
+  /**
+   * Categorías Discovery que se buscan aunque ningún cliente tenga perfil aún
+   * (arranque). Se suman a las de los perfiles.
+   */
+  radarDefaultCategories: (() => {
+    const list = splitCsv(process.env.RADAR_DEFAULT_CATEGORIES).map((c) => c.toUpperCase());
+    return list.length > 0
+      ? list
+      : ["HEALTH", "BEAUTY_AND_PERSONAL_CARE", "APPAREL_AND_ACCESSORIES", "HOME_IMPROVEMENT", "HOUSEHOLD_PRODUCTS"];
+  })(),
+  /** Cuenta que se pasa como advertiser_id a la Discovery API. */
+  radarDiscoveryAdvertiserId: process.env.RADAR_DISCOVERY_ADVERTISER_ID?.trim() ?? "",
+  /** 1DAY | 7DAY | 30DAY | 120DAY */
+  radarDiscoveryDateRange: (() => {
+    const v = (process.env.RADAR_DISCOVERY_DATE_RANGE ?? "").trim().toUpperCase();
+    return ["1DAY", "7DAY", "30DAY", "120DAY"].includes(v) ? v : "30DAY";
+  })(),
+  /** Hashtags por categoría y país que se consultan en video_list (máx. 10). */
+  radarHashtagsPerCategory: Math.min(10, Math.max(1, parseInteger(process.env.RADAR_HASHTAGS_PER_CATEGORY, 10))),
+  /** Freno de los procesos del Radar hacia TikTok (consultas por segundo). */
+  radarTiktokQps: Math.min(9, Math.max(1, parseInteger(process.env.RADAR_TIKTOK_QPS, 5))),
   /**
    * Bridge Ads Holistic cartera → cobros Hecom.
    * URL tipica: https://www.hecom.club/api/credito-cobros-holistic-wallet
