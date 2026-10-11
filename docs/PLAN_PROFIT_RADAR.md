@@ -1,6 +1,6 @@
 # Plan: Radar dentro de Profit (Copiloto de anuncios)
 
-**Estado:** listo para construir · rama `feat/profit-radar` · 11 de octubre de 2026
+**Estado:** fases 1 y 2 (backend) en `main` · 11 de octubre de 2026 · ver también `docs/HANDOFF_COPILOTO_ANUNCIOS.md`
 **Origen:** propuesta "Copiloto de anuncios con IA" (PDF, octubre 2026), conversación del equipo
 (Atter, Claudio) e investigación de la API de TikTok
 ([página para el equipo](https://claude.ai/artifact/BAEwdJvqHze2zHYhYcc4PF)).
@@ -323,8 +323,8 @@ corta).
 
 | Ruta | Horario | Qué hace |
 |---|---|---|
-| `/api/jobs/radar/ad-daily` | `0 13,14 * * *` (08:00 y 09:00 Lima) | Métricas de ayer por anuncio de las cuentas de clientes → `radar_ad_daily`. Después del ajuste diario de datos de TikTok. La segunda pasada retoma si la primera quedó a medias; si ya terminó, no hace nada. |
-| `/api/jobs/radar/discovery` | `30 13,14 * * *` (08:30 y 09:30 Lima) | Por cada categoría activa (`RADAR_DEFAULT_CATEGORIES` + las de los perfiles) × país: `trending_list` → elegir hashtags → `video_list` → upsert en `radar_videos` y `radar_video_sources`. El etiquetado de los videos nuevos llega en la Fase 2. |
+| `/api/jobs/radar/ad-daily` | `0 8,9 * * *` (03:00 y 04:00 Lima) | Métricas por anuncio de los **últimos 3 días** (una consulta por cuenta; TikTok ajusta conversiones días después) → `radar_ad_daily`. La segunda pasada retoma si la primera quedó a medias; si ya terminó, no hace nada. |
+| `/api/jobs/radar/discovery` | `30 8,9 * * *` (03:30 y 04:30 Lima) | Por cada categoría activa (`RADAR_DEFAULT_CATEGORIES` + las de los perfiles) × país: `trending_list` → elegir hashtags → `video_list` → upsert en `radar_videos` y `radar_video_sources`. Los videos nuevos se etiquetan en `/api/jobs/radar/tag` (`45 8,9,10 * * *`). |
 | `/api/jobs/radar/liveness` | `0 6 * * *` (01:00 Lima) | oEmbed de los videos mostrados en los últimos 14 días y de los candidatos de mañana → marca `dead`. |
 
 Convenciones del repo: `GET` y `POST` con la misma lógica, `isAuthorized` con `CRON_SECRET` /
@@ -441,7 +441,7 @@ Mismo patrón que `app/api/profit/route.ts`: `runtime="nodejs"`, `requirePermiss
 - [x] Rama `feat/profit-radar` y `.claude/launch.json` para levantar el proyecto
 - [ ] Copiar `.env.local` a esta PC
 - [ ] Activar el permiso Discovery en la app de TikTok de Holistic
-- [ ] Correr la prueba con Perú: `node --env-file=.env.local scripts/probe-tiktok-discovery.mjs --advertiser=<id>`
+- [ ] Correr la prueba con Perú: `node --use-system-ca --env-file=.env.local scripts/probe-tiktok-discovery.mjs --advertiser=<id>`
 - [ ] Decisiones del equipo (sección 11)
 
 ### Fase 1 · Cimientos de datos

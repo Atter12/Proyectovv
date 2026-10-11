@@ -5,7 +5,7 @@
  * categorías de nuestros clientes? ¿los videos se pueden insertar (oEmbed)?
  *
  * Uso:
- *   node --env-file=.env.local scripts/probe-tiktok-discovery.mjs --advertiser=<advertiser_id>
+ *   node --use-system-ca --env-file=.env.local scripts/probe-tiktok-discovery.mjs --advertiser=<advertiser_id>
  *
  * Opciones:
  *   --advertiser=ID      Cualquier cuenta del BC que cubra el token (obligatorio

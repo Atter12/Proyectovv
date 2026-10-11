@@ -39,11 +39,11 @@
     },
     {
       "path": "/api/jobs/radar/ad-daily",
-      "schedule": "0 13,14 * * *"
+      "schedule": "0 8,9 * * *"
     },
     {
       "path": "/api/jobs/radar/discovery",
-      "schedule": "30 13,14 * * *"
+      "schedule": "30 8,9 * * *"
     },
     {
       "path": "/api/jobs/radar/liveness",
@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/jobs/radar/tag",
-      "schedule": "45 13,14,15 * * *"
+      "schedule": "45 8,9,10 * * *"
     }
   ]
 }

@@ -2,21 +2,26 @@ import "server-only";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import { fetchAdDailyReport, fetchAdVideoIds } from "@/lib/integrations/tiktok/ad-daily-report.server";
 import { TikTokApiError, TikTokRateLimitError } from "@/lib/integrations/tiktok/http.server";
+import { shiftYmd } from "@/lib/hecom/gasto-date";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadClientAdvertisers } from "@/lib/radar/advertisers.server";
 import { chunk, forEachUntil, loadJobRun, saveJobRun } from "@/lib/radar/job-runs.server";
 import type { AdDailyRow } from "@/lib/radar/ad-daily-parse";
 
 /**
- * Proceso diario: métricas de un día por anuncio de todas las cuentas de
- * clientes → radar_ad_daily. Reanudable: guarda en radar_job_runs qué
- * anunciantes ya terminó.
+ * Proceso diario: métricas por anuncio de todas las cuentas de clientes →
+ * radar_ad_daily. Cada corrida pide los últimos RESYNC_DAYS días en una sola
+ * consulta por cuenta (TikTok ajusta conversiones días después) y los vuelve a
+ * escribir. Reanudable: guarda en radar_job_runs qué anunciantes ya terminó.
  */
 
 const CONCURRENCY = 3;
+/** Días que se vuelven a sincronizar en cada corrida, terminando en `date`. */
+export const RESYNC_DAYS = 3;
 
 export type AdDailySyncResult = {
   date: string;
+  startDate: string;
   status: "complete" | "partial" | "skipped";
   advertisersTotal: number;
   advertisersDone: number;
@@ -56,6 +61,7 @@ function toDbRow(row: AdDailyRow, hecomClienteId: string, video?: { videoId: str
 }
 
 export async function runAdDailySync(input: {
+  /** Último día del rango (normalmente ayer en Lima); también es la llave de la corrida. */
   date: string;
   deadlineMs: number;
   /** Rehacer el día aunque ya esté completo. */
@@ -63,10 +69,12 @@ export async function runAdDailySync(input: {
   /** Solo estos anunciantes (pruebas). */
   onlyAdvertiserIds?: string[];
 }): Promise<AdDailySyncResult> {
+  const startDate = shiftYmd(input.date, -(RESYNC_DAYS - 1));
   const previous = await loadJobRun("ad-daily", input.date);
   if (previous?.status === "complete" && !input.force && !input.onlyAdvertiserIds?.length) {
     return {
       date: input.date,
+      startDate,
       status: "skipped",
       advertisersTotal: Number(previous.stats.advertisersTotal ?? 0),
       advertisersDone: Number(previous.stats.advertisersDone ?? 0),
@@ -93,7 +101,12 @@ export async function runAdDailySync(input: {
   try {
     await forEachUntil(pending, CONCURRENCY, input.deadlineMs, async (advertiserId) => {
       try {
-        const rows = await fetchAdDailyReport({ accessToken: token, advertiserId, date: input.date });
+        const rows = await fetchAdDailyReport({
+          accessToken: token,
+          advertiserId,
+          startDate,
+          endDate: input.date,
+        });
         if (rows.length > 0) {
           const videos = await fetchAdVideoIds({
             accessToken: token,
@@ -157,6 +170,7 @@ export async function runAdDailySync(input: {
 
   return {
     date: input.date,
+    startDate,
     status,
     advertisersTotal: all.length,
     advertisersDone: all.length - remaining.length,

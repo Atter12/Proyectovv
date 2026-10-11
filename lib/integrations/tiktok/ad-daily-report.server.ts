@@ -7,7 +7,8 @@ import {
 import { parseAdDailyList, type AdDailyRow } from "@/lib/radar/ad-daily-parse";
 
 /**
- * Reporte de un día por anuncio (data_level=AUCTION_AD) de un anunciante.
+ * Reporte diario por anuncio (data_level=AUCTION_AD) de un anunciante, para un
+ * rango corto de días (una fila por anuncio y día).
  * Adaptado de campaign-performance.server.ts: si TikTok rechaza alguna métrica,
  * se reintenta con un conjunto más chico.
  */
@@ -41,8 +42,9 @@ type ReportPage = {
 export async function fetchAdDailyReport(input: {
   accessToken: string;
   advertiserId: string;
-  /** YYYY-MM-DD en la zona horaria de la cuenta. */
-  date: string;
+  /** YYYY-MM-DD en la zona horaria de la cuenta. Rango de hasta 30 días. */
+  startDate: string;
+  endDate: string;
 }): Promise<AdDailyRow[]> {
   let lastError: TikTokApiError | null = null;
 
@@ -60,13 +62,13 @@ export async function fetchAdDailyReport(input: {
             data_level: "AUCTION_AD",
             dimensions: ["ad_id", "stat_time_day"],
             metrics,
-            start_date: input.date,
-            end_date: input.date,
+            start_date: input.startDate,
+            end_date: input.endDate,
             page: String(page),
             page_size: String(PAGE_SIZE),
           },
         });
-        rows.push(...parseAdDailyList(input.advertiserId, data.list, input.date));
+        rows.push(...parseAdDailyList(input.advertiserId, data.list, input.endDate));
         const totalPage = Number(data.page_info?.total_page ?? page);
         if (!Array.isArray(data.list) || data.list.length === 0 || page >= totalPage) break;
       }
