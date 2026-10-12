@@ -54,6 +54,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/jobs/radar/web",
+      "schedule": "15 8 * * *"
+    },
+    {
       "path": "/api/jobs/radar/tag",
       "schedule": "45 8,9,10 * * *"
     }

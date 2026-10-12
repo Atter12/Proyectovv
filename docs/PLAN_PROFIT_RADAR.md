@@ -541,6 +541,15 @@ Todo llega a `main` apagado. Encender en este orden y verificar cada paso antes 
 | `RADAR_HASHTAGS_PER_CATEGORY` | `10` | Hashtags por categoría y país en `video_list` (máx. 10) |
 | `RADAR_TIKTOK_QPS` | `5` | Freno de los procesos del Radar (máx. 9) |
 | `PILOT_ACTIONS_ENABLED` | `false` | Permite que el cliente confirme "pausar anuncio" y se ejecute en TikTok |
+| `SERPER_API_KEY` | vacío (apagado) | Búsqueda web (Google vía serper.dev): segunda fuente de videos mientras Discovery no esté aprobado, y después junto a él |
+| `RADAR_WEB_QUERIES_PER_RUN` | `60` | Tope de búsquedas web por noche (1 crédito de Serper cada una) |
+
+**Búsqueda web (segunda fuente).** `lib/radar/web-discovery.server.ts` busca `site:tiktok.com/@ <producto>`
+con los productos del perfil y luego el rubro, acepta solo enlaces reales de video de tiktok.com,
+los comprueba con oEmbed y los guarda en `radar_videos` / `radar_video_sources` con
+`hashtag_id = web:<consulta>`. Corre cada noche (`/api/jobs/radar/web`, antes de `/tag`) y en el
+momento en que una ronda no tiene suficientes videos (`/api/profit/radar/round`, hasta 6 búsquedas).
+No se usa la búsqueda web de OpenAI: probada el 12/10, inventa los enlaces de video.
 
 ---
 

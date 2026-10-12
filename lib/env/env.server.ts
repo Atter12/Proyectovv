@@ -396,6 +396,10 @@ export const serverEnv = {
   pilotActionsEnabled: parseBoolean(process.env.PILOT_ACTIONS_ENABLED, false),
   /** Freno de los procesos del Radar hacia TikTok (consultas por segundo). */
   radarTiktokQps: Math.min(9, Math.max(1, parseInteger(process.env.RADAR_TIKTOK_QPS, 5))),
+  /** Serper (Google) para que el Radar busque videos de TikTok en la web. Vacío = apagado. */
+  serperApiKey: process.env.SERPER_API_KEY?.trim() ?? "",
+  /** Tope de búsquedas web por corrida nocturna del Radar (cada una cuesta 1 crédito de Serper). */
+  radarWebQueriesPerRun: Math.min(500, Math.max(1, parseInteger(process.env.RADAR_WEB_QUERIES_PER_RUN, 60))),
   /**
    * Bridge Ads Holistic cartera → cobros Hecom.
    * URL tipica: https://www.hecom.club/api/credito-cobros-holistic-wallet

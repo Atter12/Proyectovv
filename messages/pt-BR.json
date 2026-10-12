@@ -1564,6 +1564,7 @@
         "start": "Começar"
       },
       "region": "Não encontrei vídeos suficientes do Peru no seu segmento, então também mostro tendências da região.",
+      "searching": "Estou buscando vídeos do seu segmento no TikTok; pode levar alguns segundos.",
       "emptyPool": "Ainda estou juntando vídeos do seu segmento. Volte amanhã que estarão prontos.",
       "card": {
         "like": "Gostei",

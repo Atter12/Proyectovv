@@ -744,6 +744,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
             {round1Loading || !round1 ? (
               <ProfitSays speaker={t("speaker.profit")}>
                 <p>{category ? t("round1.intro", { category: categoryLabel(category) }) : null}</p>
+                <p aria-live="polite" className="mt-2 text-[13.5px] text-[#5c564e]">{t("searching")}</p>
                 <SkeletonGrid />
               </ProfitSays>
             ) : round1.videos.length === 0 ? (
@@ -822,7 +823,10 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
           <ProfitSays speaker={t("speaker.profit")}>
             <p className="max-w-[62ch]">{t("round2.intro")}</p>
             {round2Loading || !round2 ? (
-              <SkeletonGrid />
+              <>
+                <p aria-live="polite" className="mt-2 text-[13.5px] text-[#5c564e]">{t("searching")}</p>
+                <SkeletonGrid />
+              </>
             ) : round2.videos.length === 0 ? (
               <p className="mt-3 text-[14px] text-[#5c564e]">{t("emptyPool")}</p>
             ) : (

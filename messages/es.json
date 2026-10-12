@@ -1564,6 +1564,7 @@
         "start": "Empezar"
       },
       "region": "No encontré suficientes videos de Perú en tu rubro, así que también te muestro tendencias de la región.",
+      "searching": "Estoy buscando videos de tu rubro en TikTok; puede tardar unos segundos.",
       "emptyPool": "Todavía estoy juntando videos de tu rubro. Vuelve mañana y los tendré listos.",
       "card": {
         "like": "Me gusta",
