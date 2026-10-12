@@ -51,6 +51,9 @@ const MAX_CORRECTIONS_PER_RUN = 10;
 const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
   // Julio Lirio: crédito confirmado (01/10/2026).
   "d6121f78-5eb3-42e3-b8d8-e3727c434f2c",
+  // Wilder Remolina: gerencia le devolvió $309.78 de cupo a crédito tras pagar setiembre;
+  // lo paga después (12/10/2026). Sacarlo de aquí cuando pague octubre.
+  "afb12eff-76b7-4149-81be-62d047960527",
   ...`${process.env.PREPAGO_GUARD_CREDIT_HECOM_IDS ?? ""},${process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? ""}`
     .split(",")
     .map((id) => id.trim().toLowerCase())
