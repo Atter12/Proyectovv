@@ -159,6 +159,8 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   const [round2Loading, setRound2Loading] = useState(false);
   const [picks, setPicks] = useState<Set<string>>(new Set());
   const [pickedCount, setPickedCount] = useState<number | null>(null);
+  /* Firmas de los videos elegidos: la receta los usa como referencia (nada se guarda). */
+  const [pickTokens, setPickTokens] = useState<string[]>([]);
 
   const [latestRecipe, setLatestRecipe] = useState<StoredRecipe | null>(null);
   const [recipeLoading, setRecipeLoading] = useState(false);
@@ -166,6 +168,8 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
 
   const endRef = useRef<HTMLDivElement>(null);
   const acted = useRef(false);
+  /* Videos ya mostrados en esta sesión, para que la ronda 2 no los repita. */
+  const seenIds = useRef<Set<string>>(new Set());
 
   const seed = profile?.seed ?? null;
   const suggested = seed?.categoryName ?? null;
@@ -180,7 +184,11 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
       setLoading(true);
       setActionError(null);
       try {
-        const data = await api<RoundPayload>(`/api/profit/radar/round?n=${n}`);
+        const exclude = n === 2 ? [...seenIds.current].join(",") : "";
+        const data = await api<RoundPayload>(
+          `/api/profit/radar/round?n=${n}${exclude ? `&exclude=${exclude}` : ""}`,
+        );
+        for (const v of [...data.videos, ...data.reserves]) seenIds.current.add(v.videoId);
         if (n === 1) {
           setRound1(data);
           setReactions({});
@@ -280,7 +288,10 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
 
   async function finishRound1() {
     if (!round1) return;
-    const list = Object.entries(reactions).map(([videoId, reaction]) => ({ videoId, reaction }));
+    const tokenById = new Map([...round1.videos, ...round1.reserves].map((v) => [v.videoId, v.token]));
+    const list = Object.entries(reactions)
+      .map(([videoId, reaction]) => ({ token: tokenById.get(videoId), reaction }))
+      .filter((r): r is { token: string; reaction: Exclude<CardReaction, null> } => Boolean(r.token));
     setBusy(true);
     acted.current = true;
     try {
@@ -304,7 +315,9 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   }
 
   async function finishRound2() {
-    if (picks.size === 0) return;
+    if (picks.size === 0 || !round2) return;
+    const tokenById = new Map([...round2.videos, ...round2.reserves].map((v) => [v.videoId, v.token]));
+    const tokens = [...picks].map((id) => tokenById.get(id)).filter((t): t is string => Boolean(t));
     setBusy(true);
     acted.current = true;
     try {
@@ -312,10 +325,11 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
         method: "POST",
         body: JSON.stringify({
           round: 2,
-          reactions: [...picks].map((videoId) => ({ videoId, reaction: "pick" })),
+          reactions: tokens.map((token) => ({ token, reaction: "pick" })),
         }),
       });
       setProfile(data.profile);
+      setPickTokens(tokens);
       setPickedCount(picks.size);
       setStep("done");
     } catch (error) {
@@ -332,7 +346,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
     try {
       const data = await api<{ recipe: StoredRecipe }>("/api/profit/radar/recipe", {
         method: "POST",
-        body: JSON.stringify({ product: recipeProduct ?? products[0] ?? null }),
+        body: JSON.stringify({ product: recipeProduct ?? products[0] ?? null, picks: pickTokens }),
       });
       setLatestRecipe(data.recipe);
     } catch (error) {
@@ -383,9 +397,10 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   async function replaceDead(round: 1 | 2, videoId: string) {
     const payload = round === 1 ? round1 : round2;
     if (!payload) return;
+    const token = payload.videos.find((v) => v.videoId === videoId)?.token;
     const result = await api<{ dead: boolean }>("/api/profit/radar/video-dead", {
       method: "POST",
-      body: JSON.stringify({ videoId }),
+      body: JSON.stringify({ token }),
     }).catch(() => ({ dead: false }));
     if (!result.dead) return;
     const setter = round === 1 ? setRound1 : setRound2;

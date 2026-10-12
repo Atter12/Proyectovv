@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildWebQueries, parseTikTokVideoUrl, webSourceId, webSourceLabel } from "./web-search-parse.ts";
+import { buildWebQueries, parseTikTokVideoUrl, webSourceLabel } from "./web-search-parse.ts";
 
 test("acepta enlaces de video de TikTok y los limpia", () => {
   assert.deepEqual(
@@ -39,7 +39,6 @@ test("sin productos usa el rubro y respeta el máximo", () => {
   assert.deepEqual(q, ["site:tiktok.com suplemento natural"]);
 });
 
-test("id y etiqueta de la fuente", () => {
-  assert.equal(webSourceId("site:tiktok.com teclados reseña"), "web:teclados-resena");
+test("etiqueta visible de la consulta", () => {
   assert.equal(webSourceLabel("site:tiktok.com teclados reseña"), "teclados reseña");
 });

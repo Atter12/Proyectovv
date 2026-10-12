@@ -1,16 +1,13 @@
 /**
  * Búsqueda web del Radar (sin dependencias, para tests).
  *
- * Mientras TikTok no apruebe Discovery —y después, como segunda fuente— el
- * Radar busca videos públicos de TikTok en Google (vía Serper) con los
- * productos del cliente y su rubro. De cada resultado solo se acepta un
- * enlace de video real de tiktok.com; nunca un enlace escrito por la IA.
+ * En cada ronda el Radar busca en vivo videos públicos de TikTok en Google
+ * (vía Serper) con los productos del cliente y su rubro. De cada resultado
+ * solo se acepta un enlace de video real de tiktok.com; nunca un enlace
+ * escrito por la IA. Nada se guarda.
  */
 
 import type { RadarCategory } from "@/lib/radar/categories";
-
-/** Prefijo de hashtag_id en radar_video_sources para lo que vino de la web. */
-export const WEB_SOURCE_PREFIX = "web:";
 
 export type WebVideoRef = { videoId: string; handle: string; shareUrl: string };
 
@@ -81,20 +78,7 @@ export function buildWebQueries(input: {
   return queries;
 }
 
-/** hashtag_id estable para una consulta (la PK de radar_video_sources lo incluye). */
-export function webSourceId(query: string): string {
-  const slug = query
-    .replace(/^site:\S+\s*/i, "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 60);
-  return `${WEB_SOURCE_PREFIX}${slug || "rubro"}`;
-}
-
-/** Texto visible de la consulta (radar_video_sources.hashtag_name). */
+/** Texto visible de la consulta (se muestra como etiqueta del video). */
 export function webSourceLabel(query: string): string {
   return query.replace(/^site:\S+\s*/i, "").trim().slice(0, 80);
 }

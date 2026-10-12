@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeTags, tagKeys } from "./tags.ts";
-import { computeTaste, scoreVideo, topPreferences } from "./taste.ts";
+import { computeTaste, mergeTaste, scoreVideo, topPreferences } from "./taste.ts";
 import { pickDiverseRound, pickPersonalRound, type PoolVideo } from "./rounds.ts";
 import { isRadarCategory, normalizeAppearance } from "./categories.ts";
 
@@ -80,4 +80,11 @@ test("categorías y quién puede salir en cámara se validan", () => {
   assert.equal(isRadarCategory("HEALTH"), true);
   assert.equal(isRadarCategory("ALL"), false);
   assert.deepEqual(normalizeAppearance(["owner", "x", "owner", "nobody"]), ["owner", "nobody"]);
+});
+
+test("mergeTaste suma la ronda 2 al gusto de la ronda 1", () => {
+  const r1 = computeTaste([{ tags: { format: "demo", pace: "fast" }, reaction: "like" }]);
+  const r2 = computeTaste([{ tags: { format: "demo" }, reaction: "pick" }]);
+  assert.deepEqual(mergeTaste(r1, r2), { format: { demo: 2.5 }, pace: { fast: 1 } });
+  assert.deepEqual(mergeTaste({}, {}), {});
 });

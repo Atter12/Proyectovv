@@ -19,6 +19,8 @@ export async function searchSerper(input: {
   /** País de los resultados en minúscula (pe, mx, co). */
   gl: string;
   num?: number;
+  /** Página de resultados (1 = primera). */
+  page?: number;
 }): Promise<SerperResult[]> {
   if (!serverEnv.serperApiKey) throw new SerperError("SERPER_API_KEY no configurada.");
   const response = await fetch("https://google.serper.dev/search", {
@@ -26,7 +28,13 @@ export async function searchSerper(input: {
     cache: "no-store",
     headers: { "X-API-KEY": serverEnv.serperApiKey, "Content-Type": "application/json" },
     // Más de 10 resultados por consulta da 400 en el plan gratis.
-    body: JSON.stringify({ q: input.query, gl: input.gl, hl: "es", num: Math.min(10, input.num ?? 10) }),
+    body: JSON.stringify({
+      q: input.query,
+      gl: input.gl,
+      hl: "es",
+      num: Math.min(10, input.num ?? 10),
+      ...(input.page && input.page > 1 ? { page: input.page } : {}),
+    }),
     signal: AbortSignal.timeout(12_000),
   });
   const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;

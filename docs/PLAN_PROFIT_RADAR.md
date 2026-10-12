@@ -1,5 +1,17 @@
 # Plan: Radar dentro de Profit (Copiloto de anuncios)
 
+> **Cambio 12/10/2026 — el Radar no guarda videos.** Decisión del dueño del producto: los videos se
+> buscan **en vivo en cada ronda** (Google vía Serper, `lib/radar/live-pool.server.ts`), TikTok
+> confirma cada uno por oEmbed, la IA los etiqueta en memoria y se muestran con el reproductor
+> oficial y su botón "Ver en TikTok". Ningún video, enlace ni reacción por video pasa por la base:
+> cada video viaja firmado (`lib/radar/video-token.ts`, HMAC con `INTERNAL_JOB_SECRET`/`CRON_SECRET`)
+> y el navegador lo devuelve al marcarlo. Del cliente solo se guarda el perfil y el gusto agregado
+> (`radar_client_profiles`) y sus recetas (`radar_recipes`, sin `input_video_ids`). La migración
+> `064_radar_sin_biblioteca.sql` borra `radar_videos`, `radar_video_sources`, `radar_reactions` y
+> `radar_hashtags`, y se quitaron los procesos `discovery`, `liveness`, `tag` y `web`. Lo que este
+> documento dice de esa biblioteca y de esos procesos queda como historia. Cuando TikTok apruebe
+> Discovery se suma **en vivo** dentro de `buildLivePool` (el cliente `discovery.server.ts` se conserva).
+
 **Estado:** fases 1 y 2 (backend) en `main` · 11 de octubre de 2026 · ver también `docs/HANDOFF_COPILOTO_ANUNCIOS.md`
 **Origen:** propuesta "Copiloto de anuncios con IA" (PDF, octubre 2026), conversación del equipo
 (Atter, Claudio) e investigación de la API de TikTok
@@ -533,22 +545,15 @@ Todo llega a `main` apagado. Encender en este orden y verificar cada paso antes 
 |---|---|---|
 | `PROFIT_RADAR_ENABLED` | `false` | Enciende el Radar en Profit |
 | `PROFIT_RADAR_STAFF_ONLY` | `true` | Solo staff mientras se prueba |
-| `RADAR_JOBS_ENABLED` | `false` | Enciende los 3 procesos diarios |
+| `RADAR_JOBS_ENABLED` | `false` | Enciende el proceso diario `ad-daily` (rendimiento por anuncio) |
 | `RADAR_COUNTRY_CODES` | `PE,MX,CO` | Países de Discovery, en orden de preferencia |
-| `RADAR_DEFAULT_CATEGORIES` | `HEALTH,BEAUTY_AND_PERSONAL_CARE,APPAREL_AND_ACCESSORIES,HOME_IMPROVEMENT,HOUSEHOLD_PRODUCTS` | Categorías que se buscan aunque ningún cliente tenga perfil |
-| `RADAR_DISCOVERY_ADVERTISER_ID` | primera cuenta de cliente | Cuenta que se pasa como `advertiser_id` a Discovery |
-| `RADAR_DISCOVERY_DATE_RANGE` | `30DAY` | Ventana de tendencia |
-| `RADAR_HASHTAGS_PER_CATEGORY` | `10` | Hashtags por categoría y país en `video_list` (máx. 10) |
 | `RADAR_TIKTOK_QPS` | `5` | Freno de los procesos del Radar (máx. 9) |
 | `PILOT_ACTIONS_ENABLED` | `false` | Permite que el cliente confirme "pausar anuncio" y se ejecute en TikTok |
-| `SERPER_API_KEY` | vacío (apagado) | Búsqueda web (Google vía serper.dev): segunda fuente de videos mientras Discovery no esté aprobado, y después junto a él |
-| `RADAR_WEB_QUERIES_PER_RUN` | `60` | Tope de búsquedas web por noche (1 crédito de Serper cada una) |
+| `SERPER_API_KEY` | vacío (sin videos) | Búsqueda en vivo de cada ronda (Google vía serper.dev, plan gratis: `site:tiktok.com` sin ruta y máx. 10 resultados) |
 
-**Búsqueda web (segunda fuente).** `lib/radar/web-discovery.server.ts` busca `site:tiktok.com <producto>`
-con los productos del perfil y luego el rubro, acepta solo enlaces reales de video de tiktok.com,
-los comprueba con oEmbed y los guarda en `radar_videos` / `radar_video_sources` con
-`hashtag_id = web:<consulta>`. Corre cada noche (`/api/jobs/radar/web`, antes de `/tag`) y en el
-momento en que una ronda no tiene suficientes videos (`/api/profit/radar/round`, hasta 6 búsquedas).
+**Búsqueda en vivo.** Cada ronda hace hasta 6 búsquedas `site:tiktok.com <producto|rubro>` (la ronda 2
+pide la página 2 y excluye los IDs ya vistos que manda el navegador), acepta solo enlaces reales de
+video de tiktok.com, descarta lo que oEmbed da por borrado y etiqueta en memoria. Tarda ~20–25 s.
 No se usa la búsqueda web de OpenAI: probada el 12/10, inventa los enlaces de video.
 
 ---

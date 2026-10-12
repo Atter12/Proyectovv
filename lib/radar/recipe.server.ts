@@ -12,8 +12,9 @@ import {
   type RadarRecipe,
   type RadarScript,
 } from "@/lib/radar/recipe-parse";
-import { normalizeTags, type VideoTags } from "@/lib/radar/tags";
-import { topPreferences } from "@/lib/radar/taste";
+import type { VideoTags } from "@/lib/radar/tags";
+import { scoreVideo, topPreferences } from "@/lib/radar/taste";
+import { buildLivePool, readVideoToken } from "@/lib/radar/live-pool.server";
 
 /**
  * Receta única del cliente (Fase 3). Junta lo que el cliente eligió, su perfil
@@ -47,45 +48,36 @@ const POLICY_NOTES: Record<string, string> = {
   FOOD_AND_BEVERAGE: "Comida y bebidas: no hacer afirmaciones de salud ni de pérdida de peso.",
 };
 
-async function loadReferences(hecomClienteId: string): Promise<Reference[]> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("radar_reactions")
-    .select("video_id, reaction, round, created_at, radar_videos(caption, tags, status)")
-    .eq("hecom_cliente_id", hecomClienteId)
-    .in("reaction", ["pick", "like"])
-    .order("created_at", { ascending: false })
-    .limit(60);
-  if (error) throw new Error(`radar_reactions: ${error.message}`);
-
-  const byId = new Map<string, Reference>();
-  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-    const video = (Array.isArray(row.radar_videos) ? row.radar_videos[0] : row.radar_videos) as
-      | { caption?: string | null; tags?: unknown }
-      | undefined;
-    const videoId = String(row.video_id);
-    const picked = row.reaction === "pick";
-    const existing = byId.get(videoId);
-    if (existing) {
-      existing.picked ||= picked;
-      continue;
-    }
-    byId.set(videoId, { videoId, caption: video?.caption ?? "", hashtags: [], tags: normalizeTags(video?.tags), picked });
+/**
+ * Referencias de la receta. Primero lo que el cliente eligió en esta sesión
+ * (videos firmados por el servidor); si no mandó nada —otra receta otro día—
+ * se buscan en vivo videos del producto y se toman los que mejor encajan con
+ * su gusto. Nada de esto se guarda.
+ */
+async function loadReferences(input: {
+  profile: RadarProfile;
+  product: string | null;
+  picks: unknown[];
+}): Promise<Reference[]> {
+  const refs: Reference[] = [];
+  for (const token of input.picks.slice(0, MAX_REFERENCES)) {
+    const video = readVideoToken(token);
+    if (!video || refs.some((r) => r.videoId === video.videoId)) continue;
+    refs.push({ videoId: video.videoId, caption: video.caption, hashtags: video.hashtags, tags: video.tags, picked: true });
   }
+  if (refs.length > 0 || !input.profile.categoryName) return refs;
 
-  // Lo elegido en la ronda reducida pesa más que lo que solo le gustó.
-  const refs = [...byId.values()].sort((a, b) => Number(b.picked) - Number(a.picked)).slice(0, MAX_REFERENCES);
-  if (refs.length > 0) {
-    const { data: sources } = await admin
-      .from("radar_video_sources")
-      .select("video_id, hashtag_name")
-      .in("video_id", refs.map((r) => r.videoId));
-    for (const s of (sources ?? []) as Array<{ video_id: string; hashtag_name: string }>) {
-      const ref = refs.find((r) => r.videoId === s.video_id);
-      if (ref && !ref.hashtags.includes(s.hashtag_name)) ref.hashtags.push(s.hashtag_name);
-    }
-  }
-  return refs;
+  const live = await buildLivePool({
+    category: input.profile.categoryName,
+    products: input.product ? [input.product] : input.profile.products,
+    maxQueries: 3,
+    deadlineMs: Date.now() + 35_000,
+  });
+  return live.videos
+    .map((v) => ({ v, score: scoreVideo(input.profile.taste, v.tags) }))
+    .sort((a, b) => b.score - a.score || a.v.bestRank - b.v.bestRank)
+    .slice(0, MAX_REFERENCES)
+    .map(({ v }) => ({ videoId: v.videoId, caption: v.caption ?? "", hashtags: v.hashtags, tags: v.tags, picked: false }));
 }
 
 async function loadCategoryBenchmark(categoryName: string): Promise<CategoryBenchmark | null> {
@@ -175,14 +167,16 @@ function buildUserPrompt(input: {
 export async function generateRadarRecipe(input: {
   hecomClienteId: string;
   product?: string | null;
+  /** Videos elegidos en esta sesión, firmados por el servidor. */
+  picks?: unknown[];
 }): Promise<StoredRecipe> {
   const profile = await getRadarProfile(input.hecomClienteId);
   if (!profile?.categoryName) throw new Error("Primero completa tu perfil del Radar.");
 
-  const references = await loadReferences(input.hecomClienteId);
-  if (references.length === 0) throw new Error("Elige al menos un video de referencia en el Radar.");
-  const benchmark = await loadCategoryBenchmark(profile.categoryName).catch(() => null);
   const product = input.product?.trim() || profile.products[0] || null;
+  const references = await loadReferences({ profile, product, picks: input.picks ?? [] });
+  if (references.length === 0) throw new Error("No encontré videos de referencia para tu producto. Intenta de nuevo en un momento.");
+  const benchmark = await loadCategoryBenchmark(profile.categoryName).catch(() => null);
   const sources = references.map((r) => r.caption).filter(Boolean);
 
   let recipe: RadarRecipe | null = null;
@@ -230,7 +224,8 @@ export async function generateRadarRecipe(input: {
     .insert({
       hecom_cliente_id: input.hecomClienteId,
       product,
-      input_video_ids: references.map((r) => r.videoId),
+      // Los videos de referencia no se guardan (se buscan en vivo).
+      input_video_ids: [],
       profile_snapshot: {
         categoryName: profile.categoryName,
         products: profile.products,

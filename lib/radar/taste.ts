@@ -58,3 +58,20 @@ export function topPreferences(
   }
   return out.sort((a, b) => b.weight - a.weight);
 }
+
+/**
+ * Suma dos gustos. Sin biblioteca de videos no se puede recalcular desde
+ * todas las reacciones: la ronda 1 arma el gusto y la ronda 2 se le suma.
+ */
+export function mergeTaste(base: Taste, extra: Taste): Taste {
+  const out: Taste = {};
+  for (const source of [base, extra]) {
+    for (const [dimension, values] of Object.entries(source) as Array<[TagDimension, Record<string, number>]>) {
+      const bucket = (out[dimension] ??= {});
+      for (const [value, weight] of Object.entries(values)) {
+        bucket[value] = Math.round(((bucket[value] ?? 0) + weight) * 100) / 100;
+      }
+    }
+  }
+  return out;
+}
