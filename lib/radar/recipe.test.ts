@@ -90,3 +90,27 @@ test("parseScripts descarta guiones incompletos y corta en 3", () => {
   assert.equal(scripts.length, 3);
   assert.match(scriptText(scripts[0]!), /azúcar sube.*Hola.*Escríbeme/);
 });
+
+test("parseScripts lee el guion completo y es compatible con los viejos", () => {
+  const [full] = parseScripts([
+    {
+      title: "Teclado en 30 s",
+      hook: "¿Tu teclado te hace perder partidas?",
+      hookAlternatives: ["Esto cambió mi setup", "No compres teclado sin ver esto", "extra", "de más"],
+      whoAppears: "Tú, el dueño",
+      durationSeconds: 30,
+      beats: [{ seconds: "0-3s", shot: "Primer plano", line: "Mira esto.", onScreen: "S/ 149" }],
+      caption: "El teclado que pedías",
+      hashtags: ["teclado", "#gamerperu"],
+      tips: ["Graba vertical con luz de ventana"],
+    },
+  ]);
+  assert.equal(full!.hookAlternatives.length, 3);
+  assert.equal(full!.durationSeconds, 30);
+  assert.equal(full!.beats[0]!.onScreen, "S/ 149");
+  assert.deepEqual(full!.hashtags, ["#teclado", "#gamerperu"]);
+  assert.ok(scriptText(full!).includes("S/ 149"));
+
+  const [old] = parseScripts([{ title: "Viejo", hook: "Hola", beats: [{ seconds: "0-3s", shot: "x", line: "y" }] }]);
+  assert.deepEqual([old!.hookAlternatives, old!.hashtags, old!.tips, old!.caption, old!.beats[0]!.onScreen], [[], [], [], "", ""]);
+});

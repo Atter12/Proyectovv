@@ -1459,6 +1459,18 @@
       "recipe": {
         "ask": "¿Para qué producto armo la receta?",
         "generate": "Armar mi receta",
+        "detailsLabel": "Cuéntame de tu producto para que el guion sea tuyo (opcional): precio, qué lo hace distinto, oferta y para quién es.",
+        "detailsPlaceholder": "Ej.: Teclado mecánico RGB a S/ 149, switches rojos silenciosos, envío gratis en Lima esta semana. Para gamers que recién arman su setup.",
+        "onScreenBeat": "En pantalla",
+        "hookAlternatives": "Otros ganchos para probar",
+        "caption": "Texto de la publicación",
+        "tips": "Cómo grabarlo",
+        "lengthAsk": "¿De cuánto quieres el video?",
+        "length": {
+          "short": "Corto · 30–40 s",
+          "medium": "Medio · 1–1,5 min",
+          "long": "Largo · 2–3 min"
+        },
         "generating": "Armando tu receta. Toma unos segundos.",
         "again": "Armar otra receta",
         "title": "Tu receta para {product}",

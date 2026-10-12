@@ -50,13 +50,26 @@ function toStringList(raw: unknown, max = 12): string[] {
   return out;
 }
 
+/**
+ * Productos: "teclados, mouse, monitores" escrito en una sola línea son tres
+ * productos (la receta y la búsqueda trabajan uno por uno).
+ */
+function toProductList(raw: unknown, max = 12): string[] {
+  if (!Array.isArray(raw)) return [];
+  const split = raw.flatMap((item) => {
+    const value = typeof item === "string" ? item : (item as { name?: unknown })?.name;
+    return String(value ?? "").split(/[,;]/);
+  });
+  return toStringList(split, max);
+}
+
 export function parseSeed(raw: unknown): RadarSeed | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
   if (!r.generatedAt) return null;
   return {
     categoryName: isRadarCategory(r.categoryName) ? r.categoryName : null,
-    products: toStringList(r.products),
+    products: toProductList(r.products),
     objective: isRadarObjective(r.objective) ? r.objective : null,
     currentStyle: normalizeTags(r.currentStyle),
     summary: String(r.summary ?? "").slice(0, 400),
@@ -71,7 +84,7 @@ function mapRow(row: Record<string, unknown>): RadarProfile {
   return {
     hecomClienteId: String(row.hecom_cliente_id),
     categoryName: isRadarCategory(row.category_name) ? row.category_name : null,
-    products: toStringList(row.products),
+    products: toProductList(row.products),
     objective: isRadarObjective(row.objective) ? row.objective : null,
     canAppear: normalizeAppearance(canAppear),
     taste: (row.taste && typeof row.taste === "object" ? row.taste : {}) as Taste,
@@ -111,7 +124,7 @@ export async function saveRadarProfile(
     updated_at: new Date().toISOString(),
   };
   if (patch.categoryName !== undefined) row.category_name = patch.categoryName;
-  if (patch.products !== undefined) row.products = toStringList(patch.products);
+  if (patch.products !== undefined) row.products = toProductList(patch.products);
   if (patch.objective !== undefined) row.objective = patch.objective;
   if (patch.canAppear !== undefined) row.can_appear = { who: normalizeAppearance(patch.canAppear) };
   if (patch.taste !== undefined) row.taste = patch.taste;

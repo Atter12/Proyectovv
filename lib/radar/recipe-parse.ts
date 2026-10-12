@@ -18,15 +18,24 @@ export type RadarRecipe = {
   avoid: string[];
 };
 
-export type ScriptBeat = { seconds: string; shot: string; line: string };
+/** Un tramo del guion: qué se ve, qué se dice palabra por palabra y el texto en pantalla de ese momento. */
+export type ScriptBeat = { seconds: string; shot: string; line: string; onScreen: string };
 
 export type RadarScript = {
   title: string;
   hook: string;
+  /** Otras formas de abrir el mismo video, para probar. */
+  hookAlternatives: string[];
   whoAppears: string;
+  durationSeconds: number | null;
   beats: ScriptBeat[];
   onScreenText: string[];
   cta: string;
+  /** Texto de la publicación y hashtags. */
+  caption: string;
+  hashtags: string[];
+  /** Cómo grabarlo con el celular. */
+  tips: string[];
 };
 
 function rec(value: unknown): Record<string, unknown> {
@@ -56,12 +65,12 @@ export function parseRecipe(raw: unknown): RadarRecipe | null {
     format: str(r.format, 120),
     durationSeconds: (() => {
       const n = Number(r.durationSeconds ?? r.duration_seconds);
-      return Number.isFinite(n) && n > 0 && n <= 180 ? Math.round(n) : null;
+      return Number.isFinite(n) && n > 0 && n <= 300 ? Math.round(n) : null;
     })(),
     structure: (Array.isArray(r.structure) ? r.structure : [])
       .map((b) => ({ seconds: seconds(rec(b).seconds), beat: str(rec(b).beat, 200) }))
       .filter((b) => b.beat)
-      .slice(0, 8),
+      .slice(0, 12),
     onScreenText: strList(r.onScreenText ?? r.on_screen_text, 6, 120),
     cta: str(r.cta, 160),
     why: strList(r.why, 6, 260),
@@ -79,13 +88,26 @@ export function parseScripts(raw: unknown): RadarScript[] {
     const script: RadarScript = {
       title: str(s.title, 100),
       hook: str(s.hook, 220),
+      hookAlternatives: strList(s.hookAlternatives ?? s.hook_alternatives, 3, 220),
       whoAppears: str(s.whoAppears ?? s.who_appears, 120),
+      durationSeconds: (() => {
+        const n = Number(s.durationSeconds ?? s.duration_seconds);
+        return Number.isFinite(n) && n > 0 && n <= 300 ? Math.round(n) : null;
+      })(),
       beats: (Array.isArray(s.beats) ? s.beats : [])
-        .map((b) => ({ seconds: seconds(rec(b).seconds), shot: str(rec(b).shot, 220), line: str(rec(b).line, 260) }))
+        .map((b) => ({
+          seconds: seconds(rec(b).seconds),
+          shot: str(rec(b).shot, 300),
+          line: str(rec(b).line, 600),
+          onScreen: str(rec(b).onScreen ?? rec(b).on_screen, 120),
+        }))
         .filter((b) => b.shot || b.line)
-        .slice(0, 10),
+        .slice(0, 20),
       onScreenText: strList(s.onScreenText ?? s.on_screen_text, 6, 120),
-      cta: str(s.cta, 160),
+      cta: str(s.cta, 200),
+      caption: str(s.caption, 500),
+      hashtags: strList(s.hashtags, 8, 40).map((h) => (h.startsWith("#") ? h : `#${h}`)),
+      tips: strList(s.tips, 5, 200),
     };
     if (script.title && script.hook && script.beats.length > 0) out.push(script);
     if (out.length >= 3) break;
@@ -95,5 +117,12 @@ export function parseScripts(raw: unknown): RadarScript[] {
 
 /** Todo el texto de un guion, para pasarlo por el filtro anti-copia. */
 export function scriptText(script: RadarScript): string {
-  return [script.hook, ...script.beats.map((b) => b.line), ...script.onScreenText, script.cta].join(" ");
+  return [
+    script.hook,
+    ...script.hookAlternatives,
+    ...script.beats.flatMap((b) => [b.line, b.onScreen]),
+    ...script.onScreenText,
+    script.cta,
+    script.caption,
+  ].join(" ");
 }

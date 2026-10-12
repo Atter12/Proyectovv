@@ -377,6 +377,8 @@ export const serverEnv = {
   pilotActionsEnabled: parseBoolean(process.env.PILOT_ACTIONS_ENABLED, false),
   /** Freno de los procesos del Radar hacia TikTok (consultas por segundo). */
   radarTiktokQps: Math.min(9, Math.max(1, parseInteger(process.env.RADAR_TIKTOK_QPS, 5))),
+  /** Modelo de la receta del Radar (escritura creativa: guiones completos). */
+  radarRecipeModel: process.env.RADAR_RECIPE_MODEL?.trim() || "gpt-4.1",
   /** Serper (Google): el Radar busca en vivo videos de TikTok en cada ronda. Vacío = sin videos. */
   serperApiKey: process.env.SERPER_API_KEY?.trim() ?? "",
   /**

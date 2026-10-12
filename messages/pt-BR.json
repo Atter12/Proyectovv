@@ -1459,6 +1459,18 @@
       "recipe": {
         "ask": "Para qual produto monto a receita?",
         "generate": "Montar minha receita",
+        "detailsLabel": "Conte sobre seu produto para o roteiro ser seu (opcional): preço, o que o torna diferente, oferta e para quem é.",
+        "detailsPlaceholder": "Ex.: Teclado mecânico RGB por S/ 149, switches vermelhos silenciosos, frete grátis em Lima esta semana. Para gamers montando o primeiro setup.",
+        "onScreenBeat": "Na tela",
+        "hookAlternatives": "Outros ganchos para testar",
+        "caption": "Texto da publicação",
+        "tips": "Como gravar",
+        "lengthAsk": "De quanto tempo você quer o vídeo?",
+        "length": {
+          "short": "Curto · 30–40 s",
+          "medium": "Médio · 1–1,5 min",
+          "long": "Longo · 2–3 min"
+        },
         "generating": "Montando sua receita. Leva alguns segundos.",
         "again": "Montar outra receita",
         "title": "Sua receita para {product}",

@@ -3,7 +3,7 @@ import { serverEnv } from "@/lib/env/env.server";
 
 /**
  * Llamada a OpenAI que devuelve JSON (response_format json_object), con el
- * mismo modelo y clave que el resto de Ads Holistic.
+ * mismo modelo y clave que el resto de Ads Holistic (o el modelo que se pida).
  */
 export async function callOpenAiJson(input: {
   system: string;
@@ -11,10 +11,12 @@ export async function callOpenAiJson(input: {
   maxTokens?: number;
   temperature?: number;
   timeoutMs?: number;
+  /** Modelo distinto al de siempre (p. ej. la receta usa uno más fuerte). */
+  model?: string;
 }): Promise<{ json: Record<string, unknown>; model: string }> {
   const apiKey = serverEnv.openAiApiKey?.trim();
   if (!apiKey) throw new Error("OPENAI_API_KEY no configurada.");
-  const model = serverEnv.openAiVisionModel;
+  const model = input.model?.trim() || serverEnv.openAiVisionModel;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

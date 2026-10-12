@@ -18,17 +18,32 @@ function Label({ children }: { children: React.ReactNode }) {
   return <dt className="text-[12.5px] font-semibold text-[#8a8177]">{children}</dt>;
 }
 
-function scriptAsText(script: RadarScript, labels: { show: string; say: string }): string {
+type CopyLabels = { show: string; say: string; onScreen: string; hooks: string; caption: string; tips: string };
+
+function scriptAsText(script: RadarScript, labels: CopyLabels): string {
   const lines = [
     script.title,
     "",
     `"${script.hook}"`,
     script.whoAppears ? `(${script.whoAppears})` : "",
     "",
-    ...script.beats.map((b) => `${b.seconds}  ${labels.show}: ${b.shot}  ${labels.say}: ${b.line}`),
+    ...script.beats.flatMap((b) => [
+      b.seconds,
+      `  ${labels.show}: ${b.shot}`,
+      `  ${labels.say}: ${b.line}`,
+      b.onScreen ? `  ${labels.onScreen}: ${b.onScreen}` : "",
+    ]),
     "",
     ...script.onScreenText.map((t) => `• ${t}`),
     script.cta,
+    "",
+    script.hookAlternatives.length > 0 ? `${labels.hooks}:` : "",
+    ...script.hookAlternatives.map((h) => `• ${h}`),
+    "",
+    script.caption ? `${labels.caption}: ${script.caption} ${script.hashtags.join(" ")}`.trim() : "",
+    "",
+    script.tips.length > 0 ? `${labels.tips}:` : "",
+    ...script.tips.map((tip) => `• ${tip}`),
   ];
   return lines.filter((l, i, all) => l !== "" || all[i - 1] !== "").join("\n").trim();
 }
@@ -40,7 +55,16 @@ function ScriptCard({ script, index }: { script: RadarScript; index: number }) {
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(scriptAsText(script, { show: t("show"), say: t("say") }));
+      await navigator.clipboard.writeText(
+        scriptAsText(script, {
+          show: t("show"),
+          say: t("say"),
+          onScreen: t("onScreenBeat"),
+          hooks: t("hookAlternatives"),
+          caption: t("caption"),
+          tips: t("tips"),
+        }),
+      );
       setCopyState("copied");
       window.setTimeout(() => setCopyState("idle"), 2200);
     } catch {
@@ -55,8 +79,15 @@ function ScriptCard({ script, index }: { script: RadarScript; index: number }) {
           <h3 id={headingId} className="text-[15.5px] font-bold tracking-[-0.01em] text-[#1c1917]">
             {script.title}
           </h3>
-          {script.whoAppears ? (
-            <p className="mt-0.5 text-[13px] text-[#8a8177]">{t("who", { who: script.whoAppears })}</p>
+          {script.whoAppears || script.durationSeconds ? (
+            <p className="mt-0.5 text-[13px] text-[#8a8177]">
+              {[
+                script.whoAppears ? t("who", { who: script.whoAppears }) : null,
+                script.durationSeconds ? t("durationValue", { seconds: script.durationSeconds }) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           ) : null}
         </div>
         <button
@@ -78,11 +109,11 @@ function ScriptCard({ script, index }: { script: RadarScript; index: number }) {
       </p>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[480px] border-collapse text-left text-[13.5px]">
+        <table className="w-full min-w-[560px] border-collapse text-left text-[13.5px]">
           <thead>
             <tr className="border-b border-[#ece7e0] text-[12px] text-[#8a8177]">
               <th scope="col" className="w-[68px] py-2 pr-3 font-semibold" />
-              <th scope="col" className="py-2 pr-3 font-semibold">{t("show")}</th>
+              <th scope="col" className="w-[34%] py-2 pr-3 font-semibold">{t("show")}</th>
               <th scope="col" className="py-2 font-semibold">{t("say")}</th>
             </tr>
           </thead>
@@ -90,8 +121,15 @@ function ScriptCard({ script, index }: { script: RadarScript; index: number }) {
             {script.beats.map((beat, i) => (
               <tr key={i} className="border-b border-[#f3efe9] align-top last:border-0">
                 <td className="py-2.5 pr-3 font-semibold tabular-nums text-[#8a8177]">{beat.seconds}</td>
-                <td className="py-2.5 pr-3 text-[#5c564e]">{beat.shot}</td>
-                <td className="py-2.5 text-[#1c1917]">{beat.line}</td>
+                <td className="py-2.5 pr-3 text-[#5c564e]">
+                  {beat.shot}
+                  {beat.onScreen ? (
+                    <span className="mt-1.5 block w-fit rounded-[8px] bg-[#f5f2ed] px-2 py-0.5 text-[12.5px] font-semibold text-[#1c1917]">
+                      {beat.onScreen}
+                    </span>
+                  ) : null}
+                </td>
+                <td className="py-2.5 leading-[1.55] text-[#1c1917]">{beat.line}</td>
               </tr>
             ))}
           </tbody>
@@ -107,6 +145,46 @@ function ScriptCard({ script, index }: { script: RadarScript; index: number }) {
           ))}
           {script.cta ? <span className="text-[13px] text-[#5c564e]">→ {script.cta}</span> : null}
         </div>
+      ) : null}
+
+      {script.hookAlternatives.length > 0 || script.caption || script.tips.length > 0 ? (
+        <dl className="mt-4 grid gap-x-6 gap-y-4 border-t border-[#f3efe9] pt-4 sm:grid-cols-2">
+          {script.hookAlternatives.length > 0 ? (
+            <div>
+              <Label>{t("hookAlternatives")}</Label>
+              <dd className="mt-1.5">
+                <ul className="flex list-disc flex-col gap-1 pl-4 text-[13.5px] leading-[1.55] text-[#1c1917] marker:text-[#cfc6bb]">
+                  {script.hookAlternatives.map((h) => (
+                    <li key={h}>“{h}”</li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          ) : null}
+          {script.tips.length > 0 ? (
+            <div>
+              <Label>{t("tips")}</Label>
+              <dd className="mt-1.5">
+                <ul className="flex list-disc flex-col gap-1 pl-4 text-[13.5px] leading-[1.55] text-[#5c564e] marker:text-[#cfc6bb]">
+                  {script.tips.map((tip) => (
+                    <li key={tip}>{tip}</li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          ) : null}
+          {script.caption ? (
+            <div className="sm:col-span-2">
+              <Label>{t("caption")}</Label>
+              <dd className="mt-1 text-[13.5px] leading-[1.55] text-[#1c1917]">
+                {script.caption}
+                {script.hashtags.length > 0 ? (
+                  <span className="ml-1 text-[#8a8177]">{script.hashtags.join(" ")}</span>
+                ) : null}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
       ) : null}
     </article>
   );

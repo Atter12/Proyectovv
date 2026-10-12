@@ -165,6 +165,9 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   const [latestRecipe, setLatestRecipe] = useState<StoredRecipe | null>(null);
   const [recipeLoading, setRecipeLoading] = useState(false);
   const [recipeProduct, setRecipeProduct] = useState<string | null>(null);
+  /* Precio, qué lo hace distinto, oferta: solo para esta receta. */
+  const [recipeDetails, setRecipeDetails] = useState("");
+  const [recipeLength, setRecipeLength] = useState<"short" | "medium" | "long">("long");
 
   const endRef = useRef<HTMLDivElement>(null);
   const acted = useRef(false);
@@ -346,7 +349,12 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
     try {
       const data = await api<{ recipe: StoredRecipe }>("/api/profit/radar/recipe", {
         method: "POST",
-        body: JSON.stringify({ product: recipeProduct ?? products[0] ?? null, picks: pickTokens }),
+        body: JSON.stringify({
+          product: recipeProduct ?? products[0] ?? null,
+          picks: pickTokens,
+          details: recipeDetails.trim() || null,
+          length: recipeLength,
+        }),
       });
       setLatestRecipe(data.recipe);
     } catch (error) {
@@ -910,6 +918,38 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
                   </div>
                 </>
               ) : null}
+              <p className="mt-4 text-[14px] text-[#5c564e]">{t("recipe.lengthAsk")}</p>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t("recipe.lengthAsk")}>
+                {(["short", "medium", "long"] as const).map((value) => {
+                  const selected = recipeLength === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setRecipeLength(value)}
+                      className={`${chipBase} ${
+                        selected
+                          ? "border-[#17150f] bg-[#17150f] text-white"
+                          : "border-[#e0d9d0] bg-white text-[#1c1917] hover:border-[#cfc6bb]"
+                      }`}
+                    >
+                      {t(`recipe.length.${value}`)}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="mt-4 block max-w-[62ch]">
+                <span className="text-[14px] text-[#5c564e]">{t("recipe.detailsLabel")}</span>
+                <textarea
+                  value={recipeDetails}
+                  onChange={(e) => setRecipeDetails(e.target.value.slice(0, 600))}
+                  rows={3}
+                  placeholder={t("recipe.detailsPlaceholder")}
+                  className="mt-2 block w-full resize-y rounded-[12px] border border-[#e0d9d0] bg-white px-3.5 py-2.5 text-[14px] leading-[1.5] text-[#1c1917] placeholder:text-[#a79e95] focus-visible:border-[#cfc6bb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/50"
+                />
+              </label>
               <Actions>
                 <button type="button" className={primaryBtn} disabled={recipeLoading} onClick={() => void buildRecipe()}>
                   {latestRecipe ? t("recipe.again") : t("recipe.generate")}

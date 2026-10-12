@@ -1459,6 +1459,18 @@
       "recipe": {
         "ask": "Which product should I build the recipe for?",
         "generate": "Build my recipe",
+        "detailsLabel": "Tell me about your product so the script is yours (optional): price, what makes it different, offer and who it’s for.",
+        "detailsPlaceholder": "E.g. RGB mechanical keyboard at S/ 149, quiet red switches, free shipping in Lima this week. For gamers building their first setup.",
+        "onScreenBeat": "On screen",
+        "hookAlternatives": "Other hooks to test",
+        "caption": "Post caption",
+        "tips": "How to film it",
+        "lengthAsk": "How long should the video be?",
+        "length": {
+          "short": "Short · 30–40 s",
+          "medium": "Medium · 1–1.5 min",
+          "long": "Long · 2–3 min"
+        },
         "generating": "Building your recipe. It takes a few seconds.",
         "again": "Build another recipe",
         "title": "Your recipe for {product}",
