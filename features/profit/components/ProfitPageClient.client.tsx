@@ -1103,7 +1103,8 @@ export function ProfitPageClient({
           className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
         />
         {radarEnabled ? (
-          <div className="relative mb-4 flex justify-end sm:absolute sm:right-7 sm:top-6 sm:mb-0">
+          // z-10: el bloque del título (relative, va después) lo tapaba y el clic no llegaba.
+          <div className="relative z-10 mb-4 flex justify-end sm:absolute sm:right-7 sm:top-6 sm:mb-0">
             <ProfitSectionSwitch active="analysis" />
           </div>
         ) : null}
