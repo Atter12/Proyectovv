@@ -34,6 +34,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/jobs/tiktok/map-accounts",
+      "schedule": "40 * * * *"
+    },
+    {
       "path": "/api/jobs/partner-commissions",
       "schedule": "20 * * * *"
     },
