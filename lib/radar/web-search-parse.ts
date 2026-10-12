@@ -71,7 +71,8 @@ export function buildWebQueries(input: {
   const seen = new Set<string>();
   const queries: string[] = [];
   for (const term of terms) {
-    const q = `site:tiktok.com/@ ${term}`;
+    // El plan gratis de Serper no acepta rutas en site: (site:tiktok.com/@ da 400).
+    const q = `site:tiktok.com ${term}`;
     if (seen.has(q)) continue;
     seen.add(q);
     queries.push(q);

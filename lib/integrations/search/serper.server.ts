@@ -25,7 +25,8 @@ export async function searchSerper(input: {
     method: "POST",
     cache: "no-store",
     headers: { "X-API-KEY": serverEnv.serperApiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ q: input.query, gl: input.gl, hl: "es", num: input.num ?? 20 }),
+    // Más de 10 resultados por consulta da 400 en el plan gratis.
+    body: JSON.stringify({ q: input.query, gl: input.gl, hl: "es", num: Math.min(10, input.num ?? 10) }),
     signal: AbortSignal.timeout(12_000),
   });
   const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;

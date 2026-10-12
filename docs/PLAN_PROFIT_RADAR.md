@@ -544,7 +544,7 @@ Todo llega a `main` apagado. Encender en este orden y verificar cada paso antes 
 | `SERPER_API_KEY` | vacío (apagado) | Búsqueda web (Google vía serper.dev): segunda fuente de videos mientras Discovery no esté aprobado, y después junto a él |
 | `RADAR_WEB_QUERIES_PER_RUN` | `60` | Tope de búsquedas web por noche (1 crédito de Serper cada una) |
 
-**Búsqueda web (segunda fuente).** `lib/radar/web-discovery.server.ts` busca `site:tiktok.com/@ <producto>`
+**Búsqueda web (segunda fuente).** `lib/radar/web-discovery.server.ts` busca `site:tiktok.com <producto>`
 con los productos del perfil y luego el rubro, acepta solo enlaces reales de video de tiktok.com,
 los comprueba con oEmbed y los guarda en `radar_videos` / `radar_video_sources` con
 `hashtag_id = web:<consulta>`. Corre cada noche (`/api/jobs/radar/web`, antes de `/tag`) y en el

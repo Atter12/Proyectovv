@@ -17,8 +17,8 @@ import {
 /**
  * Segunda fuente del Radar: busca en Google videos públicos de TikTok con los
  * productos del cliente y su rubro, comprueba cada uno con oEmbed y los guarda
- * en radar_videos / radar_video_sources igual que Discovery. Solo entra un
- * video si TikTok confirma que existe; los enlaces no se inventan ni se
+ * en radar_videos / radar_video_sources igual que Discovery. No entra lo que
+ * TikTok da por borrado; los enlaces salen de Google (nunca de la IA) y no se
  * descargan.
  */
 
@@ -27,13 +27,12 @@ export type WebDiscoveryResult = {
   found: number;
   saved: number;
   dead: number;
+  /** Guardados sin confirmar porque TikTok frenó el oEmbed (se revisan después). */
   unverified: number;
   error?: string;
 };
 
-type Candidate = WebVideoRef & { query: string; country: string; rank: number };
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+type Candidate = WebVideoRef & { query: string; country: string; rank: number; title: string };
 
 export async function discoverFromWeb(input: {
   category: RadarCategory;
@@ -63,7 +62,7 @@ export async function discoverFromWeb(input: {
           if (!ref) continue;
           const existing = candidates.get(ref.videoId);
           if (!existing || row.position < existing.rank) {
-            candidates.set(ref.videoId, { ...ref, query, country, rank: row.position });
+            candidates.set(ref.videoId, { ...ref, query, country, rank: row.position, title: row.title });
           }
         }
       } catch (error) {
@@ -89,30 +88,30 @@ export async function discoverFromWeb(input: {
     for (const row of data ?? []) known.set(String(row.video_id), String(row.status));
   }
 
-  // 3) oEmbed: solo pasa lo que TikTok confirma. TikTok frena con 503 si se le
-  //    pregunta muy rápido, así que va de a 3 y se reintenta una vez.
+  // 3) oEmbed: lo que TikTok da por borrado no entra. Si TikTok frena (503) el
+  //    enlace igual es real —viene de Google, no de la IA—: se guarda con el
+  //    título de la búsqueda y se comprueba al armar la ronda y en /liveness.
   const now = new Date().toISOString();
-  const alive: Array<Candidate & { caption: string | null; authorName: string | null; isNew: boolean }> = [];
+  const alive: Array<
+    Candidate & { caption: string | null; authorName: string | null; isNew: boolean; checked: boolean }
+  > = [];
   const toCheck = [...candidates.values()].filter((c) => known.get(c.videoId) !== "dead");
   await forEachUntil(toCheck, 3, input.deadlineMs, async (candidate) => {
     if (known.get(candidate.videoId) === "alive") {
-      alive.push({ ...candidate, caption: null, authorName: null, isNew: false });
+      alive.push({ ...candidate, caption: null, authorName: null, isNew: false, checked: true });
       return;
     }
-    let oembed = await fetchTikTokOembed(candidate.shareUrl);
-    if (oembed.kind === "unknown") {
-      await sleep(1500);
-      oembed = await fetchTikTokOembed(candidate.shareUrl);
-    }
+    const oembed = await fetchTikTokOembed(candidate.shareUrl);
     if (oembed.kind === "dead") {
       result.dead += 1;
       return;
     }
     if (oembed.kind !== "alive") {
       result.unverified += 1;
+      alive.push({ ...candidate, caption: candidate.title || null, authorName: null, isNew: true, checked: false });
       return;
     }
-    alive.push({ ...candidate, caption: oembed.title, authorName: oembed.authorName, isNew: true });
+    alive.push({ ...candidate, caption: oembed.title, authorName: oembed.authorName, isNew: true, checked: true });
   });
 
   // 4) Guardar como lo hace Discovery.
@@ -127,7 +126,7 @@ export async function discoverFromWeb(input: {
         caption: v.caption?.slice(0, 2000) ?? null,
         status: "alive",
         last_seen_at: now,
-        last_checked_at: now,
+        last_checked_at: v.checked ? now : null,
       })),
       { onConflict: "video_id" },
     );

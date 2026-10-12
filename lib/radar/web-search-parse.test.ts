@@ -27,19 +27,19 @@ test("las consultas empiezan por los productos y terminan en el rubro", () => {
     products: ["PROCESADORES, TECLADOS, MOUSE"],
     maxQueries: 20,
   });
-  assert.equal(q[0], "site:tiktok.com/@ procesadores");
-  assert.ok(q.includes("site:tiktok.com/@ teclados"));
-  assert.ok(q.some((x) => x.startsWith("site:tiktok.com/@ mouse ")));
-  assert.equal(q.at(-1), "site:tiktok.com/@ accesorios celular");
+  assert.equal(q[0], "site:tiktok.com procesadores");
+  assert.ok(q.includes("site:tiktok.com teclados"));
+  assert.ok(q.some((x) => x.startsWith("site:tiktok.com mouse ")));
+  assert.equal(q.at(-1), "site:tiktok.com accesorios celular");
   assert.equal(new Set(q).size, q.length);
 });
 
 test("sin productos usa el rubro y respeta el máximo", () => {
   const q = buildWebQueries({ category: "HEALTH", products: [], maxQueries: 1 });
-  assert.deepEqual(q, ["site:tiktok.com/@ suplemento natural"]);
+  assert.deepEqual(q, ["site:tiktok.com suplemento natural"]);
 });
 
 test("id y etiqueta de la fuente", () => {
-  assert.equal(webSourceId("site:tiktok.com/@ teclados reseña"), "web:teclados-resena");
-  assert.equal(webSourceLabel("site:tiktok.com/@ teclados reseña"), "teclados reseña");
+  assert.equal(webSourceId("site:tiktok.com teclados reseña"), "web:teclados-resena");
+  assert.equal(webSourceLabel("site:tiktok.com teclados reseña"), "teclados reseña");
 });
