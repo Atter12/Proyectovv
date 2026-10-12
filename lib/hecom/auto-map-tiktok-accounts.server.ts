@@ -52,21 +52,41 @@ export function matchClientes(accountName: string, clientes: Cliente[]): Cliente
   const toks = an.split(" ").filter((t) => !/^\d/.test(t) && !SKIP_WORDS.has(t));
   if (toks.length < 2) return [];
   const two = `${toks[0]} ${toks[1]}`;
-  return clientes.filter((c) => c.n === two || c.n.startsWith(`${two} `));
+  const byTwo = clientes.filter((c) => c.n === two || c.n.startsWith(`${two} `));
+  if (byTwo.length) return byTwo;
+  // Nombre completo en TikTok y corto en Hecom: "Jamil Giordano Abuhadba Gentille" ↔ "Jamil Abuhadba".
+  // Nombre + apellido paterno (el penúltimo antes del serial). "Jorge Zerda Pérez" NO es "Jorge Perez".
+  const nameToks: string[] = [];
+  for (const t of an.split(" ")) {
+    if (/^\d/.test(t)) break;
+    nameToks.push(t);
+  }
+  if (nameToks.length < 3) return [];
+  const short = `${nameToks[0]} ${nameToks[nameToks.length - 2]}`;
+  return clientes.filter((c) => c.n === short);
 }
 
 async function listBcAccounts(bm: string, bc: string): Promise<Array<{ id: string; name: string; bm: string }>> {
   const out: Array<{ id: string; name: string; bm: string }> = [];
   const token = serverEnv.tiktokAccessToken.trim();
-  for (let page = 1; page <= 100; page++) {
+  type Page = { code: number; message?: string; data?: { advertiser_account_list?: Array<Record<string, unknown>>; page_info?: { total_number?: number } } };
+  const fetchPage = async (page: number): Promise<Page> => {
     const res = await fetch(`${API}/advertiser/balance/get/?bc_id=${bc}&page=${page}&page_size=50`, {
       headers: { "Access-Token": token },
       cache: "no-store",
     });
     // IDs grandes como string exacto (Number pierde precisión).
-    const j = JSON.parse(await res.text(), (k, v, ctx?: { source?: string }) =>
+    return JSON.parse(await res.text(), (k, v, ctx?: { source?: string }) =>
       typeof v === "number" && /_id$/.test(k) && ctx?.source ? ctx.source : v,
-    ) as { code: number; message?: string; data?: { advertiser_account_list?: Array<Record<string, unknown>>; page_info?: { total_number?: number } } };
+    ) as Page;
+  };
+  for (let page = 1; page <= 100; page++) {
+    let j = await fetchPage(page);
+    // TikTok corta a veces (51010 time out, límite de consultas): reintenta antes de rendirse.
+    for (let attempt = 1; j.code !== 0 && attempt <= 3; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      j = await fetchPage(page);
+    }
     if (j.code !== 0) throw new Error(`TikTok BM${bm}: ${j.code} ${j.message ?? ""}`);
     for (const r of j.data?.advertiser_account_list ?? []) {
       out.push({ id: String(r.advertiser_id), name: String(r.advertiser_name ?? "").trim(), bm });
