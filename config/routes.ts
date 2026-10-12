@@ -63,6 +63,7 @@ export const routes = {
     },
     adAccounts: "/api/ad-accounts",
     adAccountsTikTokCreate: "/api/ad-accounts/tiktok/create",
+    adAccountsTikTokStaffCreate: "/api/ad-accounts/tiktok/staff-create",
     support: {
       tickets: "/api/support/tickets",
     },

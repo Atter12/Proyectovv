@@ -17,6 +17,9 @@ import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { Suspense } from "react";
+import { StaffCreateTikTokAccountsPanel } from "@/features/ad-accounts/components/StaffCreateTikTokAccountsPanel.client";
+import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
+import { isPaymentsSuperAdminEmail } from "@/lib/payments/funding-roles.server";
 
 interface AdAccountsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -76,6 +79,9 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
     accountCount = data.summary.totalAccounts;
   }
   const accountLimit = resolveTikTokSelfServeAccountLimit(selected.id);
+  // Correo real de gerencia: el panel de crear sin límite no se muestra a clientes.
+  const isStaff =
+    isHecomOtpStaffEmail(session.email ?? "") || isPaymentsSuperAdminEmail(session.email ?? "");
 
   return (
     <div className={`${dashboardClasses.page} pb-[env(safe-area-inset-bottom)] md:pb-0`}>
@@ -87,6 +93,8 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
         avatarUrl={data.cliente?.avatarUrl}
         enableTikTokCreate
       />
+
+      {isStaff ? <StaffCreateTikTokAccountsPanel clienteName={clienteName} /> : null}
 
       <CrmPanel
         title={t("panel.title", { name: clienteName })}
