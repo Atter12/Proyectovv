@@ -11,11 +11,14 @@ export function PublicLoPagadoActions({
   apiBase,
   claims,
   month,
+  owedUsd,
 }: {
   apiBase: string;
   claims: ManualPaymentIntentItem[];
   /** YYYY-MM del link. La boleta faltante solo se reporta de este mes. */
   month: string;
+  /** Lo que debe del mes (positivo = debe). */
+  owedUsd: number;
 }) {
   const [payOpen, setPayOpen] = useState(false);
   const periodos = useMemo(
@@ -77,7 +80,7 @@ export function PublicLoPagadoActions({
       </section>
 
       <Suspense fallback={null}>
-        <PublicDebtCardPay configUrl={endpoints.config} createUrl={`${apiBase}/whop`} month={month} />
+        <PublicDebtCardPay configUrl={endpoints.config} createUrl={`${apiBase}/whop`} month={month} owedUsd={owedUsd} />
       </Suspense>
 
       <MissingCobroClaimPanel
