@@ -92,13 +92,16 @@ function publicSession(ctx: PublicLoPagadoContext): SessionUser {
   } as unknown as SessionUser;
 }
 
-async function countRecentPublicManuals(clientId: string): Promise<number> {
+async function countRecentPublicIntents(
+  clientId: string,
+  provider: "manual" | "whop",
+): Promise<number> {
   const admin = createAdminClient();
   const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const { count, error } = await admin
     .from("payment_intents")
     .select("id", { count: "exact", head: true })
-    .eq("provider", "manual")
+    .eq("provider", provider)
     .gte("created_at", since)
     .filter("metadata->>hecom_cliente_id", "eq", clientId)
     .filter("metadata->>public_entry", "eq", PUBLIC_LO_PAGADO_ENTRY);
@@ -131,7 +134,7 @@ export async function createPublicManualIntent(input: {
     throw new PublicLoPagadoError("Falta el mes de la deuda.");
   }
   const organizationId = requireOrganization(input.ctx);
-  const recent = await countRecentPublicManuals(input.ctx.clientId);
+  const recent = await countRecentPublicIntents(input.ctx.clientId, "manual");
   if (recent >= 6) {
     throw new PublicLoPagadoError(
       "Ya hay varios pagos abiertos. Espera a que gerencia revise uno antes de crear otro.",
@@ -157,6 +160,59 @@ export async function createPublicManualIntent(input: {
     paymentIntentId: result.paymentIntentId,
     grossChargeCents: result.grossChargeCents ?? Math.round(amount * 100),
     chargeCurrency,
+  };
+}
+
+/** Pago de deuda con tarjeta (Whop): devuelve el checkout; el webhook registra el cobro. */
+export async function createPublicWhopDebtIntent(input: {
+  ctx: PublicLoPagadoContext;
+  token: string;
+  amount: number;
+  periodoResumen: string;
+}): Promise<{ paymentIntentId: string; checkoutUrl: string; grossChargeCents: number }> {
+  if (isGatewayInMaintenance("whop")) {
+    throw new PublicLoPagadoError(
+      "El pago con tarjeta está deshabilitado temporalmente. Usa transferencia o escríbenos por WhatsApp.",
+      503,
+    );
+  }
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount < 1 || amount > 50_000) {
+    throw new PublicLoPagadoError("El monto de la deuda debe estar entre $1 y $50,000.");
+  }
+  const periodo = String(input.periodoResumen || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(periodo)) {
+    throw new PublicLoPagadoError("Falta el mes de la deuda.");
+  }
+  const organizationId = requireOrganization(input.ctx);
+  const recent = await countRecentPublicIntents(input.ctx.clientId, "whop");
+  if (recent >= 6) {
+    throw new PublicLoPagadoError(
+      "Ya abriste varios pagos con tarjeta. Espera unos minutos o escríbenos por WhatsApp.",
+      429,
+    );
+  }
+
+  const returnUrl = `${serverEnv.appUrl}/p/lo-pagado/${encodeURIComponent(input.token)}?m=${periodo}&pago=tarjeta`;
+  const result = await createPaymentIntentForSession(publicSession(input.ctx), {
+    amount,
+    currency: "USD",
+    provider: "whop",
+    hecomClienteId: input.ctx.clientId,
+    organizationId,
+    actorUserId: null,
+    settlesHecomDebt: true,
+    debtPeriodoResumen: periodo,
+    checkoutReturnUrl: returnUrl,
+    metadataExtra: { public_entry: PUBLIC_LO_PAGADO_ENTRY },
+  });
+  if (!result.checkoutUrl) {
+    throw new PublicLoPagadoError("No se pudo abrir el pago con tarjeta. Intenta de nuevo.", 502);
+  }
+  return {
+    paymentIntentId: result.paymentIntentId,
+    checkoutUrl: result.checkoutUrl,
+    grossChargeCents: result.grossChargeCents ?? result.grossCents,
   };
 }
 

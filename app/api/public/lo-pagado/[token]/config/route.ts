@@ -4,6 +4,9 @@ import { getPublicManualBinancePayee } from "@/lib/payments/manual-binance.serve
 import { resolveHolisticUsdPenRate } from "@/lib/payments/fx-rate.server";
 import { resolvePublicLoPagado } from "@/lib/payments/public-lo-pagado.server";
 import { serverEnv } from "@/lib/env/env.server";
+import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
+import { normalizeStripeSurchargePercent } from "@/lib/payments/deposit-fee";
+import { getPaymentProvider } from "@/lib/payments/providers";
 
 export const runtime = "nodejs";
 
@@ -28,5 +31,10 @@ export async function GET(
     binance: getPublicManualBinancePayee(),
     aiEnabled: Boolean(serverEnv.openAiApiKey?.trim()),
     trustUploadMode: serverEnv.manualVoucherTrustUpload,
+    // Pago de deuda con tarjeta: el cliente paga la deuda + el recargo de la tarjeta.
+    whop: {
+      enabled: getPaymentProvider("whop").isConfigured() && !isGatewayInMaintenance("whop"),
+      surchargePercent: normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent),
+    },
   });
 }

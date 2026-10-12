@@ -16,6 +16,8 @@ export interface CreateCheckoutInput {
   customerPhone?: string;
   /** Concepto visible al deudor. */
   concept?: string;
+  /** A dónde vuelve el cliente tras pagar en un checkout hospedado (default: Pagos). */
+  returnUrl?: string;
   metadata?: Record<string, unknown>;
 }
 

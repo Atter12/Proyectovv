@@ -37,7 +37,8 @@ export class WhopPaymentProvider implements PaymentProviderAdapter {
       throw new ProviderNotConfiguredError("whop");
     }
 
-    const redirectUrl = `${serverEnv.appUrl}/payments?tab=wallet-tx&status=whop_return`;
+    const redirectUrl =
+      input.returnUrl || `${serverEnv.appUrl}/payments?tab=wallet-tx&status=whop_return`;
     const body = buildWhopCheckoutBody({
       companyId: serverEnv.whopCompanyId,
       amountCents: input.amountCents,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { PublicDebtCardPay } from "@/features/clientes/components/PublicDebtCardPay.client";
 import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
 import { ManualPaymentModal } from "@/features/payments/components/ManualPaymentModal.client";
 import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
@@ -74,6 +75,10 @@ export function PublicLoPagadoActions({
           </button>
         </div>
       </section>
+
+      <Suspense fallback={null}>
+        <PublicDebtCardPay configUrl={endpoints.config} createUrl={`${apiBase}/whop`} month={month} />
+      </Suspense>
 
       <MissingCobroClaimPanel
         periodos={periodos}

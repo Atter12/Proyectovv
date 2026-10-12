@@ -38,6 +38,7 @@ import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
 import type { PaymentGatewayId } from "@/types/payment";
 import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 import { ensureHecomWalletCobroSynced } from "@/lib/hecom/ensure-wallet-cobro.server";
+import { ensureDebtPaymentCobroSynced } from "@/lib/hecom/ensure-debt-payment-cobro.server";
 import { cancelStaleCobranaCharges } from "@/lib/payments/cobrana/cancel-stale.server";
 import {
   reserveUniquePenAmount,
@@ -67,6 +68,8 @@ export interface CreatePaymentIntentRequest {
   settlesHecomDebt?: boolean;
   /** YYYY-MM de la deuda que se está pagando. */
   debtPeriodoResumen?: string | null;
+  /** A dónde vuelve el cliente tras el checkout hospedado (Whop). */
+  checkoutReturnUrl?: string;
 }
 
 function publicIntentMetadataExtra(
@@ -159,28 +162,30 @@ export async function createPaymentIntentForSession(
     hecomClienteId: input.hecomClienteId,
   });
 
+  // Pago de deuda (link Lo pagado): por voucher o con tarjeta en Whop.
   const settlesDebt =
-    input.settlesHecomDebt === true && input.provider === "manual";
+    input.settlesHecomDebt === true &&
+    (input.provider === "manual" || input.provider === "whop");
   if (settlesDebt) {
     const periodo = String(input.debtPeriodoResumen ?? "").trim();
     if (!/^\d{4}-\d{2}$/.test(periodo)) {
       throw new Error("Falta el mes de la deuda (AAAA-MM).");
     }
   }
-  const stripeSurchargePercent = settlesDebt
-    ? 0
-    : provider === "stripe"
-      ? normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent)
-      : provider === "whop"
-        ? normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent)
-        : 0;
-  const feePercent = settlesDebt
-    ? 0
-    : effectiveDepositFeePercent({
-        holisticFeePercent: feeBase.feePercent,
-        provider,
-        stripeSurchargePercent,
-      });
+  // La deuda no lleva fee Holistic; con Whop el cliente sí paga el recargo de la tarjeta.
+  const stripeSurchargePercent =
+    settlesDebt && provider === "manual"
+      ? 0
+      : provider === "stripe"
+        ? normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent)
+        : provider === "whop"
+          ? normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent)
+          : 0;
+  const feePercent = effectiveDepositFeePercent({
+    holisticFeePercent: settlesDebt ? 0 : feeBase.feePercent,
+    provider,
+    stripeSurchargePercent,
+  });
   const feeSplit = depositFromDesiredCredit(creditCents, feePercent);
   const fee = {
     ...feeBase,
@@ -379,8 +384,9 @@ export async function createPaymentIntentForSession(
             skip_wallet_credit: true,
             periodo_resumen: String(input.debtPeriodoResumen ?? "").trim(),
             input_mode: "debt_payment",
-            fee_percent: 0,
-            fee_amount_cents: 0,
+            // Manual: 0. Whop: solo el recargo de la tarjeta (va aparte del monto de la deuda).
+            fee_percent: fee.feePercent,
+            fee_amount_cents: fee.feeCents,
             fee_holistic_percent: 0,
           }
         : {}),
@@ -402,8 +408,11 @@ export async function createPaymentIntentForSession(
     customerLastname: cobranaCustomer?.lastname,
     customerPhone: cobranaCustomer?.phone ?? undefined,
     concept: fee.hecomClienteName
-      ? `Recarga Holistic · ${fee.hecomClienteName}`
-      : `Recarga Holistic`,
+      ? `${settlesDebt ? "Pago de deuda" : "Recarga Holistic"} · ${fee.hecomClienteName}`
+      : settlesDebt
+        ? "Pago de deuda"
+        : "Recarga Holistic",
+    returnUrl: input.checkoutReturnUrl,
     metadata: {
       customer_full_name: cobranaCustomer?.fullName ?? undefined,
       customer_phone: cobranaCustomer?.phone ?? undefined,
@@ -697,6 +706,26 @@ export async function processSuccessfulPaymentIntent(input: {
   const meta = (intent.metadata ?? {}) as Record<string, unknown>;
   const skipWalletCredit =
     meta.skip_wallet_credit === true || meta.source === "credito_detach";
+
+  // Pago de deuda del link Lo pagado con tarjeta: cobro en el mes de la deuda, sin cartera.
+  if (meta.purpose === "lo_pagado_deuda" && intent.provider !== "manual") {
+    const providerReference = input.providerReference ?? intent.providerReference;
+    const succeededAt = new Date().toISOString();
+    if (intent.status !== "succeeded") {
+      await claimPaymentIntentSucceeded(intent.id, {
+        succeededAt,
+        providerReference,
+        metadata: { ...meta, skip_wallet_credit: true, provider_reference: providerReference },
+      });
+    }
+    const fresh = await getPaymentIntentByIdInternal(intent.id);
+    await ensureDebtPaymentCobroSynced({
+      intent: fresh ?? intent,
+      providerReference,
+      paidAt: succeededAt,
+    });
+    return;
+  }
 
   // Cobro de deuda crédito (anti-vivo): no acreditar cartera Holistic.
   if (skipWalletCredit) {
