@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env/env.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
+import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
 import { loPagadoPublicUrl } from "@/lib/hecom/lo-pagado-public-token";
 import { sendTransactionalEmail } from "@/lib/email/email.server";
 import { resolveManualPaymentManagerEmails } from "@/lib/email/manual-payment-notify.server";
@@ -591,6 +592,12 @@ export async function runCreditAutocharge(input: { now?: Date; mode?: Autocharge
         continue;
       }
       item.clienteName = dashboard.cliente.name;
+      // Solo crédito: en prepago el saldo de siempre no es deuda (cada mes va
+      // aparte y eso lo ve el guardián de prepago).
+      if (resolveHecomBillingModality(dashboard.cliente) !== "credito") {
+        item.reason = "no_es_credito";
+        continue;
+      }
       const saldo = Number(dashboard.summary.saldoEstimado ?? 0);
       const debtCents = saldo < 0 ? Math.round(Math.abs(saldo) * 100) : 0;
       item.debtCents = debtCents;
