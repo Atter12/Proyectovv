@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env/env.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { autoMapTikTokAccounts } from "@/lib/hecom/auto-map-tiktok-accounts.server";
+import { alertNameMismatches } from "@/lib/hecom/account-name-mismatch-alert.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,8 @@ export async function GET(request: Request) {
         metadata: { linked: result.linked, ambiguous: result.ambiguous, errors: result.errors },
       });
     }
-    return NextResponse.json({ ok: true, dry_run: dry, ...result });
+    const mismatchAlert = dry ? null : await alertNameMismatches(result.mismatched);
+    return NextResponse.json({ ok: true, dry_run: dry, ...result, mismatchAlert });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "error" }, { status: 500 });
   }

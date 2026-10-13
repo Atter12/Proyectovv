@@ -23,7 +23,17 @@ export type AutoMapResult = {
   unlinked: number;
   linked: Array<{ advertiserId: string; name: string; bm: string; cliente: string }>;
   ambiguous: Array<{ advertiserId: string; name: string; candidates: string[] }>;
+  /** Vinculadas a un cliente pero en TikTok se llaman como otro (caso Yim 200 renombrada "Adriana Trujillo 207"). */
+  mismatched: NameMismatch[];
   errors: string[];
+};
+
+export type NameMismatch = {
+  advertiserId: string;
+  name: string;
+  bm: string;
+  linkedCliente: string;
+  nameCliente: string;
 };
 
 function norm(s: string): string {
@@ -64,6 +74,43 @@ export function matchClientes(accountName: string, clientes: Cliente[]): Cliente
   if (nameToks.length < 3) return [];
   const short = `${nameToks[0]} ${nameToks[nameToks.length - 2]}`;
   return clientes.filter((c) => c.n === short);
+}
+
+/**
+ * Cuentas cuyo nombre en TikTok apunta a un cliente distinto del vinculado en Hecom.
+ * Solo cuando el nombre apunta a un cliente sin dudas; los nombres libres o internos se saltan.
+ * TikTok no deja renombrar por API: soporte corrige el nombre (o el vínculo) a mano.
+ */
+export function findNameMismatches(
+  accounts: Array<{ id: string; name: string; bm: string }>,
+  links: Array<{ client_id: string; advertiser_id: string }>,
+  clientes: Cliente[],
+  skipIds: Set<string> = new Set(),
+): NameMismatch[] {
+  const byId = new Map(clientes.map((c) => [c.id, c]));
+  const linkedTo = new Map<string, string[]>();
+  for (const l of links) {
+    const id = String(l.advertiser_id);
+    linkedTo.set(id, [...(linkedTo.get(id) ?? []), l.client_id]);
+  }
+  const out: NameMismatch[] = [];
+  for (const acc of accounts) {
+    const owners = linkedTo.get(acc.id);
+    if (!owners?.length || skipIds.has(acc.id) || SKIP_NAME.test(acc.name)) continue;
+    const matches = matchClientes(acc.name, clientes);
+    if (matches.length !== 1 || owners.includes(matches[0]!.id)) continue;
+    const linked = owners.map((id) => byId.get(id)?.name ?? id).join(", ");
+    // Misma persona con otra ficha ("Frank Cari - Mexico" / "Frank Alexander", "Oscar Eduardo Vidal" / "Oscar Vidal"):
+    // si el nombre de la cuenta también trae 2+ palabras del cliente vinculado, no es error.
+    const accToks = new Set(norm(acc.name).split(" "));
+    const samePerson = owners.some((id) => {
+      const toks = (byId.get(id)?.n ?? "").split(" ").filter((t) => t.length >= 3);
+      return toks.filter((t) => accToks.has(t)).length >= 2;
+    });
+    if (samePerson) continue;
+    out.push({ advertiserId: acc.id, name: acc.name, bm: acc.bm, linkedCliente: linked, nameCliente: matches[0]!.name });
+  }
+  return out;
 }
 
 async function listBcAccounts(bm: string, bc: string): Promise<Array<{ id: string; name: string; bm: string }>> {
@@ -131,7 +178,14 @@ export async function autoMapTikTokAccounts(opts: { commit: boolean }): Promise<
   ).flat();
   const unlinked = accounts.filter((a) => !linked.has(a.id));
 
-  const result: AutoMapResult = { totalTikTok: accounts.length, unlinked: unlinked.length, linked: [], ambiguous: [], errors: [] };
+  const result: AutoMapResult = {
+    totalTikTok: accounts.length,
+    unlinked: unlinked.length,
+    linked: [],
+    ambiguous: [],
+    mismatched: findNameMismatches(accounts, links, clientes, skipIds),
+    errors: [],
+  };
   const newByCliente = new Map<string, Array<{ advertiserId: string; name: string }>>();
 
   for (const acc of unlinked) {
