@@ -46,6 +46,15 @@ export const CREDIT_CARD_LOCK_ENABLED = parseBoolean(
   false,
 );
 
+/**
+ * Mostrar “¿Quieres crédito?”, pedir crédito y registrar tarjeta. No bloquea
+ * el fondeo (eso es CREDIT_CARD_LOCK_ENABLED). Para esconderlo:
+ * CREDIT_CARD_SIGNUP_ENABLED=false.
+ */
+export const CREDIT_CARD_SIGNUP_ENABLED =
+  CREDIT_CARD_LOCK_ENABLED ||
+  parseBoolean(process.env.CREDIT_CARD_SIGNUP_ENABLED, true);
+
 /** Con deuda desde este monto no se puede quitar la tarjeta. */
 const DETACH_MAX_DEBT_CENTS = 100;
 
@@ -139,7 +148,7 @@ export async function getCreditLockState(input: {
   const hasCard = paymentMethod != null;
 
   return {
-    enabled: CREDIT_CARD_LOCK_ENABLED,
+    enabled: CREDIT_CARD_SIGNUP_ENABLED,
     billingModality,
     paymentMethod,
     /** Último cobro automático rechazado (sin el monto: eso es interno). */
@@ -180,7 +189,7 @@ export async function saveCreditLockCupo(input: {
   hecomClienteId: string | null;
   requestedCreditUsd: number;
 }): Promise<Awaited<ReturnType<typeof getCreditLockState>>["cupo"]> {
-  if (!CREDIT_CARD_LOCK_ENABLED) {
+  if (!CREDIT_CARD_SIGNUP_ENABLED) {
     throw new Error("El crédito con tarjeta está desactivado.");
   }
   const usd = Number(input.requestedCreditUsd);
@@ -345,7 +354,7 @@ export async function startCreditLockSetupSession(input: {
   userId: string;
   consentAccepted: boolean;
 }): Promise<{ checkoutUrl: string }> {
-  if (!CREDIT_CARD_LOCK_ENABLED) {
+  if (!CREDIT_CARD_SIGNUP_ENABLED) {
     throw new Error("El crédito con tarjeta está desactivado.");
   }
   if (!input.consentAccepted) {
@@ -382,7 +391,7 @@ export async function detachCreditLockPaymentMethod(input: {
   hecomClienteId: string;
   userId: string;
 }): Promise<{ detached: boolean }> {
-  if (!CREDIT_CARD_LOCK_ENABLED) {
+  if (!CREDIT_CARD_SIGNUP_ENABLED) {
     throw new Error("El crédito con tarjeta está desactivado.");
   }
   const card = await getCreditCardMethod(input.organizationId);

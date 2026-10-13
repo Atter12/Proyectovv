@@ -320,26 +320,47 @@ export function CreditLockPanel({
   if (idle && !expanded) {
     return (
       <section
-        className="flex flex-col gap-3 rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6"
+        className="relative overflow-hidden rounded-2xl border border-[#f0dccb] bg-gradient-to-br from-[#fff7f0] via-white to-white px-5 py-5 sm:px-6"
         aria-label={t("creditLock.aria", { name: clienteName })}
       >
-        <GatewayLogo gatewayId="whop" size="sm" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold text-[#1c1917]">
-            {t("creditLock.idleTitle")}
-          </p>
-          <p className="mt-0.5 text-[12px] leading-[1.45] text-[#6f675f]">
-            {t("creditLock.idleBody")}
-            {status === "rejected" ? t("creditLock.idleRejected") : ""}
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+          <span
+            aria-hidden
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--auth-accent)] text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.25)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+              <path d="M3 10h18M7 15h3" />
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[16px] font-semibold tracking-[-0.01em] text-[#1c1917]">
+              {t("creditLock.idleTitle")}
+            </p>
+            <p className="mt-1 max-w-[38rem] text-[13px] leading-5 text-[#625b54]">
+              {t("creditLock.idleBody")}
+              {status === "rejected" ? t("creditLock.idleRejected") : ""}
+            </p>
+            <ol className="mt-3 flex flex-wrap gap-1.5" aria-label={t("creditLock.stepsAria")}>
+              {stepLabels.map((label) => (
+                <li
+                  key={label}
+                  className="rounded-full border border-[#eadfd5] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#6f675f]"
+                >
+                  {label}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
+          >
+            {t("creditLock.askCta")}
+            <span aria-hidden>→</span>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[#e7dfd7] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition-colors hover:border-[var(--auth-accent)]/50 hover:bg-[var(--auth-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
-        >
-          {t("creditLock.askCta")}
-        </button>
       </section>
     );
   }
