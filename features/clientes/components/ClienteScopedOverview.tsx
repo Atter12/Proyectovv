@@ -55,6 +55,73 @@ function shortDayLabel(dateYmd: string) {
   return `${d}/${m}`;
 }
 
+/**
+ * Guía de primeros pasos para el cliente nuevo (recarga → cuenta → campaña), como en Ecomdy.
+ * Se oculta sola cuando ya hizo los 3.
+ */
+function OnboardingSteps({
+  t,
+  steps,
+}: {
+  t: Awaited<ReturnType<typeof getTranslations<"overview">>>;
+  steps: Array<{ key: "s1" | "s2" | "s3"; done: boolean; href: string }>;
+}) {
+  const done = steps.filter((s) => s.done).length;
+  if (done === steps.length) return null;
+  const next = steps.find((s) => !s.done)?.key;
+  return (
+    <section className={`${CARD} px-4 py-4 sm:px-5`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className={`text-[1.05rem] font-semibold tracking-[-0.02em] ${INK}`}>{t("onboarding.title")}</h2>
+          <p className={`text-[13px] ${SOFT}`}>{t("onboarding.sub")}</p>
+        </div>
+        <span className="rounded-full bg-[#fbefe4] px-2.5 py-1 text-[12px] font-semibold text-[#9a5a32]">
+          {t("onboarding.progress", { done })}
+        </span>
+      </div>
+      <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+        {steps.map((s, i) => {
+          const current = s.key === next;
+          return (
+            <li
+              key={s.key}
+              className={`flex flex-col gap-2 rounded-[18px] px-4 py-3 ring-1 ${
+                current ? "bg-[#fffaf5] ring-[#e2a074]" : "bg-[#faf8f5] ring-[#e8dfd4]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
+                    s.done ? "bg-[#1f6b3a] text-white" : current ? "bg-[#c46d3c] text-white" : "bg-white text-[#8a8177] ring-1 ring-[#e8dfd4]"
+                  }`}
+                  aria-hidden
+                >
+                  {s.done ? "✓" : i + 1}
+                </span>
+                <p className={`text-[14px] font-semibold ${s.done ? MUTED : INK}`}>{t(`onboarding.${s.key}`)}</p>
+              </div>
+              <p className={`text-[12px] ${SOFT}`}>{t(`onboarding.${s.key}b`)}</p>
+              {s.done ? (
+                <span className="text-[12px] font-semibold text-[#1f6b3a]">{t("onboarding.done")}</span>
+              ) : (
+                <Link
+                  href={s.href}
+                  className={`mt-auto inline-flex h-9 w-fit items-center rounded-full px-3.5 text-[13px] font-semibold transition ${
+                    current ? "bg-[#c46d3c] text-white hover:bg-[#b0602f]" : `bg-white ring-1 ring-[#e8dfd4] hover:bg-[#faf8f5] ${INK}`
+                  }`}
+                >
+                  {t(`onboarding.${s.key}c`)}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 export async function ClienteScopedOverview({
   data,
   canChangeCliente = false,
@@ -114,6 +181,15 @@ export async function ClienteScopedOverview({
           ) : null}
         </div>
       </header>
+
+      <OnboardingSteps
+        t={t}
+        steps={[
+          { key: "s1", done: data.cobros.length > 0, href: routes.payments },
+          { key: "s2", done: accounts.length > 0, href: routes.adAccounts },
+          { key: "s3", done: summary.gastoTotal > 0, href: routes.payments },
+        ]}
+      />
 
       {/* Cifra principal + KPIs */}
       <section className="rounded-[24px] bg-[#faf8f5] p-3 ring-1 ring-[#e8dfd4] sm:p-4">

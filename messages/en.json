@@ -232,6 +232,21 @@
       "unknown": "No account assigned",
       "account": "Account",
       "others": "{count, plural, one {One other account} other {# other accounts}}"
+    },
+    "onboarding": {
+      "title": "Get started in 3 steps",
+      "sub": "Launch your first TikTok campaign with agency accounts.",
+      "done": "Done",
+      "progress": "{done} of 3 done",
+      "s1": "Top up your wallet",
+      "s1b": "Card, bank transfer or local wallets.",
+      "s1c": "Top up",
+      "s2": "Create your TikTok account",
+      "s2b": "From Ad Accounts, in one minute.",
+      "s2c": "Create account",
+      "s3": "Assign balance and launch",
+      "s3b": "Move balance to your account and turn on your ads.",
+      "s3c": "Assign balance"
     }
   },
   "payments": {

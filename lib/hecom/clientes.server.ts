@@ -64,7 +64,7 @@ export function buildOtpTestHecomCliente(id: string): HecomCliente {
   const email = id.slice("otp-test:".length).trim().toLowerCase() || "demo@local";
   return {
     id,
-    name: "Cliente prueba OTP",
+    name: "Mi tienda (demo)",
     dni: null,
     emails: [email],
     phones: [],

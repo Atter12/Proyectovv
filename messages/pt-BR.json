@@ -232,6 +232,21 @@
       "unknown": "Sem conta atribuída",
       "account": "Conta",
       "others": "{count, plural, one {Outra conta} other {Outras # contas}}"
+    },
+    "onboarding": {
+      "title": "Comece em 3 passos",
+      "sub": "Lance sua primeira campanha no TikTok com contas de agência.",
+      "done": "Pronto",
+      "progress": "{done} de 3 prontos",
+      "s1": "Recarregue sua carteira",
+      "s1b": "Cartão, Pix ou transferência.",
+      "s1c": "Recarregar",
+      "s2": "Crie sua conta do TikTok",
+      "s2b": "Em Contas Ads, em um minuto.",
+      "s2c": "Criar conta",
+      "s3": "Atribua saldo e lance",
+      "s3b": "Passe saldo para sua conta e ative seus anúncios.",
+      "s3c": "Atribuir saldo"
     }
   },
   "payments": {

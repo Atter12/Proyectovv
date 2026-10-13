@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     if (cliente) {
       name = name || cliente.name;
     } else if (clienteId.startsWith("otp-test:")) {
-      name = name || "Cliente prueba OTP";
+      name = name || "Mi tienda (demo)";
     } else if (!name) {
       return NextResponse.json(
         { ok: false, error: "Cliente Hecom no encontrado" },
