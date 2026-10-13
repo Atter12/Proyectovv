@@ -904,7 +904,13 @@
       "changeCard": "Trocar cartão",
       "cardPending": "O Whop está confirmando seu cartão. Em alguns minutos ele aparece aqui.",
       "autochargeFailed": "Seu cartão recusou a última cobrança. Pague sua dívida ou troque de cartão em 48 horas; senão, suas contas ficam congeladas. Enquanto isso você não pode financiar a crédito.",
-      "autochargeFrozen": "Suas contas estão congeladas porque não foi possível cobrar sua dívida. Pague ou troque o cartão e elas são liberadas."
+      "autochargeFrozen": "Suas contas estão congeladas porque não foi possível cobrar sua dívida. Pague ou troque o cartão e elas são liberadas.",
+      "reviewEyebrow": "Crédito · só gerência",
+      "reviewRequested": "{name} pede crédito de {amount}",
+      "reviewApproved": "Crédito aprovado de {amount}",
+      "reviewRejected": "Pedido de {amount} recusado",
+      "reviewCard": "Cartão cadastrado: {card}",
+      "reviewNoCard": "Ainda não cadastrou o cartão: o crédito não está ativo."
     },
     "autoRecharge": {
       "loading": "Carregando débito automático…",

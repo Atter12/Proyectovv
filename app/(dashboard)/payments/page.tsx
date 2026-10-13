@@ -108,8 +108,11 @@ export default async function PaymentsPage({
     rawCapabilities,
     actingAsCliente,
   );
+  // Aceptar o rechazar crédito es solo de la vista gerente: viendo como
+  // cliente, gerencia ve exactamente lo que ve el cliente.
   const canReviewCredit =
-    rawCapabilities.isStaff || rawCapabilities.isSuperAdmin;
+    (rawCapabilities.isStaff || rawCapabilities.isSuperAdmin) &&
+    !actingAsCliente;
   const canChangeCliente =
     rawCapabilities.isStaff ||
     rawCapabilities.isSuperAdmin ||
@@ -231,7 +234,8 @@ export default async function PaymentsPage({
           skipOrphanCleanup
           skipApprovedSync={isStripeReturn}
           creditSlot={
-            CREDIT_CARD_SIGNUP_ENABLED && capabilities.canClientStripeFund ? (
+            CREDIT_CARD_SIGNUP_ENABLED &&
+            (capabilities.canClientStripeFund || canReviewCredit) ? (
               <CreditLockPanel
                 clienteName={cliente.name}
                 canReviewCredit={canReviewCredit}

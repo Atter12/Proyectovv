@@ -42,14 +42,14 @@ export async function GET() {
   }
 
   const actingAsCliente = await getActingAsCliente(session.id);
-  const capabilities = withActAsClienteView(
-    await resolvePaymentsFundingCapabilities({
-      email: session.email,
-      role: session.role,
-    }),
-    actingAsCliente,
-  );
-  if (!capabilities.canClientStripeFund) {
+  const rawCapabilities = await resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const capabilities = withActAsClienteView(rawCapabilities, actingAsCliente);
+  // Gerencia (vista gerente) lee el estado para aceptar o rechazar el pedido.
+  const isReviewer = rawCapabilities.isStaff || rawCapabilities.isSuperAdmin;
+  if (!capabilities.canClientStripeFund && !isReviewer) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 

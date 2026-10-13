@@ -904,7 +904,13 @@
       "changeCard": "Change card",
       "cardPending": "Whop is confirming your card. It will show up here in a few minutes.",
       "autochargeFailed": "Your card declined the last charge. Pay your debt or change your card within 48 hours, or your accounts will be frozen. Until then you can't fund on credit.",
-      "autochargeFrozen": "Your accounts are frozen because we couldn't charge your debt. Pay or change your card and they are released."
+      "autochargeFrozen": "Your accounts are frozen because we couldn't charge your debt. Pay or change your card and they are released.",
+      "reviewEyebrow": "Credit · management only",
+      "reviewRequested": "{name} requests {amount} credit",
+      "reviewApproved": "Credit approved for {amount}",
+      "reviewRejected": "{amount} request rejected",
+      "reviewCard": "Card on file: {card}",
+      "reviewNoCard": "No card registered yet: credit is not active."
     },
     "autoRecharge": {
       "loading": "Loading auto-debit…",

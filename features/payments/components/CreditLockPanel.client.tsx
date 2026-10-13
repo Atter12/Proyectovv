@@ -313,6 +313,84 @@ export function CreditLockPanel({
     t("creditLock.step3"),
   ] as const;
 
+  // Vista gerente: solo revisar el pedido del cliente, sin el formulario.
+  if (canReviewCredit) {
+    if (loading || status === "none") return null;
+    const amount =
+      cupo?.requestedCreditUsd != null
+        ? formatMoney(cupo.requestedCreditUsd, "USD")
+        : "—";
+    return (
+      <section
+        className="rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:px-6"
+        aria-label={t("creditLock.aria", { name: clienteName })}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+          <GatewayLogo gatewayId="whop" size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8a8177]">
+              {t("creditLock.reviewEyebrow")}
+            </p>
+            <p className="mt-0.5 text-[14px] font-semibold text-[#1c1917]">
+              {status === "requested"
+                ? t("creditLock.reviewRequested", { name: clienteName, amount })
+                : status === "approved"
+                  ? t("creditLock.reviewApproved", { amount })
+                  : t("creditLock.reviewRejected", { amount })}
+            </p>
+            {status === "approved" ? (
+              <p className="mt-0.5 text-[12px] text-[#6f675f]">
+                {paymentMethod
+                  ? t("creditLock.reviewCard", { card: `${brand} ···· ${last4}` })
+                  : t("creditLock.reviewNoCard")}
+              </p>
+            ) : null}
+            {autocharge?.failed ? (
+              <p className="mt-1 text-[12px] font-medium text-[#9b1c1c]" role="alert">
+                {autocharge.frozen ? t("creditLock.autochargeFrozen") : t("creditLock.autochargeFailed")}
+              </p>
+            ) : null}
+          </div>
+          {status === "requested" ? (
+            <div className="flex shrink-0 gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={reviewBusy != null}
+                onClick={() => void handleReview("approved")}
+                className="h-10 rounded-xl"
+              >
+                {reviewBusy === "approved"
+                  ? t("creditLock.accepting")
+                  : t("creditLock.accept")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={reviewBusy != null}
+                onClick={() => void handleReview("rejected")}
+                className="h-10 rounded-xl"
+              >
+                {reviewBusy === "rejected" ? "…" : t("creditLock.reject")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+        {error ? (
+          <p className="mt-3 text-[13px] text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+        {success ? (
+          <p className="mt-3 text-[13px] text-emerald-800" role="status">
+            {success}
+          </p>
+        ) : null}
+      </section>
+    );
+  }
+
   // Sin pedido en curso el crédito es una opción, no una tarea: se muestra
   // como una fila que se abre. Con pedido en curso hay estado que el cliente
   // necesita ver sin buscarlo, así que queda abierto.
@@ -532,42 +610,16 @@ export function CreditLockPanel({
                   {t("creditLock.inReviewWait")}
                 </p>
 
-                {canReviewCredit ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={reviewBusy != null}
-                      onClick={() => void handleReview("approved")}
-                      className="h-10 rounded-xl"
-                    >
-                      {reviewBusy === "approved"
-                        ? t("creditLock.accepting")
-                        : t("creditLock.accept")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={reviewBusy != null}
-                      onClick={() => void handleReview("rejected")}
-                      className="h-10 rounded-xl"
-                    >
-                      {reviewBusy === "rejected" ? "…" : t("creditLock.reject")}
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy || !preview}
-                    onClick={() => void handleRequest()}
-                    className="h-10 rounded-xl"
-                  >
-                    {busy ? "…" : t("creditLock.updateRequest")}
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy || !preview}
+                  onClick={() => void handleRequest()}
+                  className="h-10 rounded-xl"
+                >
+                  {busy ? "…" : t("creditLock.updateRequest")}
+                </Button>
               </div>
             ) : null}
 
