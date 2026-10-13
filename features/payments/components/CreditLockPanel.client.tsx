@@ -47,6 +47,12 @@ type CupoState = {
   reviewedAt?: string | null;
 } | null;
 
+type AutochargeState = {
+  failed: boolean;
+  failedSince: string | null;
+  frozen: boolean;
+} | null;
+
 interface CreditLockPanelProps {
   clienteName: string;
   /** Gerencia puede aceptar/rechazar (aunque esté “como cliente”). */
@@ -80,6 +86,8 @@ export function CreditLockPanel({
   const [success, setSuccess] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodState>(null);
   const [cupo, setCupo] = useState<CupoState>(null);
+  const [autocharge, setAutocharge] = useState<AutochargeState>(null);
+  const [consent, setConsent] = useState(false);
   const [amountInput, setAmountInput] = useState("500");
   const [expanded, setExpanded] = useState(false);
 
@@ -92,15 +100,19 @@ export function CreditLockPanel({
         enabled?: boolean;
         paymentMethod: PaymentMethodState;
         cupo: CupoState;
+        autocharge?: AutochargeState;
       }>("/api/billing/payment-method");
       setFeatureEnabled(data.enabled === true);
       setPaymentMethod(data.paymentMethod);
       setCupo(data.cupo);
+      setAutocharge(data.autocharge ?? null);
       if (data.cupo?.requestedCreditUsd != null) {
         setAmountInput(String(Math.round(data.cupo.requestedCreditUsd)));
       }
+      return data.paymentMethod;
     } catch (err) {
       setError(userErrorMessage(err, t("creditLock.errLoad")));
+      return null;
     } finally {
       setLoading(false);
     }
@@ -111,26 +123,34 @@ export function CreditLockPanel({
     void load();
   }, [load, visible]);
 
+  // Vuelta de Whop: se confirma con su setup_intent_id; si Whop aún procesa,
+  // el webhook guarda la tarjeta y aquí se espera unos segundos.
   useEffect(() => {
     if (!visible) return;
-    const setup = searchParams.get("billing_setup");
-    const sessionId = searchParams.get("session_id");
-    if (setup !== "success" || !sessionId) return;
+    if (searchParams.get("billing_setup") !== "whop") return;
+    const setupIntentId = searchParams.get("setup_intent_id") ?? searchParams.get("setup_intent");
 
     void (async () => {
       try {
-        await apiClient("/api/billing/complete-setup", {
-          method: "POST",
-          body: JSON.stringify({ sessionId }),
-        });
-        setSuccess(t("creditLock.successCard"));
+        if (setupIntentId) {
+          await apiClient("/api/billing/complete-setup", {
+            method: "POST",
+            body: JSON.stringify({ setupIntentId }),
+          });
+        }
+        let saved = await load();
+        for (let i = 0; i < 5 && !saved; i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          saved = await load();
+        }
+        if (saved) setSuccess(t("creditLock.successCard"));
+        else setSuccess(t("creditLock.cardPending"));
         router.replace("/payments");
-        await load();
       } catch (err) {
         setError(userErrorMessage(err, t("creditLock.errConfirmCard")));
       }
     })();
-  }, [searchParams, router, load, visible]);
+  }, [searchParams, router, load, visible, t]);
 
   const preview = useMemo(() => {
     const n = Number(amountInput);
@@ -158,10 +178,10 @@ export function CreditLockPanel({
     return data.cupo;
   }
 
-  async function openStripe() {
+  async function openWhop() {
     const data = await apiClient<{ checkoutUrl: string }>(
       "/api/billing/setup-session",
-      { method: "POST", body: JSON.stringify({}) },
+      { method: "POST", body: JSON.stringify({ consentAccepted: consent }) },
     );
     if (!data.checkoutUrl) throw new Error(t("creditLock.errStripeUrl"));
     window.location.href = data.checkoutUrl;
@@ -192,11 +212,15 @@ export function CreditLockPanel({
 
   /** Paso 3 (post-aprobación): registrar o actualizar tarjeta. */
   async function handleLinkCard() {
+    if (!consent) {
+      setError(t("creditLock.errConsent"));
+      return;
+    }
     setBusy(true);
     setError(null);
     setSuccess(null);
     try {
-      await openStripe();
+      await openWhop();
     } catch (err) {
       setError(userErrorMessage(err, t("creditLock.errOpenStripe")));
       setBusy(false);
@@ -299,7 +323,7 @@ export function CreditLockPanel({
         className="flex flex-col gap-3 rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6"
         aria-label={t("creditLock.aria", { name: clienteName })}
       >
-        <GatewayLogo gatewayId="stripe" size="sm" />
+        <GatewayLogo gatewayId="whop" size="sm" />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[#1c1917]">
             {t("creditLock.idleTitle")}
@@ -327,7 +351,7 @@ export function CreditLockPanel({
     >
       <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 py-5 sm:px-6">
         <div className="flex items-center gap-3">
-          <GatewayLogo gatewayId="stripe" size="sm" />
+          <GatewayLogo gatewayId="whop" size="sm" />
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-[#1c1917]">
               {t("creditLock.title")}
@@ -550,7 +574,13 @@ export function CreditLockPanel({
                     : t("creditLock.approvedLink")}
                 </p>
 
-                {paymentMethod?.last4 ? (
+                {autocharge?.failed ? (
+                  <p className="rounded-xl bg-[#fff1f0] px-3.5 py-3 text-[12px] font-medium text-[#9b1c1c]" role="alert">
+                    {autocharge.frozen ? t("creditLock.autochargeFrozen") : t("creditLock.autochargeFailed")}
+                  </p>
+                ) : null}
+
+                {paymentMethod ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e7dfd7] px-4 py-3.5">
                     <div>
                       <p className="text-[11px] text-[#6f675f]">
@@ -586,15 +616,34 @@ export function CreditLockPanel({
                       </Button>
                     </div>
                   </div>
-                ) : canLinkCard ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void handleLinkCard()}
-                    className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {busy ? t("creditLock.openingStripe") : t("creditLock.registerCard")}
-                  </button>
+                ) : null}
+
+                {canLinkCard && (!paymentMethod || autocharge?.failed) ? (
+                  <div className="space-y-3">
+                    <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-[#f7f5f2] px-3.5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#d47840]"
+                      />
+                      <span className="text-[12px] leading-5 text-[#3f3a35]">
+                        {t("creditLock.consent")}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={busy || !consent}
+                      onClick={() => void handleLinkCard()}
+                      className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {busy
+                        ? t("creditLock.openingStripe")
+                        : paymentMethod
+                          ? t("creditLock.changeCard")
+                          : t("creditLock.registerCard")}
+                    </button>
+                  </div>
                 ) : null}
               </div>
             ) : null}

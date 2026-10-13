@@ -50,6 +50,21 @@ export interface VerifiedWebhookEvent {
   underpaid?: boolean;
   actuallyPaid?: number;
   payAmount?: number;
+  /** Whop: motivo del rechazo (payment.failed). */
+  failureMessage?: string;
+  /** Whop: tarjeta guardada para el crédito (setup_intent.succeeded). */
+  savedCard?: SavedCardEvent;
+}
+
+export interface SavedCardEvent {
+  setupIntentId: string;
+  memberId: string;
+  paymentMethodId: string;
+  brand: string | null;
+  last4: string | null;
+  expMonth: number | null;
+  expYear: number | null;
+  metadata: Record<string, unknown>;
 }
 
 export interface PaymentProviderAdapter {

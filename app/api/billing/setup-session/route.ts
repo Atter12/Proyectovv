@@ -5,15 +5,15 @@ import {
   resolvePaymentsFundingCapabilities,
   withActAsClienteView,
 } from "@/lib/payments/funding-roles.server";
-import { startBillingSetupSession } from "@/lib/payments/auto-recharge/auto-recharge.server";
-import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
+import { startCreditLockSetupSession } from "@/lib/payments/credit-lock/credit-lock.server";
 import {
   getActingAsCliente,
   getSelectedHecomCliente,
 } from "@/lib/hecom/selected-cliente.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 
-export async function POST() {
+/** Abre Whop para guardar la tarjeta del crédito Holistic. */
+export async function POST(request: Request) {
   const session = await getSession();
   if (!session?.organizationId) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
@@ -37,6 +37,13 @@ export async function POST() {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
+  let body: { consentAccepted?: boolean } = {};
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
   const selected = await getSelectedHecomCliente(session.id);
   const hecomClienteId = selected?.id ?? null;
   const clienteOrgId = hecomClienteId
@@ -48,18 +55,16 @@ export async function POST() {
       : session.organizationId;
 
   try {
-    const result = await startBillingSetupSession({
+    const result = await startCreditLockSetupSession({
       organizationId,
+      hecomClienteId,
       userId: session.id,
-      email: session.email,
+      consentAccepted: body.consentAccepted === true,
     });
     return NextResponse.json({ ok: true, checkoutUrl: result.checkoutUrl });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "No se pudo iniciar guardado de tarjeta.";
-    return NextResponse.json(
-      { error: formatStripeErrorForUser(message) },
-      { status: 500 },
-    );
+      error instanceof Error ? error.message : "No se pudo abrir el registro de tarjeta.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

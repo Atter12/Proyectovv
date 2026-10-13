@@ -1,27 +1,17 @@
 import "server-only";
 import { STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
-import { syncWalletDepositCobroBestEffort } from "@/lib/hecom/wallet-cobro-bridge.server";
 import {
-  createPaymentIntentRecord,
-  updatePaymentIntentRecord,
-  claimPaymentIntentSucceeded,
-  mergePaymentIntentMetadata,
-} from "@/lib/payments/payment-intents.server";
+  finalizeWhopCardSetup,
+  startWhopCardSetup,
+} from "@/lib/payments/credit-card/credit-card.server";
 import {
-  chargeStripeOffSession,
-  completeStripeSetupSession,
-  createStripeCustomer,
-  createStripeSetupCheckoutSession,
-  detachStripePaymentMethod,
-} from "@/lib/payments/stripe-billing.server";
-import {
-  getBillingCustomer,
-  markBillingCustomerDetached,
-  upsertBillingCustomer,
-} from "@/lib/payments/auto-recharge/auto-recharge.store.server";
+  getAutochargeStatus,
+  getCreditCardMethod,
+  isChargeableCard,
+  markCreditCardDetached,
+} from "@/lib/payments/credit-card/credit-card.store.server";
 import {
   getCreditLockProfile,
   setCreditLockApproval,
@@ -38,7 +28,7 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
 }
 
 /**
- * Crédito Holistic + candado Stripe. OFF por defecto hasta que gerencia lo active.
+ * Crédito Holistic + candado Stripe. Apagado para siempre junto con Stripe.
  * Env: CREDIT_STRIPE_LOCK_ENABLED=true
  */
 export const CREDIT_STRIPE_LOCK_ENABLED = STRIPE_PAYMENTS_ENABLED && parseBoolean(
@@ -46,8 +36,18 @@ export const CREDIT_STRIPE_LOCK_ENABLED = STRIPE_PAYMENTS_ENABLED && parseBoolea
   false,
 );
 
-/** Mínimo Stripe USD (cents). Debajo: detach libre (deuda immaterial). */
-const STRIPE_MIN_CHARGE_CENTS = 50;
+/**
+ * Crédito Holistic + tarjeta en Whop (anti-vivos). Reemplaza al candado Stripe.
+ * Env: CREDIT_CARD_LOCK_ENABLED=true. El cobro semanal va aparte
+ * (CREDIT_AUTOCHARGE_MODE, ver lib/payments/credit-card).
+ */
+export const CREDIT_CARD_LOCK_ENABLED = parseBoolean(
+  process.env.CREDIT_CARD_LOCK_ENABLED,
+  false,
+);
+
+/** Con deuda desde este monto no se puede quitar la tarjeta. */
+const DETACH_MAX_DEBT_CENTS = 100;
 
 /** Cupo mínimo / máximo que se puede pedir (USD). */
 export const CREDIT_REQUEST_MIN_USD = 50;
@@ -66,25 +66,10 @@ export function recommendedCardCents(
   return Math.ceil(requestedCreditCents * (1 + headroomPercent / 100));
 }
 
-async function resolveWalletId(organizationId: string): Promise<string> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("wallets")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle<{ id: string }>();
-  if (error) throw new Error(error.message);
-  if (!data?.id) throw new Error("Cartera no encontrada.");
-  return data.id;
-}
-
 export type CreditLockDebt = {
   saldoEstimado: number;
   debtUsd: number;
   debtCents: number;
-  chargeable: boolean;
 };
 
 /**
@@ -105,31 +90,26 @@ export async function getCreditLockDebt(
   const saldoEstimado = Number(data.summary.saldoEstimado ?? 0);
   const debtUsd = saldoEstimado < 0 ? Math.abs(saldoEstimado) : 0;
   const debtCents = Math.round(debtUsd * 100);
-  return {
-    saldoEstimado,
-    debtUsd,
-    debtCents,
-    chargeable: debtCents >= STRIPE_MIN_CHARGE_CENTS,
-  };
+  return { saldoEstimado, debtUsd, debtCents };
 }
 
 export async function getCreditLockState(input: {
   organizationId: string;
   hecomClienteId: string | null;
 }) {
-  const [billing, profile] = await Promise.all([
-    getBillingCustomer(input.organizationId),
+  const [card, profile, autocharge] = await Promise.all([
+    getCreditCardMethod(input.organizationId),
     getCreditLockProfile(input.organizationId),
+    getAutochargeStatus(input.organizationId),
   ]);
-  const paymentMethod =
-    billing?.default_payment_method_id && billing.status === "active"
-      ? {
-          brand: billing.card_brand,
-          last4: billing.card_last4,
-          expMonth: billing.card_exp_month,
-          expYear: billing.card_exp_year,
-        }
-      : null;
+  const paymentMethod = isChargeableCard(card)
+    ? {
+        brand: card.card_brand,
+        last4: card.card_last4,
+        expMonth: card.card_exp_month,
+        expYear: card.card_exp_year,
+      }
+    : null;
 
   let billingModality: "credito" | "prepago" | "unknown" = "unknown";
   if (input.hecomClienteId) {
@@ -156,12 +136,18 @@ export async function getCreditLockState(input: {
       ? Number(profile.soft_cap_percent)
       : CREDIT_SOFT_CAP_PERCENT;
   const approved = approvalStatus === "approved";
-  const hasCard = Boolean(paymentMethod?.last4);
+  const hasCard = paymentMethod != null;
 
   return {
-    enabled: CREDIT_STRIPE_LOCK_ENABLED,
+    enabled: CREDIT_CARD_LOCK_ENABLED,
     billingModality,
     paymentMethod,
+    /** Último cobro automático rechazado (sin el monto: eso es interno). */
+    autocharge: {
+      failed: Boolean(autocharge.failedSince),
+      failedSince: autocharge.failedSince,
+      frozen: Boolean(autocharge.frozenAt),
+    },
     /** No exponer deuda / cobro al detach al cliente (interno). */
     cupo: {
       approvalStatus,
@@ -194,8 +180,8 @@ export async function saveCreditLockCupo(input: {
   hecomClienteId: string | null;
   requestedCreditUsd: number;
 }): Promise<Awaited<ReturnType<typeof getCreditLockState>>["cupo"]> {
-  if (!CREDIT_STRIPE_LOCK_ENABLED) {
-    throw new Error("El candado Stripe de crédito está desactivado.");
+  if (!CREDIT_CARD_LOCK_ENABLED) {
+    throw new Error("El crédito con tarjeta está desactivado.");
   }
   const usd = Number(input.requestedCreditUsd);
   if (!Number.isFinite(usd)) {
@@ -261,9 +247,9 @@ export async function reviewCreditLockRequest(input: {
 }
 
 /**
- * Tope suave + tarjeta Stripe para fondeo a crédito (cash BM / cupo).
+ * Tope suave + tarjeta Whop para fondeo a crédito (cash BM / cupo).
  * NO bloquea:
- * - asignación desde cartera Holistic ya pagada (Stripe/Yape/BCP)
+ * - asignación desde cartera Holistic ya pagada (Whop/Yape/BCP/cripto)
  * - recarga BM hecha por gerente/staff (ops Holistic)
  */
 export async function assertCreditLockAllowsAllocate(input: {
@@ -278,7 +264,7 @@ export async function assertCreditLockAllowsAllocate(input: {
    */
   staffBmFunding?: boolean;
 }): Promise<void> {
-  if (!CREDIT_STRIPE_LOCK_ENABLED) return;
+  if (!CREDIT_CARD_LOCK_ENABLED) return;
   // Recarga ya pagada en cartera → el cliente puede asignar a TikTok sin candado.
   if (!input.agencyBmFunding) return;
   // Ops Holistic recargan BM sin pasar por el pedido de crédito del cliente.
@@ -295,9 +281,10 @@ export async function assertCreditLockAllowsAllocate(input: {
   if (!data) return;
   if (resolveHecomBillingModality(data.cliente) !== "credito") return;
 
-  const [profile, billing] = await Promise.all([
+  const [profile, card, autocharge] = await Promise.all([
     getCreditLockProfile(input.organizationId),
-    getBillingCustomer(input.organizationId),
+    getCreditCardMethod(input.organizationId),
+    getAutochargeStatus(input.organizationId),
   ]);
 
   const approval = profile?.approval_status ?? "none";
@@ -310,12 +297,16 @@ export async function assertCreditLockAllowsAllocate(input: {
   }
 
   const requireCard = profile?.require_card ?? true;
-  const hasCard =
-    Boolean(billing?.default_payment_method_id) && billing?.status === "active";
-
-  if (requireCard && !hasCard) {
+  if (requireCard && !isChargeableCard(card)) {
     throw new Error(
-      "Crédito solo con candado Stripe: guarda una tarjeta en Pagos antes de fondear desde BM.",
+      "El crédito necesita tu tarjeta: regístrala en Pagos antes de fondear desde BM.",
+    );
+  }
+
+  // Cobro rechazado: no sube la deuda hasta que pague.
+  if (autocharge.failedSince) {
+    throw new Error(
+      "Tu último cobro automático fue rechazado. Paga tu deuda o cambia tu tarjeta en Pagos para volver a fondear a crédito.",
     );
   }
 
@@ -344,202 +335,64 @@ export async function assertCreditLockAllowsAllocate(input: {
   }
 }
 
+/**
+ * Abre Whop para guardar la tarjeta. Solo con crédito aprobado y con la
+ * autorización del cobro automático aceptada en Pagos.
+ */
 export async function startCreditLockSetupSession(input: {
   organizationId: string;
-  email: string;
+  hecomClienteId: string | null;
+  userId: string;
+  consentAccepted: boolean;
 }): Promise<{ checkoutUrl: string }> {
-  if (!CREDIT_STRIPE_LOCK_ENABLED) {
-    throw new Error("El candado Stripe de crédito está desactivado.");
+  if (!CREDIT_CARD_LOCK_ENABLED) {
+    throw new Error("El crédito con tarjeta está desactivado.");
   }
-
-  const billing = await getBillingCustomer(input.organizationId);
-  let stripeCustomerId = billing?.stripe_customer_id;
-
-  if (!stripeCustomerId) {
-    stripeCustomerId = await createStripeCustomer({
-      email: input.email,
-      organizationId: input.organizationId,
-    });
-    const admin = createAdminClient();
-    await admin.from("billing_customers").upsert(
-      {
-        organization_id: input.organizationId,
-        stripe_customer_id: stripeCustomerId,
-        status: "active",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "organization_id" },
+  if (!input.consentAccepted) {
+    throw new Error("Acepta la autorización del cobro automático para registrar la tarjeta.");
+  }
+  const profile = await getCreditLockProfile(input.organizationId);
+  if (profile?.approval_status !== "approved") {
+    throw new Error(
+      profile?.approval_status === "requested"
+        ? "Gerencia aún no aceptó tu pedido de crédito. Cuando lo aprueben, podrás registrar la tarjeta."
+        : "Primero pide crédito Holistic y espera la aceptación de gerencia.",
     );
   }
-
-  const session = await createStripeSetupCheckoutSession({
-    stripeCustomerId,
+  return startWhopCardSetup({
     organizationId: input.organizationId,
-    customerEmail: input.email,
-    purpose: "credito_lock",
+    hecomClienteId: input.hecomClienteId ?? profile.hecom_cliente_id,
+    userId: input.userId,
   });
-
-  return { checkoutUrl: session.url };
 }
 
 export async function finalizeCreditLockSetup(input: {
-  sessionId: string;
+  setupIntentId: string;
   organizationId: string;
-}): Promise<void> {
-  const result = await completeStripeSetupSession(input.sessionId);
-  if (result.organizationId !== input.organizationId) {
-    throw new Error("La sesión no corresponde a tu organización.");
-  }
-
-  await upsertBillingCustomer({
-    organizationId: input.organizationId,
-    stripeCustomerId: result.stripeCustomerId,
-    paymentMethodId: result.paymentMethod.id,
-    cardBrand: result.paymentMethod.brand,
-    cardLast4: result.paymentMethod.last4,
-    cardExpMonth: result.paymentMethod.expMonth,
-    cardExpYear: result.paymentMethod.expYear,
-  });
+}): Promise<{ saved: boolean }> {
+  return finalizeWhopCardSetup(input);
 }
 
 /**
- * Quita la tarjeta. Si hay deuda Hecom ≥ $0.50, cobra off-session primero.
- * Éxito → cobro Hecom (sin acreditar cartera) + detach.
- * Fallo de cobro → no detach.
+ * Quita la tarjeta. Con deuda no se puede: el cobro automático la cobra y
+ * recién ahí se quita (si no, el vivo se iría sin pagar).
  */
 export async function detachCreditLockPaymentMethod(input: {
   organizationId: string;
   hecomClienteId: string;
   userId: string;
-}): Promise<{
-  detached: boolean;
-  chargedCents: number;
-  paymentIntentId?: string;
-}> {
-  if (!CREDIT_STRIPE_LOCK_ENABLED) {
-    throw new Error("El candado Stripe de crédito está desactivado.");
+}): Promise<{ detached: boolean }> {
+  if (!CREDIT_CARD_LOCK_ENABLED) {
+    throw new Error("El crédito con tarjeta está desactivado.");
   }
-
-  const billing = await getBillingCustomer(input.organizationId);
-  if (
-    !billing?.default_payment_method_id ||
-    !billing.stripe_customer_id ||
-    billing.status !== "active"
-  ) {
+  const card = await getCreditCardMethod(input.organizationId);
+  if (!isChargeableCard(card)) {
     throw new Error("No hay tarjeta guardada para quitar.");
   }
-
   const debt = await getCreditLockDebt(input.hecomClienteId);
-  let chargedCents = 0;
-  let paymentIntentId: string | undefined;
-
-  if (debt.chargeable) {
-    const walletId = await resolveWalletId(input.organizationId);
-    const idempotencyKey = `credito-detach:${input.organizationId}:${debt.debtCents}:${new Date().toISOString().slice(0, 13)}`;
-
-    const intent = await createPaymentIntentRecord({
-      organizationId: input.organizationId,
-      walletId,
-      amountCents: debt.debtCents,
-      currency: "USD",
-      provider: "stripe",
-      createdBy: input.userId,
-      idempotencyKey,
-      metadata: {
-        source: "credito_detach",
-        skip_wallet_credit: true,
-        purpose: "credito_lock_debt",
-        hecom_cliente_id: input.hecomClienteId,
-        credit_amount_cents: debt.debtCents,
-        fee_amount_cents: 0,
-        gross_amount_cents: debt.debtCents,
-        debt_saldo_estimado: debt.saldoEstimado,
-      },
-    });
-    paymentIntentId = intent.id;
-
-    try {
-      const charge = await chargeStripeOffSession({
-        stripeCustomerId: billing.stripe_customer_id,
-        paymentMethodId: billing.default_payment_method_id,
-        amountCents: debt.debtCents,
-        currency: "USD",
-        paymentIntentId: intent.id,
-        organizationId: input.organizationId,
-        walletId,
-        idempotencyKey: `stripe:${idempotencyKey}`,
-        source: "credito_detach",
-      });
-
-      if (charge.status !== "succeeded") {
-        await updatePaymentIntentRecord(intent.id, {
-          status: "failed",
-          providerReference: charge.stripePaymentIntentId,
-          failureReason: `Estado Stripe: ${charge.status}`,
-        });
-        throw new Error("CREDIT_LOCK_DETACH_CHARGE_FAILED");
-      }
-
-      chargedCents = debt.debtCents;
-      const succeededAt = new Date().toISOString();
-      await claimPaymentIntentSucceeded(intent.id, {
-        succeededAt,
-        providerReference: charge.stripePaymentIntentId,
-        metadata: {
-          ...intent.metadata,
-          skip_wallet_credit: true,
-          source: "credito_detach",
-          provider_reference: charge.stripePaymentIntentId,
-        },
-      });
-
-      const cobroSync = await syncWalletDepositCobroBestEffort({
-        hecomClienteId: input.hecomClienteId,
-        paymentIntentId: intent.id,
-        amountCents: debt.debtCents,
-        creditCents: debt.debtCents,
-        feeCents: 0,
-        currency: "USD",
-        paidAt: succeededAt,
-        provider: "stripe",
-      });
-
-      await mergePaymentIntentMetadata(intent.id, {
-        hecom_cobro_sync: cobroSync
-          ? {
-              ok: cobroSync.ok,
-              skipped: cobroSync.skipped ?? false,
-              reason: cobroSync.reason ?? null,
-              cobro_id: cobroSync.cobroId ?? null,
-              codigo: cobroSync.codigo ?? null,
-              at: new Date().toISOString(),
-            }
-          : null,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Error cobrando deuda";
-      if (message !== "CREDIT_LOCK_DETACH_CHARGE_FAILED") {
-        await updatePaymentIntentRecord(intent.id, {
-          status: "failed",
-          failureReason: message,
-        });
-      }
-      throw new Error("CREDIT_LOCK_DETACH_CHARGE_FAILED");
-    }
-  } else if (debt.debtCents > 0) {
-    console.info("[credit-lock] detach_skip_tiny_debt", {
-      organizationId: input.organizationId,
-      debtCents: debt.debtCents,
-    });
+  if (debt.debtCents >= DETACH_MAX_DEBT_CENTS) {
+    throw new Error("CREDIT_LOCK_DETACH_HAS_DEBT");
   }
-
-  await detachStripePaymentMethod(billing.default_payment_method_id);
-  await markBillingCustomerDetached(input.organizationId);
-
-  return {
-    detached: true,
-    chargedCents,
-    paymentIntentId,
-  };
+  await markCreditCardDetached(input.organizationId);
+  return { detached: true };
 }

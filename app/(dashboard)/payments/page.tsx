@@ -10,7 +10,7 @@ import { PaymentsSectionSkeleton } from "@/features/payments/components/Payments
 import { CreditLockPanel } from "@/features/payments/components/CreditLockPanel.client";
 import { MyRechargesPanel } from "@/features/payments/components/MyRechargesPanel.client";
 import { listMyRecharges } from "@/lib/payments/my-recharges.server";
-import { CREDIT_STRIPE_LOCK_ENABLED } from "@/lib/payments/credit-lock/credit-lock.server";
+import { CREDIT_CARD_LOCK_ENABLED } from "@/lib/payments/credit-lock/credit-lock.server";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
 import { isHecomBmBucketHiddenForCliente } from "@/lib/hecom/bm-bucket.shared";
@@ -231,7 +231,7 @@ export default async function PaymentsPage({
           skipOrphanCleanup
           skipApprovedSync={isStripeReturn}
           creditSlot={
-            CREDIT_STRIPE_LOCK_ENABLED && capabilities.canClientStripeFund ? (
+            CREDIT_CARD_LOCK_ENABLED && capabilities.canClientStripeFund ? (
               <CreditLockPanel
                 clienteName={cliente.name}
                 canReviewCredit={canReviewCredit}

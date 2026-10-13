@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { processSuccessfulPaymentIntent } from "@/lib/payments/create-intent.server";
 import { recordCryptoIpnOpsEvent } from "@/lib/payments/crypto-ipn-ops.server";
+import {
+  recordAutochargeFailure,
+  recordAutochargeSuccess,
+  saveWhopCardFromSetup,
+} from "@/lib/payments/credit-card/credit-card.server";
 import { getPaymentProvider } from "@/lib/payments/providers";
 import { nowPaymentsWebhookStep } from "@/lib/payments/providers/nowpayments-ipn";
 import { nowPaymentsPaidFirstQuote } from "@/lib/payments/providers/nowpayments-first-quote.server";
@@ -184,12 +189,24 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ ok: true, step });
     }
 
+    // Tarjeta guardada para el crédito Holistic (anti-vivos).
+    if (provider === "whop" && parsed.eventType === "setup_intent.succeeded") {
+      const saved = parsed.savedCard
+        ? await saveWhopCardFromSetup(parsed.savedCard)
+        : { saved: false, reason: "sin_datos" };
+      await markWebhookEventProcessed(provider, parsed.eventId);
+      return NextResponse.json({ ok: true, ...saved });
+    }
+
     if (parsed.failed) {
       if (intent) {
         await updatePaymentIntentRecord(intent.id, {
           status: "failed",
-          failureReason: parsed.eventType,
+          failureReason: parsed.failureMessage ?? parsed.eventType,
         });
+        if (provider === "whop" && intent.status !== "succeeded") {
+          await recordAutochargeFailure(intent, parsed.failureMessage ?? null);
+        }
       }
 
       await markWebhookEventProcessed(provider, parsed.eventId);
@@ -216,6 +233,9 @@ export async function POST(request: Request, context: RouteContext) {
         currency: parsed.currency,
         webhookEventId: parsed.eventId,
       });
+      if (provider === "whop" && intent) {
+        await recordAutochargeSuccess(intent);
+      }
     }
 
     await markWebhookEventProcessed(provider, parsed.eventId);
