@@ -910,7 +910,8 @@
       "reviewApproved": "Crédito aprobado de {amount}",
       "reviewRejected": "Pedido de {amount} rechazado",
       "reviewCard": "Tarjeta registrada: {card}",
-      "reviewNoCard": "Aún no registra su tarjeta: el crédito no está activo."
+      "reviewNoCard": "Aún no registra su tarjeta: el crédito no está activo.",
+      "secureNote": "Tu tarjeta se guarda de forma segura en Whop. Holistic no ve ni guarda el número completo."
     },
     "autoRecharge": {
       "loading": "Cargando débito automático…",

@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format-money";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { formatStripeErrorForUser } from "@/lib/payments/stripe-messages";
-import { GatewayLogo } from "./GatewayLogo";
-import { PaymentAppIcon } from "./PaymentAppIcon";
 
 function userErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiClientError) {
@@ -299,19 +296,37 @@ export function CreditLockPanel({
 
   const brand = paymentMethod?.brand?.toUpperCase() ?? "CARD";
   const last4 = paymentMethod?.last4 ?? "••••";
+  const cardExpiry =
+    paymentMethod?.expMonth && paymentMethod.expYear
+      ? `${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
+      : null;
 
-  // Pasos visibles: 1 pedir · 2 gerencia · 3 tarjeta
+  // Pasos: 0 pedir · 1 gerencia · 2 tarjeta · 3 todo listo
   let step = 0;
   if (status === "requested") step = 1;
   else if (status === "approved" && !cupo?.lockReady) step = 2;
   else if (cupo?.lockReady) step = 3;
-  else if (status === "rejected") step = 0;
 
   const stepLabels = [
     t("creditLock.step1"),
     t("creditLock.step2"),
     t("creditLock.step3"),
   ] as const;
+
+  const messages = (
+    <>
+      {error ? (
+        <p className="mt-4 border-l-2 border-[#b42318] pl-3 text-[13px] text-[#b42318]" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="mt-4 border-l-2 border-[#067647] pl-3 text-[13px] text-[#067647]" role="status">
+          {success}
+        </p>
+      ) : null}
+    </>
+  );
 
   // Vista gerente: solo revisar el pedido del cliente, sin el formulario.
   if (canReviewCredit) {
@@ -322,16 +337,16 @@ export function CreditLockPanel({
         : "—";
     return (
       <section
-        className="rounded-2xl border border-[var(--auth-border)] bg-white px-5 py-4 sm:px-6"
+        className="rounded-xl border border-[#e4e7ec] bg-white px-5 py-4 sm:px-6"
         aria-label={t("creditLock.aria", { name: clienteName })}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <GatewayLogo gatewayId="whop" size="sm" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <CardGlyph />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8a8177]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#667085]">
               {t("creditLock.reviewEyebrow")}
             </p>
-            <p className="mt-0.5 text-[14px] font-semibold text-[#1c1917]">
+            <p className="mt-1 text-[15px] font-semibold text-[#101828]">
               {status === "requested"
                 ? t("creditLock.reviewRequested", { name: clienteName, amount })
                 : status === "approved"
@@ -339,54 +354,42 @@ export function CreditLockPanel({
                   : t("creditLock.reviewRejected", { amount })}
             </p>
             {status === "approved" ? (
-              <p className="mt-0.5 text-[12px] text-[#6f675f]">
+              <p className="mt-0.5 text-[13px] text-[#475467]">
                 {paymentMethod
-                  ? t("creditLock.reviewCard", { card: `${brand} ···· ${last4}` })
+                  ? t("creditLock.reviewCard", { card: `${brand} •••• ${last4}` })
                   : t("creditLock.reviewNoCard")}
               </p>
             ) : null}
             {autocharge?.failed ? (
-              <p className="mt-1 text-[12px] font-medium text-[#9b1c1c]" role="alert">
+              <p className="mt-1 text-[13px] text-[#b42318]" role="alert">
                 {autocharge.frozen ? t("creditLock.autochargeFrozen") : t("creditLock.autochargeFailed")}
               </p>
             ) : null}
           </div>
           {status === "requested" ? (
             <div className="flex shrink-0 gap-2">
-              <Button
+              <button
                 type="button"
-                size="sm"
+                disabled={reviewBusy != null}
+                onClick={() => void handleReview("rejected")}
+                className={SECONDARY_BUTTON}
+              >
+                {reviewBusy === "rejected" ? "…" : t("creditLock.reject")}
+              </button>
+              <button
+                type="button"
                 disabled={reviewBusy != null}
                 onClick={() => void handleReview("approved")}
-                className="h-10 rounded-xl"
+                className={PRIMARY_BUTTON}
               >
                 {reviewBusy === "approved"
                   ? t("creditLock.accepting")
                   : t("creditLock.accept")}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={reviewBusy != null}
-                onClick={() => void handleReview("rejected")}
-                className="h-10 rounded-xl"
-              >
-                {reviewBusy === "rejected" ? "…" : t("creditLock.reject")}
-              </Button>
+              </button>
             </div>
           ) : null}
         </div>
-        {error ? (
-          <p className="mt-3 text-[13px] text-red-700" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {success ? (
-          <p className="mt-3 text-[13px] text-emerald-800" role="status">
-            {success}
-          </p>
-        ) : null}
+        {messages}
       </section>
     );
   }
@@ -398,45 +401,26 @@ export function CreditLockPanel({
   if (idle && !expanded) {
     return (
       <section
-        className="relative overflow-hidden rounded-2xl border border-[#f0dccb] bg-gradient-to-br from-[#fff7f0] via-white to-white px-5 py-5 sm:px-6"
+        className="rounded-xl border border-[#e4e7ec] bg-white px-5 py-5 sm:px-6"
         aria-label={t("creditLock.aria", { name: clienteName })}
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-          <span
-            aria-hidden
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--auth-accent)] text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.25)]"
-          >
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
-              <path d="M3 10h18M7 15h3" />
-            </svg>
-          </span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <CardGlyph />
           <div className="min-w-0 flex-1">
-            <p className="text-[16px] font-semibold tracking-[-0.01em] text-[#1c1917]">
+            <p className="text-[15px] font-semibold text-[#101828]">
               {t("creditLock.idleTitle")}
             </p>
-            <p className="mt-1 max-w-[38rem] text-[13px] leading-5 text-[#625b54]">
+            <p className="mt-1 max-w-[40rem] text-[13px] leading-5 text-[#475467]">
               {t("creditLock.idleBody")}
               {status === "rejected" ? t("creditLock.idleRejected") : ""}
             </p>
-            <ol className="mt-3 flex flex-wrap gap-1.5" aria-label={t("creditLock.stepsAria")}>
-              {stepLabels.map((label) => (
-                <li
-                  key={label}
-                  className="rounded-full border border-[#eadfd5] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#6f675f]"
-                >
-                  {label}
-                </li>
-              ))}
-            </ol>
           </div>
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 focus-visible:ring-offset-2"
+            className={cn(PRIMARY_BUTTON, "shrink-0")}
           >
             {t("creditLock.askCta")}
-            <span aria-hidden>→</span>
           </button>
         </div>
       </section>
@@ -445,181 +429,172 @@ export function CreditLockPanel({
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
+      className="overflow-hidden rounded-xl border border-[#e4e7ec] bg-white"
       aria-label={t("creditLock.aria", { name: clienteName })}
     >
-      <header className="border-b border-[#eee8e2] bg-[#fffaf6] px-5 py-5 sm:px-6">
-        <div className="flex items-center gap-3">
-          <GatewayLogo gatewayId="whop" size="sm" />
+      <header className="px-5 pt-5 sm:px-7 sm:pt-6">
+        <div className="flex items-start gap-4">
+          <CardGlyph />
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-[#1c1917]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#667085]">
               {t("creditLock.title")}
             </p>
-            <p className="mt-0.5 text-[11px] text-[#6f675f]">
-              {t("creditLock.subtitle")}
+            <h2 className="mt-1 text-[1.2rem] font-semibold tracking-[-0.01em] text-[#101828]">
+              {t("creditLock.heading")}
+            </h2>
+            <p className="mt-1 max-w-[42rem] text-[13px] leading-5 text-[#475467]">
+              {t("creditLock.intro")}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <PaymentAppIcon app="visa" size="sm" />
-            <PaymentAppIcon app="mastercard" size="sm" />
-            {idle ? (
-              <button
-                type="button"
-                onClick={() => setExpanded(false)}
-                aria-label={t("creditLock.closeAria")}
-                className="ml-1.5 inline-flex h-10 w-10 items-center sm:h-7 sm:w-7 justify-center rounded-full text-[#8a8177] transition-colors hover:bg-[#f0eae4] hover:text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35"
-              >
-                <svg
-                  viewBox="0 0 20 20"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  aria-hidden
-                >
-                  <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" />
-                </svg>
-              </button>
-            ) : null}
-          </div>
+          {idle ? (
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              aria-label={t("creditLock.closeAria")}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[#667085] transition-colors hover:bg-[#f2f4f7] hover:text-[#101828] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]/20 sm:h-8 sm:w-8"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+                <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" />
+              </svg>
+            </button>
+          ) : null}
         </div>
 
-        <h2 className="mt-5 text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171412]">
-          {t("creditLock.heading")}
-        </h2>
-        <p className="mt-1.5 max-w-[40rem] text-[13px] leading-5 text-[#625b54]">
-          {t("creditLock.intro")}
-        </p>
-
-        <ol className="mt-4 grid grid-cols-3 gap-2" aria-label={t("creditLock.stepsAria")}>
-          {stepLabels.map((label, i) => (
-            <li key={label}>
-              <span
-                className={cn(
-                  "block h-1 rounded-full",
-                  i <= Math.min(step, 2) ? "bg-[#d47840]" : "bg-[#e5ddd5]",
-                )}
-              />
-              <span
-                className={cn(
-                  "mt-1.5 block text-[10px] font-semibold",
-                  i === Math.min(step, 2)
-                    ? "text-[#1c1917]"
-                    : "text-[#8a8177]",
-                )}
-              >
-                {label}
-              </span>
-            </li>
-          ))}
+        <ol className="mt-6 flex items-center" aria-label={t("creditLock.stepsAria")}>
+          {stepLabels.map((label, i) => {
+            const done = i < step;
+            const current = i === step;
+            return (
+              <li key={label} className={cn("flex items-center", i < stepLabels.length - 1 && "flex-1")}>
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums",
+                      done
+                        ? "bg-[#101828] text-white"
+                        : current
+                          ? "border border-[#101828] text-[#101828]"
+                          : "border border-[#d0d5dd] text-[#98a2b3]",
+                    )}
+                    aria-current={current ? "step" : undefined}
+                  >
+                    {done ? (
+                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M3.5 8.5l3 3 6-7" />
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "hidden text-[12px] sm:inline",
+                      done || current ? "font-medium text-[#101828]" : "text-[#98a2b3]",
+                    )}
+                  >
+                    {label.replace(/^\d+\.\s*/, "")}
+                  </span>
+                </span>
+                {i < stepLabels.length - 1 ? (
+                  <span className={cn("mx-3 h-px flex-1", done ? "bg-[#101828]" : "bg-[#e4e7ec]")} aria-hidden />
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       </header>
 
-      <div className="p-5 sm:p-6">
+      <div className="mt-5 border-t border-[#eaecf0] px-5 py-5 sm:px-7 sm:py-6">
         {loading ? (
-          <p className="text-[13px] text-[#6f675f]">{tCommon("loading")}</p>
+          <p className="text-[13px] text-[#667085]">{tCommon("loading")}</p>
         ) : (
-          <div className="space-y-4">
-            {(status === "none" ||
-              status === "rejected" ||
-              status === "requested" ||
-              status === "approved") && (
-              <div>
-                <p className="text-[13px] font-semibold text-[#1c1917]">
-                  {t("creditLock.howMuch")}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {QUICK_AMOUNTS.map((amount) => {
-                    const selected = Number(amountInput) === amount;
-                    return (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => setAmountInput(String(amount))}
-                        className={cn(
-                          "h-10 rounded-xl border px-3.5 text-[13px] font-semibold tabular-nums transition-colors",
-                          selected
-                            ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
-                            : "border-[#e7dfd7] bg-white text-[#1c1917] hover:border-[#d47840]/50",
-                        )}
-                      >
-                        ${amount}
-                      </button>
-                    );
-                  })}
-                </div>
-                <label className="mt-3 block">
-                  <span className="text-[11px] font-medium text-[#6f675f]">
-                    {t("creditLock.otherAmount")}
-                  </span>
-                  <Input
-                    type="number"
-                    min={50}
-                    max={50000}
-                    step={50}
-                    value={amountInput}
-                    onChange={(e) => setAmountInput(e.target.value)}
-                    className="mt-1 h-11 rounded-xl border-[#ddd4cb] bg-[#f7f5f2] text-[1.05rem] font-semibold tabular-nums"
-                  />
-                </label>
+          <div className="space-y-5">
+            <div>
+              <p className="text-[13px] font-medium text-[#344054]">
+                {t("creditLock.howMuch")}
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {QUICK_AMOUNTS.map((amount) => {
+                  const selected = Number(amountInput) === amount;
+                  return (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setAmountInput(String(amount))}
+                      aria-pressed={selected}
+                      className={cn(
+                        "h-11 rounded-lg border text-[14px] font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]/20",
+                        selected
+                          ? "border-[#101828] bg-[#f9fafb] text-[#101828]"
+                          : "border-[#d0d5dd] bg-white text-[#344054] hover:border-[#98a2b3]",
+                      )}
+                    >
+                      {formatMoney(amount, "USD")}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+              <label className="mt-3 block">
+                <span className="text-[12px] text-[#667085]">
+                  {t("creditLock.otherAmount")}
+                </span>
+                <Input
+                  type="number"
+                  min={50}
+                  max={50000}
+                  step={50}
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  className="mt-1 h-11 rounded-lg border-[#d0d5dd] bg-white text-[15px] font-medium tabular-nums"
+                />
+              </label>
+            </div>
 
             {preview ? (
-              <div className="overflow-hidden rounded-2xl bg-[#f7f5f2]">
-                <div className="grid grid-cols-2 divide-x divide-[#e4ddd6] px-4 py-3.5 text-sm">
-                  <div className="pr-3">
-                    <p className="text-[10px] text-[#6f675f]">{t("creditLock.willAsk")}</p>
-                    <p className="mt-0.5 font-semibold tabular-nums text-[#1c1917]">
-                      {formatMoney(preview.requested, "USD")}
-                    </p>
-                  </div>
-                  <div className="pl-3">
-                    <p className="text-[10px] text-[#6f675f]">
-                      {t("creditLock.idealCard")}
-                    </p>
-                    <p className="mt-0.5 font-semibold tabular-nums text-[#a85a32]">
-                      {formatMoney(preview.recommended, "USD")}+
-                    </p>
-                  </div>
+              <dl className="divide-y divide-[#eaecf0] rounded-lg border border-[#eaecf0] text-[13px]">
+                <div className="flex items-center justify-between gap-4 px-4 py-3">
+                  <dt className="text-[#475467]">{t("creditLock.willAsk")}</dt>
+                  <dd className="font-semibold tabular-nums text-[#101828]">
+                    {formatMoney(preview.requested, "USD")}
+                  </dd>
                 </div>
-                <p className="border-t border-[#e4ddd6] px-4 py-2.5 text-[11px] leading-4 text-[#6f675f]">
+                <div className="flex items-center justify-between gap-4 px-4 py-3">
+                  <dt className="text-[#475467]">{t("creditLock.idealCard")}</dt>
+                  <dd className="font-semibold tabular-nums text-[#101828]">
+                    {formatMoney(preview.recommended, "USD")}
+                  </dd>
+                </div>
+                <p className="bg-[#f9fafb] px-4 py-2.5 text-[12px] leading-4 text-[#667085]">
                   {t("creditLock.previewHint", {
                     requested: formatMoney(preview.requested, "USD"),
                     recommended: formatMoney(preview.recommended, "USD"),
                     headroom: preview.headroom,
                   })}
                 </p>
-              </div>
+              </dl>
             ) : null}
 
             {status === "rejected" ? (
-              <p className="rounded-xl bg-[#fff1f0] px-3.5 py-3 text-[12px] font-medium text-[#9b1c1c]">
-                {t("creditLock.rejectedBanner")}
-              </p>
+              <Notice tone="danger">{t("creditLock.rejectedBanner")}</Notice>
             ) : null}
 
             {status === "requested" ? (
               <div className="space-y-3">
-                <p className="rounded-xl bg-[#fff8eb] px-3.5 py-3 text-[12px] font-medium text-[#8a5a12]">
+                <Notice tone="pending">
                   {t("creditLock.inReview")}
                   {cupo?.requestedCreditUsd != null
                     ? ` · ${formatMoney(cupo.requestedCreditUsd, "USD")}`
                     : ""}
                   {t("creditLock.inReviewWait")}
-                </p>
-
-                <Button
+                </Notice>
+                <button
                   type="button"
-                  variant="secondary"
-                  size="sm"
                   disabled={busy || !preview}
                   onClick={() => void handleRequest()}
-                  className="h-10 rounded-xl"
+                  className={SECONDARY_BUTTON}
                 >
                   {busy ? "…" : t("creditLock.updateRequest")}
-                </Button>
+                </button>
               </div>
             ) : null}
 
@@ -628,15 +603,15 @@ export function CreditLockPanel({
                 type="button"
                 disabled={busy || !preview}
                 onClick={() => void handleRequest()}
-                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(PRIMARY_BUTTON, "h-12 w-full text-[15px]")}
               >
                 {busy ? t("creditLock.sending") : t("creditLock.requestCta")}
               </button>
             )}
 
             {status === "approved" ? (
-              <div className="space-y-3">
-                <p className="rounded-xl bg-[#f0faf4] px-3.5 py-3 text-[12px] font-medium text-[#0f6b3c]">
+              <div className="space-y-4">
+                <Notice tone="success">
                   {t("creditLock.approvedBanner")}
                   {cupo?.requestedCreditUsd != null
                     ? t("creditLock.approvedOf", { amount: formatMoney(cupo.requestedCreditUsd, "USD") })
@@ -645,62 +620,61 @@ export function CreditLockPanel({
                   {cupo?.lockReady
                     ? t("creditLock.approvedActive")
                     : t("creditLock.approvedLink")}
-                </p>
+                </Notice>
 
                 {autocharge?.failed ? (
-                  <p className="rounded-xl bg-[#fff1f0] px-3.5 py-3 text-[12px] font-medium text-[#9b1c1c]" role="alert">
+                  <Notice tone="danger" alert>
                     {autocharge.frozen ? t("creditLock.autochargeFrozen") : t("creditLock.autochargeFailed")}
-                  </p>
+                  </Notice>
                 ) : null}
 
                 {paymentMethod ? (
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e7dfd7] px-4 py-3.5">
-                    <div>
-                      <p className="text-[11px] text-[#6f675f]">
-                        {t("creditLock.cardRegistered")}
-                      </p>
-                      <p className="text-[14px] font-semibold text-[#1c1917]">
-                        {brand} ···· {last4}
-                        {paymentMethod.expMonth && paymentMethod.expYear
-                          ? ` · ${String(paymentMethod.expMonth).padStart(2, "0")}/${paymentMethod.expYear}`
-                          : ""}
-                      </p>
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-[#eaecf0] px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-12 items-center justify-center rounded-md border border-[#eaecf0] bg-[#f9fafb] text-[10px] font-bold tracking-[0.04em] text-[#344054]">
+                        {brand}
+                      </span>
+                      <div>
+                        <p className="text-[14px] font-medium tabular-nums text-[#101828]">
+                          •••• {last4}
+                        </p>
+                        <p className="text-[12px] text-[#667085]">
+                          {t("creditLock.cardRegistered")}
+                          {cardExpiry ? ` · ${cardExpiry}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
+                      <button
                         type="button"
-                        variant="secondary"
-                        size="sm"
                         disabled={busy}
                         onClick={() => void handleUpdateAmount()}
-                        className="h-10 rounded-xl"
+                        className={SECONDARY_BUTTON}
                       >
                         {busy ? "…" : t("creditLock.updateCupo")}
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         disabled={detachLoading}
                         onClick={() => void handleDetach()}
-                        className="h-10 rounded-xl"
+                        className="inline-flex h-10 items-center justify-center rounded-lg px-3 text-[13px] font-medium text-[#475467] transition-colors hover:bg-[#f2f4f7] hover:text-[#101828] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]/20 disabled:opacity-50"
                       >
                         {t("creditLock.remove")}
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 ) : null}
 
                 {canLinkCard && (!paymentMethod || autocharge?.failed) ? (
                   <div className="space-y-3">
-                    <label className="flex cursor-pointer items-start gap-2.5 rounded-xl bg-[#f7f5f2] px-3.5 py-3">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#eaecf0] bg-[#f9fafb] px-4 py-3.5">
                       <input
                         type="checkbox"
                         checked={consent}
                         onChange={(e) => setConsent(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#d47840]"
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#101828]"
                       />
-                      <span className="text-[12px] leading-5 text-[#3f3a35]">
+                      <span className="text-[12px] leading-5 text-[#344054]">
                         {t("creditLock.consent")}
                       </span>
                     </label>
@@ -708,7 +682,7 @@ export function CreditLockPanel({
                       type="button"
                       disabled={busy || !consent}
                       onClick={() => void handleLinkCard()}
-                      className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(212_120_64_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
+                      className={cn(PRIMARY_BUTTON, "h-12 w-full text-[15px]")}
                     >
                       {busy
                         ? t("creditLock.openingStripe")
@@ -721,25 +695,66 @@ export function CreditLockPanel({
               </div>
             ) : null}
 
-            {status === "none" ? (
-              <p className="text-[12px] leading-5 text-[#6f675f]">
-                {t("creditLock.footnote")}
-              </p>
-            ) : null}
+            <p className="flex items-center gap-1.5 text-[12px] leading-5 text-[#667085]">
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+              </svg>
+              {status === "none" ? t("creditLock.footnote") : t("creditLock.secureNote")}
+            </p>
           </div>
         )}
 
-        {error ? (
-          <p className="mt-3 text-[13px] text-red-700" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {success ? (
-          <p className="mt-3 text-[13px] text-emerald-800" role="status">
-            {success}
-          </p>
-        ) : null}
+        {messages}
       </div>
     </section>
+  );
+}
+
+const PRIMARY_BUTTON =
+  "inline-flex h-10 items-center justify-center rounded-lg bg-[#101828] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d2939] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40";
+
+const SECONDARY_BUTTON =
+  "inline-flex h-10 items-center justify-center rounded-lg border border-[#d0d5dd] bg-white px-4 text-[13px] font-semibold text-[#344054] transition-colors hover:bg-[#f9fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]/20 disabled:cursor-not-allowed disabled:opacity-50";
+
+function CardGlyph() {
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f9fafb] text-[#344054]"
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5.5" width="18" height="13" rx="2" />
+        <path d="M3 10h18M7 15h3" />
+      </svg>
+    </span>
+  );
+}
+
+const NOTICE_TONE = {
+  success: "border-[#067647] text-[#054f31]",
+  pending: "border-[#b54708] text-[#7a2e0e]",
+  danger: "border-[#b42318] text-[#7a271a]",
+} as const;
+
+function Notice({
+  tone,
+  alert = false,
+  children,
+}: {
+  tone: keyof typeof NOTICE_TONE;
+  alert?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <p
+      role={alert ? "alert" : undefined}
+      className={cn(
+        "rounded-r-lg border-l-2 bg-[#f9fafb] px-4 py-3 text-[13px] leading-5",
+        NOTICE_TONE[tone],
+      )}
+    >
+      {children}
+    </p>
   );
 }
