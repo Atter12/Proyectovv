@@ -48,8 +48,25 @@ function norm(s: string): string {
 
 type Cliente = { id: string; name: string; n: string; fee: number | null };
 
-/** Cliente cuyo nombre abre el nombre de la cuenta; si no, por las 2 primeras palabras. */
-export function matchClientes(accountName: string, clientes: Cliente[]): Cliente[] {
+/** Nombre de la cuenta sin serial ni relleno: "Gonzalo Garcia 200.0 USD - Agencia" → "gonzalo garcia". */
+export function accountPrefix(accountName: string): string {
+  const toks: string[] = [];
+  for (const t of norm(accountName).split(" ")) {
+    if (/^\d/.test(t)) break;
+    if (!SKIP_WORDS.has(t)) toks.push(t);
+  }
+  return toks.length >= 2 ? toks.join(" ") : "";
+}
+
+/**
+ * Cliente cuyo nombre abre el nombre de la cuenta; si no, por cómo se llaman sus otras cuentas
+ * (`aliases`: "gonzalo garcia" → ficha "Fabricio Pacahuala - Gonzalo García"); si no, por las 2 primeras palabras.
+ */
+export function matchClientes(
+  accountName: string,
+  clientes: Cliente[],
+  aliases: Map<string, Cliente[]> = new Map(),
+): Cliente[] {
   const an = norm(accountName);
   const byPrefix = clientes
     .filter((c) => an === c.n || an.startsWith(`${c.n} `))
@@ -59,11 +76,19 @@ export function matchClientes(accountName: string, clientes: Cliente[]): Cliente
     const longest = byPrefix[0]!.n.length;
     return byPrefix.filter((c) => c.n.length === longest);
   }
+  const byAlias = aliases.get(accountPrefix(accountName));
+  if (byAlias?.length) return byAlias;
   const toks = an.split(" ").filter((t) => !/^\d/.test(t) && !SKIP_WORDS.has(t));
   if (toks.length < 2) return [];
   const two = `${toks[0]} ${toks[1]}`;
   const byTwo = clientes.filter((c) => c.n === two || c.n.startsWith(`${two} `));
   if (byTwo.length) return byTwo;
+  // Nombre corto en TikTok y completo en Hecom: "Jarek Pereira" ↔ "Jarek Husein Amado Pereira".
+  const ficha = clientes.filter((c) => {
+    const ct = c.n.split(" ");
+    return ct[0] === toks[0] && toks.every((t) => ct.includes(t));
+  });
+  if (ficha.length === 1) return ficha;
   // Nombre completo en TikTok y corto en Hecom: "Jamil Giordano Abuhadba Gentille" ↔ "Jamil Abuhadba".
   // Nombre + apellido paterno (el penúltimo antes del serial). "Jorge Zerda Pérez" NO es "Jorge Perez".
   const nameToks: string[] = [];
@@ -76,6 +101,24 @@ export function matchClientes(accountName: string, clientes: Cliente[]): Cliente
   return clientes.filter((c) => c.n === short);
 }
 
+/** Cómo se llaman las cuentas que ya tiene cada cliente ("gonzalo garcia" → su ficha). Si dos clientes comparten el nombre, quedan los dos y no se decide solo. */
+export function buildAliases(
+  links: Array<{ client_id: string; advertiser_name: string | null }>,
+  clientes: Cliente[],
+): Map<string, Cliente[]> {
+  const byId = new Map(clientes.map((c) => [c.id, c]));
+  const out = new Map<string, Cliente[]>();
+  for (const l of links) {
+    const c = byId.get(l.client_id);
+    const key = accountPrefix(String(l.advertiser_name ?? ""));
+    if (!c || !key || SKIP_NAME.test(key)) continue;
+    const list = out.get(key) ?? [];
+    if (!list.includes(c)) list.push(c);
+    out.set(key, list);
+  }
+  return out;
+}
+
 /**
  * Cuentas cuyo nombre en TikTok apunta a un cliente distinto del vinculado en Hecom.
  * Solo cuando el nombre apunta a un cliente sin dudas; los nombres libres o internos se saltan.
@@ -86,6 +129,7 @@ export function findNameMismatches(
   links: Array<{ client_id: string; advertiser_id: string }>,
   clientes: Cliente[],
   skipIds: Set<string> = new Set(),
+  aliases: Map<string, Cliente[]> = new Map(),
 ): NameMismatch[] {
   const byId = new Map(clientes.map((c) => [c.id, c]));
   const linkedTo = new Map<string, string[]>();
@@ -97,7 +141,7 @@ export function findNameMismatches(
   for (const acc of accounts) {
     const owners = linkedTo.get(acc.id);
     if (!owners?.length || skipIds.has(acc.id) || SKIP_NAME.test(acc.name)) continue;
-    const matches = matchClientes(acc.name, clientes);
+    const matches = matchClientes(acc.name, clientes, aliases);
     if (matches.length !== 1 || owners.includes(matches[0]!.id)) continue;
     const linked = owners.map((id) => byId.get(id)?.name ?? id).join(", ");
     // Misma persona con otra ficha ("Frank Cari - Mexico" / "Frank Alexander", "Oscar Eduardo Vidal" / "Oscar Vidal"):
@@ -160,7 +204,10 @@ export async function autoMapTikTokAccounts(opts: { commit: boolean }): Promise<
 
   const [clientesRaw, links] = await Promise.all([
     all<{ id: string; name: string; tiktok_default_fee: number | null }>("clientes", "id,name,tiktok_default_fee"),
-    all<{ client_id: string; advertiser_id: string; fee: number | null }>("cliente_tiktok_cuentas", "client_id,advertiser_id,fee"),
+    all<{ client_id: string; advertiser_id: string; advertiser_name: string | null; fee: number | null }>(
+      "cliente_tiktok_cuentas",
+      "client_id,advertiser_id,advertiser_name,fee",
+    ),
   ]);
   const linked = new Set(links.map((l) => String(l.advertiser_id)));
   const feeByCliente = new Map<string, number>();
@@ -168,6 +215,7 @@ export async function autoMapTikTokAccounts(opts: { commit: boolean }): Promise<
   const clientes: Cliente[] = clientesRaw
     .map((c) => ({ id: c.id, name: c.name, n: norm(c.name), fee: feeByCliente.get(c.id) ?? c.tiktok_default_fee ?? null }))
     .filter((c) => c.n.length >= 4 && c.n !== "holistic");
+  const aliases = buildAliases(links, clientes);
 
   // Cuentas liberadas a mano por gerencia: no se reasignan solas.
   const { data: freed } = await admin.from("ad_accounts").select("external_account_id").not("metadata->liberada", "is", null);
@@ -183,14 +231,14 @@ export async function autoMapTikTokAccounts(opts: { commit: boolean }): Promise<
     unlinked: unlinked.length,
     linked: [],
     ambiguous: [],
-    mismatched: findNameMismatches(accounts, links, clientes, skipIds),
+    mismatched: findNameMismatches(accounts, links, clientes, skipIds, aliases),
     errors: [],
   };
   const newByCliente = new Map<string, Array<{ advertiserId: string; name: string }>>();
 
   for (const acc of unlinked) {
     if (skipIds.has(acc.id) || SKIP_NAME.test(acc.name)) continue;
-    const matches = matchClientes(acc.name, clientes);
+    const matches = matchClientes(acc.name, clientes, aliases);
     if (matches.length > 1) {
       result.ambiguous.push({ advertiserId: acc.id, name: acc.name, candidates: matches.map((m) => m.name) });
       continue;
