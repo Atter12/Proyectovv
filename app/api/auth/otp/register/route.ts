@@ -11,6 +11,8 @@ export async function POST(request: NextRequest) {
     dni?: string;
     phone?: string;
     email?: string;
+    /** Dirección completa (obligatoria): carta notarial / cobranza. */
+    address?: string;
     /** Slug del aliado (landing /a/<slug>) o código de referido (/r/<code>). */
     partner?: string;
     referralCode?: string;
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
     dni: body.dni ?? "",
     phone: body.phone ?? "",
     email: body.email ?? "",
+    address: body.address ?? "",
     country: isRegisterCountry(body.country) ? body.country : "PE",
     // El formulario los manda; las cookies cubren el caso en que no llegaron.
     attribution: {

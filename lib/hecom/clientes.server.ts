@@ -477,6 +477,8 @@ export async function createHecomCliente(input: {
   phone: string;
   /** País del registro (documento y teléfono). Perú si no viene. */
   country?: RegisterCountry;
+  /** Dirección del registro: Hecom no tiene columna, va en las notas (carta notarial). */
+  address?: string;
 }): Promise<
   | { ok: true; cliente: HecomCliente }
   | { ok: false; message: string; code?: "duplicate_email" | "config" | "insert" }
@@ -523,6 +525,8 @@ export async function createHecomCliente(input: {
   }
 
   const phoneNormalized = storedPhone(country, input.phone);
+  const address = String(input.address ?? "").replace(/s+/g, " ").trim().slice(0, 240);
+  const notes = `Alta desde Ads Holistic · registro OTP${address ? ` · Dirección: ${address}` : ""}`;
 
   try {
     const hecom = createHecomAdminClient();
@@ -531,7 +535,7 @@ export async function createHecomCliente(input: {
       dni,
       emails: [email],
       phones: [phoneNormalized],
-      notes: "Alta desde Ads Holistic · registro OTP",
+      notes,
       tiktok_sync_enabled: false,
       // Sin fee, Hecom cobra 10 % igual pero la ficha queda en blanco.
       tiktok_default_fee: DEFAULT_DEPOSIT_FEE_PERCENT,
@@ -557,7 +561,7 @@ export async function createHecomCliente(input: {
             dni,
             emails: [email],
             phones: [phoneNormalized],
-            notes: "Alta desde Ads Holistic · registro OTP",
+            notes,
           })
           .select("id,name,dni,emails,phones,biz,notes,ig,avatar_url,created_at")
           .single();

@@ -24,6 +24,8 @@ interface RegisterFormValues {
   lastName: string;
   dni: string;
   phone: string;
+  /** Obligatoria: carta notarial / cobranza (13/10/2026). */
+  address: string;
   email: string;
 }
 
@@ -91,6 +93,9 @@ function validateForm(
   if (!isValidPhone(country, values.phone)) {
     return t.errPhone;
   }
+  if (values.address.replace(/s+/g, " ").trim().length < 8) {
+    return t.errAddress;
+  }
   if (!values.email.trim().includes("@")) {
     return t.errEmail;
   }
@@ -114,6 +119,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
     lastName: "",
     dni: "",
     phone: "",
+    address: "",
     email: searchParams.get("email")?.trim() ?? "",
   });
   const [loading, setLoading] = useState(false);
@@ -190,6 +196,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
           name: joinFullName(values),
           dni: values.dni.trim().replace(/\D/g, ""),
           phone: values.phone.trim(),
+          address: values.address.replace(/s+/g, " ").trim(),
           country: country.code,
           email: values.email.trim(),
           // Se guardan al crear el cliente: el usuario recién existe tras el OTP.
@@ -390,6 +397,32 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
               className={`${inputClassName} auth-field--phone`}
               // +593 es más largo que +51: el texto arranca después del prefijo.
               style={{ paddingLeft: country.dial.length >= 3 ? "5.35rem" : undefined }}
+            />
+          </div>
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <label htmlFor="address" className={styles.fieldLabel}>
+            {t.address}
+          </label>
+          <div className="relative">
+            <FieldIcon>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </FieldIcon>
+            <input
+              id="address"
+              type="text"
+              autoComplete="street-address"
+              required
+              minLength={8}
+              maxLength={240}
+              value={values.address}
+              onChange={(event) => updateField("address", event.target.value)}
+              placeholder={t.addressPlaceholder}
+              className={inputClassName}
             />
           </div>
         </div>

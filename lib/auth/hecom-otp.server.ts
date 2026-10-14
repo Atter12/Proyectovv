@@ -26,6 +26,7 @@ import {
 } from "@/lib/auth/hecom-otp-email";
 import type { User } from "@supabase/supabase-js";
 import { recordSignupAttribution } from "@/lib/partners/partners.server";
+import { saveHecomClienteAddress } from "@/lib/hecom/cliente-direccion.server";
 import {
   getRegisterCountry,
   isValidDoc,
@@ -381,6 +382,8 @@ export async function registerHecomClientOtp(input: {
   dni: string;
   phone: string;
   email: string;
+  /** Obligatoria desde el 13/10/2026 (carta notarial / cobranza). */
+  address: string;
   country?: RegisterCountry;
   attribution?: {
     partnerSlug: string | null;
@@ -429,6 +432,10 @@ export async function registerHecomClientOtp(input: {
   if (!email.includes("@")) {
     return { ok: false, error: "Correo inválido.", status: 400 };
   }
+  const address = String(input.address ?? "").replace(/s+/g, " ").trim();
+  if (address.length < 8 || address.length > 240) {
+    return { ok: false, error: "Escribe tu dirección completa (calle, número, ciudad).", status: 400 };
+  }
 
   logHecomOtp("info", "register_start", {
     email: emailMasked,
@@ -443,6 +450,7 @@ export async function registerHecomClientOtp(input: {
     email,
     phone,
     country: country.code,
+    address,
   });
 
   if (!created.ok) {
@@ -458,6 +466,13 @@ export async function registerHecomClientOtp(input: {
   logHecomOtp("info", "register_cliente_created", {
     email: emailMasked,
     clienteId: created.cliente.id,
+  });
+
+  await saveHecomClienteAddress({
+    hecomClienteId: created.cliente.id,
+    email,
+    address,
+    country: country.code,
   });
 
   await recordRegistrationContractIntent({

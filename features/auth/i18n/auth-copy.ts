@@ -57,6 +57,8 @@ export type AuthCopy = {
     dni: string;
     dniPlaceholder: string;
     phone: string;
+    address: string;
+    addressPlaceholder: string;
     email: string;
     emailPlaceholder: string;
     referral: string;
@@ -70,6 +72,7 @@ export type AuthCopy = {
     errLastName: string;
     errDni: string;
     errPhone: string;
+    errAddress: string;
     errEmail: string;
     failed: string;
     failedRetry: string;
@@ -163,6 +166,8 @@ const es: AuthCopy = {
     dni: "DNI",
     dniPlaceholder: "8 dígitos",
     phone: "Teléfono",
+    address: "Dirección",
+    addressPlaceholder: "Calle, número, distrito y ciudad",
     email: "Correo electrónico",
     emailPlaceholder: "tu@correo.com",
     referral: "Código de referido:",
@@ -176,6 +181,7 @@ const es: AuthCopy = {
     errLastName: "Escribe tus apellidos.",
     errDni: "El DNI tiene 8 dígitos. No se acepta RUC ni pasaporte.",
     errPhone: "Escribe un teléfono válido (mínimo 9 dígitos).",
+    errAddress: "Escribe tu dirección completa (calle, número, ciudad).",
     errEmail: "Escribe un correo electrónico válido.",
     failed: "No se pudo completar el registro.",
     failedRetry: "No se pudo completar el registro. Vuelve a intentar.",
@@ -269,6 +275,8 @@ const en: AuthCopy = {
     dni: "DNI",
     dniPlaceholder: "8 digits",
     phone: "Phone",
+    address: "Address",
+    addressPlaceholder: "Street, number, city",
     email: "Email",
     emailPlaceholder: "you@email.com",
     referral: "Referral code:",
@@ -282,6 +290,7 @@ const en: AuthCopy = {
     errLastName: "Enter your last names.",
     errDni: "The DNI has 8 digits. RUC or passport numbers are not accepted.",
     errPhone: "Enter a valid phone number (at least 9 digits).",
+    errAddress: "Enter your full address (street, number, city).",
     errEmail: "Enter a valid email address.",
     failed: "We couldn't complete your registration.",
     failedRetry: "We couldn't complete your registration. Please try again.",
@@ -374,6 +383,8 @@ const zh: AuthCopy = {
     dni: "DNI（秘鲁身份证）",
     dniPlaceholder: "8 位数字",
     phone: "电话",
+    address: "地址",
+    addressPlaceholder: "街道、门牌号、城市",
     email: "电子邮箱",
     emailPlaceholder: "you@email.com",
     referral: "推荐码：",
@@ -387,6 +398,7 @@ const zh: AuthCopy = {
     errLastName: "请输入你的姓氏。",
     errDni: "DNI 为 8 位数字，不接受 RUC 或护照号码。",
     errPhone: "请输入有效的电话号码（至少 9 位数字）。",
+    errAddress: "请输入完整地址（街道、门牌号、城市）。",
     errEmail: "请输入有效的电子邮箱。",
     failed: "注册未能完成。",
     failedRetry: "注册未能完成，请重试。",
@@ -480,6 +492,8 @@ const pt: AuthCopy = {
     dni: "Documento (DNI)",
     dniPlaceholder: "8 dígitos",
     phone: "Telefone",
+    address: "Endereço",
+    addressPlaceholder: "Rua, número, bairro e cidade",
     email: "E-mail",
     emailPlaceholder: "voce@email.com",
     referral: "Código de indicação:",
@@ -493,6 +507,7 @@ const pt: AuthCopy = {
     errLastName: "Escreva seu sobrenome.",
     errDni: "O DNI tem 8 dígitos. Não aceitamos RUC nem passaporte.",
     errPhone: "Escreva um telefone válido (mínimo 9 dígitos).",
+    errAddress: "Escreva seu endereço completo (rua, número, cidade).",
     errEmail: "Escreva um e-mail válido.",
     failed: "Não foi possível concluir o cadastro.",
     failedRetry: "Não foi possível concluir o cadastro. Tente de novo.",
