@@ -27,12 +27,14 @@ export async function alertNameMismatches(list: NameMismatch[]): Promise<{ alert
   const hash = mismatchesHash(list);
 
   const since = new Date(Date.now() - REALERT_AFTER_HOURS * 3_600_000).toISOString();
-  const { data: recent } = await admin
+  const { data: recent, error: recentError } = await admin
     .from("audit_logs")
     .select("metadata")
     .eq("action", AUDIT_ACTION)
     .gte("created_at", since)
     .limit(50);
+  // Si no se puede revisar, no se manda: mejor un aviso menos que el mismo cada hora (pasó el 13/10).
+  if (recentError) return { alerted: false, reason: "no_se_pudo_revisar" };
   if ((recent ?? []).some((r) => (r.metadata as { hash?: string } | null)?.hash === hash)) {
     return { alerted: false, reason: "ya_avisado" };
   }
@@ -73,7 +75,8 @@ export async function alertNameMismatches(list: NameMismatch[]): Promise<{ alert
     ...list.map((m) => `${m.name} (ID ${m.advertiserId}, BM${m.bm}): se le cobra a ${m.linkedCliente}, el nombre dice ${m.nameCliente}.`),
   ].join("\n");
 
-  const stamp = new Date().toISOString().slice(0, 13);
+  // Una llave por día: aunque la revisión falle, el mismo aviso no sale dos veces el mismo día.
+  const stamp = new Date().toISOString().slice(0, 10);
   let sent = 0;
   for (let i = 0; i < managers.length; i += MANAGER_EMAILS_PER_SECOND) {
     if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
