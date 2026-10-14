@@ -149,6 +149,142 @@ async function assignAccess(bcId: string, advertiserId: string, userId: string, 
   return { userId, ok: j.code === 0, message: j.code === 0 ? "OK" : String(j.message ?? `HTTP ${res.status}`) };
 }
 
+/** Cuentas de reserva ("gian libre 151", "libre sebas 12", "holisticlibre3"…). */
+const FREE_NAME = /libre/i;
+
+type FreeAccount = { advertiserId: string; name: string };
+
+/**
+ * Cuentas libres de un BM: aprobadas, con "libre" en el nombre y sin dueño en Hecom.
+ * Las de menor número primero, para ir usando la reserva en orden.
+ */
+export async function listFreeTikTokAccounts(bmBucket: string): Promise<FreeAccount[]> {
+  const bcId = HECOM_BM_BUCKET_TO_BC[bmBucket];
+  if (!bcId) throw new Error("BM inválido.");
+  const { token } = await resolveTikTokFinanceAccessToken();
+  const found: FreeAccount[] = [];
+  // La búsqueda de TikTok distingue mayúsculas ("Sebas LIBRE 300.0").
+  for (const keyword of ["libre", "LIBRE", "Libre"]) for (let page = 1; page <= 20; page++) {
+    const filtering = encodeURIComponent(JSON.stringify({ keyword }));
+    let j = await tiktokGet(`/advertiser/balance/get/?bc_id=${bcId}&filtering=${filtering}&page=${page}&page_size=50`, token);
+    for (let attempt = 1; j.code !== 0 && attempt <= 3; attempt++) {
+      await new Promise((r) => setTimeout(r, 1200 * attempt));
+      j = await tiktokGet(`/advertiser/balance/get/?bc_id=${bcId}&filtering=${filtering}&page=${page}&page_size=50`, token);
+    }
+    if (j.code !== 0) throw new Error(`TikTok no respondió la lista del BM${bmBucket}.`);
+    const data = j.data as { advertiser_account_list?: Array<Record<string, unknown>>; page_info?: { total_number?: number } } | undefined;
+    for (const r of data?.advertiser_account_list ?? []) {
+      const name = String(r.advertiser_name ?? "").trim();
+      if (r.advertiser_status === "SHOW_ACCOUNT_STATUS_APPROVED" && FREE_NAME.test(name) && !found.some((f) => f.advertiserId === String(r.advertiser_id))) {
+        found.push({ advertiserId: String(r.advertiser_id), name });
+      }
+    }
+    if (page * 50 >= (data?.page_info?.total_number ?? 0)) break;
+  }
+  if (found.length === 0) return [];
+  const { data: linked, error } = await createHecomAdminClient()
+    .from("cliente_tiktok_cuentas")
+    .select("advertiser_id")
+    .in("advertiser_id", found.map((f) => f.advertiserId));
+  if (error) throw new Error("No se pudo leer Hecom.");
+  const taken = new Set((linked ?? []).map((l) => String(l.advertiser_id)));
+  const serial = (n: string) => Number(/(\d+)/.exec(n)?.[1] ?? 1e9);
+  return found.filter((f) => !taken.has(f.advertiserId)).sort((a, b) => serial(a.name) - serial(b.name));
+}
+
+/**
+ * Gerencia le da a un cliente cuentas libres que ya existen (en vez de crear nuevas).
+ * Quedan sin cupo (BM10/30), a nombre del cliente en Hecom y en su panel, con acceso ADMIN
+ * para sus usuarios. TikTok no deja renombrarlas por API: el nombre en el BC se cambia a mano.
+ */
+export async function staffGiveFreeTikTokAccounts(input: {
+  hecomClienteId: string;
+  bmBucket: string;
+  count: number;
+  accessUserIds: string[];
+  actorUserId: string | null;
+}): Promise<{ created: StaffCreatedAccount[]; error: string | null }> {
+  const cliente = await getHecomCliente(input.hecomClienteId);
+  if (!cliente) throw new Error("Cliente no encontrado.");
+  const profile = getTikTokBcCreateProfile(input.bmBucket);
+  if (profile.bmBucket !== input.bmBucket) throw new Error("BM inválido.");
+  const count = Math.trunc(input.count);
+  if (!(count >= 1 && count <= STAFF_CREATE_MAX_PER_REQUEST)) {
+    throw new Error(`Puedes dar de 1 a ${STAFF_CREATE_MAX_PER_REQUEST} cuentas por vez.`);
+  }
+  const userIds = [...new Set(input.accessUserIds.map((u) => u.trim()).filter((u) => /^\d{6,25}$/.test(u)))];
+  const free = await listFreeTikTokAccounts(profile.bmBucket);
+  if (free.length < count) {
+    throw new Error(`Solo hay ${free.length} cuentas libres en BM${profile.bmBucket}.`);
+  }
+
+  const organizationId = await resolveOrganizationIdForHecomCliente(cliente.id);
+  const { token } = await resolveTikTokFinanceAccessToken(organizationId ?? undefined);
+  const offset = nextSerialOffset(await clienteLinks(cliente.id), profile.bmBucket);
+  const bcId = profile.bcId;
+
+  const given: StaffCreatedAccount[] = [];
+  for (let i = 0; i < count; i++) {
+    const acc = free[i]!;
+    // Mismo formato que las cuentas nuevas: "<Cliente> 12.0 USD - Agencia".
+    const advertiserName = `${cliente.name.trim()} ${profile.nameSerialBase + offset + i}.0 USD - Agencia`;
+    const row: StaffCreatedAccount = {
+      advertiserId: acc.advertiserId,
+      advertiserName,
+      bmBucket: profile.bmBucket,
+      hecomLinked: false,
+      inPanel: false,
+      budgetZero: null,
+      access: [],
+    };
+    // La reserva trae cupo diario: se deja en $0 y se le da al pagar.
+    if (profile.fundingMode === "shared_budget") {
+      row.budgetZero = await setSharedBudgetZero(bcId, acc.advertiserId, token);
+      if (!row.budgetZero) {
+        given.push(row);
+        return { created: given, error: `No se pudo dejar en $0 el cupo de ${acc.name}; no se entregó.` };
+      }
+    }
+    try {
+      await linkTikTokCuentaToHecomCliente({
+        clientId: cliente.id,
+        advertiserId: acc.advertiserId,
+        advertiserName,
+        bmBucket: profile.bmBucket,
+        fee: cliente.tiktokDefaultFee,
+      });
+      row.hecomLinked = true;
+    } catch (error) {
+      console.error("[staff-give-free] hecom_link_failed", { advertiserId: acc.advertiserId, error: error instanceof Error ? error.message : error });
+    }
+    for (const userId of userIds) {
+      row.access.push(await assignAccess(bcId, acc.advertiserId, userId, token).catch((e) => ({
+        userId,
+        ok: false,
+        message: e instanceof Error ? e.message : "error",
+      })));
+    }
+    given.push(row);
+  }
+
+  if (organizationId) {
+    try {
+      await syncApprovedAdAccountsForCliente({ organizationId, clienteId: cliente.id, userId: input.actorUserId, forceRefresh: true });
+      await ensureAdvertisersInOrganizationForAllocation({
+        organizationId,
+        clienteId: cliente.id,
+        clienteName: cliente.name,
+        userId: input.actorUserId,
+        advertisers: given.map((c) => ({ advertiserId: c.advertiserId, name: c.advertiserName, status: "active" })),
+      });
+      for (const c of given) c.inPanel = true;
+    } catch (error) {
+      console.warn("[staff-give-free] panel_sync_partial", { error: error instanceof Error ? error.message : error });
+    }
+  }
+  return { created: given, error: null };
+}
+
 export async function staffCreateTikTokAccounts(input: {
   hecomClienteId: string;
   bmBucket: string;

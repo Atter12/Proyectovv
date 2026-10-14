@@ -35,14 +35,19 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created[] | null>(null);
+  // "free": entrega cuentas de reserva ("gian libre 151"…) que ya existen en el BM.
+  const [mode, setMode] = useState<"create" | "free">("create");
+  const [freeByBm, setFreeByBm] = useState<Record<string, number | null>>({});
+  const freeHere = freeByBm[bm] ?? null;
 
   async function loadUsers() {
     setLoadingUsers(true);
     setError(null);
     try {
       const res = await fetch(routes.api.adAccountsTikTokStaffCreate, { credentials: "include", cache: "no-store" });
-      const j = (await res.json()) as { users?: TikTokUser[]; error?: string };
+      const j = (await res.json()) as { users?: TikTokUser[]; freeByBm?: Record<string, number | null>; error?: string };
       if (!res.ok) throw new Error(j.error || "No se pudo leer los usuarios de TikTok.");
+      setFreeByBm(j.freeByBm ?? {});
       const list = j.users ?? [];
       setUsers(list);
       setChecked(new Set(list.filter((u) => u.suggested).map((u) => u.userId)));
@@ -75,7 +80,9 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
     if (manual) accessUserIds.push(manual);
     const bmLabel = BMS.find((b) => b.id === bm)?.label ?? bm;
     const who = accessUserIds.length ? `y dar acceso a ${accessUserIds.length} usuario(s)` : "SIN dar acceso a nadie";
-    if (!window.confirm(`¿Crear ${count} cuenta(s) en ${bmLabel} para ${clienteName} ${who}?`)) return;
+    const verb = mode === "free" ? "Dar" : "Crear";
+    const kind = mode === "free" ? "cuenta(s) libre(s)" : "cuenta(s)";
+    if (!window.confirm(`¿${verb} ${count} ${kind} en ${bmLabel} para ${clienteName} ${who}?`)) return;
     setBusy(true);
     setError(null);
     setCreated(null);
@@ -84,13 +91,16 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bmBucket: bm, count, accessUserIds }),
+        body: JSON.stringify({ bmBucket: bm, count, accessUserIds, mode }),
       });
       const j = (await res.json()) as { created?: Created[]; error?: string | null };
       setCreated(j.created ?? []);
       if (j.error) setError(j.error);
       else if (!res.ok) setError("No se pudo crear.");
-      if (j.created?.length) router.refresh();
+      if (j.created?.length) {
+        router.refresh();
+        if (mode === "free") setFreeByBm((prev) => ({ ...prev, [bm]: Math.max(0, (prev[bm] ?? 0) - (j.created?.length ?? 0)) }));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear.");
     } finally {
@@ -108,7 +118,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
       >
         <span>
           <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Solo gerencia</span>
-          <span className="block text-[15px] font-semibold text-[#1c1917]">Crear cuentas TikTok para {clienteName}</span>
+          <span className="block text-[15px] font-semibold text-[#1c1917]">Crear o dar cuentas TikTok a {clienteName}</span>
         </span>
         <span className="text-[13px] font-semibold text-[#c2410c]">{open ? "Cerrar" : "Abrir"}</span>
       </button>
@@ -119,6 +129,32 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
             Sin límite de cupo. La cuenta queda vinculada a su ficha de Hecom y en su panel al instante, con el nombre
             correlativo del BM (ej. 303.0 USD - Agencia).
           </p>
+
+          <div className="inline-flex rounded-xl bg-[#faf8f5] p-1 ring-1 ring-[#e8e1d8]" role="tablist">
+            {([
+              ["create", "Crear nuevas"],
+              ["free", "Dar cuentas libres"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={mode === id}
+                onClick={() => setMode(id)}
+                className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition ${
+                  mode === id ? "bg-white text-[#1c1917] shadow-sm ring-1 ring-[#e8e1d8]" : "text-[#6f675f] hover:text-[#1c1917]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {mode === "free" ? (
+            <p className="text-[12px] leading-5 text-[#6f675f]">
+              Usa cuentas de reserva que ya existen ("gian libre 151", "libre sebas 12"…): se dejan con cupo /usr/bin/bash, quedan a nombre del
+              cliente en Hecom y en su panel, y le da acceso a sus usuarios. TikTok no deja cambiar el nombre por API: renómbrala en el BC.
+            </p>
+          ) : null}
 
           <div>
             <p className="text-[12px] font-semibold text-[#5c564e]">Business Center</p>
@@ -133,7 +169,13 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
                   }`}
                 >
                   <span className="block text-[13px] font-semibold text-[#1c1917]">{b.label}</span>
-                  <span className="block text-[11px] leading-4 text-[#6f675f]">{b.hint}</span>
+                  <span className="block text-[11px] leading-4 text-[#6f675f]">
+                    {mode === "free"
+                      ? freeByBm[b.id] == null
+                        ? "Contando libres…"
+                        : `${freeByBm[b.id]} libre${freeByBm[b.id] === 1 ? "" : "s"}`
+                      : b.hint}
+                  </span>
                 </button>
               ))}
             </div>
@@ -188,10 +230,16 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
           <button
             type="button"
             onClick={() => void create()}
-            disabled={busy}
+            disabled={busy || (mode === "free" && (freeHere ?? 0) < count)}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-[#ff781f] px-5 text-[13px] font-semibold text-white transition hover:bg-[#e85a1c] disabled:opacity-50"
           >
-            {busy ? "Creando en TikTok…" : `Crear ${count} cuenta${count > 1 ? "s" : ""}`}
+            {busy
+              ? mode === "free" ? "Entregando…" : "Creando en TikTok…"
+              : mode === "free"
+                ? (freeHere ?? 0) < count
+                  ? `No hay ${count} libre${count > 1 ? "s" : ""} en este BM`
+                  : `Dar ${count} cuenta${count > 1 ? "s" : ""} libre${count > 1 ? "s" : ""}`
+                : `Crear ${count} cuenta${count > 1 ? "s" : ""}`}
           </button>
 
           {error ? (

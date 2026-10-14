@@ -5,7 +5,9 @@ import { isPaymentsSuperAdminEmail } from "@/lib/payments/funding-roles.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
 import {
   detectClienteTikTokUsers,
+  listFreeTikTokAccounts,
   staffCreateTikTokAccounts,
+  staffGiveFreeTikTokAccounts,
 } from "@/lib/hecom/staff-create-tiktok-accounts.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRecord } from "@/lib/records";
@@ -28,19 +30,22 @@ async function requireStaff() {
   return { session, selected };
 }
 
-/** GET: usuarios de TikTok del cliente (para darles acceso a las cuentas nuevas). */
+/** GET: usuarios de TikTok del cliente (para darles acceso) y cuántas cuentas libres hay por BM. */
 export async function GET() {
   const auth = await requireStaff();
   if ("error" in auth) return auth.error;
   try {
-    const users = await detectClienteTikTokUsers(auth.selected.id);
-    return NextResponse.json({ clienteId: auth.selected.id, users });
+    const [users, ...free] = await Promise.all([
+      detectClienteTikTokUsers(auth.selected.id),
+      ...(["300", "200", "30", "10"] as const).map((bm) => listFreeTikTokAccounts(bm).then((l) => [bm, l.length] as const, () => [bm, null] as const)),
+    ]);
+    return NextResponse.json({ clienteId: auth.selected.id, users, freeByBm: Object.fromEntries(free) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo leer TikTok." }, { status: 500 });
   }
 }
 
-/** POST { bmBucket, count, accessUserIds[] } */
+/** POST { bmBucket, count, accessUserIds[], mode?: "create" | "free" } — "free" entrega cuentas libres que ya existen. */
 export async function POST(request: Request) {
   const auth = await requireStaff();
   if ("error" in auth) return auth.error;
@@ -53,7 +58,8 @@ export async function POST(request: Request) {
   if (!isRecord(body)) return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
 
   try {
-    const result = await staffCreateTikTokAccounts({
+    const give = body.mode === "free";
+    const result = await (give ? staffGiveFreeTikTokAccounts : staffCreateTikTokAccounts)({
       hecomClienteId: auth.selected.id,
       bmBucket: String(body.bmBucket ?? ""),
       count: Number(body.count ?? 1),
@@ -63,7 +69,7 @@ export async function POST(request: Request) {
     await createAdminClient()
       .from("audit_logs")
       .insert({
-        action: "tiktok.staff_create_accounts",
+        action: give ? "tiktok.staff_give_free_accounts" : "tiktok.staff_create_accounts",
         entity_type: "ad_accounts",
         metadata: {
           by: auth.session.email,
