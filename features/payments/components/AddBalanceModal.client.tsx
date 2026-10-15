@@ -890,10 +890,10 @@ export function AddBalanceModal({
                     {t("addBalance.searchInYape")}
                   </p>
                   <div className="mt-1 flex items-end justify-between gap-4">
-                    <p className="text-2xl font-semibold tracking-[-0.03em] text-[#1c1917]">
+                    <p className="min-w-0 text-2xl font-semibold tracking-[-0.03em] text-[#1c1917]">
                       {COBRANA_YAPE_SERVICE_COMPANY}
                     </p>
-                    <span className="rounded-full bg-[#eee5f1] px-2.5 py-1 text-[10px] font-semibold text-[#5f0b72]">
+                    <span className="shrink-0 rounded-full bg-[#eee5f1] px-2.5 py-1 text-[10px] font-semibold text-[#5f0b72]">
                       {t("addBalance.payServices")}
                     </span>
                   </div>
@@ -967,7 +967,7 @@ export function AddBalanceModal({
                 className="mt-3 flex items-center gap-2 rounded-xl bg-[#fbf7fc] px-3.5 py-3 text-[12px] font-medium text-[#5f0b72]"
                 role="status"
               >
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[#8b1aa0]" />
+                <span className="h-2 w-2 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#8b1aa0]" />
 {t("addBalance.waitingCobrana")}
               </div>
 
@@ -1086,12 +1086,16 @@ text={t("addBalance.yapeStep4", {
                 </p>
               </div>
               <div className="mt-4">
-                <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+                <label
+                  htmlFor="topup-proof-file"
+                  className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]"
+                >
                   {selectedGateway === "crypto"
                     ? "Captura / TxID"
                     : "Voucher o comprobante"}
                 </label>
                 <Input
+                  id="topup-proof-file"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,application/pdf"
                   onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}

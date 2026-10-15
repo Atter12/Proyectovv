@@ -198,7 +198,7 @@ export function ChatConversation({
   return (
     <div
       className={cn(
-        "flex min-h-[520px] flex-col bg-white text-[var(--auth-text)]",
+        "flex flex-col bg-white text-[var(--auth-text)]",
         className,
       )}
       onDragOver={(e) => {
@@ -229,7 +229,7 @@ export function ChatConversation({
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-bold tracking-[-0.01em] text-white">{resolvedTitle}</p>
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-white/70"><span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />{resolvedSubtitle}</p>
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-white/70"><span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" /><span className="truncate">{resolvedSubtitle}</span></p>
         </div>
         {onClearChat || headerActions ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -255,7 +255,7 @@ export function ChatConversation({
 
       <div
         ref={messagesScrollRef}
-        className="relative flex-1 space-y-3 overflow-y-auto bg-[#f3eee8] p-3 sm:p-5"
+        className="relative min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[#f3eee8] p-3 sm:p-5"
       >
         {dragOver ? (
           <div className="pointer-events-none absolute inset-3 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-primary)] bg-white/90 text-sm font-semibold text-[var(--brand-primary-deep)]">
@@ -327,8 +327,8 @@ export function ChatConversation({
                     className="h-16 w-16 object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-28 items-center px-2 text-[11px] font-medium text-[var(--auth-text-muted)]">
-                    {item.file.name}
+                  <div className="flex h-16 w-28 items-center overflow-hidden break-all px-2 pr-6 text-[11px] font-medium leading-tight text-[var(--auth-text-muted)]">
+                    <span className="line-clamp-3">{item.file.name}</span>
                   </div>
                 )}
                 <button
@@ -371,7 +371,7 @@ export function ChatConversation({
                 type="button"
                 disabled={sending || composerDisabled}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)]"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--auth-text-muted)] transition-colors hover:bg-white hover:text-[var(--auth-text)] disabled:opacity-50"
                 aria-label={t("attachFile")}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -391,11 +391,11 @@ export function ChatConversation({
                 sending ||
                 (!inputValue.trim() && pendingFiles.length === 0)
               }
-              className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-bold text-white shadow-md shadow-orange-500/20 hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
+              className="inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-[13px] font-bold text-white shadow-md shadow-orange-500/20 hover:bg-[var(--brand-primary-deep)] disabled:opacity-50"
             >
               {sending ? t("sending") : t("send")}
               {!sending ? (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                 </svg>
               ) : null}
@@ -413,13 +413,13 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
       className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
     >
       <div
-        className={`max-w-[min(88%,32rem)] px-3.5 py-2.5 text-sm shadow-sm ${
+        className={`min-w-0 max-w-[min(88%,32rem)] px-3.5 py-2.5 text-sm shadow-sm ${
           message.role === "user"
             ? "rounded-[18px_18px_5px_18px] bg-[linear-gradient(135deg,var(--brand-primary),#e85a1a)] text-white"
             : "rounded-[18px_18px_18px_5px] bg-white text-[#3f3a34] ring-1 ring-black/5"
         }`}
       >
-        {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+        {message.text ? <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.text}</p> : null}
         {message.attachments && message.attachments.length > 0 ? (
           <div className="mt-2 space-y-2">
             {message.attachments.map((attachment) => {
@@ -448,7 +448,7 @@ function ChatMessageBubble({ message }: { message: ChatMessage }) {
                   href={attachment.url ?? undefined}
                   target="_blank"
                   rel="noreferrer"
-                  className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                  className={`inline-flex max-w-full items-center gap-2 break-all rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
                     message.role === "user"
                       ? "bg-white/15 text-white"
                       : "bg-[var(--surface-soft)] text-[var(--auth-text)]"

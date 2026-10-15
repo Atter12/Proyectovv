@@ -123,9 +123,13 @@ export function ReclaimBalanceModal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="reclaim-balance-title"
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">
+        <h2
+          id="reclaim-balance-title"
+          className="text-lg font-semibold text-[var(--foreground)]"
+        >
           {t("reclaimModal.title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--admin-text-muted,#64748b)]">
@@ -136,7 +140,7 @@ export function ReclaimBalanceModal({
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
             {t("reclaimModal.account")}
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
+          <p className="mt-0.5 break-words text-sm font-semibold text-[var(--foreground)]">
             {account.name}
           </p>
           {account.bmLabel ? (
@@ -144,7 +148,7 @@ export function ReclaimBalanceModal({
               {account.bmLabel}
             </span>
           ) : null}
-          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
+          <p className="mt-1 text-xs tabular-nums text-[var(--admin-text-muted,#64748b)]">
             {t("reclaimModal.balanceOnAccount")}: {formatMoney(account.balance)}
           </p>
           <p className="mt-1 text-xs text-amber-800">
@@ -206,13 +210,13 @@ export function ReclaimBalanceModal({
         ) : null}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={resetAndClose} disabled={loading}>
+          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" onClick={resetAndClose} disabled={loading}>
             {tCommon("close")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading || !isValid}
-            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
+            className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:h-9 sm:w-auto"
           >
             {loading
               ? t("reclaimModal.reclaiming")

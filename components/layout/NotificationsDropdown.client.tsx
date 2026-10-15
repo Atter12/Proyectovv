@@ -161,7 +161,7 @@ export function NotificationsDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-white shadow-2xl shadow-[rgb(20_18_16_/_0.14)]">
+        <div className="absolute right-0 z-40 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-white shadow-2xl shadow-[rgb(20_18_16_/_0.14)]">
           <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
             <div>
               <p className="text-sm font-black text-[#141210]">{t("title")}</p>

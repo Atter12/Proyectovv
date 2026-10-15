@@ -54,8 +54,8 @@ export const adminColors = {
 } as const;
 
 export const adminMotion = {
-  fast: "transition-[color,background-color,box-shadow,transform,border-color] duration-150 ease-out",
-  base: "transition-[box-shadow,transform,border-color] duration-150 ease-out",
+  fast: "transition-[color,background-color,box-shadow,transform,translate,border-color] duration-150 ease-out",
+  base: "transition-[box-shadow,transform,translate,border-color] duration-150 ease-out",
   colors: "transition-colors duration-150 ease-out",
 } as const;
 

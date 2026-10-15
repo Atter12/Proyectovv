@@ -57,6 +57,10 @@ export function ClientAffiliateDashboard({
   }, [program.referrals, query, stage]);
 
   const discounts = program.referrals.filter((row) => row.earned);
+  // La tabla vive en un contenedor con overflow-x-auto, que también recorta en vertical:
+  // en las últimas filas el menú abre hacia arriba y en listas cortas se deja aire abajo.
+  const menuIndex = menuId ? filtered.findIndex((row) => row.id === menuId) : -1;
+  const menuOpensUp = (index: number) => filtered.length > 3 && index >= filtered.length - 2;
   const showDeclined = program.referrals.some((row) => row.stage === "declined");
 
   useEffect(() => {
@@ -125,10 +129,10 @@ export function ClientAffiliateDashboard({
             </p>
             <div className="absolute bottom-5 right-5 w-[168px] rounded-2xl bg-white px-3.5 py-3 shadow-[0_16px_30px_-18px_rgb(120_53_15_/_0.55)]">
               <div className="flex items-center gap-2">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[#fff1e6] text-[var(--brand-primary)]">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff1e6] text-[var(--brand-primary)]">
                   <GiftIcon />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-lg font-bold leading-none text-[#1c1917]">
                     +{reward}
                   </p>
@@ -300,7 +304,7 @@ export function ClientAffiliateDashboard({
                     }
                   />
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className={menuIndex >= 0 && filtered.length <= 3 ? "overflow-x-auto pb-24" : "overflow-x-auto"}>
                     <table className="w-full min-w-[760px] text-left text-sm">
                       <thead>
                         <tr className="text-[11px] font-semibold tracking-wide text-[#a8a29e] uppercase">
@@ -315,7 +319,7 @@ export function ClientAffiliateDashboard({
                       <tbody>
                         {filtered.map((row, index) => (
                           <tr key={row.id} className="border-t border-[#f6efe9]">
-                            <td className="px-2 py-3 text-[#a8a29e]">{index + 1}</td>
+                            <td className="px-2 py-3 tabular-nums text-[#a8a29e]">{index + 1}</td>
                             <td className="px-2 py-3">
                               <div className="flex items-center gap-3">
                                 <span
@@ -337,7 +341,7 @@ export function ClientAffiliateDashboard({
                             <td className="px-2 py-3">
                               <StagePill stage={row.stage} label={stageLabel(t, row.stage)} />
                             </td>
-                            <td className="px-2 py-3 font-semibold whitespace-nowrap text-[#1c1917]">
+                            <td className="px-2 py-3 font-semibold whitespace-nowrap tabular-nums text-[#1c1917]">
                               <span className="inline-flex items-center gap-1">
                                 {formatAffiliateUsd(row.benefitUsd)}
                                 {row.earned ? (
@@ -369,7 +373,11 @@ export function ClientAffiliateDashboard({
                                 </button>
                               </div>
                               {menuId === row.id ? (
-                                <div className="absolute right-2 z-20 mt-1 w-44 rounded-xl border border-[#f0e6df] bg-white p-1 text-left shadow-lg">
+                                <div
+                                  className={`absolute right-2 z-20 w-44 rounded-xl border border-[#f0e6df] bg-white p-1 text-left shadow-lg ${
+                                    menuOpensUp(index) ? "bottom-full mb-1" : "mt-1"
+                                  }`}
+                                >
                                   <button
                                     type="button"
                                     onClick={() => openDetail(row)}
@@ -415,8 +423,8 @@ export function ClientAffiliateDashboard({
                   <ul className="mt-4 divide-y divide-[#f6efe9]">
                     {discounts.map((row) => (
                       <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <div>
-                          <p className="font-semibold text-[#1c1917]">{row.name}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#1c1917] [overflow-wrap:anywhere]">{row.name}</p>
                           <p className="text-xs text-[#78716c]">
                             {row.discountStatus === "applied"
                               ? t("discountApplied")
@@ -426,7 +434,7 @@ export function ClientAffiliateDashboard({
                               : ""}
                           </p>
                         </div>
-                        <p className="font-semibold text-[#1c1917]">
+                        <p className="font-semibold tabular-nums text-[#1c1917]">
                           {formatAffiliateUsd(row.benefitUsd)}
                         </p>
                       </li>
@@ -485,7 +493,7 @@ export function ClientAffiliateDashboard({
         <aside className="space-y-4">
           <section className="rounded-[1.25rem] border border-[#f0e6df] bg-white p-5 shadow-[0_16px_36px_-30px_rgb(28_25_23_/_0.28)]">
             <div className="mb-3 flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#fff1e6] text-[var(--brand-primary)]">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#fff1e6] text-[var(--brand-primary)]">
                 <GiftIcon />
               </span>
               <h2 className="text-sm font-semibold text-[#1c1917]">{t("benefitTitle")}</h2>
@@ -522,7 +530,7 @@ export function ClientAffiliateDashboard({
 
       <section className="flex flex-col gap-4 overflow-hidden rounded-[1.25rem] bg-[linear-gradient(90deg,#fff7f1_0%,#ffe7d4_55%,#ffd7bf_100%)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-[var(--brand-primary)] shadow-sm">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-[var(--brand-primary)] shadow-sm">
             <TrophyIcon />
           </span>
           <div>
@@ -548,16 +556,16 @@ export function ClientAffiliateDashboard({
         {detail ? (
           <div className="p-5">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold tracking-wide text-[#a8a29e] uppercase">
                   {t("detailTitle")}
                 </p>
-                <h3 className="mt-1 text-lg font-semibold text-[#1c1917]">{detail.name}</h3>
+                <h3 className="mt-1 text-lg font-semibold text-[#1c1917] [overflow-wrap:anywhere]">{detail.name}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setDetail(null)}
-                className="rounded-lg px-2 py-1 text-sm text-[#78716c] hover:bg-[#fff7f1]"
+                className="shrink-0 rounded-lg px-2 py-1 text-sm text-[#78716c] hover:bg-[#fff7f1]"
               >
                 {t("detailClose")}
               </button>
@@ -676,8 +684,8 @@ function StatCard({
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#fff1e6] text-[var(--brand-primary)]">
         {icon}
       </span>
-      <div>
-        <p className="text-xl font-bold tracking-tight text-[#1c1917]">{value}</p>
+      <div className="min-w-0">
+        <p className="text-xl font-bold tabular-nums tracking-tight text-[#1c1917]">{value}</p>
         <p className="text-xs text-[#78716c]">{label}</p>
       </div>
     </article>
@@ -687,7 +695,7 @@ function StatCard({
 function BenefitItem({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-2 text-sm leading-5 text-[#44403c]">
-      <span className="mt-0.5 text-emerald-600">
+      <span className="mt-0.5 shrink-0 text-emerald-600">
         <CheckIcon />
       </span>
       <span>{children}</span>
@@ -753,7 +761,7 @@ function MaterialCard({
   return (
     <article className="rounded-2xl border border-[#f0e6df] bg-[#fffdfb] p-4">
       <p className="text-sm font-semibold text-[#1c1917]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#57534e]">{body}</p>
+      <p className="mt-2 text-sm leading-6 text-[#57534e] [overflow-wrap:anywhere]">{body}</p>
       <button
         type="button"
         onClick={onCopy}
@@ -768,8 +776,8 @@ function MaterialCard({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <dt className="text-[#78716c]">{label}</dt>
-      <dd className="text-right font-medium text-[#1c1917]">{value}</dd>
+      <dt className="shrink-0 text-[#78716c]">{label}</dt>
+      <dd className="min-w-0 text-right font-medium text-[#1c1917] [overflow-wrap:anywhere]">{value}</dd>
     </div>
   );
 }

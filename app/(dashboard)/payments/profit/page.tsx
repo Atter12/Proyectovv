@@ -51,14 +51,14 @@ export default async function RealProfitPaymentsReviewPage({
   return (
     <div className={dashboardClasses.page}>
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text-muted)]">
           Gerente · Profit COD
           {hecomClienteId ? " · Filtro cliente" : " · Todos los clientes"}
         </p>
         <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
           Pagos Profit
         </h1>
-        <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
+        <p className="max-w-3xl text-sm text-[var(--auth-text-muted)]">
           Depósitos{" "}
           <strong className="font-semibold text-[var(--auth-text)]">
             Real Profit COD · $20
@@ -84,14 +84,14 @@ export default async function RealProfitPaymentsReviewPage({
           ) : selected?.id ? (
             <Link
               href={`${routes.paymentsProfit}?cliente=${encodeURIComponent(selected.id)}`}
-              className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+              className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
             >
               Filtrar solo {selected.name}
             </Link>
           ) : null}
           <Link
             href={routes.paymentsManual}
-            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+            className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
           >
             Ir a Pagos manuales (cartera)
           </Link>

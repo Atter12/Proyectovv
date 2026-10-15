@@ -48,14 +48,14 @@ export default async function ManualPaymentsReviewPage({
   return (
     <div className={dashboardClasses.page}>
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text-muted)]">
           Gerente · Finanzas
           {hecomClienteId ? " · Filtro cliente" : " · Todos los clientes"}
         </p>
         <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
           Pagos manuales
         </h1>
-        <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
+        <p className="max-w-3xl text-sm text-[var(--auth-text-muted)]">
           Solo pagos{" "}
           <strong className="font-semibold text-[var(--auth-text)]">
             manuales (BCP)
@@ -80,20 +80,20 @@ export default async function ManualPaymentsReviewPage({
           ) : selected?.id ? (
             <Link
               href={`${routes.paymentsManual}?cliente=${encodeURIComponent(selected.id)}`}
-              className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+              className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
             >
               Filtrar solo {selected.name}
             </Link>
           ) : null}
           <Link
             href={routes.paymentsProfit}
-            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+            className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
           >
             Ir a Pagos Profit
           </Link>
           <Link
             href={routes.paymentsMissingCobros}
-            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+            className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
           >
             Ir a Cobros faltantes
           </Link>

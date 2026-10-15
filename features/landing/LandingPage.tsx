@@ -25,7 +25,7 @@ export function LandingPage({ locale }: { locale: LandingLocale }) {
   return (
     <div
       lang={landingLocaleHtmlLang[locale]}
-      className="nsx-landing relative min-h-screen overflow-x-hidden"
+      className="nsx-landing relative min-h-dvh overflow-x-clip"
     >
       <a
         href="#contenido"

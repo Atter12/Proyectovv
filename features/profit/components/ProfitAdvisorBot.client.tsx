@@ -30,9 +30,9 @@ function TypingDots({ label }: { label: string }) {
       aria-live="polite"
     >
       <span className="flex items-center gap-1" aria-hidden>
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d] [animation-delay:160ms]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#ed6b2d] [animation-delay:320ms]" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full motion-reduce:animate-none bg-[#ed6b2d]" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full motion-reduce:animate-none bg-[#ed6b2d] [animation-delay:160ms]" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full motion-reduce:animate-none bg-[#ed6b2d] [animation-delay:320ms]" />
       </span>
       <span>{label}</span>
     </div>

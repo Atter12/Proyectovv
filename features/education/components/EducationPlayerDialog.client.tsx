@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+
+const noopSubscribe = () => () => {};
 import { useTranslations } from "next-intl";
 import type { EducationLessonView } from "../lib/types";
 
@@ -18,6 +20,12 @@ export function EducationPlayerDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  // iPhone Safari no permite fullscreen en un <div>: el botón no haría nada.
+  const canFullscreen = useSyncExternalStore(
+    noopSubscribe,
+    () => Boolean(document.fullscreenEnabled),
+    () => false,
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -37,11 +45,15 @@ export function EducationPlayerDialog({
   async function toggleFullscreen() {
     const player = playerRef.current;
     if (!player) return;
-    if (document.fullscreenElement === player) {
-      await document.exitFullscreen();
-      return;
+    try {
+      if (document.fullscreenElement === player) {
+        await document.exitFullscreen();
+        return;
+      }
+      await player.requestFullscreen();
+    } catch {
+      // El navegador rechazó el cambio; el reproductor sigue igual.
     }
-    await player.requestFullscreen();
   }
 
   const ready = Boolean(lesson?.videoUrl || lesson?.embedUrl);
@@ -68,7 +80,7 @@ export function EducationPlayerDialog({
               </h2>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {ready && !lesson.videoUrl ? (
+              {ready && !lesson.videoUrl && canFullscreen ? (
                 <button
                   type="button"
                   onClick={() => void toggleFullscreen()}

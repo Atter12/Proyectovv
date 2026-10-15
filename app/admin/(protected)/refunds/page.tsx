@@ -39,7 +39,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
         <div className="grid gap-5">
           {refunds.map(({ row, organization, actor, wallet }) => (
             <section key={row.id} className="rounded-[1.35rem] border border-[#d7e7ee] bg-white p-4">
-              <div className="grid gap-4 lg:grid-cols-[1fr_16rem_14rem] lg:items-start">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem_14rem] lg:items-start">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold text-[var(--admin-text)]">{organization?.name ?? "—"}</h2>

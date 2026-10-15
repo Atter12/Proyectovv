@@ -61,10 +61,11 @@ export function PaymentsTabNav({ activeTab }: PaymentsTabNavProps) {
             key={tab.id}
             type="button"
             onClick={() => handleTabChange(tab.id)}
+            aria-current={activeTab === tab.id ? "page" : undefined}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-t-xl px-3 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40 sm:px-4",
+              "shrink-0 whitespace-nowrap rounded-t-xl px-3 py-3 text-sm font-medium transition-[color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40 sm:px-4",
               activeTab === tab.id
-                ? "bg-white text-[var(--brand-primary)] shadow-sm ring-1 ring-[#e5e7eb] ring-b-white"
+                ? "bg-white text-[var(--brand-primary)] shadow-sm ring-1 ring-[#e5e7eb]"
                 : "text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]",
             )}
           >

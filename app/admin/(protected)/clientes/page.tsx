@@ -104,7 +104,7 @@ export default async function ClientesPage({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="truncate text-base font-semibold text-[var(--admin-text)]">
+                      <h2 className="min-w-0 max-w-full truncate text-base font-semibold text-[var(--admin-text)]">
                         {contactName}
                       </h2>
                       <StatusBadge status={client.organization.status} />

@@ -120,7 +120,7 @@ export default async function DashboardLayout({
 
   return (
     <DashboardSpanishLock enabled={chromePersona !== "cliente"}>
-      <div className="dashboard-canvas relative flex min-h-screen max-w-full overflow-x-clip">
+      <div className="dashboard-canvas relative flex min-h-dvh max-w-full overflow-x-clip">
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] lg:block">
           <DashboardSidebar
             className="h-full w-full"
@@ -134,7 +134,7 @@ export default async function DashboardLayout({
           />
         </aside>
 
-        <div className="relative z-10 flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="relative z-10 flex min-h-dvh min-w-0 flex-1 flex-col">
           <DashboardLayoutChrome
             user={user}
             selectedCliente={selectedCliente}

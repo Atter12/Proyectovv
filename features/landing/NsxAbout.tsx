@@ -42,8 +42,8 @@ export function NsxAbout({ copy }: { copy: LandingCopy["about"] }) {
             <Image
               src={images.tall}
               alt={copy.imageTallAlt}
-              width={660}
-              height={1040}
+              width={1024}
+              height={1536}
               sizes="(max-width: 991px) 100vw, 40vw"
             />
           </div>
@@ -51,8 +51,8 @@ export function NsxAbout({ copy }: { copy: LandingCopy["about"] }) {
             <Image
               src={images.wide}
               alt={copy.imageWideAlt}
-              width={842}
-              height={576}
+              width={1536}
+              height={1024}
               sizes="(max-width: 991px) 100vw, 50vw"
             />
           </div>

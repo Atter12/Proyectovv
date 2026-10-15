@@ -38,7 +38,7 @@ export function Card({
         radiusClass,
         toneClasses[tone],
         elevated &&
-          "transition-[box-shadow,transform,border-color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
+          "transition-[box-shadow,translate,border-color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
         paddingClasses[padding],
         className,
       )}

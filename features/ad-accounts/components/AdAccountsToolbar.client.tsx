@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -40,6 +39,7 @@ export function AdAccountsToolbar({
   accountLimit,
 }: AdAccountsToolbarProps) {
   const t = useTranslations("adAccounts");
+  const tPayments = useTranslations("payments");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -102,6 +102,7 @@ export function AdAccountsToolbar({
               </svg>
               <Input
                 placeholder={t("toolbar.search")}
+                aria-label={t("toolbar.search")}
                 value={search}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -112,6 +113,7 @@ export function AdAccountsToolbar({
               />
             </div>
             <select
+              aria-label={tPayments("toolbar.filterStatus")}
               value={status}
               onChange={(e) => {
                 const value = e.target.value;
@@ -128,14 +130,14 @@ export function AdAccountsToolbar({
             </select>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Link href={routes.creativeAnalyzer} className="shrink-0">
-              <Button
-                variant="outline"
-                className="h-9 rounded-lg border-[var(--auth-border)] bg-white px-3 text-[12px] font-semibold text-[var(--auth-text)] hover:bg-[var(--auth-bg)]"
-              >
-                {t("toolbar.creativeAnalyzer")}
-              </Button>
-            </Link>
+            <Button
+              asChild
+              href={routes.creativeAnalyzer}
+              variant="outline"
+              className="h-9 shrink-0 rounded-lg border-[var(--auth-border)] bg-white px-3 text-[12px] font-semibold text-[var(--auth-text)] hover:bg-[var(--auth-bg)]"
+            >
+              {t("toolbar.creativeAnalyzer")}
+            </Button>
             {enableTikTokCreate ? (
               <Button
                 onClick={() => setModalOpen(true)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +26,7 @@ export function EditTikTokIdsModal({
 }: EditTikTokIdsModalProps) {
   const t = useTranslations("payments");
   const tCommon = useTranslations("common");
+  const fieldId = useId();
   const router = useRouter();
   const [advertiserId, setAdvertiserId] = useState(
     account?.externalAccountId ?? "",
@@ -83,10 +84,11 @@ export function EditTikTokIdsModal({
 
       <div className="mt-5 space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-1`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("editTikTok.advertiserLabel")}
           </label>
           <Input
+            id={`${fieldId}-1`}
             value={advertiserId}
             onChange={(e) => setAdvertiserId(e.target.value)}
             placeholder="7655330910371594258"
@@ -102,10 +104,11 @@ export function EditTikTokIdsModal({
           </button>
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-2`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("editTikTok.bcLabel")}
           </label>
           <Input
+            id={`${fieldId}-2`}
             value={bcId}
             onChange={(e) => setBcId(e.target.value)}
             placeholder={BM_200_BC}

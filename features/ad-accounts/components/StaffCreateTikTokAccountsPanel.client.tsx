@@ -116,11 +116,11 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left sm:px-5"
         aria-expanded={open}
       >
-        <span>
+        <span className="min-w-0">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a6b4a]">Solo gerencia</span>
           <span className="block text-[15px] font-semibold text-[#1c1917]">Crear o dar cuentas TikTok a {clienteName}</span>
         </span>
-        <span className="text-[13px] font-semibold text-[#c2410c]">{open ? "Cerrar" : "Abrir"}</span>
+        <span className="shrink-0 text-[13px] font-semibold text-[#c2410c]">{open ? "Cerrar" : "Abrir"}</span>
       </button>
 
       {open ? (
@@ -164,6 +164,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
                   key={b.id}
                   type="button"
                   onClick={() => setBm(b.id)}
+                  aria-pressed={bm === b.id}
                   className={`rounded-xl px-3 py-2 text-left ring-1 transition ${
                     bm === b.id ? "bg-[#fff4ec] ring-2 ring-[#ff781f]" : "bg-[#faf8f5] ring-[#e8e1d8] hover:ring-[#d6cbbf]"
                   }`}
@@ -221,6 +222,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
               value={manualUser}
               onChange={(e) => setManualUser(e.target.value.replace(/\D/g, ""))}
               placeholder="Otro user ID de TikTok (opcional)"
+              aria-label="Otro user ID de TikTok (opcional)"
               inputMode="numeric"
               className="mt-2 h-10 w-full max-w-xs rounded-xl bg-[#faf8f5] px-3 text-[13px] ring-1 ring-[#e8e1d8]"
             />

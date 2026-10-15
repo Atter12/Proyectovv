@@ -29,6 +29,12 @@ export function StaffSupportNotifier() {
   const pathname = usePathname();
   const onSupportPage =
     pathname === routes.support || pathname.startsWith(`${routes.support}/`);
+  // Mismo alto que la agenda de la derecha: en Pagos y Cuentas hay barra fija abajo.
+  const needsStickyLift =
+    pathname === routes.payments ||
+    pathname.startsWith(`${routes.payments}/`) ||
+    pathname === routes.adAccounts ||
+    pathname.startsWith(`${routes.adAccounts}/`);
   const [unread, setUnread] = useState<
     Array<{ id: string; name: string; preview: string }>
   >([]);
@@ -93,7 +99,12 @@ export function StaffSupportNotifier() {
   const top = unread[0];
 
   return (
-    <div className="pointer-events-none fixed bottom-4 left-3 z-50 flex max-w-[min(320px,calc(100vw-1.5rem))] flex-col items-start gap-2 sm:bottom-6 sm:left-5">
+    <div
+      className={cn(
+        "pointer-events-none fixed left-3 z-30 flex max-w-[min(320px,calc(100vw-6rem))] flex-col items-start gap-2 sm:left-5 md:bottom-6",
+        needsStickyLift ? "bottom-[4.75rem] sm:bottom-[5.25rem] md:bottom-6" : "bottom-4 sm:bottom-6",
+      )}
+    >
       <div className="pointer-events-auto flex flex-col items-start gap-2">
         {expanded ? (
           <div className="w-full overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-white shadow-2xl shadow-black/15 ring-1 ring-black/5">
@@ -145,7 +156,7 @@ export function StaffSupportNotifier() {
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className={cn(
-            "relative flex h-12 items-center gap-2 rounded-full bg-[var(--brand-primary)] pl-3 pr-4 text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform hover:scale-[1.03] sm:h-14",
+            "relative flex h-12 items-center gap-2 rounded-full bg-[var(--brand-primary)] pl-3 pr-4 text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-[scale] duration-150 ease-out hover:scale-[1.03] active:scale-[0.97] sm:h-14",
           )}
           aria-label={`${unread.length} mensajes nuevos de clientes`}
         >

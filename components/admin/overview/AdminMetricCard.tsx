@@ -36,7 +36,7 @@ export function AdminMetricCard({
         "admin-metric-card relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[var(--admin-shadow-1)]",
         adminRadius.metric,
         adminMotion.base,
-        "hover:-translate-y-0.5 hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
+        "hover:border-[var(--admin-border-strong)] hover:shadow-[var(--admin-shadow-2)]",
         showAlert && "border-[var(--admin-warning)]/30 bg-[var(--admin-metric-accent-amber)]/40",
         stretch ? "flex h-full min-h-0 flex-col" : "",
       )}

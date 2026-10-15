@@ -26,7 +26,6 @@
 .shell button { cursor: pointer; }
 .shell button:disabled { cursor: not-allowed; }
 .brandPanel { display: none; }
-.brandMedia { position: absolute; inset: 0; }
 .logo { display: block; width: 136px; height: auto; }
 .mobileBrand { display: inline-flex; flex-shrink: 0; }
 .formPanel { display: flex; min-width: 0; min-height: 100dvh; flex-direction: column; padding: 24px; }
@@ -81,7 +80,6 @@
 .error { color: #a32e23; background: #fff1ee; }
 .success { color: #245c44; background: #eff8f1; }
 .info { color: #765037; background: #fff4ea; }
-.stepList { display: grid; gap: 12px; font-size: 13px; color: var(--auth-text-muted); }
 .lookupToggle { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; color: var(--auth-text-muted); font-weight: 500; text-decoration: underline; }
 .lookupPanel { padding: 20px; border-radius: 12px; background: #f8f6f3; }
 .lookupPanelTitle { color: var(--auth-text); font-size: 14px; font-weight: 600; }
@@ -105,13 +103,10 @@
 @media (min-width: 640px) { .formPanel { padding: 32px 48px; } .logo { width: 146px; } .accountPrompt { display: inline; } }
 @media (min-width: 1024px) {
   .shell { grid-template-columns: minmax(0, .5fr) minmax(0, .5fr); padding: 20px; gap: 24px; }
-  /* Cap the panel at a 4:5 ratio on narrow desktops to preserve the photo's subject margins. */
   .brandPanel { display: block; position: sticky; top: 20px; align-self: start; height: calc(100dvh - 40px); min-height: 0; overflow: hidden; border-radius: 28px; background: #efe6dc; }
-  .brandArt { object-fit: cover; object-position: 50% 50%; }
   .brandContent { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 28px 32px; pointer-events: none; }
   .brandLink { align-self: flex-start; width: 25%; min-width: 120px; max-width: 180px; pointer-events: auto; }
   .brandLink .logo { width: 100%; }
-  .brandCaption { max-width: 36ch; color: #37342f; font-size: clamp(16px, 1.45vw, 23px); line-height: 1.45; font-weight: 500; letter-spacing: -.035em; white-space: pre-line; }
   .formPanel { min-height: calc(100dvh - 48px); padding: 16px 24px 8px; }
   .mobileBrand { display: none; }
   .topbar { justify-content: flex-end; }

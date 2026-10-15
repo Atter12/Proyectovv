@@ -43,7 +43,7 @@ export function ShopCatalog() {
         </article>
       ))}
       {notice ? (
-        <p className="text-[13px] font-semibold text-[#1f5c40]">
+        <p className="text-[13px] font-semibold text-[#1f5c40]" role="status">
           {notice}{" "}
           <Link href={routes.cart} className="underline">
             Ver carrito

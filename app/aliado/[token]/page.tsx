@@ -104,7 +104,7 @@ export default async function PartnerPanelPage({ params }: { params: Promise<{ t
               {data.clients.map((c, i) => (
                 <li key={`${c.displayName}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold">{c.displayName}</p>
+                    <p className="text-[14px] font-semibold [overflow-wrap:anywhere]">{c.displayName}</p>
                     <p className="text-[12px] text-[#8a8177]">
                       Desde {fmtDate(c.attributedAt)} · comisión hasta {fmtDate(c.expiresAt)}
                     </p>

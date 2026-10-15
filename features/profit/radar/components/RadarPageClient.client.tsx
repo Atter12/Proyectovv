@@ -36,8 +36,11 @@ const MIN_ROUND1 = 6;
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff781f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf8f5]";
-const primaryBtn = `inline-flex h-11 items-center justify-center rounded-[12px] bg-[#17150f] px-5 text-[14px] font-semibold text-white transition-colors hover:bg-[#2b2620] disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
-const secondaryBtn = `inline-flex h-11 items-center justify-center rounded-[12px] border border-[#e0d9d0] bg-white px-5 text-[14px] font-semibold text-[#1c1917] transition-colors hover:border-[#cfc6bb] disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
+/* Sin altura ni padding: en Tailwind v4 "h-11 … h-10" gana h-11 (orden del CSS), así que cada uso los fija. */
+const primaryBase = `inline-flex items-center justify-center rounded-[12px] bg-[#17150f] text-[14px] font-semibold text-white transition-colors hover:bg-[#2b2620] disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
+const secondaryBase = `inline-flex items-center justify-center rounded-[12px] border border-[#e0d9d0] bg-white text-[14px] font-semibold text-[#1c1917] transition-colors hover:border-[#cfc6bb] disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
+const primaryBtn = `${primaryBase} h-11 px-5`;
+const secondaryBtn = `${secondaryBase} h-11 px-5`;
 const chipBase = `inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13.5px] font-medium transition-colors ${focusRing}`;
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -106,7 +109,7 @@ function ProfitSays({ speaker, children }: { speaker: string; children: ReactNod
 function YouSay({ children }: { children: ReactNode }) {
   return (
     <Enter className="flex justify-end">
-      <p className="max-w-[80%] rounded-[18px] rounded-tr-[6px] bg-[#17150f] px-4 py-2.5 text-[14px] leading-[1.5] text-white">
+      <p className="max-w-[80%] rounded-[18px] rounded-tr-[6px] bg-[#17150f] px-4 py-2.5 text-[14px] leading-[1.5] text-white [overflow-wrap:anywhere]">
         {children}
       </p>
     </Enter>
@@ -498,7 +501,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
           {loadError ? (
             <div role="alert" className="rounded-[14px] border border-[#ece7e0] bg-white px-5 py-4 text-[14px] text-[#1c1917]">
               <p>{loadError}</p>
-              <button type="button" onClick={retryLoad} className={`${secondaryBtn} mt-3 h-10`}>
+              <button type="button" onClick={retryLoad} className={`${secondaryBase} mt-3 h-10 px-5`}>
                 {t("errors.retry")}
               </button>
             </div>
@@ -545,11 +548,11 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
-                className={`inline-flex h-7 items-center rounded-full px-3 text-[13px] font-medium ${
+                className={`inline-flex h-7 min-w-0 max-w-full items-center rounded-full px-3 text-[13px] font-medium ${
                   chip.learned ? "bg-[#fff1e8] text-[#9a3412]" : "bg-[#f5f2ed] text-[#1c1917]"
                 }`}
               >
-                {chip.label}
+                <span className="truncate">{chip.label}</span>
               </motion.span>
             ))}
           </AnimatePresence>
@@ -620,14 +623,14 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
                 {products.length > 0 ? (
                   <ul className="mt-4 flex flex-wrap gap-2">
                     {products.map((name) => (
-                      <li key={name}>
-                        <span className="inline-flex h-9 items-center gap-1 rounded-full bg-[#f5f2ed] pl-3.5 pr-1.5 text-[13.5px] font-medium">
-                          {name}
+                      <li key={name} className="min-w-0 max-w-full">
+                        <span className="inline-flex h-9 max-w-full items-center gap-1 rounded-full bg-[#f5f2ed] pl-3.5 pr-1.5 text-[13.5px] font-medium">
+                          <span className="min-w-0 truncate" title={name}>{name}</span>
                           <button
                             type="button"
                             aria-label={t("products.remove", { name })}
                             onClick={() => setProducts((prev) => prev.filter((p) => p !== name))}
-                            className={`flex h-6 w-6 items-center justify-center rounded-full text-[#8a8177] hover:bg-[#ebe5dd] hover:text-[#1c1917] ${focusRing}`}
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#8a8177] hover:bg-[#ebe5dd] hover:text-[#1c1917] ${focusRing}`}
                           >
                             <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                               <path d="M6 6l12 12M18 6 6 18" />
@@ -656,7 +659,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
                     maxLength={80}
                     className="h-10 min-w-0 flex-1 rounded-[10px] border border-[#e0d9d0] bg-white px-3 text-[14px] text-[#1c1917] caret-[#ff781f] placeholder:text-[#8a8177] hover:border-[#cfc6bb] focus:border-[#1c1917] focus:outline-none"
                   />
-                  <button type="submit" className={`${secondaryBtn} h-10 px-4`} disabled={!productDraft.trim()}>
+                  <button type="submit" className={`${secondaryBase} h-10 shrink-0 px-4`} disabled={!productDraft.trim()}>
                     {t("products.add")}
                   </button>
                 </form>
@@ -905,13 +908,13 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
                           role="radio"
                           aria-checked={selected}
                           onClick={() => setRecipeProduct(name)}
-                          className={`${chipBase} ${
+                          className={`${chipBase} max-w-full ${
                             selected
                               ? "border-[#17150f] bg-[#17150f] text-white"
                               : "border-[#e0d9d0] bg-white text-[#1c1917] hover:border-[#cfc6bb]"
                           }`}
                         >
-                          {name}
+                          <span className="truncate">{name}</span>
                         </button>
                       );
                     })}
@@ -1037,7 +1040,7 @@ function Round1Footer({
   return (
     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-[#ece7e0] pt-4">
       <div className="flex min-w-[180px] flex-1 items-center gap-3">
-        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-[#f0ece6]" aria-hidden>
+        <div className="h-1.5 w-28 shrink-0 overflow-hidden rounded-full bg-[#f0ece6]" aria-hidden>
           <div
             className="h-full rounded-full bg-[#ff781f] transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ width: `${total > 0 ? Math.min(100, (done / total) * 100) : 0}%` }}
@@ -1048,11 +1051,11 @@ function Round1Footer({
         </span>
       </div>
       {canShowMore ? (
-        <button type="button" className={`${secondaryBtn} h-10`} onClick={onShowMore}>
+        <button type="button" className={`${secondaryBase} h-10 px-5`} onClick={onShowMore}>
           {t("round1.showMore")}
         </button>
       ) : null}
-      <button type="button" className={`${primaryBtn} h-10`} disabled={!ready || busy} onClick={onFinish}>
+      <button type="button" className={`${primaryBase} h-10 px-5`} disabled={!ready || busy} onClick={onFinish}>
         {t("round1.finish")}
       </button>
       {!ready && total > 0 ? (

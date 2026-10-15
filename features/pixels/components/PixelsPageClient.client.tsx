@@ -532,7 +532,7 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
                     p.events.length ? "bg-emerald-500" : "bg-amber-400"
                   }`}
                 />
-                <span className="truncate">{p.name}</span>
+                <span className="min-w-0 truncate">{p.name}</span>
               </button>
             );
           })}

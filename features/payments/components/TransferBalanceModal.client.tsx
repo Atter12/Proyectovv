@@ -192,9 +192,13 @@ export function TransferBalanceModal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="transfer-balance-title"
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">
+        <h2
+          id="transfer-balance-title"
+          className="text-lg font-semibold text-[var(--foreground)]"
+        >
           {clientSelfService
             ? t("transferModal.titleLong")
             : t("transferModal.title")}
@@ -209,7 +213,7 @@ export function TransferBalanceModal({
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
             {t("transferModal.from")}
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
+          <p className="mt-0.5 break-words text-sm font-semibold text-[var(--foreground)]">
             {sourceAccount.name}
           </p>
           {sourceAccount.bmLabel ? (
@@ -217,7 +221,7 @@ export function TransferBalanceModal({
               {sourceAccount.bmLabel}
             </span>
           ) : null}
-          <p className="mt-1 text-xs text-[var(--admin-text-muted,#64748b)]">
+          <p className="mt-1 text-xs tabular-nums text-[var(--admin-text-muted,#64748b)]">
             {t("transferModal.transferable")}: {formatMoney(maxAmount)}
           </p>
           {sourceLiveUsd != null &&
@@ -275,7 +279,7 @@ export function TransferBalanceModal({
             </select>
           )}
           {destAccount ? (
-            <p className="mt-1.5 font-mono text-[11px] text-[#6b645c]">
+            <p className="mt-1.5 break-all font-mono text-[11px] text-[#6b645c]">
               adv {destAccount.externalAccountId?.trim() || "—"}
             </p>
           ) : null}
@@ -339,7 +343,7 @@ export function TransferBalanceModal({
         ) : null}
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={resetAndClose} disabled={loading}>
+          <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" onClick={resetAndClose} disabled={loading}>
             {tCommon("close")}
           </Button>
           <Button
@@ -347,7 +351,7 @@ export function TransferBalanceModal({
             disabled={
               loading || !isValid || destinationOptions.length === 0
             }
-            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)]"
+            className="h-11 w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-deep)] sm:h-9 sm:w-auto"
           >
             {loading
               ? t("transferModal.transferring")

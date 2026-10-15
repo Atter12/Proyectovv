@@ -33,7 +33,7 @@ export default async function CreativesPage({ searchParams }: { searchParams: Pr
           </Select>
           <Button type="submit" variant="secondary">Filtrar</Button>
         </form>
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
           <section>
             <h2 className="mb-3 text-lg font-semibold text-[var(--admin-text)]">Jobs</h2>
             <TableWrap>

@@ -71,8 +71,10 @@ export function ComplaintsBookForm() {
     );
   }
 
-  const field =
-    "mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 text-[14px]";
+  // 16px en celular: con menos, iOS hace zoom al enfocar el campo.
+  const fieldBase =
+    "mt-1 w-full rounded-xl border border-black/10 bg-white px-3 text-[16px] sm:text-[14px]";
+  const field = `${fieldBase} h-11`;
 
   return (
     <form onSubmit={onSubmit} className="space-y-3 rounded-2xl border border-black/10 bg-white p-4">
@@ -138,11 +140,11 @@ export function ComplaintsBookForm() {
       </label>
       <label className="block text-[13px] font-semibold">
         Detalle
-        <textarea name="detail" required minLength={15} className={`${field} h-28 py-2`} />
+        <textarea name="detail" required minLength={15} className={`${fieldBase} h-28 py-2`} />
       </label>
       <label className="block text-[13px] font-semibold">
         Pedido del consumidor
-        <textarea name="request" required minLength={8} className={`${field} h-24 py-2`} />
+        <textarea name="request" required minLength={8} className={`${fieldBase} h-24 py-2`} />
       </label>
       {error ? (
         <p className="rounded-lg bg-[#fef2f2] px-3 py-2 text-[13px] text-[#991b1b]" role="alert">

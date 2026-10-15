@@ -91,7 +91,7 @@ export function LandingLocaleSwitcher({
           />
         </svg>
         <span>{landingLocaleShort[locale]}</span>
-        <svg className="h-3 w-3 opacity-60" viewBox="0 0 12 12" fill="none" aria-hidden>
+        <svg className="h-3 w-3 shrink-0 opacity-60" viewBox="0 0 12 12" fill="none" aria-hidden>
           <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -121,7 +121,7 @@ export function LandingLocaleSwitcher({
               >
                 <span>{landingLocaleLabels[code]}</span>
                 {active ? (
-                  <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden>
                     <path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 ) : null}

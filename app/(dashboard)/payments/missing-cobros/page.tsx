@@ -51,14 +51,14 @@ export default async function MissingCobrosReviewPage({
   return (
     <div className={dashboardClasses.page}>
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-text-muted)]">
           Gerente · Lo pagado
           {hecomClienteId ? " · Filtro cliente" : " · Todos los clientes"}
         </p>
         <h1 className="text-xl font-bold tracking-tight text-[var(--auth-text)] sm:text-2xl">
           Cobros faltantes
         </h1>
-        <p className="max-w-3xl text-sm text-[var(--auth-muted)]">
+        <p className="max-w-3xl text-sm text-[var(--auth-text-muted)]">
           El cliente reportó un pago que no está en Hecom. Al{" "}
           <strong className="font-semibold text-[var(--auth-text)]">
             aceptar
@@ -87,14 +87,14 @@ export default async function MissingCobrosReviewPage({
           ) : selected?.id ? (
             <Link
               href={`${routes.paymentsMissingCobros}?cliente=${encodeURIComponent(selected.id)}`}
-              className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+              className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
             >
               Filtrar solo {selected.name}
             </Link>
           ) : null}
           <Link
             href={routes.paymentsManual}
-            className="text-xs font-medium text-[var(--auth-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
+            className="text-xs font-medium text-[var(--auth-text-muted)] underline-offset-2 hover:text-[var(--auth-text)] hover:underline"
           >
             Ir a Pagos manuales (cartera)
           </Link>

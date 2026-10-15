@@ -395,6 +395,7 @@ export function MissingCobroClaimPanel({
                 type="file"
                 accept="image/*,application/pdf"
                 className="sr-only"
+                tabIndex={-1}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
@@ -418,7 +419,7 @@ export function MissingCobroClaimPanel({
                   : t("missingCobro.submit")}
               </Button>
               {pendingIntentId ? (
-                <span className="self-center font-mono text-[10px] text-[var(--auth-muted)]">
+                <span className="self-center font-mono text-[10px] text-[var(--auth-text-muted)]">
                   {pendingIntentId.slice(0, 8)}
                 </span>
               ) : null}
@@ -443,7 +444,7 @@ export function MissingCobroClaimPanel({
                     ${c.amount.toFixed(2)} USD
                     {c.periodoResumen ? ` · ${c.periodoResumen}` : ""}
                   </p>
-                  <p className="text-[11px] text-[var(--auth-muted)]">
+                  <p className="text-[11px] text-[var(--auth-text-muted)]">
                     {c.claimedPaymentFecha ??
                       new Date(c.createdAt).toLocaleDateString("es-PE")}
                     {c.claimedMetodo ? ` · ${c.claimedMetodo}` : ""}

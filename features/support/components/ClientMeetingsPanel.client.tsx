@@ -309,7 +309,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <button
             type="button"
             onClick={onBack}
@@ -362,7 +362,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20.5rem]">
-        <section className="dashboard-surface-card rounded-[1.15rem] p-3 sm:p-4">
+        <section className="dashboard-surface-card min-w-0 rounded-[1.15rem] p-3 sm:p-4">
           <div className="mb-3">
             <p className="mb-2 text-[12px] font-semibold text-[var(--auth-text)]">{t("meetings.withWho")}</p>
             <div className="flex flex-wrap gap-2">
@@ -382,7 +382,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
                   >
                     <span
                       className={cn(
-                        "grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold",
+                        "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold",
                         active ? "bg-white/20 text-white" : "bg-orange-100 text-orange-800",
                       )}
                     >
@@ -436,7 +436,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
           )}
         </section>
 
-        <aside className="dashboard-surface-card rounded-[1.15rem] p-4">
+        <aside className="dashboard-surface-card min-w-0 rounded-[1.15rem] p-4">
           {selectedSlot && !rescheduleId ? (
             <form
               className="space-y-3"
@@ -446,7 +446,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
               }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
                     {t("meetings.bookTitle")}
                   </p>
@@ -466,7 +466,7 @@ export function ClientMeetingsPanel({ onBack }: { onBack: () => void }) {
                     setSelectedCell(null);
                     setSelectedSlot(null);
                   }}
-                  className="text-[12px] font-semibold text-[var(--auth-text-muted)]"
+                  className="shrink-0 text-[12px] font-semibold text-[var(--auth-text-muted)]"
                 >
                   {t("meetings.cancelBook")}
                 </button>
@@ -586,7 +586,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <article className="dashboard-surface-card rounded-xl px-3 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">{label}</p>
-      <p className="mt-1 truncate text-[14px] font-bold capitalize text-[var(--auth-text)]">{value}</p>
+      <p className="mt-1 truncate text-[14px] font-bold capitalize tabular-nums text-[var(--auth-text)]">{value}</p>
     </article>
   );
 }
@@ -718,8 +718,8 @@ function MeetingGroup({
             return (
               <li key={meeting.id} className="rounded-xl border border-[var(--auth-input-border)] px-3 py-2.5">
                 <button type="button" onClick={() => onSelect(meeting.id)} className="flex w-full items-start justify-between gap-3 text-left">
-                  <span>
-                    <span className="block text-[13px] font-semibold text-[var(--auth-text)]">{meeting.subject}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-[var(--auth-text)] [overflow-wrap:anywhere]">{meeting.subject}</span>
                     <span className="mt-0.5 block text-[12px] capitalize text-[var(--auth-text-muted)]">
                       {labelWhen(meeting.startsAt)}
                       {meeting.advisorName ? ` · ${meeting.advisorName}` : ""}
@@ -813,8 +813,8 @@ function MeetingDetail({
         </button>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[16px] font-bold text-[var(--auth-text)]">{meeting.subject}</h3>
-        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
+        <h3 className="min-w-0 text-[16px] font-bold text-[var(--auth-text)] [overflow-wrap:anywhere]">{meeting.subject}</h3>
+        <span className={cn("shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
           {t(`meetings.statuses.${meeting.status}`)}
         </span>
       </div>
@@ -829,7 +829,7 @@ function MeetingDetail({
         />
       </dl>
       {meeting.notes ? (
-        <p className="whitespace-pre-wrap rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[13px] text-[var(--auth-text)]">
+        <p className="whitespace-pre-wrap rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[13px] text-[var(--auth-text)] [overflow-wrap:anywhere]">
           {meeting.notes}
         </p>
       ) : null}
@@ -882,8 +882,8 @@ function MeetingDetail({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <dt className="text-[var(--auth-text-muted)]">{label}</dt>
-      <dd className="text-right font-semibold capitalize text-[var(--auth-text)]">{value}</dd>
+      <dt className="shrink-0 text-[var(--auth-text-muted)]">{label}</dt>
+      <dd className="min-w-0 text-right font-semibold capitalize text-[var(--auth-text)] [overflow-wrap:anywhere]">{value}</dd>
     </div>
   );
 }

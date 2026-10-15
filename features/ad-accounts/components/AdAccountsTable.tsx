@@ -342,7 +342,7 @@ export function AdAccountsTable({
               <MetaChip tone="fee">{display.balanceHint}</MetaChip>
             ) : null}
             {display.secondary ? (
-              <span className="truncate text-[11px] text-[#9a9187]">
+              <span className="min-w-0 max-w-full truncate text-[11px] text-[#9a9187]">
                 {display.secondary}
               </span>
             ) : null}

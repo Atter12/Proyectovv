@@ -35,7 +35,7 @@ export function AdAccountLiveBalanceCell({
 
   if (loading && !metric) {
     return (
-      <span className="text-[12px] text-[#9a9187] animate-pulse">
+      <span className="text-[12px] text-[#9a9187] animate-pulse motion-reduce:animate-none">
         {t("loading")}
       </span>
     );

@@ -116,7 +116,7 @@ function VerdictChip({ verdict, compact = false }: { verdict: VerdictKey; compac
         compact ? "px-2 py-0.5 text-[10.5px]" : "px-2.5 py-1 text-[11.5px]"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} aria-hidden />
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
       {compact ? meta.short : meta.label}
     </span>
   );
@@ -332,7 +332,7 @@ export function PrepagoMonitor({
       {/* Barra de estado */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#6b645c]">
-          <span className="relative flex h-2 w-2" aria-hidden>
+          <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
             {auto ? (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3f8f5b] opacity-50" />
             ) : null}
@@ -420,7 +420,7 @@ export function PrepagoMonitor({
                       active ? "bg-white text-[#1a1714]" : "bg-white/10 text-white hover:bg-white/15"
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${VERDICT_META[key].dot}`} aria-hidden />
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${VERDICT_META[key].dot}`} aria-hidden />
                     {VERDICT_META[key].short}
                     <span className="tabular-nums opacity-80">{counts[key]}</span>
                   </button>
@@ -544,7 +544,7 @@ function HowToRead() {
         className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left"
       >
         <span className="flex items-center gap-2.5">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fff1e6] text-[13px] font-bold text-[#b85f2e]" aria-hidden>
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#fff1e6] text-[13px] font-bold text-[#b85f2e]" aria-hidden>
             ?
           </span>
           <span>
@@ -944,7 +944,7 @@ function AccountsTable({ accounts }: { accounts: MonitorAccount[] }) {
   }
   return (
     <div className="overflow-hidden rounded-2xl ring-1 ring-[#efe8df]">
-      <div className="max-h-[22rem] overflow-y-auto">
+      <div className="max-h-[22rem] overflow-auto">
         <table className="w-full text-[12.5px]">
           <thead className="sticky top-0 bg-[#fcfaf7] text-[10.5px] uppercase tracking-[0.06em] text-[#a39b92]">
             <tr>
@@ -962,7 +962,7 @@ function AccountsTable({ accounts }: { accounts: MonitorAccount[] }) {
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
                       <BmBadge bm={a.bm} />
-                      <span className="truncate font-medium text-[#1a1714]" title={a.name}>
+                      <span className="min-w-0 max-w-[14rem] truncate font-medium text-[#1a1714]" title={a.name}>
                         {a.name}
                       </span>
                     </div>
@@ -971,12 +971,12 @@ function AccountsTable({ accounts }: { accounts: MonitorAccount[] }) {
                       {a.kind === "cash" ? "Cash" : "Cupo compartido"} · adv {a.advertiserId}
                     </p>
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[#3f3a34]">
+                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[#3f3a34]">
                     {a.unlimited ? <span className="font-semibold text-[#9f1d12]">Sin tope</span> : usd(a.spendableUsd)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[#3f3a34]">{usd(a.walletUsd)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-[#3f3a34]">{usd(a.walletUsd)}</td>
                   <td
-                    className={`px-3 py-2 text-right tabular-nums ${
+                    className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${
                       risky && a.status !== "banned" ? "font-semibold text-[#9f1d12]" : "text-[#a39b92]"
                     }`}
                   >
@@ -1126,7 +1126,7 @@ function MonitorSkeleton() {
           {LOADING_STEPS.map((s, i) => (
             <li key={s.label} className="flex items-center gap-1.5 text-[11.5px]">
               <span
-                className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
                   i < stepIndex
                     ? "bg-[#3f8f5b] text-white"
                     : i === stepIndex

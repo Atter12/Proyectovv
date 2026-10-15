@@ -75,14 +75,15 @@ export function DashboardUserMenu({
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={user.name}
         className={cn(
-          "flex items-center gap-2.5 rounded-lg border border-[var(--auth-border)] bg-white py-1.5 pl-1.5 pr-2.5 transition-all",
+          "flex items-center gap-2.5 rounded-lg border border-[var(--auth-border)] bg-white py-1.5 pl-1.5 pr-2.5 transition-colors",
           "hover:border-[var(--auth-accent)]/30 hover:bg-[var(--auth-bg)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30",
           open && "border-[var(--auth-accent)]/35 bg-[var(--auth-bg)]",
         )}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--auth-accent)] text-[11px] font-bold text-white">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--auth-accent)] text-[11px] font-bold text-white">
           {user.avatarInitials}
         </span>
         <span className="hidden min-w-0 text-left sm:block">
@@ -136,7 +137,7 @@ export function DashboardUserMenu({
             disabled={loggingOut}
             className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-[#b42318] transition-colors hover:bg-red-50 disabled:opacity-55"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
             </svg>
             {loggingOut ? t("loggingOut") : t("logout")}

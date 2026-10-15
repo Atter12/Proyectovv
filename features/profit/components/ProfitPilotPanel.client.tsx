@@ -201,8 +201,8 @@ export function ProfitPilotPanel() {
                         </button>
                       </>
                     ) : (
-                      <button type="button" className={primaryBtn} onClick={() => setConfirming(p.id)}>
-                        {t("actions.pause", { name: pauseName })}
+                      <button type="button" className={`${primaryBtn} max-w-full`} onClick={() => setConfirming(p.id)} title={t("actions.pause", { name: pauseName })}>
+                        <span className="truncate">{t("actions.pause", { name: pauseName })}</span>
                       </button>
                     )
                   ) : null}

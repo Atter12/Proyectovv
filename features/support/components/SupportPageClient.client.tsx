@@ -539,38 +539,6 @@ export function SupportPageClient({
         <button
           type="button"
           onClick={() => {
-            setPanel("meetings");
-            setMobileShowChat(false);
-          }}
-          className={cn(
-            "mt-2 flex w-full items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors",
-            panel === "meetings"
-              ? "border-[var(--auth-accent)]/50 bg-[rgb(255_120_31_/_0.06)]"
-              : "border-[var(--auth-input-border)] bg-white hover:border-[var(--auth-accent)]/40",
-          )}
-        >
-          <div>
-            <p className="text-[14px] font-semibold text-[var(--auth-text)]">
-              {t("meetings.nav")}
-            </p>
-            <p className="mt-0.5 text-[12px] text-[var(--auth-text-muted)]">
-              {t("meetings.navHint")}
-            </p>
-          </div>
-          <svg
-            className="h-4 w-4 shrink-0 text-[var(--auth-text-soft)]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 19.5h15a.75.75 0 00.75-.75V7.5a.75.75 0 00-.75-.75h-15a.75.75 0 00-.75.75v11.25c0 .414.336.75.75.75z" />
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
             setFaqQuery("");
             setPanel("faqCategories");
             setMobileShowChat(false);
@@ -610,7 +578,7 @@ export function SupportPageClient({
         loading={loadingConversation}
         error={error}
         showBack={mobileShowChat && faqMode === false}
-        className="h-[min(760px,calc(100vh-11rem))] min-h-[560px]"
+        className="h-[min(760px,calc(100dvh-11rem))] min-h-[560px]"
         title={supportName}
         subtitle={t("chatSubtitle")}
         onInputChange={setInputValue}

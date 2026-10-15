@@ -7,9 +7,14 @@ type HolisticLogoProps = {
   title?: string;
 };
 
+/** Proporción del PNG oficial (506 × 183). */
+const LOGO_ASPECT = 506 / 183;
+
 /**
  * Holistic Marketing mark (logo oficial Hecom / Holistic).
  * `EcomdyLogo` se mantiene como alias para no romper imports existentes.
+ * `size` es el ancho; el alto sale de la proporción real para que el navegador
+ * reserve la caja correcta antes de cargar la imagen (antes era cuadrada).
  */
 export function HolisticLogo({
   className,
@@ -22,7 +27,7 @@ export function HolisticLogo({
       src={siteConfig.logoSrc}
       alt={title}
       width={size}
-      height={size}
+      height={Math.round(size / LOGO_ASPECT)}
       className={cn("shrink-0 object-contain", className)}
     />
   );

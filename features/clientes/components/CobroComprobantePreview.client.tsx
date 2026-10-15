@@ -69,7 +69,7 @@ export function CobroComprobantePreview({
   if (loading) {
     return (
       <div
-        className="h-14 w-14 shrink-0 animate-pulse rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)]"
+        className="h-14 w-14 shrink-0 animate-pulse motion-reduce:animate-none rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)]"
         title={t("proofLoading")}
       />
     );

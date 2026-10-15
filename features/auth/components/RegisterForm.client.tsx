@@ -294,7 +294,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
             </label>
             <div className="relative">
               <FieldIcon>
-                <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
               </FieldIcon>
@@ -319,7 +319,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
             </label>
             <div className="relative">
               <FieldIcon>
-                <svg className="h-4 w-4" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
               </FieldIcon>
@@ -478,7 +478,7 @@ export function RegisterForm({ locale = "es" }: { locale?: LandingLocale }) {
               className={inputClassName}
             />
           </div>
-          <p id="promoCode-status" className="min-h-[18px] text-[12.5px]" aria-live="polite">
+          <p id="promoCode-status" className="mt-1.5 min-h-[18px] text-[12.5px]" aria-live="polite">
             {promo.status === "checking" && <span className="text-[var(--auth-text-soft)]">{t.promoChecking}</span>}
             {promo.status === "valid" && (
               <span className="font-semibold text-[#15803d]">

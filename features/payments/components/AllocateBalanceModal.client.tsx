@@ -209,9 +209,13 @@ export function AllocateBalanceModal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="allocate-balance-title"
         className="relative max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-white p-5 shadow-2xl sm:p-6"
       >
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">
+        <h2
+          id="allocate-balance-title"
+          className="text-lg font-semibold text-[var(--foreground)]"
+        >
           {agencyBmFunding
             ? t("allocateModal.titleBm")
             : t("allocateModal.title")}
@@ -235,7 +239,7 @@ export function AllocateBalanceModal({
           <p className="text-xs text-[var(--admin-text-muted,#64748b)]">
             {t("allocateModal.account")}
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
+          <p className="mt-0.5 break-words text-sm font-semibold text-[var(--foreground)]">
             {targetAccount.name}
           </p>
           {targetAccount.bmLabel ? (

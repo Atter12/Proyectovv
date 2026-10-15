@@ -295,7 +295,7 @@ export function ProfitDateRangeField({
             : "border-[#e7e0d8] hover:border-[#cfc6bb]"
         }`}
       >
-        <span>
+        <span className="min-w-0 truncate">
           {from && to
             ? `${formatDisplay(from)} ~ ${formatDisplay(to)}`
             : t("placeholder")}
@@ -319,7 +319,7 @@ export function ProfitDateRangeField({
         <div
           role="dialog"
           aria-label={t("dialogAria")}
-          className="absolute left-0 z-40 mt-2 w-[min(100vw-2rem,36rem)] rounded-2xl border border-[#ece7e0] bg-white p-3 shadow-[0_18px_40px_-24px_rgb(28_25_23_/_0.55)] sm:p-4"
+          className="absolute left-0 z-40 mt-2 w-full rounded-2xl sm:w-[min(100vw-2rem,36rem)] border border-[#ece7e0] bg-white p-3 shadow-[0_18px_40px_-24px_rgb(28_25_23_/_0.55)] sm:p-4"
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-0.5">

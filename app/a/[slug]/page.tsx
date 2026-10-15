@@ -108,7 +108,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
       <PartnerVisitTracker slug={partner.slug} />
 
       {/* Logos al centro; «Iniciar sesión» a la derecha. */}
-      <header className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-5 sm:px-8">
+      <header className="mx-auto grid max-w-6xl grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-3 px-5 py-5 sm:px-8">
         <span aria-hidden />
         <div className="flex min-w-0 items-center justify-center gap-3">
           <Image
@@ -116,7 +116,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             alt="Holistic Marketing"
             width={506}
             height={187}
-            className={`w-auto ${pal.dark ? "brightness-0 invert" : ""}`}
+            className={`w-auto shrink-0 ${pal.dark ? "brightness-0 invert" : ""}`}
             style={{ height: Math.round(logoSize * 0.9) }}
             priority
           />
@@ -124,9 +124,9 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           {partner.logoUrl ? (
             // Logos externos de cada aliado: <img> evita configurar dominios en next/image.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={partner.logoUrl} alt={brand} className="w-auto max-w-[40vw] object-contain" style={{ height: logoSize }} />
+            <img src={partner.logoUrl} alt={brand} className="w-auto min-w-0 max-w-[40vw] object-contain" style={{ height: logoSize }} />
           ) : (
-            <span className="truncate text-[15px] font-bold tracking-[-0.02em]">{brand}</span>
+            <span className="min-w-0 truncate text-[15px] font-bold tracking-[-0.02em]">{brand}</span>
           )}
         </div>
         {/* En celular no entra al lado de los logos: baja debajo de los botones. */}
@@ -139,10 +139,10 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-6 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pt-10">
           <div>
             <p className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold ${c.pill}`}>
-              <span className="h-2 w-2 rounded-full" style={{ background: pal.secondary }} />
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: pal.secondary }} />
               Alianza oficial · {brand}
             </p>
-            <h1 className="mt-5 text-[34px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[48px]">{headline}</h1>
+            <h1 className="mt-5 text-[34px] font-bold leading-[1.08] tracking-[-0.04em] [overflow-wrap:anywhere] sm:text-[48px]">{headline}</h1>
             <p className={`mt-4 max-w-xl text-[16px] leading-relaxed sm:text-[18px] ${c.muted}`}>{subheadline}</p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -173,7 +173,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             <div className="mt-8 flex items-center gap-3">
               {partner.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={partner.photoUrl} alt={partner.name} className="h-12 w-12 rounded-full object-cover ring-2 ring-white" />
+                <img src={partner.photoUrl} alt={partner.name} className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white" />
               ) : null}
               <p className={`text-[14px] ${c.muted}`}>
                 Recomendado por <strong className="text-[var(--ink)]">{partner.name}</strong>

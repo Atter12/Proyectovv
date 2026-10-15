@@ -203,7 +203,7 @@ function VoucherCard({
               </button>
             ) : (
               <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 p-6 text-center">
-                <p className="text-sm font-semibold text-[var(--auth-text)]">
+                <p className="max-w-full break-all text-sm font-semibold text-[var(--auth-text)]">
                   {intent.proofFileName ?? "Archivo adjunto"}
                 </p>
                 <a
@@ -217,7 +217,7 @@ function VoucherCard({
               </div>
             )
           ) : (
-            <div className="flex h-full min-h-[200px] items-center justify-center p-6 text-sm text-[var(--auth-muted)]">
+            <div className="flex h-full min-h-[200px] items-center justify-center p-6 text-sm text-[var(--auth-text-muted)]">
               {t("voucherReview.noPreview")}
             </div>
           )}
@@ -226,7 +226,7 @@ function VoucherCard({
         <div className="flex flex-col gap-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-muted)]">
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--auth-text-muted)]">
                 {isDebtPayment
                   ? "Pago de deuda · Lo pagado"
                   : isMissingCobro
@@ -244,7 +244,7 @@ function VoucherCard({
                   intent.organizationName ||
                   "Cliente"}
               </h3>
-              <p className="text-xs text-[var(--auth-muted)]">
+              <p className="break-all text-xs text-[var(--auth-text-muted)]">
                 {intent.actorEmail ?? intent.actorName ?? "—"}
               </p>
               {isDebtPayment && intent.periodoResumen ? (
@@ -262,7 +262,7 @@ function VoucherCard({
                 </p>
               ) : null}
               {intent.shopDomain ? (
-                <p className="mt-0.5 font-mono text-[11px] text-[var(--auth-muted)]">
+                <p className="mt-0.5 break-all font-mono text-[11px] text-[var(--auth-text-muted)]">
                   Tienda: {intent.shopDomain}
                 </p>
               ) : null}
@@ -270,7 +270,7 @@ function VoucherCard({
               intent.organizationName &&
               intent.hecomClienteName.trim() !==
                 intent.organizationName.trim() ? (
-                <p className="mt-0.5 text-[11px] text-[var(--auth-muted)]">
+                <p className="mt-0.5 text-[11px] text-[var(--auth-text-muted)]">
                   Org: {intent.organizationName}
                 </p>
               ) : null}
@@ -283,7 +283,7 @@ function VoucherCard({
           <div className="rounded-xl bg-[#f8fafc] px-3 py-2.5">
             {showActions ? (
               <>
-                <label className="text-xs font-medium text-[var(--auth-muted)]">
+                <label className="text-xs font-medium text-[var(--auth-text-muted)]">
                   {t("voucherReview.realAmount", { currency: chargeCurrency })}
                 </label>
                 {!aiReadAmount ? (
@@ -300,6 +300,7 @@ function VoucherCard({
                     min="0.01"
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
+                    aria-label={t("voucherReview.realAmount", { currency: chargeCurrency })}
                     className="w-full max-w-[11rem] rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-lg font-bold tabular-nums text-[var(--auth-text)] outline-none focus:border-[#d47840]"
                   />
                   <button
@@ -314,7 +315,7 @@ function VoucherCard({
                     Usar esperado
                   </button>
                 </div>
-                <p className="mt-1 text-[11px] text-[var(--auth-muted)]">
+                <p className="mt-1 text-[11px] text-[var(--auth-text-muted)]">
                   Esperado:{" "}
                   {chargeCurrency === "PEN"
                     ? formatPenAmount(Math.round(intent.amount * 100))
@@ -329,7 +330,7 @@ function VoucherCard({
                       }`
                     : ""}
                 </p>
-                <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-muted)]">
+                <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-text-muted)]">
                   {isDebtPayment ? (
                     <p>
                       Al aceptar:{" "}
@@ -380,7 +381,7 @@ function VoucherCard({
                   )}
                 </div>
                 {isMissingCobro ? (
-                  <label className="mt-3 block text-xs font-medium text-[var(--auth-muted)]">
+                  <label className="mt-3 block text-xs font-medium text-[var(--auth-text-muted)]">
                     Período Hecom (AAAA-MM)
                     <input
                       type="month"
@@ -393,13 +394,13 @@ function VoucherCard({
               </>
             ) : (
               <>
-                <p className="text-xs text-[var(--auth-muted)]">
+                <p className="text-xs text-[var(--auth-text-muted)]">
                   {t("voucherReview.charged")}
                 </p>
                 <p className="text-lg font-bold tabular-nums text-[var(--auth-text)]">
                   {formatMoney(intent.amount, intent.currency)}
                 </p>
-                <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-muted)]">
+                <div className="mt-1 space-y-0.5 text-xs text-[var(--auth-text-muted)]">
                   {isDebtPayment ? (
                     <p>
                       Pago de deuda
@@ -427,7 +428,7 @@ function VoucherCard({
             )}
           </div>
 
-          <p className="text-xs text-[var(--auth-muted)]">
+          <p className="break-words text-xs text-[var(--auth-text-muted)]">
             {new Date(intent.createdAt).toLocaleString("es-PE")}
             {intent.proofFileName ? ` · ${intent.proofFileName}` : ""}
             {" · "}
@@ -437,7 +438,7 @@ function VoucherCard({
           </p>
 
           {intent.analysisReason ? (
-            <p className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            <p className="break-words rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-xs text-amber-950">
               {intent.analysisReason}
             </p>
           ) : null}
@@ -454,7 +455,7 @@ function VoucherCard({
 
           {showActions ? (
             <div className="mt-auto space-y-2 border-t border-[var(--auth-divider)] pt-3">
-              <p className="text-[11px] text-[var(--auth-muted)]">
+              <p className="text-[11px] text-[var(--auth-text-muted)]">
                 {isMissingCobro
                   ? "Revisa monto y mes, ajústalos si el voucher no cuadra, y acepta. Solo crea el cobro en Hecom — no toca la cartera."
                   : isRealProfit
@@ -511,6 +512,7 @@ function VoucherCard({
                     onChange={(e) => setRejectReason(e.target.value)}
                     rows={2}
                     placeholder="Motivo visible para el cliente…"
+                    aria-label="Motivo visible para el cliente"
                     className="w-full rounded-lg border border-[var(--auth-divider)] bg-white px-3 py-2 text-sm outline-none focus:border-[#d47840]"
                   />
                   <div className="flex flex-wrap gap-2">
@@ -592,7 +594,7 @@ export function ManualVoucherReviewSection({
           <h2 className="text-base font-semibold text-[var(--auth-text)]">
             {t("voucherReview.yourProofs")}
           </h2>
-          <p className="mt-1 text-sm text-[var(--auth-muted)]">
+          <p className="mt-1 text-sm text-[var(--auth-text-muted)]">
             {t("voucherReview.yourProofsBody")}
           </p>
         </div>
@@ -643,7 +645,7 @@ export function ManualVoucherReviewSection({
               </span>
             ) : null}
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--auth-muted)]">
+          <p className="mt-1 max-w-2xl text-sm text-[var(--auth-text-muted)]">
             {isMissingCobro
               ? "Reportes desde Lo pagado: al aceptar se crea el cobro en Hecom (sin cartera)"
               : isRealProfit

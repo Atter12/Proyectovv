@@ -246,7 +246,7 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
                       className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#f7f0e9] text-[#b85f2e]"
                       aria-hidden
                     >
-                      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
+                      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
                         <path d={item.icon} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
@@ -269,7 +269,7 @@ export function LinksDeudaPanel({ clients }: { clients: DebtLinkClient[] }) {
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f7f0e9] text-[#b85f2e]"
               aria-hidden
             >
-              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none">
+              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" aria-hidden>
                 <path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
               </svg>
             </span>

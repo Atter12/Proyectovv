@@ -193,10 +193,10 @@ export function LinksDeudaCuentas({
         <div className="space-y-2 p-4 sm:p-5" aria-busy>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl bg-[#f5f0ea]" />
+              <div key={i} className="h-16 animate-pulse motion-reduce:animate-none rounded-xl bg-[#f5f0ea]" />
             ))}
           </div>
-          <div className="h-24 animate-pulse rounded-xl bg-[#faf8f5]" />
+          <div className="h-24 animate-pulse motion-reduce:animate-none rounded-xl bg-[#faf8f5]" />
         </div>
       ) : state.status === "error" ? (
         <p className="m-4 rounded-2xl bg-[#fcfaf7] px-4 py-6 text-center text-[13px] text-[#9a3412] ring-1 ring-[#efe8df] sm:m-5">

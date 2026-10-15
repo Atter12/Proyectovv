@@ -439,22 +439,22 @@ export function PaymentsTable({
                   }
                 >
                   <TableCell className="text-[14px] font-semibold tracking-[-0.02em] text-[#1a1612]">
-                    <div className="min-w-0">
-                      <p className="truncate">{account.name}</p>
+                    <div className="min-w-0 max-w-[18rem]">
+                      <p className="truncate" title={account.name}>{account.name}</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                         {account.bmLabel ? (
                           <span className="rounded-md bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#1e40af] ring-1 ring-[#c7d7fe]">
                             {account.bmLabel}
                           </span>
                         ) : null}
-                        <p className="truncate font-mono text-[10px] font-normal text-[#9a9187]">
+                        <p className="min-w-0 truncate font-mono text-[10px] font-normal text-[#9a9187]">
                           adv{" "}
                           {account.externalAccountId?.trim() ||
                             t("assignmentTable.noTikTokId")}
                         </p>
                       </div>
                       {!agencyBmFunding ? (
-                        <p className="mt-1 text-[10px] font-normal text-[#8a8178]">
+                        <p className="mt-1 whitespace-normal text-[10px] font-normal text-[#8a8178]">
                           {account.autoRecharge
                             ? t("assignmentTable.autoDebitOn")
                             : t("assignmentTable.autoDebitOff")}

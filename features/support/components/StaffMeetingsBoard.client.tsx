@@ -276,7 +276,7 @@ export function StaffMeetingsBoard({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_18rem]">
-          <section className="dashboard-surface-card rounded-[1.15rem] p-4">
+          <section className="dashboard-surface-card min-w-0 rounded-[1.15rem] p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-[14px] font-bold text-[var(--auth-text)]">Horarios del equipo</h2>
             </div>
@@ -295,7 +295,7 @@ export function StaffMeetingsBoard({
                         <p className="truncate text-[14px] font-bold text-[var(--auth-text)]">{schedule.displayName}</p>
                         <span
                           className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold",
                             schedule.isAvailable ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-700",
                           )}
                         >
@@ -323,15 +323,15 @@ export function StaffMeetingsBoard({
             </ul>
           </section>
 
-          <section className="dashboard-surface-card rounded-[1.15rem] p-4">
+          <section className="dashboard-surface-card min-w-0 rounded-[1.15rem] p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-[14px] font-bold text-[var(--auth-text)]">Disponibilidad semanal</h2>
                 <p className="text-[12px] text-[var(--auth-text-muted)]">
                   {moving ? "Elige un bloque verde para mover la reunión." : "Lo mismo que ve el cliente al agendar."}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   aria-label="Semana anterior"
@@ -389,7 +389,7 @@ export function StaffMeetingsBoard({
             )}
           </section>
 
-          <section className="dashboard-surface-card rounded-[1.15rem] p-4">
+          <section className="dashboard-surface-card min-w-0 rounded-[1.15rem] p-4">
             <h2 className="text-[14px] font-bold text-[var(--auth-text)]">Agenda de hoy</h2>
             <p className="mt-1 text-[12px] capitalize text-[var(--auth-text-muted)]">
               {new Intl.DateTimeFormat("es-PE", {
@@ -446,11 +446,13 @@ export function StaffMeetingsBoard({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar cliente o asunto"
+              aria-label="Buscar cliente o asunto"
               className="h-9 w-full rounded-lg border border-[var(--auth-input-border)] px-3 text-[13px] sm:w-56"
             />
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label="Filtrar por estado"
               className="h-9 rounded-lg border border-[var(--auth-input-border)] bg-white px-2 text-[13px]"
             >
               <option value="all">Todos los estados</option>
@@ -463,6 +465,7 @@ export function StaffMeetingsBoard({
             <select
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value)}
+              aria-label="Filtrar por tipo"
               className="h-9 rounded-lg border border-[var(--auth-input-border)] bg-white px-2 text-[13px]"
             >
               <option value="all">Todos los tipos</option>
@@ -479,7 +482,7 @@ export function StaffMeetingsBoard({
                 <thead className="bg-[#faf9f7] text-[11px] uppercase tracking-[0.06em] text-[var(--auth-text-soft)]">
                   <tr>
                     {["Fecha", "Cliente", "Asesor", "Asunto", "Tipo", "Estado"].map((heading) => (
-                      <th key={heading} className="px-3 py-2 font-semibold">
+                      <th key={heading} className="whitespace-nowrap px-3 py-2 font-semibold">
                         {heading}
                       </th>
                     ))}
@@ -507,13 +510,13 @@ export function StaffMeetingsBoard({
                           selectedId === meeting.id ? "bg-[rgb(255_120_31_/_0.08)]" : "hover:bg-white",
                         )}
                       >
-                        <td className="px-3 py-2.5 capitalize text-[var(--auth-text)]">{whenLabel(meeting.startsAt)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 capitalize tabular-nums text-[var(--auth-text)]">{whenLabel(meeting.startsAt)}</td>
                         <td className="px-3 py-2.5 font-semibold text-[var(--auth-text)]">{meeting.requesterName}</td>
                         <td className="px-3 py-2.5 text-[var(--auth-text-muted)]">{meeting.advisorName ?? "—"}</td>
                         <td className="max-w-[12rem] truncate px-3 py-2.5 text-[var(--auth-text)]">{meeting.subject}</td>
                         <td className="px-3 py-2.5 text-[var(--auth-text-muted)]">{TYPE_LABEL[meeting.meetingType]}</td>
                         <td className="px-3 py-2.5">
-                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
+                          <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
                             {STATUS_LABEL[meeting.status]}
                           </span>
                         </td>
@@ -576,7 +579,7 @@ function Kpi({ label, value, detail }: { label: string; value: string; detail: s
   return (
     <article className="dashboard-surface-card rounded-xl px-3 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--auth-text-soft)]">{label}</p>
-      <p className="mt-1 text-[20px] font-bold tracking-[-0.03em] text-[var(--auth-text)]">{value}</p>
+      <p className="mt-1 text-[20px] font-bold tabular-nums tracking-[-0.03em] text-[var(--auth-text)]">{value}</p>
       <p className="text-[11px] text-[var(--auth-text-muted)]">{detail}</p>
     </article>
   );
@@ -773,8 +776,8 @@ function Detail({
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-[15px] font-bold text-[var(--auth-text)]">{meeting.subject}</h3>
-        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
+        <h3 className="min-w-0 text-[15px] font-bold text-[var(--auth-text)] [overflow-wrap:anywhere]">{meeting.subject}</h3>
+        <span className={cn("shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold", statusClass(meeting.status))}>
           {STATUS_LABEL[meeting.status]}
         </span>
       </div>
@@ -789,7 +792,7 @@ function Detail({
         <Info label="Recordatorio asesor" value={meeting.advisorReminderSent ? "Enviado" : "Pendiente"} />
       </dl>
       {meeting.notes ? (
-        <p className="whitespace-pre-wrap rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[13px]">{meeting.notes}</p>
+        <p className="whitespace-pre-wrap rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{meeting.notes}</p>
       ) : null}
       {meeting.meetUrl ? (
         <a href={meeting.meetUrl} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-emerald-700">
@@ -897,7 +900,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[11px] text-[var(--auth-text-soft)]">{label}</dt>
-      <dd className="font-medium text-[var(--auth-text)]">{value}</dd>
+      <dd className="font-medium text-[var(--auth-text)] [overflow-wrap:anywhere]">{value}</dd>
     </div>
   );
 }

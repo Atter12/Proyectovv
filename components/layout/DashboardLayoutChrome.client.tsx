@@ -113,7 +113,7 @@ export function DashboardLayoutChrome({
 
       <div className={isLinksDeuda
         ? "flex h-dvh min-w-0 flex-1 flex-col overflow-hidden lg:pl-[248px]"
-        : "flex min-h-screen min-w-0 flex-1 flex-col lg:pl-[248px]"}>
+        : "flex min-h-dvh min-w-0 flex-1 flex-col lg:pl-[248px]"}>
         <DashboardTopbar
           user={user}
           sidebarOpen={sidebarOpen}

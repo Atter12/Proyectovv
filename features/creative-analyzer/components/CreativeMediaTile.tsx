@@ -151,7 +151,9 @@ export function CreativeMediaTile({
             >
               <button
                 type="button"
-                className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1 text-[12px] font-bold text-[var(--auth-text)]"
+                // Portal en <body>, fuera de .dashboard-canvas: ahí --auth-text es el claro de :root
+                // y el texto quedaba blanco sobre blanco. Tinta fija.
+                className="absolute right-3 top-3 z-10 inline-flex min-h-9 items-center rounded-full bg-white/90 px-3 py-1 text-[12px] font-bold text-[#1c1917] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                 onClick={() => setZoomOpen(false)}
               >
                 {closeLabel}

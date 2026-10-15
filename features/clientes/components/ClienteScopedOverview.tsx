@@ -206,7 +206,7 @@ export async function ClienteScopedOverview({
               </p>
               <p className={`mt-2 text-[12px] ${SOFT}`}>{t("hero.caption")}</p>
               <div className="mt-5">
-                <div className={`flex items-center justify-between text-[11px] ${SOFT}`}>
+                <div className={`flex items-center justify-between gap-3 text-[11px] ${SOFT}`}>
                   <span>
                     {t("spend7d")} {moneyUsd(summary.gasto7d)}
                   </span>
@@ -295,9 +295,9 @@ function Kpi({
   className?: string;
 }) {
   return (
-    <div className={`${CARD} flex flex-col px-4 py-4 sm:px-5 ${className}`}>
+    <div className={`${CARD} flex min-w-0 flex-col px-4 py-4 sm:px-5 ${className}`}>
       <p className={`text-[12px] font-medium ${SOFT}`}>{label}</p>
-      <p className={`mt-1 text-[1.45rem] font-semibold tabular-nums tracking-[-0.03em] ${tone === "paid" ? "text-[#2f7a4a]" : INK}`}>
+      <p className={`mt-1 text-[1.25rem] font-semibold tabular-nums tracking-[-0.03em] [overflow-wrap:anywhere] min-[400px]:text-[1.45rem] ${tone === "paid" ? "text-[#2f7a4a]" : INK}`}>
         {value}
       </p>
       {hint ? <p className={`mt-1 text-[11.5px] leading-4 ${MUTED}`}>{hint}</p> : null}
@@ -442,7 +442,7 @@ async function DailySpendPanel({
 export function OverviewAccountSpendFallback() {
   return (
     <section
-      className={`${CARD} animate-pulse px-4 py-4 sm:px-5`}
+      className={`${CARD} animate-pulse motion-reduce:animate-none px-4 py-4 sm:px-5`}
       aria-busy="true"
       aria-live="polite"
     >
@@ -591,12 +591,12 @@ async function AccountSpendPanel({
 
 function DayMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-[14px] bg-[#faf8f5] px-3 py-2.5">
+    <div className="min-w-0 rounded-[14px] bg-[#faf8f5] px-3 py-2.5">
       <p className={`flex items-center gap-1.5 text-[11px] font-medium ${SOFT}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${accent ? "bg-[#e2a074]" : "bg-[#d9cfc4]"}`} aria-hidden />
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${accent ? "bg-[#e2a074]" : "bg-[#d9cfc4]"}`} aria-hidden />
         {label}
       </p>
-      <p className={`mt-0.5 text-[15px] font-semibold tabular-nums tracking-[-0.02em] sm:text-[17px] ${INK}`}>{value}</p>
+      <p className={`mt-0.5 text-[15px] font-semibold tabular-nums tracking-[-0.02em] [overflow-wrap:anywhere] sm:text-[17px] ${INK}`}>{value}</p>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export const adminPanelTypography = {
   sectionSubtitle: "text-sm text-[var(--admin-text-muted)]",
   metricLabel: "text-sm font-medium text-[var(--admin-text-muted)]",
   metricValue:
-    "truncate text-3xl font-semibold leading-none tracking-tight tabular-nums text-[var(--admin-text)]",
+    "truncate text-3xl font-semibold leading-[1.15] tracking-tight tabular-nums text-[var(--admin-text)]",
   metricHelper: "truncate text-xs text-[var(--admin-text-muted)]",
   tableHeader:
     "text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--admin-text-soft)]",

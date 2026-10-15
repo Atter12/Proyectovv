@@ -46,7 +46,7 @@ export function NsxNav({
   return (
     <header
       className={cn(
-        "fixed left-1/2 z-50 w-[min(100%-1rem,1290px)] -translate-x-1/2 rounded-full backdrop-blur-[25px] transition-all duration-500 sm:w-[min(100%-1.25rem,1290px)]",
+        "fixed left-1/2 z-50 w-[min(100%-1rem,1290px)] -translate-x-1/2 rounded-full backdrop-blur-[25px] transition-[top] duration-300 ease-out sm:w-[min(100%-1.25rem,1290px)]",
         scrolled ? "top-2" : "top-3 sm:top-5",
       )}
     >
@@ -110,7 +110,7 @@ export function NsxNav({
       </div>
 
       {open ? (
-        <div className="mt-2 max-h-[min(70vh,28rem)] overflow-y-auto rounded-3xl border border-[var(--nsx-stroke)] bg-white p-3 shadow-xl sm:p-4 xl:hidden">
+        <div className="mt-2 max-h-[min(70dvh,28rem)] overflow-y-auto rounded-3xl border border-[var(--nsx-stroke)] bg-white p-3 shadow-xl sm:p-4 xl:hidden">
           <ul className="space-y-0.5">
             {NAV.map((item) => (
               <li key={item.href}>
@@ -125,11 +125,8 @@ export function NsxNav({
             ))}
           </ul>
           <div className="mt-2 space-y-2 border-t border-[var(--nsx-stroke)] pt-3">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center px-1">
               <ShopCartLink />
-              <a href={routes.shop} className="text-[0.95rem] font-semibold text-[var(--nsx-secondary)]">
-                {copy.buy}
-              </a>
             </div>
             <NsxBtnPrimary
               href={routes.shop}

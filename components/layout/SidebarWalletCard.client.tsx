@@ -100,7 +100,7 @@ export function SidebarWalletCard({
           size="sidebar"
           className="ring-2 ring-white"
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             {actingAsCliente
               ? t("viewingAs")
@@ -204,7 +204,7 @@ export function SidebarWalletCardSkeleton({
           size="sidebar"
           className="ring-2 ring-white"
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--auth-accent)]">
             {actingAsCliente
               ? t("viewingAs")

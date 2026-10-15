@@ -57,6 +57,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
         role="dialog"
         aria-modal={sidebarOpen}
         aria-hidden={!sidebarOpen}
+        inert={!sidebarOpen}
         aria-label="Menú de navegación admin"
       >
         <aside className="admin-sidebar admin-mobile-sidebar relative h-full overflow-hidden px-3 py-3">
@@ -76,8 +77,8 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
         </aside>
       </div>
 
-      <div className="admin-canvas min-h-screen lg:grid lg:h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
-        <aside className="admin-sidebar hidden px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-hidden">
+      <div className="admin-canvas min-h-dvh lg:grid lg:h-dvh lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:overflow-hidden">
+        <aside className="admin-sidebar hidden px-3 py-3 lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-hidden">
           <AdminSidebarPanel admin={admin} navSignals={navSignals} />
         </aside>
 
@@ -119,7 +120,7 @@ export function AdminShellChrome({ admin, appName, navSignals, children }: Admin
               </div>
             </div>
           </header>
-          <div className="mx-auto max-w-[96rem] px-6 py-7 lg:px-8">
+          <div className="mx-auto max-w-[96rem] px-4 py-6 sm:px-6 sm:py-7 lg:px-8">
             <div className="page-enter">{children}</div>
           </div>
         </main>

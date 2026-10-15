@@ -17,7 +17,7 @@ export default async function ReconciliationPage() {
   return (
     <>
       <AdminPageHeader eyebrow="Control financiero" title="Conciliación" description="Runs internos para detectar pagos aprobados sin journal, diferencias de proveedor o inconsistencias operativas." />
-      <div className="grid gap-6 xl:grid-cols-[22rem_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-[var(--admin-text)]">Nuevo run</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--admin-text-muted)]">Genera una revisión inicial contra metadata de ledger. Los conectores externos pueden extender este flujo.</p>

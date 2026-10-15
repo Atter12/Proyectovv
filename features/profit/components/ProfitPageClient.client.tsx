@@ -64,7 +64,7 @@ function ProfitAdvisorBotFallback() {
           </h2>
         </div>
       </header>
-      <div className="min-h-[220px] animate-pulse bg-[#fffaf6]" />
+      <div className="min-h-[220px] animate-pulse bg-[#fffaf6] motion-reduce:animate-none" />
       <div className="border-t border-[#eee3da] px-5 py-4 sm:px-6">
         <div className="h-12 rounded-2xl bg-[#fffaf6]" />
       </div>
@@ -442,10 +442,10 @@ function FactorMeter({
   return (
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
       <div
-        className={`h-full rounded-full ${tone} motion-reduce:transition-none`}
+        // La transición va en clases: un `transition` inline anulaba motion-reduce.
+        className={`h-full rounded-full ${tone} transition-[width] duration-[720ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none`}
         style={{
           width: `${width}%`,
-          transition: "width 720ms cubic-bezier(0.22, 1, 0.36, 1)",
           transitionDelay: `${delayMs}ms`,
         }}
       />
@@ -1108,7 +1108,8 @@ export function ProfitPageClient({
             <ProfitSectionSwitch active="analysis" />
           </div>
         ) : null}
-        <div className="relative">
+        {/* sm+: el selector es absoluto arriba a la derecha; reservar su ancho para que el título no pase por debajo. */}
+        <div className={`relative ${radarEnabled ? "sm:pr-52" : ""}`}>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
             {t("heroModule")}
           </p>
@@ -1631,9 +1632,9 @@ export function ProfitPageClient({
                       return (
                         <tr
                           key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
-                          className="border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
+                          className="group border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
                         >
-                          <td className="sticky left-0 z-[1] max-w-[150px] bg-white px-2.5 py-2.5 hover:bg-[#fffaf6] sm:max-w-[240px] sm:px-3">
+                          <td className="sticky left-0 z-[1] max-w-[150px] bg-white px-2.5 py-2.5 group-hover:bg-[#fffaf6] sm:max-w-[240px] sm:px-3">
                             <p className="truncate font-semibold text-[#1c1917]">
                               {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
                             </p>

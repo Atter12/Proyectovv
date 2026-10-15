@@ -34,15 +34,15 @@ export function OnboardingProgressCard({
   const progressPercent = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
   return (
-    <div className="w-[280px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#090b16] p-4 shadow-xl shadow-black/30 ring-1 ring-white/10 transition-all duration-200 ease-out">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">
+    <div className="w-[280px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#090b16] p-4 shadow-xl shadow-black/30 ring-1 ring-white/10">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="min-w-0 text-sm font-semibold text-white">
           {t("titleProgress", { done: completedSteps, total: totalSteps })}
         </p>
         <button
           type="button"
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           aria-label={t("closeGuide")}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -53,7 +53,7 @@ export function OnboardingProgressCard({
 
       <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-[var(--brand-primary)] transition-all duration-300 ease-out"
+          className="h-full rounded-full bg-[var(--brand-primary)] transition-[width] duration-300 ease-out"
           style={{ width: `${progressPercent}%` }}
         />
       </div>

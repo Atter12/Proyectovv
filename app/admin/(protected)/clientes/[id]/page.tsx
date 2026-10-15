@@ -86,7 +86,7 @@ export default async function ClienteVistaPage({
         />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">

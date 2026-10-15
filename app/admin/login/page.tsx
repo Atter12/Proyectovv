@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { AdminLoginForm } from "@/features/auth/components/AdminLoginForm.client";
 import { AdminLoginHeroPanel } from "@/features/auth/components/AdminLoginHeroPanel.client";
 import { siteConfig } from "@/config/site";
-import { EcomdyLogo } from "@/components/brand/EcomdyLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -25,19 +24,12 @@ function AdminLoginFallback() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="auth-canvas-dark relative min-h-screen overflow-hidden">
-      <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
-        <AdminLoginHeroPanel className="hidden lg:relative lg:block lg:min-h-screen" />
+    <div className="auth-canvas-dark relative min-h-dvh overflow-hidden">
+      <div className="relative grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
+        <AdminLoginHeroPanel className="hidden lg:relative lg:block lg:min-h-dvh" />
 
-        <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-10 xl:px-14">
+        <div className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-10 xl:px-14">
           <div className="absolute inset-y-8 left-0 hidden w-px bg-gradient-to-b from-transparent via-white/12 to-transparent lg:block" />
-
-          <div className="mb-6 flex w-full justify-center lg:hidden">
-            <EcomdyLogo
-              size={160}
-              className="h-11 w-auto max-w-[200px] object-contain brightness-110"
-            />
-          </div>
 
           <Suspense fallback={<AdminLoginFallback />}>
             <AdminLoginForm />

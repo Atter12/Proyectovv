@@ -336,7 +336,7 @@ function LessonEditor({
         <img
           src={preview || lesson.posterUrl || "/education/poster.svg"}
           alt=""
-          className="h-[4.6rem] w-full rounded-xl object-cover"
+          className="aspect-video w-[7.5rem] rounded-xl object-cover"
         />
         <div className="grid gap-2">
           <Field label={t("titleLabel")} htmlFor={`title-${lesson.slug}`} admin={admin}>
@@ -365,8 +365,8 @@ function LessonEditor({
               inputMode="url"
               autoComplete="off"
               spellCheck={false}
-            className={inputClass(admin)}
-          />
+              className={inputClass(admin)}
+            />
           </Field>
           <VideoField
             key={`video-${lesson.slug}-${fileEpoch}`}
@@ -435,7 +435,7 @@ function VideoField({
             : "block w-full text-sm text-[var(--auth-text-muted)] file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--auth-text)]"
         }
       />
-      <p className={admin ? "mt-1 text-xs text-[var(--admin-text-muted)]" : "mt-1 text-xs text-[var(--auth-text-muted)]"}>
+      <p className={admin ? "mt-1 text-xs text-[var(--admin-text-muted)] [overflow-wrap:anywhere]" : "mt-1 text-xs text-[var(--auth-text-muted)] [overflow-wrap:anywhere]"}>
         {fileName ? fileName : stored ? t("videoStored") : t("videoHint")}
       </p>
       {stored && onRemoveChange ? (

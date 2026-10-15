@@ -28,7 +28,7 @@ export default async function SupportDetailPage({ params }: { params: Promise<{ 
         description={`${organization?.name ?? "Sin organización"} · ${requester?.email ?? "sin requester"} · creado ${formatDateTime(row.created_at)}`}
         actions={<Link href="/admin/support" className="text-sm font-semibold text-[var(--admin-accent)] hover:text-[var(--admin-accent-hover)]">← Volver</Link>}
       />
-      <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-4">
           {messages.map(({ row: message, sender }) => (
             <Card key={message.id} className={`p-5 ${message.internal_note ? "border-amber-200 bg-amber-50" : ""}`}>

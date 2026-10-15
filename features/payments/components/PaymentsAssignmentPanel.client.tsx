@@ -174,7 +174,7 @@ export function PaymentsAssignmentPanel({
                     ? t("toast.reloadReady")
                     : t("toast.assignedOk")}
                 </p>
-                <p className="mt-0.5 text-[12.5px] leading-5 text-[#3f6212]">
+                <p className="mt-0.5 break-words text-[12.5px] leading-5 tabular-nums text-[#3f6212]">
                   {formatMoney(allocateToast.amount)} →{" "}
                   <span className="font-semibold">
                     {allocateToast.accountName}

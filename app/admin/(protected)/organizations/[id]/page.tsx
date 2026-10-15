@@ -42,7 +42,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         <KpiCard label="Soporte" value={String(detail.tickets.length)} detail={`${detail.tickets.filter((ticket) => ["open", "pending"].includes(ticket.status)).length} abiertos`} accent="rose" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_24rem]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="space-y-6">
           <Card className="p-5">
             <h2 className="text-lg font-semibold text-[var(--admin-text)]">Miembros</h2>

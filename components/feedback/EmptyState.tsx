@@ -41,7 +41,7 @@ export function EmptyState({
       {description && (
         <p className="mt-1.5 max-w-sm text-sm text-[#64748b]">{description}</p>
       )}
-      {action}
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }

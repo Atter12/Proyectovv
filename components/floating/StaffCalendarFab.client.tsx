@@ -105,7 +105,7 @@ export function StaffCalendarFab() {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed right-3 z-50 flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-col items-end gap-2 sm:right-5 md:bottom-6 md:right-6",
+        "pointer-events-none fixed right-3 z-30 flex max-w-[min(22rem,calc(100vw-1.5rem))] flex-col items-end gap-2 sm:right-5 md:bottom-6 md:right-6",
         needsStickyLift ? "bottom-[4.75rem] sm:bottom-[5.25rem] md:bottom-6" : "bottom-3 sm:bottom-5",
       )}
     >
@@ -167,7 +167,7 @@ export function StaffCalendarFab() {
             ? "Tus citas de soporte"
             : `${meetings.length} citas. La próxima es ${next ? whenLabel(next.startsAt) : ""}`
         }
-        className="pointer-events-auto relative grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-transform hover:scale-[1.03]"
+        className="pointer-events-auto relative grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(255_120_31_/_0.4)] transition-[scale] duration-150 ease-out hover:scale-[1.03] active:scale-95"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 5.25h15a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75h-15a.75.75 0 01-.75-.75V6a.75.75 0 01.75-.75z" />

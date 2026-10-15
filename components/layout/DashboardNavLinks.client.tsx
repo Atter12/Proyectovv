@@ -218,7 +218,7 @@ export function DashboardNavLinks({
   const items = navItemsForPersona(persona, showAlliances);
 
   return (
-    <nav className="dashboard-sidebar-nav">
+    <nav className="dashboard-sidebar-nav scrollbar-thin">
       {items.map((item) => {
         const isActive =
           item.href === "/payments"
@@ -244,7 +244,7 @@ export function DashboardNavLinks({
             )}
           >
             <NavIcon icon={item.icon} />
-            <span className="min-w-0 truncate leading-none">{label}</span>
+            <span className="min-w-0 truncate">{label}</span>
           </Link>
         );
       })}

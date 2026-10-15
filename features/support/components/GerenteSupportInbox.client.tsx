@@ -530,8 +530,8 @@ export function GerenteSupportInbox() {
     <>
       {workspace === "meetings" ? (
         <>
-          <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]" aria-hidden />
-          <div className="fixed inset-x-0 top-14 bottom-0 z-[15] overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-[#f6f4f1] sm:top-16 lg:left-[272px]">
+          <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top))] sm:h-[calc(100dvh-4rem-env(safe-area-inset-top))]" aria-hidden />
+          <div className="fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-[15] overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-[#f6f4f1] pb-[env(safe-area-inset-bottom)] sm:top-[calc(4rem+env(safe-area-inset-top))] lg:left-[248px]">
             <StaffMeetingsBoard
               onBackToChats={() => setWorkspace("chats")}
               onPending={setPendingMeetings}
@@ -542,8 +542,8 @@ export function GerenteSupportInbox() {
       {workspace === "chats" ? (
       <>
       {/* Reserva altura en el flujo; el panel real va fixed pegado al sidebar. */}
-      <div className="h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]" aria-hidden />
-      <div className="fixed inset-x-0 top-14 bottom-0 z-[15] flex flex-col overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-white sm:top-16 lg:left-[272px]">
+      <div className="h-[calc(100dvh-3.5rem-env(safe-area-inset-top))] sm:h-[calc(100dvh-4rem-env(safe-area-inset-top))]" aria-hidden />
+      <div className="fixed inset-x-0 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-0 z-[15] flex flex-col overflow-hidden border-t border-[rgb(15_23_42_/_0.08)] bg-white pb-[env(safe-area-inset-bottom)] sm:top-[calc(4rem+env(safe-area-inset-top))] lg:left-[248px]">
         <div className="flex min-h-0 flex-1">
           {/* Lista de chats — columna izquierda tipo CRM */}
           <aside
@@ -566,7 +566,7 @@ export function GerenteSupportInbox() {
                 <button
                   type="button"
                   onClick={() => setWorkspace("meetings")}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-3 py-1.5 text-[11px] font-bold text-white"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-3 py-1.5 text-[11px] font-bold text-white"
                 >
                   Reuniones
                   {pendingMeetings > 0 ? (
@@ -575,7 +575,7 @@ export function GerenteSupportInbox() {
                     </span>
                   ) : null}
                 </button>
-                <span className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--auth-text-muted)]">
+                <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--auth-text-muted)]">
                   {filteredTickets.length}
                   {unreadIds.size > 0 ? (
                     <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--brand-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -589,6 +589,7 @@ export function GerenteSupportInbox() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar chat…"
+              aria-label="Buscar chat"
               className="mt-3 h-10 w-full rounded-xl border border-[var(--auth-input-border)] bg-[#f7f5f2] px-3.5 text-[13px] text-[var(--auth-text)] placeholder:text-[var(--auth-text-soft)] focus:border-[var(--auth-accent)]/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent)]/15"
             />
             <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

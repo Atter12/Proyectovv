@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +20,7 @@ export function ConfigureAdAccountModal({
 }: ConfigureAdAccountModalProps) {
   const t = useTranslations("adAccounts");
   const tCommon = useTranslations("common");
+  const fieldId = useId();
   const router = useRouter();
   const [name, setName] = useState(account.name);
   const [platform, setPlatform] = useState<AdAccountPlatform>(account.platform);
@@ -103,16 +104,17 @@ export function ConfigureAdAccountModal({
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-1`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("configureModal.name")}
           </label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <Input id={`${fieldId}-1`} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-2`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.platform")}
           </label>
           <select
+            id={`${fieldId}-2`}
             value={platform}
             onChange={(e) => setPlatform(e.target.value as AdAccountPlatform)}
             className="h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-white/90 px-3.5 text-sm focus:border-[var(--brand-primary)]/55 focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10"
@@ -125,10 +127,11 @@ export function ConfigureAdAccountModal({
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-3`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("configureModal.status")}
           </label>
           <select
+            id={`${fieldId}-3`}
             value={status}
             onChange={(e) =>
               setStatus(e.target.value as Exclude<AdAccountStatus, "archived">)
@@ -143,45 +146,49 @@ export function ConfigureAdAccountModal({
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-4`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.bcId")}
           </label>
           <Input
+            id={`${fieldId}-4`}
             value={externalBusinessId}
             onChange={(e) => setExternalBusinessId(e.target.value)}
             placeholder={t("configureModal.bcPlaceholder")}
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-5`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("configureModal.advertiserId")}
           </label>
           <Input
+            id={`${fieldId}-5`}
             value={externalAccountId}
             onChange={(e) => setExternalAccountId(e.target.value)}
             placeholder={t("configureModal.advertiserPlaceholder")}
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-6`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.externalName")}
           </label>
           <Input
+            id={`${fieldId}-6`}
             value={externalAccountName}
             onChange={(e) => setExternalAccountName(e.target.value)}
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-7`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.timezone")}
           </label>
-          <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+          <Input id={`${fieldId}-7`} value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-8`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.dailyBudget")}
           </label>
           <Input
+            id={`${fieldId}-8`}
             type="number"
             min="0"
             step="0.01"
@@ -190,10 +197,11 @@ export function ConfigureAdAccountModal({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-9`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.monthlyLimit")}
           </label>
           <Input
+            id={`${fieldId}-9`}
             type="number"
             min="0"
             step="0.01"
@@ -202,10 +210,11 @@ export function ConfigureAdAccountModal({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
+          <label htmlFor={`${fieldId}-10`} className="mb-1.5 block text-xs font-medium text-[var(--admin-text-muted,#64748b)]">
             {t("createModal.threshold")}
           </label>
           <Input
+            id={`${fieldId}-10`}
             type="number"
             min="0"
             step="0.01"

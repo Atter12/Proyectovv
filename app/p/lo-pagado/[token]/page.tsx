@@ -91,7 +91,7 @@ export default async function LoPagadoPublicPage({
 
   return (
     <main
-      className="dashboard-canvas min-h-screen px-4 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8 2xl:px-10"
+      className="dashboard-canvas min-h-dvh px-4 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8 2xl:px-10"
     >
       <div className="mx-auto w-full max-w-[1920px] space-y-5">
         <nav className="flex items-center justify-between gap-3 rounded-[20px] bg-white px-3 py-2.5 ring-1 ring-[#e8dfd4] sm:px-4">

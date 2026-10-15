@@ -274,7 +274,7 @@ export function MiAlianza({ partner, panel }: Props) {
                   }}
                   className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#e3dbd1] px-3 text-[12px] font-semibold text-[#3a332d] transition hover:bg-[#f7f5f2]"
                 >
-                  <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ background: PARTNER_THEME_COLORS[t].background }} />
+                  <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10" style={{ background: PARTNER_THEME_COLORS[t].background }} />
                   {t === "light" ? "Fondo claro" : "Fondo oscuro"}
                 </button>
               ))}
@@ -422,7 +422,7 @@ function ImageField(props: {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={props.url} alt="" className={`h-full w-full ${props.round ? "object-cover" : "object-contain p-1.5"}`} />
         ) : (
-          <span className="text-[11px] text-[#b5ada5]">Sin imagen</span>
+          <span className="px-1 text-center text-[11px] leading-tight text-[#b5ada5]">Sin imagen</span>
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -574,10 +574,10 @@ function LandingPreview({
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#e4dad0]" />
-        <span className="ml-2 inline-flex min-w-0 items-center gap-1.5 truncate rounded-md bg-white px-2 py-0.5 text-[11px] text-[#8a8177]">
+        <span className="ml-2 inline-flex min-w-0 items-center gap-1.5 rounded-md bg-white px-2 py-0.5 text-[11px] text-[#8a8177]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {images.favicon ? <img src={images.favicon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" /> : null}
-          {link.replace("https://", "")}
+          <span className="truncate">{link.replace("https://", "")}</span>
         </span>
       </div>
       <div style={{ background: pal.background, color: pal.text }}>
@@ -587,15 +587,15 @@ function LandingPreview({
             alt="Holistic Marketing"
             width={506}
             height={187}
-            className={`w-auto ${pal.dark ? "brightness-0 invert" : ""}`}
+            className={`w-auto shrink-0 ${pal.dark ? "brightness-0 invert" : ""}`}
             style={{ height: Math.round(logoH * 0.9) }}
           />
           <span style={{ color: pal.faint }}>×</span>
           {images.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={images.logo} alt={name} className="w-auto max-w-[160px] object-contain" style={{ height: logoH }} />
+            <img src={images.logo} alt={name} className="w-auto min-w-0 max-w-[160px] object-contain" style={{ height: logoH }} />
           ) : (
-            <span className="truncate text-[13px] font-bold">{name}</span>
+            <span className="min-w-0 truncate text-[13px] font-bold">{name}</span>
           )}
         </div>
         <div className="px-5 pb-6 pt-2">
@@ -606,7 +606,7 @@ function LandingPreview({
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: pal.secondary }} />
             Alianza oficial · {name}
           </span>
-          <p className="mt-3 text-[24px] font-bold leading-[1.1] tracking-[-0.035em]">{form.headline.trim() || DEFAULT_HEADLINE}</p>
+          <p className="mt-3 text-[24px] font-bold leading-[1.1] tracking-[-0.035em] [overflow-wrap:anywhere]">{form.headline.trim() || DEFAULT_HEADLINE}</p>
           <p className="mt-2 text-[13px] leading-relaxed" style={{ color: pal.muted }}>
             {form.subheadline.trim() || DEFAULT_SUB}
           </p>
@@ -621,7 +621,7 @@ function LandingPreview({
           {images.photo || form.name.trim() ? (
             <div className="mt-5 flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {images.photo ? <img src={images.photo} alt="" className="h-8 w-8 rounded-full object-cover" /> : null}
+              {images.photo ? <img src={images.photo} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" /> : null}
               <p className="text-[12px]" style={{ color: pal.muted }}>
                 Recomendado por <strong style={{ color: pal.text }}>{person}</strong>
                 {form.companyName.trim() ? ` · ${form.companyName.trim()}` : ""}
@@ -647,7 +647,7 @@ function LandingPreview({
           <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: pal.secondary, color: pal.secondaryInk }}>
             <p className="text-[12.5px] font-bold">¿Listo para anunciar?</p>
             <span
-              className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+              className="shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold"
               style={sameTone ? { background: pal.secondaryInk, color: pal.secondary } : { background: pal.accent, color: pal.accentInk }}
             >
               Crear mi cuenta →

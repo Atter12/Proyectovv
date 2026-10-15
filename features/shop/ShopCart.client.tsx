@@ -42,14 +42,14 @@ export function ShopCart() {
             key={line.id}
             className="flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white p-4"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold">{line.name}</p>
               <p className="text-[13px] text-[#5c5854]">{line.detail}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                className="h-8 w-8 rounded-full border border-black/15"
+                className="h-10 w-10 rounded-full border border-black/15"
                 onClick={() => setLines(setLineQty(line.id, line.qty - 1))}
                 aria-label="Quitar uno"
               >
@@ -58,7 +58,7 @@ export function ShopCart() {
               <span className="w-6 text-center tabular-nums">{line.qty}</span>
               <button
                 type="button"
-                className="h-8 w-8 rounded-full border border-black/15"
+                className="h-10 w-10 rounded-full border border-black/15"
                 onClick={() => setLines(setLineQty(line.id, line.qty + 1))}
                 aria-label="Agregar uno"
               >

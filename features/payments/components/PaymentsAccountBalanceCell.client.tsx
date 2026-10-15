@@ -68,7 +68,7 @@ export function PaymentsAccountBalanceCell({
 
   if (loading && !metric) {
     return (
-      <span className="animate-pulse text-[12px] text-[#9a9187]">
+      <span className="animate-pulse motion-reduce:animate-none text-[12px] text-[#9a9187]">
         {t("accountBalance.tiktokLoading")}
       </span>
     );
@@ -178,8 +178,8 @@ export function PaymentsAccountBalanceCell({
       creditUsd != null &&
       (agencyBmFunding || ledgerDiffers) ? (
         <p
-          className={`mt-0.5 text-[10px] leading-4 tabular-nums text-[#b5aea6] ${
-            compact ? "mt-1.5" : ""
+          className={`text-[10px] leading-4 tabular-nums text-[#b5aea6] ${
+            compact ? "mt-1.5" : "mt-0.5"
           }`}
         >
           {t("accountBalance.holisticPrefix", {

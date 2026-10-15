@@ -35,8 +35,8 @@ export function NsxGallery({ copy }: { copy: LandingCopy["gallery"] }) {
               <Image
                 src={item.src}
                 alt={item.alt}
-                width={960}
-                height={720}
+                width={1536}
+                height={1024}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
               <figcaption>{item.caption}</figcaption>

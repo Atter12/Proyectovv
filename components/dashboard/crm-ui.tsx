@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { HecomClienteAvatar } from "@/features/clientes/components/HecomClienteAvatar.client";
 import { CrmQuickLinks } from "@/components/dashboard/CrmQuickLinks.client";
 
@@ -92,9 +92,10 @@ export function CrmMetricRow({
   const cols = Math.min(Math.max(items.length, 1), 4);
   return (
     <CrmMetricsStrip>
+      {/* En celular apiladas (divide-y); desde sm, una fila con N columnas. */}
       <div
-        className="grid divide-y divide-[var(--auth-divider)] sm:divide-x sm:divide-y-0"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className="grid grid-cols-1 divide-y divide-[var(--auth-divider)] sm:grid-cols-[repeat(var(--crm-cols),minmax(0,1fr))] sm:divide-x sm:divide-y-0"
+        style={{ "--crm-cols": cols } as CSSProperties}
       >
         {items.map((item) => (
           <CrmMetricCell

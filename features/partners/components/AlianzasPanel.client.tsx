@@ -166,7 +166,7 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
             </Field>
             <Field label="Color de marca">
               <div className="flex items-center gap-2">
-                <input type="color" className="h-10 w-12 cursor-pointer rounded-lg border border-[#e3dbd1]" value={form.accentColor} onChange={(e) => update("accentColor", e.target.value)} />
+                <input type="color" className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-[#e3dbd1]" value={form.accentColor} onChange={(e) => update("accentColor", e.target.value)} />
                 <input className={inputCls} value={form.accentColor} onChange={(e) => update("accentColor", e.target.value)} />
               </div>
             </Field>
@@ -222,9 +222,9 @@ export function AlianzasPanel({ partners }: { partners: PartnerWithStats[] }) {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="flex items-center gap-2 text-[15px] font-bold">
-                      <span className="text-[#b5ada5]">#{i + 1}</span>
-                      <span className="truncate">{p.name}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${p.status === "active" ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#f1ebe4] text-[#6f675f]"}`}>
+                      <span className="shrink-0 tabular-nums text-[#b5ada5]">#{i + 1}</span>
+                      <span className="min-w-0 truncate">{p.name}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${p.status === "active" ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#f1ebe4] text-[#6f675f]"}`}>
                         {p.status === "active" ? "Activo" : "Pausado"}
                       </span>
                     </p>

@@ -165,11 +165,11 @@ export function AppealsInbox() {
                       {a.bmLabel ? ` · ${a.bmLabel}` : ""} · {fmtDate(a.createdAt)}
                     </p>
                   </div>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${ui.chip}`}>{ui.label}</span>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${ui.chip}`}>{ui.label}</span>
                 </button>
 
                 {expanded ? (
-                  <div className="grid gap-4 border-t border-[#f0ebe4] px-4 py-4 sm:px-5 lg:grid-cols-[1fr_1.15fr]">
+                  <div className="grid gap-4 border-t border-[#f0ebe4] px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
                     <div className="flex flex-col gap-3">
                       <div className="rounded-xl bg-[#f6f4f1] px-3.5 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a8177]">Cuenta</p>
@@ -178,14 +178,14 @@ export function AppealsInbox() {
                           <CopyBtn value={a.advertiserId} label="Copiar ID" />
                         </div>
                         {a.suspensionReason ? (
-                          <p className="mt-2 text-[11.5px] italic leading-5 text-[#6b645c]">“{a.suspensionReason}”</p>
+                          <p className="mt-2 text-[11.5px] italic leading-5 text-[#6b645c] [overflow-wrap:anywhere]">“{a.suspensionReason}”</p>
                         ) : null}
                         {a.suspensionUntil ? (
                           <p className="mt-1 text-[11.5px] text-[#6b645c]">Suspendida hasta {new Date(a.suspensionUntil).toLocaleDateString("es-PE")}</p>
                         ) : null}
                       </div>
 
-                      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12.5px]">
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12.5px]">
                         {[
                           ["Empresa", a.companyName],
                           ["RUC / doc.", a.taxId],
@@ -199,7 +199,7 @@ export function AppealsInbox() {
                           .map(([k, v]) => (
                             <div key={k} className="contents">
                               <dt className="text-[#8a8177]">{k}</dt>
-                              <dd className="min-w-0 break-words font-medium text-[#1c1917]">
+                              <dd className="min-w-0 font-medium text-[#1c1917] [overflow-wrap:anywhere]">
                                 {k === "Tienda" ? (
                                   <a href={String(v)} target="_blank" rel="noreferrer" className="text-[#c2410c] underline-offset-2 hover:underline">
                                     {v}
@@ -254,7 +254,7 @@ export function AppealsInbox() {
                           <p className="text-[12.5px] font-bold text-[#1c1917]">Mensaje para TikTok (inglés)</p>
                           <CopyBtn value={a.appealMessage} label="Copiar mensaje" />
                         </div>
-                        <pre className="max-h-72 overflow-auto whitespace-pre-wrap px-3.5 py-3 font-sans text-[12.5px] leading-5 text-[#3f3a35]">
+                        <pre className="max-h-72 overflow-auto whitespace-pre-wrap px-3.5 py-3 [overflow-wrap:anywhere] font-sans text-[12.5px] leading-5 text-[#3f3a35]">
                           {a.appealMessage}
                         </pre>
                       </div>

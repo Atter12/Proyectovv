@@ -34,7 +34,7 @@ export async function MissingCobroVoucherReviewHost({
             ? `Sin cobros faltantes pendientes de ${clienteName?.trim() || "este cliente"}`
             : "Sin cobros faltantes pendientes"}
         </p>
-        <p className="mt-1 text-sm text-[var(--auth-muted)]">
+        <p className="mt-1 text-sm text-[var(--auth-text-muted)]">
           Solo aparecen reportes desde Lo pagado con voucher por aceptar o
           rechazar. No acreditan cartera.
         </p>

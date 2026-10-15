@@ -38,7 +38,7 @@ export async function ManualVoucherReviewHost({
             ? `Sin pagos manuales pendientes de ${clienteName?.trim() || "este cliente"}`
             : "Sin pagos manuales pendientes"}
         </p>
-        <p className="mt-1 text-sm text-[var(--auth-muted)]">
+        <p className="mt-1 text-sm text-[var(--auth-text-muted)]">
           Solo aparecen boletas BCP nuevas por aceptar o rechazar.
         </p>
       </section>

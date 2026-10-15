@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -136,6 +137,7 @@ export function ManualPaymentModal({
   const router = useRouter();
   const t = useTranslations("payments");
   const tCommon = useTranslations("common");
+  const amountFieldId = useId();
   const { formatMoney } = useAppFormatter();
   const mounted = useSyncExternalStore(
     subscribeToNothing,
@@ -435,7 +437,10 @@ export function ManualPaymentModal({
             />
             <div className="p-5 sm:p-6">
               <div>
-                <label className="mb-2 block text-[12px] font-semibold text-[#514b45]">
+                <label
+                  htmlFor={amountFieldId}
+                  className="mb-2 block text-[12px] font-semibold text-[#514b45]"
+                >
                   {paysDebt
                     ? "Deuda que vas a pagar (USD)"
                     : t("manualModal.receiveLabel")}
@@ -445,6 +450,7 @@ export function ManualPaymentModal({
                     $
                   </span>
                   <Input
+                    id={amountFieldId}
                     type="number"
                     min={minUsd}
                     max={MAX_USD}
@@ -468,6 +474,7 @@ export function ManualPaymentModal({
                       key={c}
                       type="button"
                       onClick={() => setChargeCurrency(c)}
+                      aria-pressed={chargeCurrency === c}
                       className={`h-11 rounded-xl border text-sm font-semibold transition ${
                         chargeCurrency === c
                           ? "border-[#d47840] bg-[#f7f0e9] text-[#a85a32]"
@@ -487,7 +494,7 @@ export function ManualPaymentModal({
                   <p className="mb-3 text-[13px] font-semibold text-[#1c1917]">
                     {t("manualModal.transferSummary")}
                   </p>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between gap-3">
                     <span className="text-[#625b54]">
                       {paysDebt
                         ? "Baja tu deuda"
@@ -498,7 +505,7 @@ export function ManualPaymentModal({
                     </span>
                   </div>
                   {paysDebt ? null : (
-                  <div className="mt-2 flex justify-between">
+                  <div className="mt-2 flex justify-between gap-3">
                     <span className="text-[#625b54]">
                       Fee {formatFeePercentLabel(feePercent)}
                     </span>
@@ -509,7 +516,7 @@ export function ManualPaymentModal({
                     </span>
                   </div>
                   )}
-                  <div className="mt-3 flex items-end justify-between border-t border-[#e4ddd6] pt-3">
+                  <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#e4ddd6] pt-3">
                     <span className="font-semibold text-[#1c1917]">
                       {t("manualModal.totalTransfer")}
                     </span>
@@ -580,6 +587,7 @@ export function ManualPaymentModal({
                 <button
                   type="button"
                   onClick={() => setPayMethod("bank")}
+                  aria-pressed={payMethod === "bank"}
                   className={`rounded-xl px-3 py-2.5 text-center transition ${
                     payMethod === "bank"
                       ? "bg-white text-[#1c1917] shadow-[0_1px_2px_rgba(28,25,23,0.08)]"
@@ -596,6 +604,7 @@ export function ManualPaymentModal({
                 <button
                   type="button"
                   onClick={() => setPayMethod("binance")}
+                  aria-pressed={payMethod === "binance"}
                   disabled={!config?.binance?.email}
                   className={`rounded-xl px-3 py-2.5 text-center transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     payMethod === "binance"
@@ -790,7 +799,7 @@ export function ManualPaymentModal({
               className="p-5 outline-none sm:p-6"
             >
               <div
-                className={`mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 transition ${
+                className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 transition ${
                   proofFile
                     ? "border-emerald-400 bg-emerald-50"
                     : "border-[#ece7e0] bg-[#faf8f5] hover:border-[#d47840]/50"
@@ -807,7 +816,7 @@ export function ManualPaymentModal({
                   <img
                     src={proofPreview}
                     alt={t("manualModal.previewAlt")}
-                    className="max-h-32 rounded-lg object-contain"
+                    className="max-h-32 max-w-full rounded-lg object-contain"
                   />
                 ) : proofFile ? (
                   <p className="max-w-full break-all text-center text-sm font-medium text-emerald-800">
@@ -925,7 +934,7 @@ export function ManualPaymentModal({
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100">
                   <CheckCircleIcon />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[11px] font-medium text-emerald-700">
                     {paysDebt
                       ? "Deuda que pagaste"

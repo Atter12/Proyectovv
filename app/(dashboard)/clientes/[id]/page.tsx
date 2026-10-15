@@ -321,7 +321,7 @@ export default async function ClienteVistaPage({
                 <li className="text-[var(--admin-text-muted,#64748b)]">Sin emails</li>
               ) : (
                 cliente.emails.map((email) => (
-                  <li key={email} className="font-medium text-[var(--foreground)]">
+                  <li key={email} className="break-all font-medium text-[var(--foreground)]">
                     {email}
                   </li>
                 ))

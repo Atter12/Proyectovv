@@ -21,7 +21,7 @@ export function PublicLegalShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f7f4ef] text-[#1a1a1c]">
+    <div className="min-h-dvh bg-[#f7f4ef] text-[#1a1a1c]">
       <header className="border-b border-black/10 bg-white">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link href={routes.home} aria-label={legalCompany.tradeName}>

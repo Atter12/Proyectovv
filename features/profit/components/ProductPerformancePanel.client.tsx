@@ -83,7 +83,7 @@ export function ProductPerformancePanel({ campaigns }: { campaigns: ProductCampa
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-[13.5px] font-semibold text-[#1a1714]" title={r.campaigns.join("\n")}>
+                    <p className="min-w-0 max-w-full truncate text-[13.5px] font-semibold text-[#1a1714]" title={r.campaigns.join("\n")}>
                       {r.product}
                     </p>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone.pill}`}>

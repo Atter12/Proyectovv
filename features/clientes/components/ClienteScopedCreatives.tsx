@@ -181,7 +181,7 @@ export async function ClienteScopedCreatives({
         fallback={
           <div
             id="creative-upload"
-            className="h-48 animate-pulse rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white"
+            className="h-48 animate-pulse motion-reduce:animate-none rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white"
           />
         }
       >
@@ -233,7 +233,7 @@ async function FichasPanel({ rows }: { rows: HecomCreativoCliente[] }) {
               </p>
               <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[var(--auth-text-muted)]">
                 {item.company ? <span>{item.company}</span> : null}
-                {item.email ? <span>{item.email}</span> : null}
+                {item.email ? <span className="min-w-0 break-all">{item.email}</span> : null}
               </div>
               {item.email ? (
                 <div className="mt-2 flex flex-wrap items-center gap-3">

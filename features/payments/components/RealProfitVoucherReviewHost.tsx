@@ -34,7 +34,7 @@ export async function RealProfitVoucherReviewHost({
             ? `Sin pagos Real Profit pendientes de ${clienteName?.trim() || "este cliente"}`
             : "Sin pagos Real Profit pendientes"}
         </p>
-        <p className="mt-1 text-sm text-[var(--auth-muted)]">
+        <p className="mt-1 text-sm text-[var(--auth-text-muted)]">
           Solo aparecen depósitos de $20 COD con voucher por aceptar o rechazar.
         </p>
       </section>

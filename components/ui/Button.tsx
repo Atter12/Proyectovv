@@ -40,7 +40,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const baseClass =
-  "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-bg)] disabled:pointer-events-none disabled:opacity-45";
+  "inline-flex items-center justify-center gap-2 font-medium transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-bg)] disabled:pointer-events-none disabled:opacity-45";
 
 export function buttonClass(
   variant: ButtonVariant = "primary",

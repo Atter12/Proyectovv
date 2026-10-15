@@ -26,7 +26,7 @@ interface AuthSplitShellProps {
 function BrandLogo({ className, homeAria }: { className?: string; homeAria: string }) {
   return (
     <Link href={routes.home} aria-label={`${siteConfig.name} — ${homeAria}`} className={className}>
-      <Image src="/brand/holistic-marketing-logo.png" alt={siteConfig.name} width={506} height={187} sizes="(min-width: 1024px) 204px, 136px" className={styles.logo} />
+      <Image src="/brand/holistic-marketing-logo.png" alt={siteConfig.name} width={506} height={183} sizes="(min-width: 1024px) 204px, 136px" className={styles.logo} />
     </Link>
   );
 }

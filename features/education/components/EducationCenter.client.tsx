@@ -130,7 +130,7 @@ export function EducationCenter({
         className="flex flex-col gap-2 rounded-[1.25rem] border border-[var(--auth-border)] bg-white p-2 shadow-[0_16px_32px_-24px_rgb(28_25_23_/_0.2)] lg:flex-row lg:items-center"
         onSubmit={(event) => event.preventDefault()}
       >
-        <label className="relative min-w-0 flex-1">
+        <label className="relative min-w-0 flex-1 rounded-xl focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/25">
           <span className="sr-only">{t("searchLabel")}</span>
           <SearchIcon />
           <input
@@ -362,7 +362,7 @@ function StripButton({
       onClick={onClick}
       className={cn(
         "absolute z-10 grid h-10 w-10 place-items-center rounded-full border border-[var(--auth-border)] bg-white text-[var(--auth-text)] shadow-[0_10px_24px_-12px_rgb(28_25_23_/_0.45)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/40",
-        compact ? "top-[2.45rem]" : "top-[3.3rem]",
+        compact ? "top-[2.6rem] sm:top-[2.95rem]" : "top-[3.3rem] sm:top-[3.65rem]",
         side === "start" ? "left-1" : "right-1",
       )}
     >
@@ -492,7 +492,7 @@ function Section({
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-[1.2rem] font-bold tracking-[-0.03em] text-[var(--auth-text)]">
             {title}
           </h3>
@@ -571,6 +571,7 @@ function LessonCard({
         <img
           src={lesson.posterUrl || "/education/poster.svg"}
           alt=""
+          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
         <span className="absolute inset-0 bg-[linear-gradient(180deg,rgb(28_25_23_/_0.05),rgb(28_25_23_/_0.28))]" />

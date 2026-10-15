@@ -470,7 +470,7 @@ export function VoucherAccountStatement({
               </div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-[#d47840] transition-[width] duration-500"
+                  className="h-full rounded-full bg-[#d47840] transition-[width] duration-500 ease-out motion-reduce:transition-none"
                   style={{ width: `${coverage * 100}%` }}
                 />
               </div>
@@ -769,7 +769,7 @@ function DayMetric({
     <div className="min-w-0 rounded-2xl bg-[#fcfaf7] px-3 py-2.5">
       <p className="flex items-center gap-1.5 text-[11px] font-medium text-[#5c564e]">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
-        <span className="truncate">{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
       </p>
       <p className="mt-1 text-base font-semibold tabular-nums tracking-[-0.02em] text-[#1a1714] [overflow-wrap:anywhere] sm:text-[1.15rem]">
         {value}

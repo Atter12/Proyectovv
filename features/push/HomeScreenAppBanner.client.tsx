@@ -4,6 +4,24 @@ import { useEffect, useState } from "react";
 import { clientEnv } from "@/lib/env/env.client";
 
 const DISMISS_KEY = "holistic-home-hint-dismissed";
+const PUSH_DISMISS_KEY = "holistic-push-hint-dismissed";
+
+// Safari en modo privado (y bloqueos de cookies) puede lanzar al tocar localStorage.
+function readFlag(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeFlag(key: string) {
+  try {
+    window.localStorage.setItem(key, "1");
+  } catch {
+    // Sin almacenamiento: se oculta solo por esta visita.
+  }
+}
 
 function isIos(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -36,13 +54,14 @@ export function HomeScreenAppBanner() {
     const ios = isIos();
     const standalone = isStandalone();
     if (ios && !standalone) {
-      if (window.localStorage.getItem(DISMISS_KEY) === "1") return;
+      if (readFlag(DISMISS_KEY)) return;
       setMode("install");
       return;
     }
     if (!clientEnv.vapidPublicKey) return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (Notification.permission === "granted" || Notification.permission === "denied") return;
+    if (readFlag(PUSH_DISMISS_KEY)) return;
     setMode("push");
   }, []);
 
@@ -51,7 +70,10 @@ export function HomeScreenAppBanner() {
     try {
       const registration = await navigator.serviceWorker.register("/sw.js");
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") return;
+      if (permission !== "granted") {
+        setMode("hidden");
+        return;
+      }
       const key = urlBase64ToUint8Array(clientEnv.vapidPublicKey);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -90,7 +112,7 @@ export function HomeScreenAppBanner() {
               type="button"
               className="mt-2 text-[12px] font-semibold text-[var(--auth-text-soft)]"
               onClick={() => {
-                window.localStorage.setItem(DISMISS_KEY, "1");
+                writeFlag(DISMISS_KEY);
                 setMode("hidden");
               }}
             >
@@ -106,14 +128,27 @@ export function HomeScreenAppBanner() {
               Te avisamos cuando se acredita una recarga. Si sos gerente, también cuando alguien
               manda un comprobante.
             </p>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void enablePush()}
-              className="mt-2 inline-flex h-9 items-center rounded-lg bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white disabled:opacity-60"
-            >
-              {busy ? "Activando…" : "Activar avisos"}
-            </button>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void enablePush()}
+                className="inline-flex h-9 items-center rounded-lg bg-[var(--auth-accent)] px-3 text-[13px] font-semibold text-white disabled:opacity-60"
+              >
+                {busy ? "Activando…" : "Activar avisos"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                className="text-[12px] font-semibold text-[var(--auth-text-soft)] disabled:opacity-60"
+                onClick={() => {
+                  writeFlag(PUSH_DISMISS_KEY);
+                  setMode("hidden");
+                }}
+              >
+                Ahora no
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -380,7 +380,7 @@ export function SupportChatWidget({
             onSend={(files) => void handleSend(files)}
             onBack={handleClose}
             emptyHint={t("floatEmptyHint")}
-            className="h-[min(520px,70vh)] max-h-[70vh]"
+            className="h-[min(520px,70dvh)] max-h-[70dvh]"
             headerActions={
               <button
                 type="button"
@@ -411,7 +411,7 @@ export function SupportChatWidget({
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? t("floatCloseSupport") : t("floatOpen")}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(212_120_64_/_0.4)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)] text-white shadow-xl shadow-[rgb(212_120_64_/_0.4)] transition-[scale,background-color] duration-200 ease-out hover:scale-105 active:scale-95 hover:bg-[var(--brand-primary-deep)] sm:h-14 sm:w-14"
       >
         {unreadFromStaff > 0 && !isOpen ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-extrabold text-[var(--brand-primary)] shadow">

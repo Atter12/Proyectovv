@@ -127,8 +127,8 @@ export function NsxHero({
               <Image
                 src="/landing/holistic/hero-dashboard.png"
                 alt={copy.imageAlt}
-                width={1600}
-                height={1000}
+                width={1536}
+                height={1024}
                 priority
                 sizes="(max-width: 768px) 100vw, min(1290px, 92vw)"
                 className="size-full object-cover object-top"
@@ -143,7 +143,7 @@ export function NsxHero({
           src="/nexsas/automation/images/bottom-gradient.svg"
           alt=""
           width={1920}
-          height={700}
+          height={789}
           className="size-full object-cover"
           priority={false}
         />

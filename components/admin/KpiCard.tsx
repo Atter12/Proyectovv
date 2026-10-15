@@ -38,7 +38,7 @@ export function KpiCard({
   const style = accentStyles[accent];
 
   return (
-    <Card className="admin-kpi-card p-0" elevated>
+    <Card className="admin-kpi-card p-0">
       <div className="relative flex h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">

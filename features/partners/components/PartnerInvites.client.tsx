@@ -109,6 +109,7 @@ export function PartnerInvites({ pending, invites }: { pending: PartnerPanelPend
             maxLength={80}
             onChange={(e) => setNote(e.target.value)}
             placeholder="¿Para quién? (opcional, ej. Brian tienda 12)"
+            aria-label="¿Para quién es el código?"
             className="h-10 min-w-0 flex-1 rounded-xl border border-[#e3dbd1] px-3 text-[13.5px] outline-none focus:border-[#ff781f]"
           />
           <button
@@ -123,10 +124,10 @@ export function PartnerInvites({ pending, invites }: { pending: PartnerPanelPend
 
         {fresh && (
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#ecfdf3] px-3 py-2.5">
-            <p className="flex-1 text-[13px] text-[#166534]">
+            <p className="min-w-0 flex-1 text-[13px] text-[#166534] [overflow-wrap:anywhere]">
               Código creado: <strong className="tracking-wide">{fresh}</strong>
             </p>
-            <button type="button" onClick={() => copy(fresh)} className="text-[12.5px] font-semibold text-[#166534] underline">
+            <button type="button" onClick={() => copy(fresh)} className="shrink-0 text-[12.5px] font-semibold text-[#166534] underline">
               {copied === fresh ? "Copiado ✓" : "Copiar"}
             </button>
           </div>
@@ -137,16 +138,16 @@ export function PartnerInvites({ pending, invites }: { pending: PartnerPanelPend
           <ul className="mt-3 divide-y divide-[#f2ece5]">
             {open.map((i) => (
               <li key={i.id} className="flex items-center gap-2 py-2">
-                <code className="rounded-lg bg-[#fff6ef] px-2 py-1 text-[13px] font-bold tracking-wide text-[#c2410c]">{i.code}</code>
+                <code className="shrink-0 rounded-lg bg-[#fff6ef] px-2 py-1 text-[13px] font-bold tracking-wide text-[#c2410c]">{i.code}</code>
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-[#6b645c]">{i.note || "Sin nota"}</span>
-                <button type="button" onClick={() => copy(i.code)} className="text-[12.5px] font-semibold text-[#3a332d] hover:underline">
+                <button type="button" onClick={() => copy(i.code)} className="shrink-0 text-[12.5px] font-semibold text-[#3a332d] hover:underline">
                   {copied === i.code ? "Copiado ✓" : "Copiar"}
                 </button>
                 <button
                   type="button"
                   disabled={busy !== null}
                   onClick={() => run(`rv:${i.id}`, () => revokeMyInviteAction(i.id))}
-                  className="text-[12.5px] font-semibold text-[#a32e23] hover:underline disabled:opacity-50"
+                  className="shrink-0 text-[12.5px] font-semibold text-[#a32e23] hover:underline disabled:opacity-50"
                 >
                   Anular
                 </button>
@@ -164,7 +165,7 @@ export function PartnerInvites({ pending, invites }: { pending: PartnerPanelPend
               <ul className="mt-1 divide-y divide-[#f2ece5]">
                 {closed.map((i) => (
                   <li key={i.id} className="flex items-center gap-2 py-2 text-[12.5px] text-[#8a8178]">
-                    <code className="font-semibold tracking-wide line-through decoration-[#c9bfb4]">{i.code}</code>
+                    <code className="shrink-0 font-semibold tracking-wide line-through decoration-[#c9bfb4]">{i.code}</code>
                     <span className="min-w-0 flex-1 truncate">
                       {i.status === "used"
                         ? `Usado por ${i.usedBy ?? "un cliente"}${i.usedAt ? ` · ${fechaCorta(i.usedAt)}` : ""}`

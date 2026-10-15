@@ -198,7 +198,7 @@ export function AppealAccountModal({ account, onClose, onSubmitted }: AppealAcco
                 <path d="M20 6 9 17l-5-5" />
               </svg>
             </span>
-            <h2 className="mt-4 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">{t("doneTitle")}</h2>
+            <h2 id="appeal-title" className="mt-4 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">{t("doneTitle")}</h2>
             <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-[#5c564e]">{t("doneBody")}</p>
             <button
               type="button"
@@ -341,6 +341,7 @@ export function AppealAccountModal({ account, onClose, onSubmitted }: AppealAcco
                       value={drafting && !message ? t("draftingLong") : message}
                       onChange={(e) => setMessage(e.target.value)}
                       disabled={drafting}
+                      aria-label={t("step3")}
                       lang="en"
                     />
                   </section>

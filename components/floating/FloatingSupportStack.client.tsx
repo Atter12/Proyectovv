@@ -53,7 +53,7 @@ export function FloatingSupportStack({
   return (
     <div
       className={cn(
-        "pointer-events-none fixed right-3 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:right-5 sm:gap-3 md:bottom-6 md:right-6",
+        "pointer-events-none fixed right-3 z-30 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 sm:right-5 sm:gap-3 md:bottom-6 md:right-6",
         needsStickyLift
           ? "bottom-[4.75rem] sm:bottom-[5.25rem] md:bottom-6"
           : "bottom-3 sm:bottom-5",
