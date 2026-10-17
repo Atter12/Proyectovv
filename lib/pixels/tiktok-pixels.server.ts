@@ -572,8 +572,15 @@ export async function setupCodEventsForStoredPixel(input: {
     requireActive: true,
   });
 
+  // En un píxel compartido solo la cuenta dueña puede crear eventos: desde una
+  // cuenta vinculada TikTok responde 40002 "Pixel cannot be modified" (Robinson,
+  // 17/10/2026: el botón usó la fila de la 11.0 y fallaron los 8 eventos).
+  const ownerAdvertiserId = String(
+    ((data as { metadata?: Record<string, unknown> }).metadata ?? {})
+      .owner_advertiser_id ?? "",
+  ).trim();
   const ev = await createTikTokPixelEvents({
-    advertiserId: stored.advertiserId,
+    advertiserId: ownerAdvertiserId || stored.advertiserId,
     pixelId: stored.pixelId,
     organizationId,
   });
