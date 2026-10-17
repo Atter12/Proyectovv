@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mergeJsonMetadata } from "@/lib/types/json";
 import { cryptoIntentAcceptsVoucherProof, isVoucherPaymentProvider } from "@/types/payment";
 import { quoteFromGrossCharge } from "@/lib/payments/manual-deposit.shared";
+import { detectAmountEnteredWithoutFee } from "@/lib/payments/manual-amount-guard.shared";
 import {
   activateRealProfitSubscription,
   isRealProfitCodPurpose,
@@ -678,6 +679,24 @@ export async function approveManualVoucherPayment(input: {
     Number.isFinite(input.adjustedGrossChargeCents) &&
     input.adjustedGrossChargeCents > 0
   ) {
+    const analysis = (meta.voucher_analysis ?? {}) as Record<string, unknown>;
+    const ocrAmount = Number(analysis.detectedAmount);
+    const ocrSameCurrency =
+      String(analysis.detectedCurrency ?? chargeCurrency).toUpperCase() === chargeCurrency;
+    const matchedRef = detectAmountEnteredWithoutFee({
+      enteredCents: Math.round(input.adjustedGrossChargeCents),
+      referenceCents: [
+        intent.amount_cents,
+        ocrSameCurrency && ocrAmount > 0 ? Math.round(ocrAmount * 100) : null,
+      ],
+      feePercent: safeFee,
+    });
+    if (matchedRef != null) {
+      throw new Error(
+        `Ese monto parece ser ${(matchedRef / 100).toFixed(2)} sin el fee de ${safeFee}%. ` +
+          `Escribe lo que llegó con el fee incluido (${(matchedRef / 100).toFixed(2)}): el sistema descuenta el fee solo.`,
+      );
+    }
     const quote = quoteFromGrossCharge({
       grossChargeCents: Math.round(input.adjustedGrossChargeCents),
       chargeCurrency,

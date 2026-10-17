@@ -12,6 +12,7 @@ import {
   formatPenAmount,
   quoteFromGrossCharge,
 } from "@/lib/payments/manual-deposit.shared";
+import { detectAmountEnteredWithoutFee } from "@/lib/payments/manual-amount-guard.shared";
 import { ComprobanteLightbox } from "@/features/clientes/components/ComprobanteLightbox.client";
 
 const reviewVariants = {
@@ -102,12 +103,31 @@ function VoucherCard({
     });
   }, [parsedAmount, chargeCurrency, feePercent, fxRate, isRealProfit, isMissingCobro, isDebtPayment]);
 
+  // Monto escrito = esperado/OCR menos el fee → el fee se cobraría dos veces.
+  const feeAlreadyRemovedFrom = useMemo(() => {
+    if (feePercent <= 0 || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
+    return detectAmountEnteredWithoutFee({
+      enteredCents: Math.round(parsedAmount * 100),
+      referenceCents: [
+        Math.round(intent.amount * 100),
+        intent.detectedAmount != null ? Math.round(intent.detectedAmount * 100) : null,
+      ],
+      feePercent,
+    });
+  }, [parsedAmount, feePercent, intent.amount, intent.detectedAmount]);
+
   const showActions =
     canReview && intent.reviewStatus === "pending_review";
 
   async function handleApprove() {
     if (!quote) {
       setError(t("voucherReview.errAmount"));
+      return;
+    }
+    if (feeAlreadyRemovedFrom != null) {
+      setError(
+        `Ese monto ya tiene el fee descontado. Escribe lo que llegó (${(feeAlreadyRemovedFrom / 100).toFixed(2)}): el sistema descuenta el fee solo.`,
+      );
       return;
     }
     if (isMissingCobro) {
@@ -330,6 +350,17 @@ function VoucherCard({
                       }`
                     : ""}
                 </p>
+                {feePercent > 0 ? (
+                  <p className="mt-1 text-[11px] text-[var(--auth-text-muted)]">
+                    Escribe lo que llegó, con el fee incluido. El fee se descuenta solo.
+                  </p>
+                ) : null}
+                {feeAlreadyRemovedFrom != null ? (
+                  <p className="mt-1 text-[11px] font-semibold text-[#b42318]">
+                    Este monto ya tiene el fee descontado: el fee se cobraría dos veces.
+                    Escribe {(feeAlreadyRemovedFrom / 100).toFixed(2)}.
+                  </p>
+                ) : null}
                 <div className="mt-2 space-y-0.5 text-xs text-[var(--auth-text-muted)]">
                   {isDebtPayment ? (
                     <p>
