@@ -50,6 +50,7 @@ const DEFAULT_STAFF_EMAILS = [
   "branlyn.lopez.r@gmail.com",
   "freddyjgt258@gmail.com",
   "sebasnodeal@gmail.com",
+  "alexquispealbino@gmail.com",
 ];
 
 export { normalizeHecomOtpEmail } from "@/lib/auth/hecom-otp-email";
