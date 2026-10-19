@@ -372,7 +372,9 @@ export async function notifyManagersManualPaymentPendingBestEffort(input: {
     }
 
     const reviewReason =
-      getString(analysis?.reason) ??
+      (kind === "wallet" && analysis?.confirmed === true
+        ? "La IA validó el voucher. El BCP no avisa por correo las transferencias recibidas: confirma el abono en el banco y aprueba."
+        : getString(analysis?.reason)) ??
       (kind === "wallet"
         ? "El voucher aún no se cruzó con el abono del banco."
         : "Este tipo de pago siempre lo aprueba un gerente.");

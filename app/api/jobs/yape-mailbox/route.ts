@@ -4,7 +4,10 @@ import { pollYapeMailbox } from "@/lib/payments/yape/poll-mailbox.server";
 
 // IMAP necesita TCP: no puede correr en el runtime edge.
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Gmail frena la casilla ("[THROTTLED]", ~10 s por comando desde el 01/10)
+// y una corrida necesita 6-8 comandos: con 60 s se cortaba siempre antes de
+// leer un solo correo. Cada 5 min (no 2) para no alimentar ese freno.
+export const maxDuration = 150;
 
 function isAuthorized(request: Request): boolean {
   const auth = request.headers.get("authorization") ?? "";
@@ -36,8 +39,8 @@ async function run(request: Request) {
       Number.isInteger(lookbackParam) && lookbackParam > 0
         ? Math.min(lookbackParam, 3 * 24 * 60)
         : undefined;
-    // Margen bajo los 60 s de maxDuration para devolver el resumen igual.
-    const result = await pollYapeMailbox({ deadlineMs: 50_000, lookbackMinutes });
+    // Margen bajo maxDuration para devolver el resumen igual.
+    const result = await pollYapeMailbox({ deadlineMs: 140_000, lookbackMinutes });
     if (!result.enabled) {
       return NextResponse.json({
         ok: true,

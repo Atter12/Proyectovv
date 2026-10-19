@@ -277,6 +277,8 @@ export async function processManualVoucherUpload(input: {
     };
   }
 
+  const waitsForBankMail = analysis.paymentChannel === "yape";
+
   await createNotificationBestEffort({
     organizationId: intent.organizationId,
     userId: intent.createdBy,
@@ -294,8 +296,10 @@ export async function processManualVoucherUpload(input: {
             : "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado.")
       : heldOverLimit
         ? "Recibimos tu comprobante y el abono. Por el monto, un gerente aprueba la acreditación antes de que entre el saldo."
-        : analysis.confirmed
+        : analysis.confirmed && waitsForBankMail
         ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
+        : analysis.confirmed
+        ? "Recibimos tu comprobante. Un gerente confirma el abono en el banco y el saldo entra en cuanto lo apruebe."
         : analysis.reason ||
           "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
     type: "payment_proof_uploaded",
@@ -305,10 +309,12 @@ export async function processManualVoucherUpload(input: {
     },
   });
 
-  // Solo avisar a gerentes si la IA no validó (cola humana). Si validó y
-  // falta el mail, el cron/cierre dual lo completa sin spam a managers.
+  // Si la IA validó un Yape, el cierre dual lo completa con el aviso del BCP
+  // sin spam a managers. Las transferencias, depósitos y Binance no tienen ese
+  // aviso: el BCP solo manda correo cuando sale dinero o cuando entra un Yape
+  // (buzón revisado el 19/10/2026), así que sin este correo quedaban colgadas.
   // Cobro faltante: siempre avisar (nunca auto-aprueba).
-  if (!analysis.confirmed || isMissingCobro || isDebtPayment) {
+  if (!analysis.confirmed || !waitsForBankMail || isMissingCobro || isDebtPayment) {
     const chargeCurrency = expected.currency;
     const chargeAmountCents =
       chargeCurrency === "PEN"
