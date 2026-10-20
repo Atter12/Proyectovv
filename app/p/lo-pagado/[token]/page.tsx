@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
 import { PublicLoPagadoActions } from "@/features/clientes/components/PublicLoPagadoActions.client";
-import { CLIENT_COBROS_FROM_MONTH } from "@/features/clientes/components/ClienteScopedCobros";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
 import { resolvePublicDebtLinkMonth } from "@/lib/hecom/debt-link-month";
@@ -29,13 +28,16 @@ function monthOf(value: string | null | undefined): string | null {
   return match ? match[1]! : null;
 }
 
-function publicLinkMonth(value: string | string[] | undefined): string {
+function publicLinkMonth(value: string | string[] | undefined, fromMonth: string): string {
   const now = todayYmdInTz("America/Lima").slice(0, 7);
-  return resolvePublicDebtLinkMonth(
-    monthFromQuery(value),
-    now,
-    CLIENT_COBROS_FROM_MONTH,
-  );
+  return resolvePublicDebtLinkMonth(monthFromQuery(value), now, fromMonth);
+}
+
+/** Primer mes con gastos o cobros: el link muestra todo el historial del cliente. */
+function firstActivityMonth(months: Array<string | null>, fallback: string): string {
+  let min = fallback;
+  for (const m of months) if (m && m < min) min = m;
+  return min;
 }
 
 export default async function LoPagadoPublicPage({
@@ -59,11 +61,18 @@ export default async function LoPagadoPublicPage({
   if (!data) notFound();
 
   const { cliente, summary } = data;
-  // Igual que la vista cliente: desde setiembre 2026; los meses anteriores no llegan al navegador.
-  const visible = (m: string | null) => m !== null && m >= CLIENT_COBROS_FROM_MONTH;
-  const gastos = data.gastos.filter((row) => visible(monthOf(row.fecha)));
-  const cobros = data.cobros.filter((row) => visible(monthOf(row.periodoResumen) ?? monthOf(row.fecha)));
-  const month = publicLinkMonth(query.m);
+  // El link de deuda muestra desde el primer mes con gastos o cobros (no solo desde setiembre),
+  // para que el cliente pueda revisar cada mes por separado.
+  const gastos = data.gastos;
+  const cobros = data.cobros;
+  const fromMonth = firstActivityMonth(
+    [
+      ...gastos.map((row) => monthOf(row.fecha)),
+      ...cobros.map((row) => monthOf(row.periodoResumen) ?? monthOf(row.fecha)),
+    ],
+    todayYmdInTz("America/Lima").slice(0, 7),
+  );
+  const month = publicLinkMonth(query.m, fromMonth);
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   // Lo que debe del mes del link: el botón de tarjeta lo trae listo para pagar todo.
   const owedUsd = monthOwedUsd({
@@ -75,9 +84,7 @@ export default async function LoPagadoPublicPage({
   });
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
   try {
-    claims = (await listMissingCobroClaimsForCliente(clientId)).filter((claim) =>
-      visible(monthOf(claim.createdAt)),
-    );
+    claims = await listMissingCobroClaimsForCliente(clientId);
   } catch {
     claims = [];
   }
@@ -134,7 +141,7 @@ export default async function LoPagadoPublicPage({
             Lo pagado
           </h1>
           <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#5c564e]">
-            Gastos diarios de ads (con fee) y pagos desde setiembre 2026. Elige
+            Gastos diarios de ads (con fee) y pagos de todos tus meses. Elige
             el mes arriba; desde aquí también puedes pagar o avisar si no ves un
             pago de ese mes.
           </p>
