@@ -45,6 +45,7 @@ export async function GET(request: Request) {
         hecomClienteId: selected.id,
         from,
         to,
+        includeStaffOps: isStaff,
       }),
       getRealProfitSubscription(selected.id).catch(() => null),
     ]);
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
       linkedStores: data.linkedStores,
       snapshots: data.snapshots,
       analysis: data.analysis,
-      staffOps: isStaff ? data.staffOps : undefined,
+      staffOps: isStaff ? data.staffOps ?? undefined : undefined,
     });
   } catch (error) {
     return NextResponse.json(

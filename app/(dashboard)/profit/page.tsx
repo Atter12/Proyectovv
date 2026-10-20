@@ -10,6 +10,10 @@ import {
   resolvePaymentsFundingCapabilities,
 } from "@/lib/payments/funding-roles.server";
 import { canSeeRadar } from "@/lib/radar/api-context.server";
+import {
+  clampProfitDateRange,
+  defaultProfitDateRange,
+} from "@/lib/realprofit/db.server";
 import { getRadarProfile } from "@/lib/radar/profiles.server";
 
 export default async function ProfitPage({
@@ -29,8 +33,12 @@ export default async function ProfitPage({
   const mode = canPickCliente ? "staff" : "cliente";
   const selected = await getSelectedHecomCliente(session.id);
   const params = (await searchParams) ?? {};
-  const initialFrom = params.from?.trim() || undefined;
-  const initialTo = params.to?.trim() || undefined;
+  // Rango resuelto aquí: el cliente hace una sola carga (antes cargaba sin rango y luego otra vez con él).
+  const defaults = defaultProfitDateRange();
+  const { from: initialFrom, to: initialTo } = clampProfitDateRange({
+    from: params.from?.trim() || defaults.from,
+    to: params.to?.trim() || defaults.to,
+  });
 
   if (!selected) {
     return (

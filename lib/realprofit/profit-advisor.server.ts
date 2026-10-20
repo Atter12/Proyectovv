@@ -72,6 +72,7 @@ export async function buildProfitAdvisorBrief(input: {
 
   const a = data.analysis;
   const ops = data.staffOps;
+  if (!ops) throw new Error("No se pudo cargar el score del cliente.");
   const score = ops.score;
   const topCampaigns = [...a.campaigns]
     .sort((x, y) => y.spend - x.spend)

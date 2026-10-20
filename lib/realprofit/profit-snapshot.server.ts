@@ -834,12 +834,15 @@ export async function loadClienteProfitPromo(input: {
   hecomClienteId: string;
   from?: string;
   to?: string;
+  /** false = vista cliente: no calcula score ni crédito (ahorra un reporte TikTok). */
+  includeStaffOps?: boolean;
 }): Promise<{
   linkedStores: RpStoreSummary[];
   snapshots: StoreProfitPromo[];
   analysis: ProfitAnalysis;
-  staffOps: ProfitStaffOps;
+  staffOps: ProfitStaffOps | null;
 }> {
+  const includeStaffOps = input.includeStaffOps ?? true;
   const range = {
     from: input.from?.trim() || defaultProfitDateRange().from,
     to: input.to?.trim() || defaultProfitDateRange().to,
@@ -894,14 +897,16 @@ export async function loadClienteProfitPromo(input: {
   });
 
   const uiCoversScoreWindow = range.from === from30 && range.to === today;
-  const scorePerfPromise = uiCoversScoreWindow
-    ? perfPromise
-    : fetchCampaignPerformancePreferStored({
-        advertiserIds,
-        from: from30,
-        to: today,
-        maxAdvertisers: 12,
-      });
+  const scorePerfPromise = !includeStaffOps
+    ? null
+    : uiCoversScoreWindow
+      ? perfPromise
+      : fetchCampaignPerformancePreferStored({
+          advertiserIds,
+          from: from30,
+          to: today,
+          maxAdvertisers: 12,
+        });
 
   // No bloquear Profit más de ~14s por reportes TikTok.
   const emptyPerf = {
@@ -913,23 +918,45 @@ export async function loadClienteProfitPromo(input: {
     advertisersOk: 0,
     error: "Timeout consultando performance TikTok.",
   };
-  const [perf, scorePerf] = await Promise.all([
+  type PerfResult = Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>;
+  const withTimeout = (p: Promise<PerfResult>) =>
     Promise.race([
-      perfPromise,
-      new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
-        (resolve) => setTimeout(() => resolve({ ...emptyPerf }), 14_000),
+      p,
+      new Promise<PerfResult>((resolve) =>
+        setTimeout(() => resolve({ ...emptyPerf }), 14_000),
       ),
-    ]),
-    Promise.race([
-      scorePerfPromise,
-      new Promise<Awaited<ReturnType<typeof fetchCampaignPerformanceForAdvertisers>>>(
-        (resolve) => setTimeout(() => resolve({ ...emptyPerf }), 14_000),
-      ),
-    ]),
-  ]);
+    ]);
 
   const inRange = sliceHolisticSpend(wide, range.from, range.to);
   const spendToday = sliceHolisticSpend(wide, today, today).adSpend;
+  const holisticFallback =
+    inRange.adSpend > 0
+      ? {
+          adSpend: inRange.adSpend,
+          byCampaign: inRange.byCampaign,
+        }
+      : null;
+
+  // Tiendas COD y señales de quema corren mientras TikTok responde (antes iban en fila).
+  const [perf, scorePerf, snapshots, burnSignals] = await Promise.all([
+    withTimeout(perfPromise),
+    scorePerfPromise ? withTimeout(scorePerfPromise) : Promise.resolve(null),
+    Promise.all(
+      linkedStores.map((store) =>
+        loadStoreProfitPromo({
+          storeId: store.id,
+          from: range.from,
+          to: range.to,
+          holisticFallback,
+        }),
+      ),
+    ),
+    buildBurnRateSignalsForCliente({
+      hecomClienteId: input.hecomClienteId,
+      spendTodayUsd: spendToday,
+    }),
+  ]);
+
   const spendYesterday = sliceHolisticSpend(wide, yesterday, yesterday).adSpend;
   const spend7d = sliceHolisticSpend(wide, from7, today).adSpend;
   const spendPrev7d = sliceHolisticSpend(wide, prev7From, prev7To).adSpend;
@@ -940,26 +967,6 @@ export async function loadClienteProfitPromo(input: {
     prevRangeFrom,
     prevRangeTo,
   ).adSpend;
-
-  const holisticFallback =
-    inRange.adSpend > 0
-      ? {
-          adSpend: inRange.adSpend,
-          byCampaign: inRange.byCampaign,
-        }
-      : null;
-
-  const snapshots: StoreProfitPromo[] = [];
-  for (const store of linkedStores) {
-    snapshots.push(
-      await loadStoreProfitPromo({
-        storeId: store.id,
-        from: range.from,
-        to: range.to,
-        holisticFallback,
-      }),
-    );
-  }
 
   const collectedRevenue = round2(
     snapshots.reduce((s, snap) => s + snap.collectedRevenue, 0),
@@ -1019,10 +1026,6 @@ export async function loadClienteProfitPromo(input: {
     spendToday,
     hasCodLink: linkedStores.length > 0,
   });
-  const burnSignals = await buildBurnRateSignalsForCliente({
-    hecomClienteId: input.hecomClienteId,
-    spendTodayUsd: spendToday,
-  });
   const signals = [...burnSignals, ...campaignSignals].slice(0, 8);
   const perfSummary = summarizePerf(campaigns, {
     advertisersQueried: perf.advertisersQueried,
@@ -1030,43 +1033,46 @@ export async function loadClienteProfitPromo(input: {
     fetchedAt: perf.fetchedAt,
     error: perf.error,
   });
-  // Semáforo: performance anclada a 30d (no al filtro Hoy / rango UI).
-  const scoreMerged = mergeCampaignsWithTikTokPerf({
-    holisticCampaigns: sliceHolisticSpend(wide, from30, today).byCampaign,
-    perfRows: scorePerf.rows,
-  });
-  const scoreCampaigns = buildCampaignsFromSpend({
-    collectedRevenue: 0,
-    adSpend: spend30d,
-    rows: scoreMerged,
-  });
-  const scorePerfSummary = summarizePerf(scoreCampaigns, {
-    advertisersQueried: scorePerf.advertisersQueried,
-    advertisersOk: scorePerf.advertisersOk,
-    fetchedAt: scorePerf.fetchedAt,
-    error: scorePerf.error,
-  });
-  const staffOps = await loadProfitStaffOps({
-    hecomClienteId: input.hecomClienteId,
-    spendTodayUsd: spendToday,
-    spend90dUsd: spend90d,
-    pacingLabel,
-    burnSignals,
-    score: {
-      spend7d,
-      spend30d,
+  // Semáforo: performance anclada a 30d (no al filtro Hoy / rango UI). Solo staff.
+  let staffOps: ProfitStaffOps | null = null;
+  if (scorePerf) {
+    const scoreMerged = mergeCampaignsWithTikTokPerf({
+      holisticCampaigns: sliceHolisticSpend(wide, from30, today).byCampaign,
+      perfRows: scorePerf.rows,
+    });
+    const scoreCampaigns = buildCampaignsFromSpend({
+      collectedRevenue: 0,
+      adSpend: spend30d,
+      rows: scoreMerged,
+    });
+    const scorePerfSummary = summarizePerf(scoreCampaigns, {
+      advertisersQueried: scorePerf.advertisersQueried,
+      advertisersOk: scorePerf.advertisersOk,
+      fetchedAt: scorePerf.fetchedAt,
+      error: scorePerf.error,
+    });
+    staffOps = await loadProfitStaffOps({
+      hecomClienteId: input.hecomClienteId,
+      spendTodayUsd: spendToday,
+      spend90dUsd: spend90d,
       pacingLabel,
-      avgCtr: scorePerfSummary.avgCtr,
-      clicks: scorePerfSummary.clicks,
-      conversions: scorePerfSummary.conversions,
-      impressions: scorePerfSummary.impressions,
-      hasCodLink: linkedStores.length > 0,
-      aboveBreakEven,
-      warnKinds: signals
-        .filter((signal) => signal.severity !== "info")
-        .map((signal) => signal.kind),
-    },
-  });
+      burnSignals,
+      score: {
+        spend7d,
+        spend30d,
+        pacingLabel,
+        avgCtr: scorePerfSummary.avgCtr,
+        clicks: scorePerfSummary.clicks,
+        conversions: scorePerfSummary.conversions,
+        impressions: scorePerfSummary.impressions,
+        hasCodLink: linkedStores.length > 0,
+        aboveBreakEven,
+        warnKinds: signals
+          .filter((signal) => signal.severity !== "info")
+          .map((signal) => signal.kind),
+      },
+    });
+  }
 
   const analysis: ProfitAnalysis = {
     from: range.from,

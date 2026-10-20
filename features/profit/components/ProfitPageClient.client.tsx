@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
@@ -841,6 +841,7 @@ export function ProfitPageClient({
   const tCommon = useTranslations("common");
   const { bcp47 } = useAppFormatter();
   const [loading, setLoading] = useState(true);
+  const firstLoadRef = useRef(true);
   const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
@@ -959,7 +960,9 @@ export function ProfitPageClient({
       setError(t("dateOrderError"));
       return;
     }
-    const delay = from && to ? 280 : 0;
+    // Primera carga al toque; los cambios de fecha sí esperan un poco.
+    const delay = firstLoadRef.current ? 0 : 280;
+    firstLoadRef.current = false;
     const timer = window.setTimeout(() => {
       void refresh();
     }, delay);
@@ -1227,22 +1230,6 @@ export function ProfitPageClient({
         ) : null}
       </section>
 
-      {isStaff && staffOpsResolved ? (
-        <StaffOpsPanel
-          ops={staffOpsResolved.ops}
-          spendTodayUsd={spendTodayDisplay}
-          spend7dUsd={analysis?.spend7d ?? 0}
-          pacingLabel={displayPacing.pacingLabel}
-          pacingRatio={displayPacing.pacingRatio}
-          fromLiveFallback={staffOpsResolved.fromLiveFallback}
-          t={t}
-        />
-      ) : null}
-
-      {isStaff ? (
-        <ProfitAdvisorBot clienteName={clienteName} from={from} to={to} />
-      ) : null}
-
       <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
         <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
           {t("calendarRangeTitle")}
@@ -1275,7 +1262,19 @@ export function ProfitPageClient({
       </section>
 
       {loading && !analysis ? (
-        <p className="text-[13px] text-[#8a8177]">{t("loadingAnalysis")}</p>
+        <div className="space-y-3" role="status" aria-live="polite">
+          <span className="sr-only">{t("loadingAnalysis")}</span>
+          <div className="h-24 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-20 animate-pulse rounded-2xl border border-[#ece7e0] bg-white"
+              />
+            ))}
+          </div>
+          <div className="h-64 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
+        </div>
       ) : analysis ? (
         <>
           {displaySignals.length > 0 ? (
@@ -1354,11 +1353,6 @@ export function ProfitPageClient({
               </ul>
             </section>
           ) : null}
-
-          <ProductPerformancePanel campaigns={analysis.campaigns} />
-          {/* Piloto (Fase 5) y rendimiento por anuncio (Fase 4), desde radar_ad_daily. */}
-          {radarEnabled ? <ProfitPilotPanel /> : null}
-          {radarEnabled && from && to ? <ProfitAdsTable from={from} to={to} /> : null}
 
           <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -1724,6 +1718,87 @@ export function ProfitPageClient({
         </>
       ) : null}
 
+      {snapshots.length > 0 ? (
+        <section className="space-y-3">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+            {t("snapshotCodTitle")}
+          </p>
+          {snapshots.map((snap) => (
+            <div
+              key={snap.store.id}
+              className="grid grid-cols-2 gap-3 rounded-2xl border border-[#ece7e0] bg-white p-4 sm:grid-cols-4"
+            >
+              <div className="col-span-2 sm:col-span-4">
+                <p className="text-[14px] font-bold text-[#1c1917]">
+                  {snap.store.name}
+                </p>
+                <p className="text-[11px] text-[#8a8177]">
+                  {t("snapshotOrdersHint")}
+                </p>
+              </div>
+              <Kpi
+                label={t("snapshotCollected")}
+                value={formatMoney(snap.collectedRevenue, snap.store.currency)}
+                hint={t("snapshotOrders", { count: snap.ordersCollected })}
+              />
+              <Kpi
+                label={t("snapshotSpend")}
+                value={formatMoney(snap.adSpend, snap.store.currency)}
+                hint={t("snapSpendHint")}
+              />
+              <Kpi
+                label={t("snapshotRoas")}
+                value={
+                  snap.roasCollected != null
+                    ? `${snap.roasCollected.toFixed(2)}x`
+                    : "—"
+                }
+                hint={t("snapRoasHint")}
+                accent
+              />
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {isStaff ? (
+        <section
+          aria-labelledby="profit-staff-zone"
+          className="space-y-5 border-t border-dashed border-[#e7e0d8] pt-6"
+        >
+          <div>
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
+              {t("staffZoneEyebrow")}
+            </p>
+            <h2
+              id="profit-staff-zone"
+              className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]"
+            >
+              {t("staffZoneTitle")}
+            </h2>
+            <p className="mt-0.5 max-w-xl text-[12px] leading-5 text-[#5c564e]">
+              {t("staffZoneHint")}
+            </p>
+          </div>
+          {staffOpsResolved ? (
+            <StaffOpsPanel
+              ops={staffOpsResolved.ops}
+              spendTodayUsd={spendTodayDisplay}
+              spend7dUsd={analysis?.spend7d ?? 0}
+              pacingLabel={displayPacing.pacingLabel}
+              pacingRatio={displayPacing.pacingRatio}
+              fromLiveFallback={staffOpsResolved.fromLiveFallback}
+              t={t}
+            />
+          ) : null}
+          {/* Rendimiento por producto y por anuncio: solo gerencia, el cliente no lo ve. */}
+          {analysis ? <ProductPerformancePanel campaigns={analysis.campaigns} /> : null}
+          {radarEnabled ? <ProfitPilotPanel /> : null}
+          {radarEnabled && from && to ? <ProfitAdsTable from={from} to={to} /> : null}
+          <ProfitAdvisorBot clienteName={clienteName} from={from} to={to} />
+        </section>
+      ) : null}
+
       <section
         id="profit-shopify-connect"
         className="scroll-mt-6 overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
@@ -1930,49 +2005,6 @@ export function ProfitPageClient({
           </>
         )}
       </section>
-
-      {snapshots.length > 0 ? (
-        <section className="space-y-3">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-            {t("snapshotCodTitle")}
-          </p>
-          {snapshots.map((snap) => (
-            <div
-              key={snap.store.id}
-              className="grid grid-cols-2 gap-3 rounded-2xl border border-[#ece7e0] bg-white p-4 sm:grid-cols-4"
-            >
-              <div className="col-span-2 sm:col-span-4">
-                <p className="text-[14px] font-bold text-[#1c1917]">
-                  {snap.store.name}
-                </p>
-                <p className="text-[11px] text-[#8a8177]">
-                  {t("snapshotOrdersHint")}
-                </p>
-              </div>
-              <Kpi
-                label={t("snapshotCollected")}
-                value={formatMoney(snap.collectedRevenue, snap.store.currency)}
-                hint={t("snapshotOrders", { count: snap.ordersCollected })}
-              />
-              <Kpi
-                label={t("snapshotSpend")}
-                value={formatMoney(snap.adSpend, snap.store.currency)}
-                hint={t("snapSpendHint")}
-              />
-              <Kpi
-                label={t("snapshotRoas")}
-                value={
-                  snap.roasCollected != null
-                    ? `${snap.roasCollected.toFixed(2)}x`
-                    : "—"
-                }
-                hint={t("snapRoasHint")}
-                accent
-              />
-            </div>
-          ))}
-        </section>
-      ) : null}
 
       {shopifyModalOpen ? (
         <ShopifyConnectModal
