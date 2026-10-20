@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/guards.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  getActingAsCliente,
+  getSelectedHecomCliente,
+} from "@/lib/hecom/selected-cliente.server";
 import {
   clampProfitDateRange,
   defaultProfitDateRange,
@@ -27,8 +30,10 @@ export async function GET(request: Request) {
     email: session.email,
     role: session.role,
   });
-  // Act-as-cliente no debe ocultar staffOps/score: el gerente entra a revisar.
-  const isStaff = rawFunding.isStaff || rawFunding.isSuperAdmin;
+  // “Ver como cliente” = vista de cliente: sin staffOps/score.
+  const isStaff =
+    (rawFunding.isStaff || rawFunding.isSuperAdmin) &&
+    !(await getActingAsCliente(session.id));
 
   const url = new URL(request.url);
   const range = defaultProfitDateRange();

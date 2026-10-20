@@ -27,8 +27,9 @@ export default async function ProfitPage({
     email: session.email,
     role: session.role,
   });
-  // Rol real del gerente: el score debe verse aunque esté “viendo como” cliente.
   const isStaffViewer = rawFunding.isStaff || rawFunding.isSuperAdmin;
+  // “Ver como cliente” muestra exactamente lo que ve el cliente: sin bloque de gerencia.
+  const showStaffZone = isStaffViewer && !actingAsCliente;
   const canPickCliente = isStaffViewer || actingAsCliente;
   const mode = canPickCliente ? "staff" : "cliente";
   const selected = await getSelectedHecomCliente(session.id);
@@ -58,7 +59,7 @@ export default async function ProfitPage({
     <div className={dashboardClasses.page}>
       <ProfitPageClient
         clienteName={selected.name}
-        isStaff={isStaffViewer}
+        isStaff={showStaffZone}
         initialFrom={initialFrom}
         initialTo={initialTo}
         radarEnabled={radar.allowed}
