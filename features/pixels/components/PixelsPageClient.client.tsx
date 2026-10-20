@@ -587,6 +587,72 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
           <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
+                <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-[#1c1917]">
+                  {t("tokenTitle")}
+                  <span className="rounded-md bg-[#f3efe9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5c564e]">
+                    {t("optional")}
+                  </span>
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
+                  {t("tokenBody")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleGenerateToken()}
+                disabled={generating}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e] disabled:opacity-50"
+              >
+                {generating
+                  ? t("tokenGenerating")
+                  : activeToken
+                    ? t("tokenRegenerate")
+                    : t("tokenGenerate")}
+              </button>
+            </div>
+
+            {shownToken ? (
+              <div className="mt-4 rounded-lg bg-[#f6f4f1] p-4">
+                <p className="text-[13px] font-bold text-[#1c1917]">
+                  {t("tokenSaveNow")}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <code className="min-w-0 flex-1 break-all rounded-lg bg-white px-3 py-2.5 font-mono text-[12.5px] text-[#5c564e]">
+                    {shownToken}
+                  </code>
+                  <CopyButton value={shownToken} label={t("copy")} copiedLabel={t("copied")} />
+                </div>
+              </div>
+            ) : activeToken ? (
+              <p className="mt-3 text-[12px] text-[#5c564e]">
+                {t("tokenActive", {
+                  hint: activeToken.hint,
+                  date: new Date(activeToken.createdAt).toLocaleDateString(),
+                  events: activeToken.eventsSent,
+                })}
+              </p>
+            ) : null}
+
+            {shownToken || activeToken ? (
+              <div className="mt-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
+                  {t("tokenEndpoint")}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <code className="min-w-0 flex-1 break-all rounded-lg bg-[#f6f4f1] px-3 py-2.5 font-mono text-[12px] text-[#5c564e]">
+                    {EVENTS_ENDPOINT}
+                  </code>
+                  <CopyButton value={EVENTS_ENDPOINT} label={t("copy")} copiedLabel={t("copied")} />
+                </div>
+                <p className="mt-2 text-[11.5px] leading-5 text-[#8a8177]">
+                  {t("tokenEndpointHint")}
+                </p>
+              </div>
+            ) : null}
+          </div>
+          <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
                 <h3 className="text-[15px] font-bold text-[#1c1917]">
                   {t("step1Title")}
                 </h3>
@@ -656,72 +722,6 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
             ) : null}
           </div>
 
-          <div className="mt-4 rounded-xl border border-[#ece7e0] p-4 sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-[#1c1917]">
-                  {t("tokenTitle")}
-                  <span className="rounded-md bg-[#f3efe9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5c564e]">
-                    {t("optional")}
-                  </span>
-                </h3>
-                <p className="mt-1 text-[12.5px] leading-5 text-[#5c564e]">
-                  {t("tokenBody")}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleGenerateToken()}
-                disabled={generating}
-                className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-[#1c1917] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a342e] disabled:opacity-50"
-              >
-                {generating
-                  ? t("tokenGenerating")
-                  : activeToken
-                    ? t("tokenRegenerate")
-                    : t("tokenGenerate")}
-              </button>
-            </div>
-
-            {shownToken ? (
-              <div className="mt-4 rounded-lg bg-[#f6f4f1] p-4">
-                <p className="text-[13px] font-bold text-[#1c1917]">
-                  {t("tokenSaveNow")}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <code className="min-w-0 flex-1 break-all rounded-lg bg-white px-3 py-2.5 font-mono text-[12.5px] text-[#5c564e]">
-                    {shownToken}
-                  </code>
-                  <CopyButton value={shownToken} label={t("copy")} copiedLabel={t("copied")} />
-                </div>
-              </div>
-            ) : activeToken ? (
-              <p className="mt-3 text-[12px] text-[#5c564e]">
-                {t("tokenActive", {
-                  hint: activeToken.hint,
-                  date: new Date(activeToken.createdAt).toLocaleDateString(),
-                  events: activeToken.eventsSent,
-                })}
-              </p>
-            ) : null}
-
-            {shownToken || activeToken ? (
-              <div className="mt-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-                  {t("tokenEndpoint")}
-                </p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <code className="min-w-0 flex-1 break-all rounded-lg bg-[#f6f4f1] px-3 py-2.5 font-mono text-[12px] text-[#5c564e]">
-                    {EVENTS_ENDPOINT}
-                  </code>
-                  <CopyButton value={EVENTS_ENDPOINT} label={t("copy")} copiedLabel={t("copied")} />
-                </div>
-                <p className="mt-2 text-[11.5px] leading-5 text-[#8a8177]">
-                  {t("tokenEndpointHint")}
-                </p>
-              </div>
-            ) : null}
-          </div>
         </section>
       ) : null}
     </div>

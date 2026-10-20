@@ -10,7 +10,6 @@ import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-fi
  * solo píxel y los eventos pasan por nuestro servidor, que los reenvía a TikTok con
  * el token de la agencia (nunca se le muestra al cliente).
  */
-const TOKEN_PREFIX = "ahtk_";
 export const PIXEL_TOKEN_MAX_EVENTS = 1000;
 
 export type PixelTokenInfo = {
@@ -23,8 +22,9 @@ export type PixelTokenInfo = {
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
+/** Tokens nuevos: 48 hex. Los primeros llevaban prefijo "ahtk_" y siguen valiendo. */
 export function looksLikePixelToken(value: string): boolean {
-  return /^ahtk_[a-f0-9]{48}$/.test(value);
+  return /^(ahtk_)?[a-f0-9]{48}$/.test(value);
 }
 
 export async function listActivePixelTokens(hecomClienteId: string): Promise<PixelTokenInfo[]> {
@@ -68,8 +68,8 @@ export async function createPixelToken(input: {
     .is("revoked_at", null);
   if (revokeErr) throw new Error(revokeErr.message);
 
-  const token = `${TOKEN_PREFIX}${randomBytes(24).toString("hex")}`;
-  const hint = `${token.slice(0, 9)}…${token.slice(-4)}`;
+  const token = randomBytes(24).toString("hex");
+  const hint = `${token.slice(0, 4)}…${token.slice(-4)}`;
   const { data: row, error: insErr } = await admin
     .from("tiktok_pixel_tokens")
     .insert({
