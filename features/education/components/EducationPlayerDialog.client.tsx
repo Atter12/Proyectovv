@@ -57,13 +57,20 @@ export function EducationPlayerDialog({
   }
 
   const ready = Boolean(lesson?.videoUrl || lesson?.embedUrl);
+  // Loom y Drive no aceptan portada propia: se muestra encima hasta que le dan play.
+  const [startedSlug, setStartedSlug] = useState<string | null>(null);
+  const showCover =
+    Boolean(lesson?.videoPosterUrl) && !lesson?.videoUrl && startedSlug !== lesson?.slug;
 
   return (
     <dialog
       ref={dialogRef}
       className="education-dialog"
       aria-labelledby={titleId}
-      onClose={onClose}
+      onClose={() => {
+        setStartedSlug(null);
+        onClose();
+      }}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
@@ -106,15 +113,39 @@ export function EducationPlayerDialog({
                   <video
                     key={lesson.videoUrl}
                     src={lesson.videoUrl}
-                    poster={lesson.posterUrl ?? undefined}
+                    poster={lesson.videoPosterUrl ?? lesson.posterUrl ?? undefined}
                     controls
                     playsInline
                     className="h-full w-full"
                   />
+                ) : showCover ? (
+                  <button
+                    type="button"
+                    onClick={() => setStartedSlug(lesson.slug)}
+                    aria-label={t("openLesson", { title: lesson.title })}
+                    className="group relative block h-full w-full"
+                  >
+                    <img
+                      src={lesson.videoPosterUrl ?? undefined}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 grid place-items-center bg-black/15">
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-white text-[var(--auth-text)] shadow-[0_10px_24px_-12px_rgb(0_0_0_/_0.6)] transition-transform group-hover:scale-105">
+                        <svg viewBox="0 0 24 24" className="ml-1 h-7 w-7" fill="currentColor" aria-hidden>
+                          <path d="M8 5.14v13.72a1 1 0 001.5.86l11-6.86a1 1 0 000-1.72l-11-6.86a1 1 0 00-1.5.86z" />
+                        </svg>
+                      </span>
+                    </span>
+                  </button>
                 ) : (
                   <iframe
                     key={lesson.slug}
-                    src={lesson.embedUrl ?? undefined}
+                    src={
+                      lesson.videoPosterUrl
+                        ? withAutoplay(lesson.embedUrl)
+                        : lesson.embedUrl ?? undefined
+                    }
                     title={lesson.title}
                     className="h-full w-full"
                     allow="fullscreen; autoplay; clipboard-write; encrypted-media; picture-in-picture"
@@ -143,4 +174,11 @@ export function EducationPlayerDialog({
       ) : null}
     </dialog>
   );
+}
+
+/** Tras pulsar la portada, Loom arranca solo; Drive ignora el parámetro. */
+function withAutoplay(url: string | null): string | undefined {
+  if (!url) return undefined;
+  if (!url.startsWith("https://www.loom.com/embed/")) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}autoplay=1`;
 }

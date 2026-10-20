@@ -21,6 +21,8 @@ type LessonRow = {
   is_custom: boolean | null;
   recommended: boolean | null;
   video_path: string | null;
+  video_poster_path: string | null;
+  active: boolean | null;
   updated_at: string | null;
   created_at: string | null;
 };
@@ -78,6 +80,8 @@ function toView(
     embedUrl: lessonEmbedUrl(loomUrl),
     posterUrl: educationPosterUrl(row?.poster_path),
     videoUrl: educationVideoUrl(row?.video_path),
+    videoPosterUrl: educationPosterUrl(row?.video_poster_path),
+    active: row?.active !== false,
     updatedAt: row?.updated_at ?? null,
     custom,
   };
@@ -99,6 +103,7 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
     const media =
       "slug, loom_url, title, category_id, poster_path, is_custom, updated_at, created_at";
     const attempts = [
+      `${media}, recommended, video_path, video_poster_path, active`,
       `${media}, recommended, video_path`,
       `${media}, recommended`,
       media,
@@ -111,6 +116,8 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
           ...row,
           recommended: row.recommended ?? null,
           video_path: row.video_path ?? null,
+          video_poster_path: row.video_poster_path ?? null,
+          active: row.active ?? null,
         });
       }
       return map;
@@ -129,6 +136,8 @@ async function loadLessonRows(): Promise<Map<string, LessonRow>> {
         is_custom: false,
         recommended: null,
         video_path: null,
+        video_poster_path: null,
+        active: null,
         created_at: null,
       });
     }

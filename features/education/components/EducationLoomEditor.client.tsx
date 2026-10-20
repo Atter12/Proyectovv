@@ -80,24 +80,17 @@ function AddLessonForm({
   const [categoryId, setCategoryId] = useState<EducationCategoryId>("empieza");
   const [loomUrl, setLoomUrl] = useState("");
   const [recommended, setRecommended] = useState(false);
+  const [active, setActive] = useState(true);
   const [file, setFile] = useState<File | null>(null);
+  const [cover, setCover] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useObjectUrl(file);
+  const coverPreview = useObjectUrl(cover);
   const [fileEpoch, setFileEpoch] = useState(0);
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!file) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -109,7 +102,9 @@ function AddLessonForm({
     form.set("categoryId", categoryId);
     form.set("loomUrl", loomUrl);
     form.set("recommended", recommended ? "1" : "0");
+    form.set("active", active ? "1" : "0");
     if (file) form.set("poster", file);
+    if (cover) form.set("videoPoster", cover);
     const result = await createEducationLessonAction(form);
     if (!result.ok) {
       setPending(false);
@@ -134,8 +129,10 @@ function AddLessonForm({
     setTitle("");
     setLoomUrl("");
     setRecommended(false);
+    setActive(true);
     setCategoryId("empieza");
     setFile(null);
+    setCover(null);
     setVideo(null);
     setFileEpoch((value) => value + 1);
     setFeedback(t("lessonAdded"));
@@ -210,12 +207,24 @@ function AddLessonForm({
           preview={preview}
           onFile={setFile}
         />
-        <RecommendedToggle
-          id="edu-new-recommended"
-          checked={recommended}
+        <PosterField
+          key={`cover-${fileEpoch}`}
+          id="edu-new-video-poster"
           admin={admin}
-          onChange={setRecommended}
+          label={t("videoPosterLabel")}
+          hint={t("videoPosterHint")}
+          preview={coverPreview}
+          onFile={setCover}
         />
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:col-span-2">
+          <RecommendedToggle
+            id="edu-new-recommended"
+            checked={recommended}
+            admin={admin}
+            onChange={setRecommended}
+          />
+          <ActiveToggle id="edu-new-active" checked={active} admin={admin} onChange={setActive} />
+        </div>
       </div>
       <FormStatus error={error} feedback={feedback} />
       <button type="submit" disabled={pending} className={buttonClass(admin)}>
@@ -240,10 +249,14 @@ function LessonEditor({
   const [title, setTitle] = useState(lesson.title);
   const [loomUrl, setLoomUrl] = useState(lesson.loomUrl ?? "");
   const [recommended, setRecommended] = useState(lesson.recommended);
+  const [active, setActive] = useState(lesson.active);
   const [file, setFile] = useState<File | null>(null);
+  const [cover, setCover] = useState<File | null>(null);
+  const [removeCover, setRemoveCover] = useState(false);
   const [video, setVideo] = useState<File | null>(null);
   const [removeVideo, setRemoveVideo] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useObjectUrl(file);
+  const coverPreview = useObjectUrl(cover);
   const [fileEpoch, setFileEpoch] = useState(0);
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -255,17 +268,8 @@ function LessonEditor({
     setTitle(lesson.title);
     setLoomUrl(lesson.loomUrl ?? "");
     setRecommended(lesson.recommended);
-  }, [lesson.title, lesson.loomUrl, lesson.recommended]);
-
-  useEffect(() => {
-    if (!file) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    setActive(lesson.active);
+  }, [lesson.title, lesson.loomUrl, lesson.recommended, lesson.active]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -277,7 +281,10 @@ function LessonEditor({
     form.set("title", title);
     form.set("loomUrl", loomUrl);
     form.set("recommended", recommended ? "1" : "0");
+    form.set("active", active ? "1" : "0");
     if (file) form.set("poster", file);
+    if (cover) form.set("videoPoster", cover);
+    else if (removeCover) form.set("removeVideoPoster", "1");
     const result = await saveEducationLessonAction(form);
     if (!result.ok) {
       setPending(false);
@@ -308,6 +315,8 @@ function LessonEditor({
     }
     setPending(false);
     setFile(null);
+    setCover(null);
+    setRemoveCover(false);
     setVideo(null);
     setRemoveVideo(false);
     setFileEpoch((value) => value + 1);
@@ -331,12 +340,18 @@ function LessonEditor({
         {lesson.number}. {category.label}
         {" · "}
         {lesson.embedUrl || lesson.videoUrl ? t("ready") : t("pending")}
+        {lesson.active ? null : (
+          <>
+            {" · "}
+            <span className="font-semibold text-red-600">{t("inactiveBadge")}</span>
+          </>
+        )}
       </p>
       <div className="mt-2 grid gap-3 lg:grid-cols-[7.5rem_minmax(0,1fr)]">
         <img
           src={preview || lesson.posterUrl || "/education/poster.svg"}
           alt=""
-          className="aspect-video w-[7.5rem] rounded-xl object-cover"
+          className={`aspect-video w-[7.5rem] rounded-xl object-cover ${lesson.active ? "" : "opacity-50 grayscale"}`}
         />
         <div className="grid gap-2">
           <Field label={t("titleLabel")} htmlFor={`title-${lesson.slug}`} admin={admin}>
@@ -388,12 +403,35 @@ function LessonEditor({
             preview={null}
             onFile={setFile}
           />
-          <RecommendedToggle
-            id={`recommended-${lesson.slug}`}
-            checked={recommended}
+          <PosterField
+            key={`cover-${lesson.slug}-${fileEpoch}`}
+            id={`video-poster-${lesson.slug}`}
             admin={admin}
-            onChange={setRecommended}
+            label={t("videoPosterLabel")}
+            hint={t("videoPosterHint")}
+            preview={coverPreview ?? (removeCover ? null : lesson.videoPosterUrl)}
+            removeLabel={lesson.videoPosterUrl && !cover ? t("removeVideoPoster") : undefined}
+            removeChecked={removeCover}
+            onRemoveChange={setRemoveCover}
+            onFile={(next) => {
+              setCover(next);
+              if (next) setRemoveCover(false);
+            }}
           />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <RecommendedToggle
+              id={`recommended-${lesson.slug}`}
+              checked={recommended}
+              admin={admin}
+              onChange={setRecommended}
+            />
+            <ActiveToggle
+              id={`active-${lesson.slug}`}
+              checked={active}
+              admin={admin}
+              onChange={setActive}
+            />
+          </div>
         </div>
       </div>
       <FormStatus error={error} feedback={feedback} />
@@ -486,20 +524,82 @@ function RecommendedToggle({
   );
 }
 
+function ActiveToggle({
+  id,
+  checked,
+  admin,
+  onChange,
+}: {
+  id: string;
+  checked: boolean;
+  admin: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const t = useTranslations("education");
+  return (
+    <label
+      htmlFor={id}
+      className={
+        admin
+          ? "flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--admin-text)]"
+          : "flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--auth-text)]"
+      }
+    >
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className="relative h-5 w-9 shrink-0 rounded-full bg-stone-300 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-emerald-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--auth-accent)]/40"
+      />
+      {checked ? t("activeOn") : t("activeOff")}
+    </label>
+  );
+}
+
+function useObjectUrl(file: File | null): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      return;
+    }
+    const next = URL.createObjectURL(file);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [file]);
+  return url;
+}
+
 function PosterField({
   id,
   admin,
+  label,
+  hint,
   preview,
+  removeLabel,
+  removeChecked = false,
+  onRemoveChange,
   onFile,
 }: {
   id: string;
   admin: boolean;
+  label?: string;
+  hint?: string;
   preview: string | null;
+  removeLabel?: string;
+  removeChecked?: boolean;
+  onRemoveChange?: (value: boolean) => void;
   onFile: (file: File | null) => void;
 }) {
   const t = useTranslations("education");
   return (
-    <Field label={t("imageLabel")} htmlFor={id} admin={admin} wide>
+    <Field label={label ?? t("imageLabel")} htmlFor={id} admin={admin} wide>
       <input
         id={id}
         type="file"
@@ -515,9 +615,20 @@ function PosterField({
         <img src={preview} alt="" className="mt-2 h-24 w-40 rounded-xl object-cover" />
       ) : (
         <p className={admin ? "mt-1 text-xs text-[var(--admin-text-muted)]" : "mt-1 text-xs text-[var(--auth-text-muted)]"}>
-          {t("imageHint")}
+          {hint ?? t("imageHint")}
         </p>
       )}
+      {removeLabel && onRemoveChange ? (
+        <label className="mt-2 flex items-center gap-2 text-xs font-medium text-[var(--auth-text)]">
+          <input
+            type="checkbox"
+            checked={removeChecked}
+            onChange={(event) => onRemoveChange(event.target.checked)}
+            className="h-4 w-4 accent-[var(--auth-accent)]"
+          />
+          {removeLabel}
+        </label>
+      ) : null}
     </Field>
   );
 }

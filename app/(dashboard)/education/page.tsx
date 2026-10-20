@@ -15,7 +15,8 @@ export default async function EducationPage() {
   const actingAsCliente = await getActingAsCliente(session.id);
   const canManage =
     (funding.isStaff || funding.isSuperAdmin) && !actingAsCliente;
-  const lessons = await listEducationLessons();
+  const all = await listEducationLessons();
+  const lessons = canManage ? all : all.filter((lesson) => lesson.active);
 
   return <EducationCenter lessons={lessons} canManage={canManage} />;
 }

@@ -41,9 +41,12 @@ export function EducationCenter({
     return [...current, ...extras];
   }, [lessons, saved, created]);
 
+  // Los desactivados solo aparecen en el editor; la galería es lo que ve el cliente.
+  const visible = useMemo(() => published.filter((lesson) => lesson.active), [published]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return published.filter((lesson) => {
+    return visible.filter((lesson) => {
       if (category !== "all" && lesson.categoryId !== category) return false;
       if (!needle) return true;
       const label = educationCategoryById(lesson.categoryId).label.toLowerCase();
@@ -53,10 +56,10 @@ export function EducationCenter({
         label.includes(needle)
       );
     });
-  }, [published, query, category]);
+  }, [visible, query, category]);
 
   const browsing = category === "all" && query.trim().length === 0 && !listing;
-  const byNumber = [...published].sort(
+  const byNumber = [...visible].sort(
     (left, right) => left.number - right.number || left.title.localeCompare(right.title),
   );
   const recommended = byNumber.filter((lesson) => lesson.recommended);
@@ -153,12 +156,12 @@ export function EducationCenter({
         <CategoryChip
           active={category === "all"}
           label={t("all")}
-          countLabel={t("videoCount", { count: published.length })}
+          countLabel={t("videoCount", { count: visible.length })}
           onClick={resetFilters}
           icon={<CategoryGlyph id="all" />}
         />
         {educationCategories.map((item) => {
-          const count = published.filter((lesson) => lesson.categoryId === item.id).length;
+          const count = visible.filter((lesson) => lesson.categoryId === item.id).length;
           return (
             <CategoryChip
               key={item.id}
@@ -240,6 +243,8 @@ function lessonFromSave(lesson: EducationLessonSave): EducationLessonView {
     embedUrl: lessonEmbedUrl(lesson.loomUrl),
     posterUrl: lesson.posterUrl,
     videoUrl: lesson.videoUrl,
+    videoPosterUrl: lesson.videoPosterUrl,
+    active: lesson.active,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -257,6 +262,8 @@ function applyLessonSave(
     embedUrl: lessonEmbedUrl(patch.loomUrl),
     posterUrl: patch.posterUrl,
     videoUrl: patch.videoUrl,
+    videoPosterUrl: patch.videoPosterUrl,
+    active: patch.active,
   };
 }
 

@@ -32,8 +32,10 @@ export type EducationLessonSave = {
   loomUrl: string | null;
   posterUrl: string | null;
   videoUrl: string | null;
+  videoPosterUrl: string | null;
   custom: boolean;
   recommended: boolean;
+  active: boolean;
 };
 
 export type SaveEducationLessonResult =
@@ -87,6 +89,8 @@ export async function saveEducationLessonAction(
   const loom = parseLoom(String(formData.get("loomUrl") ?? ""));
   if (loom === "invalid") return { ok: false, error: "invalid" };
   const recommended = readRecommended(formData.get("recommended"));
+  const active = readActive(formData.get("active"));
+  const clearVideoPoster = String(formData.get("removeVideoPoster") ?? "") === "1";
 
   const catalog = educationLessons.find((lesson) => lesson.slug === slug);
   const existing = catalog ? null : await loadCustomLesson(slug);
@@ -95,12 +99,20 @@ export async function saveEducationLessonAction(
   const file = readPosterFile(formData.get("poster"));
   const uploaded = await storePoster(slug, file);
   if (!uploaded.ok) return uploaded;
+  const coverFile = readPosterFile(formData.get("videoPoster"));
+  const cover = await storePoster(slug, coverFile);
+  if (!cover.ok) {
+    if (uploaded.path) await removePoster(uploaded.path);
+    return cover;
+  }
 
   const previousPath = catalog
     ? await loadPosterPath(slug)
     : existing?.poster_path ?? null;
+  const previousCover = await loadVideoPosterPath(slug);
+  const nextCover = cover.path ?? (clearVideoPoster ? null : previousCover);
 
-  const written = await writeLesson({
+  const payload: Record<string, unknown> = {
     slug,
     title,
     loom_url: loom,
@@ -108,16 +120,24 @@ export async function saveEducationLessonAction(
     is_custom: Boolean(existing),
     category_id: existing?.category_id ?? catalog?.categoryId ?? null,
     recommended,
+    active,
     updated_by: allowed.userId,
     updated_at: new Date().toISOString(),
-  });
+  };
+  if (nextCover !== previousCover) payload.video_poster_path = nextCover;
+
+  const written = await writeLesson(payload);
   if (!written.ok) {
     if (uploaded.path) await removePoster(uploaded.path);
+    if (cover.path) await removePoster(cover.path);
     return written;
   }
 
   if (uploaded.path && previousPath && previousPath !== uploaded.path) {
     await removePoster(previousPath);
+  }
+  if (previousCover && previousCover !== nextCover) {
+    await removePoster(previousCover);
   }
 
   revalidateEducation();
@@ -135,8 +155,10 @@ export async function saveEducationLessonAction(
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path ?? previousPath),
       videoUrl: await currentVideoUrl(slug),
+      videoPosterUrl: educationPosterUrl(nextCover),
       custom: Boolean(existing),
       recommended,
+      active,
     },
   };
 }
@@ -154,14 +176,20 @@ export async function createEducationLessonAction(
   const loom = parseLoom(String(formData.get("loomUrl") ?? ""));
   if (loom === "invalid") return { ok: false, error: "invalid" };
   const recommended = readRecommended(formData.get("recommended"));
+  const active = readActive(formData.get("active"));
 
   const slug = educationLessonSlug(title, crypto.randomUUID().replace(/-/g, "").slice(0, 6));
   const file = readPosterFile(formData.get("poster"));
   const uploaded = await storePoster(slug, file);
   if (!uploaded.ok) return uploaded;
+  const cover = await storePoster(slug, readPosterFile(formData.get("videoPoster")));
+  if (!cover.ok) {
+    if (uploaded.path) await removePoster(uploaded.path);
+    return cover;
+  }
 
   const number = educationLessons.length + (await countCustomLessons()) + 1;
-  const written = await writeLesson({
+  const payload: Record<string, unknown> = {
     slug,
     title,
     category_id: categoryRaw,
@@ -169,12 +197,16 @@ export async function createEducationLessonAction(
     poster_path: uploaded.path,
     is_custom: true,
     recommended,
+    active,
     updated_by: allowed.userId,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-  });
+  };
+  if (cover.path) payload.video_poster_path = cover.path;
+  const written = await writeLesson(payload);
   if (!written.ok) {
     if (uploaded.path) await removePoster(uploaded.path);
+    if (cover.path) await removePoster(cover.path);
     return written;
   }
 
@@ -189,8 +221,10 @@ export async function createEducationLessonAction(
       loomUrl: loom,
       posterUrl: educationPosterUrl(uploaded.path),
       videoUrl: null,
+      videoPosterUrl: educationPosterUrl(cover.path),
       custom: true,
       recommended,
+      active,
     },
   };
 }
@@ -212,6 +246,11 @@ async function assertEducationEditor(): Promise<
 
 function readRecommended(value: FormDataEntryValue | null): boolean {
   return String(value ?? "") === "1";
+}
+
+/** Sin el campo el tutorial queda activo, como antes de existir el interruptor. */
+function readActive(value: FormDataEntryValue | null): boolean {
+  return String(value ?? "1") !== "0";
 }
 
 export type EducationVideoPrepare =
@@ -408,6 +447,21 @@ async function loadPosterPath(slug: string): Promise<string | null> {
   }
 }
 
+async function loadVideoPosterPath(slug: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("education_lessons")
+      .select("video_poster_path")
+      .eq("slug", slug)
+      .maybeSingle<{ video_poster_path: string | null }>();
+    if (error) return null;
+    return data?.video_poster_path ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadCustomLesson(slug: string): Promise<{
   category_id: EducationCategoryId;
   poster_path: string | null;
@@ -462,31 +516,50 @@ async function countCustomLessons(): Promise<number> {
 async function writeLesson(
   payload: Record<string, unknown>,
 ): Promise<{ ok: true } | { ok: false; error: "missing_table" | "unknown" }> {
-  const first = await upsertLesson(payload);
-  if (first.ok || !("recommended" in payload) || !first.missingRecommended) return first;
-  const { recommended: _ignored, ...withoutRecommended } = payload;
-  return upsertLesson(withoutRecommended);
+  // Sin la migración se guarda igual, salvo que el cambio dependa de esa columna
+  // (desactivar un tutorial o cambiar la portada del video).
+  let current = payload;
+  for (;;) {
+    const result = await upsertLesson(current);
+    if (result.ok || !result.missingColumn) return result;
+    const column = result.missingColumn;
+    const droppable =
+      column in current &&
+      (column === "recommended" || (column === "active" && current.active === true));
+    if (!droppable) return result;
+    const { [column]: _ignored, ...rest } = current;
+    current = rest;
+  }
 }
+
+const OPTIONAL_COLUMNS = ["video_poster_path", "recommended", "active"] as const;
 
 async function upsertLesson(
   payload: Record<string, unknown>,
-): Promise<{ ok: true } | { ok: false; error: "missing_table" | "unknown"; missingRecommended?: boolean }> {
+): Promise<
+  | { ok: true }
+  | { ok: false; error: "missing_table" | "unknown"; missingColumn?: (typeof OPTIONAL_COLUMNS)[number] }
+> {
   try {
     const admin = createAdminClient();
     const { error } = await admin.from("education_lessons").upsert(payload);
     if (!error) return { ok: true };
     const message = error.message.toLowerCase();
-    const missingRecommended = message.includes("recommended");
+    const missingColumn = OPTIONAL_COLUMNS.find(
+      (column) => message.includes(`'${column}'`) || message.includes(`"${column}"`),
+    );
     const missing =
       error.code === "42P01" ||
+      error.code === "42703" ||
       error.code === "PGRST204" ||
       error.code === "PGRST205" ||
       message.includes("education_lessons") ||
       message.includes("poster_path") ||
       message.includes("is_custom") ||
       message.includes("video_path") ||
-      missingRecommended;
-    return { ok: false, error: missing ? "missing_table" : "unknown", missingRecommended };
+      message.includes("recommended") ||
+      Boolean(missingColumn);
+    return { ok: false, error: missing ? "missing_table" : "unknown", missingColumn };
   } catch {
     return { ok: false, error: "unknown" };
   }
