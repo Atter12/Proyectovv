@@ -54,6 +54,8 @@ const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
   // Wilder Remolina: gerencia le devolvió $309.78 de cupo a crédito tras pagar setiembre;
   // lo paga después (12/10/2026). Sacarlo de aquí cuando pague octubre.
   "afb12eff-76b7-4149-81be-62d047960527",
+  // Fabian Hoyos - Colombia: USD 1,500 a crédito en su cuenta 204.0 por orden del usuario (20/10/2026).
+  "4e509277-8c50-47fc-95a8-830453d1a5b8",
   ...`${process.env.PREPAGO_GUARD_CREDIT_HECOM_IDS ?? ""},${process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? ""}`
     .split(",")
     .map((id) => id.trim().toLowerCase())
