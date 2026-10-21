@@ -374,16 +374,25 @@ async function runSync(request: Request) {
       const result = await importTikTokAdvertiserAccounts({
         organizationId: connection.organization_id,
         userId: connection.created_by ?? null,
+        skipAdvertiserIds: clientAdvertiserIds,
+        deadlineMs,
       });
       imported += result.imported;
 
-      const { data: adAccounts, error: adAccountsError } = await admin
-        .from("ad_accounts")
-        .select("id, external_account_id, metadata")
-        .eq("organization_id", connection.organization_id)
-        .eq("platform", "tiktok")
-        .not("external_account_id", "is", null);
-      if (adAccountsError) throw new Error(adAccountsError.message);
+      const adAccounts: Array<{ id: string; external_account_id: string | null; metadata: unknown }> = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error: adAccountsError } = await admin
+          .from("ad_accounts")
+          .select("id, external_account_id, metadata")
+          .eq("organization_id", connection.organization_id)
+          .eq("platform", "tiktok")
+          .not("external_account_id", "is", null)
+          .order("id", { ascending: true })
+          .range(from, from + 999);
+        if (adAccountsError) throw new Error(adAccountsError.message);
+        adAccounts.push(...(page ?? []));
+        if (!page || page.length < 1000) break;
+      }
 
       const accounts = (adAccounts ?? []).filter((account) => {
         if (clientAdvertiserIds.has(String(account.external_account_id ?? "").trim())) {

@@ -250,6 +250,7 @@ export async function listTikTokAdvertiserAccounts(
   const response = await fetch(url, {
     headers: { "Access-Token": connection.accessToken },
     cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
   });
 
   const json = (await response.json()) as TikTokApiResponse<TikTokAdvertiserListData>;
@@ -487,12 +488,61 @@ export async function syncTikTokAdvertiserSpend(input: {
 export async function importTikTokAdvertiserAccounts(input: {
   organizationId: string;
   userId?: string | null;
+  /** Anunciantes de clientes: su fila la maneja Pagos y no se pisa su metadata. */
+  skipAdvertiserIds?: Set<string>;
+  /** Pasada esta hora no se escribe otra cuenta (job con tope de Vercel). */
+  deadlineMs?: number;
 }): Promise<{ imported: number }> {
   const admin = createAdminClient();
   const accounts = await listTikTokAdvertiserAccounts(input.organizationId);
   let imported = 0;
 
+  // La org de agencia tiene más de 1000 cuentas: escribir cada una en cada
+  // corrida no entraba en los 300 s del job. Solo se escribe lo nuevo o cambiado.
+  const existing = new Map<string, { id: string; name: string | null; status: string | null; metadata: unknown }>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("ad_accounts")
+      .select("id, external_account_id, name, status, metadata")
+      .eq("organization_id", input.organizationId)
+      .eq("platform", "tiktok")
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      const advertiserId = String(row.external_account_id ?? "").trim();
+      if (advertiserId) existing.set(advertiserId, row);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
   for (const account of accounts) {
+    if (input.deadlineMs && Date.now() >= input.deadlineMs) break;
+    if (input.skipAdvertiserIds?.has(account.advertiserId)) continue;
+
+    const status = mapTikTokAdvertiserStatus(account.status);
+    const current = existing.get(account.advertiserId);
+    if (current) {
+      if (current.name === account.name && current.status === status) {
+        imported += 1;
+        continue;
+      }
+      const metadata = current.metadata && typeof current.metadata === "object" ? current.metadata : {};
+      const { error } = await admin
+        .from("ad_accounts")
+        .update({
+          name: account.name,
+          external_account_name: account.name,
+          status,
+          last_synced_at: new Date().toISOString(),
+          // Conserva el vínculo con Hecom u otras marcas ya guardadas.
+          metadata: { source: "tiktok_oauth", ...metadata, tiktok: account.raw ?? {} },
+        })
+        .eq("id", current.id);
+      if (!error) imported += 1;
+      continue;
+    }
+
     const { error } = await admin.from("ad_accounts").upsert(
       {
         organization_id: input.organizationId,
