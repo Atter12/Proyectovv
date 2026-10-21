@@ -828,10 +828,11 @@
       "aria": "Payment method",
       "maintenance": "Maintenance",
       "maintenanceNoticeTitle": "{name} is under maintenance.",
-      "maintenanceNoticeBody": "It will be enabled again once this process is complete. Meanwhile you can top up with Yape / Plin, manual payment or crypto."
+      "maintenanceNoticeBody": "It will be enabled again once this process is complete. Meanwhile you can top up with any of the other available methods."
     },
     "gateways": {
-      "stripeDesc": "Cards and global payments",
+      "stripeDesc": "Visa, Mastercard and more · secure payment with Stripe",
+      "stripeName": "Card",
       "whopDesc": "Card, Apple Pay, and global wallets",
       "cobranaDesc": "Pay with Yape, Plin, or bank transfer",
       "manualName": "Manual payment",

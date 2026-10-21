@@ -8,7 +8,7 @@ import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 
 export const getCachedPaymentGateways = unstable_cache(
   async (): Promise<PaymentGateway[]> => PAYMENT_GATEWAYS,
-  ["payment-gateways-v6-whop-maintenance"],
+  ["payment-gateways-v7-stripe-atlas"],
   { revalidate: 3600, tags: [CACHE_TAGS.paymentGateways] },
 );
 

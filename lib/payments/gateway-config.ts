@@ -1,12 +1,18 @@
 import type { PaymentGateway, PaymentGatewayId } from "@/types/payment";
 import { serverEnv } from "@/lib/env/env.server";
+import { STRIPE_PAYMENTS_ENABLED } from "@/lib/payments/stripe-policy";
+
+const STRIPE_ACTIVE = STRIPE_PAYMENTS_ENABLED && Boolean(serverEnv.stripeSecretKey);
 
 /**
  * Gateways visibles en Pagos.
- * Whop + Yape/Plin + Pago manual + Cripto (si hay API key).
- * Stripe queda en mantenimiento; Culqi / Mercado Pago ocultos.
+ * Stripe (solo con STRIPE_PAYMENTS_ENABLED + clave) + Whop + Yape/Plin + Pago manual + Cripto.
+ * Culqi / Mercado Pago ocultos.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
+  ...(STRIPE_ACTIVE
+    ? [{ id: "stripe", name: "Tarjeta", description: "Visa, Mastercard y más · pago seguro con Stripe" } as PaymentGateway]
+    : []),
   {
     id: "whop",
     name: "Whop",
@@ -32,7 +38,7 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
 ];
 
 export function isGatewayInMaintenance(id: PaymentGatewayId): boolean {
-  if (id === "stripe") return true;
+  if (id === "stripe") return !STRIPE_ACTIVE;
   return Boolean(PAYMENT_GATEWAYS.find((g) => g.id === id)?.maintenance);
 }
 

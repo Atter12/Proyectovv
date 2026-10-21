@@ -341,7 +341,6 @@ export function AddBalanceModal({
   }
 
   async function handleConfirm() {
-    if (selectedGateway === "stripe") return;
     setLoading(true);
     setError(null);
 

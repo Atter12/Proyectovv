@@ -20,7 +20,12 @@ import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-client
 import { isPaymentGatewayId } from "@/types/payment";
 import type { PaymentGatewayId } from "@/types/payment";
 import { getDefaultGatewayId } from "@/lib/payments/gateway-config";
-import { STRIPE_DISABLED_MESSAGE } from "@/lib/payments/stripe-policy";
+import {
+  canUseStripe,
+  STRIPE_DISABLED_MESSAGE,
+  STRIPE_PAYMENTS_ENABLED,
+  STRIPE_STAFF_ONLY_MESSAGE,
+} from "@/lib/payments/stripe-policy";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -36,13 +41,11 @@ export async function POST(request: Request) {
   }
 
   const actingAsCliente = await getActingAsCliente(session.id);
-  const capabilities = withActAsClienteView(
-    await resolvePaymentsFundingCapabilities({
-      email: session.email,
-      role: session.role,
-    }),
-    actingAsCliente,
-  );
+  const identity = await resolvePaymentsFundingCapabilities({
+    email: session.email,
+    role: session.role,
+  });
+  const capabilities = withActAsClienteView(identity, actingAsCliente);
   if (!capabilities.canClientStripeFund) {
     return NextResponse.json(
       {
@@ -75,8 +78,11 @@ export async function POST(request: Request) {
   }
 
   const providerCandidate = body.provider ?? body.gatewayId ?? getDefaultGatewayId();
-  if (providerCandidate === "stripe") {
+  if (providerCandidate === "stripe" && !STRIPE_PAYMENTS_ENABLED) {
     return NextResponse.json({ error: STRIPE_DISABLED_MESSAGE }, { status: 503 });
+  }
+  if (providerCandidate === "stripe" && !canUseStripe(identity)) {
+    return NextResponse.json({ error: STRIPE_STAFF_ONLY_MESSAGE }, { status: 403 });
   }
   if (!isPaymentGatewayId(providerCandidate)) {
     return NextResponse.json({ error: "Proveedor inválido." }, { status: 400 });

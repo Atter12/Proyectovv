@@ -828,10 +828,11 @@
       "aria": "Método de pagamento",
       "maintenance": "Manutenção",
       "maintenanceNoticeTitle": "{name} está em manutenção.",
-      "maintenanceNoticeBody": "Será habilitado assim que este processo terminar. Enquanto isso, você pode recarregar com Yape / Plin, pagamento manual ou cripto."
+      "maintenanceNoticeBody": "Será habilitado assim que este processo terminar. Enquanto isso, você pode recarregar com outro dos métodos disponíveis."
     },
     "gateways": {
-      "stripeDesc": "Cartões e pagamentos globais",
+      "stripeDesc": "Visa, Mastercard e mais · pagamento seguro com Stripe",
+      "stripeName": "Cartão",
       "whopDesc": "Cartão, Apple Pay e wallets globais",
       "cobranaDesc": "Pague com Yape, Plin ou transferência bancária",
       "manualName": "Pagamento manual",

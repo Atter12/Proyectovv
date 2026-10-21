@@ -18,6 +18,7 @@ import {
   recordWebhookEvent,
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
+import { getInternalIntentIdFromStripePaymentIntent } from "@/lib/payments/stripe-billing.server";
 import { serverEnv } from "@/lib/env/env.server";
 import { isPaymentGatewayId } from "@/types/payment";
 import type { PaymentGatewayId } from "@/types/payment";
@@ -196,6 +197,44 @@ export async function POST(request: Request, context: RouteContext) {
         : { saved: false, reason: "sin_datos" };
       await markWebhookEventProcessed(provider, parsed.eventId);
       return NextResponse.json({ ok: true, ...saved });
+    }
+
+    // Stripe: reembolso o disputa. No se descuenta solo (el saldo puede estar ya en TikTok):
+    // se marca el pago y queda en audit_logs para que gerencia decida.
+    if (provider === "stripe" && parsed.reversal) {
+      const internalId =
+        intent?.id ??
+        (parsed.stripePaymentIntentRef
+          ? await getInternalIntentIdFromStripePaymentIntent(parsed.stripePaymentIntentRef)
+          : null);
+      const target = internalId ? await getPaymentIntentByIdInternal(internalId) : null;
+      if (target) {
+        const reversalMeta = {
+          stripe_reversal: parsed.reversal,
+          stripe_reversal_event: parsed.eventType,
+          stripe_reversal_amount_cents: parsed.amountCents ?? null,
+          stripe_reversal_reason: parsed.reversalReason ?? null,
+          stripe_reversal_at: new Date().toISOString(),
+          stripe_reversal_needs_review: true,
+        };
+        await mergePaymentIntentMetadata(target.id, reversalMeta);
+        await recordCryptoIpnOpsEvent({
+          intentId: target.id,
+          organizationId: target.organizationId,
+          action:
+            parsed.reversal === "refund"
+              ? "payment_intent.stripe_refunded"
+              : "payment_intent.stripe_disputed",
+          metadata: reversalMeta,
+        });
+      } else {
+        console.warn("[webhooks/stripe] reversal sin pago interno", {
+          eventId: parsed.eventId,
+          stripePaymentIntent: parsed.stripePaymentIntentRef,
+        });
+      }
+      await markWebhookEventProcessed(provider, parsed.eventId);
+      return NextResponse.json({ ok: true, reversal: parsed.reversal, matched: Boolean(target) });
     }
 
     if (parsed.failed) {

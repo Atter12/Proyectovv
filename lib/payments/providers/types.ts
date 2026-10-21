@@ -54,6 +54,11 @@ export interface VerifiedWebhookEvent {
   failureMessage?: string;
   /** Whop: tarjeta guardada para el crédito (setup_intent.succeeded). */
   savedCard?: SavedCardEvent;
+  /** Stripe: reembolso o disputa de un pago ya cobrado (no descuenta solo). */
+  reversal?: "refund" | "dispute";
+  reversalReason?: string;
+  /** Stripe: PaymentIntent (pi_…) del charge reembolsado o disputado. */
+  stripePaymentIntentRef?: string;
 }
 
 export interface SavedCardEvent {

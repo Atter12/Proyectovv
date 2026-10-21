@@ -7,6 +7,7 @@ import { reverseOrphanedAgencyBmBridges } from "@/lib/payments/cleanup-orphaned-
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
 import { fetchAdvertiserStatusKinds } from "@/lib/integrations/tiktok/bc-advertisers.server";
 import { resolvePaymentsFundingCapabilities, withActAsClienteView } from "@/lib/payments/funding-roles.server";
+import { canUseStripe } from "@/lib/payments/stripe-policy";
 import {
   buildAdvertiserEnsureList,
   enrichAllocationAccountsFromAdsOverview,
@@ -305,6 +306,13 @@ export async function PaymentsGatewayPanel({
           })
       : Promise.resolve(DEFAULT_DEPOSIT_FEE_PERCENT),
   ]);
+  // Stripe solo para staff mientras STRIPE_STAFF_ONLY esté encendido.
+  const gateways = canUseStripe(rawCapabilities)
+    ? core.gateways
+    : core.gateways.filter((g) => g.id !== "stripe");
+  const initialGateway = gateways.some((g) => g.id === core.selectedGateway)
+    ? core.selectedGateway
+    : (gateways.find((g) => !g.maintenance)?.id ?? core.selectedGateway);
 
   // Con cliente Hecom: leer con service role y scopear (evita pool vacío por RLS/viewer).
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
@@ -430,8 +438,8 @@ export async function PaymentsGatewayPanel({
     <PaymentsFundingModeProvider capabilities={capabilities}>
       <div className="space-y-5">
         <PaymentsGatewayBlockClient
-          gateways={core.gateways}
-          initialSelected={core.selectedGateway}
+          gateways={gateways}
+          initialSelected={initialGateway}
           wallet={core.wallet}
           depositFeePercent={depositFeePercent}
         />

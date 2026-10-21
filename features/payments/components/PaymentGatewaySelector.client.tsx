@@ -19,7 +19,7 @@ export function PaymentGatewaySelector({
 }: PaymentGatewaySelectorProps) {
   const t = useTranslations("payments");
   const inMaintenanceGateways = gateways.filter(
-    (gateway) => gateway.id !== "stripe" && gateway.maintenance,
+    (gateway) => gateway.maintenance,
   );
 
   return (
@@ -49,11 +49,15 @@ export function PaymentGatewaySelector({
         aria-label={t("gatewaySelector.aria")}
         className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
       >
-        {gateways.filter((gateway) => gateway.id !== "stripe").map((gateway) => {
+        {gateways.map((gateway) => {
           const inMaintenance = Boolean(gateway.maintenance);
           const isSelected = selected === gateway.id && !inMaintenance;
           const localizedName =
-            gateway.id === "manual" ? t("gateways.manualName") : gateway.name;
+            gateway.id === "manual"
+              ? t("gateways.manualName")
+              : gateway.id === "stripe"
+                ? t("gateways.stripeName")
+                : gateway.name;
           const localizedDescription =
             gateway.id === "stripe"
               ? t("gateways.stripeDesc")

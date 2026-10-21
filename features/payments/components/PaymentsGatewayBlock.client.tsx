@@ -44,8 +44,8 @@ export function PaymentsGatewayBlockClient({
   } = usePaymentsFundingMode();
   const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayId>(() => {
     const initial = gateways.find((g) => g.id === initialSelected);
-    if (initialSelected !== "stripe" && initial && !initial.maintenance) return initialSelected;
-    return gateways.find((g) => g.id !== "stripe" && !g.maintenance)?.id ?? "cobrana";
+    if (initial && !initial.maintenance) return initialSelected;
+    return gateways.find((g) => !g.maintenance)?.id ?? "cobrana";
   });
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -65,7 +65,7 @@ export function PaymentsGatewayBlockClient({
   function handleSelectGateway(id: PaymentGatewayId) {
     if (!canClientStripeFund) return;
     const gateway = gateways.find((item) => item.id === id);
-    if (!gateway || gateway.maintenance || id === "stripe") return;
+    if (!gateway || gateway.maintenance) return;
     setSelectedGateway(id);
   }
 
@@ -78,7 +78,7 @@ export function PaymentsGatewayBlockClient({
         onContinue={() => {
           if (!canClientStripeFund) return;
           const gateway = gateways.find((item) => item.id === selectedGateway);
-          if (!gateway || gateway.maintenance || selectedGateway === "stripe") return;
+          if (!gateway || gateway.maintenance) return;
           setModalOpen(true);
         }}
         fundingMode={fundingMode}
