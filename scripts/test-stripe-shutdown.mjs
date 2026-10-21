@@ -176,9 +176,11 @@ test("checkout excludes BNPL methods and never sends payment_method_types (API 2
   const result = await new StripePaymentProvider().createCheckout({
     paymentIntentId: "int_1", organizationId: "org_1", walletId: "w_1",
     currency: "USD", amountCents: 565, idempotencyKey: "k1",
+    concept: "Recarga Holistic · Sebastian Jeremy Yparraguirre Ocaña",
   });
   assert.equal(result.providerReference, "cs_test_1");
   assert.equal(sent.body.has("payment_method_types[]"), false);
   assert.deepEqual(sent.body.getAll("excluded_payment_method_types[]"), [...enabledPolicy.STRIPE_EXCLUDED_PAYMENT_METHODS]);
   assert.equal(sent.body.get("payment_intent_data[metadata][payment_intent_id]"), "int_1");
+  assert.equal(sent.body.get("payment_intent_data[description]"), "Recarga Holistic · Sebastian Jeremy Yparraguirre Ocaña");
 });

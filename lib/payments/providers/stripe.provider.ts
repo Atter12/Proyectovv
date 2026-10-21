@@ -96,6 +96,10 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
       input.organizationId,
     );
     params.set("payment_intent_data[metadata][wallet_id]", input.walletId);
+    // Columna "Descripción" del Dashboard: de quién es el pago (si no, sale el pi_).
+    if (input.concept?.trim()) {
+      params.set("payment_intent_data[description]", input.concept.trim().slice(0, 500));
+    }
     params.set("line_items[0][price_data][currency]", input.currency.toLowerCase());
     params.set("line_items[0][price_data][unit_amount]", String(input.amountCents));
     params.set(
