@@ -202,9 +202,12 @@ export function AdAccountsTable({
   function GastosLinkButton({
     account,
     compact = false,
+    inline = false,
   }: {
     account: AdAccount;
     compact?: boolean;
+    /** Botón chico al lado del saldo (tarjeta móvil). */
+    inline?: boolean;
   }) {
     const advertiserId = account.externalAccountId?.trim();
     if (!advertiserId) return null;
@@ -221,7 +224,9 @@ export function AdAccountsTable({
       <Link
         href={href}
         className={
-          compact
+          inline
+            ? "inline-flex h-9 shrink-0 items-center rounded-lg border border-[#e85a1c]/30 bg-white px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
+            : compact
             ? "inline-flex h-10 w-full items-center justify-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
             : "inline-flex h-8 items-center rounded-lg border border-[#e85a1c]/30 bg-[#fff7f0] px-3 text-[12px] font-semibold text-[#c45a18] transition hover:bg-[#fff1e8]"
         }
@@ -355,7 +360,7 @@ export function AdAccountsTable({
   return (
     <div>
       {readOnly && !isEmpty ? (
-        <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[rgb(20_18_16_/_0.08)] bg-[#fffaf5] px-4 py-3 text-[12px] text-[#5c564e]">
+        <div className="mx-3 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-[rgb(20_18_16_/_0.08)] bg-[#fffaf5] px-3 py-2 text-[12px] leading-5 text-[#5c564e] md:mx-4 md:mb-3 md:px-4 md:py-3">
           <p>
             <span className="font-semibold text-[#1a1612]">{t("live.title")}</span>
             {" · "}
@@ -367,7 +372,7 @@ export function AdAccountsTable({
             <button
               type="button"
               onClick={() => void live.refresh()}
-              className="-mx-2 inline-flex min-h-10 items-center px-2 text-[12px] font-semibold text-[#c45a18] hover:underline md:min-h-0 md:text-[11px]"
+              className="-mx-2 inline-flex min-h-9 items-center px-2 text-[12px] font-semibold text-[#c45a18] hover:underline md:min-h-0 md:text-[11px]"
             >
               {t("live.refreshNow")}
             </button>
@@ -389,47 +394,49 @@ export function AdAccountsTable({
       )}
 
       {!isEmpty ? (
-        <div className="space-y-2.5 p-4 md:hidden">
+        <div className="space-y-2.5 px-3 pb-4 pt-1 md:hidden">
           {accounts.map((account) => {
             const display = parseAccountDisplay(account, defaultName);
             return (
               <article
                 key={account.id}
-                className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-4 transition-colors hover:bg-[#faf7f3]"
+                className="rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-white p-3.5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <AccountCell account={account} />
                   <StatusPill status={account.status} />
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-[rgb(20_18_16_/_0.06)] pt-3">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <MetaChip tone="mono">{shortId(display.accountId)}</MetaChip>
                   {display.bm ? <MetaChip>{display.bm}</MetaChip> : null}
                   {display.fee ? (
                     <MetaChip tone="fee">
                       {t("table.fee")} {display.fee}%
                     </MetaChip>
-                  ) : (
+                  ) : account.thresholdInfo ? (
                     <MetaChip>{account.thresholdInfo}</MetaChip>
-                  )}
+                  ) : null}
                 </div>
-                <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px]">
-                  {readOnly ? (
-                    <div>
-                      <dt className="text-[#9a9187]">{t("live.mobileLabel")}</dt>
-                      <dd>
-                        <AdAccountLiveBalanceCell
-                          advertiserId={account.externalAccountId}
-                          metric={
-                            account.externalAccountId
-                              ? live.metricsByAdvertiser[account.externalAccountId]
-                              : undefined
-                          }
-                          loading={live.loading}
-                        />
-                      </dd>
+                {readOnly ? (
+                  // Saldo y "Ver Profit" en una sola fila; el aviso de 45 s ya está arriba.
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-[#faf7f3] px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[#9a9187]">{t("live.mobileLabel")}</p>
+                      <AdAccountLiveBalanceCell
+                        advertiserId={account.externalAccountId}
+                        metric={
+                          account.externalAccountId
+                            ? live.metricsByAdvertiser[account.externalAccountId]
+                            : undefined
+                        }
+                        loading={live.loading}
+                      />
                     </div>
-                  ) : (
-                    <>
+                    <GastosLinkButton account={account} inline />
+                  </div>
+                ) : (
+                  <>
+                    <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
                       <div>
                         <dt className="text-[#9a9187]">{t("table.balance")}</dt>
                         <dd className="tabular-nums text-[#1a1612]">
@@ -442,12 +449,12 @@ export function AdAccountsTable({
                           {account.timezone || "—"}
                         </dd>
                       </div>
-                    </>
-                  )}
-                </dl>
-                <div className="mt-3">
-                  <AccountActions account={account} compact />
-                </div>
+                    </dl>
+                    <div className="mt-3">
+                      <AccountActions account={account} compact />
+                    </div>
+                  </>
+                )}
               </article>
             );
           })}

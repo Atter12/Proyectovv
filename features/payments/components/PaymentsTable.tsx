@@ -218,7 +218,7 @@ export function PaymentsTable({
       <Button
         className={
           mobile
-            ? "h-11 w-full rounded-lg border border-[#1c1917] bg-[#1c1917] text-[13px] font-semibold text-white hover:bg-[#3a342e]"
+            ? "h-10 w-full rounded-lg border border-[#1c1917]/25 bg-white text-[13px] font-semibold text-[#1c1917] hover:bg-[#f6f4f1]"
             : "font-semibold text-[#1c1917]"
         }
         variant={mobile ? undefined : "ghost"}
@@ -227,6 +227,68 @@ export function PaymentsTable({
       >
         {status === "rejected" ? tAppeal("appealAgain") : tAppeal("appealCta")}
       </Button>
+    );
+  }
+
+  function renderMobileActions(account: PaymentAccountAllocation) {
+    const reclaimable = isReclaimableSuspended(account);
+    const advertiserId = account.externalAccountId?.trim();
+    const liveUsd = advertiserId
+      ? liveMetricsByAdvertiser?.[advertiserId]?.balanceUsd
+      : undefined;
+    const transferable = hasTransferableBalance(account, liveUsd) && Boolean(onTransfer);
+    const secondary =
+      "h-10 rounded-lg border border-[var(--brand-primary-deep)]/40 bg-white text-[13px] font-semibold text-[var(--brand-primary-deep)] hover:bg-[var(--admin-accent-soft)]";
+    const primary =
+      "h-10 rounded-lg bg-[var(--brand-primary)] text-[13px] font-semibold hover:bg-[var(--brand-primary-deep)]";
+    const hint = reclaimable
+      ? transferable
+        ? clientSelfService
+          ? t("assignmentHints.transferClient")
+          : t("assignmentHints.transferStaff")
+        : t("assignmentHints.suspended")
+      : !transferable && onTransfer
+        ? t("assignmentHints.noBalanceMobile")
+        : null;
+
+    return (
+      <div className="mt-3 space-y-2">
+        {renderAppealAction(account, true)}
+        <div className={transferable ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>
+          {transferable ? (
+            <Button className={secondary} onClick={() => runTransfer(account)}>
+              {t("assignmentTable.transfer")}
+            </Button>
+          ) : null}
+          {reclaimable ? (
+            <Button className={secondary} onClick={() => runReclaim(account)}>
+              {t("assignmentTable.reclaim")}
+            </Button>
+          ) : (
+            <Button
+              className={primary}
+              disabled={loadingAccountId === account.id}
+              onClick={() => runAllocate(account)}
+            >
+              {loadingAccountId === account.id
+                ? actionLoading
+                : transferable
+                  ? actionLabel
+                  : actionLabelLong}
+            </Button>
+          )}
+        </div>
+        {hint ? <p className="text-[11px] leading-4 text-[#7a736a]">{hint}</p> : null}
+        {onEditTikTokIds ? (
+          <button
+            type="button"
+            className="inline-flex min-h-9 items-center text-[12px] font-medium text-[var(--brand-primary-deep)] underline-offset-2 hover:underline"
+            onClick={() => onEditTikTokIds(account)}
+          >
+            {t("assignmentTable.editTikTokId")}
+          </button>
+        ) : null}
+      </div>
     );
   }
 
@@ -349,14 +411,14 @@ export function PaymentsTable({
       )}
 
       {!isEmpty ? (
-        <div className="space-y-3 p-3 sm:p-4 md:hidden">
+        <div className="space-y-2.5 px-3 pb-4 pt-1 sm:px-4 md:hidden">
           {accounts.map((account) => (
             <article
               key={account.id}
               className={
                 isReclaimableSuspended(account)
-                  ? "rounded-xl border border-[#f0c4a8] bg-[linear-gradient(180deg,#fff8f2_0%,#fffcf8_100%)] p-3.5"
-                  : "rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-[#fffcf8] p-3.5 transition-colors hover:bg-[#faf7f3]"
+                  ? "rounded-xl border border-[#f0c4a8] bg-[#fff8f2] p-3.5"
+                  : "rounded-xl border border-[rgb(20_18_16_/_0.08)] bg-white p-3.5"
               }
             >
               <div className="min-w-0">
@@ -373,17 +435,10 @@ export function PaymentsTable({
                     {statusLabel(account.status)}
                   </span>
                   {renderAppealChip(account)}
-                  {!agencyBmFunding ? (
-                    <span
-                      className={
-                        account.autoRecharge
-                          ? "rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]"
-                          : "rounded bg-[#f3eee8] px-1.5 py-0.5 text-[10px] font-medium text-[#6b645c]"
-                      }
-                    >
-                      {account.autoRecharge
-                        ? t("assignmentTable.autoDebitOn")
-                        : t("assignmentTable.autoDebitOff")}
+                  {/* Débito apagado ya lo dice la línea de auto-recarga: solo marcar cuando está activo. */}
+                  {!agencyBmFunding && account.autoRecharge ? (
+                    <span className="rounded bg-[#ecf7f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#1f5c40]">
+                      {t("assignmentTable.autoDebitOn")}
                     </span>
                   ) : null}
                 </div>
@@ -394,16 +449,15 @@ export function PaymentsTable({
                 </p>
               </div>
 
-              <div className="mt-3 border-t border-[rgb(20_18_16_/_0.06)] pt-3">
+              <div className="mt-3 rounded-lg bg-[#faf7f3] px-3 py-2.5">
                 {renderBalanceCell(account, true)}
+                {!agencyBmFunding && account.thresholdInfo ? (
+                  <p className="mt-1 text-[11px] leading-4 text-[#9a9187]">
+                    {account.thresholdInfo}
+                  </p>
+                ) : null}
               </div>
-
-              {!agencyBmFunding && account.thresholdInfo ? (
-                <p className="mt-2 text-[11px] leading-4 text-[#9a9187]">
-                  {account.thresholdInfo}
-                </p>
-              ) : null}
-              {renderActions(account, true)}
+              {renderMobileActions(account)}
             </article>
           ))}
         </div>

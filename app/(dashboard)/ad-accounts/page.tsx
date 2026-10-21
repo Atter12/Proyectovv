@@ -1,7 +1,6 @@
 ﻿import { getTranslations } from "next-intl/server";
 import { dashboardClasses } from "@/lib/ui/dashboard-classes";
 import { AdAccountsPageHeader } from "@/features/ad-accounts/components/AdAccountsPageHeader";
-import { AdAccountsMobileStickyCta } from "@/features/ad-accounts/components/AdAccountsMobileStickyCta.client";
 import { AdAccountsOpenCreateModalButton } from "@/features/ad-accounts/components/AdAccountsOpenCreateModalButton.client";
 import { AdAccountsTable } from "@/features/ad-accounts/components/AdAccountsTable";
 import { AdAccountsToolbar } from "@/features/ad-accounts/components/AdAccountsToolbar.client";
@@ -132,7 +131,6 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           <AdAccountsTable accounts={filteredAccounts} readOnly />
         )}
       </CrmPanel>
-      <AdAccountsMobileStickyCta enableTikTokCreate />
     </div>
   );
 }
