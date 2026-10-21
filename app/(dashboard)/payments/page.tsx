@@ -98,12 +98,14 @@ export default async function PaymentsPage({
     status === "success" ||
     status === "cancelled" ||
     status === "pending_crypto";
-  const selected = await getSelectedHecomCliente(session.id);
-  const actingAsCliente = await getActingAsCliente(session.id);
-  const rawCapabilities = await resolvePaymentsFundingCapabilities({
-    email: session.email,
-    role: session.role,
-  });
+  const [selected, actingAsCliente, rawCapabilities] = await Promise.all([
+    getSelectedHecomCliente(session.id),
+    getActingAsCliente(session.id),
+    resolvePaymentsFundingCapabilities({
+      email: session.email,
+      role: session.role,
+    }),
+  ]);
   const capabilities = withActAsClienteView(
     rawCapabilities,
     actingAsCliente,
@@ -130,13 +132,17 @@ export default async function PaymentsPage({
   }
 
   // Paralelizar: dashboard ligero + cuentas (cache BM). Antes: serie + TikTok live.
-  const [data, adsOverview] = await Promise.all([
+  const [data, adsOverview, myRecharges] = await Promise.all([
     getHecomClienteDashboard(selected.id, {
       includeCampaignSpend: false,
       includeCreativos: false,
       includeDailySpend: false,
     }),
     getHecomClienteAdAccountsOverview(selected.id, "fast"),
+    // Mismo cliente que la cartera: ya no espera al dashboard.
+    session.organizationId
+      ? listMyRecharges({ organizationId: session.organizationId, hecomClienteId: selected.id })
+      : Promise.resolve([]),
   ]);
   if (!data) {
     return (
@@ -203,10 +209,6 @@ export default async function PaymentsPage({
       }
     });
   }
-
-  const myRecharges = session.organizationId
-    ? await listMyRecharges({ organizationId: session.organizationId, hecomClienteId: cliente.id })
-    : [];
 
   const introCopy =
     capabilities.canAgencyBmFund && !capabilities.canClientStripeFund

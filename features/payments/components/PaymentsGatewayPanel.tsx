@@ -65,19 +65,19 @@ export async function PaymentsGatewayPanel({
   skipApprovedSync = false,
   creditSlot = null,
 }: PaymentsGatewayPanelProps) {
-  const t = await getTranslations("payments");
-  const actingAsCliente = await getActingAsCliente(session.id);
-  const capabilities = withActAsClienteView(
-    await resolvePaymentsFundingCapabilities({
+  // Independientes entre sí: en paralelo (antes iban en fila).
+  const [t, actingAsCliente, rawCapabilities, clienteOrgId] = await Promise.all([
+    getTranslations("payments"),
+    getActingAsCliente(session.id),
+    resolvePaymentsFundingCapabilities({
       email: session.email,
       role: session.role,
     }),
-    actingAsCliente,
-  );
-
-  const clienteOrgId = hecomClienteId
-    ? await resolveOrganizationIdForHecomCliente(hecomClienteId)
-    : null;
+    hecomClienteId
+      ? resolveOrganizationIdForHecomCliente(hecomClienteId)
+      : Promise.resolve(null),
+  ]);
+  const capabilities = withActAsClienteView(rawCapabilities, actingAsCliente);
   // Cartera + filas ad_accounts del cliente (OTP), no org staff al “ver como”.
   const useClientOrgForWallet =
     Boolean(clienteOrgId) &&
@@ -280,28 +280,41 @@ export async function PaymentsGatewayPanel({
     }
   }
 
-  const core = await getPaymentPageCore(session, {
-    organizationId: opsOrganizationId,
-  });
-  let depositFeePercent = DEFAULT_DEPOSIT_FEE_PERCENT;
-  if (hecomClienteId) {
-    try {
-      const hecomCliente = await getHecomCliente(hecomClienteId);
-      depositFeePercent = resolveFeePercentFromHecomCliente({
-        tiktokDefaultFee: hecomCliente?.tiktokDefaultFee ?? null,
-        accountFees: (hecomCliente?.tiktokAccounts ?? []).map((a) => a.fee),
-      }).feePercent;
-    } catch (error) {
-      console.warn("[payments] deposit_fee_resolve_failed", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
-    }
-  }
+  // Con cliente: las cuentas se leen acotadas a sus advertisers (la org de agencia
+  // tiene 1000+ filas y cargarlas todas con saldos era lo que frenaba Pagos).
+  const scopedToCliente = Boolean(opsOrganizationId && hecomClienteId);
+  const [core, depositFeePercent] = await Promise.all([
+    getPaymentPageCore(session, {
+      organizationId: opsOrganizationId,
+      skipAdAccounts: scopedToCliente,
+    }),
+    hecomClienteId
+      ? getHecomCliente(hecomClienteId)
+          .then(
+            (hecomCliente) =>
+              resolveFeePercentFromHecomCliente({
+                tiktokDefaultFee: hecomCliente?.tiktokDefaultFee ?? null,
+                accountFees: (hecomCliente?.tiktokAccounts ?? []).map((a) => a.fee),
+              }).feePercent,
+          )
+          .catch((error: unknown) => {
+            console.warn("[payments] deposit_fee_resolve_failed", {
+              error: error instanceof Error ? error.message : "unknown",
+            });
+            return DEFAULT_DEPOSIT_FEE_PERCENT;
+          })
+      : Promise.resolve(DEFAULT_DEPOSIT_FEE_PERCENT),
+  ]);
 
   // Con cliente Hecom: leer con service role y scopear (evita pool vacío por RLS/viewer).
   let pool: PaymentAccountAllocation[] = core.adAccountsForAllocation;
   if (opsOrganizationId && hecomClienteId) {
-    if (pool.length === 0 && approvedIds.length > 0) {
+    const listScoped = () =>
+      listOrganizationAdAccountsForAllocation(opsOrganizationId, {
+        externalAccountIds: [...approvedIds, ...suspendedIds],
+      });
+    let adminPool = await listScoped();
+    if (adminPool.length === 0 && approvedIds.length > 0) {
       ensured = await ensureAdvertisersInOrganizationForAllocation({
         organizationId: opsOrganizationId,
         clienteId: hecomClienteId,
@@ -309,11 +322,8 @@ export async function PaymentsGatewayPanel({
         userId: session.id,
         advertisers: advertiserEnsureList(approvedIds),
       });
+      adminPool = await listScoped();
     }
-
-    const adminPool = await listOrganizationAdAccountsForAllocation(
-      opsOrganizationId,
-    );
     if (adminPool.length > 0) {
       pool = adminPool;
     }
@@ -365,6 +375,7 @@ export async function PaymentsGatewayPanel({
         });
         const adminPool = await listOrganizationAdAccountsForAllocation(
           opsOrganizationId,
+          { externalAccountIds: [...approvedIds, ...suspendedIds] },
         );
         if (adminPool.length > 0) pool = adminPool;
         syncNote = null;

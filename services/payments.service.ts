@@ -84,28 +84,44 @@ async function getAdAccountBalanceMap(organizationId: string): Promise<Map<strin
  */
 export async function listOrganizationAdAccountsForAllocation(
   organizationId: string,
+  options?: {
+    /** Solo estas cuentas TikTok (advertiser ids). La org de agencia tiene 1000+ filas. */
+    externalAccountIds?: string[];
+  },
 ): Promise<PaymentAccountAllocation[]> {
   if (!organizationId) return [];
+  const onlyExternal = options?.externalAccountIds
+    ? [...new Set(options.externalAccountIds.map((id) => id.trim()).filter(Boolean))]
+    : null;
+  if (onlyExternal && onlyExternal.length === 0) return [];
 
   try {
     const { createAdminClient } = await import("@/lib/supabase/admin");
     const admin = createAdminClient();
     // La org de agencia pasa las 1000 filas (tope de PostgREST): sin paginar, las
     // cuentas más viejas no salían en Pagos (caso Fabian Hoyos, 20/10/2026).
-    const [accountsRes, balanceByAccount] = await Promise.all([
-      selectAllPages((from, to) =>
-        admin
+    const selectAccounts = () =>
+      selectAllPages((from, to) => {
+        let q = admin
           .from("ad_accounts")
           .select(
             "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at, metadata",
           )
-          .eq("organization_id", organizationId)
+          .eq("organization_id", organizationId);
+        if (onlyExternal) q = q.in("external_account_id", onlyExternal);
+        return q
           .order("created_at", { ascending: false })
           .order("id", { ascending: true })
-          .range(from, to),
-      ),
-      getAdAccountBalanceMapAdmin(organizationId),
-    ]);
+          .range(from, to);
+      });
+    // Con cuentas acotadas: primero las filas y luego solo sus saldos (no el ledger de toda la org).
+    const [accountsRes, balanceByAccount] = onlyExternal
+      ? await (async () => {
+          const res = await selectAccounts();
+          const ids = ((res.data ?? []) as Array<{ id: string }>).map((row) => String(row.id));
+          return [res, await getAdAccountBalanceMapAdmin(organizationId, ids)] as const;
+        })()
+      : await Promise.all([selectAccounts(), getAdAccountBalanceMapAdmin(organizationId)]);
 
     if (accountsRes.error) {
       console.warn("[payments] list_org_ad_accounts", accountsRes.error.message);
@@ -457,18 +473,21 @@ async function selectAllPages<T>(
 
 async function getAdAccountBalanceMapAdmin(
   organizationId: string,
+  /** Si viene, solo esas cuentas (vacío = mapa vacío). */
+  adAccountIds?: string[],
 ): Promise<Map<string, number>> {
+  if (adAccountIds && adAccountIds.length === 0) return new Map();
   try {
     const { createAdminClient } = await import("@/lib/supabase/admin");
     const admin = createAdminClient();
-    const { data: ledgerRows, error: ledgerError } = await selectAllPages((from, to) =>
-      admin
+    const { data: ledgerRows, error: ledgerError } = await selectAllPages((from, to) => {
+      let q = admin
         .from("v_ad_account_ledger_balances")
         .select("ad_account_id, available_balance_cents")
-        .eq("organization_id", organizationId)
-        .order("ad_account_id", { ascending: true })
-        .range(from, to),
-    );
+        .eq("organization_id", organizationId);
+      if (adAccountIds) q = q.in("ad_account_id", adAccountIds);
+      return q.order("ad_account_id", { ascending: true }).range(from, to);
+    });
 
     if (!ledgerError && ledgerRows) {
       return new Map(
@@ -482,14 +501,14 @@ async function getAdAccountBalanceMapAdmin(
       );
     }
 
-    const { data: legacyRows } = await selectAllPages((from, to) =>
-      admin
+    const { data: legacyRows } = await selectAllPages((from, to) => {
+      let q = admin
         .from("ad_account_balances")
         .select("ad_account_id, balance_cents")
-        .eq("organization_id", organizationId)
-        .order("ad_account_id", { ascending: true })
-        .range(from, to),
-    );
+        .eq("organization_id", organizationId);
+      if (adAccountIds) q = q.in("ad_account_id", adAccountIds);
+      return q.order("ad_account_id", { ascending: true }).range(from, to);
+    });
 
     return new Map(
       ((legacyRows ?? []) as Array<{ ad_account_id: string; balance_cents: number }>).map(
@@ -535,7 +554,11 @@ async function getWalletLedgerBalanceAdmin(organizationId: string): Promise<{
 
 export const getPaymentPageCore = cache(async (
   session: SessionUser,
-  options?: { organizationId?: string | null },
+  options?: {
+    organizationId?: string | null;
+    /** true = no leer ad_accounts ni sus saldos (Pagos con cliente ya las trae acotadas). */
+    skipAdAccounts?: boolean;
+  },
 ): Promise<PaymentPageCore> => {
   const organizationId =
     options?.organizationId?.trim() || session.organizationId;
@@ -553,14 +576,18 @@ export const getPaymentPageCore = cache(async (
         .select("*")
         .eq("organization_id", organizationId)
         .maybeSingle<DbPaymentsPageSummaryRow>(),
-      admin
-        .from("ad_accounts")
-        .select(
-          "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
-        )
-        .eq("organization_id", organizationId)
-        .order("created_at", { ascending: false }),
-      getAdAccountBalanceMapAdmin(organizationId),
+      options?.skipAdAccounts
+        ? Promise.resolve({ data: [] as DbAdAccountRow[] })
+        : admin
+            .from("ad_accounts")
+            .select(
+              "id, organization_id, name, platform, external_account_id, status, daily_budget_cents, currency, created_at, updated_at",
+            )
+            .eq("organization_id", organizationId)
+            .order("created_at", { ascending: false }),
+      options?.skipAdAccounts
+        ? Promise.resolve(new Map<string, number>())
+        : getAdAccountBalanceMapAdmin(organizationId),
       getCachedPaymentGateways(),
       getCachedDefaultGatewayId(),
       getWalletLedgerBalanceAdmin(organizationId),

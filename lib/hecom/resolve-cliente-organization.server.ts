@@ -13,27 +13,26 @@ export async function resolveOrganizationIdForHecomCliente(
 
   const admin = createAdminClient();
 
-  const { data: links } = await admin
-    .from("hecom_cliente_user_links")
-    .select("user_id")
-    .eq("hecom_cliente_id", hecomClienteId)
-    .limit(20);
-
-  const userIds = [...new Set((links ?? []).map((row) => String(row.user_id)))];
-  if (userIds.length > 0) {
+  // Las tres fuentes en paralelo (antes en fila, ~2 s); se respeta el mismo orden de prioridad.
+  const fromLinks = (async () => {
+    const { data: links } = await admin
+      .from("hecom_cliente_user_links")
+      .select("user_id")
+      .eq("hecom_cliente_id", hecomClienteId)
+      .limit(20);
+    const userIds = [...new Set((links ?? []).map((row) => String(row.user_id)))];
+    if (userIds.length === 0) return null;
     const { data: memberships } = await admin
       .from("organization_memberships")
       .select("organization_id, user_id, role, created_at")
       .in("user_id", userIds)
       .eq("status", "active")
       .order("created_at", { ascending: true });
-
     const owner = (memberships ?? []).find((m) => m.role === "owner");
     const pick = owner ?? memberships?.[0];
-    if (pick?.organization_id) return String(pick.organization_id);
-  }
-
-  const { data: payment } = await admin
+    return pick?.organization_id ? String(pick.organization_id) : null;
+  })();
+  const fromPayment = admin
     .from("payment_intents")
     .select("organization_id")
     .eq("metadata->>hecom_cliente_id", hecomClienteId)
@@ -41,16 +40,21 @@ export async function resolveOrganizationIdForHecomCliente(
     .order("succeeded_at", { ascending: false })
     .limit(1)
     .maybeSingle<{ organization_id: string }>();
-
-  if (payment?.organization_id) return String(payment.organization_id);
-
-  const { data: adRows } = await admin
+  const fromAdRows = admin
     .from("ad_accounts")
     .select("organization_id")
     .eq("platform", "tiktok")
     .eq("metadata->>hecom_cliente_id", hecomClienteId)
     .not("organization_id", "is", null)
     .limit(30);
+  const [linkOrg, { data: payment }, { data: adRows }] = await Promise.all([
+    fromLinks,
+    fromPayment,
+    fromAdRows,
+  ]);
+
+  if (linkOrg) return linkOrg;
+  if (payment?.organization_id) return String(payment.organization_id);
 
   const orgIds = [
     ...new Set(
