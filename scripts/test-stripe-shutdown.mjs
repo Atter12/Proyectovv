@@ -161,3 +161,24 @@ test("a client cannot force a Stripe intent while staff-only is on", async () =>
   assert.equal(response.status, 403);
   assert.match((await response.json()).error, /tarjeta/);
 });
+
+test("checkout excludes BNPL methods and never sends payment_method_types (API 2026-09)", async () => {
+  let sent = null;
+  const fakeFetch = async (url, init) => {
+    sent = { url, body: new URLSearchParams(init.body) };
+    return { ok: true, json: async () => ({ id: "cs_test_1", url: "https://checkout.stripe.com/c/1" }) };
+  };
+  const { StripePaymentProvider } = load("lib/payments/providers/stripe.provider.ts", {
+    "../stripe-policy": enabledPolicy,
+    "./types": { ProviderNotConfiguredError: Error },
+    "@/lib/env/env.server": { serverEnv: { ...env, appUrl: "https://www.adsholistic.com" } },
+  }, { fetch: fakeFetch });
+  const result = await new StripePaymentProvider().createCheckout({
+    paymentIntentId: "int_1", organizationId: "org_1", walletId: "w_1",
+    currency: "USD", amountCents: 565, idempotencyKey: "k1",
+  });
+  assert.equal(result.providerReference, "cs_test_1");
+  assert.equal(sent.body.has("payment_method_types[]"), false);
+  assert.deepEqual(sent.body.getAll("excluded_payment_method_types[]"), [...enabledPolicy.STRIPE_EXCLUDED_PAYMENT_METHODS]);
+  assert.equal(sent.body.get("payment_intent_data[metadata][payment_intent_id]"), "int_1");
+});

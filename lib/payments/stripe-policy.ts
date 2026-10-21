@@ -17,6 +17,19 @@ export function canUseStripe(identity: { isStaff: boolean; isSuperAdmin: boolean
   return !STRIPE_STAFF_ONLY || identity.isStaff || identity.isSuperAdmin;
 }
 
+/**
+ * Desde la API 2026-09 Checkout ya no acepta payment_method_types: los métodos
+ * salen del Dashboard. Excluimos los de "compra ahora, paga después" y wallets
+ * solo-US (rompen Checkout fuera de US); queda tarjeta + Link.
+ */
+export const STRIPE_EXCLUDED_PAYMENT_METHODS = [
+  "klarna",
+  "affirm",
+  "afterpay_clearpay",
+  "cashapp",
+  "amazon_pay",
+] as const;
+
 export const STRIPE_DISABLED_MESSAGE =
   "Los pagos con Stripe están deshabilitados. Elige otro método de pago o contacta con soporte.";
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { assertStripePaymentsEnabled } from "./stripe-policy";
+import { assertStripePaymentsEnabled, STRIPE_EXCLUDED_PAYMENT_METHODS } from "./stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
 
 type StripeErrorBody = { error?: { message?: string } };
@@ -82,7 +82,9 @@ export async function createStripeSetupCheckoutSession(input: {
   const params = new URLSearchParams();
   params.set("mode", "setup");
   params.set("currency", "usd");
-  params.append("payment_method_types[]", "card");
+  for (const method of STRIPE_EXCLUDED_PAYMENT_METHODS) {
+    params.append("excluded_payment_method_types[]", method);
+  }
   params.set("customer", input.stripeCustomerId);
   params.set(
     "success_url",

@@ -1,5 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { assertStripePaymentsEnabled, STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
+import {
+  assertStripePaymentsEnabled,
+  STRIPE_EXCLUDED_PAYMENT_METHODS,
+  STRIPE_PAYMENTS_ENABLED,
+} from "../stripe-policy";
 import { serverEnv } from "@/lib/env/env.server";
 import {
   ProviderNotConfiguredError,
@@ -99,9 +103,11 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
       "Presupuesto TikTok Ads + gestión Holistic",
     );
     params.set("line_items[0][quantity]", "1");
-    // Solo tarjeta: Klarna/Afterpay/Affirm/etc. rompen Checkout fuera de US
+    // Tarjeta (+ Link): Klarna/Afterpay/Affirm/etc. rompen Checkout fuera de US
     // ("Something went wrong" en Safari / clientes internacionales).
-    params.append("payment_method_types[]", "card");
+    for (const method of STRIPE_EXCLUDED_PAYMENT_METHODS) {
+      params.append("excluded_payment_method_types[]", method);
+    }
     params.set("adaptive_pricing[enabled]", "false");
     if (input.customerEmail) {
       params.set("customer_email", input.customerEmail);
