@@ -214,6 +214,18 @@ export function PaymentsTable({
     if (!onAppeal || account.status !== "disabled") return null;
     const status = appealStatusOf(account);
     if (appealIsOpen(status) || status === "approved") return null;
+    const label = status === "rejected" ? tAppeal("appealAgain") : tAppeal("appealCta");
+    if (mobile) {
+      return (
+        <button
+          type="button"
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[#1c1917]/25 bg-white text-[13px] font-semibold text-[#1c1917] transition hover:bg-[#f6f4f1]"
+          onClick={() => onAppeal(account)}
+        >
+          {label}
+        </button>
+      );
+    }
     return (
       <Button
         className={
@@ -237,8 +249,9 @@ export function PaymentsTable({
       ? liveMetricsByAdvertiser?.[advertiserId]?.balanceUsd
       : undefined;
     const transferable = hasTransferableBalance(account, liveUsd) && Boolean(onTransfer);
+    // Botón nativo: <Button> primary agrega text-white y dejaba el texto invisible.
     const secondary =
-      "h-10 rounded-lg border border-[var(--brand-primary-deep)]/40 bg-white text-[13px] font-semibold text-[var(--brand-primary-deep)] hover:bg-[var(--admin-accent-soft)]";
+      "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--brand-primary-deep)]/40 bg-white text-[13px] font-semibold text-[var(--brand-primary-deep)] transition hover:bg-[#fff7f0]";
     const primary =
       "h-10 rounded-lg bg-[var(--brand-primary)] text-[13px] font-semibold hover:bg-[var(--brand-primary-deep)]";
     const hint = reclaimable
@@ -256,14 +269,14 @@ export function PaymentsTable({
         {renderAppealAction(account, true)}
         <div className={transferable ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>
           {transferable ? (
-            <Button className={secondary} onClick={() => runTransfer(account)}>
+            <button type="button" className={secondary} onClick={() => runTransfer(account)}>
               {t("assignmentTable.transfer")}
-            </Button>
+            </button>
           ) : null}
           {reclaimable ? (
-            <Button className={secondary} onClick={() => runReclaim(account)}>
+            <button type="button" className={secondary} onClick={() => runReclaim(account)}>
               {t("assignmentTable.reclaim")}
-            </Button>
+            </button>
           ) : (
             <Button
               className={primary}
