@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 
 const noopSubscribe = () => () => {};
 import { useTranslations } from "next-intl";
@@ -61,11 +68,16 @@ export function EducationPlayerDialog({
   const [startedSlug, setStartedSlug] = useState<string | null>(null);
   const showCover =
     Boolean(lesson?.videoPosterUrl) && !lesson?.videoUrl && startedSlug !== lesson?.slug;
+  // El MP4 puede ser vertical o cuadrado; Loom y Drive no dicen su proporción y quedan en 16:9.
+  const [measured, setMeasured] = useState<{ src: string; ratio: number } | null>(null);
+  const ratio =
+    lesson?.videoUrl && measured?.src === lesson.videoUrl ? measured.ratio : 16 / 9;
 
   return (
     <dialog
       ref={dialogRef}
       className="education-dialog"
+      style={{ "--education-ratio": String(ratio) } as CSSProperties}
       aria-labelledby={titleId}
       onClose={() => {
         setStartedSlug(null);
@@ -108,7 +120,7 @@ export function EducationPlayerDialog({
 
           {ready ? (
             <div ref={playerRef} className="education-player flex flex-col bg-black">
-              <div className="education-player-frame relative aspect-video w-full bg-black">
+              <div className="education-player-frame relative bg-black">
                 {lesson.videoUrl ? (
                   <video
                     key={lesson.videoUrl}
@@ -116,6 +128,11 @@ export function EducationPlayerDialog({
                     poster={lesson.videoPosterUrl ?? lesson.posterUrl ?? undefined}
                     controls
                     playsInline
+                    onLoadedMetadata={(event) => {
+                      const { videoWidth, videoHeight, currentSrc } = event.currentTarget;
+                      if (!videoWidth || !videoHeight) return;
+                      setMeasured({ src: lesson.videoUrl ?? currentSrc, ratio: videoWidth / videoHeight });
+                    }}
                     className="h-full w-full"
                   />
                 ) : showCover ? (
