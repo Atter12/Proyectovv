@@ -42,8 +42,11 @@ export function PaymentsGatewayBlockClient({
     canAgencyBmFund,
     canSwitchFundingModes,
   } = usePaymentsFundingMode();
-  const [selectedGateway, setSelectedGateway] =
-    useState<PaymentGatewayId>(initialSelected === "stripe" ? "cobrana" : initialSelected);
+  const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayId>(() => {
+    const initial = gateways.find((g) => g.id === initialSelected);
+    if (initialSelected !== "stripe" && initial && !initial.maintenance) return initialSelected;
+    return gateways.find((g) => g.id !== "stripe" && !g.maintenance)?.id ?? "cobrana";
+  });
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {

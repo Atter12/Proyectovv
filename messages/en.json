@@ -826,7 +826,9 @@
     },
     "gatewaySelector": {
       "aria": "Payment method",
-      "maintenance": "Maintenance"
+      "maintenance": "Maintenance",
+      "maintenanceNoticeTitle": "{name} is under maintenance.",
+      "maintenanceNoticeBody": "It will be enabled again once this process is complete. Meanwhile you can top up with Yape / Plin, manual payment or crypto."
     },
     "gateways": {
       "stripeDesc": "Cards and global payments",

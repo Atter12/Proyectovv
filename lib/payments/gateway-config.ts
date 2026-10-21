@@ -11,6 +11,8 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
     id: "whop",
     name: "Whop",
     description: "Tarjeta, Apple Pay y wallets globales",
+    // Whop cayó (checkout sin métodos de pago). Quitar al terminar el mantenimiento.
+    maintenance: true,
   },
   {
     id: "cobrana",

@@ -826,7 +826,9 @@
     },
     "gatewaySelector": {
       "aria": "Método de pagamento",
-      "maintenance": "Manutenção"
+      "maintenance": "Manutenção",
+      "maintenanceNoticeTitle": "{name} está em manutenção.",
+      "maintenanceNoticeBody": "Será habilitado assim que este processo terminar. Enquanto isso, você pode recarregar com Yape / Plin, pagamento manual ou cripto."
     },
     "gateways": {
       "stripeDesc": "Cartões e pagamentos globais",

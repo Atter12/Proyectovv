@@ -18,91 +18,116 @@ export function PaymentGatewaySelector({
   onSelect,
 }: PaymentGatewaySelectorProps) {
   const t = useTranslations("payments");
+  const inMaintenanceGateways = gateways.filter(
+    (gateway) => gateway.id !== "stripe" && gateway.maintenance,
+  );
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={t("gatewaySelector.aria")}
-      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-    >
-      {gateways.filter((gateway) => gateway.id !== "stripe").map((gateway) => {
-        const inMaintenance = Boolean(gateway.maintenance);
-        const isSelected = selected === gateway.id && !inMaintenance;
-        const localizedName =
-          gateway.id === "manual" ? t("gateways.manualName") : gateway.name;
-        const localizedDescription =
-          gateway.id === "stripe"
-            ? t("gateways.stripeDesc")
-            : gateway.id === "whop"
-              ? t("gateways.whopDesc")
-              : gateway.id === "cobrana"
-                ? t("gateways.cobranaDesc")
-                : gateway.id === "manual"
-                  ? t("gateways.manualDesc")
-                  : gateway.description;
-        return (
-          <button
-            key={gateway.id}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            aria-disabled={inMaintenance}
-            disabled={inMaintenance}
-            onClick={() => {
-              if (inMaintenance) return;
-              onSelect(gateway.id);
-            }}
-            className={cn(
-              "relative flex min-h-20 w-full min-w-0 items-start gap-3 rounded-xl border px-3.5 py-3.5 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99] sm:px-4",
-              inMaintenance
-                ? "cursor-not-allowed border-[var(--auth-border)] bg-[#f7f5f2] opacity-80"
-                : isSelected
-                  ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
-                  : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/40 hover:bg-[var(--auth-bg)]",
-            )}
+    <>
+      {inMaintenanceGateways.map((gateway) => (
+        <div
+          key={gateway.id}
+          role="status"
+          className="mb-3 flex items-start gap-2.5 rounded-xl border border-[#f0d9a8] bg-[#fff8e8] px-3.5 py-3 text-[12px] leading-5 text-[#7a5a17]"
+        >
+          <span
+            aria-hidden
+            className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#e9b949] text-[10px] font-bold text-white"
           >
-            <GatewayLogo gatewayId={gateway.id} size="sm" />
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
-                  {localizedName}
+            !
+          </span>
+          <p>
+            <span className="font-semibold">
+              {t("gatewaySelector.maintenanceNoticeTitle", { name: gateway.name })}
+            </span>{" "}
+            {t("gatewaySelector.maintenanceNoticeBody")}
+          </p>
+        </div>
+      ))}
+      <div
+        role="radiogroup"
+        aria-label={t("gatewaySelector.aria")}
+        className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      >
+        {gateways.filter((gateway) => gateway.id !== "stripe").map((gateway) => {
+          const inMaintenance = Boolean(gateway.maintenance);
+          const isSelected = selected === gateway.id && !inMaintenance;
+          const localizedName =
+            gateway.id === "manual" ? t("gateways.manualName") : gateway.name;
+          const localizedDescription =
+            gateway.id === "stripe"
+              ? t("gateways.stripeDesc")
+              : gateway.id === "whop"
+                ? t("gateways.whopDesc")
+                : gateway.id === "cobrana"
+                  ? t("gateways.cobranaDesc")
+                  : gateway.id === "manual"
+                    ? t("gateways.manualDesc")
+                    : gateway.description;
+          return (
+            <button
+              key={gateway.id}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-disabled={inMaintenance}
+              disabled={inMaintenance}
+              onClick={() => {
+                if (inMaintenance) return;
+                onSelect(gateway.id);
+              }}
+              className={cn(
+                "relative flex min-h-20 w-full min-w-0 items-start gap-3 rounded-xl border px-3.5 py-3.5 text-left transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--auth-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99] sm:px-4",
+                inMaintenance
+                  ? "cursor-not-allowed border-[var(--auth-border)] bg-[#f7f5f2] opacity-80"
+                  : isSelected
+                    ? "border-[var(--auth-accent)] bg-[var(--auth-accent-soft)]"
+                    : "border-[var(--auth-border)] bg-white hover:border-[var(--auth-accent)]/40 hover:bg-[var(--auth-bg)]",
+              )}
+            >
+              <GatewayLogo gatewayId={gateway.id} size="sm" />
+  
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-[13px] font-semibold text-[var(--auth-text)]">
+                    {localizedName}
+                  </p>
+                  {inMaintenance ? (
+                    <span className="shrink-0 rounded-full bg-[#e7e2db] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#5c564e]">
+                      {t("gatewaySelector.maintenance")}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
+                  {localizedDescription}
                 </p>
-                {inMaintenance ? (
-                  <span className="shrink-0 rounded-full bg-[#e7e2db] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#5c564e]">
-                    {t("gatewaySelector.maintenance")}
-                  </span>
+                {gateway.id === "stripe" || gateway.id === "whop" ? (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {(["visa", "mastercard"] as const).map((app) => (
+                      <PaymentAppIcon key={app} app={app} size="sm" />
+                    ))}
+                  </div>
+                ) : gateway.id === "cobrana" ? (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {(
+                      [
+                        "yape",
+                        "plin",
+                        "bcp",
+                        "interbank",
+                        "bbva",
+                        "scotiabank",
+                      ] as const
+                    ).map((app) => (
+                      <PaymentAppIcon key={app} app={app} size="sm" />
+                    ))}
+                  </div>
                 ) : null}
               </div>
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-[var(--auth-text-muted)]">
-                {localizedDescription}
-              </p>
-              {gateway.id === "stripe" || gateway.id === "whop" ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {(["visa", "mastercard"] as const).map((app) => (
-                    <PaymentAppIcon key={app} app={app} size="sm" />
-                  ))}
-                </div>
-              ) : gateway.id === "cobrana" ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      "yape",
-                      "plin",
-                      "bcp",
-                      "interbank",
-                      "bbva",
-                      "scotiabank",
-                    ] as const
-                  ).map((app) => (
-                    <PaymentAppIcon key={app} app={app} size="sm" />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </button>
-        );
-      })}
-    </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
