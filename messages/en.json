@@ -2475,6 +2475,31 @@
     }
   },
   "creatives": {
+    "videoGallery": {
+      "openPost": "View on TikTok",
+      "title": "Your TikTok videos",
+      "subtitle": "Last {days} days · {videos} videos · {spend} spent · {cpr} per result",
+      "subtitleEmpty": "Last {days} days",
+      "play": "Play video",
+      "close": "Close",
+      "adsCount": "{count, plural, one {In # ad} other {In # ads}}",
+      "spend": "Spend",
+      "results": "Results",
+      "cpr": "Cost/result",
+      "hold6s": "Watch 6s",
+      "verdict": {
+        "winner": "Winner",
+        "noResults": "Spending, no results",
+        "tired": "Getting tired",
+        "expensive": "Expensive",
+        "steady": "Steady"
+      },
+      "footnote": "TikTok data through {through}. Winner = 20% cheaper than your average. Getting tired = fewer and fewer people click it.",
+      "emptyTitle": "No videos with spend yet",
+      "emptyBody": "Once your ads spend on TikTok, you'll see which video sells and which doesn't.",
+      "errorTitle": "Couldn't load your videos",
+      "errorBody": "Try again in a few minutes."
+    },
     "module": "Creatives",
     "title": "Creative Hub · Agent Pro",
     "meta": "Upload → AI → Send campaign · {count} with score",

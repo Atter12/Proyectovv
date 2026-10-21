@@ -15,6 +15,7 @@ import { CreativeUploadPanel } from "@/features/creative-analyzer/components/Cre
 import { CreativeAssetsPanel } from "@/features/creative-analyzer/components/CreativeAssetsPanel.client";
 import { AgentProDraftsPanel } from "@/features/creative-analyzer/components/AgentProDraftsPanel.client";
 import { CreativePipelineStrip } from "@/features/creative-analyzer/components/CreativePipelineStrip.client";
+import { TikTokVideoGallery } from "@/features/creative-analyzer/components/TikTokVideoGallery";
 import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
   HecomClienteDashboard,
@@ -65,6 +66,7 @@ export async function ClienteScopedCreatives({
   drafts,
   publishEnabled,
   expectDiscoverRefresh = false,
+  organizationId,
 }: {
   data: HecomClienteDashboard;
   accounts: CreativeAccountOption[];
@@ -73,6 +75,7 @@ export async function ClienteScopedCreatives({
   publishEnabled: boolean;
   /** Soft refresh once so background TikTok discovery can land. */
   expectDiscoverRefresh?: boolean;
+  organizationId?: string;
 }) {
   const t = await getTranslations("creatives");
   const h = await getTranslations("help");
@@ -176,6 +179,15 @@ export async function ClienteScopedCreatives({
         publishEnabled={publishEnabled}
         expectDiscoverRefresh={expectDiscoverRefresh}
       />
+
+      {/* Videos que ya corren en TikTok: se carga aparte para no frenar la página */}
+      <Suspense
+        fallback={
+          <div className="h-64 animate-pulse motion-reduce:animate-none rounded-[1.35rem] border border-[rgb(20_18_16_/_0.08)] bg-white" />
+        }
+      >
+        <TikTokVideoGallery clienteId={cliente.id} organizationId={organizationId} />
+      </Suspense>
 
       <Suspense
         fallback={

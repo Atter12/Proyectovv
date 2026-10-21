@@ -2475,6 +2475,31 @@
     }
   },
   "creatives": {
+    "videoGallery": {
+      "openPost": "Ver no TikTok",
+      "title": "Seus vídeos no TikTok",
+      "subtitle": "Últimos {days} dias · {videos} vídeos · {spend} gastos · {cpr} por resultado",
+      "subtitleEmpty": "Últimos {days} dias",
+      "play": "Ver vídeo",
+      "close": "Fechar",
+      "adsCount": "{count, plural, one {Em # anúncio} other {Em # anúncios}}",
+      "spend": "Gasto",
+      "results": "Resultados",
+      "cpr": "Custo/resultado",
+      "hold6s": "Veem 6 s",
+      "verdict": {
+        "winner": "Vencedor",
+        "noResults": "Gasta sem resultados",
+        "tired": "Está cansando",
+        "expensive": "Caro",
+        "steady": "Estável"
+      },
+      "footnote": "Dados do TikTok até {through}. Vencedor = custa 20% menos que sua média. Está cansando = cada vez menos gente clica.",
+      "emptyTitle": "Ainda não há vídeos com gasto",
+      "emptyBody": "Quando seus anúncios gastarem no TikTok, aqui você verá qual vídeo vende e qual não.",
+      "errorTitle": "Não foi possível carregar seus vídeos",
+      "errorBody": "Tente novamente em alguns minutos."
+    },
     "module": "Criativos",
     "title": "Creative Hub · Agent Pro",
     "meta": "Envie → IA → Enviar campanha · {count} com score",

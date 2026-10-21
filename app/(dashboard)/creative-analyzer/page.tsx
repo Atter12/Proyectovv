@@ -279,6 +279,7 @@ export default async function CreativeAnalyzerPage() {
         drafts={drafts}
         publishEnabled={isTikTokCreativePublishEnabled()}
         expectDiscoverRefresh={advertiserIds.length > 0}
+        organizationId={session.organizationId ?? undefined}
       />
     </div>
   );
