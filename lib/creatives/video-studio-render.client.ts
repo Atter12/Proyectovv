@@ -474,6 +474,41 @@ function sparkles(c: DrawContext, local: number) {
 type Shot = "label" | "side" | "detail";
 const SHOTS: Shot[] = ["label", "side", "detail"];
 
+/**
+ * Foto de ambiente (sin fondo liso) con buena resolución: va a pantalla
+ * completa y la "cámara" se mueve sobre ella. Una tarjetita chica se ve amateur.
+ */
+function isPhoto(m: StudioMedia | undefined): m is StudioMedia {
+  return m?.kind === "image" && !m.prepared?.cut && Math.min(m.width, m.height) >= 480;
+}
+
+/** Foto a pantalla completa con el punto (fx, fy) al centro, sin dejar bordes vacíos. */
+function drawPhoto(c: DrawContext, m: StudioMedia, opts: { scale: number; fx?: number; fy?: number; dx?: number }) {
+  const { ctx } = c;
+  const s = Math.max(W / m.width, H / m.height) * opts.scale;
+  const dw = m.width * s;
+  const dh = m.height * s;
+  const x = Math.min(0, Math.max(W - dw, W / 2 - (opts.fx ?? 0.5) * dw + (opts.dx ?? 0)));
+  const y = Math.min(0, Math.max(H - dh, H / 2 - (opts.fy ?? 0.5) * dh));
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(m.el, x, y, dw, dh);
+}
+
+/** Degradado oscuro del color del video donde va texto (arriba o abajo). */
+function shade(c: DrawContext, edge: "top" | "bottom", size: number, strength = 0.92) {
+  const { ctx, theme } = c;
+  const y0 = edge === "top" ? 0 : H - size;
+  const g = ctx.createLinearGradient(0, edge === "top" ? size : y0, 0, edge === "top" ? 0 : H);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(0.55, theme.bgBottom);
+  g.addColorStop(1, theme.bgBottom);
+  ctx.save();
+  ctx.globalAlpha *= strength;
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y0, W, size);
+  ctx.restore();
+}
+
 function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   const { ctx, input, media, theme, font } = c;
   const local = t - scene.start;
@@ -483,11 +518,18 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   ctx.textAlign = "left";
 
   if (scene.kind === "hook") {
-    drawBackground(c);
     const m = media[0];
-    const k = easeOut(local / 1.1);
-    floorGlow(ctx, theme, W / 2, 830, 520, k);
-    drawProduct(c, m, { cx: W / 2, cy: 500 + (1 - k) * 170, h: 650 * (0.92 + 0.08 * k) + local * 8, alpha: clamp(local / 0.35), shine: (local - 0.9) / 1.2, reflection: true });
+    if (isPhoto(m)) {
+      // Se aleja despacio: arranca encima del producto.
+      drawPhoto(c, m, { scale: 1.18 - 0.16 * easeOut(local / 2.4), fy: 0.45 });
+      shade(c, "top", 220, 0.7);
+      shade(c, "bottom", 560);
+    } else {
+      drawBackground(c);
+      const k = easeOut(local / 1.1);
+      floorGlow(ctx, theme, W / 2, 830, 520, k);
+      drawProduct(c, m, { cx: W / 2, cy: 500 + (1 - k) * 170, h: 650 * (0.92 + 0.08 * k) + local * 8, alpha: clamp(local / 0.35), shine: (local - 0.9) / 1.2, reflection: true });
+    }
     kicker(c, input.storeName, W / 2, 86, easeOut(local / 0.5), "center");
     ctx.font = `700 52px ${font.display}`;
     const lines = wrap(ctx, input.hook.trim() || input.productName, W - 110, 3);
@@ -515,8 +557,12 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
 
     if (shot === "label") {
       // Acercamiento a la etiqueta; el texto arriba sobre una franja oscura.
-      drawBackground(c);
-      if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.42, W / 2, 660, 1270 + local * 100), shine: local / 1.6 });
+      if (isPhoto(m)) {
+        drawPhoto(c, m, { scale: 1.02 + 0.1 * progress, fy: 0.45 });
+      } else {
+        drawBackground(c);
+        if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.42, W / 2, 660, 1270 + local * 100), shine: local / 1.6 });
+      }
       const band = ctx.createLinearGradient(0, 0, 0, 350);
       band.addColorStop(0.35, theme.bgBottom);
       band.addColorStop(1, "rgba(0,0,0,0)");
@@ -533,6 +579,18 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
 
     if (shot === "side") {
       // Producto a la derecha con giro suave; beneficios abajo a la izquierda.
+      if (isPhoto(m)) {
+        // Paneo de lado a lado; los beneficios sobre la franja de abajo.
+        drawPhoto(c, m, { scale: 1.16, dx: -36 + 72 * easeOut(progress) });
+        shade(c, "top", 260, 0.6);
+        shade(c, "bottom", 520);
+        sticker(c, input.promo, TEXT_LEFT - 6, 130, (local - 0.4) / 0.45);
+        const items = c.benefits.length > 0 ? c.benefits : [input.productName];
+        items.forEach((b, i) => chip(c, b, TEXT_LEFT - 8, 880 + i * 80, (local - 0.4 - i * 0.55) / 0.45));
+        vignette(ctx);
+        ctx.restore();
+        return;
+      }
       drawBackground(c);
       for (const [i, size, alpha] of [[0, 470, 0.5], [1, 340, 0.4]] as const) {
         const ox = i === 0 ? 350 + Math.sin(t * 0.6) * 80 : -50 + Math.cos(t * 0.7) * 70;
@@ -555,8 +613,12 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
     }
 
     // Detalle: acercamiento a la base del producto con chispas.
-    drawBackground(c);
-    if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.85, W / 2, 500, 1430 - local * 100), shine: local / 1.4 });
+    if (isPhoto(m)) {
+      drawPhoto(c, m, { scale: 1.32 + 0.08 * progress, fy: 0.62 });
+    } else {
+      drawBackground(c);
+      if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.85, W / 2, 500, 1430 - local * 100), shine: local / 1.4 });
+    }
     sparkles(c, local);
     const band = ctx.createLinearGradient(0, 760, 0, H);
     band.addColorStop(0, "rgba(0,0,0,0)");
@@ -572,17 +634,27 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   }
 
   if (scene.kind === "price") {
-    drawBackground(c);
     const m = media[scene.mediaIndex] ?? media[0];
-    const k = easeOut(local / 0.6);
-    floorGlow(ctx, theme, W / 2, 610, 420, k);
-    drawProduct(c, m, { cx: W / 2, cy: 370 + (1 - k) * 60 + Math.sin(t * 1.5) * 6, h: 500, shine: (local - 1.3) / 1.0 });
+    if (isPhoto(m)) {
+      drawPhoto(c, m, { scale: 1.06 + 0.04 * progress, fy: 0.4 });
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.fillRect(0, 0, W, H);
+      shade(c, "bottom", 680);
+    } else {
+      drawBackground(c);
+      const k = easeOut(local / 0.6);
+      floorGlow(ctx, theme, W / 2, 610, 420, k);
+      drawProduct(c, m, { cx: W / 2, cy: 370 + (1 - k) * 60 + Math.sin(t * 1.5) * 6, h: 500, shine: (local - 1.3) / 1.0 });
+    }
     const enter = easeOut((local - 0.3) / 0.45);
     const top = 700 + (1 - enter) * 50;
     ctx.save();
     ctx.globalAlpha *= enter;
-    ctx.fillStyle = "rgba(255,255,255,0.11)";
+    // Vidrio oscuro: se lee igual sobre una foto clara o un fondo de color.
     roundRect(ctx, TEXT_LEFT, top, W - TEXT_LEFT * 2, 300, 34);
+    ctx.fillStyle = "rgba(0,0,0,0.38)";
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.24)";
     ctx.lineWidth = 1.5;
@@ -626,9 +698,19 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   }
 
   // Cierre
-  drawBackground(c, { brighter: true });
   const k = easeOut(local / 0.7);
-  drawProduct(c, media[0], { cx: W / 2, cy: 400 + Math.sin(t * 1.4) * 6, h: 470 * (0.85 + 0.15 * k), alpha: k, shine: (local - 0.6) / 1.0 });
+  if (isPhoto(media[0])) {
+    drawPhoto(c, media[0], { scale: 1.12 + 0.06 * progress, fy: 0.4 });
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = theme.bgBottom;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    shade(c, "bottom", 760);
+  } else {
+    drawBackground(c, { brighter: true });
+    drawProduct(c, media[0], { cx: W / 2, cy: 400 + Math.sin(t * 1.4) * 6, h: 470 * (0.85 + 0.15 * k), alpha: k, shine: (local - 0.6) / 1.0 });
+  }
   ctx.font = `700 70px ${font.display}`;
   const lines = wrap(ctx, input.cta, W - 120, 2);
   kinetic(c, lines, { x: W / 2, y: 760, lineHeight: 80, t: local - 0.2, align: "center" });
