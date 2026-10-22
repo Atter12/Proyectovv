@@ -31,6 +31,14 @@ export function EducationCenter({
   const [active, setActive] = useState<EducationLessonView | null>(null);
   const [saved, setSaved] = useState<Record<string, EducationLessonSave>>({});
   const [created, setCreated] = useState<EducationLessonView[]>([]);
+  // Cuando llegan los datos del servidor (tras guardar se hace refresh), mandan ellos:
+  // así quien sube el video ve lo mismo que los demás y no una copia local.
+  const [base, setBase] = useState(lessons);
+  if (base !== lessons) {
+    setBase(lessons);
+    setSaved({});
+    setCreated([]);
+  }
 
   const published = useMemo(() => {
     const known = new Set(lessons.map((lesson) => lesson.slug));

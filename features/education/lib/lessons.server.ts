@@ -96,49 +96,29 @@ function stamp(row: LessonRow): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+// Con `*` una migración pendiente (p. ej. sin `active`) no oculta el video a todos:
+// las columnas que falten simplemente no vienen y quedan en null.
 async function loadLessonRows(): Promise<Map<string, LessonRow>> {
   const map = new Map<string, LessonRow>();
   try {
     const admin = createAdminClient();
-    const media =
-      "slug, loom_url, title, category_id, poster_path, is_custom, updated_at, created_at";
-    const attempts = [
-      `${media}, recommended, video_path, video_poster_path, active`,
-      `${media}, recommended, video_path`,
-      `${media}, recommended`,
-      media,
-    ];
-    for (const columns of attempts) {
-      const result = await admin.from("education_lessons").select(columns);
-      if (result.error || !result.data) continue;
-      for (const row of result.data as unknown as LessonRow[]) {
-        map.set(row.slug, {
-          ...row,
-          recommended: row.recommended ?? null,
-          video_path: row.video_path ?? null,
-          video_poster_path: row.video_poster_path ?? null,
-          active: row.active ?? null,
-        });
-      }
-      return map;
-    }
-
-    const legacy = await admin
-      .from("education_lessons")
-      .select("slug, loom_url, updated_at");
-    if (legacy.error || !legacy.data) return map;
-    for (const row of legacy.data as LessonRow[]) {
+    const result = await admin.from("education_lessons").select("*");
+    if (result.error || !result.data) return map;
+    for (const row of result.data as Partial<LessonRow>[]) {
+      if (!row.slug) continue;
       map.set(row.slug, {
-        ...row,
-        title: null,
-        category_id: null,
-        poster_path: null,
-        is_custom: false,
-        recommended: null,
-        video_path: null,
-        video_poster_path: null,
-        active: null,
-        created_at: null,
+        slug: row.slug,
+        loom_url: row.loom_url ?? null,
+        title: row.title ?? null,
+        category_id: row.category_id ?? null,
+        poster_path: row.poster_path ?? null,
+        is_custom: row.is_custom ?? false,
+        recommended: row.recommended ?? null,
+        video_path: row.video_path ?? null,
+        video_poster_path: row.video_poster_path ?? null,
+        active: row.active ?? null,
+        updated_at: row.updated_at ?? null,
+        created_at: row.created_at ?? null,
       });
     }
   } catch {
