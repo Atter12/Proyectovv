@@ -12,8 +12,8 @@ import {
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 
 /**
- * Vuelta de Whop con `setup_intent_id`. Confirma contra la API de Whop; si
- * aún procesa, el webhook `setup_intent.succeeded` guarda la tarjeta.
+ * Vuelta de Stripe con `session_id` (Checkout en modo setup). Confirma contra
+ * Stripe; si no vuelve, el webhook `checkout.session.completed` la guarda igual.
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -33,16 +33,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Permiso denegado." }, { status: 403 });
   }
 
-  let body: { setupIntentId?: string };
+  let body: { sessionId?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const setupIntentId = body.setupIntentId?.trim();
-  if (!setupIntentId) {
-    return NextResponse.json({ error: "setupIntentId requerido." }, { status: 400 });
+  const sessionId = body.sessionId?.trim();
+  if (!sessionId) {
+    return NextResponse.json({ error: "sessionId requerido." }, { status: 400 });
   }
 
   const selected = await getSelectedHecomCliente(session.id);
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       : session.organizationId;
 
   try {
-    const result = await finalizeCreditLockSetup({ setupIntentId, organizationId });
+    const result = await finalizeCreditLockSetup({ sessionId, organizationId });
     return NextResponse.json({ ok: true, saved: result.saved });
   } catch (error) {
     const message =

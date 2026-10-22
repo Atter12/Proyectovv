@@ -12,15 +12,18 @@ import {
   updatePaymentIntentRecord,
   type PaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
-import { parseWhopSavedCard } from "@/lib/payments/providers/whop-webhook";
+import {
+  chargeStripeOffSession,
+  completeStripeSetupSession,
+  createStripeCustomer,
+  createStripeSetupCheckoutSession,
+} from "@/lib/payments/stripe-billing.server";
 import type { SavedCardEvent } from "@/lib/payments/providers/types";
 import {
   AUTOCHARGE_CONSENT_TEXT,
   AUTOCHARGE_MIN_CENTS,
   AUTOCHARGE_PENDING_MAX_HOURS,
   autochargeAmounts,
-  buildWhopCardSetupBody,
-  buildWhopOffSessionPaymentBody,
   decideAutocharge,
   limaDateKey,
   resolveAutochargeMode,
@@ -34,6 +37,7 @@ import {
   listApprovedCreditProfiles,
   updateAutochargeStatus,
   upsertCreditCardMethod,
+  upsertStripeCreditCardMethod,
   type AutochargeProfileRow,
 } from "@/lib/payments/credit-card/credit-card.store.server";
 
@@ -41,44 +45,6 @@ import {
 export const AUTOCHARGE_SOURCE = "credito_cobro_auto";
 const SYSTEM_ORDERED_BY = "Sistema anti-vivos";
 const SETUP_PURPOSE = "credito_tarjeta";
-const WHOP_TIMEOUT_MS = 20_000;
-
-function whopReady(): boolean {
-  return Boolean(serverEnv.whopApiKey && serverEnv.whopCompanyId);
-}
-
-async function whopRequest(
-  method: "GET" | "POST",
-  path: string,
-  body?: Record<string, unknown>,
-  idempotencyKey?: string,
-): Promise<Record<string, unknown>> {
-  const response = await fetch(`${serverEnv.whopApiBaseUrl.replace(/\/$/, "")}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${serverEnv.whopApiKey}`,
-      Accept: "application/json",
-      "Api-Version-Date": serverEnv.whopApiVersionDate,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(WHOP_TIMEOUT_MS),
-  });
-  const data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!response.ok) {
-    const err = data?.error;
-    const message =
-      err && typeof err === "object" && typeof (err as { message?: unknown }).message === "string"
-        ? (err as { message: string }).message
-        : typeof data?.message === "string"
-          ? data.message
-          : `Whop respondió ${response.status}.`;
-    throw new Error(message);
-  }
-  return data ?? {};
-}
-
 async function resolveWalletId(organizationId: string): Promise<string> {
   const { data, error } = await createAdminClient()
     .from("wallets")
@@ -113,28 +79,71 @@ function usd(cents: number): string {
 
 // ── Guardar tarjeta ─────────────────────────────────────────────────────────
 
-/** Abre el checkout de Whop que guarda la tarjeta (no cobra). */
-export async function startWhopCardSetup(input: {
+/**
+ * Abre Stripe Checkout en modo "setup": guarda la tarjeta, no cobra. Reusa el
+ * cliente de Stripe si la organización ya tenía uno.
+ */
+export async function startStripeCardSetup(input: {
   organizationId: string;
   hecomClienteId: string | null;
   userId: string;
+  customerEmail: string;
 }): Promise<{ checkoutUrl: string }> {
-  if (!whopReady()) throw new Error("Whop no está configurado.");
-  const body = buildWhopCardSetupBody({
-    companyId: serverEnv.whopCompanyId,
-    redirectUrl: `${serverEnv.appUrl.replace(/\/$/, "")}/payments?billing_setup=whop`,
+  const existing = await getCreditCardMethod(input.organizationId);
+  const customerId =
+    existing?.stripe_customer_id ||
+    (await createStripeCustomer({ email: input.customerEmail, organizationId: input.organizationId }));
+  const base = serverEnv.appUrl.replace(/\/$/, "");
+  const session = await createStripeSetupCheckoutSession({
+    stripeCustomerId: customerId,
+    organizationId: input.organizationId,
+    customerEmail: input.customerEmail,
+    purpose: SETUP_PURPOSE,
+    successUrl: `${base}/payments?billing_setup=stripe&session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${base}/payments?billing_setup=cancelled`,
     metadata: {
-      purpose: SETUP_PURPOSE,
-      organization_id: input.organizationId,
       hecom_cliente_id: input.hecomClienteId ?? "",
       consent_by: input.userId,
       consent_at: new Date().toISOString(),
     },
   });
-  const data = await whopRequest("POST", "/checkout_configurations", body);
-  const raw = typeof data.purchase_url === "string" ? data.purchase_url.trim() : "";
-  if (!raw) throw new Error("Whop no devolvió el enlace para guardar la tarjeta.");
-  return { checkoutUrl: /^https?:\/\//i.test(raw) ? raw : `https://whop.com${raw.startsWith("/") ? "" : "/"}${raw}` };
+  return { checkoutUrl: session.url };
+}
+
+/**
+ * Vuelta del checkout (o webhook checkout.session.completed en modo setup):
+ * confirma contra Stripe y guarda la tarjeta. Solo la del checkout que abrimos
+ * nosotros (purpose + organización).
+ */
+export async function finalizeStripeCardSetup(input: {
+  sessionId: string;
+  expectedOrganizationId?: string;
+}): Promise<{ saved: boolean; reason?: string }> {
+  if (!/^cs_(live|test)_[A-Za-z0-9]+$/.test(input.sessionId)) {
+    throw new Error("Referencia de Stripe inválida.");
+  }
+  const result = await completeStripeSetupSession(input.sessionId);
+  const meta = result.metadata;
+  if (meta.purpose !== SETUP_PURPOSE) return { saved: false, reason: "otro_checkout" };
+  if (input.expectedOrganizationId && input.expectedOrganizationId !== result.organizationId) {
+    throw new Error("La tarjeta no corresponde a tu organización.");
+  }
+  const consentAt = meta.consent_at || null;
+  await upsertStripeCreditCardMethod({
+    organizationId: result.organizationId,
+    hecomClienteId: meta.hecom_cliente_id || null,
+    customerId: result.stripeCustomerId,
+    paymentMethodId: result.paymentMethod.id,
+    setupSessionId: input.sessionId,
+    brand: result.paymentMethod.brand,
+    last4: result.paymentMethod.last4,
+    expMonth: result.paymentMethod.expMonth,
+    expYear: result.paymentMethod.expYear,
+    consentAt,
+    consentBy: meta.consent_by || null,
+    consentText: consentAt ? AUTOCHARGE_CONSENT_TEXT : null,
+  });
+  return { saved: true };
 }
 
 /**
@@ -151,6 +160,10 @@ export async function saveWhopCardFromSetup(
   if (!organizationId) return { saved: false, reason: "sin_organizacion" };
   if (expectedOrganizationId && expectedOrganizationId !== organizationId) {
     throw new Error("La tarjeta no corresponde a tu organización.");
+  }
+  // Whop está suspendido: un aviso atrasado no pisa la tarjeta de Stripe.
+  if ((await getCreditCardMethod(organizationId))?.provider === "stripe") {
+    return { saved: false, reason: "ya_tiene_stripe" };
   }
   const hecomClienteId =
     typeof meta.hecom_cliente_id === "string" && meta.hecom_cliente_id ? meta.hecom_cliente_id : null;
@@ -174,21 +187,6 @@ export async function saveWhopCardFromSetup(
   return { saved: true };
 }
 
-/** Vuelta del checkout: Whop manda `setup_intent_id`; se confirma contra su API. */
-export async function finalizeWhopCardSetup(input: {
-  setupIntentId: string;
-  organizationId: string;
-}): Promise<{ saved: boolean }> {
-  if (!whopReady()) throw new Error("Whop no está configurado.");
-  if (!/^sint_[A-Za-z0-9]+$/.test(input.setupIntentId)) throw new Error("Referencia de Whop inválida.");
-  const data = await whopRequest("GET", `/setup_intents/${input.setupIntentId}`);
-  const card = parseWhopSavedCard(data);
-  // Aún procesando: el webhook la guarda cuando Whop termine.
-  if (!card) return { saved: false };
-  const result = await saveWhopCardFromSetup(card, input.organizationId);
-  return { saved: result.saved };
-}
-
 // ── Cobro automático ────────────────────────────────────────────────────────
 
 async function hasPendingAutocharge(organizationId: string, now: Date): Promise<boolean> {
@@ -197,7 +195,7 @@ async function hasPendingAutocharge(organizationId: string, now: Date): Promise<
     .from("payment_intents")
     .select("id")
     .eq("organization_id", organizationId)
-    .eq("provider", "whop")
+    .in("provider", ["whop", "stripe"])
     .eq("metadata->>source", AUTOCHARGE_SOURCE)
     .in("status", ["created", "requires_payment", "processing"])
     .gte("created_at", since)
@@ -217,11 +215,16 @@ async function chargeAttemptedToday(organizationId: string, now: Date): Promise<
   return (data ?? []).length > 0;
 }
 
-/** Cobra la deuda a la tarjeta guardada. El resultado llega por webhook. */
+/**
+ * Cobra la deuda a la tarjeta guardada en Stripe, sin el cliente presente
+ * (off_session). Si la tarjeta rechaza, Stripe responde error al instante;
+ * el pago exitoso se confirma por webhook (payment_intent.succeeded).
+ */
 async function chargeDebt(input: {
   profile: AutochargeProfileRow;
   hecomClienteId: string;
-  memberId: string;
+  clienteName: string | null;
+  customerId: string;
   paymentMethodId: string;
   debtCents: number;
   now: Date;
@@ -229,7 +232,7 @@ async function chargeDebt(input: {
 }): Promise<PaymentIntentRecord> {
   const { grossCents, surchargeCents } = autochargeAmounts(
     input.debtCents,
-    serverEnv.whopDepositSurchargePercent,
+    serverEnv.stripeDepositSurchargePercent,
   );
   const organizationId = input.profile.organization_id;
   const walletId = await resolveWalletId(organizationId);
@@ -240,7 +243,7 @@ async function chargeDebt(input: {
     walletId,
     amountCents: grossCents,
     currency: "USD",
-    provider: "whop",
+    provider: "stripe",
     createdBy: null,
     idempotencyKey,
     metadata: {
@@ -261,32 +264,26 @@ async function chargeDebt(input: {
   if (intent.status !== "created") return intent;
 
   try {
-    const payment = await whopRequest(
-      "POST",
-      "/payments",
-      buildWhopOffSessionPaymentBody({
-        companyId: serverEnv.whopCompanyId,
-        memberId: input.memberId,
-        paymentMethodId: input.paymentMethodId,
-        amountCents: grossCents,
-        productId: serverEnv.whopProductId || undefined,
-        metadata: {
-          payment_intent_id: intent.id,
-          organization_id: organizationId,
-          wallet_id: walletId,
-          source: AUTOCHARGE_SOURCE,
-        },
-      }),
-      `whop:${idempotencyKey}`,
-    );
+    const charge = await chargeStripeOffSession({
+      stripeCustomerId: input.customerId,
+      paymentMethodId: input.paymentMethodId,
+      amountCents: grossCents,
+      currency: "USD",
+      paymentIntentId: intent.id,
+      organizationId,
+      walletId,
+      idempotencyKey: `stripe:${idempotencyKey}`,
+      source: AUTOCHARGE_SOURCE,
+      description: `Cobro crédito Holistic · ${input.clienteName ?? input.hecomClienteId}`,
+    });
     await updatePaymentIntentRecord(intent.id, {
       status: "processing",
-      providerReference: typeof payment.id === "string" ? payment.id : null,
+      providerReference: charge.stripePaymentIntentId,
     });
     await updateAutochargeStatus(organizationId, { autocharge_last_charge_at: input.now.toISOString() });
     return { ...intent, status: "processing" };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Whop rechazó el cobro.";
+    const message = error instanceof Error ? error.message : "Stripe rechazó el cobro.";
     await updatePaymentIntentRecord(intent.id, { status: "failed", failureReason: message.slice(0, 300) });
     await recordAutochargeFailure({ ...intent, status: "failed" }, message);
     throw error;
@@ -648,8 +645,9 @@ export async function runCreditAutocharge(input: { now?: Date; mode?: Autocharge
         await chargeDebt({
           profile,
           hecomClienteId: profile.hecom_cliente_id,
-          memberId: card.whop_member_id,
-          paymentMethodId: card.whop_payment_method_id,
+          clienteName: dashboard.cliente.name,
+          customerId: card.stripe_customer_id,
+          paymentMethodId: card.stripe_payment_method_id,
           debtCents,
           now,
           reason: decision.reason,

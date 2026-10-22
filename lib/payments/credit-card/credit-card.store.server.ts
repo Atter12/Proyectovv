@@ -4,10 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export type CreditCardMethodRow = {
   organization_id: string;
   hecom_cliente_id: string | null;
-  provider: "whop";
+  provider: "whop" | "stripe";
   whop_member_id: string | null;
   whop_payment_method_id: string | null;
   whop_setup_intent_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_payment_method_id: string | null;
+  stripe_setup_session_id: string | null;
   card_brand: string | null;
   card_last4: string | null;
   card_exp_month: number | null;
@@ -19,7 +22,7 @@ export type CreditCardMethodRow = {
 };
 
 const SELECT =
-  "organization_id,hecom_cliente_id,provider,whop_member_id,whop_payment_method_id,whop_setup_intent_id,card_brand,card_last4,card_exp_month,card_exp_year,status,consent_at,consent_by,consent_text";
+  "organization_id,hecom_cliente_id,provider,whop_member_id,whop_payment_method_id,whop_setup_intent_id,stripe_customer_id,stripe_payment_method_id,stripe_setup_session_id,card_brand,card_last4,card_exp_month,card_exp_year,status,consent_at,consent_by,consent_text";
 
 /** Tabla nueva (migración 065): si aún no está aplicada se comporta como «sin tarjeta». */
 function missingTable(error: { code?: string; message?: string }): boolean {
@@ -41,12 +44,18 @@ export async function getCreditCardMethod(
   return data;
 }
 
-/** Tarjeta lista para cobrar. */
+/** Tarjeta lista para cobrar. Solo Stripe: Whop está suspendido desde el 21/10/2026. */
 export function isChargeableCard(row: CreditCardMethodRow | null): row is CreditCardMethodRow & {
-  whop_member_id: string;
-  whop_payment_method_id: string;
+  stripe_customer_id: string;
+  stripe_payment_method_id: string;
 } {
-  return Boolean(row && row.status === "active" && row.whop_member_id && row.whop_payment_method_id);
+  return Boolean(
+    row &&
+      row.status === "active" &&
+      row.provider === "stripe" &&
+      row.stripe_customer_id &&
+      row.stripe_payment_method_id,
+  );
 }
 
 export async function upsertCreditCardMethod(input: {
@@ -71,6 +80,43 @@ export async function upsertCreditCardMethod(input: {
       whop_member_id: input.memberId,
       whop_payment_method_id: input.paymentMethodId,
       whop_setup_intent_id: input.setupIntentId,
+      card_brand: input.brand,
+      card_last4: input.last4,
+      card_exp_month: input.expMonth,
+      card_exp_year: input.expYear,
+      status: "active",
+      consent_at: input.consentAt,
+      consent_by: input.consentBy,
+      consent_text: input.consentText,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "organization_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function upsertStripeCreditCardMethod(input: {
+  organizationId: string;
+  hecomClienteId: string | null;
+  customerId: string;
+  paymentMethodId: string;
+  setupSessionId: string;
+  brand: string | null;
+  last4: string | null;
+  expMonth: number | null;
+  expYear: number | null;
+  consentAt: string | null;
+  consentBy: string | null;
+  consentText: string | null;
+}): Promise<void> {
+  const { error } = await createAdminClient().from("credit_card_methods").upsert(
+    {
+      organization_id: input.organizationId,
+      hecom_cliente_id: input.hecomClienteId,
+      provider: "stripe",
+      stripe_customer_id: input.customerId,
+      stripe_payment_method_id: input.paymentMethodId,
+      stripe_setup_session_id: input.setupSessionId,
       card_brand: input.brand,
       card_last4: input.last4,
       card_exp_month: input.expMonth,

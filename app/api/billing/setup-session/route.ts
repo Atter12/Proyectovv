@@ -12,7 +12,7 @@ import {
 } from "@/lib/hecom/selected-cliente.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 
-/** Abre Whop para guardar la tarjeta del crédito Holistic. */
+/** Abre Stripe para guardar la tarjeta del crédito Holistic. */
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session?.organizationId) {
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       organizationId,
       hecomClienteId,
       userId: session.id,
+      customerEmail: session.email,
       consentAccepted: body.consentAccepted === true,
     });
     return NextResponse.json({ ok: true, checkoutUrl: result.checkoutUrl });

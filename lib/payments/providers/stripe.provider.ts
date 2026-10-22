@@ -178,12 +178,26 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
             currency?: string;
             payment_intent?: string | null;
             reason?: string | null;
+            mode?: string;
           };
         };
       };
 
       const object = data.data?.object;
       if (!data.id) return null;
+
+      // Checkout en modo setup (tarjeta del crédito): no es un pago.
+      if (data.type === "checkout.session.completed" && object?.mode === "setup") {
+        return {
+          eventId: data.id,
+          eventType: data.type,
+          providerReference: object.id ?? null,
+          succeeded: false,
+          failed: false,
+          cancelled: false,
+          stripeSetupSessionId: object.id ?? undefined,
+        };
+      }
 
       // Reembolso o disputa: el objeto es un charge/dispute y trae el pi_ de Stripe.
       const reversal =

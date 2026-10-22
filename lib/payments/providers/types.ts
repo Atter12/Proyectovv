@@ -59,6 +59,8 @@ export interface VerifiedWebhookEvent {
   reversalReason?: string;
   /** Stripe: PaymentIntent (pi_…) del charge reembolsado o disputado. */
   stripePaymentIntentRef?: string;
+  /** Stripe: Checkout en modo setup terminado (tarjeta guardada, sin cobro). */
+  stripeSetupSessionId?: string;
 }
 
 export interface SavedCardEvent {

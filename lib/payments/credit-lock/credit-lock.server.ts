@@ -3,8 +3,8 @@ import { STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { resolveHecomBillingModality } from "@/lib/hecom/clientes.server";
 import {
-  finalizeWhopCardSetup,
-  startWhopCardSetup,
+  finalizeStripeCardSetup,
+  startStripeCardSetup,
 } from "@/lib/payments/credit-card/credit-card.server";
 import {
   getAutochargeStatus,
@@ -37,7 +37,7 @@ export const CREDIT_STRIPE_LOCK_ENABLED = STRIPE_PAYMENTS_ENABLED && parseBoolea
 );
 
 /**
- * Crédito Holistic + tarjeta en Whop (anti-vivos). Reemplaza al candado Stripe.
+ * Crédito Holistic + tarjeta guardada en Stripe (anti-vivos; antes Whop, suspendido 21/10/2026).
  * Env: CREDIT_CARD_LOCK_ENABLED=true. El cobro semanal va aparte
  * (CREDIT_AUTOCHARGE_MODE, ver lib/payments/credit-card).
  */
@@ -256,7 +256,7 @@ export async function reviewCreditLockRequest(input: {
 }
 
 /**
- * Tope suave + tarjeta Whop para fondeo a crédito (cash BM / cupo).
+ * Tope suave + tarjeta Stripe para fondeo a crédito (cash BM / cupo).
  * NO bloquea:
  * - asignación desde cartera Holistic ya pagada (Whop/Yape/BCP/cripto)
  * - recarga BM hecha por gerente/staff (ops Holistic)
@@ -345,13 +345,14 @@ export async function assertCreditLockAllowsAllocate(input: {
 }
 
 /**
- * Abre Whop para guardar la tarjeta. Solo con crédito aprobado y con la
+ * Abre Stripe para guardar la tarjeta. Solo con crédito aprobado y con la
  * autorización del cobro automático aceptada en Pagos.
  */
 export async function startCreditLockSetupSession(input: {
   organizationId: string;
   hecomClienteId: string | null;
   userId: string;
+  customerEmail: string;
   consentAccepted: boolean;
 }): Promise<{ checkoutUrl: string }> {
   if (!CREDIT_CARD_SIGNUP_ENABLED) {
@@ -368,18 +369,23 @@ export async function startCreditLockSetupSession(input: {
         : "Primero pide crédito Holistic y espera la aceptación de gerencia.",
     );
   }
-  return startWhopCardSetup({
+  return startStripeCardSetup({
     organizationId: input.organizationId,
     hecomClienteId: input.hecomClienteId ?? profile.hecom_cliente_id,
     userId: input.userId,
+    customerEmail: input.customerEmail,
   });
 }
 
 export async function finalizeCreditLockSetup(input: {
-  setupIntentId: string;
+  sessionId: string;
   organizationId: string;
 }): Promise<{ saved: boolean }> {
-  return finalizeWhopCardSetup(input);
+  const result = await finalizeStripeCardSetup({
+    sessionId: input.sessionId,
+    expectedOrganizationId: input.organizationId,
+  });
+  return { saved: result.saved };
 }
 
 /**

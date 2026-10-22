@@ -120,19 +120,19 @@ export function CreditLockPanel({
     void load();
   }, [load, visible]);
 
-  // Vuelta de Whop: se confirma con su setup_intent_id; si Whop aún procesa,
-  // el webhook guarda la tarjeta y aquí se espera unos segundos.
+  // Vuelta de Stripe: se confirma con su session_id; si no alcanza, el webhook
+  // guarda la tarjeta y aquí se espera unos segundos.
   useEffect(() => {
     if (!visible) return;
-    if (searchParams.get("billing_setup") !== "whop") return;
-    const setupIntentId = searchParams.get("setup_intent_id") ?? searchParams.get("setup_intent");
+    if (searchParams.get("billing_setup") !== "stripe") return;
+    const sessionId = searchParams.get("session_id");
 
     void (async () => {
       try {
-        if (setupIntentId) {
+        if (sessionId) {
           await apiClient("/api/billing/complete-setup", {
             method: "POST",
-            body: JSON.stringify({ setupIntentId }),
+            body: JSON.stringify({ sessionId }),
           });
         }
         let saved = await load();
@@ -175,7 +175,7 @@ export function CreditLockPanel({
     return data.cupo;
   }
 
-  async function openWhop() {
+  async function openCardSetup() {
     const data = await apiClient<{ checkoutUrl: string }>(
       "/api/billing/setup-session",
       { method: "POST", body: JSON.stringify({ consentAccepted: consent }) },
@@ -217,7 +217,7 @@ export function CreditLockPanel({
     setError(null);
     setSuccess(null);
     try {
-      await openWhop();
+      await openCardSetup();
     } catch (err) {
       setError(userErrorMessage(err, t("creditLock.errOpenStripe")));
       setBusy(false);

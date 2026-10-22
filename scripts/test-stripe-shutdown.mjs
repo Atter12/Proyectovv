@@ -184,3 +184,16 @@ test("checkout excludes BNPL methods and never sends payment_method_types (API 2
   assert.equal(sent.body.get("payment_intent_data[metadata][payment_intent_id]"), "int_1");
   assert.equal(sent.body.get("payment_intent_data[description]"), "Recarga Holistic · Sebastian Jeremy Yparraguirre Ocaña");
 });
+
+test("checkout.session.completed in setup mode is a saved card, not a payment", async () => {
+  const { StripePaymentProvider } = load("lib/payments/providers/stripe.provider.ts", {
+    "../stripe-policy": enabledPolicy,
+    "@/lib/env/env.server": { serverEnv: { ...env, stripeWebhookSecret: "", isProduction: false } },
+  });
+  const parsed = await new StripePaymentProvider().verifyWebhook({ rawBody: JSON.stringify({
+    id: "evt_s", type: "checkout.session.completed",
+    data: { object: { id: "cs_test_setup1", mode: "setup", metadata: { purpose: "credito_tarjeta" } } },
+  }), signature: null });
+  assert.equal(parsed.stripeSetupSessionId, "cs_test_setup1");
+  assert.equal(parsed.succeeded, false);
+});

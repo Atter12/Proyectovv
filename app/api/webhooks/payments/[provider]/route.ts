@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { processSuccessfulPaymentIntent } from "@/lib/payments/create-intent.server";
 import { recordCryptoIpnOpsEvent } from "@/lib/payments/crypto-ipn-ops.server";
 import {
+  finalizeStripeCardSetup,
   recordAutochargeFailure,
   recordAutochargeSuccess,
   saveWhopCardFromSetup,
@@ -221,6 +222,14 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ ok: true, ...saved });
     }
 
+    // Stripe: tarjeta del crédito guardada (Checkout en modo setup). Respaldo por si
+    // el cliente no vuelve a Pagos después de registrarla.
+    if (provider === "stripe" && parsed.stripeSetupSessionId) {
+      const saved = await finalizeStripeCardSetup({ sessionId: parsed.stripeSetupSessionId });
+      await markWebhookEventProcessed(provider, parsed.eventId);
+      return NextResponse.json({ ok: true, ...saved });
+    }
+
     // Stripe: reembolso o disputa. No se descuenta solo (el saldo puede estar ya en TikTok):
     // se marca el pago y queda en audit_logs para que gerencia decida.
     if (provider === "stripe" && parsed.reversal) {
@@ -265,7 +274,7 @@ export async function POST(request: Request, context: RouteContext) {
           status: "failed",
           failureReason: parsed.failureMessage ?? parsed.eventType,
         });
-        if (provider === "whop" && intent.status !== "succeeded") {
+        if ((provider === "whop" || provider === "stripe") && intent.status !== "succeeded") {
           await recordAutochargeFailure(intent, parsed.failureMessage ?? null);
         }
       }
@@ -294,7 +303,7 @@ export async function POST(request: Request, context: RouteContext) {
         currency: parsed.currency,
         webhookEventId: parsed.eventId,
       });
-      if (provider === "whop" && intent) {
+      if ((provider === "whop" || provider === "stripe") && intent) {
         await recordAutochargeSuccess(intent);
       }
     }

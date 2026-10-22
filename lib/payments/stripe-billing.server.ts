@@ -78,6 +78,11 @@ export async function createStripeSetupCheckoutSession(input: {
   organizationId: string;
   customerEmail: string;
   purpose?: string;
+  /** Vuelta tras guardar; debe incluir {CHECKOUT_SESSION_ID}. */
+  successUrl?: string;
+  cancelUrl?: string;
+  /** Metadata extra (cliente Hecom, autorización del cobro automático…). */
+  metadata?: Record<string, string>;
 }): Promise<{ sessionId: string; url: string }> {
   const params = new URLSearchParams();
   params.set("mode", "setup");
@@ -88,12 +93,16 @@ export async function createStripeSetupCheckoutSession(input: {
   params.set("customer", input.stripeCustomerId);
   params.set(
     "success_url",
-    `${serverEnv.appUrl}/payments?billing_setup=success&session_id={CHECKOUT_SESSION_ID}`,
+    input.successUrl ??
+      `${serverEnv.appUrl}/payments?billing_setup=success&session_id={CHECKOUT_SESSION_ID}`,
   );
   params.set(
     "cancel_url",
-    `${serverEnv.appUrl}/payments?billing_setup=cancelled`,
+    input.cancelUrl ?? `${serverEnv.appUrl}/payments?billing_setup=cancelled`,
   );
+  for (const [key, value] of Object.entries(input.metadata ?? {})) {
+    params.set(`metadata[${key}]`, value);
+  }
   params.set("metadata[organization_id]", input.organizationId);
   params.set("metadata[purpose]", input.purpose ?? "credito_lock");
   if (input.customerEmail && !input.stripeCustomerId) {
@@ -131,18 +140,26 @@ export async function completeStripeSetupSession(
   organizationId: string;
   stripeCustomerId: string;
   paymentMethod: StripePaymentMethodSummary;
+  metadata: Record<string, string>;
 }> {
   const session = await stripeRequest<{
     id: string;
     mode?: string;
+    status?: string;
     customer?: string | { id?: string };
     setup_intent?: string | { id?: string; payment_method?: string | Record<string, unknown> };
-    metadata?: { organization_id?: string };
+    metadata?: Record<string, string> & { organization_id?: string };
   }>(
     "GET",
     `/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=setup_intent&expand[]=setup_intent.payment_method`,
   );
 
+  if (session.mode !== "setup") {
+    throw new Error("La sesión de Stripe no es para guardar una tarjeta.");
+  }
+  if (session.status && session.status !== "complete") {
+    throw new Error("La tarjeta aún no se terminó de guardar en Stripe.");
+  }
   const organizationId = session.metadata?.organization_id?.trim();
   if (!organizationId) {
     throw new Error("Sesión de Stripe sin organization_id.");
@@ -185,7 +202,7 @@ export async function completeStripeSetupSession(
     customerParams,
   );
 
-  return { organizationId, stripeCustomerId, paymentMethod };
+  return { organizationId, stripeCustomerId, paymentMethod, metadata: session.metadata ?? {} };
 }
 
 export async function chargeStripeOffSession(input: {
@@ -199,6 +216,8 @@ export async function chargeStripeOffSession(input: {
   idempotencyKey: string;
   /** Default auto_recharge_calendar; use credito_detach for anti-vivo. */
   source?: string;
+  /** Columna "Descripción" del Dashboard de Stripe. */
+  description?: string;
 }): Promise<{ stripePaymentIntentId: string; status: string }> {
   const params = new URLSearchParams();
   params.set("amount", String(input.amountCents));
@@ -214,6 +233,9 @@ export async function chargeStripeOffSession(input: {
     "metadata[source]",
     input.source?.trim() || "auto_recharge_calendar",
   );
+  if (input.description?.trim()) {
+    params.set("description", input.description.trim().slice(0, 500));
+  }
 
   const data = await stripeRequest<{ id: string; status: string }>(
     "POST",
