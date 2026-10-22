@@ -22,6 +22,7 @@ import {
 } from "@/lib/creatives/video-studio";
 import {
   drawStudioFrame,
+  isLowResolution,
   loadStudioMedia,
   recordStudioVideo,
   supportedStudioMimeType,
@@ -278,6 +279,11 @@ export function VideoStudioPanel({
                   <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[10px] font-bold text-white">
                     {index + 1}
                   </span>
+                  {isLowResolution(item.media) ? (
+                    <span className="absolute inset-x-0 bottom-0 bg-amber-500/90 py-0.5 text-center text-[9px] font-bold text-white">
+                      {t("lowResBadge")}
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     disabled={busy}
@@ -302,6 +308,11 @@ export function VideoStudioPanel({
               ) : null}
             </div>
             <p className="mt-1.5 text-[11px] text-[var(--auth-text-muted)]">{t("mediaHint")}</p>
+            {items.some((i) => isLowResolution(i.media)) ? (
+              <p className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">
+                {t("lowRes")}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">

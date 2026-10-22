@@ -22,31 +22,57 @@ export type StudioMedia =
   | { kind: "image"; el: ImageBitmap | HTMLImageElement; width: number; height: number }
   | { kind: "video"; el: HTMLVideoElement; width: number; height: number };
 
-type Theme = { accent: string; accentText: string; card: string; cardText: string; muted: string; overlay: string };
+type Theme = {
+  accent: string;
+  accentText: string;
+  card: string;
+  cardText: string;
+  muted: string;
+  /** Tinte del fondo (r,g,b). */
+  tint: string;
+  ctaFrom: string;
+  ctaTo: string;
+  ctaText: string;
+};
 
 const THEMES: Record<StudioTemplate, Theme> = {
-  orange: { accent: "#ff781f", accentText: "#ffffff", card: "#ffffff", cardText: "#141210", muted: "#6b645c", overlay: "20,12,6" },
-  dark: { accent: "#f5c451", accentText: "#141210", card: "#141416", cardText: "#f7f4ef", muted: "#a39d95", overlay: "0,0,0" },
-  fresh: { accent: "#19c2b3", accentText: "#ffffff", card: "#ffffff", cardText: "#0f2a27", muted: "#4e6b67", overlay: "4,30,28" },
+  orange: { accent: "#ff781f", accentText: "#ffffff", card: "#ffffff", cardText: "#141210", muted: "#6b645c", tint: "28,16,8", ctaFrom: "#ff8a3d", ctaTo: "#d9480f", ctaText: "#ffffff" },
+  dark: { accent: "#f5c451", accentText: "#141210", card: "#17171a", cardText: "#f7f4ef", muted: "#a39d95", tint: "6,6,8", ctaFrom: "#232327", ctaTo: "#09090b", ctaText: "#f5c451" },
+  fresh: { accent: "#14b8a6", accentText: "#ffffff", card: "#ffffff", cardText: "#0f2a27", muted: "#4e6b67", tint: "4,32,30", ctaFrom: "#2dd4bf", ctaTo: "#0f766e", ctaText: "#ffffff" },
 };
 
 const W = STUDIO_WIDTH;
 const H = STUDIO_HEIGHT;
+/** Zona del producto y zona de textos (fuera de los botones de TikTok, abajo y a la derecha). */
+const STAGE = { x: 70, y: 150, w: 580, h: 600 };
+const TEXT_TOP = 800;
+const TEXT_LEFT = 56;
+const TEXT_WIDTH = W - TEXT_LEFT - 110;
+const TRANSITION = 0.35;
+/** Más de esto la foto se ve pixelada: mejor que quede más chica y nítida. */
+const MAX_UPSCALE = 1.7;
 
 const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
+const easeInOut = (x: number) => {
+  const p = clamp(x);
+  return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+};
 const backOut = (x: number) => {
   const c = 1.7;
   const p = clamp(x) - 1;
   return 1 + (c + 1) * p * p * p + c * p * p;
 };
 
-function fontFamily(): string {
-  if (typeof document === "undefined") return "sans-serif";
+function fonts(): { display: string; body: string } {
+  if (typeof document === "undefined") return { display: "sans-serif", body: "sans-serif" };
   const root = getComputedStyle(document.documentElement);
   const sora = root.getPropertyValue("--font-sora").trim();
   const jakarta = root.getPropertyValue("--font-jakarta").trim();
-  return [sora, jakarta, "system-ui", "sans-serif"].filter(Boolean).join(", ");
+  return {
+    display: [sora, jakarta, "system-ui", "sans-serif"].filter(Boolean).join(", "),
+    body: [jakarta, sora, "system-ui", "sans-serif"].filter(Boolean).join(", "),
+  };
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -77,33 +103,322 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, max
   return lines;
 }
 
-/** Dibuja la foto o el clip cubriendo todo el lienzo, con un zoom lento. */
-function drawCover(ctx: CanvasRenderingContext2D, media: StudioMedia | undefined, progress: number, drift: number) {
-  ctx.fillStyle = "#111";
-  ctx.fillRect(0, 0, W, H);
-  if (!media || media.width <= 0 || media.height <= 0) return;
-  const zoom = 1.04 + 0.1 * progress;
-  const scale = Math.max(W / media.width, H / media.height) * zoom;
-  const dw = media.width * scale;
-  const dh = media.height * scale;
-  const dx = (W - dw) / 2 + drift * 30 * (progress - 0.5);
-  const dy = (H - dh) / 2;
-  ctx.drawImage(media.el, dx, dy, dw, dh);
+function isFullBleed(media: StudioMedia): boolean {
+  // Clips verticales con buena resolución se ven mejor a pantalla completa.
+  return media.kind === "video" && media.height > media.width && media.height >= 900;
 }
 
-function badge(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, theme: Theme, font: string, alpha: number) {
-  if (!text.trim() || alpha <= 0) return;
+/** Fondo: la misma foto agrandada y desenfocada, con el tinte del estilo. */
+function drawBackdrop(ctx: CanvasRenderingContext2D, media: StudioMedia | undefined, theme: Theme, t: number) {
+  ctx.fillStyle = `rgb(${theme.tint})`;
+  ctx.fillRect(0, 0, W, H);
+  if (media && media.width > 0) {
+    const scale = Math.max(W / media.width, H / media.height) * (1.25 + 0.03 * Math.sin(t * 0.4));
+    const dw = media.width * scale;
+    const dh = media.height * scale;
+    ctx.save();
+    ctx.filter = "blur(36px) saturate(1.2)";
+    ctx.globalAlpha *= 0.85;
+    ctx.drawImage(media.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.restore();
+  }
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgba(${theme.tint},0.25)`);
+  g.addColorStop(0.55, `rgba(${theme.tint},0.45)`);
+  g.addColorStop(1, `rgba(${theme.tint},0.9)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // Luz suave detrás del producto
+  const glow = ctx.createRadialGradient(W / 2, STAGE.y + STAGE.h * 0.45, 20, W / 2, STAGE.y + STAGE.h * 0.45, 420);
+  glow.addColorStop(0, "rgba(255,255,255,0.22)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/**
+ * Producto nítido dentro de su zona, con sombra y flotando.
+ * `size` 1 = zona completa; menos para escenas donde el producto acompaña.
+ */
+function drawProduct(
+  ctx: CanvasRenderingContext2D,
+  media: StudioMedia | undefined,
+  opts: { t: number; enter: number; size?: number; cx?: number; cy?: number; zoom?: number },
+) {
+  if (!media || media.width <= 0) return;
+  const size = opts.size ?? 1;
+  const boxW = STAGE.w * size;
+  const boxH = STAGE.h * size;
+  const fit = Math.min(boxW / media.width, boxH / media.height);
+  const scale = Math.min(fit, MAX_UPSCALE) * (0.9 + 0.1 * backOut(opts.enter)) * (opts.zoom ?? 1);
+  const dw = media.width * scale;
+  const dh = media.height * scale;
+  const cx = opts.cx ?? W / 2;
+  const cy = (opts.cy ?? STAGE.y + STAGE.h / 2) + Math.sin(opts.t * 1.6) * 6 + (1 - easeOut(opts.enter)) * 50;
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha *= clamp(opts.enter * 2);
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 50;
+  ctx.shadowOffsetY = 24;
+  ctx.beginPath();
+  ctx.roundRect(cx - dw / 2, cy - dh / 2, dw, dh, 28);
+  ctx.fillStyle = "#000";
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.clip();
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(media.el, cx - dw / 2, cy - dh / 2, dw, dh);
+  ctx.restore();
+}
+
+function drawFullBleed(ctx: CanvasRenderingContext2D, media: StudioMedia, progress: number, theme: Theme) {
+  const scale = Math.max(W / media.width, H / media.height) * (1.02 + 0.06 * progress);
+  const dw = media.width * scale;
+  const dh = media.height * scale;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(media.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  const g = ctx.createLinearGradient(0, H * 0.5, 0, H);
+  g.addColorStop(0, `rgba(${theme.tint},0)`);
+  g.addColorStop(1, `rgba(${theme.tint},0.92)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/** Sticker inclinado de la promo. */
+function sticker(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, theme: Theme, font: string, k: number) {
+  if (!text.trim() || k <= 0) return;
+  ctx.save();
   ctx.font = `700 30px ${font}`;
   const label = text.trim().toUpperCase();
-  const w = ctx.measureText(label).width + 44;
+  const w = ctx.measureText(label).width + 48;
+  ctx.translate(x + w / 2, y + 32);
+  ctx.rotate(-0.07);
+  ctx.scale(0.4 + 0.6 * backOut(k), 0.4 + 0.6 * backOut(k));
+  ctx.globalAlpha *= clamp(k * 3);
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 6;
   ctx.fillStyle = theme.accent;
-  roundRect(ctx, x, y, w, 60, 16);
+  roundRect(ctx, -w / 2, -32, w, 64, 18);
   ctx.fill();
+  ctx.shadowColor = "transparent";
   ctx.fillStyle = theme.accentText;
   ctx.textBaseline = "middle";
-  ctx.fillText(label, x + 22, y + 31);
+  ctx.textAlign = "center";
+  ctx.fillText(label, 0, 2);
+  ctx.restore();
+}
+
+/** Texto que entra palabra por palabra. Con varias líneas, la última va en el color del estilo. */
+function kinetic(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  opts: { x: number; y: number; lineHeight: number; t: number; align: "left" | "center"; color: string; accent: string },
+) {
+  ctx.save();
+  ctx.textAlign = "left";
+  let wordIndex = 0;
+  lines.forEach((line, li) => {
+    const lineWidth = ctx.measureText(line).width;
+    let cursor = opts.align === "center" ? opts.x - lineWidth / 2 : opts.x;
+    for (const word of line.split(" ")) {
+      const k = easeOut((opts.t - wordIndex * 0.09) / 0.35);
+      ctx.save();
+      ctx.globalAlpha *= k;
+      ctx.fillStyle = li === lines.length - 1 && lines.length > 1 ? opts.accent : opts.color;
+      ctx.fillText(word, cursor, opts.y + li * opts.lineHeight + (1 - k) * 26);
+      ctx.restore();
+      cursor += ctx.measureText(`${word} `).width;
+      wordIndex++;
+    }
+  });
+  ctx.restore();
+}
+
+function checkChip(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, theme: Theme, font: string, k: number) {
+  if (k <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= clamp(k * 2.5);
+  ctx.translate(x + (1 - easeOut(k)) * -40, y);
+  ctx.font = `700 32px ${font}`;
+  const label = wrap(ctx, text, TEXT_WIDTH - 110, 1)[0] ?? "";
+  const w = ctx.measureText(label).width + 104;
+  ctx.fillStyle = theme.card;
+  ctx.shadowColor = "rgba(0,0,0,0.18)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 6;
+  roundRect(ctx, 0, 0, w, 76, 22);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.fillStyle = theme.accent;
+  ctx.beginPath();
+  ctx.arc(40, 38, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = theme.accentText;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(31, 39);
+  ctx.lineTo(38, 46);
+  ctx.lineTo(50, 31);
+  ctx.stroke();
+  ctx.fillStyle = theme.cardText;
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 76, 40);
+  ctx.restore();
+}
+
+type DrawContext = {
+  ctx: CanvasRenderingContext2D;
+  input: StudioInput;
+  media: StudioMedia[];
+  scenes: StudioScene[];
+  theme: Theme;
+  font: { display: string; body: string };
+  benefits: string[];
+};
+
+function drawScene(c: DrawContext, scene: StudioScene, t: number) {
+  const { ctx, input, media, theme, font } = c;
+  const local = t - scene.start;
+  const progress = clamp(local / (scene.end - scene.start));
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+
+  if (scene.kind === "cta") {
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, theme.ctaFrom);
+    g.addColorStop(1, theme.ctaTo);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    drawProduct(ctx, media[0], { t, enter: local / 0.5, size: 0.55, cy: 380 });
+    ctx.font = `700 74px ${font.display}`;
+    const lines = wrap(ctx, input.cta, W - 140, 2);
+    kinetic(ctx, lines, { x: W / 2, y: 760, lineHeight: 86, t: local - 0.15, align: "center", color: theme.ctaText, accent: theme.ctaText });
+    // Botón con flecha que late
+    const k = backOut((local - 0.5) / 0.4);
+    if (local > 0.5) {
+      const pulse = 1 + 0.04 * Math.sin(t * 8);
+      ctx.save();
+      ctx.translate(W / 2, 760 + lines.length * 86 + 30);
+      ctx.scale(k * pulse, k * pulse);
+      ctx.fillStyle = theme.ctaText;
+      roundRect(ctx, -110, -40, 220, 80, 40);
+      ctx.fill();
+      ctx.strokeStyle = theme.ctaTo;
+      ctx.lineWidth = 9;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(-22, -10);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(22, -10);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (input.storeName.trim()) {
+      ctx.globalAlpha *= easeOut((local - 0.6) / 0.4);
+      ctx.textAlign = "center";
+      ctx.font = `600 28px ${font.body}`;
+      ctx.fillStyle = theme.ctaText;
+      ctx.fillText(input.storeName.trim(), W / 2, H - 190);
+    }
+    ctx.restore();
+    return;
+  }
+
+  const m = media[scene.mediaIndex] ?? media[0];
+  const full = scene.kind === "media" && m ? isFullBleed(m) : false;
+  if (full && m) drawFullBleed(ctx, m, progress, theme);
+  else drawBackdrop(ctx, m, theme, t);
+
+  if (scene.kind === "hook") {
+    drawProduct(ctx, m, { t, enter: local / 0.6, zoom: 1 + 0.05 * progress });
+    if (input.storeName.trim()) {
+      ctx.save();
+      ctx.globalAlpha *= easeOut(local / 0.5);
+      ctx.font = `700 24px ${font.body}`;
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.textAlign = "center";
+      ctx.fillText(input.storeName.trim().toUpperCase(), W / 2, 110);
+      ctx.restore();
+    }
+    ctx.font = `700 70px ${font.display}`;
+    const lines = wrap(ctx, input.hook.trim() || input.productName, W - 120, 3);
+    kinetic(ctx, lines, { x: W / 2, y: TEXT_TOP + 90, lineHeight: 82, t: local - 0.2, align: "center", color: "#ffffff", accent: theme.accent });
+    ctx.restore();
+    return;
+  }
+
+  if (scene.kind === "media") {
+    if (!full) drawProduct(ctx, m, { t, enter: local / 0.5, zoom: 1 + 0.06 * progress });
+    sticker(ctx, input.promo, STAGE.x - 10, STAGE.y + 10, theme, font.body, (local - 0.2) / 0.4);
+
+    ctx.font = `700 54px ${font.display}`;
+    ctx.fillStyle = "#ffffff";
+    const name = wrap(ctx, input.productName, TEXT_WIDTH, 2);
+    name.forEach((line, i) => ctx.fillText(line, TEXT_LEFT, TEXT_TOP + 50 + i * 62));
+
+    // Los beneficios se van sumando: cada tramo agrega el suyo.
+    const slot = c.scenes.filter((s) => s.kind === "media").indexOf(scene);
+    const shown = Math.min(c.benefits.length, slot + 1);
+    const baseY = TEXT_TOP + 50 + name.length * 62 - 10;
+    const maxRows = name.length > 1 ? 2 : 3;
+    const first = Math.max(0, shown - maxRows);
+    for (let i = first; i < shown; i++) {
+      const isNew = i === shown - 1 && slot < c.benefits.length;
+      checkChip(ctx, c.benefits[i], TEXT_LEFT, baseY + (i - first) * 90, theme, font.body, isNew ? (local - 0.15) / 0.45 : 1);
+    }
+    ctx.restore();
+    return;
+  }
+
+  // Precio: producto arriba y la tarjeta de precio en la zona de textos.
+  drawProduct(ctx, m, { t, enter: local / 0.5, size: 0.8, cy: STAGE.y + STAGE.h * 0.42 });
+  const enter = easeOut(local / 0.4);
+  const top = TEXT_TOP - 70 + (1 - enter) * 60;
+  ctx.save();
+  ctx.globalAlpha *= enter;
+  ctx.fillStyle = theme.card;
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 16;
+  roundRect(ctx, TEXT_LEFT, top, W - TEXT_LEFT * 2, 330, 36);
+  ctx.fill();
+  ctx.restore();
+  ctx.textAlign = "center";
+  const old = formatStudioPrice(input.oldPrice, input.currency);
+  const price = formatStudioPrice(input.price, input.currency);
+  ctx.globalAlpha *= enter;
+  if (old) {
+    ctx.font = `600 34px ${font.body}`;
+    ctx.fillStyle = theme.muted;
+    const label = `${input.labels?.before ?? "Antes"} ${old}`;
+    ctx.fillText(label, W / 2, top + 70);
+    const w = ctx.measureText(label).width;
+    const strike = easeOut((local - 0.35) / 0.3);
+    ctx.strokeStyle = "#e5484d";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - w / 2 - 6, top + 58);
+    ctx.lineTo(W / 2 - w / 2 - 6 + (w + 12) * strike, top + 58);
+    ctx.stroke();
+  }
+  ctx.font = `700 26px ${font.body}`;
+  ctx.fillStyle = theme.accent;
+  ctx.fillText((old ? input.labels?.today ?? "Hoy" : input.labels?.price ?? "Precio").toUpperCase(), W / 2, top + (old ? 120 : 80));
+  const pop = backOut((local - 0.45) / 0.45);
+  ctx.save();
+  ctx.translate(W / 2, top + (old ? 235 : 210));
+  ctx.scale(0.5 + 0.5 * pop, 0.5 + 0.5 * pop);
+  ctx.globalAlpha *= clamp((local - 0.45) / 0.15);
+  ctx.fillStyle = theme.cardText;
+  ctx.font = `700 120px ${font.display}`;
+  ctx.fillText(price, 0, 40);
+  ctx.restore();
+  sticker(ctx, input.promo, STAGE.x - 10, STAGE.y + 10, theme, font.body, (local - 0.7) / 0.4);
   ctx.restore();
 }
 
@@ -118,183 +433,55 @@ export function drawStudioFrame(
     hasPrice: Boolean(formatStudioPrice(input.price, input.currency)),
   }),
 ) {
-  const theme = THEMES[input.template];
-  const font = fontFamily();
+  const c: DrawContext = {
+    ctx,
+    input,
+    media,
+    scenes,
+    theme: THEMES[input.template],
+    font: fonts(),
+    benefits: cleanBenefits(input.benefits),
+  };
   const scene = sceneAt(scenes, t);
+  const index = scenes.indexOf(scene);
   const local = t - scene.start;
-  const span = scene.end - scene.start;
-  const progress = clamp(local / span);
-  ctx.save();
-  ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "left";
-
-  if (scene.kind === "cta") {
-    const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, theme.accent);
-    g.addColorStop(1, input.template === "dark" ? "#b8860b" : "#141210");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    const k = backOut(local / 0.5);
-    ctx.textAlign = "center";
-    ctx.fillStyle = input.template === "dark" ? "#141210" : "#ffffff";
-    ctx.font = `700 96px ${font}`;
-    const lines = wrap(ctx, input.cta, W - 120, 3);
-    ctx.save();
-    ctx.translate(W / 2, H / 2 - 40);
-    ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
-    lines.forEach((line, i) => ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * 108));
-    ctx.restore();
-    // Flecha que late, dibujada (un carácter puede salir como emoji o cuadrito).
-    const pulse = 1 + 0.08 * Math.sin(t * 9);
-    ctx.save();
-    ctx.translate(W / 2, H / 2 + 70 + (lines.length * 108) / 2);
-    ctx.scale(pulse, pulse);
-    ctx.globalAlpha = easeOut((local - 0.3) / 0.4);
-    ctx.strokeStyle = input.template === "dark" ? "#141210" : "#ffffff";
-    ctx.lineWidth = 12;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(-34, -6);
-    ctx.lineTo(0, 28);
-    ctx.lineTo(34, -6);
-    ctx.stroke();
-    ctx.restore();
-    if (input.storeName.trim()) {
-      ctx.globalAlpha = easeOut((local - 0.4) / 0.4);
-      ctx.font = `700 34px ${font}`;
-      ctx.fillText(input.storeName.trim(), W / 2, H - 140);
-    }
-    ctx.restore();
-    return;
-  }
-
-  // En el precio la foto queda de fondo desenfocada para que resalte la tarjeta.
-  if (scene.kind === "price") ctx.filter = "blur(22px)";
-  drawCover(ctx, media[scene.mediaIndex] ?? media[0], progress, scene.kind === "media" ? (scene.start % 2 ? 1 : -1) : 0);
-  ctx.filter = "none";
-
-  if (scene.kind === "hook") {
-    // Oscuro arriba para el texto; el producto queda a la vista abajo.
-    const shade = ctx.createLinearGradient(0, 0, 0, H);
-    shade.addColorStop(0, `rgba(${theme.overlay},0.82)`);
-    shade.addColorStop(0.5, `rgba(${theme.overlay},0.35)`);
-    shade.addColorStop(1, `rgba(${theme.overlay},0.1)`);
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, 0, W, H);
-    const e = easeOut(local / 0.6);
-    ctx.globalAlpha = e;
-    ctx.textAlign = "center";
-    if (input.storeName.trim()) {
-      ctx.font = `700 30px ${font}`;
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.fillText(input.storeName.trim().toUpperCase(), W / 2, 150);
-    }
-    ctx.font = `700 84px ${font}`;
-    const lines = wrap(ctx, input.hook.trim() || input.productName, W - 110, 4);
-    const top = H * 0.27 - ((lines.length - 1) * 98) / 2 + (1 - e) * 40;
-    lines.forEach((line, i) => {
-      ctx.fillStyle = i === lines.length - 1 ? theme.accent : "#ffffff";
-      ctx.fillText(line, W / 2, top + i * 98);
-    });
-    ctx.restore();
-    return;
-  }
-
-  if (scene.kind === "media") {
-    const g = ctx.createLinearGradient(0, H * 0.45, 0, H);
-    g.addColorStop(0, `rgba(${theme.overlay},0)`);
-    g.addColorStop(1, `rgba(${theme.overlay},0.85)`);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    badge(ctx, input.promo, 48, 120, theme, font, easeOut(local / 0.4));
-
-    ctx.font = `700 64px ${font}`;
-    ctx.fillStyle = "#ffffff";
-    const name = wrap(ctx, input.productName, W - 96, 2);
-    const baseY = H - 330 - (name.length - 1) * 74;
-    name.forEach((line, i) => ctx.fillText(line, 48, baseY + i * 74));
-
-    if (scene.benefit) {
-      const k = backOut((local - 0.15) / 0.45);
+  // Transición: la escena se oscurece, sale, y la nueva aparece con un leve zoom.
+  // Nunca se ven las dos a la vez, así los textos no se enciman.
+  if (index > 0 && local < TRANSITION) {
+    const k = local / TRANSITION;
+    const tint = `rgb(${c.theme.tint})`;
+    if (k < 0.5) {
+      const prev = scenes[index - 1];
+      drawScene(c, prev, prev.end - 0.001);
       ctx.save();
-      ctx.globalAlpha = clamp((local - 0.15) / 0.2);
-      ctx.translate(48, H - 230);
-      ctx.scale(0.8 + 0.2 * k, 0.8 + 0.2 * k);
-      ctx.font = `700 38px ${font}`;
-      const text = wrap(ctx, scene.benefit, W - 200, 1)[0] ?? "";
-      const w = ctx.measureText(text).width + 120;
-      ctx.fillStyle = theme.card;
-      roundRect(ctx, 0, 0, w, 96, 26);
-      ctx.fill();
-      ctx.fillStyle = theme.accent;
-      ctx.beginPath();
-      ctx.arc(48, 48, 24, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = theme.accentText;
-      ctx.lineWidth = 6;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(37, 49);
-      ctx.lineTo(46, 58);
-      ctx.lineTo(60, 40);
-      ctx.stroke();
-      ctx.fillStyle = theme.cardText;
-      ctx.textBaseline = "middle";
-      ctx.fillText(text, 88, 50);
+      ctx.globalAlpha = easeInOut(k * 2);
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    } else {
+      const zoom = 1.06 - 0.06 * easeOut((k - 0.5) * 2);
+      ctx.save();
+      ctx.translate(W / 2, H / 2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-W / 2, -H / 2);
+      drawScene(c, scene, t);
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = 1 - easeInOut((k - 0.5) * 2);
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, W, H);
       ctx.restore();
     }
-    ctx.restore();
     return;
   }
+  drawScene(c, scene, t);
+}
 
-  // Precio
-  ctx.fillStyle = `rgba(${theme.overlay},0.45)`;
-  ctx.fillRect(0, 0, W, H);
-  const cardW = W - 120;
-  const cardH = 520;
-  const cx = 60;
-  const cy = (H - cardH) / 2;
-  const enter = easeOut(local / 0.45);
-  ctx.globalAlpha = enter;
-  ctx.fillStyle = theme.card;
-  roundRect(ctx, cx, cy + (1 - enter) * 60, cardW, cardH, 44);
-  ctx.fill();
-  ctx.textAlign = "center";
-  const old = formatStudioPrice(input.oldPrice, input.currency);
-  const price = formatStudioPrice(input.price, input.currency);
-  if (old) {
-    ctx.font = `600 40px ${font}`;
-    ctx.fillStyle = theme.muted;
-    const label = `${input.labels?.before ?? "Antes"} ${old}`;
-    ctx.fillText(label, W / 2, cy + 110);
-    const w = ctx.measureText(label).width;
-    ctx.strokeStyle = "#e5484d";
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - w / 2 - 6, cy + 96);
-    ctx.lineTo(W / 2 + w / 2 + 6, cy + 96);
-    ctx.stroke();
-  }
-  ctx.font = `700 34px ${font}`;
-  ctx.fillStyle = theme.accent;
-  ctx.fillText((old ? input.labels?.today ?? "Hoy" : input.labels?.price ?? "Precio").toUpperCase(), W / 2, cy + (old ? 180 : 140));
-  const pop = backOut((local - 0.25) / 0.5);
-  ctx.save();
-  ctx.translate(W / 2, cy + 320);
-  ctx.scale(0.5 + 0.5 * pop, 0.5 + 0.5 * pop);
-  ctx.globalAlpha = enter * clamp((local - 0.25) / 0.15);
-  ctx.fillStyle = theme.cardText;
-  ctx.font = `700 140px ${font}`;
-  ctx.fillText(price, 0, 48);
-  ctx.restore();
-  ctx.textAlign = "left";
-  if (input.promo.trim()) {
-    ctx.font = `700 30px ${font}`;
-    const w = ctx.measureText(input.promo.trim().toUpperCase()).width + 44;
-    badge(ctx, input.promo, (W - w) / 2, cy + cardH - 110, theme, font, enter * clamp((local - 0.6) / 0.3));
-  }
-  ctx.restore();
+/** Fotos con menos de esto en su lado corto se ven borrosas en el video. */
+export const STUDIO_MIN_SHORT_SIDE = 600;
+
+export function isLowResolution(media: StudioMedia): boolean {
+  return Math.min(media.width, media.height) < STUDIO_MIN_SHORT_SIDE;
 }
 
 /* ------------------------------ música ------------------------------ */

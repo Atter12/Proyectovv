@@ -2481,6 +2481,8 @@
       "subtitle": "Envie fotos ou clipes, informe o preço e a promoção, e montamos um vídeo vertical pronto para o TikTok. Depois ele passa pela análise e você publica como sempre.",
       "mediaLabel": "Fotos ou clipes (até {max})",
       "mediaHint": "A primeira foto abre o vídeo. Fotos verticais e bem iluminadas funcionam melhor.",
+      "lowResBadge": "Baixa qualidade",
+      "lowRes": "Há fotos de baixa qualidade (marcadas em amarelo): vão ficar pequenas ou borradas. Use fotos de pelo menos 600 px, sem capturas de tela.",
       "addMedia": "Adicionar fotos ou clipes",
       "remove": "Remover",
       "hook": "Frase de abertura",
