@@ -16,7 +16,8 @@ const HOOK_END = 2.5;
 const PRICE_SECONDS = 2.5;
 const CTA_SECONDS = 2;
 
-export type StudioTemplate = "orange" | "dark" | "fresh";
+/** "auto" toma los colores del producto. */
+export type StudioTemplate = "auto" | "orange" | "dark" | "fresh";
 export type StudioCurrency = "PEN" | "USD" | "COP";
 
 export type StudioInput = {
@@ -31,7 +32,7 @@ export type StudioInput = {
   cta: string;
   storeName: string;
   /** Textos fijos que salen en el video (vienen traducidos de la UI). */
-  labels?: { before: string; today: string; price: string };
+  labels?: { before: string; today: string; price: string; button: string };
 };
 
 export type StudioScene =

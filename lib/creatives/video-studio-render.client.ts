@@ -12,52 +12,56 @@ import {
   type StudioScene,
   type StudioTemplate,
 } from "@/lib/creatives/video-studio";
+import {
+  borderBackground,
+  cutoutMask,
+  isUsableCutout,
+  maskBounds,
+  productColors,
+  themeFromColors,
+  type ProductTheme,
+} from "@/lib/creatives/product-cutout";
 
 /**
  * Dibuja y graba el video del estudio en el navegador (canvas + MediaRecorder).
- * La música se arma con Web Audio, así el mp4 sale con sonido sin pistas externas.
+ * Estilo de anuncio de producto: el producto recortado sobre un fondo con sus
+ * colores, acercamientos a la etiqueta y al detalle, brillo que pasa por el
+ * producto, reflejo en el piso y cortes con destello al ritmo de la música
+ * (Web Audio, así el mp4 sale con sonido sin pistas externas).
  */
 
+/** Producto listo para dibujar: recortado si la foto tenía fondo liso. */
+export type PreparedProduct = {
+  canvas: HTMLCanvasElement;
+  cut: boolean;
+  reflection: HTMLCanvasElement | null;
+  theme: ProductTheme;
+};
+
 export type StudioMedia =
-  | { kind: "image"; el: ImageBitmap | HTMLImageElement; width: number; height: number }
-  | { kind: "video"; el: HTMLVideoElement; width: number; height: number };
+  | { kind: "image"; el: ImageBitmap | HTMLImageElement; width: number; height: number; prepared?: PreparedProduct }
+  | { kind: "video"; el: HTMLVideoElement; width: number; height: number; prepared?: undefined };
 
-type Theme = {
-  accent: string;
-  accentText: string;
-  card: string;
-  cardText: string;
-  muted: string;
-  /** Tinte del fondo (r,g,b). */
-  tint: string;
-  ctaFrom: string;
-  ctaTo: string;
-  ctaText: string;
-};
+type Theme = ProductTheme & { ink: string };
 
-const THEMES: Record<StudioTemplate, Theme> = {
-  orange: { accent: "#ff781f", accentText: "#ffffff", card: "#ffffff", cardText: "#141210", muted: "#6b645c", tint: "28,16,8", ctaFrom: "#ff8a3d", ctaTo: "#d9480f", ctaText: "#ffffff" },
-  dark: { accent: "#f5c451", accentText: "#141210", card: "#17171a", cardText: "#f7f4ef", muted: "#a39d95", tint: "6,6,8", ctaFrom: "#232327", ctaTo: "#09090b", ctaText: "#f5c451" },
-  fresh: { accent: "#14b8a6", accentText: "#ffffff", card: "#ffffff", cardText: "#0f2a27", muted: "#4e6b67", tint: "4,32,30", ctaFrom: "#2dd4bf", ctaTo: "#0f766e", ctaText: "#ffffff" },
+const FIXED_THEMES: Record<Exclude<StudioTemplate, "auto">, Theme> = {
+  orange: { bgTop: "hsl(22 70% 22%)", bgBottom: "hsl(22 60% 4%)", glow: "255,170,110", accent: "#ff9a52", accentSoft: "#e8763a", ink: "#140904" },
+  dark: { bgTop: "hsl(240 4% 17%)", bgBottom: "hsl(240 6% 3%)", glow: "245,215,140", accent: "#f5c451", accentSoft: "#c99a2e", ink: "#0b0b0d" },
+  fresh: { bgTop: "hsl(172 60% 18%)", bgBottom: "hsl(172 50% 4%)", glow: "120,240,220", accent: "#4fe3cf", accentSoft: "#21b3a2", ink: "#03130f" },
 };
+const FALLBACK_AUTO: Theme = { bgTop: "hsl(212 55% 20%)", bgBottom: "hsl(212 45% 4%)", glow: "156,195,230", accent: "hsl(210 60% 76%)", accentSoft: "hsl(210 35% 60%)", ink: "#05070a" };
 
 const W = STUDIO_WIDTH;
 const H = STUDIO_HEIGHT;
-/** Zona del producto y zona de textos (fuera de los botones de TikTok, abajo y a la derecha). */
-const STAGE = { x: 70, y: 150, w: 580, h: 600 };
-const TEXT_TOP = 800;
-const TEXT_LEFT = 56;
-const TEXT_WIDTH = W - TEXT_LEFT - 110;
-const TRANSITION = 0.35;
-/** Más de esto la foto se ve pixelada: mejor que quede más chica y nítida. */
-const MAX_UPSCALE = 1.7;
+const TEXT_LEFT = 54;
+/** Margen derecho: ahí van los botones de TikTok. */
+const SAFE_RIGHT = 110;
+const CUT_FLASH = 0.25;
+/** Más de esto la foto se ve pixelada. */
+const MAX_UPSCALE = 3;
 
 const clamp = (x: number, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - clamp(x), 3);
-const easeInOut = (x: number) => {
-  const p = clamp(x);
-  return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-};
 const backOut = (x: number) => {
   const c = 1.7;
   const p = clamp(x) - 1;
@@ -103,171 +107,66 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, max
   return lines;
 }
 
-function isFullBleed(media: StudioMedia): boolean {
-  // Clips verticales con buena resolución se ven mejor a pantalla completa.
-  return media.kind === "video" && media.height > media.width && media.height >= 900;
+/** Número pseudoaleatorio fijo por índice (las chispas no saltan entre cuadros). */
+function seeded(i: number): number {
+  const x = Math.sin(i * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
 }
 
-/** Fondo: la misma foto agrandada y desenfocada, con el tinte del estilo. */
-function drawBackdrop(ctx: CanvasRenderingContext2D, media: StudioMedia | undefined, theme: Theme, t: number) {
-  ctx.fillStyle = `rgb(${theme.tint})`;
-  ctx.fillRect(0, 0, W, H);
-  if (media && media.width > 0) {
-    const scale = Math.max(W / media.width, H / media.height) * (1.25 + 0.03 * Math.sin(t * 0.4));
-    const dw = media.width * scale;
-    const dh = media.height * scale;
-    ctx.save();
-    ctx.filter = "blur(36px) saturate(1.2)";
-    ctx.globalAlpha *= 0.85;
-    ctx.drawImage(media.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    ctx.restore();
-  }
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, `rgba(${theme.tint},0.25)`);
-  g.addColorStop(0.55, `rgba(${theme.tint},0.45)`);
-  g.addColorStop(1, `rgba(${theme.tint},0.9)`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  // Luz suave detrás del producto
-  const glow = ctx.createRadialGradient(W / 2, STAGE.y + STAGE.h * 0.45, 20, W / 2, STAGE.y + STAGE.h * 0.45, 420);
-  glow.addColorStop(0, "rgba(255,255,255,0.22)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-}
+/* ------------------------- preparar el producto ------------------------- */
+
+/** Lado largo máximo para recortar (rápido y suficiente para 720×1280). */
+const PREP_MAX = 1100;
 
 /**
- * Producto nítido dentro de su zona, con sombra y flotando.
- * `size` 1 = zona completa; menos para escenas donde el producto acompaña.
+ * Recorta el fondo si es liso (fotos de catálogo) y saca los colores del
+ * producto. Si el fondo es cargado, deja la foto entera.
  */
-function drawProduct(
-  ctx: CanvasRenderingContext2D,
-  media: StudioMedia | undefined,
-  opts: { t: number; enter: number; size?: number; cx?: number; cy?: number; zoom?: number },
-) {
-  if (!media || media.width <= 0) return;
-  const size = opts.size ?? 1;
-  const boxW = STAGE.w * size;
-  const boxH = STAGE.h * size;
-  const fit = Math.min(boxW / media.width, boxH / media.height);
-  const scale = Math.min(fit, MAX_UPSCALE) * (0.9 + 0.1 * backOut(opts.enter)) * (opts.zoom ?? 1);
-  const dw = media.width * scale;
-  const dh = media.height * scale;
-  const cx = opts.cx ?? W / 2;
-  const cy = (opts.cy ?? STAGE.y + STAGE.h / 2) + Math.sin(opts.t * 1.6) * 6 + (1 - easeOut(opts.enter)) * 50;
-  ctx.save();
-  ctx.globalAlpha *= clamp(opts.enter * 2);
-  ctx.shadowColor = "rgba(0,0,0,0.45)";
-  ctx.shadowBlur = 50;
-  ctx.shadowOffsetY = 24;
-  ctx.beginPath();
-  ctx.roundRect(cx - dw / 2, cy - dh / 2, dw, dh, 28);
-  ctx.fillStyle = "#000";
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.clip();
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(media.el, cx - dw / 2, cy - dh / 2, dw, dh);
-  ctx.restore();
+export function prepareProduct(el: CanvasImageSource, width: number, height: number): PreparedProduct {
+  const scale = Math.min(1, PREP_MAX / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const src = document.createElement("canvas");
+  src.width = w;
+  src.height = h;
+  const sctx = src.getContext("2d", { willReadFrequently: true })!;
+  sctx.drawImage(el, 0, 0, w, h);
+  const pixels = sctx.getImageData(0, 0, w, h);
+  const img = { data: pixels.data, width: w, height: h };
+
+  const bg = borderBackground(img);
+  const mask = bg.uniform ? cutoutMask(img, bg.color) : null;
+  if (!mask || !isUsableCutout(mask)) {
+    return { canvas: src, cut: false, reflection: null, theme: themeFromColors(productColors(img)) };
+  }
+  for (let i = 0; i < mask.length; i++) pixels.data[i * 4 + 3] = mask[i];
+  sctx.putImageData(pixels, 0, 0);
+  const box = maskBounds(mask, w, h) ?? { x: 0, y: 0, width: w, height: h };
+  const canvas = document.createElement("canvas");
+  canvas.width = box.width;
+  canvas.height = box.height;
+  canvas.getContext("2d")!.drawImage(src, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+
+  // Reflejo: el producto de cabeza que se desvanece.
+  const reflection = document.createElement("canvas");
+  reflection.width = box.width;
+  reflection.height = box.height;
+  const rctx = reflection.getContext("2d")!;
+  rctx.translate(0, box.height);
+  rctx.scale(1, -1);
+  rctx.drawImage(canvas, 0, 0);
+  rctx.setTransform(1, 0, 0, 1, 0, 0);
+  rctx.globalCompositeOperation = "destination-in";
+  const fade = rctx.createLinearGradient(0, 0, 0, box.height);
+  fade.addColorStop(0, "rgba(0,0,0,0.9)");
+  fade.addColorStop(0.45, "rgba(0,0,0,0)");
+  rctx.fillStyle = fade;
+  rctx.fillRect(0, 0, box.width, box.height);
+
+  return { canvas, cut: true, reflection, theme: themeFromColors(productColors(img, mask)) };
 }
 
-function drawFullBleed(ctx: CanvasRenderingContext2D, media: StudioMedia, progress: number, theme: Theme) {
-  const scale = Math.max(W / media.width, H / media.height) * (1.02 + 0.06 * progress);
-  const dw = media.width * scale;
-  const dh = media.height * scale;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(media.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
-  const g = ctx.createLinearGradient(0, H * 0.5, 0, H);
-  g.addColorStop(0, `rgba(${theme.tint},0)`);
-  g.addColorStop(1, `rgba(${theme.tint},0.92)`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-}
-
-/** Sticker inclinado de la promo. */
-function sticker(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, theme: Theme, font: string, k: number) {
-  if (!text.trim() || k <= 0) return;
-  ctx.save();
-  ctx.font = `700 30px ${font}`;
-  const label = text.trim().toUpperCase();
-  const w = ctx.measureText(label).width + 48;
-  ctx.translate(x + w / 2, y + 32);
-  ctx.rotate(-0.07);
-  ctx.scale(0.4 + 0.6 * backOut(k), 0.4 + 0.6 * backOut(k));
-  ctx.globalAlpha *= clamp(k * 3);
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = 18;
-  ctx.shadowOffsetY = 6;
-  ctx.fillStyle = theme.accent;
-  roundRect(ctx, -w / 2, -32, w, 64, 18);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.fillStyle = theme.accentText;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-  ctx.fillText(label, 0, 2);
-  ctx.restore();
-}
-
-/** Texto que entra palabra por palabra. Con varias líneas, la última va en el color del estilo. */
-function kinetic(
-  ctx: CanvasRenderingContext2D,
-  lines: string[],
-  opts: { x: number; y: number; lineHeight: number; t: number; align: "left" | "center"; color: string; accent: string },
-) {
-  ctx.save();
-  ctx.textAlign = "left";
-  let wordIndex = 0;
-  lines.forEach((line, li) => {
-    const lineWidth = ctx.measureText(line).width;
-    let cursor = opts.align === "center" ? opts.x - lineWidth / 2 : opts.x;
-    for (const word of line.split(" ")) {
-      const k = easeOut((opts.t - wordIndex * 0.09) / 0.35);
-      ctx.save();
-      ctx.globalAlpha *= k;
-      ctx.fillStyle = li === lines.length - 1 && lines.length > 1 ? opts.accent : opts.color;
-      ctx.fillText(word, cursor, opts.y + li * opts.lineHeight + (1 - k) * 26);
-      ctx.restore();
-      cursor += ctx.measureText(`${word} `).width;
-      wordIndex++;
-    }
-  });
-  ctx.restore();
-}
-
-function checkChip(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, theme: Theme, font: string, k: number) {
-  if (k <= 0) return;
-  ctx.save();
-  ctx.globalAlpha *= clamp(k * 2.5);
-  ctx.translate(x + (1 - easeOut(k)) * -40, y);
-  ctx.font = `700 32px ${font}`;
-  const label = wrap(ctx, text, TEXT_WIDTH - 110, 1)[0] ?? "";
-  const w = ctx.measureText(label).width + 104;
-  ctx.fillStyle = theme.card;
-  ctx.shadowColor = "rgba(0,0,0,0.18)";
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetY = 6;
-  roundRect(ctx, 0, 0, w, 76, 22);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.fillStyle = theme.accent;
-  ctx.beginPath();
-  ctx.arc(40, 38, 20, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = theme.accentText;
-  ctx.lineWidth = 5;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(31, 39);
-  ctx.lineTo(38, 46);
-  ctx.lineTo(50, 31);
-  ctx.stroke();
-  ctx.fillStyle = theme.cardText;
-  ctx.textBaseline = "middle";
-  ctx.fillText(label, 76, 40);
-  ctx.restore();
-}
+/* ------------------------------- dibujo ------------------------------- */
 
 type DrawContext = {
   ctx: CanvasRenderingContext2D;
@@ -279,6 +178,302 @@ type DrawContext = {
   benefits: string[];
 };
 
+function themeFor(input: StudioInput, media: StudioMedia[]): Theme {
+  if (input.template !== "auto") return FIXED_THEMES[input.template];
+  const prepared = media.find((m) => m.prepared)?.prepared;
+  return prepared ? { ...prepared.theme, ink: "#05070a" } : FALLBACK_AUTO;
+}
+
+function drawBackground(c: DrawContext, opts: { brighter?: boolean } = {}) {
+  const { ctx, theme } = c;
+  const g = ctx.createRadialGradient(W / 2, H * 0.36, 40, W / 2, H * 0.4, H * 0.75);
+  g.addColorStop(0, theme.bgTop);
+  g.addColorStop(opts.brighter ? 0.6 : 0.45, theme.bgBottom);
+  g.addColorStop(1, "#020203");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // Haz de luz desde arriba
+  const beam = ctx.createRadialGradient(W / 2, 120, 10, W / 2, 260, 520);
+  beam.addColorStop(0, `rgba(${theme.glow},${opts.brighter ? 0.42 : 0.3})`);
+  beam.addColorStop(1, `rgba(${theme.glow},0)`);
+  ctx.fillStyle = beam;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function vignette(ctx: CanvasRenderingContext2D) {
+  const v = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.35, W / 2, H * 0.45, H * 0.85);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function floorGlow(ctx: CanvasRenderingContext2D, theme: Theme, cx: number, y: number, w: number, alpha: number) {
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(cx, y);
+  ctx.scale(1, 0.16);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+  g.addColorStop(0, `rgba(${theme.glow},0.5)`);
+  g.addColorStop(1, `rgba(${theme.glow},0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, w / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+let shineCanvas: HTMLCanvasElement | null = null;
+
+/** Brillo diagonal que recorre el producto (solo sobre el producto, no sobre el fondo). */
+function drawShine(ctx: CanvasRenderingContext2D, source: CanvasImageSource, x: number, y: number, w: number, h: number, p: number) {
+  if (p <= 0 || p >= 1 || w < 2 || h < 2) return;
+  if (typeof document === "undefined") return;
+  shineCanvas ??= document.createElement("canvas");
+  const sw = Math.min(900, Math.ceil(w));
+  const sh = Math.min(1600, Math.ceil(h));
+  shineCanvas.width = sw;
+  shineCanvas.height = sh;
+  const s = shineCanvas.getContext("2d")!;
+  s.clearRect(0, 0, sw, sh);
+  s.drawImage(source, 0, 0, sw, sh);
+  s.globalCompositeOperation = "source-in";
+  const band = s.createLinearGradient(0, 0, sw, sh * 0.35);
+  const center = -0.3 + p * 1.6;
+  band.addColorStop(clamp(center - 0.12), "rgba(255,255,255,0)");
+  band.addColorStop(clamp(center), "rgba(255,255,255,0.55)");
+  band.addColorStop(clamp(center + 0.12), "rgba(255,255,255,0)");
+  s.fillStyle = band;
+  s.fillRect(0, 0, sw, sh);
+  s.globalCompositeOperation = "source-over";
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.drawImage(shineCanvas, x, y, w, h);
+  ctx.restore();
+}
+
+type ProductPose = {
+  cx: number;
+  cy: number;
+  /** Alto en pantalla. */
+  h: number;
+  rot?: number;
+  alpha?: number;
+  shine?: number;
+  reflection?: boolean;
+};
+
+/** Producto con sombra; recortado flota libre, si no va como tarjeta con esquinas redondeadas. */
+function drawProduct(c: DrawContext, m: StudioMedia | undefined, pose: ProductPose) {
+  if (!m) return;
+  const { ctx } = c;
+  const prepared = m.prepared;
+  const source: CanvasImageSource = prepared?.canvas ?? m.el;
+  const sw = prepared?.canvas.width ?? m.width;
+  const shh = prepared?.canvas.height ?? m.height;
+  if (sw <= 0 || shh <= 0) return;
+  // Nunca más grande que MAX_UPSCALE veces la foto original.
+  const h = Math.min(pose.h, shh * MAX_UPSCALE);
+  const w = (h * sw) / shh;
+  const x = pose.cx - w / 2;
+  const y = pose.cy - h / 2;
+  const cut = prepared?.cut ?? false;
+  ctx.save();
+  ctx.globalAlpha *= pose.alpha ?? 1;
+  if (pose.rot) {
+    ctx.translate(pose.cx, pose.cy);
+    ctx.rotate((pose.rot * Math.PI) / 180);
+    ctx.translate(-pose.cx, -pose.cy);
+  }
+  if (cut && pose.reflection && prepared?.reflection) {
+    ctx.save();
+    ctx.globalAlpha *= 0.22;
+    ctx.drawImage(prepared.reflection, x, y + h - 2, w, h);
+    ctx.restore();
+  }
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 26;
+  ctx.imageSmoothingQuality = "high";
+  if (cut) {
+    ctx.drawImage(source, x, y, w, h);
+    ctx.shadowColor = "transparent";
+    drawShine(ctx, source, x, y, w, h, pose.shine ?? 0);
+  } else {
+    roundRect(ctx, x, y, w, h, 26);
+    ctx.fillStyle = "#000";
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.clip();
+    ctx.drawImage(source, x, y, w, h);
+  }
+  ctx.restore();
+}
+
+/** Acercamiento: el punto (fx, fy) del producto queda en (sx, sy) de la pantalla. */
+function punchPose(m: StudioMedia, fx: number, fy: number, sx: number, sy: number, h: number): ProductPose {
+  const sw = m.prepared?.canvas.width ?? m.width;
+  const shh = m.prepared?.canvas.height ?? m.height;
+  const realH = Math.min(h, shh * MAX_UPSCALE);
+  const w = (realH * sw) / shh;
+  return { cx: sx + (0.5 - fx) * w, cy: sy + (0.5 - fy) * realH, h: realH };
+}
+
+function drawFullBleed(c: DrawContext, m: StudioMedia, progress: number) {
+  const { ctx, theme } = c;
+  const scale = Math.max(W / m.width, H / m.height) * (1.02 + 0.06 * progress);
+  const dw = m.width * scale;
+  const dh = m.height * scale;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(m.el, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  const g = ctx.createLinearGradient(0, H * 0.45, 0, H);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, theme.bgBottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/** Relleno en degradado para palabras clave y el precio. */
+function accentFill(ctx: CanvasRenderingContext2D, theme: Theme, x: number, w: number) {
+  const g = ctx.createLinearGradient(x, 0, x + Math.max(w, 1), 0);
+  g.addColorStop(0, theme.accent);
+  g.addColorStop(1, "#ffffff");
+  return g;
+}
+
+/** Texto que entra palabra por palabra. Con varias líneas, la última va en el color del producto. */
+function kinetic(
+  c: DrawContext,
+  lines: string[],
+  opts: { x: number; y: number; lineHeight: number; t: number; align: "left" | "center"; accentLast?: boolean },
+) {
+  const { ctx, theme } = c;
+  ctx.save();
+  ctx.textAlign = "left";
+  let wordIndex = 0;
+  lines.forEach((line, li) => {
+    const lineWidth = ctx.measureText(line).width;
+    const startX = opts.align === "center" ? opts.x - lineWidth / 2 : opts.x;
+    let cursor = startX;
+    const accent = (opts.accentLast ?? true) && li === lines.length - 1 && lines.length > 1;
+    for (const word of line.split(" ")) {
+      const k = easeOut((opts.t - wordIndex * 0.08) / 0.4);
+      ctx.save();
+      ctx.globalAlpha *= k;
+      ctx.fillStyle = accent ? accentFill(ctx, theme, startX, lineWidth) : "#ffffff";
+      ctx.fillText(word, cursor, opts.y + li * opts.lineHeight + (1 - k) * 28);
+      ctx.restore();
+      cursor += ctx.measureText(`${word} `).width;
+      wordIndex++;
+    }
+  });
+  ctx.restore();
+}
+
+function kicker(c: DrawContext, text: string, x: number, y: number, k: number, align: "left" | "center" = "left") {
+  if (!text.trim() || k <= 0) return;
+  const { ctx, font } = c;
+  ctx.save();
+  ctx.globalAlpha *= k;
+  ctx.font = `700 19px ${font.body}`;
+  ctx.letterSpacing = "6px";
+  ctx.fillStyle = "rgba(255,255,255,0.78)";
+  ctx.textAlign = align;
+  ctx.fillText(text.trim().toUpperCase(), x, y + (1 - k) * 16);
+  ctx.restore();
+}
+
+/** Sticker inclinado de la promo. */
+function sticker(c: DrawContext, text: string, x: number, y: number, k: number) {
+  if (!text.trim() || k <= 0) return;
+  const { ctx, theme, font } = c;
+  ctx.save();
+  ctx.font = `700 26px ${font.body}`;
+  const label = text.trim().toUpperCase();
+  const w = ctx.measureText(label).width + 44;
+  ctx.translate(x + w / 2, y + 28);
+  ctx.rotate(-0.1);
+  const s = 0.4 + 0.6 * backOut(k);
+  ctx.scale(s, s);
+  ctx.globalAlpha *= clamp(k * 3);
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 10;
+  const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(1, theme.accent);
+  ctx.fillStyle = g;
+  roundRect(ctx, -w / 2, -28, w, 56, 14);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.fillStyle = theme.ink;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.fillText(label, 0, 2);
+  ctx.restore();
+}
+
+/** Beneficio en cápsula de vidrio con check. */
+function chip(c: DrawContext, text: string, x: number, y: number, k: number) {
+  if (k <= 0) return;
+  const { ctx, theme, font } = c;
+  ctx.save();
+  ctx.globalAlpha *= clamp(k * 2);
+  ctx.translate(x + (1 - easeOut(k)) * -54, y);
+  ctx.font = `700 27px ${font.body}`;
+  const label = wrap(ctx, text, W - x - SAFE_RIGHT - 90, 1)[0] ?? "";
+  const w = ctx.measureText(label).width + 98;
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  roundRect(ctx, 0, 0, w, 66, 20);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  const g = ctx.createLinearGradient(16, 14, 52, 50);
+  g.addColorStop(0, theme.accent);
+  g.addColorStop(1, theme.accentSoft);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(35, 33, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = theme.ink;
+  ctx.lineWidth = 4.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(27, 34);
+  ctx.lineTo(33, 40);
+  ctx.lineTo(44, 27);
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 66, 35);
+  ctx.restore();
+}
+
+function sparkles(c: DrawContext, local: number) {
+  const { ctx, theme } = c;
+  ctx.save();
+  for (let i = 0; i < 22; i++) {
+    const ph = (local * 0.45 + seeded(i)) % 1;
+    const x = 130 + seeded(i + 50) * 460 + Math.sin(ph * 6 + i) * 14;
+    const y = 330 + seeded(i + 99) * 540 - ph * 280;
+    const a = Math.sin(ph * Math.PI) * clamp(local / 0.3);
+    ctx.globalAlpha = a;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.4, `rgba(${theme.glow},0.8)`);
+    g.addColorStop(1, `rgba(${theme.glow},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 9, y - 9, 18, 18);
+  }
+  ctx.restore();
+}
+
+/** Tipo de toma de cada tramo de producto, rotando para que no se repita. */
+type Shot = "label" | "side" | "detail";
+const SHOTS: Shot[] = ["label", "side", "detail"];
+
 function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   const { ctx, input, media, theme, font } = c;
   const local = t - scene.start;
@@ -287,138 +482,179 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
 
-  if (scene.kind === "cta") {
-    const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, theme.ctaFrom);
-    g.addColorStop(1, theme.ctaTo);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    drawProduct(ctx, media[0], { t, enter: local / 0.5, size: 0.55, cy: 380 });
-    ctx.font = `700 74px ${font.display}`;
-    const lines = wrap(ctx, input.cta, W - 140, 2);
-    kinetic(ctx, lines, { x: W / 2, y: 760, lineHeight: 86, t: local - 0.15, align: "center", color: theme.ctaText, accent: theme.ctaText });
-    // Botón con flecha que late
-    const k = backOut((local - 0.5) / 0.4);
-    if (local > 0.5) {
-      const pulse = 1 + 0.04 * Math.sin(t * 8);
-      ctx.save();
-      ctx.translate(W / 2, 760 + lines.length * 86 + 30);
-      ctx.scale(k * pulse, k * pulse);
-      ctx.fillStyle = theme.ctaText;
-      roundRect(ctx, -110, -40, 220, 80, 40);
-      ctx.fill();
-      ctx.strokeStyle = theme.ctaTo;
-      ctx.lineWidth = 9;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(-22, -10);
-      ctx.lineTo(0, 12);
-      ctx.lineTo(22, -10);
-      ctx.stroke();
-      ctx.restore();
-    }
-    if (input.storeName.trim()) {
-      ctx.globalAlpha *= easeOut((local - 0.6) / 0.4);
-      ctx.textAlign = "center";
-      ctx.font = `600 28px ${font.body}`;
-      ctx.fillStyle = theme.ctaText;
-      ctx.fillText(input.storeName.trim(), W / 2, H - 190);
-    }
-    ctx.restore();
-    return;
-  }
-
-  const m = media[scene.mediaIndex] ?? media[0];
-  const full = scene.kind === "media" && m ? isFullBleed(m) : false;
-  if (full && m) drawFullBleed(ctx, m, progress, theme);
-  else drawBackdrop(ctx, m, theme, t);
-
   if (scene.kind === "hook") {
-    drawProduct(ctx, m, { t, enter: local / 0.6, zoom: 1 + 0.05 * progress });
-    if (input.storeName.trim()) {
-      ctx.save();
-      ctx.globalAlpha *= easeOut(local / 0.5);
-      ctx.font = `700 24px ${font.body}`;
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.textAlign = "center";
-      ctx.fillText(input.storeName.trim().toUpperCase(), W / 2, 110);
-      ctx.restore();
-    }
-    ctx.font = `700 70px ${font.display}`;
-    const lines = wrap(ctx, input.hook.trim() || input.productName, W - 120, 3);
-    kinetic(ctx, lines, { x: W / 2, y: TEXT_TOP + 90, lineHeight: 82, t: local - 0.2, align: "center", color: "#ffffff", accent: theme.accent });
+    drawBackground(c);
+    const m = media[0];
+    const k = easeOut(local / 1.1);
+    floorGlow(ctx, theme, W / 2, 830, 520, k);
+    drawProduct(c, m, { cx: W / 2, cy: 500 + (1 - k) * 170, h: 650 * (0.92 + 0.08 * k) + local * 8, alpha: clamp(local / 0.35), shine: (local - 0.9) / 1.2, reflection: true });
+    kicker(c, input.storeName, W / 2, 86, easeOut(local / 0.5), "center");
+    ctx.font = `700 52px ${font.display}`;
+    const lines = wrap(ctx, input.hook.trim() || input.productName, W - 110, 3);
+    kinetic(c, lines, { x: W / 2, y: 930, lineHeight: 62, t: local - 0.3, align: "center" });
+    vignette(ctx);
     ctx.restore();
     return;
   }
 
   if (scene.kind === "media") {
-    if (!full) drawProduct(ctx, m, { t, enter: local / 0.5, zoom: 1 + 0.06 * progress });
-    sticker(ctx, input.promo, STAGE.x - 10, STAGE.y + 10, theme, font.body, (local - 0.2) / 0.4);
-
-    ctx.font = `700 54px ${font.display}`;
-    ctx.fillStyle = "#ffffff";
-    const name = wrap(ctx, input.productName, TEXT_WIDTH, 2);
-    name.forEach((line, i) => ctx.fillText(line, TEXT_LEFT, TEXT_TOP + 50 + i * 62));
-
-    // Los beneficios se van sumando: cada tramo agrega el suyo.
+    const m = media[scene.mediaIndex] ?? media[0];
     const slot = c.scenes.filter((s) => s.kind === "media").indexOf(scene);
-    const shown = Math.min(c.benefits.length, slot + 1);
-    const baseY = TEXT_TOP + 50 + name.length * 62 - 10;
-    const maxRows = name.length > 1 ? 2 : 3;
-    const first = Math.max(0, shown - maxRows);
-    for (let i = first; i < shown; i++) {
-      const isNew = i === shown - 1 && slot < c.benefits.length;
-      checkChip(ctx, c.benefits[i], TEXT_LEFT, baseY + (i - first) * 90, theme, font.body, isNew ? (local - 0.15) / 0.45 : 1);
+    const shot = SHOTS[slot % SHOTS.length];
+
+    if (m?.kind === "video" && m.height > m.width && m.height >= 900) {
+      // Clip vertical bueno: a pantalla completa con los beneficios encima.
+      drawFullBleed(c, m, progress);
+      ctx.font = `700 46px ${font.display}`;
+      const name = wrap(ctx, input.productName, W - TEXT_LEFT - SAFE_RIGHT, 2);
+      kinetic(c, name, { x: TEXT_LEFT, y: 760, lineHeight: 54, t: local - 0.1, align: "left", accentLast: false });
+      if (scene.benefit) chip(c, scene.benefit, TEXT_LEFT, 790 + (name.length - 1) * 54, (local - 0.3) / 0.45);
+      ctx.restore();
+      return;
     }
+
+    if (shot === "label") {
+      // Acercamiento a la etiqueta; el texto arriba sobre una franja oscura.
+      drawBackground(c);
+      if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.42, W / 2, 660, 1270 + local * 100), shine: local / 1.6 });
+      const band = ctx.createLinearGradient(0, 0, 0, 350);
+      band.addColorStop(0.35, theme.bgBottom);
+      band.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = band;
+      ctx.fillRect(0, 0, W, 350);
+      kicker(c, input.storeName, TEXT_LEFT, 110, easeOut((local - 0.1) / 0.4));
+      ctx.font = `700 50px ${font.display}`;
+      const name = wrap(ctx, input.productName, W - TEXT_LEFT - SAFE_RIGHT, 2);
+      kinetic(c, name, { x: TEXT_LEFT, y: 172, lineHeight: 58, t: local - 0.25, align: "left" });
+      vignette(ctx);
+      ctx.restore();
+      return;
+    }
+
+    if (shot === "side") {
+      // Producto a la derecha con giro suave; beneficios abajo a la izquierda.
+      drawBackground(c);
+      for (const [i, size, alpha] of [[0, 470, 0.5], [1, 340, 0.4]] as const) {
+        const ox = i === 0 ? 350 + Math.sin(t * 0.6) * 80 : -50 + Math.cos(t * 0.7) * 70;
+        const oy = i === 0 ? 200 + Math.cos(t * 0.5) * 70 : 600 + Math.sin(t * 0.6) * 80;
+        const orb = ctx.createRadialGradient(ox + size / 2, oy + size / 2, 0, ox + size / 2, oy + size / 2, size / 2);
+        orb.addColorStop(0, `rgba(${theme.glow},${alpha * 0.55})`);
+        orb.addColorStop(1, `rgba(${theme.glow},0)`);
+        ctx.fillStyle = orb;
+        ctx.fillRect(ox, oy, size, size);
+      }
+      const k = easeOut(local / 0.8);
+      floorGlow(ctx, theme, 500, 820, 360, 1);
+      if (m) drawProduct(c, m, { cx: 500 + (1 - k) * 130, cy: 510 + Math.sin(t * 1.5) * 7, h: 620, rot: -6 + 6 * k, shine: (local - 1.1) / 1.2, reflection: true });
+      sticker(c, input.promo, TEXT_LEFT - 6, 130, (local - 0.4) / 0.45);
+      const list = c.benefits.length > 0 ? c.benefits : [input.productName];
+      list.forEach((b, i) => chip(c, b, TEXT_LEFT - 8, 880 + i * 80, (local - 0.4 - i * 0.55) / 0.45));
+      vignette(ctx);
+      ctx.restore();
+      return;
+    }
+
+    // Detalle: acercamiento a la base del producto con chispas.
+    drawBackground(c);
+    if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.85, W / 2, 500, 1430 - local * 100), shine: local / 1.4 });
+    sparkles(c, local);
+    const band = ctx.createLinearGradient(0, 760, 0, H);
+    band.addColorStop(0, "rgba(0,0,0,0)");
+    band.addColorStop(0.4, theme.bgBottom);
+    ctx.fillStyle = band;
+    ctx.fillRect(0, 760, W, H - 760);
+    ctx.font = `700 50px ${font.display}`;
+    const line = wrap(ctx, scene.benefit ?? input.productName, W - 120, 2);
+    kinetic(c, line, { x: W / 2, y: 940, lineHeight: 60, t: local - 0.2, align: "center" });
+    vignette(ctx);
     ctx.restore();
     return;
   }
 
-  // Precio: producto arriba y la tarjeta de precio en la zona de textos.
-  drawProduct(ctx, m, { t, enter: local / 0.5, size: 0.8, cy: STAGE.y + STAGE.h * 0.42 });
-  const enter = easeOut(local / 0.4);
-  const top = TEXT_TOP - 70 + (1 - enter) * 60;
-  ctx.save();
-  ctx.globalAlpha *= enter;
-  ctx.fillStyle = theme.card;
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 16;
-  roundRect(ctx, TEXT_LEFT, top, W - TEXT_LEFT * 2, 330, 36);
-  ctx.fill();
-  ctx.restore();
-  ctx.textAlign = "center";
-  const old = formatStudioPrice(input.oldPrice, input.currency);
-  const price = formatStudioPrice(input.price, input.currency);
-  ctx.globalAlpha *= enter;
-  if (old) {
-    ctx.font = `600 34px ${font.body}`;
-    ctx.fillStyle = theme.muted;
-    const label = `${input.labels?.before ?? "Antes"} ${old}`;
-    ctx.fillText(label, W / 2, top + 70);
-    const w = ctx.measureText(label).width;
-    const strike = easeOut((local - 0.35) / 0.3);
-    ctx.strokeStyle = "#e5484d";
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - w / 2 - 6, top + 58);
-    ctx.lineTo(W / 2 - w / 2 - 6 + (w + 12) * strike, top + 58);
+  if (scene.kind === "price") {
+    drawBackground(c);
+    const m = media[scene.mediaIndex] ?? media[0];
+    const k = easeOut(local / 0.6);
+    floorGlow(ctx, theme, W / 2, 610, 420, k);
+    drawProduct(c, m, { cx: W / 2, cy: 370 + (1 - k) * 60 + Math.sin(t * 1.5) * 6, h: 500, shine: (local - 1.3) / 1.0 });
+    const enter = easeOut((local - 0.3) / 0.45);
+    const top = 700 + (1 - enter) * 50;
+    ctx.save();
+    ctx.globalAlpha *= enter;
+    ctx.fillStyle = "rgba(255,255,255,0.11)";
+    roundRect(ctx, TEXT_LEFT, top, W - TEXT_LEFT * 2, 300, 34);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.24)";
+    ctx.lineWidth = 1.5;
     ctx.stroke();
+    ctx.textAlign = "center";
+    const old = formatStudioPrice(input.oldPrice, input.currency);
+    const price = formatStudioPrice(input.price, input.currency);
+    if (old) {
+      ctx.font = `600 32px ${font.body}`;
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      const label = `${input.labels?.before ?? "Antes"} ${old}`;
+      ctx.fillText(label, W / 2, top + 66);
+      const w = ctx.measureText(label).width;
+      ctx.strokeStyle = "#ff5a5f";
+      ctx.lineWidth = 4;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - w / 2 - 6, top + 55);
+      ctx.lineTo(W / 2 - w / 2 - 6 + (w + 12) * easeOut((local - 0.75) / 0.35), top + 55);
+      ctx.stroke();
+    }
+    ctx.restore();
+    kicker(c, old ? input.labels?.today ?? "Hoy" : input.labels?.price ?? "Precio", W / 2, top + (old ? 108 : 78), enter, "center");
+    const pop = backOut((local - 0.8) / 0.5);
+    if (local > 0.8) {
+      ctx.save();
+      ctx.translate(W / 2, top + (old ? 222 : 200));
+      ctx.scale(0.4 + 0.6 * pop, 0.4 + 0.6 * pop);
+      ctx.globalAlpha *= clamp((local - 0.8) / 0.15);
+      ctx.font = `700 132px ${font.display}`;
+      ctx.textAlign = "center";
+      const pw = ctx.measureText(price).width;
+      ctx.fillStyle = accentFill(ctx, theme, -pw / 2, pw);
+      ctx.fillText(price, 0, 44);
+      ctx.restore();
+    }
+    sticker(c, input.promo, TEXT_LEFT, 110, (local - 1.3) / 0.45);
+    vignette(ctx);
+    ctx.restore();
+    return;
   }
-  ctx.font = `700 26px ${font.body}`;
-  ctx.fillStyle = theme.accent;
-  ctx.fillText((old ? input.labels?.today ?? "Hoy" : input.labels?.price ?? "Precio").toUpperCase(), W / 2, top + (old ? 120 : 80));
-  const pop = backOut((local - 0.45) / 0.45);
-  ctx.save();
-  ctx.translate(W / 2, top + (old ? 235 : 210));
-  ctx.scale(0.5 + 0.5 * pop, 0.5 + 0.5 * pop);
-  ctx.globalAlpha *= clamp((local - 0.45) / 0.15);
-  ctx.fillStyle = theme.cardText;
-  ctx.font = `700 120px ${font.display}`;
-  ctx.fillText(price, 0, 40);
-  ctx.restore();
-  sticker(ctx, input.promo, STAGE.x - 10, STAGE.y + 10, theme, font.body, (local - 0.7) / 0.4);
+
+  // Cierre
+  drawBackground(c, { brighter: true });
+  const k = easeOut(local / 0.7);
+  drawProduct(c, media[0], { cx: W / 2, cy: 400 + Math.sin(t * 1.4) * 6, h: 470 * (0.85 + 0.15 * k), alpha: k, shine: (local - 0.6) / 1.0 });
+  ctx.font = `700 70px ${font.display}`;
+  const lines = wrap(ctx, input.cta, W - 120, 2);
+  kinetic(c, lines, { x: W / 2, y: 760, lineHeight: 80, t: local - 0.2, align: "center" });
+  if (local > 0.85) {
+    const bk = backOut((local - 0.85) / 0.5);
+    const label = input.labels?.button ?? "Escríbenos";
+    ctx.save();
+    ctx.font = `700 30px ${font.body}`;
+    const bw = ctx.measureText(`${label}  ›`).width + 80;
+    const by = 760 + lines.length * 80 + 10;
+    ctx.translate(W / 2, by);
+    ctx.scale(bk, bk);
+    ctx.shadowColor = `rgba(${theme.glow},0.8)`;
+    ctx.shadowBlur = 34 + 18 * Math.sin(t * 7);
+    ctx.fillStyle = "#ffffff";
+    roundRect(ctx, -bw / 2, -36, bw, 72, 36);
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = theme.ink;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${label}  ›`, 0, 2);
+    ctx.restore();
+  }
+  kicker(c, input.storeName, W / 2, 1040, easeOut((local - 1.0) / 0.4), "center");
+  vignette(ctx);
   ctx.restore();
 }
 
@@ -438,43 +674,27 @@ export function drawStudioFrame(
     input,
     media,
     scenes,
-    theme: THEMES[input.template],
+    theme: themeFor(input, media),
     font: fonts(),
     benefits: cleanBenefits(input.benefits),
   };
   const scene = sceneAt(scenes, t);
-  const index = scenes.indexOf(scene);
   const local = t - scene.start;
-  // Transición: la escena se oscurece, sale, y la nueva aparece con un leve zoom.
-  // Nunca se ven las dos a la vez, así los textos no se enciman.
-  if (index > 0 && local < TRANSITION) {
-    const k = local / TRANSITION;
-    const tint = `rgb(${c.theme.tint})`;
-    if (k < 0.5) {
-      const prev = scenes[index - 1];
-      drawScene(c, prev, prev.end - 0.001);
-      ctx.save();
-      ctx.globalAlpha = easeInOut(k * 2);
-      ctx.fillStyle = tint;
-      ctx.fillRect(0, 0, W, H);
-      ctx.restore();
-    } else {
-      const zoom = 1.06 - 0.06 * easeOut((k - 0.5) * 2);
-      ctx.save();
-      ctx.translate(W / 2, H / 2);
-      ctx.scale(zoom, zoom);
-      ctx.translate(-W / 2, -H / 2);
-      drawScene(c, scene, t);
-      ctx.restore();
-      ctx.save();
-      ctx.globalAlpha = 1 - easeInOut((k - 0.5) * 2);
-      ctx.fillStyle = tint;
-      ctx.fillRect(0, 0, W, H);
-      ctx.restore();
-    }
-    return;
-  }
+  // Cada corte entra con un leve zoom y un destello corto.
+  const zoom = 1.08 - 0.08 * easeOut(local / 0.5);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-W / 2, -H / 2);
   drawScene(c, scene, t);
+  ctx.restore();
+  if (scene.start > 0 && local < CUT_FLASH) {
+    ctx.save();
+    ctx.globalAlpha = 0.5 * (1 - local / CUT_FLASH);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
 }
 
 /** Fotos con menos de esto en su lado corto se ven borrosas en el video. */
@@ -676,5 +896,6 @@ export async function loadStudioMedia(file: File): Promise<{ media: StudioMedia;
   const el = new Image();
   el.src = url;
   await el.decode();
-  return { media: { kind: "image", el, width: el.naturalWidth, height: el.naturalHeight }, url };
+  const prepared = prepareProduct(el, el.naturalWidth, el.naturalHeight);
+  return { media: { kind: "image", el, width: el.naturalWidth, height: el.naturalHeight, prepared }, url };
 }

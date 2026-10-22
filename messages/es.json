@@ -2507,6 +2507,7 @@
         "COP": "COP"
       },
       "templates": {
+        "auto": "Colores del producto",
         "orange": "Naranja",
         "dark": "Elegante",
         "fresh": "Fresco"
@@ -2515,6 +2516,7 @@
         "cta": "Pide el tuyo ahora"
       },
       "canvas": {
+        "button": "Escríbenos",
         "before": "Antes",
         "today": "Hoy",
         "price": "Precio"

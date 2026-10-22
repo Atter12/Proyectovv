@@ -31,8 +31,9 @@ import {
 
 type Loaded = { id: string; name: string; url: string; media: StudioMedia };
 
-const TEMPLATES: StudioTemplate[] = ["orange", "dark", "fresh"];
+const TEMPLATES: StudioTemplate[] = ["auto", "orange", "dark", "fresh"];
 const TEMPLATE_SWATCH: Record<StudioTemplate, string> = {
+  auto: "bg-[conic-gradient(#ff781f,#19c2b3,#6366f1,#ff781f)]",
   orange: "bg-[#ff781f]",
   dark: "bg-[#141416]",
   fresh: "bg-[#19c2b3]",
@@ -63,7 +64,7 @@ export function VideoStudioPanel({
 
   const [items, setItems] = useState<Loaded[]>([]);
   const [studio, setStudio] = useState<StudioInput>(() => ({
-    template: "orange",
+    template: "auto",
     hook: "",
     productName: "",
     benefits: ["", "", ""],
@@ -73,7 +74,7 @@ export function VideoStudioPanel({
     promo: "",
     cta: t("defaults.cta"),
     storeName: clienteName ?? "",
-    labels: { before: t("canvas.before"), today: t("canvas.today"), price: t("canvas.price") },
+    labels: { before: t("canvas.before"), today: t("canvas.today"), price: t("canvas.price"), button: t("canvas.button") },
   }));
   const [adAccountId, setAdAccountId] = useState(
     () => accounts.find((a) => a.status === "active")?.id ?? accounts[0]?.id ?? "",
