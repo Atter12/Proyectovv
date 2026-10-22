@@ -16,6 +16,7 @@ import { CreativeAssetsPanel } from "@/features/creative-analyzer/components/Cre
 import { AgentProDraftsPanel } from "@/features/creative-analyzer/components/AgentProDraftsPanel.client";
 import { CreativePipelineStrip } from "@/features/creative-analyzer/components/CreativePipelineStrip.client";
 import { TikTokVideoGallery } from "@/features/creative-analyzer/components/TikTokVideoGallery";
+import { VideoStudioPanel } from "@/features/creative-analyzer/components/VideoStudioPanel.client";
 import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
   HecomClienteDashboard,
@@ -122,6 +123,9 @@ export async function ClienteScopedCreatives({
             <CrmHeroButton href="#creative-upload">
               {t("uploadVideo")}
             </CrmHeroButton>
+            <CrmHeroButton href="#video-studio" variant="secondary">
+              {t("createVideo")}
+            </CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               {t("tiktokAccounts")}
             </CrmHeroButton>
@@ -203,6 +207,8 @@ export async function ClienteScopedCreatives({
           repeatRejectKind={repeatRejectKind}
         />
       </Suspense>
+
+      <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
 
       <CreativeAssetsPanel assets={assets} />
 

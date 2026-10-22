@@ -2475,6 +2475,74 @@
     }
   },
   "creatives": {
+    "videoStudio": {
+      "kicker": "New · Create video",
+      "title": "Make a 15-second video of your product",
+      "subtitle": "Upload photos or clips, add the price and promo, and we build a vertical video ready for TikTok. Then it goes through analysis and you publish it as usual.",
+      "mediaLabel": "Photos or clips (up to {max})",
+      "mediaHint": "The first photo opens the video. Vertical, well-lit photos work best.",
+      "addMedia": "Add photos or clips",
+      "remove": "Remove",
+      "hook": "Opening line",
+      "hookPlaceholder": "Still don't have yours?",
+      "product": "Product",
+      "productPlaceholder": "Shapewear",
+      "benefit": "Benefit {n}",
+      "benefitPlaceholder1": "Shapes instantly",
+      "benefitPlaceholder2": "Breathable fabric",
+      "benefitPlaceholder3": "Sizes S to XXL",
+      "price": "Price",
+      "oldPrice": "Previous price (optional)",
+      "promo": "Promo (optional)",
+      "promoPlaceholder": "Free shipping",
+      "cta": "Call to action",
+      "store": "Store name",
+      "template": "Style",
+      "account": "TikTok account",
+      "currency": {
+        "PEN": "S/",
+        "USD": "US$",
+        "COP": "COP"
+      },
+      "templates": {
+        "orange": "Orange",
+        "dark": "Elegant",
+        "fresh": "Fresh"
+      },
+      "defaults": {
+        "cta": "Get yours now"
+      },
+      "canvas": {
+        "before": "Before",
+        "today": "Today",
+        "price": "Price"
+      },
+      "create": "Create video",
+      "recording": "Creating video… {pct}%",
+      "recordingHint": "Keep this tab open while it's created: it takes 15 seconds.",
+      "send": "Send to analysis",
+      "sending": "Sending…",
+      "download": "Download",
+      "edit": "Edit",
+      "assetName": "Video {product}",
+      "sent": "Video sent. The AI is analyzing it; you'll see it below in your creatives.",
+      "previewTitle": "Preview",
+      "resultTitle": "Your video",
+      "previewHint": "Vertical 9:16 · 15 s · with music",
+      "errors": {
+        "noMedia": "Upload at least one photo or clip.",
+        "noProduct": "Enter the product name.",
+        "noCta": "Enter the call to action.",
+        "oldPriceLower": "The previous price must be higher than today's price.",
+        "noAccount": "Choose an approved TikTok account.",
+        "tooMany": "Up to {max} photos or clips.",
+        "mediaLoad": "Couldn't open {name}.",
+        "unsupported": "Your browser can't create the video. Use an up-to-date Chrome or Safari.",
+        "record": "Couldn't create the video. Try again.",
+        "tooBig": "The video is too large. Use fewer or shorter clips.",
+        "send": "Couldn't send the video. Try again."
+      }
+    },
     "videoGallery": {
       "openPost": "View on TikTok",
       "title": "Your TikTok videos",
@@ -2504,6 +2572,7 @@
     "title": "Creative Hub · Agent Pro",
     "meta": "Upload → AI → Send campaign · {count} with score",
     "uploadVideo": "Upload video",
+    "createVideo": "Create video",
     "tiktokAccounts": "TikTok accounts",
     "metrics": {
       "uploads": "Uploads",

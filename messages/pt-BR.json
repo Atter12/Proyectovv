@@ -2475,6 +2475,74 @@
     }
   },
   "creatives": {
+    "videoStudio": {
+      "kicker": "Novo · Criar vídeo",
+      "title": "Crie um vídeo do seu produto em 15 segundos",
+      "subtitle": "Envie fotos ou clipes, informe o preço e a promoção, e montamos um vídeo vertical pronto para o TikTok. Depois ele passa pela análise e você publica como sempre.",
+      "mediaLabel": "Fotos ou clipes (até {max})",
+      "mediaHint": "A primeira foto abre o vídeo. Fotos verticais e bem iluminadas funcionam melhor.",
+      "addMedia": "Adicionar fotos ou clipes",
+      "remove": "Remover",
+      "hook": "Frase de abertura",
+      "hookPlaceholder": "Ainda não tem o seu?",
+      "product": "Produto",
+      "productPlaceholder": "Cinta modeladora",
+      "benefit": "Benefício {n}",
+      "benefitPlaceholder1": "Modela na hora",
+      "benefitPlaceholder2": "Tecido que respira",
+      "benefitPlaceholder3": "Tamanhos P ao GG",
+      "price": "Preço",
+      "oldPrice": "Preço anterior (opcional)",
+      "promo": "Promoção (opcional)",
+      "promoPlaceholder": "Frete grátis",
+      "cta": "Chamada para ação",
+      "store": "Nome da loja",
+      "template": "Estilo",
+      "account": "Conta do TikTok",
+      "currency": {
+        "PEN": "S/",
+        "USD": "US$",
+        "COP": "COP"
+      },
+      "templates": {
+        "orange": "Laranja",
+        "dark": "Elegante",
+        "fresh": "Fresco"
+      },
+      "defaults": {
+        "cta": "Peça o seu agora"
+      },
+      "canvas": {
+        "before": "Antes",
+        "today": "Hoje",
+        "price": "Preço"
+      },
+      "create": "Criar vídeo",
+      "recording": "Criando vídeo… {pct}%",
+      "recordingHint": "Não troque de aba enquanto cria: leva 15 segundos.",
+      "send": "Enviar para análise",
+      "sending": "Enviando…",
+      "download": "Baixar",
+      "edit": "Editar",
+      "assetName": "Vídeo {product}",
+      "sent": "Vídeo enviado. A IA está analisando; você verá abaixo nos seus criativos.",
+      "previewTitle": "Pré-visualização",
+      "resultTitle": "Seu vídeo",
+      "previewHint": "Vertical 9:16 · 15 s · com música",
+      "errors": {
+        "noMedia": "Envie pelo menos uma foto ou clipe.",
+        "noProduct": "Informe o nome do produto.",
+        "noCta": "Informe a chamada para ação.",
+        "oldPriceLower": "O preço anterior deve ser maior que o preço de hoje.",
+        "noAccount": "Escolha uma conta do TikTok aprovada.",
+        "tooMany": "No máximo {max} fotos ou clipes.",
+        "mediaLoad": "Não foi possível abrir {name}.",
+        "unsupported": "Seu navegador não consegue criar o vídeo. Use o Chrome ou Safari atualizados.",
+        "record": "Não foi possível criar o vídeo. Tente novamente.",
+        "tooBig": "O vídeo ficou pesado demais. Use menos clipes ou clipes mais curtos.",
+        "send": "Não foi possível enviar o vídeo. Tente novamente."
+      }
+    },
     "videoGallery": {
       "openPost": "Ver no TikTok",
       "title": "Seus vídeos no TikTok",
@@ -2504,6 +2572,7 @@
     "title": "Creative Hub · Agent Pro",
     "meta": "Envie → IA → Enviar campanha · {count} com score",
     "uploadVideo": "Enviar vídeo",
+    "createVideo": "Criar vídeo",
     "tiktokAccounts": "Contas TikTok",
     "metrics": {
       "uploads": "Uploads",
