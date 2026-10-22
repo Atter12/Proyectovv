@@ -66,8 +66,9 @@ export function EducationPlayerDialog({
   const ready = Boolean(lesson?.videoUrl || lesson?.embedUrl);
   // Loom y Drive no aceptan portada propia: se muestra encima hasta que le dan play.
   const [startedSlug, setStartedSlug] = useState<string | null>(null);
-  const showCover =
-    Boolean(lesson?.videoPosterUrl) && !lesson?.videoUrl && startedSlug !== lesson?.slug;
+  // Sin portada propia se usa la imagen de referencia, como en el MP4.
+  const coverUrl = lesson?.videoPosterUrl ?? lesson?.posterUrl ?? null;
+  const showCover = Boolean(coverUrl) && !lesson?.videoUrl && startedSlug !== lesson?.slug;
   // El MP4 puede ser vertical o cuadrado; Loom y Drive no dicen su proporción y quedan en 16:9.
   const [measured, setMeasured] = useState<{ src: string; ratio: number } | null>(null);
   const ratio =
@@ -143,7 +144,7 @@ export function EducationPlayerDialog({
                     className="group relative block h-full w-full"
                   >
                     <img
-                      src={lesson.videoPosterUrl ?? undefined}
+                      src={coverUrl ?? undefined}
                       alt=""
                       className="h-full w-full object-cover"
                     />
@@ -158,11 +159,7 @@ export function EducationPlayerDialog({
                 ) : (
                   <iframe
                     key={lesson.slug}
-                    src={
-                      lesson.videoPosterUrl
-                        ? withAutoplay(lesson.embedUrl)
-                        : lesson.embedUrl ?? undefined
-                    }
+                    src={coverUrl ? withAutoplay(lesson.embedUrl) : lesson.embedUrl ?? undefined}
                     title={lesson.title}
                     className="h-full w-full"
                     allow="fullscreen; autoplay; clipboard-write; encrypted-media; picture-in-picture"

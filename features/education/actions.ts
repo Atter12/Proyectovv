@@ -329,6 +329,56 @@ export async function clearEducationVideoAction(slug: string): Promise<Education
   return { ok: true, videoUrl: null };
 }
 
+export type DeleteEducationLessonResult =
+  | { ok: true }
+  | { ok: false; error: "forbidden" | "invalid" | "unknown" };
+
+/** Solo los tutoriales agregados desde el editor; los del catálogo se desactivan. */
+export async function deleteEducationLessonAction(
+  slug: string,
+): Promise<DeleteEducationLessonResult> {
+  const allowed = await assertEducationEditor();
+  if (!allowed.ok) return allowed;
+  if (isEducationLessonSlug(slug)) return { ok: false, error: "invalid" };
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 80) {
+    return { ok: false, error: "invalid" };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("education_lessons")
+      .select("*")
+      .eq("slug", slug)
+      .eq("is_custom", true)
+      .maybeSingle<{
+        poster_path?: string | null;
+        video_poster_path?: string | null;
+        video_path?: string | null;
+      }>();
+    if (error) return { ok: false, error: "unknown" };
+    if (!data) return { ok: false, error: "invalid" };
+
+    const removed = await admin
+      .from("education_lessons")
+      .delete()
+      .eq("slug", slug)
+      .eq("is_custom", true);
+    if (removed.error) return { ok: false, error: "unknown" };
+
+    const images = [data.poster_path, data.video_poster_path].filter(
+      (path): path is string => Boolean(path),
+    );
+    for (const path of images) await removePoster(path);
+    if (data.video_path) await removeVideo(data.video_path);
+  } catch {
+    return { ok: false, error: "unknown" };
+  }
+
+  revalidateEducation();
+  return { ok: true };
+}
+
 function isVideoPathForSlug(slug: string, path: string): boolean {
   return new RegExp(
     `^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/[0-9a-f-]{36}\\.mp4$`,

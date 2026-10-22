@@ -2885,6 +2885,13 @@
     "saving": "Salvando…",
     "saved": "Tutorial salvo",
     "savedLesson": "Tutorial salvo",
+    "deleteLesson": "Excluir tutorial",
+    "deleteConfirm": "Excluir \"{title}\"? O vídeo e as imagens também serão excluídos. Não é possível desfazer.",
+    "deleteError": {
+      "forbidden": "Você não tem permissão para excluir tutoriais.",
+      "invalid": "Só é possível excluir os tutoriais adicionados. Os outros podem ser desativados.",
+      "unknown": "Não foi possível excluir o tutorial."
+    },
     "cleared": "Link removido",
     "ready": "Com vídeo",
     "pending": "Sem link",

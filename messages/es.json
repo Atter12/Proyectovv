@@ -2885,6 +2885,13 @@
     "saving": "Guardando…",
     "saved": "Tutorial guardado",
     "savedLesson": "Tutorial guardado",
+    "deleteLesson": "Eliminar tutorial",
+    "deleteConfirm": "¿Eliminar \"{title}\"? Se borran también su video e imágenes. No se puede deshacer.",
+    "deleteError": {
+      "forbidden": "No tienes permiso para eliminar tutoriales.",
+      "invalid": "Solo se pueden eliminar los tutoriales agregados. Los demás se pueden desactivar.",
+      "unknown": "No se pudo eliminar el tutorial."
+    },
     "cleared": "Enlace quitado",
     "ready": "Con video",
     "pending": "Sin enlace",

@@ -31,6 +31,7 @@ export function EducationCenter({
   const [active, setActive] = useState<EducationLessonView | null>(null);
   const [saved, setSaved] = useState<Record<string, EducationLessonSave>>({});
   const [created, setCreated] = useState<EducationLessonView[]>([]);
+  const [deleted, setDeleted] = useState<string[]>([]);
   // Cuando llegan los datos del servidor (tras guardar se hace refresh), mandan ellos:
   // así quien sube el video ve lo mismo que los demás y no una copia local.
   const [base, setBase] = useState(lessons);
@@ -38,6 +39,7 @@ export function EducationCenter({
     setBase(lessons);
     setSaved({});
     setCreated([]);
+    setDeleted([]);
   }
 
   const published = useMemo(() => {
@@ -46,8 +48,8 @@ export function EducationCenter({
     const extras = created
       .filter((lesson) => !known.has(lesson.slug))
       .map((lesson) => applyLessonSave(lesson, saved[lesson.slug]));
-    return [...current, ...extras];
-  }, [lessons, saved, created]);
+    return [...current, ...extras].filter((lesson) => !deleted.includes(lesson.slug));
+  }, [lessons, saved, created, deleted]);
 
   // Los desactivados solo aparecen en el editor; la galería es lo que ve el cliente.
   const visible = useMemo(() => published.filter((lesson) => lesson.active), [published]);
@@ -134,6 +136,7 @@ export function EducationCenter({
               lessonFromSave(lesson),
             ])
           }
+          onDeleted={(slug) => setDeleted((current) => [...current, slug])}
         />
       ) : null}
 

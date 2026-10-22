@@ -2885,6 +2885,13 @@
     "saving": "Saving…",
     "saved": "Tutorial saved",
     "savedLesson": "Tutorial saved",
+    "deleteLesson": "Delete tutorial",
+    "deleteConfirm": "Delete \"{title}\"? Its video and images are deleted too. This cannot be undone.",
+    "deleteError": {
+      "forbidden": "You are not allowed to delete tutorials.",
+      "invalid": "Only added tutorials can be deleted. The others can be deactivated.",
+      "unknown": "The tutorial could not be deleted."
+    },
     "cleared": "Link removed",
     "ready": "With video",
     "pending": "No link",

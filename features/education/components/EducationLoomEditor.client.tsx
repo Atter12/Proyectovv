@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
   clearEducationVideoAction,
   createEducationLessonAction,
+  deleteEducationLessonAction,
   saveEducationLessonAction,
   type EducationLessonSave,
 } from "../actions";
@@ -19,11 +20,13 @@ export function EducationLoomEditor({
   tone = "dashboard",
   onSaved,
   onCreated,
+  onDeleted,
 }: {
   lessons: EducationLessonView[];
   tone?: "dashboard" | "admin";
   onSaved?: (lesson: EducationLessonSave) => void;
   onCreated?: (lesson: EducationLessonSave) => void;
+  onDeleted?: (slug: string) => void;
 }) {
   const t = useTranslations("education");
   const admin = tone === "admin";
@@ -58,7 +61,12 @@ export function EducationLoomEditor({
       <ul className="mt-4 space-y-3">
         {lessons.map((lesson) => (
           <li key={lesson.slug}>
-            <LessonEditor lesson={lesson} tone={tone} onSaved={onSaved} />
+            <LessonEditor
+              lesson={lesson}
+              tone={tone}
+              onSaved={onSaved}
+              onDeleted={onDeleted}
+            />
           </li>
         ))}
       </ul>
@@ -238,10 +246,12 @@ function LessonEditor({
   lesson,
   tone,
   onSaved,
+  onDeleted,
 }: {
   lesson: EducationLessonView;
   tone: "dashboard" | "admin";
   onSaved?: (lesson: EducationLessonSave) => void;
+  onDeleted?: (slug: string) => void;
 }) {
   const t = useTranslations("education");
   const router = useRouter();
@@ -324,6 +334,21 @@ function LessonEditor({
     setLoomUrl(saved.loomUrl ?? "");
     setFeedback(t("savedLesson"));
     onSaved?.(saved);
+    router.refresh();
+  }
+
+  async function onDelete() {
+    if (!window.confirm(t("deleteConfirm", { title: lesson.title }))) return;
+    setPending(true);
+    setFeedback(null);
+    setError(null);
+    const result = await deleteEducationLessonAction(lesson.slug);
+    setPending(false);
+    if (!result.ok) {
+      setError(t(`deleteError.${result.error}`));
+      return;
+    }
+    onDeleted?.(lesson.slug);
     router.refresh();
   }
 
@@ -435,9 +460,21 @@ function LessonEditor({
         </div>
       </div>
       <FormStatus error={error} feedback={feedback} />
-      <button type="submit" disabled={pending} className={buttonClass(admin)}>
-        {uploading ? t("uploadingVideo") : pending ? t("saving") : t("saveLink")}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={pending} className={buttonClass(admin)}>
+          {uploading ? t("uploadingVideo") : pending ? t("saving") : t("saveLink")}
+        </button>
+        {lesson.custom ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => void onDelete()}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            {t("deleteLesson")}
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }
