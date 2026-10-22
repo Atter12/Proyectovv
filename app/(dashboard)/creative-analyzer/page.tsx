@@ -280,6 +280,7 @@ export default async function CreativeAnalyzerPage() {
         publishEnabled={isTikTokCreativePublishEnabled()}
         expectDiscoverRefresh={advertiserIds.length > 0}
         organizationId={session.organizationId ?? undefined}
+        showVideoStudio={mode === "staff"}
       />
     </div>
   );

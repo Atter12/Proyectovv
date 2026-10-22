@@ -95,7 +95,7 @@ function badge(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
   if (!text.trim() || alpha <= 0) return;
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.font = `800 30px ${font}`;
+  ctx.font = `700 30px ${font}`;
   const label = text.trim().toUpperCase();
   const w = ctx.measureText(label).width + 44;
   ctx.fillStyle = theme.accent;
@@ -137,21 +137,28 @@ export function drawStudioFrame(
     const k = backOut(local / 0.5);
     ctx.textAlign = "center";
     ctx.fillStyle = input.template === "dark" ? "#141210" : "#ffffff";
-    ctx.font = `800 96px ${font}`;
+    ctx.font = `700 96px ${font}`;
     const lines = wrap(ctx, input.cta, W - 120, 3);
     ctx.save();
     ctx.translate(W / 2, H / 2 - 40);
     ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
     lines.forEach((line, i) => ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * 108));
     ctx.restore();
-    // Flecha que late
+    // Flecha que late, dibujada (un carácter puede salir como emoji o cuadrito).
     const pulse = 1 + 0.08 * Math.sin(t * 9);
     ctx.save();
-    ctx.translate(W / 2, H / 2 + 60 + (lines.length * 108) / 2);
+    ctx.translate(W / 2, H / 2 + 70 + (lines.length * 108) / 2);
     ctx.scale(pulse, pulse);
     ctx.globalAlpha = easeOut((local - 0.3) / 0.4);
-    ctx.font = `800 80px ${font}`;
-    ctx.fillText("↓", 0, 40);
+    ctx.strokeStyle = input.template === "dark" ? "#141210" : "#ffffff";
+    ctx.lineWidth = 12;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(-34, -6);
+    ctx.lineTo(0, 28);
+    ctx.lineTo(34, -6);
+    ctx.stroke();
     ctx.restore();
     if (input.storeName.trim()) {
       ctx.globalAlpha = easeOut((local - 0.4) / 0.4);
@@ -162,10 +169,18 @@ export function drawStudioFrame(
     return;
   }
 
+  // En el precio la foto queda de fondo desenfocada para que resalte la tarjeta.
+  if (scene.kind === "price") ctx.filter = "blur(22px)";
   drawCover(ctx, media[scene.mediaIndex] ?? media[0], progress, scene.kind === "media" ? (scene.start % 2 ? 1 : -1) : 0);
+  ctx.filter = "none";
 
   if (scene.kind === "hook") {
-    ctx.fillStyle = `rgba(${theme.overlay},0.55)`;
+    // Oscuro arriba para el texto; el producto queda a la vista abajo.
+    const shade = ctx.createLinearGradient(0, 0, 0, H);
+    shade.addColorStop(0, `rgba(${theme.overlay},0.82)`);
+    shade.addColorStop(0.5, `rgba(${theme.overlay},0.35)`);
+    shade.addColorStop(1, `rgba(${theme.overlay},0.1)`);
+    ctx.fillStyle = shade;
     ctx.fillRect(0, 0, W, H);
     const e = easeOut(local / 0.6);
     ctx.globalAlpha = e;
@@ -173,11 +188,11 @@ export function drawStudioFrame(
     if (input.storeName.trim()) {
       ctx.font = `700 30px ${font}`;
       ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.fillText(input.storeName.trim().toUpperCase(), W / 2, 200);
+      ctx.fillText(input.storeName.trim().toUpperCase(), W / 2, 150);
     }
-    ctx.font = `800 84px ${font}`;
+    ctx.font = `700 84px ${font}`;
     const lines = wrap(ctx, input.hook.trim() || input.productName, W - 110, 4);
-    const top = H / 2 - ((lines.length - 1) * 98) / 2 + (1 - e) * 40;
+    const top = H * 0.27 - ((lines.length - 1) * 98) / 2 + (1 - e) * 40;
     lines.forEach((line, i) => {
       ctx.fillStyle = i === lines.length - 1 ? theme.accent : "#ffffff";
       ctx.fillText(line, W / 2, top + i * 98);
@@ -194,7 +209,7 @@ export function drawStudioFrame(
     ctx.fillRect(0, 0, W, H);
     badge(ctx, input.promo, 48, 120, theme, font, easeOut(local / 0.4));
 
-    ctx.font = `800 64px ${font}`;
+    ctx.font = `700 64px ${font}`;
     ctx.fillStyle = "#ffffff";
     const name = wrap(ctx, input.productName, W - 96, 2);
     const baseY = H - 330 - (name.length - 1) * 74;
@@ -234,7 +249,7 @@ export function drawStudioFrame(
   }
 
   // Precio
-  ctx.fillStyle = `rgba(${theme.overlay},0.72)`;
+  ctx.fillStyle = `rgba(${theme.overlay},0.45)`;
   ctx.fillRect(0, 0, W, H);
   const cardW = W - 120;
   const cardH = 520;
@@ -261,7 +276,7 @@ export function drawStudioFrame(
     ctx.lineTo(W / 2 + w / 2 + 6, cy + 96);
     ctx.stroke();
   }
-  ctx.font = `800 34px ${font}`;
+  ctx.font = `700 34px ${font}`;
   ctx.fillStyle = theme.accent;
   ctx.fillText((old ? input.labels?.today ?? "Hoy" : input.labels?.price ?? "Precio").toUpperCase(), W / 2, cy + (old ? 180 : 140));
   const pop = backOut((local - 0.25) / 0.5);
@@ -270,12 +285,12 @@ export function drawStudioFrame(
   ctx.scale(0.5 + 0.5 * pop, 0.5 + 0.5 * pop);
   ctx.globalAlpha = enter * clamp((local - 0.25) / 0.15);
   ctx.fillStyle = theme.cardText;
-  ctx.font = `800 140px ${font}`;
+  ctx.font = `700 140px ${font}`;
   ctx.fillText(price, 0, 48);
   ctx.restore();
   ctx.textAlign = "left";
   if (input.promo.trim()) {
-    ctx.font = `800 30px ${font}`;
+    ctx.font = `700 30px ${font}`;
     const w = ctx.measureText(input.promo.trim().toUpperCase()).width + 44;
     badge(ctx, input.promo, (W - w) / 2, cy + cardH - 110, theme, font, enter * clamp((local - 0.6) / 0.3));
   }

@@ -68,6 +68,7 @@ export async function ClienteScopedCreatives({
   publishEnabled,
   expectDiscoverRefresh = false,
   organizationId,
+  showVideoStudio = false,
 }: {
   data: HecomClienteDashboard;
   accounts: CreativeAccountOption[];
@@ -77,6 +78,8 @@ export async function ClienteScopedCreatives({
   /** Soft refresh once so background TikTok discovery can land. */
   expectDiscoverRefresh?: boolean;
   organizationId?: string;
+  /** "Crear video" por ahora es solo para el equipo. */
+  showVideoStudio?: boolean;
 }) {
   const t = await getTranslations("creatives");
   const h = await getTranslations("help");
@@ -123,9 +126,11 @@ export async function ClienteScopedCreatives({
             <CrmHeroButton href="#creative-upload">
               {t("uploadVideo")}
             </CrmHeroButton>
-            <CrmHeroButton href="#video-studio" variant="secondary">
-              {t("createVideo")}
-            </CrmHeroButton>
+            {showVideoStudio ? (
+              <CrmHeroButton href="#video-studio" variant="secondary">
+                {t("createVideo")}
+              </CrmHeroButton>
+            ) : null}
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               {t("tiktokAccounts")}
             </CrmHeroButton>
@@ -208,7 +213,9 @@ export async function ClienteScopedCreatives({
         />
       </Suspense>
 
-      <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
+      {showVideoStudio ? (
+        <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
+      ) : null}
 
       <CreativeAssetsPanel assets={assets} />
 
