@@ -482,16 +482,57 @@ function isPhoto(m: StudioMedia | undefined): m is StudioMedia {
   return m?.kind === "image" && !m.prepared?.cut && Math.min(m.width, m.height) >= 480;
 }
 
-/** Foto a pantalla completa con el punto (fx, fy) al centro, sin dejar bordes vacíos. */
+let blurCanvas: HTMLCanvasElement | null = null;
+let fadeCanvas: HTMLCanvasElement | null = null;
+
+/**
+ * Foto completa a lo ancho (se ve todo el producto), sobre la misma foto muy
+ * desenfocada que llena la pantalla; los bordes de arriba y abajo se funden.
+ * `scale` mueve la cámara apenas (1 = foto entera); (fx, fy) es el punto al
+ * que se acerca. El desenfoque se hace achicando la foto y estirándola:
+ * funciona en todos los navegadores (Safari no tiene ctx.filter).
+ */
 function drawPhoto(c: DrawContext, m: StudioMedia, opts: { scale: number; fx?: number; fy?: number; dx?: number }) {
   const { ctx } = c;
-  const s = Math.max(W / m.width, H / m.height) * opts.scale;
+  if (typeof document === "undefined") return;
+  blurCanvas ??= document.createElement("canvas");
+  const bw = 40;
+  const bh = Math.max(1, Math.round((bw * m.height) / m.width));
+  blurCanvas.width = bw;
+  blurCanvas.height = bh;
+  const b = blurCanvas.getContext("2d")!;
+  b.drawImage(m.el, 0, 0, bw, bh);
+  const cover = Math.max(W / m.width, H / m.height) * 1.1;
+  ctx.save();
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(blurCanvas, (W - m.width * cover) / 2, (H - m.height * cover) / 2, m.width * cover, m.height * cover);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // Foto nítida: ancho completo, centrada encima de la zona de textos.
+  const fit = Math.min(W / m.width, (H * 0.72) / m.height);
+  const s = fit * opts.scale;
   const dw = m.width * s;
   const dh = m.height * s;
-  const x = Math.min(0, Math.max(W - dw, W / 2 - (opts.fx ?? 0.5) * dw + (opts.dx ?? 0)));
-  const y = Math.min(0, Math.max(H - dh, H / 2 - (opts.fy ?? 0.5) * dh));
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(m.el, x, y, dw, dh);
+  const cx = W / 2 + (opts.dx ?? 0) - ((opts.fx ?? 0.5) - 0.5) * (dw - m.width * fit);
+  const cy = H * 0.4 - ((opts.fy ?? 0.5) - 0.5) * (dh - m.height * fit);
+  fadeCanvas ??= document.createElement("canvas");
+  fadeCanvas.width = Math.ceil(dw);
+  fadeCanvas.height = Math.ceil(dh);
+  const f = fadeCanvas.getContext("2d")!;
+  f.imageSmoothingQuality = "high";
+  f.drawImage(m.el, 0, 0, dw, dh);
+  f.globalCompositeOperation = "destination-in";
+  const edge = f.createLinearGradient(0, 0, 0, dh);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(0.1, "rgba(0,0,0,1)");
+  edge.addColorStop(0.88, "rgba(0,0,0,1)");
+  edge.addColorStop(1, "rgba(0,0,0,0)");
+  f.fillStyle = edge;
+  f.fillRect(0, 0, dw, dh);
+  f.globalCompositeOperation = "source-over";
+  ctx.drawImage(fadeCanvas, cx - dw / 2, cy - dh / 2, dw, dh);
 }
 
 /** Degradado oscuro del color del video donde va texto (arriba o abajo). */
@@ -521,7 +562,7 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
     const m = media[0];
     if (isPhoto(m)) {
       // Se aleja despacio: arranca encima del producto.
-      drawPhoto(c, m, { scale: 1.18 - 0.16 * easeOut(local / 2.4), fy: 0.45 });
+      drawPhoto(c, m, { scale: 1.08 - 0.08 * easeOut(local / 2.4) });
       shade(c, "top", 220, 0.7);
       shade(c, "bottom", 560);
     } else {
@@ -558,7 +599,8 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
     if (shot === "label") {
       // Acercamiento a la etiqueta; el texto arriba sobre una franja oscura.
       if (isPhoto(m)) {
-        drawPhoto(c, m, { scale: 1.02 + 0.1 * progress, fy: 0.45 });
+        drawPhoto(c, m, { scale: 1 + 0.06 * progress, fy: 0.45 });
+        shade(c, "bottom", 600, 1);
       } else {
         drawBackground(c);
         if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.42, W / 2, 660, 1270 + local * 100), shine: local / 1.6 });
@@ -581,7 +623,7 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
       // Producto a la derecha con giro suave; beneficios abajo a la izquierda.
       if (isPhoto(m)) {
         // Paneo de lado a lado; los beneficios sobre la franja de abajo.
-        drawPhoto(c, m, { scale: 1.16, dx: -36 + 72 * easeOut(progress) });
+        drawPhoto(c, m, { scale: 1.04, dx: -20 + 40 * easeOut(progress) });
         shade(c, "top", 260, 0.6);
         shade(c, "bottom", 520);
         sticker(c, input.promo, TEXT_LEFT - 6, 130, (local - 0.4) / 0.45);
@@ -614,7 +656,7 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
 
     // Detalle: acercamiento a la base del producto con chispas.
     if (isPhoto(m)) {
-      drawPhoto(c, m, { scale: 1.32 + 0.08 * progress, fy: 0.62 });
+      drawPhoto(c, m, { scale: 1.12 + 0.06 * progress, fy: 0.6 });
     } else {
       drawBackground(c);
       if (m) drawProduct(c, m, { ...punchPose(m, 0.5, 0.85, W / 2, 500, 1430 - local * 100), shine: local / 1.4 });
@@ -636,7 +678,7 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   if (scene.kind === "price") {
     const m = media[scene.mediaIndex] ?? media[0];
     if (isPhoto(m)) {
-      drawPhoto(c, m, { scale: 1.06 + 0.04 * progress, fy: 0.4 });
+      drawPhoto(c, m, { scale: 0.92 + 0.03 * progress });
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, W, H);
       shade(c, "bottom", 680);
@@ -700,7 +742,7 @@ function drawScene(c: DrawContext, scene: StudioScene, t: number) {
   // Cierre
   const k = easeOut(local / 0.7);
   if (isPhoto(media[0])) {
-    drawPhoto(c, media[0], { scale: 1.12 + 0.06 * progress, fy: 0.4 });
+    drawPhoto(c, media[0], { scale: 1 + 0.04 * progress });
     ctx.save();
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = theme.bgBottom;
