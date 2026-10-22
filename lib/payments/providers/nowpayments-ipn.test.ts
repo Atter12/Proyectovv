@@ -257,3 +257,13 @@ test("recotización: si pagó la primera cotización, el pago cubre", () => {
   assert.equal(nowPaymentsCoversFirstQuote(75.5, null), false);
   assert.equal(nowPaymentsCoversFirstQuote(0, 75.49), false);
 });
+
+test("cryptoShortfall: faltante chico de la comisión de red se puede absorber", async () => {
+  const { cryptoShortfall, CRYPTO_UNDERPAID_ABSORB_MAX } = await import("./nowpayments-ipn.ts");
+  // Catherine Burgos 21/10/2026: pidió 98.024888 y llegaron 96.524888.
+  assert.equal(cryptoShortfall(98.024888, 96.524888), 1.5);
+  assert.ok((cryptoShortfall(98.024888, 96.524888) ?? 99) <= CRYPTO_UNDERPAID_ABSORB_MAX);
+  assert.ok((cryptoShortfall(98, 90) ?? 0) > CRYPTO_UNDERPAID_ABSORB_MAX);
+  assert.equal(cryptoShortfall(null, 10), null);
+  assert.equal(cryptoShortfall(10, 0), null);
+});

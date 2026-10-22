@@ -7,7 +7,11 @@ import {
   saveWhopCardFromSetup,
 } from "@/lib/payments/credit-card/credit-card.server";
 import { getPaymentProvider } from "@/lib/payments/providers";
-import { nowPaymentsWebhookStep } from "@/lib/payments/providers/nowpayments-ipn";
+import {
+  CRYPTO_UNDERPAID_ABSORB_MAX,
+  cryptoShortfall,
+  nowPaymentsWebhookStep,
+} from "@/lib/payments/providers/nowpayments-ipn";
 import { nowPaymentsPaidFirstQuote } from "@/lib/payments/providers/nowpayments-first-quote.server";
 import {
   getPaymentIntentByProviderReference,
@@ -123,6 +127,24 @@ export async function POST(request: Request, context: RouteContext) {
               status: parsed.eventType,
             },
           });
+        } else {
+          // Binance descuenta la comisión de red y llega 1-2 USDT menos (casos
+          // Catherine Burgos 08/10 y 21/10). Gerencia decidió absorberlo y acreditar
+          // completo si falta poco; más que eso sigue esperando el resto.
+          const shortfall = cryptoShortfall(quote.firstQuote ?? parsed.payAmount, parsed.actuallyPaid);
+          if (shortfall != null && shortfall > 0 && shortfall <= CRYPTO_UNDERPAID_ABSORB_MAX) {
+            step = "credit";
+            await mergePaymentIntentMetadata(intent.id, {
+              crypto_underpaid_absorbed: true,
+              crypto_awaiting_remaining: false,
+              crypto_underpaid_absorbed_detail: {
+                quoted: quote.firstQuote ?? parsed.payAmount ?? null,
+                actually_paid: parsed.actuallyPaid ?? null,
+                shortfall,
+                status: parsed.eventType,
+              },
+            });
+          }
         }
       }
       const gapMeta = {

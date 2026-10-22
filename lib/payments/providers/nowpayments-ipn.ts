@@ -129,6 +129,16 @@ export function nowPaymentsCoversFirstQuote(actuallyPaid: number | null | undefi
   return actuallyPaid + PAID_EPS >= firstQuote;
 }
 
+/** Faltante (en USDT) que se absorbe y acredita completo: la comisión de red de Binance. */
+export const CRYPTO_UNDERPAID_ABSORB_MAX = 2;
+
+/** Cuánto faltó respecto de lo cotizado; null si no hay datos para saberlo. */
+export function cryptoShortfall(quoted: number | null | undefined, actuallyPaid: number | null | undefined): number | null {
+  if (quoted == null || !Number.isFinite(quoted) || quoted <= 0) return null;
+  if (actuallyPaid == null || !Number.isFinite(actuallyPaid) || actuallyPaid <= 0) return null;
+  return Math.round((quoted - actuallyPaid) * 1e6) / 1e6;
+}
+
 function toUsdCents(amount: number | string | undefined, currency?: string): number | undefined {
   if (amount == null) return undefined;
   const n = asNumber(amount);
