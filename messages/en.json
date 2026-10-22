@@ -2500,6 +2500,14 @@
       "cta": "Call to action",
       "store": "Store name",
       "template": "Style",
+      "voice": "Voiceover",
+      "voiceHint": "Reads the opening line, benefits, price and closing. The music lowers while it speaks.",
+      "voicing": "Creating voice…",
+      "voices": {
+        "female": "Female",
+        "male": "Male",
+        "none": "No voice"
+      },
       "account": "TikTok account",
       "currency": {
         "PEN": "S/",
@@ -2543,6 +2551,7 @@
         "mediaLoad": "Couldn't open {name}.",
         "unsupported": "Your browser can't create the video. Use an up-to-date Chrome or Safari.",
         "record": "Couldn't create the video. Try again.",
+        "voice": "Could not create the voice. Try again or choose \"No voice\".",
         "tooBig": "The video is too large. Use fewer or shorter clips.",
         "send": "Couldn't send the video. Try again."
       }

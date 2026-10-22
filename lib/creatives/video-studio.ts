@@ -129,3 +129,74 @@ export function studioFileName(productName: string): string {
     .slice(0, 60);
   return `${slug || "producto"}-video.mp4`;
 }
+
+/* ------------------------------ voz en off ------------------------------ */
+
+export type StudioVoice = "female" | "male" | "none";
+
+const SPOKEN_CURRENCY: Record<StudioCurrency, string> = { PEN: "soles", USD: "dólares", COP: "pesos" };
+
+/** "89" → "89 soles", "89.9" → "89 con 90 soles", COP "45000" → "45 mil pesos". */
+export function spokenPrice(raw: string, currency: StudioCurrency): string {
+  const n = Number(raw.replace(/[^\d.,]/g, "").replace(",", "."));
+  if (!raw.trim() || !Number.isFinite(n) || n <= 0) return "";
+  if (currency === "COP") {
+    const rounded = Math.round(n);
+    const text = rounded % 1000 === 0 ? `${rounded / 1000} mil` : rounded.toLocaleString("es-CO");
+    return `${text} ${SPOKEN_CURRENCY.COP}`;
+  }
+  const whole = Math.floor(n);
+  const cents = Math.round((n - whole) * 100);
+  return cents > 0 ? `${whole} con ${String(cents).padStart(2, "0")} ${SPOKEN_CURRENCY[currency]}` : `${whole} ${SPOKEN_CURRENCY[currency]}`;
+}
+
+export type VoiceLine = { scene: StudioScene["kind"]; at: number; text: string };
+
+/**
+ * Guion de la voz: una frase por momento del video (apertura, producto,
+ * precio, cierre), cada una al empezar su escena. Corto a propósito: tiene
+ * que entrar en 15 s.
+ */
+export function buildVoiceoverScript(input: StudioInput, scenes: StudioScene[]): VoiceLine[] {
+  const lines: VoiceLine[] = [];
+  const firstOf = (kind: StudioScene["kind"]) => scenes.find((s) => s.kind === kind);
+  const sentence = (text: string) => {
+    const t = text.trim().replace(/\s+/g, " ");
+    return t && !/[.!?…]$/.test(t) ? `${t}.` : t;
+  };
+
+  const hook = firstOf("hook");
+  const hookText = input.hook.trim() || input.productName.trim();
+  if (hook && hookText) lines.push({ scene: "hook", at: hook.start + 0.25, text: sentence(hookText) });
+
+  const media = firstOf("media");
+  // En medio de la frase va en minúscula ("moldea", no "Moldea"); las siglas se quedan.
+  const lower = (b: string) => (/^\p{Lu}\p{Ll}/u.test(b) ? b.charAt(0).toLowerCase() + b.slice(1) : b);
+  // Dos beneficios como máximo: con tres la frase no entra en su escena.
+  const benefits = cleanBenefits(input.benefits).slice(0, 2).map(lower);
+  if (media && input.productName.trim()) {
+    const list =
+      benefits.length === 0
+        ? ""
+        : benefits.length === 1
+          ? benefits[0]
+          : `${benefits.slice(0, -1).join(", ")} y ${benefits[benefits.length - 1]}`;
+    const text = list ? `${input.productName.trim()}, ${list}` : input.productName.trim();
+    lines.push({ scene: "media", at: media.start + 0.2, text: sentence(text) });
+  }
+
+  // Precio y cierre van juntos en una frase: suena natural y no se corta al final.
+  const price = firstOf("price");
+  const now = spokenPrice(input.price, input.currency);
+  const close = input.cta.trim() ? ` ${sentence(input.cta)}` : "";
+  if (price && now) {
+    const before = spokenPrice(input.oldPrice, input.currency);
+    const pricing = sentence(before ? `De ${before.replace(/ \S+$/, "")} a solo ${now}` : `Hoy a solo ${now}`);
+    lines.push({ scene: "price", at: price.start + 0.2, text: `${pricing}${close}` });
+    return lines;
+  }
+
+  const cta = firstOf("cta");
+  if (cta && close) lines.push({ scene: "cta", at: cta.start + 0.15, text: close.trim() });
+  return lines;
+}

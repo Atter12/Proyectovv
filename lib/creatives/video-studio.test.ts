@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildStudioTimeline,
+  buildVoiceoverScript,
   formatStudioPrice,
   sceneAt,
+  spokenPrice,
   STUDIO_DURATION,
   studioFileName,
   validateStudioInput,
@@ -81,4 +83,30 @@ test("validación: fotos, producto, llamado y precio anterior mayor", () => {
 test("nombre de archivo sin tildes ni espacios", () => {
   assert.equal(studioFileName("Faja Reductora Ñandú 3x"), "faja-reductora-nandu-3x-video.mp4");
   assert.equal(studioFileName("  "), "producto-video.mp4");
+});
+
+test("precio hablado por moneda", () => {
+  assert.equal(spokenPrice("89", "PEN"), "89 soles");
+  assert.equal(spokenPrice("89.9", "PEN"), "89 con 90 soles");
+  assert.equal(spokenPrice("45000", "COP"), "45 mil pesos");
+  assert.equal(spokenPrice("19.99", "USD"), "19 con 99 dólares");
+  assert.equal(spokenPrice("", "PEN"), "");
+});
+
+test("guion de voz: una frase por momento y en orden", () => {
+  const studio = input({ benefits: ["Moldea al instante", "Tela que respira"] });
+  const scenes = buildStudioTimeline({ mediaCount: 2, benefits: studio.benefits, hasPrice: true });
+  const script = buildVoiceoverScript(studio, scenes);
+  assert.deepEqual(script.map((l) => l.scene), ["hook", "media", "price"]);
+  assert.equal(script[1].text, "Faja reductora, moldea al instante y tela que respira.");
+  assert.equal(script[2].text, "De 129 a solo 89 soles. Pide ya.");
+  for (let i = 1; i < script.length; i++) assert.ok(script[i].at > script[i - 1].at);
+});
+
+test("guion sin precio ni beneficios", () => {
+  const studio = input({ price: "", oldPrice: "", benefits: [] });
+  const scenes = buildStudioTimeline({ mediaCount: 1, benefits: [], hasPrice: false });
+  const script = buildVoiceoverScript(studio, scenes);
+  assert.deepEqual(script.map((l) => l.scene), ["hook", "media", "cta"]);
+  assert.equal(script[1].text, "Faja reductora.");
 });

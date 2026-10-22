@@ -14,11 +14,15 @@ import {
   STUDIO_MAX_BENEFITS,
   STUDIO_MAX_MEDIA,
   STUDIO_WIDTH,
+  buildStudioTimeline,
+  buildVoiceoverScript,
+  formatStudioPrice,
   studioFileName,
   validateStudioInput,
   type StudioCurrency,
   type StudioInput,
   type StudioTemplate,
+  type StudioVoice,
 } from "@/lib/creatives/video-studio";
 import {
   drawStudioFrame,
@@ -39,6 +43,27 @@ const TEMPLATE_SWATCH: Record<StudioTemplate, string> = {
   fresh: "bg-[#19c2b3]",
 };
 const CURRENCIES: StudioCurrency[] = ["PEN", "USD", "COP"];
+const VOICES: StudioVoice[] = ["female", "male", "none"];
+
+/** Pide la voz de cada frase del guion (en paralelo). */
+async function fetchVoiceover(studio: StudioInput, mediaCount: number, voice: Exclude<StudioVoice, "none">) {
+  const scenes = buildStudioTimeline({
+    mediaCount,
+    benefits: studio.benefits,
+    hasPrice: Boolean(formatStudioPrice(studio.price, studio.currency)),
+  });
+  return Promise.all(
+    buildVoiceoverScript(studio, scenes).map(async (line) => {
+      const response = await fetch("/api/creatives/voiceover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: line.text, voice }),
+      });
+      if (!response.ok) throw new Error("voice");
+      return { at: line.at, audio: await response.arrayBuffer() };
+    }),
+  );
+}
 /** Límite de subida de la API (Vercel corta en 4.5 MB). */
 const MAX_UPLOAD_BYTES = 4.3 * 1024 * 1024;
 
@@ -79,7 +104,8 @@ export function VideoStudioPanel({
   const [adAccountId, setAdAccountId] = useState(
     () => accounts.find((a) => a.status === "active")?.id ?? accounts[0]?.id ?? "",
   );
-  const [phase, setPhase] = useState<"edit" | "recording" | "ready" | "uploading">("edit");
+  const [phase, setPhase] = useState<"edit" | "voice" | "recording" | "ready" | "uploading">("edit");
+  const [voice, setVoice] = useState<StudioVoice>("female");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -175,10 +201,21 @@ export function VideoStudioPanel({
     setError(null);
     setSuccess(null);
     setProgress(0);
+    let voiceLines: { at: number; audio: ArrayBuffer }[] = [];
+    if (voice !== "none") {
+      setPhase("voice");
+      try {
+        voiceLines = await fetchVoiceover(studio, items.length, voice);
+      } catch {
+        setError(t("errors.voice"));
+        setPhase("edit");
+        return;
+      }
+    }
     setPhase("recording");
     recordingRef.current = true;
     try {
-      const blob = await recordStudioVideo({ canvas, studio, media, onProgress: setProgress });
+      const blob = await recordStudioVideo({ canvas, studio, media, voice: voiceLines, onProgress: setProgress });
       setResult({ blob, url: URL.createObjectURL(blob) });
       setPhase("ready");
     } catch (recordError) {
@@ -229,7 +266,7 @@ export function VideoStudioPanel({
 
   const approved = accounts.filter((a) => a.status === "active");
   const accountChoices = approved.length > 0 ? approved : accounts;
-  const busy = phase === "recording" || phase === "uploading";
+  const busy = phase === "voice" || phase === "recording" || phase === "uploading";
 
   return (
     <section
@@ -423,9 +460,9 @@ export function VideoStudioPanel({
                 className={fieldClass}
               />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <label className={labelClass}>{t("template")}</label>
-              <div className="flex h-10 items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {TEMPLATES.map((tpl) => (
                   <button
                     key={tpl}
@@ -444,6 +481,32 @@ export function VideoStudioPanel({
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>{t("voice")}</label>
+              <div className="flex flex-wrap items-center gap-2">
+                {VOICES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setVoice(v);
+                      setResult(null);
+                      if (phase === "ready") setPhase("edit");
+                    }}
+                    className={cn(
+                      "flex h-9 items-center rounded-xl border px-3 text-[12px] font-semibold",
+                      voice === v
+                        ? "border-[var(--auth-accent)] bg-[rgb(255_248_243)] text-[var(--auth-text)]"
+                        : "border-[rgb(20_18_16_/_0.1)] text-[var(--auth-text-muted)]",
+                    )}
+                  >
+                    {t(`voices.${v}`)}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-[var(--auth-text-muted)]">{t("voiceHint")}</p>
             </div>
           </div>
 
@@ -517,7 +580,11 @@ export function VideoStudioPanel({
                 disabled={busy || !supported}
                 className="h-11 rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_rgb(255_120_31_/_0.28)] hover:brightness-[1.05]"
               >
-                {phase === "recording" ? t("recording", { pct: Math.round(progress * 100) }) : t("create")}
+                {phase === "voice"
+                  ? t("voicing")
+                  : phase === "recording"
+                    ? t("recording", { pct: Math.round(progress * 100) })
+                    : t("create")}
               </Button>
             )}
           </div>

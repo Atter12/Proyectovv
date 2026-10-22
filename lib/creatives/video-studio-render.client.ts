@@ -909,6 +909,73 @@ const MP4_TYPES = [
   "video/mp4",
 ];
 
+/**
+ * Aprieta la frase: quita el silencio del inicio y del final, y acorta las
+ * pausas largas de en medio a 0,12 s (la voz viene con aire y no entra en 15 s).
+ */
+function trimSilence(ac: AudioContext, buffer: AudioBuffer): AudioBuffer {
+  const rate = buffer.sampleRate;
+  const win = Math.round(rate * 0.01);
+  const data = buffer.getChannelData(0);
+  const windows = Math.floor(data.length / win);
+  const loud: boolean[] = [];
+  for (let w = 0; w < windows; w++) {
+    let sum = 0;
+    for (let i = w * win; i < (w + 1) * win; i++) sum += data[i] * data[i];
+    loud.push(Math.sqrt(sum / win) > 0.012);
+  }
+  const first = loud.indexOf(true);
+  const last = loud.lastIndexOf(true);
+  if (first < 0) return buffer;
+  const keep: number[] = [];
+  let silentRun = 0;
+  for (let w = Math.max(0, first - 3); w <= Math.min(windows - 1, last + 4); w++) {
+    silentRun = loud[w] ? 0 : silentRun + 1;
+    if (silentRun <= 12) keep.push(w);
+  }
+  const out = ac.createBuffer(buffer.numberOfChannels, keep.length * win, rate);
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    keep.forEach((w, k) => dst.set(src.subarray(w * win, (w + 1) * win), k * win));
+  }
+  return out;
+}
+
+/**
+ * Voz en off: cada frase en su momento, sin pisarse con la anterior. Si la
+ * última no entra en los 15 s se acelera un poco (hasta 15%). Mientras habla,
+ * la música baja.
+ */
+function scheduleVoice(
+  ac: AudioContext,
+  out: AudioNode,
+  duck: GainNode,
+  lines: { at: number; buffer: AudioBuffer }[],
+  startAt: number,
+) {
+  const voiceGain = ac.createGain();
+  voiceGain.gain.value = 1.15;
+  voiceGain.connect(out);
+  duck.gain.setValueAtTime(1, startAt);
+  let free = 0;
+  for (const line of lines) {
+    const begin = Math.max(line.at, free + 0.08);
+    const room = STUDIO_DURATION - 0.2 - begin;
+    if (room <= 0.3) break;
+    const rate = Math.min(1.15, Math.max(1, line.buffer.duration / room));
+    const length = line.buffer.duration / rate;
+    const src = ac.createBufferSource();
+    src.buffer = line.buffer;
+    src.playbackRate.value = rate;
+    src.connect(voiceGain);
+    src.start(startAt + begin);
+    duck.gain.setTargetAtTime(0.3, startAt + begin - 0.1, 0.06);
+    duck.gain.setTargetAtTime(1, startAt + begin + length, 0.15);
+    free = begin + length;
+  }
+}
+
 /** Tipo mp4 que este navegador sabe grabar, o null (TikTok no acepta webm). */
 export function supportedStudioMimeType(): string | null {
   if (typeof MediaRecorder === "undefined") return null;
@@ -923,6 +990,8 @@ export async function recordStudioVideo(input: {
   canvas: HTMLCanvasElement;
   studio: StudioInput;
   media: StudioMedia[];
+  /** Voz en off ya generada (mp3), cada frase con el segundo en que entra. */
+  voice?: { at: number; audio: ArrayBuffer }[];
   onProgress?: (fraction: number) => void;
 }): Promise<Blob> {
   const mimeType = supportedStudioMimeType();
@@ -955,6 +1024,13 @@ export async function recordStudioVideo(input: {
     recorder.onstop = () => resolve();
   });
 
+  const voiceBuffers = await Promise.all(
+    (input.voice ?? []).map(async (line) => ({
+      at: line.at,
+      buffer: trimSilence(ac, await ac.decodeAudioData(line.audio.slice(0))),
+    })),
+  );
+
   // Los clips arrancan desde el inicio cuando empieza su escena.
   const videos = input.media.filter((m): m is Extract<StudioMedia, { kind: "video" }> => m.kind === "video");
   for (const v of videos) {
@@ -966,7 +1042,11 @@ export async function recordStudioVideo(input: {
   drawStudioFrame(ctx, 0, input.studio, input.media, scenes);
   recorder.start(500);
   const audioStart = ac.currentTime + 0.05;
-  scheduleMusic(ac, dest, audioStart);
+  // La música pasa por un "duck" que la baja mientras habla la voz.
+  const duck = ac.createGain();
+  duck.connect(dest);
+  scheduleMusic(ac, duck, audioStart);
+  scheduleVoice(ac, dest, duck, voiceBuffers, audioStart);
   const t0 = performance.now() + 50;
 
   await new Promise<void>((resolve) => {

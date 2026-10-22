@@ -2500,6 +2500,14 @@
       "cta": "Llamado a la acción",
       "store": "Nombre de la tienda",
       "template": "Estilo",
+      "voice": "Voz en off",
+      "voiceHint": "Lee la frase de apertura, los beneficios, el precio y el cierre. La música baja mientras habla.",
+      "voicing": "Generando voz…",
+      "voices": {
+        "female": "Mujer",
+        "male": "Hombre",
+        "none": "Sin voz"
+      },
       "account": "Cuenta de TikTok",
       "currency": {
         "PEN": "S/",
@@ -2543,6 +2551,7 @@
         "mediaLoad": "No se pudo abrir {name}.",
         "unsupported": "Tu navegador no puede crear el video. Usa Chrome o Safari actualizados.",
         "record": "No se pudo crear el video. Vuelve a intentar.",
+        "voice": "No se pudo generar la voz. Prueba de nuevo o elige \"Sin voz\".",
         "tooBig": "El video quedó muy pesado. Usa menos clips o clips más cortos.",
         "send": "No se pudo enviar el video. Vuelve a intentar."
       }
