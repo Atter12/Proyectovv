@@ -2475,6 +2475,75 @@
     }
   },
   "creatives": {
+    "launch": {
+      "kicker": "Nuevo · Lanzar campaña",
+      "title": "Lanza una campaña Smart+ en un clic",
+      "subtitle": "Elige los videos, el presupuesto y el país. Armamos la campaña de ventas igual que las que más venden y queda pausada en TikTok para revisarla.",
+      "defaultName": "Campaña",
+      "account": "Cuenta de TikTok",
+      "loading": "Leyendo la cuenta en TikTok…",
+      "videos": "Videos ({count} de {max})",
+      "videosHint": "Elige 2 o más: TikTok los prueba y se queda con el que vende. Los de \"Crear video\" aparecen aquí después de enviarlos.",
+      "name": "Nombre de la campaña",
+      "budget": "Presupuesto diario (USD)",
+      "country": "País",
+      "pixel": "Píxel (optimiza por compras)",
+      "identity": "Quién publica",
+      "text": "Texto {n}",
+      "textPlaceholder1": "Las zapatillas que todos están buscando",
+      "textPlaceholder2": "De 100 a solo 80 soles · Envío gratis",
+      "landing": "Link de la tienda o producto",
+      "create": "Crear campaña pausada",
+      "creating": "Creando en TikTok…",
+      "pausedNote": "Queda pausada: no gasta hasta que la prendas.",
+      "recipeTitle": "Cómo la armamos",
+      "recipe1": "Smart+ de ventas web: la IA de TikTok elige a quién mostrarla y cuánto pujar.",
+      "recipe2": "Optimiza por compras del píxel, no por clics.",
+      "recipe3": "Presupuesto diario en la campaña, segmentación y ubicaciones automáticas.",
+      "recipe4": "Botones que rotan (Comprar ahora, Realizar pedido, Más información) y link con UTM.",
+      "recipe5": "Mismo molde de las campañas que más gastan hoy en las cuentas de los clientes.",
+      "countries": {
+        "PE": "Perú",
+        "CO": "Colombia",
+        "MX": "México",
+        "EC": "Ecuador",
+        "CL": "Chile",
+        "BO": "Bolivia",
+        "DO": "República Dominicana"
+      },
+      "steps": {
+        "validate": "Datos",
+        "campaign": "Campaña",
+        "adgroup": "Grupo",
+        "covers": "Portadas",
+        "cta": "Botones",
+        "ad": "Anuncio"
+      },
+      "done": {
+        "kicker": "Creada en TikTok",
+        "title": "Campaña lista y pausada",
+        "campaign": "Campaña",
+        "adgroup": "Grupo",
+        "ad": "Anuncio",
+        "open": "Abrir en Ads Manager",
+        "next": "Revísala en Ads Manager y préndela cuando esté todo bien. Mientras esté pausada no gasta."
+      },
+      "errors": {
+        "options": "No se pudo leer la cuenta en TikTok. Prueba de nuevo.",
+        "network": "No se pudo conectar. Prueba de nuevo.",
+        "noAccount": "No hay cuentas aprobadas para este cliente.",
+        "noVideosInLibrary": "Esta cuenta no tiene videos. Sube uno en \"Sube tu creativo\" o \"Crear video\".",
+        "noAdvertiser": "Falta la cuenta.",
+        "noName": "Escribe el nombre de la campaña.",
+        "lowBudget": "El presupuesto mínimo es USD 20 al día.",
+        "noPixel": "La cuenta no tiene píxel: créalo en Píxeles.",
+        "noVideos": "Elige al menos un video.",
+        "tooManyVideos": "Máximo 30 videos.",
+        "noText": "Escribe al menos un texto.",
+        "badUrl": "El link debe empezar con https://",
+        "noIdentity": "La cuenta no tiene identidad de TikTok."
+      }
+    },
     "videoStudio": {
       "kicker": "Nuevo · Crear video",
       "title": "Crea un video de tu producto en 15 segundos",
@@ -2586,6 +2655,7 @@
     "meta": "Sube → IA → Enviar campaña · {count} con score",
     "uploadVideo": "Subir video",
     "createVideo": "Crear video",
+    "launchCampaign": "Lanzar campaña",
     "tiktokAccounts": "Cuentas TikTok",
     "metrics": {
       "uploads": "Uploads",

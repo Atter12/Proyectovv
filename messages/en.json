@@ -2475,6 +2475,75 @@
     }
   },
   "creatives": {
+    "launch": {
+      "kicker": "New · Launch campaign",
+      "title": "Launch a Smart+ campaign in one click",
+      "subtitle": "Pick the videos, budget and country. We build the sales campaign like the best-selling ones and it stays paused in TikTok for review.",
+      "defaultName": "Campaign",
+      "account": "TikTok account",
+      "loading": "Reading the account in TikTok…",
+      "videos": "Videos ({count} of {max})",
+      "videosHint": "Pick 2 or more: TikTok tests them and keeps the one that sells. Videos from \"Create video\" show up here after you send them.",
+      "name": "Campaign name",
+      "budget": "Daily budget (USD)",
+      "country": "Country",
+      "pixel": "Pixel (optimizes for purchases)",
+      "identity": "Posted by",
+      "text": "Text {n}",
+      "textPlaceholder1": "The sneakers everyone is looking for",
+      "textPlaceholder2": "From 100 to just 80 · Free shipping",
+      "landing": "Store or product link",
+      "create": "Create paused campaign",
+      "creating": "Creating in TikTok…",
+      "pausedNote": "It stays paused: no spend until you turn it on.",
+      "recipeTitle": "How we build it",
+      "recipe1": "Smart+ web sales: TikTok's AI picks who sees it and how much to bid.",
+      "recipe2": "Optimizes for pixel purchases, not clicks.",
+      "recipe3": "Daily budget on the campaign, automatic targeting and placements.",
+      "recipe4": "Rotating buttons (Shop now, Order now, Learn more) and a UTM-tagged link.",
+      "recipe5": "Same setup as the campaigns spending the most in our clients' accounts today.",
+      "countries": {
+        "PE": "Peru",
+        "CO": "Colombia",
+        "MX": "Mexico",
+        "EC": "Ecuador",
+        "CL": "Chile",
+        "BO": "Bolivia",
+        "DO": "Dominican Republic"
+      },
+      "steps": {
+        "validate": "Details",
+        "campaign": "Campaign",
+        "adgroup": "Ad group",
+        "covers": "Covers",
+        "cta": "Buttons",
+        "ad": "Ad"
+      },
+      "done": {
+        "kicker": "Created in TikTok",
+        "title": "Campaign ready and paused",
+        "campaign": "Campaign",
+        "adgroup": "Ad group",
+        "ad": "Ad",
+        "open": "Open in Ads Manager",
+        "next": "Review it in Ads Manager and turn it on when everything looks right. It doesn't spend while paused."
+      },
+      "errors": {
+        "options": "Couldn't read the account in TikTok. Try again.",
+        "network": "Couldn't connect. Try again.",
+        "noAccount": "There are no approved accounts for this client.",
+        "noVideosInLibrary": "This account has no videos. Upload one in \"Upload your creative\" or \"Create video\".",
+        "noAdvertiser": "Missing the account.",
+        "noName": "Enter the campaign name.",
+        "lowBudget": "The minimum budget is USD 20 per day.",
+        "noPixel": "The account has no pixel: create it in Pixels.",
+        "noVideos": "Pick at least one video.",
+        "tooManyVideos": "Up to 30 videos.",
+        "noText": "Enter at least one text.",
+        "badUrl": "The link must start with https://",
+        "noIdentity": "The account has no TikTok identity."
+      }
+    },
     "videoStudio": {
       "kicker": "New · Create video",
       "title": "Make a 15-second video of your product",
@@ -2586,6 +2655,7 @@
     "meta": "Upload → AI → Send campaign · {count} with score",
     "uploadVideo": "Upload video",
     "createVideo": "Create video",
+    "launchCampaign": "Launch campaign",
     "tiktokAccounts": "TikTok accounts",
     "metrics": {
       "uploads": "Uploads",

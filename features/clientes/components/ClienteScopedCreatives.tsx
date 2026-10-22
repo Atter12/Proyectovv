@@ -17,6 +17,7 @@ import { AgentProDraftsPanel } from "@/features/creative-analyzer/components/Age
 import { CreativePipelineStrip } from "@/features/creative-analyzer/components/CreativePipelineStrip.client";
 import { TikTokVideoGallery } from "@/features/creative-analyzer/components/TikTokVideoGallery";
 import { VideoStudioPanel } from "@/features/creative-analyzer/components/VideoStudioPanel.client";
+import { LaunchCampaignPanel } from "@/features/campaigns/components/LaunchCampaignPanel.client";
 import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
   HecomClienteDashboard,
@@ -78,7 +79,7 @@ export async function ClienteScopedCreatives({
   /** Soft refresh once so background TikTok discovery can land. */
   expectDiscoverRefresh?: boolean;
   organizationId?: string;
-  /** "Crear video" por ahora es solo para el equipo. */
+  /** "Crear video" y "Lanzar campaña" por ahora son solo para el equipo. */
   showVideoStudio?: boolean;
 }) {
   const t = await getTranslations("creatives");
@@ -127,9 +128,14 @@ export async function ClienteScopedCreatives({
               {t("uploadVideo")}
             </CrmHeroButton>
             {showVideoStudio ? (
-              <CrmHeroButton href="#video-studio" variant="secondary">
-                {t("createVideo")}
-              </CrmHeroButton>
+              <>
+                <CrmHeroButton href="#video-studio" variant="secondary">
+                  {t("createVideo")}
+                </CrmHeroButton>
+                <CrmHeroButton href="#launch-campaign" variant="secondary">
+                  {t("launchCampaign")}
+                </CrmHeroButton>
+              </>
             ) : null}
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               {t("tiktokAccounts")}
@@ -214,7 +220,10 @@ export async function ClienteScopedCreatives({
       </Suspense>
 
       {showVideoStudio ? (
-        <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
+        <>
+          <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
+          <LaunchCampaignPanel clienteName={cliente.name} accounts={accounts} />
+        </>
       ) : null}
 
       <CreativeAssetsPanel assets={assets} />
