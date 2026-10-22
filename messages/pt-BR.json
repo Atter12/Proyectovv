@@ -2489,6 +2489,8 @@
       "country": "País",
       "pixel": "Pixel (otimiza por compras)",
       "identity": "Quem publica",
+      "newIdentity": "Criar perfil \"{name}\"",
+      "identityHint": "É o nome que aparece no anúncio. Só aparecem os perfis desta conta.",
       "text": "Texto {n}",
       "textPlaceholder1": "O tênis que todo mundo está procurando",
       "textPlaceholder2": "De 100 por só 80 · Frete grátis",

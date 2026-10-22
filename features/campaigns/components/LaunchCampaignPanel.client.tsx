@@ -14,6 +14,8 @@ type CreateResponse =
   | { ok: false; step?: string; errors?: string[]; message?: string; error?: string; campaignId?: string };
 
 const COUNTRIES = Object.keys(COUNTRY_LOCATION_IDS) as CampaignCountry[];
+/** Opción para crear un perfil propio de la cuenta con el nombre de la tienda. */
+const NEW_IDENTITY = "NEW";
 /** Smart+ prueba varios videos y se queda con el que vende; más de 10 no ayuda. */
 const MAX_PICK = 10;
 
@@ -70,7 +72,7 @@ export function LaunchCampaignPanel({
         setOptions(data);
         setPixelId(data.pixels[0]?.id ?? "");
         const first = data.identities[0];
-        setIdentityKey(first ? `${first.type}:${first.id}` : "");
+        setIdentityKey(first ? `${first.type}:${first.id}` : NEW_IDENTITY);
         setVideoIds(data.videos.slice(0, 1).map((v) => v.videoId));
       })
       .catch(() => {
@@ -100,6 +102,12 @@ export function LaunchCampaignPanel({
 
   async function handleCreate() {
     const identity = options?.identities.find((i) => `${i.type}:${i.id}` === identityKey);
+    const identityBody =
+      identityKey === NEW_IDENTITY
+        ? { type: "NEW", name: clienteName ?? campaignName }
+        : identity
+          ? { type: identity.type, id: identity.id, bcId: identity.bcId }
+          : {};
     setCreating(true);
     setResult(null);
     try {
@@ -115,7 +123,7 @@ export function LaunchCampaignPanel({
           videoIds,
           adTexts: texts,
           landingPageUrl,
-          identity: identity ? { type: identity.type, id: identity.id, bcId: identity.bcId } : {},
+          identity: identityBody,
         }),
       });
       setResult((await response.json()) as CreateResponse);
@@ -257,17 +265,15 @@ export function LaunchCampaignPanel({
                 </div>
                 <div>
                   <label className={labelClass}>{t("identity")}</label>
-                  {options.identities.length === 0 ? (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-950">{t("errors.noIdentity")}</p>
-                  ) : (
-                    <select value={identityKey} disabled={creating} onChange={(e) => setIdentityKey(e.target.value)} className={selectClass}>
-                      {options.identities.map((i) => (
-                        <option key={`${i.type}:${i.id}`} value={`${i.type}:${i.id}`}>
-                          {i.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select value={identityKey} disabled={creating} onChange={(e) => setIdentityKey(e.target.value)} className={selectClass}>
+                    {options.identities.map((i) => (
+                      <option key={`${i.type}:${i.id}`} value={`${i.type}:${i.id}`}>
+                        {i.name}
+                      </option>
+                    ))}
+                    <option value={NEW_IDENTITY}>{t("newIdentity", { name: clienteName ?? t("defaultName") })}</option>
+                  </select>
+                  <p className="mt-1.5 text-[11px] text-[var(--auth-text-muted)]">{t("identityHint")}</p>
                 </div>
                 {texts.map((text, i) => (
                   <div key={i} className="sm:col-span-2">

@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/session.server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
-import { loadLaunchOptions } from "@/lib/campaigns/launch-options.server";
+import { createAccountIdentity, loadAccountIdentities, loadLaunchOptions } from "@/lib/campaigns/launch-options.server";
 import { createSmartPlusCampaign } from "@/lib/campaigns/smart-plus-create.server";
 import {
   COUNTRY_LOCATION_IDS,
@@ -87,17 +87,22 @@ export async function POST(request: Request) {
   if (!(country in COUNTRY_LOCATION_IDS)) return NextResponse.json({ error: "País inválido." }, { status: 400 });
   const identityRaw = (body.identity ?? {}) as Record<string, unknown>;
   const identityType = str(identityRaw.type);
-  if (!["TT_USER", "CUSTOMIZED_USER", "BC_AUTH_TT"].includes(identityType)) {
-    return NextResponse.json({ error: "Identidad inválida." }, { status: 400 });
+  if (!["TT_USER", "CUSTOMIZED_USER", "BC_AUTH_TT", "NEW"].includes(identityType)) {
+    return NextResponse.json({ error: "Perfil inválido." }, { status: 400 });
   }
-  const identity: SmartPlusIdentity = {
-    type: identityType as SmartPlusIdentity["type"],
-    id: str(identityRaw.id),
-    bcId: str(identityRaw.bcId) || null,
-  };
 
   try {
     const { token } = await resolveTikTokFinanceAccessToken(session.organizationId ?? undefined);
+    // El perfil tiene que ser de esta cuenta: nunca uno de otro cliente del BC.
+    let identity: SmartPlusIdentity;
+    if (identityType === "NEW") {
+      identity = await createAccountIdentity(token, advertiserId, str(identityRaw.name));
+    } else {
+      const own = await loadAccountIdentities(token, advertiserId);
+      const match = own.find((i) => i.type === identityType && i.id === str(identityRaw.id));
+      if (!match) return NextResponse.json({ error: "Ese perfil no es de esta cuenta." }, { status: 403 });
+      identity = match;
+    }
     const result = await createSmartPlusCampaign({
       accessToken: token,
       plan: {

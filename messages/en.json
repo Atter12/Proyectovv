@@ -2489,6 +2489,8 @@
       "country": "Country",
       "pixel": "Pixel (optimizes for purchases)",
       "identity": "Posted by",
+      "newIdentity": "Create profile \"{name}\"",
+      "identityHint": "The name shown on the ad. Only this account's profiles appear.",
       "text": "Text {n}",
       "textPlaceholder1": "The sneakers everyone is looking for",
       "textPlaceholder2": "From 100 to just 80 · Free shipping",
