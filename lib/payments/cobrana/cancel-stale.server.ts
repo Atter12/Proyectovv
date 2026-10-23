@@ -33,16 +33,21 @@ export async function cancelStaleCobranaCharges(input: {
     .from("payment_intents")
     .select("id,metadata")
     .eq("provider", "cobrana")
-    .eq("organization_id", input.organizationId)
     .in("status", OPEN_STATUSES)
     .neq("id", input.keepIntentId)
     .order("created_at", { ascending: true })
     .limit(30);
-  // En organizaciones compartidas hay varios clientes: se limita al mismo.
-  if (input.hecomClienteId) {
-    query = query.eq("metadata->>hecom_cliente_id", input.hecomClienteId);
-  } else if (input.documentNumber) {
-    query = query.eq("metadata->>customer_document_number", input.documentNumber);
+  // Yape agrupa los recibos por DNI, no por organización: si el mismo DNI tiene
+  // dos fichas/orgs, el recibo viejo de la otra bloquea el nuevo (Piero Acasiete,
+  // 23/10/2026: ficha [DUP] y ficha real, S/ 370.70 + S/ 96.38 pendientes).
+  // Por eso se busca por DNI en todas las orgs; sin DNI, el mismo cliente en su org.
+  const documentNumber = input.documentNumber?.trim();
+  if (documentNumber) {
+    query = query.eq("metadata->>customer_document_number", documentNumber);
+  } else if (input.hecomClienteId) {
+    query = query
+      .eq("organization_id", input.organizationId)
+      .eq("metadata->>hecom_cliente_id", input.hecomClienteId);
   } else {
     return { cancelled: 0, skipped: 0 };
   }
