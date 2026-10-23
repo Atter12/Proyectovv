@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireCampaignStaff } from "@/lib/campaigns/staff-guard.server";
+import { requireCampaignUser, type CampaignUser } from "@/lib/campaigns/staff-guard.server";
+import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { clienteFrozenState } from "@/lib/campaigns/launch-actions.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import { createAccountIdentity, loadAccountIdentities, loadLaunchOptions } from "@/lib/campaigns/launch-options.server";
 import { createSmartPlusCampaign } from "@/lib/campaigns/smart-plus-create.server";
@@ -33,12 +35,26 @@ async function resolveAccount(
   };
 }
 
+/**
+ * Cuenta elegida, validada: el cliente solo puede usar cuentas de su propia
+ * ficha; el equipo, cualquiera aprobada de la organización.
+ */
+async function resolveAccountFor(
+  auth: CampaignUser,
+  adAccountId: string,
+): Promise<{ advertiserId: string; hecomClienteId: string | null } | null> {
+  const account = adAccountId ? await resolveAccount(auth.session.organizationId, adAccountId) : null;
+  if (!account || auth.isStaff) return account;
+  const cliente = await getSelectedHecomCliente(auth.session.id);
+  return cliente && account.hecomClienteId === cliente.id ? account : null;
+}
+
 /** Píxeles, identidades y videos de la cuenta elegida. */
 export async function GET(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const adAccountId = new URL(request.url).searchParams.get("adAccountId")?.trim() ?? "";
-  const account = adAccountId ? await resolveAccount(auth.session.organizationId, adAccountId) : null;
+  const account = await resolveAccountFor(auth, adAccountId);
   if (!account) return NextResponse.json({ error: "Elige una cuenta aprobada." }, { status: 400 });
   const { advertiserId } = account;
   try {
@@ -57,7 +73,7 @@ export async function GET(request: Request) {
 
 /** Crea la campaña Smart+ pausada. */
 export async function POST(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const { session } = auth;
 
@@ -70,9 +86,18 @@ export async function POST(request: Request) {
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const strList = (v: unknown) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
   const adAccountId = str(body.adAccountId);
-  const account = adAccountId ? await resolveAccount(session.organizationId, adAccountId) : null;
+  const account = await resolveAccountFor(auth, adAccountId);
   if (!account) return NextResponse.json({ error: "Elige una cuenta aprobada." }, { status: 400 });
   const { advertiserId } = account;
+  if (account.hecomClienteId) {
+    const frozen = await clienteFrozenState(account.hecomClienteId);
+    if (frozen) {
+      return NextResponse.json(
+        { ok: false, step: "validate", message: `La cuenta está en ${frozen}: no se pueden lanzar campañas.` },
+        { status: 403 },
+      );
+    }
+  }
 
   const country = str(body.country) as CampaignCountry;
   if (!(country in COUNTRY_LOCATION_IDS)) return NextResponse.json({ error: "País inválido." }, { status: 400 });

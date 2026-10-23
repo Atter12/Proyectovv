@@ -23,6 +23,8 @@ export type LaunchSummary = {
   campaignName: string;
   dailyBudget: number;
   optimizeMode: "off" | "suggest" | "auto";
+  /** Estado en TikTok: prendida, pausada o null si no se pudo leer. */
+  running: boolean | null;
   createdAt: string;
   actions: {
     id: string;
@@ -54,8 +56,10 @@ export async function listClienteLaunches(hecomClienteId: string): Promise<Launc
     .in("status", ["suggested", "applied", "failed"])
     .order("created_at", { ascending: false })
     .limit(200);
+  const running = await liveRunning(launches);
   return launches.map((l) => ({
     id: l.id,
+    running: running.get(l.campaign_id) ?? null,
     advertiserId: l.advertiser_id,
     campaignId: l.campaign_id,
     campaignName: l.campaign_name,
@@ -147,6 +151,73 @@ export async function decideLaunchAction(input: {
     await close("failed", { error: message.slice(0, 500) }).catch(() => undefined);
     return { ok: false, message };
   }
+}
+
+/** Estado de cada campaña en TikTok (una consulta por cuenta). */
+async function liveRunning(launches: { advertiser_id: string; campaign_id: string }[]): Promise<Map<string, boolean>> {
+  const out = new Map<string, boolean>();
+  const byAdvertiser = new Map<string, string[]>();
+  for (const l of launches) byAdvertiser.set(l.advertiser_id, [...(byAdvertiser.get(l.advertiser_id) ?? []), l.campaign_id]);
+  try {
+    const { token } = await resolveTikTokFinanceAccessToken(undefined);
+    await Promise.all(
+      [...byAdvertiser].map(async ([advertiserId, campaignIds]) => {
+        const res = await tiktokRequest<{ list?: Record<string, unknown>[] }>({
+          path: "/smart_plus/campaign/get/",
+          accessToken: token,
+          query: { advertiser_id: advertiserId, filtering: { campaign_ids: campaignIds }, page_size: "50" },
+        }).catch(() => null);
+        for (const c of res?.list ?? []) out.set(String(c.campaign_id), c.operation_status === "ENABLE");
+      }),
+    );
+  } catch {
+    // Sin token: la pantalla muestra el estado como desconocido.
+  }
+  return out;
+}
+
+/** Estado de cobranza que bloquea gastar (congelado, cobranza, castigo) o null. */
+export async function clienteFrozenState(hecomClienteId: string): Promise<string | null> {
+  const { data: estado } = await createAdminClient()
+    .from("cliente_cobranza_estado")
+    .select("estado")
+    .eq("hecom_cliente_id", hecomClienteId)
+    .maybeSingle<{ estado: string }>();
+  return estado && FROZEN_STATES.includes(estado.estado) ? estado.estado : null;
+}
+
+/**
+ * Prender o pausar una campaña lanzada del cliente. Para prender, el cliente
+ * no puede estar congelado y la cuenta tiene que tener saldo para
+ * BALANCE_DAYS días del presupuesto.
+ */
+export async function setLaunchRunning(input: {
+  launchId: string;
+  hecomClienteId: string;
+  running: boolean;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data: launch } = await createAdminClient()
+    .from("campaign_launches")
+    .select("advertiser_id, campaign_id, daily_budget, hecom_cliente_id")
+    .eq("id", input.launchId)
+    .maybeSingle<{ advertiser_id: string; campaign_id: string; daily_budget: number; hecom_cliente_id: string | null }>();
+  if (!launch || launch.hecom_cliente_id !== input.hecomClienteId) return { ok: false, message: "Campaña no encontrada." };
+  if (input.running) {
+    const check = await canRaiseBudget(input.hecomClienteId, launch.advertiser_id, Number(launch.daily_budget));
+    if (!check.ok) return check;
+  }
+  const { token } = await resolveTikTokFinanceAccessToken(undefined);
+  await tiktokRequest({
+    path: "/smart_plus/campaign/status/update/",
+    method: "POST",
+    accessToken: token,
+    body: {
+      advertiser_id: launch.advertiser_id,
+      campaign_ids: [launch.campaign_id],
+      operation_status: input.running ? "ENABLE" : "DISABLE",
+    },
+  });
+  return { ok: true };
 }
 
 /** Cambia el modo de optimización de una campaña lanzada del cliente. */
@@ -260,14 +331,8 @@ async function canRaiseBudget(
   advertiserId: string,
   newBudget: number,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { data: estado } = await createAdminClient()
-    .from("cliente_cobranza_estado")
-    .select("estado")
-    .eq("hecom_cliente_id", hecomClienteId)
-    .maybeSingle<{ estado: string }>();
-  if (estado && FROZEN_STATES.includes(estado.estado)) {
-    return { ok: false, message: `El cliente está en ${estado.estado}: no se sube presupuesto.` };
-  }
+  const frozen = await clienteFrozenState(hecomClienteId);
+  if (frozen) return { ok: false, message: `La cuenta está en ${frozen}: no se puede gastar más.` };
   const live = await getHecomAdAccountsLiveMetrics(hecomClienteId, "fast", { bypassCache: true }).catch(() => null);
   const account = live?.accounts.find((a) => a.advertiserId === advertiserId);
   const balance = account?.balanceUsd ?? null;
@@ -276,7 +341,7 @@ async function canRaiseBudget(
   if (balance < needed) {
     return {
       ok: false,
-      message: `Saldo insuficiente: tiene USD ${balance.toFixed(2)} y el nuevo presupuesto pide USD ${needed.toFixed(2)} para ${BALANCE_DAYS} días.`,
+      message: `Saldo insuficiente: la cuenta tiene USD ${balance.toFixed(2)} y el presupuesto pide USD ${needed.toFixed(2)} para ${BALANCE_DAYS} días. Recarga primero.`,
     };
   }
   return { ok: true };

@@ -19,3 +19,19 @@ export async function requireCampaignStaff(): Promise<{ session: StaffSession } 
   }
   return { session: session as StaffSession };
 }
+
+export type CampaignUser = { session: StaffSession; isStaff: boolean };
+
+/**
+ * Lanzar y optimizar campañas: el equipo y los clientes (cada cliente solo
+ * sobre su propia ficha; las rutas validan que la cuenta sea suya).
+ */
+export async function requireCampaignUser(): Promise<CampaignUser | { error: NextResponse }> {
+  const session = await getSession();
+  if (!session) return { error: NextResponse.json({ error: "No autenticado." }, { status: 401 }) };
+  if (!hasPermission(session.permissions, "creativeAnalyzer:create") || !session.organizationId) {
+    return { error: NextResponse.json({ error: "Permiso denegado." }, { status: 403 }) };
+  }
+  const funding = await resolvePaymentsFundingCapabilities({ email: session.email, role: session.role });
+  return { session: session as StaffSession, isStaff: funding.isStaff || funding.isSuperAdmin };
+}

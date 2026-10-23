@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { requireCampaignStaff } from "@/lib/campaigns/staff-guard.server";
+import { requireCampaignUser } from "@/lib/campaigns/staff-guard.server";
 import { addVideosToLaunch, listVideosForLaunch } from "@/lib/campaigns/launch-videos.server";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const maxDuration = 60;
 
 /** Videos de la cuenta que se pueden sumar a una campaña lanzada. */
 export async function GET(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   const launchId = new URL(request.url).searchParams.get("launchId")?.trim() ?? "";
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
 /** Suma videos al anuncio de una campaña lanzada. */
 export async function POST(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   if (!cliente) return NextResponse.json({ error: "Elige un cliente." }, { status: 400 });

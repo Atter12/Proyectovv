@@ -126,7 +126,10 @@ export function LaunchCampaignPanel({
           identity: identityBody,
         }),
       });
-      setResult((await response.json()) as CreateResponse);
+      const data = (await response.json()) as CreateResponse;
+      setResult(data);
+      // La lista de campañas lanzadas (abajo) se recarga para prenderla desde ahí.
+      if (data.ok) window.dispatchEvent(new Event("campaign-launched"));
     } catch {
       setResult({ ok: false, message: t("errors.network") });
     } finally {

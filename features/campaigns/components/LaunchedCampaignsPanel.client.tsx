@@ -41,15 +41,19 @@ export function LaunchedCampaignsPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchLaunches()
-      .then((list) => {
-        if (!cancelled) setLaunches(list);
-      })
-      .catch(() => {
-        if (!cancelled) setError(t("errors.load"));
-      });
+    const load = () =>
+      fetchLaunches()
+        .then((list) => {
+          if (!cancelled) setLaunches(list);
+        })
+        .catch(() => {
+          if (!cancelled) setError(t("errors.load"));
+        });
+    void load();
+    window.addEventListener("campaign-launched", load);
     return () => {
       cancelled = true;
+      window.removeEventListener("campaign-launched", load);
     };
   }, [t]);
 
@@ -79,6 +83,30 @@ export function LaunchedCampaignsPanel() {
     } finally {
       setBusy(null);
       setConfirming(null);
+    }
+  }
+
+  async function setRunning(launch: LaunchSummary, running: boolean) {
+    if (running && !window.confirm(t("running.confirm", { budget: usd.format(launch.dailyBudget) }))) return;
+    setBusy(launch.id);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/campaigns/actions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ launchId: launch.id, running }),
+      });
+      const data = (await response.json()) as { ok: boolean; message?: string; error?: string };
+      if (data.ok) setLaunches((list) => (list ?? []).map((l) => (l.id === launch.id ? { ...l, running } : l)));
+      setNotice({
+        id: launch.id,
+        ok: data.ok,
+        text: data.ok ? t(running ? "running.on" : "running.off") : (data.message ?? data.error ?? t("errors.decide")),
+      });
+    } catch {
+      setNotice({ id: launch.id, ok: false, text: t("errors.decide") });
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -181,8 +209,33 @@ export function LaunchedCampaignsPanel() {
                         {" · "}
                         {t(`mode.${launch.optimizeMode}`)}
                       </p>
+                      {launch.running !== null ? (
+                        <span
+                          className={cn(
+                            "mt-1.5 inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]",
+                            launch.running ? "bg-[#ecf7f0] text-[#1f5c40]" : "bg-[rgb(20_18_16_/_0.06)] text-[var(--auth-text-muted)]",
+                          )}
+                        >
+                          {t(launch.running ? "running.badgeOn" : "running.badgeOff")}
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex shrink-0 flex-wrap items-center gap-3">
+                      {launch.running !== null ? (
+                        <button
+                          type="button"
+                          disabled={busy !== null}
+                          onClick={() => void setRunning(launch, !launch.running)}
+                          className={cn(
+                            "h-8 rounded-lg px-3 text-[12px] font-bold disabled:opacity-60",
+                            launch.running
+                              ? "border border-[rgb(20_18_16_/_0.12)] text-[var(--auth-text)]"
+                              : "bg-[var(--auth-accent)] text-white",
+                          )}
+                        >
+                          {busy === launch.id ? t("applying") : t(launch.running ? "running.pause" : "running.start")}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         disabled={busy !== null}

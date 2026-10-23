@@ -2476,6 +2476,15 @@
   },
   "creatives": {
     "launched": {
+      "running": {
+        "badgeOn": "Prendida",
+        "badgeOff": "Pausada",
+        "start": "Prender campaña",
+        "pause": "Pausar",
+        "confirm": "¿Prender la campaña? Empezará a gastar hasta {budget} al día de tu saldo.",
+        "on": "Campaña prendida: TikTok la revisa y empieza a mostrarse en unos minutos.",
+        "off": "Campaña pausada: ya no gasta."
+      },
       "autoMode": {
         "label": "Modo automático",
         "hint": "Cada madrugada pausa solo el video que pierde plata (uno por noche y siempre deja 2 activos). Subir presupuesto sigue pidiendo tu aprobación.",
@@ -2607,7 +2616,7 @@
         "adgroup": "Grupo",
         "ad": "Anuncio",
         "open": "Abrir en Ads Manager",
-        "next": "Revísala en Ads Manager y préndela cuando esté todo bien. Mientras esté pausada no gasta."
+        "next": "Revísala y préndela abajo, en \"Campañas lanzadas\", cuando esté todo bien. Mientras esté pausada no gasta."
       },
       "errors": {
         "options": "No se pudo leer la cuenta en TikTok. Prueba de nuevo.",

@@ -2476,6 +2476,15 @@
   },
   "creatives": {
     "launched": {
+      "running": {
+        "badgeOn": "Running",
+        "badgeOff": "Paused",
+        "start": "Start campaign",
+        "pause": "Pause",
+        "confirm": "Start the campaign? It will spend up to {budget} per day from your balance.",
+        "on": "Campaign started: TikTok reviews it and it starts showing in a few minutes.",
+        "off": "Campaign paused: it no longer spends."
+      },
       "autoMode": {
         "label": "Automatic mode",
         "hint": "Every night it pauses the video that loses money (one per night, always leaving 2 active). Raising the budget still needs your approval.",
@@ -2607,7 +2616,7 @@
         "adgroup": "Ad group",
         "ad": "Ad",
         "open": "Open in Ads Manager",
-        "next": "Review it in Ads Manager and turn it on when everything looks right. It doesn't spend while paused."
+        "next": "Review it and start it below, in \"Launched campaigns\", when everything looks right. While paused it doesn't spend."
       },
       "errors": {
         "options": "Couldn't read the account in TikTok. Try again.",

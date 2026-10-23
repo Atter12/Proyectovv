@@ -129,15 +129,13 @@ export async function ClienteScopedCreatives({
               {t("uploadVideo")}
             </CrmHeroButton>
             {showVideoStudio ? (
-              <>
-                <CrmHeroButton href="#video-studio" variant="secondary">
-                  {t("createVideo")}
-                </CrmHeroButton>
-                <CrmHeroButton href="#launch-campaign" variant="secondary">
-                  {t("launchCampaign")}
-                </CrmHeroButton>
-              </>
+              <CrmHeroButton href="#video-studio" variant="secondary">
+                {t("createVideo")}
+              </CrmHeroButton>
             ) : null}
+            <CrmHeroButton href="#launch-campaign" variant="secondary">
+              {t("launchCampaign")}
+            </CrmHeroButton>
             <CrmHeroButton href={routes.adAccounts} variant="secondary">
               {t("tiktokAccounts")}
             </CrmHeroButton>
@@ -220,13 +218,9 @@ export async function ClienteScopedCreatives({
         />
       </Suspense>
 
-      {showVideoStudio ? (
-        <>
-          <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
-          <LaunchCampaignPanel clienteName={cliente.name} accounts={accounts} />
-          <LaunchedCampaignsPanel />
-        </>
-      ) : null}
+      {showVideoStudio ? <VideoStudioPanel clienteName={cliente.name} accounts={accounts} /> : null}
+      <LaunchCampaignPanel clienteName={cliente.name} accounts={accounts} />
+      <LaunchedCampaignsPanel />
 
       <CreativeAssetsPanel assets={assets} />
 

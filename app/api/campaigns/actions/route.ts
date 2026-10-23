@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
-import { requireCampaignStaff } from "@/lib/campaigns/staff-guard.server";
+import { requireCampaignUser } from "@/lib/campaigns/staff-guard.server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { decideLaunchAction, listClienteLaunches, setLaunchMode } from "@/lib/campaigns/launch-actions.server";
+import { decideLaunchAction, listClienteLaunches, setLaunchMode, setLaunchRunning } from "@/lib/campaigns/launch-actions.server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Campañas lanzadas del cliente que se está viendo, con sus sugerencias. */
 export async function GET() {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   if (!cliente) return NextResponse.json({ ok: true, launches: [] });
@@ -23,7 +23,7 @@ export async function GET() {
 
 /** Aplicar o descartar una sugerencia. */
 export async function POST(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   if (!cliente) return NextResponse.json({ error: "Elige un cliente." }, { status: 400 });
@@ -41,19 +41,36 @@ export async function POST(request: Request) {
   return NextResponse.json(result, { status: result.ok ? 200 : 422 });
 }
 
-/** Pasar una campaña a modo automático (pausa sola los videos que pierden) o volver a solo sugerir. */
+/** Prender/pausar la campaña ({ running }) o pasarla a modo automático (pausa sola los videos que pierden) o volver a solo sugerir. */
 export async function PATCH(request: Request) {
-  const auth = await requireCampaignStaff();
+  const auth = await requireCampaignUser();
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   if (!cliente) return NextResponse.json({ error: "Elige un cliente." }, { status: 400 });
-  let body: { launchId?: unknown; mode?: unknown };
+  let body: { launchId?: unknown; mode?: unknown; running?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
   }
   const launchId = typeof body.launchId === "string" ? body.launchId : "";
+  if (launchId && typeof body.running === "boolean") {
+    try {
+      const result = await setLaunchRunning({ launchId, hecomClienteId: cliente.id, running: body.running });
+      await createAdminClient().from("audit_logs").insert({
+        organization_id: auth.session.organizationId,
+        actor_user_id: auth.session.id,
+        action: body.running ? "campaign.smart_plus.enabled" : "campaign.smart_plus.paused",
+        entity_type: "campaign_launch",
+        entity_id: launchId,
+        metadata: result,
+      });
+      return NextResponse.json(result, { status: result.ok ? 200 : 422 });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "TikTok rechazó el cambio.";
+      return NextResponse.json({ ok: false, message }, { status: 502 });
+    }
+  }
   const mode = body.mode === "auto" ? "auto" : body.mode === "suggest" ? "suggest" : null;
   if (!launchId || !mode) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
   const ok = await setLaunchMode({ launchId, hecomClienteId: cliente.id, mode });
