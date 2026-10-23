@@ -2476,6 +2476,19 @@
   },
   "creatives": {
     "launched": {
+      "addVideos": {
+        "open": "+ Adicionar vídeos",
+        "fromSuggestion": "Adicionar vídeo novo",
+        "title": "Vídeos da conta que ainda não estão na campanha ({count}/{max})",
+        "loading": "Carregando vídeos…",
+        "empty": "Não há vídeos novos na biblioteca da conta. Crie um com \"Criar vídeo\" ou suba no TikTok.",
+        "hint": "Entram no anúncio sem mexer nos que já rodam; o TikTok testa e fica com o que vende.",
+        "submit": "Adicionar à campanha ({count})",
+        "saving": "Adicionando no TikTok…",
+        "cancel": "Cancelar",
+        "loadError": "Não foi possível ler os vídeos da conta.",
+        "done": "{count, plural, one {# vídeo adicionado} other {# vídeos adicionados}} à campanha."
+      },
       "kicker": "Otimização diária",
       "title": "Campanhas lançadas pelo Ads Holistic",
       "subtitle": "Toda madrugada revisamos estas campanhas e sugerimos o que mudar. Aplique com um clique; o que você descartar não volta por 7 dias.",
@@ -2519,6 +2532,8 @@
       "dismiss": "Agora não",
       "done": {
         "applied": "Feito no TikTok.",
+        "videosAdded": "Pronto: vídeo novo adicionado no TikTok.",
+        "handled": "Marcado como resolvido.",
         "dismissed": "Descartado: não volta por 7 dias."
       },
       "status": {

@@ -4,6 +4,7 @@ import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-fi
 import { tiktokRequest } from "@/lib/integrations/tiktok/http.server";
 import { getHecomAdAccountsLiveMetrics } from "@/lib/hecom/ad-account-live.server";
 import type { LaunchAction } from "@/lib/campaigns/launch-optimizer";
+import { addVideosToLaunch } from "@/lib/campaigns/launch-videos.server";
 
 const FROZEN_STATES = ["congelado", "cobranza", "castigo"];
 /** Días de saldo que tiene que cubrir el presupuesto nuevo antes de subirlo. */
@@ -71,6 +72,8 @@ export async function decideLaunchAction(input: {
   hecomClienteId: string;
   decision: "apply" | "dismiss";
   userId: string;
+  /** "Cambiar video" / "Todo pierde": videos nuevos que se suman a la campaña al aprobar. */
+  videoIds?: string[];
 }): Promise<DecideResult> {
   const admin = createAdminClient();
   const { data: row } = await admin
@@ -111,8 +114,16 @@ export async function decideLaunchAction(input: {
       if (!check.ok) return { ok: false, message: check.message };
       await raiseBudget(action);
       await admin.from("campaign_launches").update({ daily_budget: action.toBudget }).eq("id", row.launch_id);
+    } else if (input.videoIds?.length) {
+      // Cambiar video / todo pierde: se suman los videos elegidos. Sin videos,
+      // "aplicar" solo marca que el equipo ya lo atendió por fuera.
+      const added = await addVideosToLaunch({
+        launchId: row.launch_id,
+        hecomClienteId: input.hecomClienteId,
+        videoIds: input.videoIds,
+      });
+      if (!added.ok) return { ok: false, message: added.message };
     }
-    // new_video y all_losing no tocan TikTok: "aplicar" = el equipo ya lo atendió.
     await close("applied");
     return { ok: true, status: "applied" };
   } catch (error) {

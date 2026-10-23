@@ -125,7 +125,7 @@ export async function createSmartPlusAd(input: {
  * TikTok exige una portada (imagen) por video en Smart+. Se usa la que TikTok
  * ya generó para el video: se sube a la biblioteca de imágenes por URL.
  */
-async function uploadVideoCovers(accessToken: string, advertiserId: string, videoIds: string[]): Promise<Record<string, string>> {
+export async function uploadVideoCovers(accessToken: string, advertiserId: string, videoIds: string[]): Promise<Record<string, string>> {
   const ids = [...new Set(videoIds.map((v) => v.trim()).filter(Boolean))];
   if (ids.length === 0) return {};
   const info = await tiktokRequest<{ list?: Array<{ video_id?: string; video_cover_url?: string }> }>({

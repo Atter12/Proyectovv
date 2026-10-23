@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import type { LaunchSummary } from "@/lib/campaigns/launch-actions.server";
 import type { LaunchAction } from "@/lib/campaigns/launch-optimizer";
+import { AddVideosPicker } from "@/features/campaigns/components/AddVideosPicker.client";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
@@ -16,6 +17,9 @@ const KIND_TONE: Record<LaunchAction["kind"], string> = {
 };
 
 type Action = LaunchSummary["actions"][number];
+
+/** Sugerencias que se resuelven sumando videos nuevos a la campaña. */
+const NEEDS_VIDEOS = new Set<LaunchAction["kind"]>(["new_video", "all_losing"]);
 
 async function fetchLaunches(): Promise<LaunchSummary[]> {
   const response = await fetch("/api/campaigns/actions");
@@ -32,6 +36,8 @@ export function LaunchedCampaignsPanel() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ id: string; ok: boolean; text: string } | null>(null);
+  /** Selector de videos abierto: para la campaña o para resolver una sugerencia. */
+  const [picker, setPicker] = useState<{ launchId: string; actionId: string | null } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,27 +53,52 @@ export function LaunchedCampaignsPanel() {
     };
   }, [t]);
 
-  async function decide(action: Action, decision: "apply" | "dismiss") {
+  async function decide(action: Action, decision: "apply" | "dismiss", videoIds?: string[]) {
     setBusy(action.id);
     setNotice(null);
     try {
       const response = await fetch("/api/campaigns/actions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actionId: action.id, decision }),
+        body: JSON.stringify({ actionId: action.id, decision, videoIds }),
       });
       const data = (await response.json()) as { ok: boolean; status?: string; message?: string; error?: string };
       setNotice({
         id: action.id,
         ok: data.ok,
-        text: data.ok ? t(decision === "apply" ? "done.applied" : "done.dismissed") : (data.message ?? data.error ?? t("errors.decide")),
+        text: data.ok
+          ? t(decision === "dismiss" ? "done.dismissed" : videoIds?.length ? "done.videosAdded" : NEEDS_VIDEOS.has(action.kind) ? "done.handled" : "done.applied")
+          : (data.message ?? data.error ?? t("errors.decide")),
       });
-      if (data.ok) setLaunches(await fetchLaunches());
+      if (data.ok) {
+        setPicker(null);
+        setLaunches(await fetchLaunches());
+      }
     } catch {
       setNotice({ id: action.id, ok: false, text: t("errors.decide") });
     } finally {
       setBusy(null);
       setConfirming(null);
+    }
+  }
+
+  async function addVideos(launchId: string, videoIds: string[]) {
+    setNotice(null);
+    try {
+      const response = await fetch("/api/campaigns/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ launchId, videoIds }),
+      });
+      const data = (await response.json()) as { ok: boolean; added?: string[]; message?: string; error?: string };
+      setNotice({
+        id: launchId,
+        ok: data.ok,
+        text: data.ok ? t("addVideos.done", { count: data.added?.length ?? 0 }) : (data.message ?? data.error ?? t("errors.decide")),
+      });
+      if (data.ok) setPicker(null);
+    } catch {
+      setNotice({ id: launchId, ok: false, text: t("errors.decide") });
     }
   }
 
@@ -131,15 +162,38 @@ export function LaunchedCampaignsPanel() {
                         {t(`mode.${launch.optimizeMode}`)}
                       </p>
                     </div>
-                    <a
-                      href={`https://ads.tiktok.com/i18n/perf/campaign?aadvid=${launch.advertiserId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-[12px] font-semibold text-[var(--auth-text)] underline-offset-2 hover:underline"
-                    >
-                      {t("openAdsManager")}
-                    </a>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => setPicker({ launchId: launch.id, actionId: null })}
+                        className="text-[12px] font-semibold text-[var(--auth-accent)] underline-offset-2 hover:underline"
+                      >
+                        {t("addVideos.open")}
+                      </button>
+                      <a
+                        href={`https://ads.tiktok.com/i18n/perf/campaign?aadvid=${launch.advertiserId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] font-semibold text-[var(--auth-text)] underline-offset-2 hover:underline"
+                      >
+                        {t("openAdsManager")}
+                      </a>
+                    </div>
                   </div>
+
+                  {notice?.id === launch.id ? (
+                    <p className={cn("mt-2 rounded-lg px-2.5 py-1.5 text-[12px]", notice.ok ? "bg-[#ecf7f0] text-[#1f5c40]" : "bg-[#fef2f2] text-[#991b1b]")}>
+                      {notice.text}
+                    </p>
+                  ) : null}
+                  {picker?.launchId === launch.id && picker.actionId === null ? (
+                    <AddVideosPicker
+                      launchId={launch.id}
+                      onSubmit={(videoIds) => addVideos(launch.id, videoIds)}
+                      onCancel={() => setPicker(null)}
+                    />
+                  ) : null}
 
                   {pending.length === 0 ? (
                     <p className="mt-3 text-[12px] text-[var(--auth-text-muted)]">{t("noPending")}</p>
@@ -178,6 +232,16 @@ export function LaunchedCampaignsPanel() {
                               </>
                             ) : (
                               <>
+                                {NEEDS_VIDEOS.has(action.kind) ? (
+                                  <button
+                                    type="button"
+                                    disabled={busy !== null}
+                                    onClick={() => setPicker({ launchId: launch.id, actionId: action.id })}
+                                    className="h-9 rounded-xl bg-[var(--auth-accent)] px-3.5 text-[12px] font-bold text-white disabled:opacity-60"
+                                  >
+                                    {t("addVideos.fromSuggestion")}
+                                  </button>
+                                ) : null}
                                 <button
                                   type="button"
                                   disabled={busy !== null}
@@ -197,6 +261,13 @@ export function LaunchedCampaignsPanel() {
                               </>
                             )}
                           </div>
+                          {picker?.actionId === action.id ? (
+                            <AddVideosPicker
+                              launchId={launch.id}
+                              onSubmit={(videoIds) => decide(action, "apply", videoIds)}
+                              onCancel={() => setPicker(null)}
+                            />
+                          ) : null}
                         </li>
                       ))}
                     </ul>

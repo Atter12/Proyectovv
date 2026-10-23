@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAddVideosUpdate,
   buildSmartPlusPlan,
   tiktokUtcTime,
   validateSmartPlusPlan,
@@ -89,4 +90,54 @@ test("UTM no pisa los que ya trae el link", () => {
 
 test("hora UTC en formato TikTok", () => {
   assert.equal(tiktokUtcTime(NOW), "2026-10-22 18:05:09");
+});
+
+const liveAd = (): Record<string, unknown> => ({
+  advertiser_id: "7001",
+  smart_plus_ad_id: "9001",
+  ad_name: "Sambas · anuncio",
+  ad_text_list: [{ ad_text: "Las que todos buscan" }],
+  landing_page_url_list: [{ landing_page_url: "https://tienda.pe/?utm_source=tiktok" }],
+  ad_configuration: { call_to_action_id: "77", tracking_info: { tracking_pixel_id: "55" } },
+  creative_list: [
+    {
+      ad_material_id: "m1",
+      material_operation_status: "ENABLE",
+      creative_info: { ad_format: "SINGLE_VIDEO", identity_id: "id-1", identity_type: "TT_USER", video_info: { video_id: "v1" }, image_info: [{ web_uri: "c1" }] },
+    },
+    {
+      ad_material_id: "m2",
+      material_operation_status: "DISABLE",
+      creative_info: { ad_format: "SINGLE_VIDEO", identity_id: "id-1", identity_type: "TT_USER", video_info: { video_id: "v2" }, image_info: [{ web_uri: "c2" }] },
+    },
+  ],
+});
+
+test("suma videos sin perder los que ya están (ni los pausados)", () => {
+  const r = buildAddVideosUpdate(liveAd(), [
+    { videoId: "v3", coverUri: "c3" },
+    { videoId: "v1", coverUri: "c1" },
+  ]);
+  assert.ok(r.ok);
+  assert.deepEqual(r.added, ["v3"]);
+  const list = r.body.creative_list as Record<string, unknown>[];
+  assert.deepEqual(list.map((c) => c.ad_material_id ?? null), ["m1", "m2", null]);
+  assert.deepEqual(list[2].creative_info, {
+    ad_format: "SINGLE_VIDEO",
+    video_info: { video_id: "v3" },
+    image_info: [{ web_uri: "c3" }],
+    identity_type: "TT_USER",
+    identity_id: "id-1",
+  });
+  assert.equal(r.body.smart_plus_ad_id, "9001");
+  assert.deepEqual(r.body.ad_configuration, { call_to_action_id: "77", tracking_info: { tracking_pixel_id: "55" } });
+  assert.deepEqual(r.body.ad_text_list, [{ ad_text: "Las que todos buscan" }]);
+});
+
+test("no manda nada si no hay videos nuevos, falta portada o se pasa del tope", () => {
+  assert.deepEqual(buildAddVideosUpdate(liveAd(), []), { ok: false, error: "noVideos" });
+  assert.deepEqual(buildAddVideosUpdate(liveAd(), [{ videoId: "v2", coverUri: "c2" }]), { ok: false, error: "nothingNew" });
+  assert.deepEqual(buildAddVideosUpdate(liveAd(), [{ videoId: "v9", coverUri: null }]), { ok: false, error: "noCover" });
+  const many = Array.from({ length: 49 }, (_, i) => ({ videoId: `n${i}`, coverUri: "c" }));
+  assert.deepEqual(buildAddVideosUpdate(liveAd(), many), { ok: false, error: "tooManyVideos" });
 });

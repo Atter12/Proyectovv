@@ -233,3 +233,63 @@ export function buildSmartPlusPlan(input: SmartPlusPlanInput, opts: { requestId:
 
   return { campaign, adgroup, ad };
 }
+
+export type AddVideosError = "noVideos" | "nothingNew" | "tooManyVideos" | "noCover" | "noIdentity";
+
+/** Tope de videos por anuncio Smart+ (TikTok acepta hasta 50). */
+export const MAX_AD_VIDEOS = 50;
+
+/**
+ * Pedido para /smart_plus/ad/update/ que suma videos a un anuncio que ya
+ * corre. TikTok reemplaza la lista entera, así que van todos los videos
+ * actuales (con su ad_material_id, también los pausados, para no perder sus
+ * datos) más los nuevos con el mismo perfil que publica. Textos, links y
+ * botones se reenvían tal cual.
+ */
+export function buildAddVideosUpdate(
+  ad: Record<string, unknown>,
+  videos: { videoId: string; coverUri: string | null }[],
+): { ok: true; body: Record<string, unknown>; added: string[] } | { ok: false; error: AddVideosError } {
+  const current = ((ad.creative_list as Record<string, unknown>[] | undefined) ?? []).filter((c) => c.creative_info);
+  const inAd = new Set(
+    current.map((c) => String(((c.creative_info as Record<string, unknown>).video_info as Record<string, unknown> | undefined)?.video_id ?? "")),
+  );
+  const wanted = [...new Map(videos.map((v) => [v.videoId.trim(), v])).values()].filter((v) => v.videoId.trim());
+  if (wanted.length === 0) return { ok: false, error: "noVideos" };
+  const fresh = wanted.filter((v) => !inAd.has(v.videoId.trim()));
+  if (fresh.length === 0) return { ok: false, error: "nothingNew" };
+  if (current.length + fresh.length > MAX_AD_VIDEOS) return { ok: false, error: "tooManyVideos" };
+  if (fresh.some((v) => !v.coverUri)) return { ok: false, error: "noCover" };
+
+  const source = (current[0]?.creative_info ?? ad.ad_configuration ?? {}) as Record<string, unknown>;
+  if (!source.identity_id || !source.identity_type) return { ok: false, error: "noIdentity" };
+  const identity = {
+    identity_type: source.identity_type,
+    identity_id: source.identity_id,
+    ...(source.identity_authorized_bc_id ? { identity_authorized_bc_id: source.identity_authorized_bc_id } : {}),
+  };
+
+  const creative_list = [
+    ...current.map((c) => ({
+      ...(c.ad_material_id ? { ad_material_id: String(c.ad_material_id) } : {}),
+      creative_info: c.creative_info,
+    })),
+    ...fresh.map((v) => ({
+      creative_info: {
+        ad_format: "SINGLE_VIDEO",
+        video_info: { video_id: v.videoId.trim() },
+        image_info: [{ web_uri: v.coverUri }],
+        ...identity,
+      },
+    })),
+  ];
+  const body: Record<string, unknown> = {
+    advertiser_id: String(ad.advertiser_id ?? ""),
+    smart_plus_ad_id: String(ad.smart_plus_ad_id ?? ""),
+    creative_list,
+  };
+  for (const key of ["ad_name", "ad_text_list", "landing_page_url_list", "ad_configuration"]) {
+    if (ad[key] !== undefined) body[key] = ad[key];
+  }
+  return { ok: true, body, added: fresh.map((v) => v.videoId.trim()) };
+}

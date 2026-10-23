@@ -128,23 +128,7 @@ export async function loadLaunchOptions(input: {
     .then((r) => r.pixels.map((p) => ({ id: p.pixelId, name: p.pixelName || p.pixelId })))
     .catch(() => []);
 
-  const videosTask = tiktokRequest<{ list?: Record<string, unknown>[] }>({
-    path: "/file/video/ad/search/",
-    accessToken,
-    query: { advertiser_id: advertiserId, page_size: String(VIDEO_LIMIT) },
-  })
-    .then((r) =>
-      (r.list ?? [])
-        .filter((v) => v.video_id)
-        .sort((a, b) => String(b.create_time ?? "").localeCompare(String(a.create_time ?? "")))
-        .map((v) => ({
-          videoId: String(v.video_id),
-          name: String(v.file_name ?? v.video_id),
-          coverUrl: typeof v.video_cover_url === "string" ? v.video_cover_url : null,
-          durationSec: typeof v.duration === "number" ? Math.round(v.duration) : null,
-        })),
-    )
-    .catch(() => []);
+  const videosTask = listAccountVideos(accessToken, advertiserId).catch(() => []);
 
   const [pixels, identities, videos] = await Promise.all([
     pixelsTask,
@@ -152,6 +136,24 @@ export async function loadLaunchOptions(input: {
     videosTask,
   ]);
   return { pixels, identities, videos };
+}
+
+/** Videos más recientes de la biblioteca de la cuenta. */
+export async function listAccountVideos(accessToken: string, advertiserId: string): Promise<LaunchOptions["videos"]> {
+  const r = await tiktokRequest<{ list?: Record<string, unknown>[] }>({
+    path: "/file/video/ad/search/",
+    accessToken,
+    query: { advertiser_id: advertiserId, page_size: String(VIDEO_LIMIT) },
+  });
+  return (r.list ?? [])
+    .filter((v) => v.video_id)
+    .sort((a, b) => String(b.create_time ?? "").localeCompare(String(a.create_time ?? "")))
+    .map((v) => ({
+      videoId: String(v.video_id),
+      name: String(v.file_name ?? v.video_id),
+      coverUrl: typeof v.video_cover_url === "string" ? v.video_cover_url : null,
+      durationSec: typeof v.duration === "number" ? Math.round(v.duration) : null,
+    }));
 }
 
 /** Crea un perfil propio de la cuenta (nombre de la tienda) para publicar. */

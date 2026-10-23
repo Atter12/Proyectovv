@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error;
   const cliente = await getSelectedHecomCliente(auth.session.id);
   if (!cliente) return NextResponse.json({ error: "Elige un cliente." }, { status: 400 });
-  let body: { actionId?: unknown; decision?: unknown };
+  let body: { actionId?: unknown; decision?: unknown; videoIds?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
   const actionId = typeof body.actionId === "string" ? body.actionId : "";
   const decision = body.decision === "apply" ? "apply" : body.decision === "dismiss" ? "dismiss" : null;
   if (!actionId || !decision) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
-  const result = await decideLaunchAction({ actionId, hecomClienteId: cliente.id, decision, userId: auth.session.id });
+  const videoIds = Array.isArray(body.videoIds) ? body.videoIds.filter((v): v is string => typeof v === "string") : undefined;
+  const result = await decideLaunchAction({ actionId, hecomClienteId: cliente.id, decision, userId: auth.session.id, videoIds });
   return NextResponse.json(result, { status: result.ok ? 200 : 422 });
 }

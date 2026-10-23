@@ -2476,6 +2476,19 @@
   },
   "creatives": {
     "launched": {
+      "addVideos": {
+        "open": "+ Add videos",
+        "fromSuggestion": "Add new video",
+        "title": "Account videos not yet in the campaign ({count}/{max})",
+        "loading": "Loading videos…",
+        "empty": "No new videos in the account library. Make one with \"Create video\" or upload it in TikTok.",
+        "hint": "They're added to the ad without touching the running ones; TikTok tests them and keeps the one that sells.",
+        "submit": "Add to campaign ({count})",
+        "saving": "Adding in TikTok…",
+        "cancel": "Cancel",
+        "loadError": "Couldn't load the account videos.",
+        "done": "{count, plural, one {# video added} other {# videos added}} to the campaign."
+      },
       "kicker": "Daily optimization",
       "title": "Campaigns launched from Ads Holistic",
       "subtitle": "Every night we review these campaigns and suggest what to change. Apply with one click; what you dismiss won't come back for 7 days.",
@@ -2519,6 +2532,8 @@
       "dismiss": "Not now",
       "done": {
         "applied": "Done in TikTok.",
+        "videosAdded": "Done: new video added in TikTok.",
+        "handled": "Marked as handled.",
         "dismissed": "Dismissed: it won't come back for 7 days."
       },
       "status": {

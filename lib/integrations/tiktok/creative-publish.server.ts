@@ -66,19 +66,20 @@ export async function uploadTikTokAdVideo(input: {
     body: form,
     cache: "no-store",
   });
-  const json = (await response.json()) as TikTokApiResponse<{
-    video_id?: string;
-  }>;
+  const json = (await response.json()) as TikTokApiResponse<
+    { video_id?: string } | Array<{ video_id?: string }>
+  >;
+  // TikTok devuelve los videos subidos como lista (data: [{ video_id }]).
+  const uploaded = Array.isArray(json.data) ? json.data[0] : json.data;
 
-  if (!response.ok || (json.code !== undefined && json.code !== 0) || !json.data?.video_id) {
+  if (!response.ok || (json.code !== undefined && json.code !== 0) || !uploaded?.video_id) {
     throw new Error(
-      json.message ??
-        `TikTok video upload falló (code=${json.code ?? response.status}).`,
+      `TikTok video upload falló (code=${json.code ?? response.status}${json.message ? `: ${json.message}` : ""}).`,
     );
   }
 
   return {
-    videoId: String(json.data.video_id),
+    videoId: String(uploaded.video_id),
     tiktokRequestId: json.request_id ?? null,
   };
 }
