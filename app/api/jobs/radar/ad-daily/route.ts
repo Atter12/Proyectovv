@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { runAdDailySync } from "@/lib/radar/ad-daily-sync.server";
 import { guardRadarJob, RADAR_JOB_BUDGET_MS, radarJobError } from "@/lib/radar/job-route.server";
+import { runLaunchOptimizer } from "@/lib/campaigns/launch-optimizer.server";
 
 export const runtime = "nodejs";
 // Una consulta de reporte por anunciante de cliente; con decenas de cuentas no
@@ -30,7 +31,14 @@ async function run(request: Request) {
       force: force && url.searchParams.get("redo") === "1",
       onlyAdvertiserIds,
     });
-    return NextResponse.json({ ok: true, ...result });
+    // Con el día completo, se arman las sugerencias de las campañas lanzadas.
+    let optimizer: Awaited<ReturnType<typeof runLaunchOptimizer>> | { error: string } | null = null;
+    if (result.status === "complete" && !onlyAdvertiserIds.length) {
+      optimizer = await runLaunchOptimizer({ deadlineMs }).catch((error: unknown) => ({
+        error: error instanceof Error ? error.message : "optimizer_failed",
+      }));
+    }
+    return NextResponse.json({ ok: true, ...result, optimizer });
   } catch (error) {
     return radarJobError(error, "ad_daily");
   }
