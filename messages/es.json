@@ -2475,6 +2475,62 @@
     }
   },
   "creatives": {
+    "launched": {
+      "kicker": "Optimización diaria",
+      "title": "Campañas lanzadas desde Ads Holistic",
+      "subtitle": "Cada madrugada revisamos estas campañas y proponemos qué cambiar. Aplicas con un clic; lo que descartes no vuelve en 7 días.",
+      "loading": "Cargando campañas…",
+      "empty": "Este cliente todavía no tiene campañas lanzadas desde Ads Holistic.",
+      "meta": "{budget} al día · lanzada el {date}",
+      "mode": {
+        "off": "Sin optimizar",
+        "suggest": "Solo sugiere",
+        "auto": "Automático"
+      },
+      "openAdsManager": "Ver en Ads Manager",
+      "noPending": "Sin sugerencias hoy: la campaña va bien o todavía está aprendiendo.",
+      "kind": {
+        "pause_video": "Pausar video",
+        "raise_budget": "Subir presupuesto",
+        "new_video": "Cambiar video",
+        "all_losing": "Todo pierde"
+      },
+      "describe": {
+        "pause": "\"{video}\" cuesta {cpr} por venta; la campaña promedia {avg}. Pausarlo pasa ese gasto a los videos que venden.",
+        "pauseNoSales": "\"{video}\" gastó {spend} sin ventas; la campaña promedia {avg} por venta.",
+        "raise": "Vende a {cpr} por venta, {pct}% más barato que el promedio del cliente ({avg}), y gasta todo su presupuesto. Subir de {from} a {to} al día.",
+        "newVideo": "\"{video}\" se está cansando: su CTR bajó {pct}% frente a sus primeros días. Conviene subir un video nuevo.",
+        "allLosing": "Ningún video está vendiendo bien ({count} pierden). Conviene probar creativos nuevos."
+      },
+      "apply": {
+        "pause_video": "Pausar",
+        "raise_budget": "Subir presupuesto",
+        "new_video": "Ya lo atendí",
+        "all_losing": "Ya lo atendí"
+      },
+      "confirm": {
+        "pause_video": "Sí, pausar en TikTok",
+        "raise_budget": "Sí, subir en TikTok",
+        "new_video": "Confirmar",
+        "all_losing": "Confirmar"
+      },
+      "applying": "Aplicando…",
+      "cancel": "Cancelar",
+      "dismiss": "Ahora no",
+      "done": {
+        "applied": "Hecho en TikTok.",
+        "dismissed": "Descartado: no vuelve en 7 días."
+      },
+      "status": {
+        "applied": "Aplicado",
+        "failed": "Falló",
+        "dismissed": "Descartado"
+      },
+      "errors": {
+        "load": "No se pudieron leer las campañas.",
+        "decide": "No se pudo completar. Prueba de nuevo."
+      }
+    },
     "launch": {
       "kicker": "Nuevo · Lanzar campaña",
       "title": "Lanza una campaña Smart+ en un clic",

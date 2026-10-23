@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSession } from "@/lib/auth/session.server";
-import { hasPermission } from "@/lib/auth/permissions";
-import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { requireCampaignStaff } from "@/lib/campaigns/staff-guard.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import { createAccountIdentity, loadAccountIdentities, loadLaunchOptions } from "@/lib/campaigns/launch-options.server";
 import { createSmartPlusCampaign } from "@/lib/campaigns/smart-plus-create.server";
@@ -15,22 +13,6 @@ import {
 export const runtime = "nodejs";
 // Crear campaña + subir portadas puede tardar.
 export const maxDuration = 60;
-
-type Session = NonNullable<Awaited<ReturnType<typeof getSession>>>;
-
-/** Solo el equipo lanza campañas por ahora. */
-async function requireStaff(): Promise<{ session: Session } | { error: NextResponse }> {
-  const session = await getSession();
-  if (!session) return { error: NextResponse.json({ error: "No autenticado." }, { status: 401 }) };
-  if (!hasPermission(session.permissions, "creativeAnalyzer:create") || !session.organizationId) {
-    return { error: NextResponse.json({ error: "Permiso denegado." }, { status: 403 }) };
-  }
-  const funding = await resolvePaymentsFundingCapabilities({ email: session.email, role: session.role });
-  if (!funding.isStaff && !funding.isSuperAdmin) {
-    return { error: NextResponse.json({ error: "Solo para el equipo." }, { status: 403 }) };
-  }
-  return { session };
-}
 
 /** La cuenta tiene que ser de la organización y estar aprobada. */
 async function resolveAccount(
@@ -53,10 +35,10 @@ async function resolveAccount(
 
 /** Píxeles, identidades y videos de la cuenta elegida. */
 export async function GET(request: Request) {
-  const auth = await requireStaff();
+  const auth = await requireCampaignStaff();
   if ("error" in auth) return auth.error;
   const adAccountId = new URL(request.url).searchParams.get("adAccountId")?.trim() ?? "";
-  const account = adAccountId ? await resolveAccount(auth.session.organizationId!, adAccountId) : null;
+  const account = adAccountId ? await resolveAccount(auth.session.organizationId, adAccountId) : null;
   if (!account) return NextResponse.json({ error: "Elige una cuenta aprobada." }, { status: 400 });
   const { advertiserId } = account;
   try {
@@ -75,7 +57,7 @@ export async function GET(request: Request) {
 
 /** Crea la campaña Smart+ pausada. */
 export async function POST(request: Request) {
-  const auth = await requireStaff();
+  const auth = await requireCampaignStaff();
   if ("error" in auth) return auth.error;
   const { session } = auth;
 
@@ -88,7 +70,7 @@ export async function POST(request: Request) {
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const strList = (v: unknown) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
   const adAccountId = str(body.adAccountId);
-  const account = adAccountId ? await resolveAccount(session.organizationId!, adAccountId) : null;
+  const account = adAccountId ? await resolveAccount(session.organizationId, adAccountId) : null;
   if (!account) return NextResponse.json({ error: "Elige una cuenta aprobada." }, { status: 400 });
   const { advertiserId } = account;
 

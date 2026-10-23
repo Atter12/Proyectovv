@@ -2475,6 +2475,62 @@
     }
   },
   "creatives": {
+    "launched": {
+      "kicker": "Daily optimization",
+      "title": "Campaigns launched from Ads Holistic",
+      "subtitle": "Every night we review these campaigns and suggest what to change. Apply with one click; what you dismiss won't come back for 7 days.",
+      "loading": "Loading campaigns…",
+      "empty": "This client has no campaigns launched from Ads Holistic yet.",
+      "meta": "{budget} per day · launched {date}",
+      "mode": {
+        "off": "Not optimized",
+        "suggest": "Suggest only",
+        "auto": "Automatic"
+      },
+      "openAdsManager": "Open in Ads Manager",
+      "noPending": "No suggestions today: the campaign is doing fine or still learning.",
+      "kind": {
+        "pause_video": "Pause video",
+        "raise_budget": "Raise budget",
+        "new_video": "Replace video",
+        "all_losing": "All losing"
+      },
+      "describe": {
+        "pause": "\"{video}\" costs {cpr} per sale; the campaign averages {avg}. Pausing it moves that spend to the videos that sell.",
+        "pauseNoSales": "\"{video}\" spent {spend} with no sales; the campaign averages {avg} per sale.",
+        "raise": "Sells at {cpr} per sale, {pct}% cheaper than the client's average ({avg}), and spends its whole budget. Raise from {from} to {to} per day.",
+        "newVideo": "\"{video}\" is getting tired: its CTR dropped {pct}% versus its first days. Upload a new video.",
+        "allLosing": "No video is selling well ({count} losing). Try new creatives."
+      },
+      "apply": {
+        "pause_video": "Pause",
+        "raise_budget": "Raise budget",
+        "new_video": "Done",
+        "all_losing": "Done"
+      },
+      "confirm": {
+        "pause_video": "Yes, pause in TikTok",
+        "raise_budget": "Yes, raise in TikTok",
+        "new_video": "Confirm",
+        "all_losing": "Confirm"
+      },
+      "applying": "Applying…",
+      "cancel": "Cancel",
+      "dismiss": "Not now",
+      "done": {
+        "applied": "Done in TikTok.",
+        "dismissed": "Dismissed: it won't come back for 7 days."
+      },
+      "status": {
+        "applied": "Applied",
+        "failed": "Failed",
+        "dismissed": "Dismissed"
+      },
+      "errors": {
+        "load": "Couldn't load the campaigns.",
+        "decide": "Couldn't complete it. Try again."
+      }
+    },
     "launch": {
       "kicker": "New · Launch campaign",
       "title": "Launch a Smart+ campaign in one click",

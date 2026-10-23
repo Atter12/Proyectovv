@@ -18,6 +18,7 @@ import { CreativePipelineStrip } from "@/features/creative-analyzer/components/C
 import { TikTokVideoGallery } from "@/features/creative-analyzer/components/TikTokVideoGallery";
 import { VideoStudioPanel } from "@/features/creative-analyzer/components/VideoStudioPanel.client";
 import { LaunchCampaignPanel } from "@/features/campaigns/components/LaunchCampaignPanel.client";
+import { LaunchedCampaignsPanel } from "@/features/campaigns/components/LaunchedCampaignsPanel.client";
 import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
   HecomClienteDashboard,
@@ -223,6 +224,7 @@ export async function ClienteScopedCreatives({
         <>
           <VideoStudioPanel clienteName={cliente.name} accounts={accounts} />
           <LaunchCampaignPanel clienteName={cliente.name} accounts={accounts} />
+          <LaunchedCampaignsPanel />
         </>
       ) : null}
 
