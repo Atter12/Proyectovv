@@ -452,7 +452,7 @@ export function ClientesPageClient({
       ) : null}
 
       {filtered.length > 0 && view === "cards" ? (
-        <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filtered.map((client) => (
             <article
               key={client.id}
