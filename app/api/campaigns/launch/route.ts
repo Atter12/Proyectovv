@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCampaignUser, type CampaignUser } from "@/lib/campaigns/staff-guard.server";
 import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { clienteFrozenState } from "@/lib/campaigns/launch-actions.server";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import { createAccountIdentity, loadAccountIdentities, loadLaunchOptions } from "@/lib/campaigns/launch-options.server";
@@ -38,15 +39,30 @@ async function resolveAccount(
 /**
  * Cuenta elegida, validada: el cliente solo puede usar cuentas de su propia
  * ficha; el equipo, cualquiera aprobada de la organización.
+ *
+ * Igual que la lista de cuentas de Creativos, una cuenta sin la marca
+ * hecom_cliente_id cuenta como del cliente si su advertiser está en su ficha
+ * de Hecom. En ese caso se devuelve con el cliente, para que la campaña quede
+ * registrada a su nombre y le aparezca en "Campañas lanzadas".
  */
 async function resolveAccountFor(
   auth: CampaignUser,
   adAccountId: string,
 ): Promise<{ advertiserId: string; hecomClienteId: string | null } | null> {
   const account = adAccountId ? await resolveAccount(auth.session.organizationId, adAccountId) : null;
-  if (!account || auth.isStaff) return account;
+  if (!account) return null;
   const cliente = await getSelectedHecomCliente(auth.session.id);
-  return cliente && account.hecomClienteId === cliente.id ? account : null;
+  if (cliente && account.hecomClienteId === cliente.id) return account;
+  if (cliente && !account.hecomClienteId) {
+    const data = await getHecomClienteDashboard(cliente.id, {
+      includeCampaignSpend: false,
+      includeDailySpend: false,
+      includeCreativos: false,
+    }).catch(() => null);
+    const own = (data?.accounts ?? []).some((a) => a.advertiserId?.trim() === account.advertiserId);
+    if (own) return { ...account, hecomClienteId: cliente.id };
+  }
+  return auth.isStaff ? account : null;
 }
 
 /** Píxeles, identidades y videos de la cuenta elegida. */
