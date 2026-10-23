@@ -237,117 +237,117 @@ export function ClientesPageClient({
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((client) => {
-          const contactName =
-            client.contactName?.trim() || client.contactEmail || client.name;
-          const busy = pending && selectingId === client.id;
-          const hasTikTok =
-            Boolean(client.tiktokAdvertiserId) ||
-            (client.tiktokAccounts?.length ?? 0) > 0;
+      {filtered.length > 0 ? (
+        <ul className="divide-y divide-[var(--auth-divider)] overflow-hidden rounded-lg border border-[var(--auth-border)] bg-white">
+          {filtered.map((client) => {
+            const contactName =
+              client.contactName?.trim() || client.contactEmail || client.name;
+            const busy = pending && selectingId === client.id;
+            const hasTikTok =
+              Boolean(client.tiktokAdvertiserId) ||
+              (client.tiktokAccounts?.length ?? 0) > 0;
 
-          return (
-            <article
-              key={client.id}
-              className="flex flex-col rounded-lg border border-[var(--auth-border)] bg-white p-4 transition-colors hover:border-[var(--auth-text-soft)] sm:p-5"
-            >
-              <div className="flex items-start gap-3">
-                <HecomClienteAvatar
-                  name={contactName}
-                  avatarUrl={client.avatarUrl}
-                  size="md"
-                />
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1rem] font-bold tracking-[-0.02em] text-[var(--auth-text)]">
-                    {contactName}
-                  </h2>
-                  <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-muted)]">
-                    {client.biz ? `${client.biz} · ` : ""}
-                    {client.contactEmail ?? client.slug}
-                  </p>
+            return (
+              <li
+                key={client.id}
+                className="flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-[var(--auth-bg)] lg:flex-row lg:items-center lg:gap-4 lg:px-5"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <HecomClienteAvatar
+                    name={contactName}
+                    avatarUrl={client.avatarUrl}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-[14px] font-bold tracking-[-0.01em] text-[var(--auth-text)]">
+                      {contactName}
+                    </h2>
+                    <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--auth-text-muted)]">
+                      {client.biz ? `${client.biz} · ` : ""}
+                      {client.contactEmail ?? client.slug}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
-                  <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                    TikTok
-                  </dt>
-                  <dd className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
-                    {client.adAccountCount}
-                  </dd>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:w-[22rem] lg:flex-none">
+                  <dl className="flex items-center gap-4 text-[12px]">
+                    <div className="flex items-baseline gap-1.5">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        TikTok
+                      </dt>
+                      <dd className="font-bold tabular-nums text-[var(--auth-text)]">
+                        {client.adAccountCount}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
+                        Contactos
+                      </dt>
+                      <dd className="font-bold tabular-nums text-[var(--auth-text)]">
+                        {client.activeMemberCount}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="flex flex-wrap gap-1.5">
+                    {client.billingModality === "credito" ? (
+                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-amber-900">
+                        Crédito
+                      </span>
+                    ) : client.billingModality === "prepago" ? (
+                      <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
+                        Prepago
+                      </span>
+                    ) : null}
+                    {hasTikTok ? (
+                      <span className="rounded-full border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-accent)]">
+                        TikTok
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="rounded-lg border border-[var(--auth-divider)] bg-[var(--auth-bg)] px-3 py-2">
-                  <dt className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--auth-text-soft)]">
-                    Contactos
-                  </dt>
-                  <dd className="mt-0.5 text-[15px] font-bold tabular-nums text-[var(--auth-text)]">
-                    {client.activeMemberCount}
-                  </dd>
-                </div>
-              </dl>
 
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
-                  Hecom
-                </span>
-                {client.billingModality === "credito" ? (
-                  <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-amber-900">
-                    Crédito
-                  </span>
-                ) : client.billingModality === "prepago" ? (
-                  <span className="rounded-full border border-[var(--auth-border)] bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-text-muted)]">
-                    Prepago
-                  </span>
-                ) : null}
-                {hasTikTok ? (
-                  <span className="rounded-full border border-[var(--auth-accent)]/25 bg-[var(--auth-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--auth-accent)]">
-                    TikTok
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-4 flex flex-col gap-2">
-                {isStaffPicker ? (
-                  <>
+                <div className="flex flex-wrap items-center gap-2 lg:flex-none">
+                  {isStaffPicker ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy || pending}
+                        onClick={() => elegirCliente(client, true)}
+                        className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--auth-accent)] px-3.5 text-[12px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
+                      >
+                        {busy ? "Entrando…" : "Entrar como cliente"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || pending}
+                        onClick={() => elegirCliente(client, false)}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white px-3.5 text-[12px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)] disabled:opacity-55"
+                      >
+                        Operar como gerente
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
                       disabled={busy || pending}
-                      onClick={() => elegirCliente(client, true)}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
+                      onClick={() => elegirCliente(client)}
+                      className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--auth-accent)] px-3.5 text-[12px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
                     >
-                      {busy ? "Entrando…" : "Entrar como este cliente"}
+                      {busy ? "Eligiendo…" : "Operar este cliente"}
                     </button>
-                    <button
-                      type="button"
-                      disabled={busy || pending}
-                      onClick={() => elegirCliente(client, false)}
-                      className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--auth-control-border)] bg-white text-[13px] font-semibold text-[var(--auth-text)] transition-colors hover:border-[var(--auth-accent)] hover:text-[var(--auth-accent)] disabled:opacity-55"
-                    >
-                      Operar como gerente
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={busy || pending}
-                    onClick={() => elegirCliente(client)}
-                    className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--auth-accent)] text-[13px] font-semibold text-white transition-[filter,opacity] hover:brightness-[1.05] disabled:opacity-55"
+                  )}
+                  <Link
+                    href={`/clientes/${client.id}`}
+                    className="px-1.5 text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)]"
                   >
-                    {busy ? "Eligiendo…" : "Operar este cliente"}
-                  </button>
-                )}
-                <Link
-                  href={`/clientes/${client.id}`}
-                  className="text-center text-[12px] font-semibold text-[var(--auth-text-muted)] transition-colors hover:text-[var(--auth-accent)]"
-                >
-                  Ver ficha
-                </Link>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                    Ver ficha
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </div>
   );
 }
