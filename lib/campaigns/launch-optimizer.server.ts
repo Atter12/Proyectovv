@@ -5,6 +5,7 @@ import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-fi
 import { tiktokRequest } from "@/lib/integrations/tiktok/http.server";
 import { buildPilotProposals, type PilotDayRow } from "@/lib/radar/pilot";
 import { buildLaunchActions, type LaunchAction, type LaunchRef } from "@/lib/campaigns/launch-optimizer";
+import { applyAutoActions } from "@/lib/campaigns/launch-actions.server";
 
 /** Ventana que miran las reglas (igual que el Piloto). */
 const WINDOW_DAYS = 14;
@@ -27,6 +28,8 @@ export type LaunchOptimizerResult = {
   launches: number;
   suggested: number;
   expired: number;
+  /** Modo automático: pausas aplicadas y las que no se pudieron. */
+  auto?: { applied: number; failed: number };
   skipped: { campaignId: string; reason: string }[];
   /** Con dryRun: lo que se habría sugerido, sin guardar nada. */
   actions?: LaunchAction[];
@@ -34,8 +37,8 @@ export type LaunchOptimizerResult = {
 
 /**
  * Arma las sugerencias del día para las campañas lanzadas desde Ads Holistic
- * (después del radar de la madrugada). Solo guarda sugerencias: aplicarlas es
- * otro paso (aprobación del equipo o modo auto).
+ * (después del radar de la madrugada) y, en las campañas en modo automático,
+ * aplica las pausas de videos que pierden.
  */
 export async function runLaunchOptimizer(input: { deadlineMs: number; dryRun?: boolean }): Promise<LaunchOptimizerResult> {
   const admin = createAdminClient();
@@ -125,6 +128,8 @@ export async function runLaunchOptimizer(input: { deadlineMs: number; dryRun?: b
     await admin.from("campaign_optimization_actions").update({ status: "expired" }).in("id", toExpire);
     result.expired = toExpire.length;
   }
+
+  result.auto = await applyAutoActions({ deadlineMs: input.deadlineMs });
   return result;
 }
 

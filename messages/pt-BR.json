@@ -2476,6 +2476,14 @@
   },
   "creatives": {
     "launched": {
+      "autoMode": {
+        "label": "Modo automático",
+        "hint": "Toda madrugada pausa o vídeo que perde dinheiro (um por noite, sempre deixando 2 ativos). Subir orçamento continua pedindo sua aprovação.",
+        "confirm": "Passar esta campanha para o modo automático? O Ads Holistic vai pausar sozinho os vídeos que perdem, sem perguntar.",
+        "on": "Modo automático ativado.",
+        "off": "Voltou a só sugerir.",
+        "badge": "automático"
+      },
       "addVideos": {
         "open": "+ Adicionar vídeos",
         "fromSuggestion": "Adicionar vídeo novo",

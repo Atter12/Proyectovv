@@ -9,6 +9,12 @@ import { addVideosToLaunch } from "@/lib/campaigns/launch-videos.server";
 const FROZEN_STATES = ["congelado", "cobranza", "castigo"];
 /** Días de saldo que tiene que cubrir el presupuesto nuevo antes de subirlo. */
 const BALANCE_DAYS = 2;
+/**
+ * Modo automático: solo pausa videos, uno por campaña por noche, y siempre
+ * deja al menos 2 activos (a mano se puede bajar hasta 1).
+ */
+const AUTO_KINDS = new Set<LaunchAction["kind"]>(["pause_video"]);
+const AUTO_MIN_ACTIVE_LEFT = 2;
 
 export type LaunchSummary = {
   id: string;
@@ -18,7 +24,16 @@ export type LaunchSummary = {
   dailyBudget: number;
   optimizeMode: "off" | "suggest" | "auto";
   createdAt: string;
-  actions: { id: string; kind: LaunchAction["kind"]; status: string; payload: LaunchAction; createdAt: string; error: string | null }[];
+  actions: {
+    id: string;
+    kind: LaunchAction["kind"];
+    status: string;
+    payload: LaunchAction;
+    createdAt: string;
+    error: string | null;
+    /** Lo aplicó el modo automático (sin persona). */
+    auto: boolean;
+  }[];
 };
 
 /** Campañas lanzadas del cliente con sus sugerencias pendientes y lo último decidido. */
@@ -34,7 +49,7 @@ export async function listClienteLaunches(hecomClienteId: string): Promise<Launc
   if (!launches?.length) return [];
   const { data: actions } = await admin
     .from("campaign_optimization_actions")
-    .select("id, launch_id, kind, status, payload, created_at, error")
+    .select("id, launch_id, kind, status, payload, created_at, error, decided_by")
     .in("launch_id", launches.map((l) => l.id))
     .in("status", ["suggested", "applied", "failed"])
     .order("created_at", { ascending: false })
@@ -57,6 +72,7 @@ export async function listClienteLaunches(hecomClienteId: string): Promise<Launc
         payload: a.payload as LaunchAction,
         createdAt: a.created_at,
         error: a.error,
+        auto: a.status === "applied" && !a.decided_by,
       })),
   }));
 }
@@ -133,8 +149,65 @@ export async function decideLaunchAction(input: {
   }
 }
 
+/** Cambia el modo de optimización de una campaña lanzada del cliente. */
+export async function setLaunchMode(input: {
+  launchId: string;
+  hecomClienteId: string;
+  mode: "suggest" | "auto";
+}): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("campaign_launches")
+    .update({ optimize_mode: input.mode })
+    .eq("id", input.launchId)
+    .eq("hecom_cliente_id", input.hecomClienteId)
+    .select("id");
+  if (error) throw new Error(`campaign_launches: ${error.message}`);
+  return (data ?? []).length > 0;
+}
+
+/**
+ * Modo automático: aplica las pausas sugeridas de las campañas en "auto".
+ * Corre al final del optimizador nocturno. Lo que no se puede aplicar queda
+ * como sugerencia para que el equipo lo vea.
+ */
+export async function applyAutoActions(input: { deadlineMs: number }): Promise<{ applied: number; failed: number }> {
+  const admin = createAdminClient();
+  const { data: rows, error } = await admin
+    .from("campaign_optimization_actions")
+    .select("id, launch_id, kind, payload, created_at, campaign_launches!inner(optimize_mode)")
+    .eq("status", "suggested")
+    .eq("campaign_launches.optimize_mode", "auto")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`campaign_optimization_actions: ${error.message}`);
+  const out = { applied: 0, failed: 0 };
+  const touched = new Set<string>();
+  for (const row of rows ?? []) {
+    if (Date.now() > input.deadlineMs) break;
+    if (!AUTO_KINDS.has(row.kind as LaunchAction["kind"]) || touched.has(row.launch_id)) continue;
+    touched.add(row.launch_id);
+    const action = row.payload as Extract<LaunchAction, { kind: "pause_video" }>;
+    try {
+      await pauseVideo(action, AUTO_MIN_ACTIVE_LEFT);
+      await admin
+        .from("campaign_optimization_actions")
+        .update({ status: "applied", decided_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .eq("status", "suggested");
+      out.applied += 1;
+    } catch (err) {
+      // Queda sugerida con el motivo: el equipo decide a mano.
+      await admin
+        .from("campaign_optimization_actions")
+        .update({ error: `Automático no aplicó: ${err instanceof Error ? err.message : "error"}`.slice(0, 500) })
+        .eq("id", row.id);
+      out.failed += 1;
+    }
+  }
+  return out;
+}
+
 /** Pausa un video dentro del anuncio Smart+ (nunca el último activo). */
-async function pauseVideo(action: Extract<LaunchAction, { kind: "pause_video" }>) {
+async function pauseVideo(action: Extract<LaunchAction, { kind: "pause_video" }>, minActiveLeft = 1) {
   const { token } = await resolveTikTokFinanceAccessToken(undefined);
   const ads = await tiktokRequest<{ list?: Record<string, unknown>[] }>({
     path: "/smart_plus/ad/get/",
@@ -146,7 +219,14 @@ async function pauseVideo(action: Extract<LaunchAction, { kind: "pause_video" }>
     const target = materials.find((m) => String(m.smart_plus_creative_id ?? "") === action.creativeId);
     if (!target) continue;
     const active = materials.filter((m) => m.material_operation_status !== "DISABLE");
-    if (active.length <= 1) throw new Error("Es el único video activo del anuncio: pausarlo apagaría la campaña.");
+    if (target.material_operation_status === "DISABLE") throw new Error("Ese video ya está pausado.");
+    if (active.length - 1 < minActiveLeft) {
+      throw new Error(
+        active.length <= 1
+          ? "Es el único video activo del anuncio: pausarlo apagaría la campaña."
+          : `Quedarían menos de ${minActiveLeft} videos activos.`,
+      );
+    }
     await tiktokRequest({
       path: "/smart_plus/ad/material_status/update/",
       method: "POST",

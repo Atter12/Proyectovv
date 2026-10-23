@@ -82,6 +82,26 @@ export function LaunchedCampaignsPanel() {
     }
   }
 
+  async function changeMode(launch: LaunchSummary, mode: "suggest" | "auto") {
+    if (mode === "auto" && !window.confirm(t("autoMode.confirm"))) return;
+    setBusy(launch.id);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/campaigns/actions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ launchId: launch.id, mode }),
+      });
+      if (!response.ok) throw new Error();
+      setLaunches((list) => (list ?? []).map((l) => (l.id === launch.id ? { ...l, optimizeMode: mode } : l)));
+      setNotice({ id: launch.id, ok: true, text: t(mode === "auto" ? "autoMode.on" : "autoMode.off") });
+    } catch {
+      setNotice({ id: launch.id, ok: false, text: t("errors.decide") });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function addVideos(launchId: string, videoIds: string[]) {
     setNotice(null);
     try {
@@ -182,6 +202,20 @@ export function LaunchedCampaignsPanel() {
                     </div>
                   </div>
 
+                  <label className="mt-2.5 flex cursor-pointer items-start gap-2 rounded-lg bg-[rgb(20_18_16_/_0.03)] px-2.5 py-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 accent-[var(--auth-accent)]"
+                      checked={launch.optimizeMode === "auto"}
+                      disabled={busy !== null || launch.optimizeMode === "off"}
+                      onChange={(e) => void changeMode(launch, e.target.checked ? "auto" : "suggest")}
+                    />
+                    <span className="text-[12px] leading-4 text-[var(--auth-text)]">
+                      <span className="font-semibold">{t("autoMode.label")}</span>
+                      <span className="block text-[11px] text-[var(--auth-text-muted)]">{t("autoMode.hint")}</span>
+                    </span>
+                  </label>
+
                   {notice?.id === launch.id ? (
                     <p className={cn("mt-2 rounded-lg px-2.5 py-1.5 text-[12px]", notice.ok ? "bg-[#ecf7f0] text-[#1f5c40]" : "bg-[#fef2f2] text-[#991b1b]")}>
                       {notice.text}
@@ -205,6 +239,7 @@ export function LaunchedCampaignsPanel() {
                             {t(`kind.${action.kind}`)}
                           </span>
                           <p className="mt-1.5 text-[13px] leading-5 text-[var(--auth-text)]">{describe(action.payload)}</p>
+                          {action.error ? <p className="mt-1 text-[11px] text-[#991b1b]">{action.error}</p> : null}
                           {notice?.id === action.id ? (
                             <p className={cn("mt-2 rounded-lg px-2.5 py-1.5 text-[12px]", notice.ok ? "bg-[#ecf7f0] text-[#1f5c40]" : "bg-[#fef2f2] text-[#991b1b]")}>
                               {notice.text}
@@ -282,6 +317,7 @@ export function LaunchedCampaignsPanel() {
                           </span>
                           {" · "}
                           {t(`kind.${action.kind}`)}
+                          {action.auto ? ` · ${t("autoMode.badge")}` : ""}
                           {action.error ? ` · ${action.error}` : ""}
                         </li>
                       ))}

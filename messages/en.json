@@ -2476,6 +2476,14 @@
   },
   "creatives": {
     "launched": {
+      "autoMode": {
+        "label": "Automatic mode",
+        "hint": "Every night it pauses the video that loses money (one per night, always leaving 2 active). Raising the budget still needs your approval.",
+        "confirm": "Switch this campaign to automatic mode? Ads Holistic will pause losing videos on its own, without asking.",
+        "on": "Automatic mode on.",
+        "off": "Back to suggestions only.",
+        "badge": "automatic"
+      },
       "addVideos": {
         "open": "+ Add videos",
         "fromSuggestion": "Add new video",
