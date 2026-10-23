@@ -51,8 +51,6 @@ export function DashboardLayoutChrome({
   const pathname = usePathname();
   const isAssistant = pathname === routes.assistant;
   const isLinksDeuda = pathname === routes.linksDeuda;
-  // Lista de 200+ clientes: usa todo el ancho en vez del tope de 1280px.
-  const isFullWidth = pathname === routes.clientes;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -128,7 +126,7 @@ export function DashboardLayoutChrome({
           ? "app-content mx-auto w-full min-w-0 flex-1 bg-[#fcfbf9]"
           : isLinksDeuda
             ? "app-content flex min-h-0 w-full min-w-0 max-w-none flex-1 flex-col overflow-hidden px-4 py-4"
-            : `app-content mx-auto w-full min-w-0 ${isFullWidth ? "max-w-none lg:px-8" : "max-w-[1280px]"} flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:pb-8`}>
+            : "app-content w-full min-w-0 max-w-none flex-1 overflow-x-clip px-3 py-4 pb-28 sm:px-5 sm:py-5 sm:pb-24 md:py-6 md:pb-16 lg:px-8 lg:pb-8"}>
           {actingAsCliente && selectedCliente ? (
             <ActingAsClienteBanner clienteName={selectedCliente.name} />
           ) : null}

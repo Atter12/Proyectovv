@@ -495,7 +495,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
 
   if (!profile) {
     return (
-      <div className="mx-auto max-w-6xl space-y-5">
+      <div className="space-y-5">
         <RadarHeader t={t} clienteName={clienteName} />
         <div className="mx-auto w-full max-w-[760px]">
           {loadError ? (
@@ -514,7 +514,7 @@ export function RadarPageClient({ clienteName }: { clienteName: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5 selection:bg-[#ffd8bf] selection:text-[#1c1917]">
+    <div className="space-y-5 selection:bg-[#ffd8bf] selection:text-[#1c1917]">
       <RadarHeader
         t={t}
         clienteName={clienteName}

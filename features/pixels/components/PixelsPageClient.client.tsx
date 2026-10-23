@@ -374,7 +374,7 @@ export function PixelsPageClient({ clienteName }: { clienteName: string }) {
     : "";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
