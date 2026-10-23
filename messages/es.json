@@ -2475,6 +2475,53 @@
     }
   },
   "creatives": {
+    "brief": {
+      "kicker": "Nuevo · Asistente con IA",
+      "title": "Pega el link de tu producto y la IA arma tu campaña",
+      "subtitle": "Lee tu página (nombre, precio, fotos y beneficios) y te propone textos que venden, el guion del video y cuánto invertir al día. Tú revisas antes de crear nada.",
+      "urlPlaceholder": "https://tutienda.com/products/tu-producto",
+      "country": "País",
+      "countries": {
+        "PE": "Perú",
+        "CO": "Colombia",
+        "MX": "México",
+        "EC": "Ecuador",
+        "CL": "Chile",
+        "BO": "Bolivia",
+        "DO": "Rep. Dominicana"
+      },
+      "generate": "Armar con IA",
+      "again": "Armar de nuevo",
+      "generating": "Armando…",
+      "steps": {
+        "reading": "Leyendo la página de tu producto…",
+        "writing": "Escribiendo textos que venden…",
+        "budget": "Calculando tu presupuesto…"
+      },
+      "photos": "{count, plural, =0 {Sin fotos} one {# foto encontrada} other {# fotos encontradas}}",
+      "budget": {
+        "title": "Presupuesto sugerido",
+        "amount": "{amount} al día",
+        "cpr": "Hoy cada venta te cuesta {cpr}: con esto TikTok puede conseguir unas 3 ventas al día para aprender rápido.",
+        "default": "Todavía no tienes ventas medidas: empieza con el mínimo de TikTok y súbelo cuando venda.",
+        "cap": "Tu costo por venta ({cpr}) es alto: empieza con este tope y sube cuando baje el costo."
+      },
+      "script": {
+        "title": "Guion para el video"
+      },
+      "toStudio": "Usar en Crear video",
+      "texts": {
+        "title": "Textos del anuncio · elegidos {count} de {max}",
+        "risky": "TikTok podría rechazarlo: {reason}"
+      },
+      "toLaunch": "Usar en Lanzar campaña",
+      "sentLaunch": "✓ Listo: revisa el formulario de abajo.",
+      "sentStudio": "✓ Listo: el guion y las fotos están en Crear video.",
+      "reviewHint": "Nada se crea solo: revisas el formulario, eliges tus videos y creas la campaña.",
+      "errors": {
+        "generic": "No se pudo armar la propuesta. Prueba de nuevo."
+      }
+    },
     "launched": {
       "running": {
         "badgeOn": "Prendida",
@@ -2586,6 +2633,7 @@
       "create": "Crear campaña pausada",
       "creating": "Creando en TikTok…",
       "pausedNote": "Queda pausada: no gasta hasta que la prendas.",
+      "fromBrief": "Lo llenamos con el asistente de IA: revisa los textos, el link y el presupuesto, y elige tus videos.",
       "recipeTitle": "Cómo la armamos",
       "recipe1": "Smart+ de ventas web: la IA de TikTok elige a quién mostrarla y cuánto pujar.",
       "recipe2": "Optimiza por compras del píxel, no por clics.",
@@ -2708,6 +2756,7 @@
         "noAccount": "Elige una cuenta de TikTok aprobada.",
         "tooMany": "Máximo {max} fotos o clips.",
         "mediaLoad": "No se pudo abrir {name}.",
+        "briefPhotos": "No se pudieron traer las fotos del producto: súbelas a mano.",
         "unsupported": "Tu navegador no puede crear el video. Usa Chrome o Safari actualizados.",
         "record": "No se pudo crear el video. Vuelve a intentar.",
         "voice": "No se pudo generar la voz. Prueba de nuevo o elige \"Sin voz\".",
@@ -2746,6 +2795,7 @@
     "uploadVideo": "Subir video",
     "createVideo": "Crear video",
     "launchCampaign": "Lanzar campaña",
+    "campaignBrief": "Asistente IA",
     "tiktokAccounts": "Cuentas TikTok",
     "metrics": {
       "uploads": "Uploads",

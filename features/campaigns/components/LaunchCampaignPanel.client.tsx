@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import type { CreativeAccountOption } from "@/lib/creatives/types";
 import type { LaunchOptions } from "@/lib/campaigns/launch-options.server";
 import { COUNTRY_LOCATION_IDS, MIN_DAILY_BUDGET, type CampaignCountry } from "@/lib/campaigns/smart-plus-plan";
+import type { CampaignBriefEvent } from "@/features/campaigns/components/CampaignBriefPanel.client";
 
 type CreateResponse =
   | { ok: true; campaignId: string; adgroupId: string; adId: string; advertiserId: string }
@@ -57,6 +58,24 @@ export function LaunchCampaignPanel({
 
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<CreateResponse | null>(null);
+  /** Se llenó con el asistente de IA (se avisa para que lo revisen). */
+  const [fromBrief, setFromBrief] = useState(false);
+
+  useEffect(() => {
+    const onBrief = (event: Event) => {
+      const detail = (event as CustomEvent<CampaignBriefEvent>).detail;
+      if (!detail) return;
+      if (detail.texts.length > 0) setTexts(detail.texts);
+      setLandingPageUrl(detail.landingPageUrl);
+      setDailyBudget(String(detail.dailyBudget));
+      setCampaignName(detail.campaignName);
+      if (detail.country in COUNTRY_LOCATION_IDS) setCountry(detail.country);
+      setResult(null);
+      setFromBrief(true);
+    };
+    window.addEventListener("campaign-brief", onBrief);
+    return () => window.removeEventListener("campaign-brief", onBrief);
+  }, []);
 
   useEffect(() => {
     if (!adAccountId) return;
@@ -155,6 +174,11 @@ export function LaunchCampaignPanel({
           {t("title")}
         </h2>
         <p className="mt-1.5 text-[13px] font-medium leading-5 text-[var(--auth-text-muted)]">{t("subtitle")}</p>
+        {fromBrief ? (
+          <p className="mt-2.5 rounded-lg bg-[rgb(255_248_243_/_0.9)] px-3 py-2 text-[12px] font-medium text-[var(--auth-text)]">
+            {t("fromBrief")}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)]">

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import type { CreativeAccountOption } from "@/lib/creatives/types";
+import { productImageSrc, type StudioBriefEvent } from "@/features/campaigns/components/CampaignBriefPanel.client";
 import {
   STUDIO_DURATION,
   STUDIO_HEIGHT,
@@ -159,7 +160,39 @@ export function VideoStudioPanel({
     setSuccess(null);
   }
 
-  async function addFiles(files: FileList | null) {
+  // Asistente de IA: llena el guion y trae las fotos del producto.
+  useEffect(() => {
+    const onBrief = (event: Event) => {
+      const detail = (event as CustomEvent<StudioBriefEvent>).detail;
+      if (!detail) return;
+      setStudio((prev) => ({
+        ...prev,
+        hook: detail.hook,
+        productName: detail.productName,
+        benefits: [...detail.benefits, "", "", ""].slice(0, 3),
+        price: detail.price,
+        oldPrice: detail.oldPrice,
+        currency: detail.currency,
+        cta: detail.cta || prev.cta,
+      }));
+      setResult(null);
+      setPhase("edit");
+      void Promise.all(
+        detail.images.slice(0, STUDIO_MAX_MEDIA).map(async (src, i) => {
+          const response = await fetch(productImageSrc(src));
+          if (!response.ok) return null;
+          const blob = await response.blob();
+          return new File([blob], `producto-${i + 1}.${blob.type.split("/")[1] ?? "jpg"}`, { type: blob.type });
+        }),
+      )
+        .then((files) => addFiles(files.filter((f): f is File => f !== null)))
+        .catch(() => setError(t("errors.briefPhotos")));
+    };
+    window.addEventListener("studio-brief", onBrief);
+    return () => window.removeEventListener("studio-brief", onBrief);
+  });
+
+  async function addFiles(files: FileList | File[] | null) {
     if (!files) return;
     setError(null);
     const room = STUDIO_MAX_MEDIA - items.length;

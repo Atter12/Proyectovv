@@ -18,6 +18,7 @@ import { CreativePipelineStrip } from "@/features/creative-analyzer/components/C
 import { TikTokVideoGallery } from "@/features/creative-analyzer/components/TikTokVideoGallery";
 import { VideoStudioPanel } from "@/features/creative-analyzer/components/VideoStudioPanel.client";
 import { LaunchCampaignPanel } from "@/features/campaigns/components/LaunchCampaignPanel.client";
+import { CampaignBriefPanel } from "@/features/campaigns/components/CampaignBriefPanel.client";
 import { LaunchedCampaignsPanel } from "@/features/campaigns/components/LaunchedCampaignsPanel.client";
 import { HelpGuide } from "@/components/ui/HelpGuide.client";
 import type {
@@ -133,6 +134,9 @@ export async function ClienteScopedCreatives({
                 {t("createVideo")}
               </CrmHeroButton>
             ) : null}
+            <CrmHeroButton href="#campaign-brief" variant="secondary">
+              {t("campaignBrief")}
+            </CrmHeroButton>
             <CrmHeroButton href="#launch-campaign" variant="secondary">
               {t("launchCampaign")}
             </CrmHeroButton>
@@ -218,6 +222,7 @@ export async function ClienteScopedCreatives({
         />
       </Suspense>
 
+      <CampaignBriefPanel showVideoStudio={showVideoStudio} />
       {showVideoStudio ? <VideoStudioPanel clienteName={cliente.name} accounts={accounts} /> : null}
       <LaunchCampaignPanel clienteName={cliente.name} accounts={accounts} />
       <LaunchedCampaignsPanel />

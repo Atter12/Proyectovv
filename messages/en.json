@@ -2475,6 +2475,53 @@
     }
   },
   "creatives": {
+    "brief": {
+      "kicker": "New · AI assistant",
+      "title": "Paste your product link and the AI builds your campaign",
+      "subtitle": "It reads your page (name, price, photos and benefits) and suggests ad copy that sells, a video script and a daily budget. You review before anything is created.",
+      "urlPlaceholder": "https://yourstore.com/products/your-product",
+      "country": "Country",
+      "countries": {
+        "PE": "Peru",
+        "CO": "Colombia",
+        "MX": "Mexico",
+        "EC": "Ecuador",
+        "CL": "Chile",
+        "BO": "Bolivia",
+        "DO": "Dominican Rep."
+      },
+      "generate": "Build with AI",
+      "again": "Build again",
+      "generating": "Building…",
+      "steps": {
+        "reading": "Reading your product page…",
+        "writing": "Writing copy that sells…",
+        "budget": "Working out your budget…"
+      },
+      "photos": "{count, plural, =0 {No photos} one {# photo found} other {# photos found}}",
+      "budget": {
+        "title": "Suggested budget",
+        "amount": "{amount} per day",
+        "cpr": "Each sale costs you {cpr} today: this lets TikTok get about 3 sales a day to learn fast.",
+        "default": "No measured sales yet: start with TikTok's minimum and raise it once it sells.",
+        "cap": "Your cost per sale ({cpr}) is high: start with this cap and raise it when the cost drops."
+      },
+      "script": {
+        "title": "Video script"
+      },
+      "toStudio": "Use in Create video",
+      "texts": {
+        "title": "Ad copy · {count} of {max} picked",
+        "risky": "TikTok might reject it: {reason}"
+      },
+      "toLaunch": "Use in Launch campaign",
+      "sentLaunch": "✓ Done: review the form below.",
+      "sentStudio": "✓ Done: the script and photos are in Create video.",
+      "reviewHint": "Nothing is created on its own: you review the form, pick your videos and create the campaign.",
+      "errors": {
+        "generic": "Couldn't build the proposal. Try again."
+      }
+    },
     "launched": {
       "running": {
         "badgeOn": "Running",
@@ -2586,6 +2633,7 @@
       "create": "Create paused campaign",
       "creating": "Creating in TikTok…",
       "pausedNote": "It stays paused: no spend until you turn it on.",
+      "fromBrief": "Filled in by the AI assistant: check the copy, link and budget, and pick your videos.",
       "recipeTitle": "How we build it",
       "recipe1": "Smart+ web sales: TikTok's AI picks who sees it and how much to bid.",
       "recipe2": "Optimizes for pixel purchases, not clicks.",
@@ -2708,6 +2756,7 @@
         "noAccount": "Choose an approved TikTok account.",
         "tooMany": "Up to {max} photos or clips.",
         "mediaLoad": "Couldn't open {name}.",
+        "briefPhotos": "Couldn't fetch the product photos: upload them by hand.",
         "unsupported": "Your browser can't create the video. Use an up-to-date Chrome or Safari.",
         "record": "Couldn't create the video. Try again.",
         "voice": "Could not create the voice. Try again or choose \"No voice\".",
@@ -2746,6 +2795,7 @@
     "uploadVideo": "Upload video",
     "createVideo": "Create video",
     "launchCampaign": "Launch campaign",
+    "campaignBrief": "AI assistant",
     "tiktokAccounts": "TikTok accounts",
     "metrics": {
       "uploads": "Uploads",

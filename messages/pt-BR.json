@@ -2475,6 +2475,53 @@
     }
   },
   "creatives": {
+    "brief": {
+      "kicker": "Novo · Assistente com IA",
+      "title": "Cole o link do seu produto e a IA monta sua campanha",
+      "subtitle": "Lê sua página (nome, preço, fotos e benefícios) e sugere textos que vendem, o roteiro do vídeo e quanto investir por dia. Você revisa antes de criar qualquer coisa.",
+      "urlPlaceholder": "https://sualoja.com/products/seu-produto",
+      "country": "País",
+      "countries": {
+        "PE": "Peru",
+        "CO": "Colômbia",
+        "MX": "México",
+        "EC": "Equador",
+        "CL": "Chile",
+        "BO": "Bolívia",
+        "DO": "Rep. Dominicana"
+      },
+      "generate": "Montar com IA",
+      "again": "Montar de novo",
+      "generating": "Montando…",
+      "steps": {
+        "reading": "Lendo a página do seu produto…",
+        "writing": "Escrevendo textos que vendem…",
+        "budget": "Calculando seu orçamento…"
+      },
+      "photos": "{count, plural, =0 {Sem fotos} one {# foto encontrada} other {# fotos encontradas}}",
+      "budget": {
+        "title": "Orçamento sugerido",
+        "amount": "{amount} por dia",
+        "cpr": "Hoje cada venda custa {cpr}: assim o TikTok consegue umas 3 vendas por dia para aprender rápido.",
+        "default": "Ainda não há vendas medidas: comece com o mínimo do TikTok e aumente quando vender.",
+        "cap": "Seu custo por venda ({cpr}) é alto: comece com este teto e aumente quando o custo cair."
+      },
+      "script": {
+        "title": "Roteiro do vídeo"
+      },
+      "toStudio": "Usar em Criar vídeo",
+      "texts": {
+        "title": "Textos do anúncio · {count} de {max} escolhidos",
+        "risky": "O TikTok pode recusar: {reason}"
+      },
+      "toLaunch": "Usar em Lançar campanha",
+      "sentLaunch": "✓ Pronto: revise o formulário abaixo.",
+      "sentStudio": "✓ Pronto: o roteiro e as fotos estão em Criar vídeo.",
+      "reviewHint": "Nada é criado sozinho: você revisa o formulário, escolhe os vídeos e cria a campanha.",
+      "errors": {
+        "generic": "Não foi possível montar a proposta. Tente de novo."
+      }
+    },
     "launched": {
       "running": {
         "badgeOn": "Ativa",
@@ -2586,6 +2633,7 @@
       "create": "Criar campanha pausada",
       "creating": "Criando no TikTok…",
       "pausedNote": "Fica pausada: não gasta até você ativar.",
+      "fromBrief": "Preenchido pelo assistente de IA: revise os textos, o link e o orçamento, e escolha seus vídeos.",
       "recipeTitle": "Como montamos",
       "recipe1": "Smart+ de vendas web: a IA do TikTok escolhe para quem mostrar e quanto dar de lance.",
       "recipe2": "Otimiza por compras do pixel, não por cliques.",
@@ -2708,6 +2756,7 @@
         "noAccount": "Escolha uma conta do TikTok aprovada.",
         "tooMany": "No máximo {max} fotos ou clipes.",
         "mediaLoad": "Não foi possível abrir {name}.",
+        "briefPhotos": "Não foi possível trazer as fotos do produto: envie manualmente.",
         "unsupported": "Seu navegador não consegue criar o vídeo. Use o Chrome ou Safari atualizados.",
         "record": "Não foi possível criar o vídeo. Tente novamente.",
         "voice": "Não foi possível gerar a voz. Tente de novo ou escolha \"Sem voz\".",
@@ -2746,6 +2795,7 @@
     "uploadVideo": "Enviar vídeo",
     "createVideo": "Criar vídeo",
     "launchCampaign": "Lançar campanha",
+    "campaignBrief": "Assistente IA",
     "tiktokAccounts": "Contas TikTok",
     "metrics": {
       "uploads": "Uploads",
