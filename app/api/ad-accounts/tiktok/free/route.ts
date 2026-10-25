@@ -10,6 +10,7 @@ import {
   FREE_CREATE_RECOMMENDED_PER_DAY,
   listBcMembers,
   listFreeAccountsWithMembers,
+  summarizeFreeByBm,
   teamFromFreeAccounts,
 } from "@/lib/hecom/free-tiktok-accounts.server";
 import {
@@ -44,6 +45,7 @@ function fail(error: unknown, status = 400) {
 /**
  * GET ?bm=300 → cuentas libres (con quién tiene acceso), miembros del BC y cuántas se crearon hoy.
  * GET ?clienteId=… → usuarios de TikTok del cliente, para darles acceso al asignar.
+ * GET ?summary=1 → por BM: libres, total de cuentas, cuántas crear hoy y si llegó al tope.
  */
 export async function GET(request: Request) {
   const auth = await requireStaff();
@@ -52,6 +54,7 @@ export async function GET(request: Request) {
   try {
     const clienteId = url.searchParams.get("clienteId");
     if (clienteId) return NextResponse.json({ users: await detectClienteTikTokUsers(clienteId) });
+    if (url.searchParams.get("summary")) return NextResponse.json({ summary: await summarizeFreeByBm() });
     const bm = String(url.searchParams.get("bm") ?? "300");
     if (!BMS.has(bm)) return fail(new Error("BM inválido."));
     const [accounts, bcMembers, createdToday] = await Promise.all([

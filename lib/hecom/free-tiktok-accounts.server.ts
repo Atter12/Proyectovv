@@ -153,6 +153,55 @@ export async function countFreeCreatedToday(bmBucket: string): Promise<number> {
   return total;
 }
 
+export type BmSummary = {
+  bm: string;
+  free: number | null;
+  total: number | null;
+  createdToday: number;
+  /** Recomendado que aún se puede crear hoy. */
+  leftToday: number;
+  /** TikTok respondió en la última tanda que el BC llegó a su tope de cuentas. */
+  capped: boolean;
+};
+
+/** Cuentas totales del BC (TikTok no expone cuántas más deja crear: solo avisa al llegar al tope). */
+async function countBcAccounts(bcId: string, token: string): Promise<number | null> {
+  const j = await tiktokGet(`/advertiser/balance/get/?bc_id=${bcId}&page=1&page_size=1`, token);
+  if (j.code !== 0) return null;
+  const n = (j.data as { page_info?: { total_number?: number } } | undefined)?.page_info?.total_number;
+  return typeof n === "number" ? n : null;
+}
+
+async function lastCreateHitCap(bmBucket: string): Promise<boolean> {
+  const { data } = await createAdminClient()
+    .from("audit_logs")
+    .select("metadata")
+    .eq("action", AUDIT_CREATE)
+    .eq("metadata->>bm", bmBucket)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const meta = (data?.[0] as { metadata?: Record<string, unknown> } | undefined)?.metadata;
+  return /tope de cuentas/i.test(String(meta?.error ?? ""));
+}
+
+/** Resumen por BM para las pestañas: libres, total, cuántas se pueden crear hoy y si hay tope. */
+export async function summarizeFreeByBm(): Promise<BmSummary[]> {
+  const { token } = await resolveTikTokFinanceAccessToken();
+  return Promise.all(
+    (["300", "200", "30", "10"] as const).map(async (bm) => {
+      const profile = bmProfile(bm);
+      const [free, total, createdToday, capped] = await Promise.all([
+        listFreeTikTokAccounts(bm).then((l) => l.length, () => null),
+        countBcAccounts(profile.bcId, token).catch(() => null),
+        countFreeCreatedToday(bm),
+        lastCreateHitCap(bm).catch(() => false),
+      ]);
+      const leftToday = capped ? 0 : Math.max(0, FREE_CREATE_RECOMMENDED_PER_DAY - createdToday);
+      return { bm, free, total, createdToday, leftToday, capped };
+    }),
+  );
+}
+
 export type FreeCreated = { advertiserId: string; name: string; budgetZero: boolean | null };
 
 /** Crea de 1 a 20 cuentas libres "Libre <apodo> N". Lo ya creado queda aunque TikTok corte a la mitad. */

@@ -16,6 +16,7 @@ type Snapshot = {
   recommendedPerDay: number;
   maxPerClienteAssign: number;
 };
+type BmSummary = { bm: string; free: number | null; total: number | null; createdToday: number; leftToday: number; capped: boolean };
 type GivenToCliente = {
   advertiserId: string;
   advertiserName: string;
@@ -106,9 +107,21 @@ export function FreeTikTokAccountsManager() {
     apply(fetchSnapshot(bm));
   }, [bm, apply]);
 
+  const [summary, setSummary] = useState<Record<string, BmSummary>>({});
+  const loadSummary = useCallback(() => {
+    fetch(`${routes.api.adAccountsTikTokFree}?summary=1`, { credentials: "include", cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: { summary?: BmSummary[] }) => setSummary(Object.fromEntries((j.summary ?? []).map((s) => [s.bm, s]))))
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
   function reload(bmId: string) {
     setLoading(true);
     apply(fetchSnapshot(bmId));
+    loadSummary();
   }
 
   return (
@@ -130,8 +143,33 @@ export function FreeTikTokAccountsManager() {
               bm === b.id ? "bg-[#fff4ec] ring-2 ring-[#ff781f]" : "bg-white ring-[#e8e1d8] hover:ring-[#d6cbbf]"
             }`}
           >
-            <span className="block text-[13px] font-semibold text-[#1c1917]">{b.label}</span>
-            <span className="block text-[11px] leading-4 text-[#6f675f]">{b.hint}</span>
+            <span className="flex items-baseline justify-between gap-2">
+              <span className="text-[13px] font-semibold text-[#1c1917]">{b.label}</span>
+              <span className="text-[11px] text-[#8a8278]">{b.hint}</span>
+            </span>
+            {summary[b.id] ? (
+              <>
+                <span className="mt-1 block text-[18px] font-semibold leading-6 text-[#1c1917]">
+                  {summary[b.id]!.free ?? "—"} <span className="text-[12px] font-medium text-[#6f675f]">libres</span>
+                </span>
+                <span className="block text-[11px] leading-4 text-[#6f675f]">
+                  {summary[b.id]!.total ?? "—"} cuentas en total
+                </span>
+                <span
+                  className={`mt-0.5 block text-[11px] font-semibold leading-4 ${
+                    summary[b.id]!.capped ? "text-red-700" : summary[b.id]!.leftToday ? "text-emerald-700" : "text-amber-700"
+                  }`}
+                >
+                  {summary[b.id]!.capped
+                    ? "TikTok: llegó al tope, no crea más"
+                    : summary[b.id]!.leftToday
+                      ? `Puedes crear ${summary[b.id]!.leftToday} hoy`
+                      : "Hoy ya llegó a 20, sigue mañana"}
+                </span>
+              </>
+            ) : (
+              <span className="mt-1 block text-[11px] leading-4 text-[#8a8278]">Contando…</span>
+            )}
           </button>
         ))}
       </div>
