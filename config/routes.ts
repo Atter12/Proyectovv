@@ -15,6 +15,7 @@ export const routes = {
   overview: "/overview",
   clientes: "/clientes",
   adAccounts: "/ad-accounts",
+  adAccountsFree: "/ad-accounts/libres",
   payments: "/payments",
   paymentsManual: "/payments/manual",
   paymentsProfit: "/payments/profit",
@@ -64,6 +65,7 @@ export const routes = {
     adAccounts: "/api/ad-accounts",
     adAccountsTikTokCreate: "/api/ad-accounts/tiktok/create",
     adAccountsTikTokStaffCreate: "/api/ad-accounts/tiktok/staff-create",
+    adAccountsTikTokFree: "/api/ad-accounts/tiktok/free",
     support: {
       tickets: "/api/support/tickets",
     },

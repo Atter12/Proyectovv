@@ -53,7 +53,7 @@ function norm(s: string): string {
     .trim();
 }
 
-async function tiktokGet(path: string, token: string): Promise<Record<string, unknown>> {
+export async function tiktokGet(path: string, token: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${API}${path}`, { headers: { "Access-Token": token }, cache: "no-store" });
   // IDs grandes como string exacto (Number pierde precisión).
   return JSON.parse(await res.text(), (k, v, ctx?: { source?: string }) =>
@@ -119,7 +119,7 @@ export function nextSerialOffset(
   return Math.max(max + 1, inBm.length);
 }
 
-async function setSharedBudgetZero(bcId: string, advertiserId: string, token: string): Promise<boolean> {
+export async function setSharedBudgetZero(bcId: string, advertiserId: string, token: string): Promise<boolean> {
   try {
     const res = await fetch(`${API}/advertiser/update/`, {
       method: "POST",
@@ -138,7 +138,7 @@ async function setSharedBudgetZero(bcId: string, advertiserId: string, token: st
   }
 }
 
-async function assignAccess(bcId: string, advertiserId: string, userId: string, token: string) {
+export async function assignAccess(bcId: string, advertiserId: string, userId: string, token: string) {
   const res = await fetch(`${API}/bc/asset/assign/`, {
     method: "POST",
     headers: { "Access-Token": token, "Content-Type": "application/json" },
@@ -152,7 +152,7 @@ async function assignAccess(bcId: string, advertiserId: string, userId: string, 
 /** Cuentas de reserva ("gian libre 151", "libre sebas 12", "holisticlibre3"…). */
 const FREE_NAME = /libre/i;
 
-type FreeAccount = { advertiserId: string; name: string };
+export type FreeAccount = { advertiserId: string; name: string };
 
 /**
  * Cuentas libres de un BM: aprobadas, con "libre" en el nombre y sin dueño en Hecom.
@@ -203,17 +203,26 @@ export async function staffGiveFreeTikTokAccounts(input: {
   count: number;
   accessUserIds: string[];
   actorUserId: string | null;
+  /** Cuentas libres elegidas a mano (sección Cuentas libres); si no, las de menor número. */
+  advertiserIds?: string[];
 }): Promise<{ created: StaffCreatedAccount[]; error: string | null }> {
   const cliente = await getHecomCliente(input.hecomClienteId);
   if (!cliente) throw new Error("Cliente no encontrado.");
   const profile = getTikTokBcCreateProfile(input.bmBucket);
   if (profile.bmBucket !== input.bmBucket) throw new Error("BM inválido.");
-  const count = Math.trunc(input.count);
+  const picked = input.advertiserIds?.length ? [...new Set(input.advertiserIds.map(String))] : null;
+  const count = picked ? picked.length : Math.trunc(input.count);
   if (!(count >= 1 && count <= STAFF_CREATE_MAX_PER_REQUEST)) {
     throw new Error(`Puedes dar de 1 a ${STAFF_CREATE_MAX_PER_REQUEST} cuentas por vez.`);
   }
   const userIds = [...new Set(input.accessUserIds.map((u) => u.trim()).filter((u) => /^\d{6,25}$/.test(u)))];
-  const free = await listFreeTikTokAccounts(profile.bmBucket);
+  let free = await listFreeTikTokAccounts(profile.bmBucket);
+  if (picked) {
+    const byId = new Map(free.map((f) => [f.advertiserId, f]));
+    const missing = picked.filter((id) => !byId.has(id));
+    if (missing.length) throw new Error(`Ya no están libres: ${missing.join(", ")}.`);
+    free = picked.map((id) => byId.get(id)!);
+  }
   if (free.length < count) {
     throw new Error(`Solo hay ${free.length} cuentas libres en BM${profile.bmBucket}.`);
   }

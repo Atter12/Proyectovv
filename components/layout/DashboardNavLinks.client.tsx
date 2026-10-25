@@ -194,6 +194,7 @@ function navItemsForPersona(persona: DashboardPersona, showAlliances: boolean): 
     if (item.href === "/payments/missing-cobros") return false;
     if (item.href === "/links-deuda") return false;
     if (item.href === "/monitoreo") return false;
+    if (item.href === "/ad-accounts/libres") return false;
     if (item.href === "/apelaciones") return false;
     if (item.href === "/clientes") return false;
     if (item.href === "/asistente") return false;
@@ -223,7 +224,9 @@ export function DashboardNavLinks({
         const isActive =
           item.href === "/payments"
             ? pathname === "/payments"
-            : pathname === item.href ||
+            : item.href === "/ad-accounts" && pathname.startsWith("/ad-accounts/libres")
+              ? false
+              : pathname === item.href ||
               pathname.startsWith(`${item.href}/`);
 
         const label =

@@ -25,6 +25,7 @@ export const mainNavigation: NavItem[] = [
   },
   { key: "debtLinks", href: routes.linksDeuda, icon: "debt-links" },
   { key: "prepagoMonitor", href: routes.monitoreo, icon: "monitor" },
+  { key: "freeAccounts", href: routes.adAccountsFree, icon: "ad-accounts" },
   { key: "appeals", href: routes.apelaciones, icon: "support" },
   { key: "cobros", href: routes.cobros, icon: "cobros" },
   { key: "affiliates", href: routes.affiliates, icon: "affiliates" },

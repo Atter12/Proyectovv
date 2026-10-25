@@ -151,7 +151,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
           </div>
           {mode === "free" ? (
             <p className="text-[12px] leading-5 text-[#6f675f]">
-              Usa cuentas de reserva que ya existen ("gian libre 151", "libre sebas 12"…): se dejan con cupo /usr/bin/bash, quedan a nombre del
+              Usa cuentas de reserva que ya existen ("gian libre 151", "libre sebas 12"…): se dejan con cupo $0, quedan a nombre del
               cliente en Hecom y en su panel, y le da acceso a sus usuarios. TikTok no deja cambiar el nombre por API: renómbrala en el BC.
             </p>
           ) : null}

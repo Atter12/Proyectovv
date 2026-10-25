@@ -35,9 +35,11 @@ export async function createBcAdvertiserForCliente(input: {
   organizationId?: string;
   /** Cuentas que el cliente ya tiene en ese BM (define el serial del nombre). */
   existingInBm?: number;
+  /** Nombre exacto (cuentas libres "Libre Freddy 3"); si no, el correlativo del cliente. */
+  advertiserName?: string;
 }): Promise<CreateBcAdvertiserResult> {
   const profile = getTikTokBcCreateProfile(input.bmBucket);
-  const advertiserName = buildTikTokAdvertiserName({
+  const advertiserName = input.advertiserName?.trim().slice(0, 100) || buildTikTokAdvertiserName({
     clienteName: input.clienteName,
     bmBucket: profile.bmBucket,
     existingInBm: input.existingInBm,
