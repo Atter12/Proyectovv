@@ -114,7 +114,7 @@ export function verdictFor(cliente: MonitorCliente, modalidad: ClienteModalidad)
       headline: `Alguien le cargó ${money(staffMoves)} de saldo sin que el cliente pagara.`,
       steps: [
         "Preguntar al gerente si esa carga estaba autorizada.",
-        `Si NO estaba autorizada: pedir que le quiten ese saldo (pausar y devolver al BM${exposure > 0 ? `; hoy puede gastar ${money(exposure)} sin pagar` : ""}).`,
+        `Si NO estaba autorizada: quitarle ese saldo con «Frenar gasto», aquí abajo${exposure > 0 ? ` (hoy puede gastar ${money(exposure)} sin pagar)` : ""}.`,
         "Si SÍ estaba autorizada: que el gerente lo marque como «Paga después (tiene acuerdo)».",
       ],
     };
@@ -130,8 +130,8 @@ export function verdictFor(cliente: MonitorCliente, modalidad: ClienteModalidad)
         : `Puede gastar ${money(exposure)} que no pagó. Es un error: un prepago solo gasta lo que recargó.`,
       steps: [
         unlimited
-          ? "Avisar al gerente para ponerle tope a la cuenta en TikTok."
-          : `Avisar al gerente para quitarle ${money(exposure)} en TikTok (pausar y devolver al BM, o bajar el presupuesto).`,
+          ? "Ponerle tope: en «Frenar gasto», aquí abajo, dale «Dejar en $0» a la cuenta sin tope."
+          : `Quitarle ${money(exposure)} con «Frenar gasto», aquí abajo.`,
         debt > 0 ? `Además debe ${money(debt)} este mes: cobrarle.` : "Cuando se quite el saldo, esta alerta desaparece sola.",
       ],
     };
