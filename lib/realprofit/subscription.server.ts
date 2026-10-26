@@ -6,6 +6,14 @@ export const REALPROFIT_COD_AMOUNT_CENTS = REALPROFIT_COD_AMOUNT_USD * 100;
 export const REALPROFIT_COD_PURPOSE = "realprofit_cod";
 export const REALPROFIT_COD_DAYS = 30;
 
+/**
+ * Real Profit COD gratis (sin voucher) mientras probamos con los primeros clientes.
+ * Para volver a cobrar: REALPROFIT_COD_FREE=false.
+ */
+export function isRealProfitCodFree(): boolean {
+  return process.env.REALPROFIT_COD_FREE?.trim().toLowerCase() !== "false";
+}
+
 export type RealProfitSubStatus =
   | "pending_payment"
   | "active"
@@ -20,6 +28,8 @@ export type RealProfitSubscription = {
   activeUntil: string | null;
   lastPaymentIntentId: string | null;
   isActive: boolean;
+  /** true = activo por el modo gratis, sin pago. */
+  isFree?: boolean;
 };
 
 function mapRow(row: {
@@ -78,17 +88,20 @@ export async function getRealProfitSubscription(
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!data) {
-    return {
-      hecomClienteId,
-      status: "none",
-      activeFrom: null,
-      activeUntil: null,
-      lastPaymentIntentId: null,
-      isActive: false,
-    };
+  const sub: RealProfitSubscription = data
+    ? mapRow(data)
+    : {
+        hecomClienteId,
+        status: "none",
+        activeFrom: null,
+        activeUntil: null,
+        lastPaymentIntentId: null,
+        isActive: false,
+      };
+  if (!sub.isActive && isRealProfitCodFree()) {
+    return { ...sub, status: "active", isActive: true, isFree: true };
   }
-  return mapRow(data);
+  return sub;
 }
 
 export async function markRealProfitSubPending(input: {

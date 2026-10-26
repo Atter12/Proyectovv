@@ -11,6 +11,10 @@ import {
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
 import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 import {
+  buildRealProfitInstallUrl,
+  realProfitBaseUrl,
+} from "@/lib/realprofit/install-link.server";
+import {
   resolvePaymentsFundingCapabilities,
 } from "@/lib/payments/funding-roles.server";
 
@@ -59,9 +63,9 @@ export async function GET(request: Request) {
       cliente: { id: selected.id, name: selected.name },
       from,
       to,
-      realProfitUrl:
-        process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() ||
-        "https://www.realprofitcod.com",
+      realProfitUrl: realProfitBaseUrl(),
+      // Firmado con este cliente: al instalar, la tienda se vincula sola.
+      installUrl: buildRealProfitInstallUrl(selected.id),
       subscription,
       linkedStores: data.linkedStores,
       snapshots: data.snapshots,

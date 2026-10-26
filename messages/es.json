@@ -1904,6 +1904,8 @@
     "updatedShort": "act. {time}",
     "shopifyCodPendingTitle": "COD activo · falta vincular la tienda",
     "shopifyCodPendingBody": "Ya pagaste Real Profit. Instala la app en Shopify (si aún no) y toca {action} para jalar pedidos cobrados.",
+    "shopifyCodFreeTitle": "Real Profit COD gratis · conecta tu tienda",
+    "shopifyCodFreeBody": "Escribe el dominio de tu tienda, instala la app en Shopify y acepta los permisos. Al volver, toca {action} para ver tus pedidos cobrados.",
     "shopifyInstallApp": "Instalar app Shopify",
     "shopifyLinking": "Vinculando…",
     "shopifyAlreadyInstalled": "Ya instalé — vincular",

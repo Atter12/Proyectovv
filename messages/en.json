@@ -1904,6 +1904,8 @@
     "updatedShort": "upd. {time}",
     "shopifyCodPendingTitle": "COD active · store not linked yet",
     "shopifyCodPendingBody": "You already paid for Real Profit. Install the Shopify app (if needed) and tap {action} to pull collected orders.",
+    "shopifyCodFreeTitle": "Real Profit COD is free · connect your store",
+    "shopifyCodFreeBody": "Type your store domain, install the Shopify app and accept the permissions. When you're back, tap {action} to see your collected orders.",
     "shopifyInstallApp": "Install Shopify app",
     "shopifyLinking": "Linking…",
     "shopifyAlreadyInstalled": "Already installed — link",
