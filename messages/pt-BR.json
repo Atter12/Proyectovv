@@ -3196,6 +3196,22 @@
       "invalid_video": "Use um arquivo MP4 de até 150 MB.",
       "missing_table": "Falta aplicar a migração de Educação.",
       "unknown": "Não foi possível salvar o tutorial."
+    },
+    "team": {
+      "title": "Educação da equipe",
+      "subtitle": "Processos, ferramentas e casos para gerentes da Holistic. Os clientes não veem esta seção.",
+      "taglineLead": "Uma equipe que sabe",
+      "taglineAccent": "atende melhor.",
+      "recommendedSubtitle": "O primeiro que todo gerente novo deve ver.",
+      "manageHint": "Publique os tutoriais internos da equipe. Só os gerentes os veem.",
+      "empty": "Ainda não há tutoriais da equipe. Adicione o primeiro em Editar tutoriais.",
+      "activeOn": "Ativo: a equipe vê",
+      "activeOff": "Desativado: oculto para a equipe"
+    },
+    "tabs": {
+      "aria": "Educação por público",
+      "team": "Equipe (gerentes)",
+      "clients": "Clientes"
     }
   }
 }

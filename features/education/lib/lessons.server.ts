@@ -2,8 +2,10 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  educationAudienceOf,
   educationLessons,
   isEducationCategoryId,
+  type EducationAudience,
   type EducationCategoryId,
 } from "./catalog";
 import { lessonEmbedUrl } from "./loom";
@@ -27,9 +29,13 @@ type LessonRow = {
   created_at: string | null;
 };
 
-export async function listEducationLessons(): Promise<EducationLessonView[]> {
+/** El temario fijo es de clientes; el del equipo se arma solo desde el editor. */
+export async function listEducationLessons(
+  audience: EducationAudience,
+): Promise<EducationLessonView[]> {
   const stored = await loadLessonRows();
-  const catalog = educationLessons.map((lesson) => {
+  const fixed = audience === "cliente" ? educationLessons : [];
+  const catalog = fixed.map((lesson) => {
     const row = stored.get(lesson.slug);
     return toView(lesson, row, false);
   });
@@ -37,12 +43,13 @@ export async function listEducationLessons(): Promise<EducationLessonView[]> {
   const known = new Set(educationLessons.map((lesson) => lesson.slug));
   const custom = [...stored.values()]
     .filter((row) => row.is_custom && !known.has(row.slug) && row.title?.trim())
+    .filter((row) => audienceOfRow(row) === audience)
     .sort((left, right) => stamp(left) - stamp(right))
     .map((row, index) =>
       toView(
         {
           slug: row.slug,
-          number: educationLessons.length + index + 1,
+          number: fixed.length + index + 1,
           categoryId: categoryOrDefault(row.category_id),
           title: row.title!.trim(),
           description: "",
@@ -89,6 +96,10 @@ function toView(
 
 function categoryOrDefault(value: string | null): EducationCategoryId {
   return value && isEducationCategoryId(value) ? value : "empieza";
+}
+
+function audienceOfRow(row: LessonRow): EducationAudience {
+  return educationAudienceOf(categoryOrDefault(row.category_id));
 }
 
 function stamp(row: LessonRow): number {

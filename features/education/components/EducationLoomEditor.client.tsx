@@ -10,19 +10,25 @@ import {
   saveEducationLessonAction,
   type EducationLessonSave,
 } from "../actions";
-import { educationCategories, educationCategoryById } from "../lib/catalog";
+import {
+  educationCategoriesFor,
+  educationCategoryById,
+  type EducationAudience,
+} from "../lib/catalog";
 import { uploadEducationMp4 } from "../lib/upload-video.client";
 import type { EducationCategoryId } from "../lib/catalog";
 import type { EducationLessonView } from "../lib/types";
 
 export function EducationLoomEditor({
   lessons,
+  audience,
   tone = "dashboard",
   onSaved,
   onCreated,
   onDeleted,
 }: {
   lessons: EducationLessonView[];
+  audience: EducationAudience;
   tone?: "dashboard" | "admin";
   onSaved?: (lesson: EducationLessonSave) => void;
   onCreated?: (lesson: EducationLessonSave) => void;
@@ -57,12 +63,13 @@ export function EducationLoomEditor({
       >
         {t("editorHint")}
       </p>
-      <AddLessonForm tone={tone} onCreated={onCreated} />
+      <AddLessonForm audience={audience} tone={tone} onCreated={onCreated} />
       <ul className="mt-4 space-y-3">
         {lessons.map((lesson) => (
           <li key={lesson.slug}>
             <LessonEditor
               lesson={lesson}
+              audience={audience}
               tone={tone}
               onSaved={onSaved}
               onDeleted={onDeleted}
@@ -75,9 +82,11 @@ export function EducationLoomEditor({
 }
 
 function AddLessonForm({
+  audience,
   tone,
   onCreated,
 }: {
+  audience: EducationAudience;
   tone: "dashboard" | "admin";
   onCreated?: (lesson: EducationLessonSave) => void;
 }) {
@@ -85,7 +94,9 @@ function AddLessonForm({
   const router = useRouter();
   const admin = tone === "admin";
   const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState<EducationCategoryId>("empieza");
+  const categories = educationCategoriesFor(audience);
+  const firstCategory = categories[0]!.id;
+  const [categoryId, setCategoryId] = useState<EducationCategoryId>(firstCategory);
   const [loomUrl, setLoomUrl] = useState("");
   const [recommended, setRecommended] = useState(false);
   const [active, setActive] = useState(true);
@@ -138,7 +149,7 @@ function AddLessonForm({
     setLoomUrl("");
     setRecommended(false);
     setActive(true);
-    setCategoryId("empieza");
+    setCategoryId(firstCategory);
     setFile(null);
     setCover(null);
     setVideo(null);
@@ -182,7 +193,7 @@ function AddLessonForm({
             onChange={(event) => setCategoryId(event.target.value as EducationCategoryId)}
             className={inputClass(admin)}
           >
-            {educationCategories.map((item) => (
+            {categories.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
               </option>
@@ -231,7 +242,13 @@ function AddLessonForm({
             admin={admin}
             onChange={setRecommended}
           />
-          <ActiveToggle id="edu-new-active" checked={active} admin={admin} onChange={setActive} />
+          <ActiveToggle
+            id="edu-new-active"
+            checked={active}
+            admin={admin}
+            audience={audience}
+            onChange={setActive}
+          />
         </div>
       </div>
       <FormStatus error={error} feedback={feedback} />
@@ -244,11 +261,13 @@ function AddLessonForm({
 
 function LessonEditor({
   lesson,
+  audience,
   tone,
   onSaved,
   onDeleted,
 }: {
   lesson: EducationLessonView;
+  audience: EducationAudience;
   tone: "dashboard" | "admin";
   onSaved?: (lesson: EducationLessonSave) => void;
   onDeleted?: (slug: string) => void;
@@ -454,6 +473,7 @@ function LessonEditor({
               id={`active-${lesson.slug}`}
               checked={active}
               admin={admin}
+              audience={audience}
               onChange={setActive}
             />
           </div>
@@ -565,13 +585,16 @@ function ActiveToggle({
   id,
   checked,
   admin,
+  audience,
   onChange,
 }: {
   id: string;
   checked: boolean;
   admin: boolean;
+  audience: EducationAudience;
   onChange: (value: boolean) => void;
 }) {
+  const team = audience === "gerente";
   const t = useTranslations("education");
   return (
     <label
@@ -594,7 +617,9 @@ function ActiveToggle({
         aria-hidden
         className="relative h-5 w-9 shrink-0 rounded-full bg-stone-300 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-emerald-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--auth-accent)]/40"
       />
-      {checked ? t("activeOn") : t("activeOff")}
+      {checked
+        ? t(team ? "team.activeOn" : "activeOn")
+        : t(team ? "team.activeOff" : "activeOff")}
     </label>
   );
 }

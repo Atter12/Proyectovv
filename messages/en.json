@@ -3196,6 +3196,22 @@
       "invalid_video": "Use an MP4 file up to 150 MB.",
       "missing_table": "The education migration still needs to be applied.",
       "unknown": "The tutorial could not be saved."
+    },
+    "team": {
+      "title": "Team education",
+      "subtitle": "Processes, tools and cases for Holistic managers. Clients can't see this section.",
+      "taglineLead": "A team that knows",
+      "taglineAccent": "serves better.",
+      "recommendedSubtitle": "What every new manager should watch first.",
+      "manageHint": "Publish the team's internal tutorials. Only managers can see them.",
+      "empty": "There are no team tutorials yet. Add the first one from Edit tutorials.",
+      "activeOn": "Active: visible to the team",
+      "activeOff": "Inactive: hidden from the team"
+    },
+    "tabs": {
+      "aria": "Education by audience",
+      "team": "Team (managers)",
+      "clients": "Clients"
     }
   }
 }

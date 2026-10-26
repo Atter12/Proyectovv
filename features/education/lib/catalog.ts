@@ -4,12 +4,23 @@ export const EDUCATION_CATEGORY_IDS = [
   "tiktok",
   "shopify",
   "ayuda",
+  "equipo-inicio",
+  "equipo-clientes",
+  "equipo-cobranza",
+  "equipo-cuentas",
+  "equipo-soporte",
 ] as const;
 
 export type EducationCategoryId = (typeof EDUCATION_CATEGORY_IDS)[number];
 
+/** Cada público tiene su propia educación: los clientes nunca ven la del equipo. */
+export const EDUCATION_AUDIENCES = ["cliente", "gerente"] as const;
+
+export type EducationAudience = (typeof EDUCATION_AUDIENCES)[number];
+
 export interface EducationCategory {
   id: EducationCategoryId;
+  audience: EducationAudience;
   label: string;
   description: string;
 }
@@ -26,28 +37,63 @@ export interface EducationLesson {
 export const educationCategories: EducationCategory[] = [
   {
     id: "empieza",
+    audience: "cliente",
     label: "Empieza aquí",
     description: "Todo lo que necesitas para comenzar desde cero.",
   },
   {
     id: "plataforma",
+    audience: "cliente",
     label: "Plataforma Holistic",
     description: "Aprende a usar la plataforma paso a paso.",
   },
   {
     id: "tiktok",
+    audience: "cliente",
     label: "TikTok Ads",
     description: "Desde la primera campaña hasta el límite de gasto.",
   },
   {
     id: "shopify",
+    audience: "cliente",
     label: "Shopify & Pixel",
     description: "Conecta tu tienda y configura el píxel.",
   },
   {
     id: "ayuda",
+    audience: "cliente",
     label: "Ayuda y soluciones",
     description: "Qué hacer cuando una cuenta, campaña o recarga no avanza.",
+  },
+  {
+    id: "equipo-inicio",
+    audience: "gerente",
+    label: "Inducción",
+    description: "Cómo trabajamos y por dónde empezar en el equipo.",
+  },
+  {
+    id: "equipo-clientes",
+    audience: "gerente",
+    label: "Clientes",
+    description: "Alta, seguimiento y atención de cada cliente.",
+  },
+  {
+    id: "equipo-cobranza",
+    audience: "gerente",
+    label: "Pagos y cobranza",
+    description: "Recargas, comprobantes, créditos y morosos.",
+  },
+  {
+    id: "equipo-cuentas",
+    audience: "gerente",
+    label: "Cuentas y BM",
+    description: "Crear, asignar y cuidar cuentas ads y Business Manager.",
+  },
+  {
+    id: "equipo-soporte",
+    audience: "gerente",
+    label: "Soporte y casos",
+    description: "Cómo resolver suspensiones, apelaciones y reclamos.",
   },
 ];
 
@@ -190,6 +236,22 @@ export function educationCategoryById(id: EducationCategoryId): EducationCategor
     throw new Error(`Categoría de educación desconocida: ${id}`);
   }
   return category;
+}
+
+export function educationCategoriesFor(audience: EducationAudience): EducationCategory[] {
+  return educationCategories.filter((item) => item.audience === audience);
+}
+
+export function educationCategoryIdsFor(audience: EducationAudience): EducationCategoryId[] {
+  return educationCategoriesFor(audience).map((item) => item.id);
+}
+
+export function educationAudienceOf(id: EducationCategoryId): EducationAudience {
+  return educationCategoryById(id).audience;
+}
+
+export function isEducationAudience(value: string): value is EducationAudience {
+  return (EDUCATION_AUDIENCES as readonly string[]).includes(value);
 }
 
 export function lessonsInCategory(id: EducationCategoryId): EducationLesson[] {

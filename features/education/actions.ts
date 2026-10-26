@@ -7,6 +7,8 @@ import { requireSession } from "@/lib/auth/guards.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  educationAudienceOf,
+  educationCategoryIdsFor,
   educationLessons,
   isEducationCategoryId,
   isEducationLessonSlug,
@@ -188,7 +190,7 @@ export async function createEducationLessonAction(
     return cover;
   }
 
-  const number = educationLessons.length + (await countCustomLessons()) + 1;
+  const number = (await countCustomLessons(categoryRaw)) + 1;
   const payload: Record<string, unknown> = {
     slug,
     title,
@@ -535,31 +537,41 @@ async function loadCustomLesson(slug: string): Promise<{
     if (!data?.is_custom || !data.category_id || !isEducationCategoryId(data.category_id)) {
       return null;
     }
+    const audience = educationAudienceOf(data.category_id);
     const { count } = await admin
       .from("education_lessons")
       .select("slug", { count: "exact", head: true })
       .eq("is_custom", true)
+      .in("category_id", educationCategoryIdsFor(audience))
       .lte("created_at", data.created_at ?? new Date().toISOString());
     return {
       category_id: data.category_id,
       poster_path: data.poster_path,
-      number: educationLessons.length + (count ?? 1),
+      number: fixedLessonCount(data.category_id) + (count ?? 1),
     };
   } catch {
     return null;
   }
 }
 
-async function countCustomLessons(): Promise<number> {
+/** La numeración es por público: el equipo empieza en 1, los clientes después del temario fijo. */
+function fixedLessonCount(categoryId: EducationCategoryId): number {
+  return educationAudienceOf(categoryId) === "cliente" ? educationLessons.length : 0;
+}
+
+/** Tutoriales del mismo público que ya existen, más el temario fijo si es de clientes. */
+async function countCustomLessons(categoryId: EducationCategoryId): Promise<number> {
+  const fixed = fixedLessonCount(categoryId);
   try {
     const admin = createAdminClient();
     const { count } = await admin
       .from("education_lessons")
       .select("slug", { count: "exact", head: true })
-      .eq("is_custom", true);
-    return count ?? 0;
+      .eq("is_custom", true)
+      .in("category_id", educationCategoryIdsFor(educationAudienceOf(categoryId)));
+    return fixed + (count ?? 0);
   } catch {
-    return 0;
+    return fixed;
   }
 }
 

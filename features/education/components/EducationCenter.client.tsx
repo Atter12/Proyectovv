@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
-  educationCategories,
+  educationCategoriesFor,
   educationCategoryById,
+  type EducationAudience,
+  type EducationCategory,
   type EducationCategoryId,
 } from "../lib/catalog";
 import { lessonEmbedUrl } from "../lib/loom";
@@ -12,6 +15,7 @@ import type { EducationLessonSave } from "../actions";
 import type { EducationLessonView } from "../lib/types";
 import { EducationLoomEditor } from "./EducationLoomEditor.client";
 import { EducationPlayerDialog } from "./EducationPlayerDialog.client";
+import { routes } from "@/config/routes";
 import { cn } from "@/lib/cn";
 
 type CategoryFilter = "all" | EducationCategoryId;
@@ -19,11 +23,15 @@ type CategoryFilter = "all" | EducationCategoryId;
 export function EducationCenter({
   lessons,
   canManage,
+  audience,
 }: {
   lessons: EducationLessonView[];
   canManage: boolean;
+  audience: EducationAudience;
 }) {
   const t = useTranslations("education");
+  const team = audience === "gerente";
+  const categories = educationCategoriesFor(audience);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [listing, setListing] = useState(false);
@@ -40,6 +48,9 @@ export function EducationCenter({
     setSaved({});
     setCreated([]);
     setDeleted([]);
+    setCategory("all");
+    setQuery("");
+    setListing(false);
   }
 
   const published = useMemo(() => {
@@ -91,16 +102,16 @@ export function EducationCenter({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-[1.7rem] font-bold leading-tight tracking-[-0.04em] text-[var(--auth-text)] sm:text-[2rem]">
-            {t("title")}
+            {team ? t("team.title") : t("title")}
           </h2>
           <p className="mt-1.5 max-w-2xl text-[15px] leading-6 text-[var(--auth-text-muted)]">
-            {t("subtitle")}
+            {team ? t("team.subtitle") : t("subtitle")}
           </p>
         </div>
         <p className="max-w-[16rem] text-[15px] font-semibold leading-snug text-[var(--auth-text)] sm:text-right">
-          {t("taglineLead")}{" "}
+          {team ? t("team.taglineLead") : t("taglineLead")}{" "}
           <span className="relative inline-block">
-            {t("taglineAccent")}
+            {team ? t("team.taglineAccent") : t("taglineAccent")}
             <span
               aria-hidden
               className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-[var(--auth-accent)]"
@@ -109,10 +120,12 @@ export function EducationCenter({
         </p>
       </header>
 
+      {canManage ? <AudienceTabs audience={audience} /> : null}
+
       {canManage ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] font-medium text-[var(--auth-text-muted)]">
-            {t("manageHint")}
+            {team ? t("team.manageHint") : t("manageHint")}
           </p>
           <button
             type="button"
@@ -127,6 +140,7 @@ export function EducationCenter({
       {canManage && editing ? (
         <EducationLoomEditor
           lessons={published}
+          audience={audience}
           onSaved={(lesson) =>
             setSaved((current) => ({ ...current, [lesson.slug]: lesson }))
           }
@@ -160,7 +174,7 @@ export function EducationCenter({
         >
           {t("search")}
         </button>
-        <CategorySelect value={category} onChange={setCategory} />
+        <CategorySelect value={category} categories={categories} onChange={setCategory} />
       </form>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -171,7 +185,7 @@ export function EducationCenter({
           onClick={resetFilters}
           icon={<CategoryGlyph id="all" />}
         />
-        {educationCategories.map((item) => {
+        {categories.map((item) => {
           const count = visible.filter((lesson) => lesson.categoryId === item.id).length;
           return (
             <CategoryChip
@@ -186,7 +200,11 @@ export function EducationCenter({
         })}
       </div>
 
-      {browsing ? (
+      {browsing && visible.length === 0 ? (
+        <p className="rounded-[1.15rem] border border-dashed border-[var(--auth-border)] bg-white px-4 py-10 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
+          {team ? t("team.empty") : t("empty")}
+        </p>
+      ) : browsing ? (
         <>
           <Section
             title={t("allVideosTitle")}
@@ -197,7 +215,10 @@ export function EducationCenter({
             <LessonStrip lessons={byNumber} onOpen={setActive} />
           </Section>
 
-          <Section title={t("recommendedTitle")} subtitle={t("recommendedSubtitle")}>
+          <Section
+            title={t("recommendedTitle")}
+            subtitle={team ? t("team.recommendedSubtitle") : t("recommendedSubtitle")}
+          >
             {recommended.length === 0 ? (
               <p className="rounded-[1.15rem] border border-dashed border-[var(--auth-border)] bg-white px-4 py-8 text-center text-[14px] font-medium text-[var(--auth-text-muted)]">
                 {t("recommendedEmpty")}
@@ -395,11 +416,46 @@ function StripButton({
   );
 }
 
+function AudienceTabs({ audience }: { audience: EducationAudience }) {
+  const t = useTranslations("education");
+  const tabs: Array<{ id: EducationAudience; label: string; href: string }> = [
+    { id: "gerente", label: t("tabs.team"), href: routes.education },
+    { id: "cliente", label: t("tabs.clients"), href: `${routes.education}?ver=clientes` },
+  ];
+  return (
+    <nav
+      aria-label={t("tabs.aria")}
+      className="inline-flex rounded-xl border border-[var(--auth-border)] bg-white p-1"
+    >
+      {tabs.map((tab) => {
+        const selected = tab.id === audience;
+        return (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            aria-current={selected ? "page" : undefined}
+            className={cn(
+              "inline-flex h-9 items-center rounded-lg px-4 text-[13px] font-semibold transition-colors",
+              selected
+                ? "bg-[var(--auth-accent)] text-white"
+                : "text-[var(--auth-text-muted)] hover:text-[var(--auth-text)]",
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function CategorySelect({
   value,
+  categories,
   onChange,
 }: {
   value: CategoryFilter;
+  categories: EducationCategory[];
   onChange: (value: CategoryFilter) => void;
 }) {
   const t = useTranslations("education");
@@ -407,7 +463,7 @@ function CategorySelect({
   const [open, setOpen] = useState(false);
   const options: Array<{ id: CategoryFilter; label: string }> = [
     { id: "all", label: t("allCategories") },
-    ...educationCategories.map((item) => ({ id: item.id, label: item.label })),
+    ...categories.map((item) => ({ id: item.id, label: item.label })),
   ];
   const current = options.find((option) => option.id === value) ?? options[0];
 
@@ -621,6 +677,11 @@ const glyphTone: Record<CategoryFilter, string> = {
   tiktok: "bg-[#f2f2f2] text-[#111111]",
   shopify: "bg-[#eaf6df] text-[#7ab55c]",
   ayuda: "bg-[#fff0ea] text-[#e4572e]",
+  "equipo-inicio": "bg-[#fff1e4] text-[#e85d04]",
+  "equipo-clientes": "bg-[#eef3fb] text-[#2f5aa8]",
+  "equipo-cobranza": "bg-[#eaf6df] text-[#3f8a2a]",
+  "equipo-cuentas": "bg-[#f4efe8] text-[#1c1917]",
+  "equipo-soporte": "bg-[#fff0ea] text-[#e4572e]",
 };
 
 function CategoryGlyph({ id }: { id: CategoryFilter }) {
@@ -635,6 +696,11 @@ function CategoryGlyph({ id }: { id: CategoryFilter }) {
       {id === "tiktok" ? <TikTokIcon /> : null}
       {id === "shopify" ? <ShopifyBagIcon /> : null}
       {id === "ayuda" ? <LifeRingIcon /> : null}
+      {id === "equipo-inicio" ? <RocketIcon /> : null}
+      {id === "equipo-clientes" ? <PeopleIcon /> : null}
+      {id === "equipo-cobranza" ? <CoinIcon /> : null}
+      {id === "equipo-cuentas" ? <MonitorIcon /> : null}
+      {id === "equipo-soporte" ? <LifeRingIcon /> : null}
     </span>
   );
 }
@@ -746,6 +812,23 @@ function LifeRingIcon() {
         />
       </mask>
       <circle cx="12" cy="12" r="9" fill="currentColor" mask={`url(#${maskId})`} />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM20 19v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 4.6a3 3 0 0 1 0 5.8" />
+    </svg>
+  );
+}
+
+function CoinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.5 9.25c-.4-.85-1.35-1.4-2.5-1.4-1.5 0-2.6.8-2.6 1.95 0 2.7 5.3 1.35 5.3 4.2 0 1.2-1.15 2.05-2.7 2.05-1.25 0-2.3-.6-2.7-1.55M12 6.5v1.35m0 8.3v1.35" />
     </svg>
   );
 }
