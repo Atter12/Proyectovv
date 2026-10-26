@@ -18,6 +18,7 @@ import type {
   MonitorSignal,
   MonitorSnapshot,
 } from "@/features/ops/types/prepago-monitor";
+import { FrenarGasto } from "@/features/ops/components/FrenarGasto.client";
 
 const AUTO_REFRESH_MS = 5 * 60_000;
 
@@ -519,6 +520,7 @@ export function PrepagoMonitor({
             openId={openId}
             onToggle={(id) => setOpenId((prev) => (prev === id ? null : id))}
             onSaveModalidad={saveModalidad}
+            onChanged={() => void load(true)}
           />
         ) : (
           <EventsList events={events} now={now} modalidadById={modalidadById} />
@@ -526,8 +528,8 @@ export function PrepagoMonitor({
       </section>
 
       <p className="px-1 text-[11.5px] leading-5 text-[#a39b92]">
-        Esta pantalla solo muestra: no cambia nada en TikTok ni en la cartera. Para quitar o poner
-        saldo, avisa al gerente.
+        Para quitar saldo o congelar a un cliente, ábrelo y usa «Frenar gasto». Todo queda registrado con
+        motivo y quién lo hizo.
       </p>
     </div>
   );
@@ -638,11 +640,13 @@ function ClientesList({
   openId,
   onToggle,
   onSaveModalidad,
+  onChanged,
 }: {
   rows: Row[];
   openId: string | null;
   onToggle: (id: string) => void;
   onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
+  onChanged: () => void;
 }) {
   if (rows.length === 0) return <EmptyState text="Ningún cliente con ese filtro." />;
   return (
@@ -662,6 +666,7 @@ function ClientesList({
             open={openId === row.cliente.id}
             onToggle={() => onToggle(row.cliente.id)}
             onSaveModalidad={onSaveModalidad}
+            onChanged={onChanged}
           />
         ))}
       </ul>
@@ -674,11 +679,13 @@ function ClienteRow({
   open,
   onToggle,
   onSaveModalidad,
+  onChanged,
 }: {
   row: Row;
   open: boolean;
   onToggle: () => void;
   onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
+  onChanged: () => void;
 }) {
   const { cliente, verdict, modalidad } = row;
   const meta = VERDICT_META[verdict.key];
@@ -734,7 +741,7 @@ function ClienteRow({
         />
         <MetricCell label="Cartera" value={cliente.walletUsd} />
       </button>
-      {open ? <ClienteDetail row={row} onSaveModalidad={onSaveModalidad} /> : null}
+      {open ? <ClienteDetail row={row} onSaveModalidad={onSaveModalidad} onChanged={onChanged} /> : null}
     </li>
   );
 }
@@ -753,9 +760,11 @@ function MetricCell({ label, value, strong = false }: { label: string; value: nu
 function ClienteDetail({
   row,
   onSaveModalidad,
+  onChanged,
 }: {
   row: Row;
   onSaveModalidad: (clienteId: string, modalidad: ClienteModalidad, nota: string) => Promise<void>;
+  onChanged: () => void;
 }) {
   const { cliente, verdict } = row;
   const meta = VERDICT_META[verdict.key];
@@ -787,6 +796,8 @@ function ClienteDetail({
         </div>
         <ModalidadEditor row={row} onSave={onSaveModalidad} />
       </div>
+
+      <FrenarGasto cliente={cliente} onDone={onChanged} />
 
       <div className="grid grid-cols-3 gap-2 rounded-2xl bg-white p-3 ring-1 ring-[#efe8df] sm:max-w-md">
         <MiniStat label="Gastó este mes (con fee)" value={cliente.month.chargeUsd} />
