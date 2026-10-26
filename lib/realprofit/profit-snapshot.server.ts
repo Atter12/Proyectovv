@@ -4,6 +4,7 @@ import { getHecomCliente } from "@/lib/hecom/clientes.server";
 import { fetchCampaignPerformanceForAdvertisers } from "@/lib/integrations/tiktok/campaign-performance.server";
 import { fetchCampaignPerformancePreferStored } from "@/lib/radar/stored-campaign-perf.server";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
+import { resolveHolisticUsdPenRate } from "@/lib/payments/fx-rate.server";
 import {
   defaultProfitDateRange,
   getRealProfitAdmin,
@@ -28,7 +29,11 @@ export type RpStoreSummary = {
   isActive: boolean;
 };
 
-export type ProfitSpendSource = "realprofit" | "holistic_tiktok" | "none";
+export type ProfitSpendSource =
+  | "realprofit"
+  | "holistic_tiktok"
+  | "mixed"
+  | "none";
 
 export type ProfitCampaignRow = {
   campaignExternalId: string;
@@ -154,6 +159,25 @@ function num(v: unknown): number {
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * Convierte entre PEN y USD con el TC Holistic. null = par sin TC
+ * (MXN, COP…): mejor excluir que mezclar monedas en el ROAS.
+ */
+function convertMoney(
+  amount: number,
+  from: string,
+  to: string,
+  usdPen: number,
+): number | null {
+  const a = from.trim().toUpperCase();
+  const b = to.trim().toUpperCase();
+  if (a === b) return amount;
+  if (!(usdPen > 0)) return null;
+  if (a === "USD" && b === "PEN") return amount * usdPen;
+  if (a === "PEN" && b === "USD") return amount / usdPen;
+  return null;
 }
 
 function minYmd(a: string, b: string) {
@@ -439,11 +463,15 @@ function spendSourceLabel(source: ProfitSpendSource): string {
   if (source === "realprofit") return "Gasto Real Profit (rp_ad_spend_daily)";
   if (source === "holistic_tiktok")
     return "Gasto TikTok Holistic (snapshots / gastos)";
+  if (source === "mixed")
+    return "Gasto TikTok Holistic + otras plataformas de Real Profit";
   return "Sin gasto ads en el período";
 }
 
 function buildCampaignsFromSpend(input: {
   collectedRevenue: number;
+  /** Cobrado en la moneda del gasto, para el ROAS (default: collectedRevenue). */
+  collectedInSpendCurrency?: number;
   adSpend: number;
   rows: Array<{
     campaignExternalId: string;
@@ -464,6 +492,8 @@ function buildCampaignsFromSpend(input: {
   }>;
 }): ProfitCampaignRow[] {
   const adSpend = input.adSpend;
+  const collectedForRoas =
+    input.collectedInSpendCurrency ?? input.collectedRevenue;
   return input.rows
     .filter((c) => c.spend > 0)
     .sort((a, b) => b.spend - a.spend)
@@ -478,7 +508,9 @@ function buildCampaignsFromSpend(input: {
         spendShare,
         collectedEstimated: round2(collectedEstimated),
         roasEstimated:
-          c.spend > 0 ? round2(collectedEstimated / c.spend) : null,
+          c.spend > 0
+            ? round2((collectedForRoas * spendShare) / c.spend)
+            : null,
         bm: c.bm ?? null,
         advertiserId: c.advertiserId ?? null,
         impressions: c.impressions ?? null,
@@ -675,13 +707,38 @@ export async function autoLinkRpStoreForCliente(input: {
 /**
  * Promo snapshot: ROAS cobrado real a nivel tienda;
  * cobrado por campaña = estimado proporcional al gasto.
- * Si `rp_ad_spend_daily` está vacío, usa gasto TikTok Holistic (fallback).
+ * Gasto = TikTok Holistic (USD, fuente de verdad TikTok) + Meta/Google/manual
+ * de `rp_ad_spend_daily`, todo convertido a la moneda de la tienda.
  */
-export async function loadStoreProfitPromo(input: {
+export async function loadStoreProfitPromo(
+  input: Parameters<typeof loadStoreProfitInternal>[0],
+): Promise<StoreProfitPromo> {
+  return (await loadStoreProfitInternal(input)).promo;
+}
+
+type StoreProfitInternal = {
+  promo: StoreProfitPromo;
+  /** Cobrado convertido para el resumen del cliente (null = moneda sin TC). */
+  collectedUsd: number | null;
+  collectedPen: number | null;
+  /** Gasto de Real Profit en USD que no duplica TikTok Holistic (Meta, Google, manual). */
+  otherCampaignsUsd: Array<{
+    campaignExternalId: string;
+    campaignName: string;
+    platform: string;
+    spend: number;
+    lastStatDate: string | null;
+  }>;
+};
+
+async function loadStoreProfitInternal(input: {
   storeId: string;
   from?: string;
   to?: string;
-  holisticFallback?: {
+  /** TC USD→PEN; si falta se resuelve aquí. */
+  usdPen?: number;
+  /** Gasto TikTok Holistic del cliente, en USD. */
+  holisticTikTok?: {
     adSpend: number;
     byCampaign: Array<{
       campaignExternalId: string;
@@ -693,12 +750,14 @@ export async function loadStoreProfitPromo(input: {
       lastStatDate?: string | null;
     }>;
   } | null;
-}): Promise<StoreProfitPromo> {
+}): Promise<StoreProfitInternal> {
   const range = {
     from: input.from?.trim() || defaultProfitDateRange().from,
     to: input.to?.trim() || defaultProfitDateRange().to,
   };
   const admin = getRealProfitAdmin();
+  const usdPen =
+    input.usdPen ?? (await resolveHolisticUsdPenRate()).usdPen;
 
   const { data: storeRow, error: storeErr } = await admin
     .from("rp_stores")
@@ -721,7 +780,7 @@ export async function loadStoreProfitPromo(input: {
 
   const { data: orderRows, error: oErr } = await admin
     .from("rp_orders")
-    .select("collected_amount, status_cod, created_at")
+    .select("collected_amount, currency, status_cod, created_at")
     .eq("store_id", input.storeId)
     .eq("status_cod", "collected")
     .gte("created_at", fromIso)
@@ -729,7 +788,14 @@ export async function loadStoreProfitPromo(input: {
   if (oErr) throw new Error(oErr.message);
 
   const collectedRevenue = (orderRows ?? []).reduce(
-    (s, r) => s + num(r.collected_amount),
+    (s, r) =>
+      s +
+      (convertMoney(
+        num(r.collected_amount),
+        String(r.currency ?? store.currency),
+        store.currency,
+        usdPen,
+      ) ?? 0),
     0,
   );
   const ordersCollected = orderRows?.length ?? 0;
@@ -737,14 +803,24 @@ export async function loadStoreProfitPromo(input: {
   const { data: spendRows, error: spErr } = await admin
     .from("rp_ad_spend_daily")
     .select(
-      "platform, spend_amount, campaign_external_id, campaign_name, date",
+      "platform, spend_amount, currency, campaign_external_id, campaign_name, date",
     )
     .eq("store_id", input.storeId)
     .gte("date", range.from)
     .lte("date", range.to);
   if (spErr) throw new Error(spErr.message);
 
+  const holisticTikTokSpend = Math.max(0, input.holisticTikTok?.adSpend ?? 0);
+  const holisticToStore = convertMoney(1, "USD", store.currency, usdPen);
+  // TikTok Holistic manda; filas TikTok de Real Profit solo si no hay Holistic.
+  const useHolisticTikTok = holisticTikTokSpend > 0 && holisticToStore != null;
+
   let adSpend = 0;
+  let realProfitSpend = 0;
+  const otherCampaignsUsd = new Map<
+    string,
+    StoreProfitInternal["otherCampaignsUsd"][number]
+  >();
   const byCampaign = new Map<
     string,
     {
@@ -759,9 +835,19 @@ export async function loadStoreProfitPromo(input: {
   >();
 
   for (const row of spendRows ?? []) {
-    const spend = num(row.spend_amount);
-    if (spend <= 0) continue;
+    const platform = String(row.platform ?? "");
+    if (useHolisticTikTok && platform === "tiktok") continue;
+    const rowCurrency = String(row.currency ?? store.currency);
+    const spend = convertMoney(
+      num(row.spend_amount),
+      rowCurrency,
+      store.currency,
+      usdPen,
+    );
+    // Moneda sin TC (ni PEN ni USD): no se mezcla con el resto.
+    if (spend == null || spend <= 0) continue;
     adSpend += spend;
+    realProfitSpend += spend;
     const cid = String(row.campaign_external_id ?? "").trim();
     const key = cid
       ? `${row.platform}:${cid}`
@@ -788,27 +874,50 @@ export async function loadStoreProfitPromo(input: {
         lastStatDate: day,
       });
     }
+
+    const spendUsd = convertMoney(spend, store.currency, "USD", usdPen);
+    // Filas TikTok solo llegan aquí si no hay TikTok Holistic: también suman.
+    if (spendUsd != null) {
+      const prevUsd = otherCampaignsUsd.get(key);
+      if (prevUsd) {
+        prevUsd.spend += spendUsd;
+        if (day && (!prevUsd.lastStatDate || day > prevUsd.lastStatDate)) {
+          prevUsd.lastStatDate = day;
+        }
+      } else {
+        otherCampaignsUsd.set(key, {
+          campaignExternalId: cid || "__platform_total__",
+          campaignName: name,
+          platform,
+          spend: spendUsd,
+          lastStatDate: day,
+        });
+      }
+    }
   }
 
-  let spendSource: ProfitSpendSource = "realprofit";
-  let campaignRows = [...byCampaign.values()];
-
-  if (
-    adSpend <= 0 &&
-    input.holisticFallback &&
-    input.holisticFallback.adSpend > 0
-  ) {
-    adSpend = input.holisticFallback.adSpend;
-    campaignRows = input.holisticFallback.byCampaign.map((c) => ({
-      ...c,
-      bm: c.bm ?? null,
-      advertiserId: c.advertiserId ?? null,
-      lastStatDate: c.lastStatDate ?? null,
-    }));
-    spendSource = "holistic_tiktok";
-  } else if (adSpend <= 0) {
-    spendSource = "none";
+  const campaignRows = [...byCampaign.values()];
+  if (useHolisticTikTok && input.holisticTikTok) {
+    adSpend += holisticTikTokSpend * holisticToStore!;
+    for (const c of input.holisticTikTok.byCampaign) {
+      campaignRows.push({
+        ...c,
+        spend: c.spend * holisticToStore!,
+        bm: c.bm ?? null,
+        advertiserId: c.advertiserId ?? null,
+        lastStatDate: c.lastStatDate ?? null,
+      });
+    }
   }
+
+  const spendSource: ProfitSpendSource =
+    useHolisticTikTok && realProfitSpend > 0
+      ? "mixed"
+      : useHolisticTikTok
+        ? "holistic_tiktok"
+        : realProfitSpend > 0
+          ? "realprofit"
+          : "none";
 
   const campaigns = buildCampaignsFromSpend({
     collectedRevenue,
@@ -816,17 +925,35 @@ export async function loadStoreProfitPromo(input: {
     rows: campaignRows,
   });
 
+  const collectedUsd = convertMoney(
+    collectedRevenue,
+    store.currency,
+    "USD",
+    usdPen,
+  );
+  const collectedPen = convertMoney(
+    collectedRevenue,
+    store.currency,
+    "PEN",
+    usdPen,
+  );
+
   return {
-    store,
-    from: range.from,
-    to: range.to,
-    collectedRevenue: round2(collectedRevenue),
-    adSpend: round2(adSpend),
-    roasCollected: adSpend > 0 ? round2(collectedRevenue / adSpend) : null,
-    ordersCollected,
-    campaigns,
-    spendSource,
-    spendSourceLabel: spendSourceLabel(spendSource),
+    promo: {
+      store,
+      from: range.from,
+      to: range.to,
+      collectedRevenue: round2(collectedRevenue),
+      adSpend: round2(adSpend),
+      roasCollected: adSpend > 0 ? round2(collectedRevenue / adSpend) : null,
+      ordersCollected,
+      campaigns,
+      spendSource,
+      spendSourceLabel: spendSourceLabel(spendSource),
+    },
+    collectedUsd,
+    collectedPen,
+    otherCampaignsUsd: [...otherCampaignsUsd.values()],
   };
 }
 
@@ -865,7 +992,7 @@ export async function loadClienteProfitPromo(input: {
   );
   const loadTo = maxYmd(range.to, today);
 
-  const [linkedStores, wide, overview, hecomCliente] = await Promise.all([
+  const [linkedStores, wide, overview, hecomCliente, fx] = await Promise.all([
     getLinkedStoresForCliente(input.hecomClienteId),
     loadHolisticTikTokSpendForCliente({
       hecomClienteId: input.hecomClienteId,
@@ -876,7 +1003,9 @@ export async function loadClienteProfitPromo(input: {
       () => null,
     ),
     getHecomCliente(input.hecomClienteId).catch(() => null),
+    resolveHolisticUsdPenRate(),
   ]);
+  const usdPen = fx.usdPen;
 
   const feeResolved = resolveFeePercentFromHecomCliente({
     tiktokDefaultFee: hecomCliente?.tiktokDefaultFee ?? null,
@@ -929,7 +1058,7 @@ export async function loadClienteProfitPromo(input: {
 
   const inRange = sliceHolisticSpend(wide, range.from, range.to);
   const spendToday = sliceHolisticSpend(wide, today, today).adSpend;
-  const holisticFallback =
+  const holisticTikTok =
     inRange.adSpend > 0
       ? {
           adSpend: inRange.adSpend,
@@ -938,16 +1067,17 @@ export async function loadClienteProfitPromo(input: {
       : null;
 
   // Tiendas COD y señales de quema corren mientras TikTok responde (antes iban en fila).
-  const [perf, scorePerf, snapshots, burnSignals] = await Promise.all([
+  const [perf, scorePerf, storeResults, burnSignals] = await Promise.all([
     withTimeout(perfPromise),
     scorePerfPromise ? withTimeout(scorePerfPromise) : Promise.resolve(null),
     Promise.all(
       linkedStores.map((store) =>
-        loadStoreProfitPromo({
+        loadStoreProfitInternal({
           storeId: store.id,
           from: range.from,
           to: range.to,
-          holisticFallback,
+          usdPen,
+          holisticTikTok,
         }),
       ),
     ),
@@ -968,26 +1098,70 @@ export async function loadClienteProfitPromo(input: {
     prevRangeTo,
   ).adSpend;
 
+  const snapshots = storeResults.map((r) => r.promo);
+  // Resumen: cobrado se muestra en PEN; gasto y ratios van en USD.
   const collectedRevenue = round2(
-    snapshots.reduce((s, snap) => s + snap.collectedRevenue, 0),
+    storeResults.reduce((s, r) => s + (r.collectedPen ?? 0), 0),
+  );
+  const collectedUsd = storeResults.reduce(
+    (s, r) => s + (r.collectedUsd ?? 0),
+    0,
   );
   const ordersCollected = snapshots.reduce(
     (s, snap) => s + snap.ordersCollected,
     0,
   );
 
-  const mergedRows = mergeCampaignsWithTikTokPerf({
-    holisticCampaigns: inRange.byCampaign,
-    perfRows: perf.rows,
-  });
+  // Meta / Google / manual de Real Profit (USD), sumados al TikTok Holistic.
+  const otherByKey = new Map<string, PerfMergeRow>();
+  for (const row of storeResults.flatMap((r) => r.otherCampaignsUsd)) {
+    const key = `${row.platform}:${row.campaignExternalId}`;
+    const prev = otherByKey.get(key);
+    if (prev) {
+      prev.spend += row.spend;
+      if (
+        row.lastStatDate &&
+        (!prev.lastStatDate || row.lastStatDate > prev.lastStatDate)
+      ) {
+        prev.lastStatDate = row.lastStatDate;
+      }
+      continue;
+    }
+    otherByKey.set(key, {
+      ...row,
+      bm: null,
+      advertiserId: null,
+      impressions: null,
+      clicks: null,
+      ctr: null,
+      cpc: null,
+      cpm: null,
+      conversions: null,
+      costPerConversion: null,
+      hasTikTokPerf: false,
+    });
+  }
+  const otherRows = [...otherByKey.values()];
+  const otherAdSpend = round2(otherRows.reduce((s, r) => s + r.spend, 0));
+
+  const mergedRows = [
+    ...mergeCampaignsWithTikTokPerf({
+      holisticCampaigns: inRange.byCampaign,
+      perfRows: perf.rows,
+    }),
+    ...otherRows,
+  ];
 
   // Si Holistic no tenía campañas pero TikTok sí, el spend del ranking
   // usa TikTok; los KPIs de consumo siguen siendo Holistic.
   const spendForShare =
-    mergedRows.reduce((s, r) => s + r.spend, 0) || round2(inRange.adSpend);
+    mergedRows.reduce((s, r) => s + r.spend, 0) ||
+    round2(inRange.adSpend + otherAdSpend);
   const spendInRange = round2(inRange.adSpend);
+  const totalAdSpend = round2(spendInRange + otherAdSpend);
   const campaigns = buildCampaignsFromSpend({
     collectedRevenue,
+    collectedInSpendCurrency: collectedUsd,
     adSpend: spendForShare,
     rows: mergedRows,
   });
@@ -1002,19 +1176,26 @@ export async function loadClienteProfitPromo(input: {
     }
   }
 
-  const effectiveAdSpend = round2(spendInRange * (1 + feePercent / 100));
-  const breakEvenRoas = round2(1 + feePercent / 100);
+  // El fee Holistic solo aplica al gasto TikTok que se fondea por Holistic.
+  const effectiveAdSpend = round2(
+    spendInRange * (1 + feePercent / 100) + otherAdSpend,
+  );
+  const breakEvenRoas =
+    totalAdSpend > 0
+      ? round2(effectiveAdSpend / totalAdSpend)
+      : round2(1 + feePercent / 100);
   const cpaCollected =
-    ordersCollected > 0 && spendInRange > 0
-      ? round2(spendInRange / ordersCollected)
+    ordersCollected > 0 && totalAdSpend > 0
+      ? round2(totalAdSpend / ordersCollected)
       : null;
+  // En PEN, como collectedRevenue.
   const avgOrderCollected =
     ordersCollected > 0 && collectedRevenue > 0
       ? round2(collectedRevenue / ordersCollected)
       : null;
   const roasEffective =
-    effectiveAdSpend > 0 && collectedRevenue > 0
-      ? round2(collectedRevenue / effectiveAdSpend)
+    effectiveAdSpend > 0 && collectedUsd > 0
+      ? round2(collectedUsd / effectiveAdSpend)
       : null;
   const aboveBreakEven =
     roasEffective != null ? roasEffective >= breakEvenRoas : null;
@@ -1094,8 +1275,8 @@ export async function loadClienteProfitPromo(input: {
     campaigns,
     collectedRevenue,
     roasCollected:
-      spendInRange > 0 && collectedRevenue > 0
-        ? round2(collectedRevenue / spendInRange)
+      totalAdSpend > 0 && collectedUsd > 0
+        ? round2(collectedUsd / totalAdSpend)
         : null,
     hasCodLink: linkedStores.length > 0,
     ordersCollected,

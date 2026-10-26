@@ -212,7 +212,7 @@ export async function buildProfitAdvisorBrief(input: {
       : `Perf no disponible${a.perf.error ? `: ${a.perf.error}` : ""}`,
     "",
     "## COD Shopify (NO es cobros Holistic)",
-    `Tienda COD: ${a.hasCodLink ? "sí" : "no"} · collected ${money(a.collectedRevenue)} · órdenes ${a.ordersCollected}`,
+    `Tienda COD: ${a.hasCodLink ? "sí" : "no"} · collected S/${a.collectedRevenue.toFixed(2)} · ROAS cobrado ${a.roasCollected?.toFixed(2) ?? "n/d"}x · órdenes ${a.ordersCollected}`,
     stores.length ? `Tiendas: ${JSON.stringify(stores)}` : "Sin tienda RealProfit.",
     "",
     "## Crédito / ops",

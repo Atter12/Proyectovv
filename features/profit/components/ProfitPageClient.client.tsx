@@ -201,7 +201,7 @@ type Snapshot = {
   adSpend: number;
   roasCollected: number | null;
   ordersCollected: number;
-  spendSource?: "realprofit" | "holistic_tiktok" | "none";
+  spendSource?: "realprofit" | "holistic_tiktok" | "mixed" | "none";
 };
 
 function formatDelta(pct: number | null, noBaselineLabel: string): string {
