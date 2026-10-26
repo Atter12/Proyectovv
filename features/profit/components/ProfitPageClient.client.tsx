@@ -176,6 +176,10 @@ type Analysis = {
   roasEffective?: number | null;
   breakEvenRoas?: number;
   aboveBreakEven?: boolean | null;
+  cogsTotal?: number;
+  courierTotal?: number;
+  netProfit?: number | null;
+  hasProductCosts?: boolean;
   dataThroughDate: string | null;
   signals: ProfitSignal[];
   perf?: {
@@ -201,6 +205,7 @@ type Snapshot = {
   adSpend: number;
   roasCollected: number | null;
   ordersCollected: number;
+  netProfit?: number;
   spendSource?: "realprofit" | "holistic_tiktok" | "mixed" | "none";
 };
 
@@ -1533,6 +1538,42 @@ export function ProfitPageClient({
               </div>
             ) : null}
 
+            {analysis.hasCodLink && analysis.netProfit != null ? (
+              <div
+                className={`rounded-xl border px-4 py-3 ${
+                  analysis.netProfit >= 0
+                    ? "border-[#bfe3c9] bg-[#f2faf4]"
+                    : "border-[#f3c4c4] bg-[#fdf3f3]"
+                }`}
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a9187]">
+                  {t("netProfitLabel")}
+                </p>
+                <p
+                  className={`mt-1 text-[1.35rem] font-bold tabular-nums tracking-[-0.02em] ${
+                    analysis.netProfit >= 0 ? "text-[#15803d]" : "text-[#b91c1c]"
+                  }`}
+                >
+                  {formatMoney(analysis.netProfit, "PEN")}
+                </p>
+                <p className="mt-0.5 break-words text-[11px] text-[#5c564e]">
+                  {t("netProfitBreakdown", {
+                    collected: formatMoney(analysis.collectedRevenue, "PEN"),
+                    product: formatMoney(analysis.cogsTotal ?? 0, "PEN"),
+                    courier: formatMoney(analysis.courierTotal ?? 0, "PEN"),
+                    ads: moneyUsd(
+                      analysis.effectiveAdSpend ?? analysis.spendInRange,
+                    ),
+                  })}
+                </p>
+                {analysis.hasProductCosts === false ? (
+                  <p className="mt-1 text-[11px] font-semibold text-[#b45309]">
+                    {t("netProfitNoCosts")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             {sortedCampaigns.length === 0 ? (
               <div className="rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
                 <p className="text-[13px] font-semibold text-[#1c1917]">
@@ -1760,6 +1801,15 @@ export function ProfitPageClient({
                 }
                 hint={t("snapRoasHint")}
                 accent
+              />
+              <Kpi
+                label={t("netProfitLabel")}
+                value={
+                  snap.netProfit != null
+                    ? formatMoney(snap.netProfit, snap.store.currency)
+                    : "—"
+                }
+                hint={t("snapNetHint")}
               />
             </div>
           ))}

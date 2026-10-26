@@ -67,6 +67,12 @@ export type StoreProfitPromo = {
   adSpend: number;
   roasCollected: number | null;
   ordersCollected: number;
+  /** Costo de producto de los pedidos del rango (moneda de la tienda). */
+  cogsTotal: number;
+  /** Envío de pedidos que salieron (no "created"). */
+  courierTotal: number;
+  /** Cobrado − producto − envío − ads (misma fórmula que Real Profit COD, sin fee). */
+  netProfit: number;
   campaigns: ProfitCampaignRow[];
   spendSource: ProfitSpendSource;
   spendSourceLabel: string;
@@ -134,6 +140,14 @@ export type ProfitAnalysis = {
   breakEvenRoas: number;
   /** true si roasEffective >= breakEvenRoas */
   aboveBreakEven: boolean | null;
+  /** Costo de producto en PEN (tiendas vinculadas, rango). */
+  cogsTotal: number;
+  /** Envío en PEN. */
+  courierTotal: number;
+  /** Cobrado − producto − envío − ads con fee, en PEN. null sin tienda vinculada. */
+  netProfit: number | null;
+  /** false si ningún pedido tiene costo de producto cargado: el neto sale inflado. */
+  hasProductCosts: boolean;
   /** Último día con gasto en snapshots/gastos (YYYY-MM-DD). */
   dataThroughDate: string | null;
   signals: ProfitSignal[];
@@ -721,6 +735,9 @@ type StoreProfitInternal = {
   /** Cobrado convertido para el resumen del cliente (null = moneda sin TC). */
   collectedUsd: number | null;
   collectedPen: number | null;
+  /** Producto + envío en PEN (null = moneda sin TC). */
+  costsPen: number | null;
+  hasProductCosts: boolean;
   /** Gasto de Real Profit en USD que no duplica TikTok Holistic (Meta, Google, manual). */
   otherCampaignsUsd: Array<{
     campaignExternalId: string;
@@ -780,25 +797,39 @@ async function loadStoreProfitInternal(input: {
 
   const { data: orderRows, error: oErr } = await admin
     .from("rp_orders")
-    .select("collected_amount, currency, status_cod, created_at")
+    .select(
+      "collected_amount, product_cost_amount, courier_cost_amount, currency, status_cod, created_at",
+    )
     .eq("store_id", input.storeId)
-    .eq("status_cod", "collected")
     .gte("created_at", fromIso)
     .lte("created_at", toIso);
   if (oErr) throw new Error(oErr.message);
 
-  const collectedRevenue = (orderRows ?? []).reduce(
-    (s, r) =>
-      s +
-      (convertMoney(
-        num(r.collected_amount),
+  // Igual que computeCodProfit en Real Profit: producto en todos los pedidos,
+  // envío solo en los que salieron.
+  let collectedRevenue = 0;
+  let ordersCollected = 0;
+  let cogsTotal = 0;
+  let courierTotal = 0;
+  let hasProductCosts = false;
+  for (const r of orderRows ?? []) {
+    const toStore = (amount: unknown) =>
+      convertMoney(
+        num(amount),
         String(r.currency ?? store.currency),
         store.currency,
         usdPen,
-      ) ?? 0),
-    0,
-  );
-  const ordersCollected = orderRows?.length ?? 0;
+      ) ?? 0;
+    const status = String(r.status_cod ?? "");
+    if (status === "collected") {
+      collectedRevenue += toStore(r.collected_amount);
+      ordersCollected += 1;
+    }
+    const productCost = toStore(r.product_cost_amount);
+    if (productCost > 0) hasProductCosts = true;
+    cogsTotal += productCost;
+    if (status !== "created") courierTotal += toStore(r.courier_cost_amount);
+  }
 
   const { data: spendRows, error: spErr } = await admin
     .from("rp_ad_spend_daily")
@@ -947,12 +978,22 @@ async function loadStoreProfitInternal(input: {
       adSpend: round2(adSpend),
       roasCollected: adSpend > 0 ? round2(collectedRevenue / adSpend) : null,
       ordersCollected,
+      cogsTotal: round2(cogsTotal),
+      courierTotal: round2(courierTotal),
+      netProfit: round2(collectedRevenue - cogsTotal - courierTotal - adSpend),
       campaigns,
       spendSource,
       spendSourceLabel: spendSourceLabel(spendSource),
     },
     collectedUsd,
     collectedPen,
+    costsPen: convertMoney(
+      cogsTotal + courierTotal,
+      store.currency,
+      "PEN",
+      usdPen,
+    ),
+    hasProductCosts,
     otherCampaignsUsd: [...otherCampaignsUsd.values()],
   };
 }
@@ -1200,6 +1241,23 @@ export async function loadClienteProfitPromo(input: {
   const aboveBreakEven =
     roasEffective != null ? roasEffective >= breakEvenRoas : null;
 
+  // Profit neto en PEN: los ads (USD, con fee) se pasan a soles.
+  const costsPen = round2(
+    storeResults.reduce((s, r) => s + (r.costsPen ?? 0), 0),
+  );
+  const netProfit =
+    linkedStores.length > 0
+      ? round2(collectedRevenue - costsPen - effectiveAdSpend * usdPen)
+      : null;
+  const cogsTotalPen = round2(
+    snapshots.reduce(
+      (s, snap) =>
+        s +
+        (convertMoney(snap.cogsTotal, snap.store.currency, "PEN", usdPen) ?? 0),
+      0,
+    ),
+  );
+
   const campaignSignals = buildSignals({
     campaigns,
     pacingLabel,
@@ -1287,6 +1345,10 @@ export async function loadClienteProfitPromo(input: {
     roasEffective,
     breakEvenRoas,
     aboveBreakEven,
+    cogsTotal: cogsTotalPen,
+    courierTotal: round2(costsPen - cogsTotalPen),
+    netProfit,
+    hasProductCosts: storeResults.some((r) => r.hasProductCosts),
     dataThroughDate,
     signals,
     perf: perfSummary,
