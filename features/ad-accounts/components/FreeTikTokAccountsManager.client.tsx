@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { routes } from "@/config/routes";
+import { TikTokRenameStatus } from "./TikTokRenameStatus.client";
 
 type Member = { userId: string; userName: string };
 type FreeAccount = { advertiserId: string; name: string; members: Member[] | null };
@@ -24,6 +25,7 @@ type GivenToCliente = {
   inPanel: boolean;
   budgetZero: boolean | null;
   access: Array<{ userId: string; ok: boolean; message: string }>;
+  renameRequested?: boolean | null;
 };
 
 const BMS: Array<{ id: string; label: string; hint: string }> = [
@@ -249,7 +251,7 @@ function CreatePanel({ bm, snap, onCreated }: { bm: string; snap: Snapshot | nul
         />
         <span className="mt-1 block text-[11px] text-[#8a8278]">
           Quedarán como <b className="text-[#1c1917]">{prefix} 1</b>, <b className="text-[#1c1917]">{prefix} 2</b>… (sigue el número que ya haya).
-          TikTok no deja cambiar el nombre después por sistema, así que elígelo aquí.
+          Al entregarla a un cliente, el sistema le pone el nombre del cliente.
         </span>
       </label>
 
@@ -693,9 +695,7 @@ function AssignToCliente({ bm, picked, max, onDone }: { bm: string; picked: Free
       {error ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-950">{error}</p> : null}
       {given && given.length ? (
         <div className="space-y-2">
-          <p className="rounded-xl bg-[#fff8eb] px-3 py-2 text-[12px] leading-5 text-[#7a4b12] ring-1 ring-[#f5dfb8]">
-            Falta un paso a mano: TikTok no deja renombrar por sistema. En el BC cambia el nombre de cada cuenta por el de abajo.
-          </p>
+          <TikTokRenameStatus accounts={given} />
           <ul className="space-y-2">
             {given.map((c) => (
               <li key={c.advertiserId} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-950">

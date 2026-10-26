@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { routes } from "@/config/routes";
+import { TikTokRenameStatus } from "./TikTokRenameStatus.client";
 
 type TikTokUser = { userId: string; userName: string; accounts: number; suggested: boolean };
 type Created = {
@@ -13,6 +14,7 @@ type Created = {
   inPanel: boolean;
   budgetZero: boolean | null;
   access: Array<{ userId: string; ok: boolean; message: string }>;
+  renameRequested?: boolean | null;
 };
 
 const BMS: Array<{ id: string; label: string; hint: string }> = [
@@ -152,7 +154,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
           {mode === "free" ? (
             <p className="text-[12px] leading-5 text-[#6f675f]">
               Usa cuentas de reserva que ya existen ("gian libre 151", "libre sebas 12"…): se dejan con cupo $0, quedan a nombre del
-              cliente en Hecom y en su panel, y le da acceso a sus usuarios. TikTok no deja cambiar el nombre por API: renómbrala en el BC.
+              cliente en Hecom y en su panel, le da acceso a sus usuarios y le pone el nombre del cliente en TikTok.
             </p>
           ) : null}
 
@@ -247,6 +249,8 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
           {error ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">{error}</div>
           ) : null}
+
+          {created && created.length ? <TikTokRenameStatus accounts={created} /> : null}
 
           {created && created.length ? (
             <ul className="space-y-2">

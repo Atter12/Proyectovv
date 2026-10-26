@@ -15,9 +15,12 @@ import {
 } from "@/lib/hecom/free-tiktok-accounts.server";
 import {
   detectClienteTikTokUsers,
+  readTikTokAdvertiserNames,
+  renameTikTokAdvertiser,
   STAFF_CREATE_MAX_PER_REQUEST,
   staffGiveFreeTikTokAccounts,
 } from "@/lib/hecom/staff-create-tiktok-accounts.server";
+import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRecord } from "@/lib/records";
 
@@ -46,6 +49,7 @@ function fail(error: unknown, status = 400) {
  * GET ?bm=300 → cuentas libres (con quién tiene acceso), miembros del BC y cuántas se crearon hoy.
  * GET ?clienteId=… → usuarios de TikTok del cliente, para darles acceso al asignar.
  * GET ?summary=1 → por BM: libres, total de cuentas, cuántas crear hoy y si llegó al tope.
+ * GET ?names=id1,id2 → nombre vivo en TikTok de cada cuenta (para ver si el renombre ya se aplicó).
  */
 export async function GET(request: Request) {
   const auth = await requireStaff();
@@ -55,6 +59,11 @@ export async function GET(request: Request) {
     const clienteId = url.searchParams.get("clienteId");
     if (clienteId) return NextResponse.json({ users: await detectClienteTikTokUsers(clienteId) });
     if (url.searchParams.get("summary")) return NextResponse.json({ summary: await summarizeFreeByBm() });
+    const names = url.searchParams.get("names");
+    if (names) {
+      const { token } = await resolveTikTokFinanceAccessToken();
+      return NextResponse.json({ names: await readTikTokAdvertiserNames(names.split(","), token) });
+    }
     const bm = String(url.searchParams.get("bm") ?? "300");
     if (!BMS.has(bm)) return fail(new Error("BM inválido."));
     const [accounts, bcMembers, createdToday] = await Promise.all([
@@ -82,6 +91,7 @@ export async function GET(request: Request) {
  *  { action: "create", bm, count, label? }
  *  { action: "member", bm, advertiserIds[], userId }
  *  { action: "cliente", bm, advertiserIds[], clienteId, accessUserIds[] }
+ *  { action: "rename", advertiserId, name }
  */
 export async function POST(request: Request) {
   const auth = await requireStaff();
@@ -93,6 +103,19 @@ export async function POST(request: Request) {
     return fail(new Error("JSON inválido."));
   }
   if (!isRecord(body)) return fail(new Error("JSON inválido."));
+  if (body.action === "rename") {
+    const advertiserId = String(body.advertiserId ?? "");
+    const name = String(body.name ?? "").trim().replace(/\s+/g, " ");
+    if (!/^\d{6,25}$/.test(advertiserId)) return fail(new Error("Cuenta inválida."));
+    if (!name || name.length > 100) return fail(new Error("Escribe un nombre de hasta 100 caracteres."));
+    const { token } = await resolveTikTokFinanceAccessToken();
+    const result = await renameTikTokAdvertiser(advertiserId, name, token);
+    await createAdminClient()
+      .from("audit_logs")
+      .insert({ action: "tiktok.rename_advertiser", entity_type: "ad_accounts", metadata: { by: auth.email, advertiserId, name, ok: result.ok, message: result.message } })
+      .then(() => undefined, () => undefined);
+    return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+  }
   const bm = String(body.bm ?? "");
   if (!BMS.has(bm)) return fail(new Error("BM inválido."));
   const ids = Array.isArray(body.advertiserIds) ? body.advertiserIds.map(String) : [];

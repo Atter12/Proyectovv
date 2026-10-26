@@ -41,6 +41,8 @@ export type StaffCreatedAccount = {
   /** Solo BM10/30: presupuesto en $0 al nacer (null = no aplica). */
   budgetZero: boolean | null;
   access: Array<{ userId: string; ok: boolean; message: string }>;
+  /** Se pidió a TikTok el nombre del cliente (null = no aplica: la cuenta nació con ese nombre). */
+  renameRequested?: boolean | null;
 };
 
 function norm(s: string): string {
@@ -119,6 +121,42 @@ export function nextSerialOffset(
   return Math.max(max + 1, inBm.length);
 }
 
+/**
+ * Pide a TikTok el nombre nuevo (`/advertiser/update/` con `name`). Es asíncrono:
+ * responde code 0 al instante y tarda minutos en verse; en cuentas recién creadas
+ * a veces no se aplica. Por eso se verifica después con `readTikTokAdvertiserNames`.
+ */
+export async function renameTikTokAdvertiser(advertiserId: string, name: string, token: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch(`${API}/advertiser/update/`, {
+      method: "POST",
+      headers: { "Access-Token": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ advertiser_id: advertiserId, name }),
+      cache: "no-store",
+    });
+    const j = (await res.json()) as { code?: number; message?: string };
+    return { ok: j.code === 0, message: j.code === 0 ? "OK" : String(j.message ?? "TikTok rechazó el nombre.") };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Sin respuesta de TikTok." };
+  }
+}
+
+/** Nombre vivo de cada cuenta en TikTok (para confirmar que el renombre ya se aplicó). */
+export async function readTikTokAdvertiserNames(advertiserIds: string[], token: string): Promise<Record<string, string | null>> {
+  const ids = [...new Set(advertiserIds.filter((id) => /^\d{6,25}$/.test(id)))].slice(0, 50);
+  const out: Record<string, string | null> = Object.fromEntries(ids.map((id) => [id, null]));
+  if (!ids.length) return out;
+  const j = await tiktokGet(
+    `/advertiser/info/?advertiser_ids=${encodeURIComponent(JSON.stringify(ids))}&fields=${encodeURIComponent(JSON.stringify(["advertiser_id", "name"]))}`,
+    token,
+  );
+  for (const row of ((j.data as { list?: Array<Record<string, unknown>> } | undefined)?.list ?? [])) {
+    const id = String(row.advertiser_id ?? "");
+    if (id in out) out[id] = typeof row.name === "string" ? row.name : null;
+  }
+  return out;
+}
+
 export async function setSharedBudgetZero(bcId: string, advertiserId: string, token: string): Promise<boolean> {
   try {
     const res = await fetch(`${API}/advertiser/update/`, {
@@ -195,7 +233,7 @@ export async function listFreeTikTokAccounts(bmBucket: string): Promise<FreeAcco
 /**
  * Gerencia le da a un cliente cuentas libres que ya existen (en vez de crear nuevas).
  * Quedan sin cupo (BM10/30), a nombre del cliente en Hecom y en su panel, con acceso ADMIN
- * para sus usuarios. TikTok no deja renombrarlas por API: el nombre en el BC se cambia a mano.
+ * para sus usuarios, y se pide a TikTok el nombre del cliente (tarda minutos en verse).
  */
 export async function staffGiveFreeTikTokAccounts(input: {
   hecomClienteId: string;
@@ -273,6 +311,8 @@ export async function staffGiveFreeTikTokAccounts(input: {
         message: e instanceof Error ? e.message : "error",
       })));
     }
+    // El panel muestra el nombre vivo de TikTok: sin esto el cliente vería "Libre …".
+    row.renameRequested = acc.name === advertiserName ? null : (await renameTikTokAdvertiser(acc.advertiserId, advertiserName, token)).ok;
     given.push(row);
   }
 
