@@ -179,7 +179,7 @@ function round2(n: number) {
  * Convierte entre PEN y USD con el TC Holistic. null = par sin TC
  * (MXN, COP…): mejor excluir que mezclar monedas en el ROAS.
  */
-function convertMoney(
+export function convertMoney(
   amount: number,
   from: string,
   to: string,

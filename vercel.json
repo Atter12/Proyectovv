@@ -48,6 +48,10 @@
     {
       "path": "/api/jobs/radar/ad-daily",
       "schedule": "0 8,9 * * *"
+    },
+    {
+      "path": "/api/jobs/realprofit-tiktok",
+      "schedule": "30 11 * * *"
     }
   ]
 }
