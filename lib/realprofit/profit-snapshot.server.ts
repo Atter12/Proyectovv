@@ -579,13 +579,16 @@ export async function getLinkedStoresForCliente(
     .in("id", ids);
 
   if (sErr) throw new Error(sErr.message);
-  return (stores ?? []).map((row) => ({
-    id: String(row.id),
-    name: String(row.name ?? ""),
-    shopDomain: row.shop_domain ? String(row.shop_domain) : null,
-    currency: String(row.currency ?? "PEN"),
-    isActive: Boolean(row.is_active),
-  }));
+  // «ads-org-*» = tienda solo-ads (Meta antes que Shopify): no es una tienda COD.
+  return (stores ?? [])
+    .filter((row) => !String(row.shop_domain ?? "").startsWith("ads-org-"))
+    .map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? ""),
+      shopDomain: row.shop_domain ? String(row.shop_domain) : null,
+      currency: String(row.currency ?? "PEN"),
+      isActive: Boolean(row.is_active),
+    }));
 }
 
 export async function linkStoreToCliente(input: {

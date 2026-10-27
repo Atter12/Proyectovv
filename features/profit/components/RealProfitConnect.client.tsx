@@ -154,9 +154,9 @@ export function RealProfitConnect({
   const c = connections;
   const shopifyOn = Boolean(c?.shopify.connected);
   const connectedCount = [
-    shopifyOn,
     c?.tiktok.connected && tiktokLinked,
     c?.meta.connected,
+    shopifyOn,
     (c?.courier.ordersFromCourier ?? 0) > 0,
   ].filter(Boolean).length;
 
@@ -199,7 +199,7 @@ export function RealProfitConnect({
       const res = await fetch("/api/profit/meta-connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adAccountId: adAccount, storeId: c?.shopify.storeId }),
+        body: JSON.stringify({ adAccountId: adAccount }),
       });
       const json = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
       setMetaMsg(res.ok ? { ok: true, text: json.message ?? t("metaConnected") } : { ok: false, text: json.error ?? t("genericError") });
@@ -311,54 +311,9 @@ export function RealProfitConnect({
       </div>
 
       <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
-        {/* 1 · Shopify */}
+        {/* 1 · TikTok Ads */}
         <SourceCard
           step={1}
-          logo={logos.shopify}
-          title={t("shopifyTitle")}
-          status={shopifyOn ? <StatusPill tone="ok">{t("connected")}</StatusPill> : <StatusPill tone="todo">{t("pending")}</StatusPill>}
-        >
-          {shopifyOn ? (
-            <p>
-              <span className="font-semibold text-[#1c1917]">{c?.shopify.storeName}</span>
-              {c?.shopify.shopDomain ? <span className="text-[#8a8177]"> · {c.shopify.shopDomain}</span> : null}
-              <br />
-              {t("shopifyOnBody")}
-            </p>
-          ) : (
-            <>
-              <p>{t("shopifyBody")}</p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input
-                  className={inputClass}
-                  placeholder={t("shopifyPlaceholder")}
-                  value={shop}
-                  onChange={(e) => setShop(e.target.value)}
-                  inputMode="url"
-                  autoComplete="off"
-                  aria-label={t("shopifyPlaceholder")}
-                />
-                {installHref ? (
-                  <a href={installHref} target="_blank" rel="noreferrer" className={primaryBtn}>
-                    {t("shopifyInstall")}
-                  </a>
-                ) : null}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => void retryLink()} disabled={linkBusy} className="text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline disabled:opacity-50">
-                  {linkBusy ? t("checking") : t("shopifyAlready")}
-                </button>
-              </div>
-              {linkMsg ? (
-                <p className={`mt-2 text-[12px] font-medium ${linkMsg.ok ? "text-emerald-700" : "text-[#b91c1c]"}`}>{linkMsg.text}</p>
-              ) : null}
-            </>
-          )}
-        </SourceCard>
-
-        {/* 2 · TikTok Ads */}
-        <SourceCard
-          step={2}
           logo={logos.tiktok}
           title={t("tiktokTitle")}
           status={
@@ -398,18 +353,16 @@ export function RealProfitConnect({
           )}
         </SourceCard>
 
-        {/* 3 · Meta Ads */}
+        {/* 2 · Meta Ads (no exige Shopify) */}
         <SourceCard
-          step={3}
+          step={2}
           logo={logos.meta}
           title={t("metaTitle")}
           status={
             c?.meta.connected ? (
               <StatusPill tone="ok">{t("connected")}</StatusPill>
-            ) : shopifyOn ? (
-              <StatusPill tone="todo">{t("pending")}</StatusPill>
             ) : (
-              <StatusPill tone="locked">{t("locked")}</StatusPill>
+              <StatusPill tone="todo">{t("pending")}</StatusPill>
             )
           }
         >
@@ -427,11 +380,6 @@ export function RealProfitConnect({
               <button type="button" onClick={() => setMetaEditing(true)} className="mt-2 self-start text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline">
                 {t("metaChange")}
               </button>
-            </>
-          ) : !shopifyOn ? (
-            <>
-              <p>{t("metaBody")}</p>
-              {lockedNote}
             </>
           ) : (
             <>
@@ -473,6 +421,51 @@ export function RealProfitConnect({
               </div>
               {metaMsg ? (
                 <p className={`mt-2 text-[12px] font-medium ${metaMsg.ok ? "text-emerald-700" : "text-[#b91c1c]"}`}>{metaMsg.text}</p>
+              ) : null}
+            </>
+          )}
+        </SourceCard>
+
+        {/* 3 · Shopify */}
+        <SourceCard
+          step={3}
+          logo={logos.shopify}
+          title={t("shopifyTitle")}
+          status={shopifyOn ? <StatusPill tone="ok">{t("connected")}</StatusPill> : <StatusPill tone="todo">{t("pending")}</StatusPill>}
+        >
+          {shopifyOn ? (
+            <p>
+              <span className="font-semibold text-[#1c1917]">{c?.shopify.storeName}</span>
+              {c?.shopify.shopDomain ? <span className="text-[#8a8177]"> · {c.shopify.shopDomain}</span> : null}
+              <br />
+              {t("shopifyOnBody")}
+            </p>
+          ) : (
+            <>
+              <p>{t("shopifyBody")}</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  className={inputClass}
+                  placeholder={t("shopifyPlaceholder")}
+                  value={shop}
+                  onChange={(e) => setShop(e.target.value)}
+                  inputMode="url"
+                  autoComplete="off"
+                  aria-label={t("shopifyPlaceholder")}
+                />
+                {installHref ? (
+                  <a href={installHref} target="_blank" rel="noreferrer" className={primaryBtn}>
+                    {t("shopifyInstall")}
+                  </a>
+                ) : null}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => void retryLink()} disabled={linkBusy} className="text-[12px] font-semibold text-[#c2410c] underline-offset-2 hover:underline disabled:opacity-50">
+                  {linkBusy ? t("checking") : t("shopifyAlready")}
+                </button>
+              </div>
+              {linkMsg ? (
+                <p className={`mt-2 text-[12px] font-medium ${linkMsg.ok ? "text-emerald-700" : "text-[#b91c1c]"}`}>{linkMsg.text}</p>
               ) : null}
             </>
           )}

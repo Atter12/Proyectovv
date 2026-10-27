@@ -6,6 +6,7 @@ import {
   getSelectedHecomCliente,
 } from "@/lib/hecom/selected-cliente.server";
 import { resolvePaymentsFundingCapabilities } from "@/lib/payments/funding-roles.server";
+import { ensureRealProfitAdsStore } from "@/lib/realprofit/install-link.server";
 import {
   autoLinkRpStoreForCliente,
   normalizeShopDomain,
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       hecomClienteId: selected.id,
     });
     if (linked.linkedStoreId) {
+      await adoptAdsOnlyStore(selected.id, selected.name);
       return NextResponse.json({
         ok: true,
         linked: true,
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
       );
     }
 
+    await adoptAdsOnlyStore(selected.id, selected.name);
     return NextResponse.json({
       ok: true,
       linked: true,
@@ -127,4 +130,13 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/** Si conectó Meta antes que Shopify, sus ads pasan a la tienda recién vinculada. */
+async function adoptAdsOnlyStore(hecomClienteId: string, name: string) {
+  const r = await ensureRealProfitAdsStore(hecomClienteId, name).catch((e: unknown) => ({
+    error: e instanceof Error ? e.message : String(e),
+    status: 500,
+  }));
+  if ("error" in r) console.warn("[profit/link-retry] adopt ads-only", r.error);
 }

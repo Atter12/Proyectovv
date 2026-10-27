@@ -24,14 +24,7 @@ export async function loadRpConnections(input: {
 
   const [overview, metaRow, courierCount, courierLast] = await Promise.all([
     getHecomClienteAdAccountsOverview(input.hecomClienteId, "fast").catch(() => null),
-    store
-      ? admin
-          .from("rp_ad_integrations")
-          .select("account_name, last_sync_at, last_sync_error")
-          .eq("store_id", store.id)
-          .eq("platform", "meta")
-          .maybeSingle()
-      : null,
+    loadMetaIntegration(admin, input.hecomClienteId),
     store
       ? admin
           .from("rp_orders")
@@ -54,7 +47,7 @@ export async function loadRpConnections(input: {
   const tiktokAccounts = (overview?.accounts ?? []).filter((a) =>
     (a.externalAccountId ?? "").trim(),
   ).length;
-  const meta = metaRow?.data ?? null;
+  const meta = metaRow;
 
   return {
     shopify: {
@@ -75,4 +68,26 @@ export async function loadRpConnections(input: {
       lastImportAt: courierLast?.data?.updated_at ? String(courierLast.data.updated_at) : null,
     },
   };
+}
+
+/** Meta puede vivir en la tienda real o en la «solo ads» (conectó Meta antes que Shopify). */
+async function loadMetaIntegration(
+  admin: ReturnType<typeof getRealProfitAdmin>,
+  hecomClienteId: string,
+) {
+  const { data: links } = await admin
+    .from("hecom_cliente_rp_stores")
+    .select("rp_store_id")
+    .eq("hecom_cliente_id", hecomClienteId);
+  const ids = (links ?? []).map((l) => String(l.rp_store_id ?? "")).filter(Boolean);
+  if (ids.length === 0) return null;
+  const { data } = await admin
+    .from("rp_ad_integrations")
+    .select("account_name, last_sync_at, last_sync_error")
+    .in("store_id", ids)
+    .eq("platform", "meta")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
 }

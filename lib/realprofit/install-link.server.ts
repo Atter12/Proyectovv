@@ -76,3 +76,22 @@ export async function callRealProfitApi<T>(
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   return { ok: res.ok, status: res.status, data };
 }
+
+/**
+ * Tienda Real Profit donde guardar los ads del cliente: la real si ya vinculó
+ * Shopify (y adopta la «solo ads»), si no una «solo ads» nueva.
+ */
+export async function ensureRealProfitAdsStore(
+  hecomClienteId: string,
+  name: string,
+): Promise<{ storeId: string } | { error: string; status: number }> {
+  const res = await callRealProfitApi<{ storeId?: string }>(
+    "/api/holistic/ads-store",
+    hecomClienteId,
+    { name },
+  );
+  if (!res.ok || !res.data.storeId) {
+    return { error: res.data.error ?? "No se pudo preparar Real Profit.", status: res.status };
+  }
+  return { storeId: res.data.storeId };
+}
