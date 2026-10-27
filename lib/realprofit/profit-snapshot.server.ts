@@ -805,8 +805,9 @@ async function loadStoreProfitInternal(input: {
     .lte("created_at", toIso);
   if (oErr) throw new Error(oErr.message);
 
-  // Igual que computeCodProfit en Real Profit: producto en todos los pedidos,
-  // envío solo en los que salieron.
+  // Igual que computeCodProfit en Real Profit: producto solo en pedidos que
+  // salieron y no volvieron (rechazado/devuelto regresa al stock); envío en
+  // todos los que salieron.
   let collectedRevenue = 0;
   let ordersCollected = 0;
   let cogsTotal = 0;
@@ -827,7 +828,9 @@ async function loadStoreProfitInternal(input: {
     }
     const productCost = toStore(r.product_cost_amount);
     if (productCost > 0) hasProductCosts = true;
-    cogsTotal += productCost;
+    if (status === "in_transit" || status === "delivered" || status === "collected") {
+      cogsTotal += productCost;
+    }
     if (status !== "created") courierTotal += toStore(r.courier_cost_amount);
   }
 
