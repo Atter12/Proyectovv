@@ -1,6 +1,21 @@
 ﻿import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { routes } from "@/config/routes";
+import { getSession } from "@/lib/auth/session.server";
+import { resolveHecomClientesForEmail } from "@/lib/auth/hecom-otp.server";
+import { PickOwnCliente } from "./PickOwnCliente.client";
+
+/** Fichas propias del cliente; con más de una debe elegir (si no, "Ir a pagos" vuelve aquí). */
+async function ownClientes(): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const session = await getSession();
+    if (!session?.email) return [];
+    const list = await resolveHecomClientesForEmail(String(session.email));
+    return list.map((c) => ({ id: c.id, name: c.name }));
+  } catch {
+    return [];
+  }
+}
 
 export async function PickClienteEmpty({
   section,
@@ -17,6 +32,8 @@ export async function PickClienteEmpty({
       : section;
 
   if (mode === "cliente") {
+    const own = await ownClientes();
+    const mustPick = own.length > 1;
     return (
       <div className="dashboard-surface-card flex min-h-[240px] flex-col items-center justify-center rounded-[1rem] px-6 py-12 text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--auth-accent-soft)] text-[var(--auth-accent)]">
@@ -36,17 +53,21 @@ export async function PickClienteEmpty({
           </svg>
         </div>
         <h3 className="text-[1.25rem] font-bold leading-tight tracking-[-0.03em] text-[var(--auth-text)]">
-          {t("pickEmpty.clienteTitle")}
+          {t(mustPick ? "pickEmpty.clientePickTitle" : "pickEmpty.clienteTitle")}
         </h3>
         <p className="mt-2 max-w-md text-[14px] font-medium leading-6 text-[var(--auth-text-muted)]">
-{t("pickEmpty.clienteBody")}
+{t(mustPick ? "pickEmpty.clientePickBody" : "pickEmpty.clienteBody")}
         </p>
-        <Link
-          href={routes.payments}
-          className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
-        >
-          {t("pickEmpty.clienteCta")}
-        </Link>
+        {mustPick ? (
+          <PickOwnCliente clientes={own} errorLabel={t("pickEmpty.clientePickError")} />
+        ) : (
+          <Link
+            href={routes.payments}
+            className="mt-5 inline-flex h-10 items-center rounded-lg bg-[var(--auth-accent)] px-5 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05]"
+          >
+            {t("pickEmpty.clienteCta")}
+          </Link>
+        )}
       </div>
     );
   }
