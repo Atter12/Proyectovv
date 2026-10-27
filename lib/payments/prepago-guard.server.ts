@@ -11,6 +11,8 @@ import {
   getAdvertiserBudgetSnapshot,
   setSharedBmAdvertiserBudgetAbsolute,
 } from "@/lib/integrations/tiktok/bc-finance.server";
+import { bajarSaldoCuenta, readLive } from "@/lib/ops/frenar-gasto.server";
+import { classifyTikTokAdvertiserStatus } from "@/lib/integrations/tiktok/bc-advertisers.server";
 
 /**
  * Guardián de prepago (cron cada 15 min).
@@ -61,6 +63,23 @@ const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
     .map((id) => id.trim().toLowerCase())
     .filter(Boolean),
 ]);
+/**
+ * Clientes que solo pueden gastar lo que asignan desde su cartera: lo que aparezca
+ * en TikTok sin pasar por el sistema (recarga directa en el BC) se les quita
+ * siempre, aunque el guardián esté en modo aviso. En BM10/30 se baja el cupo y en
+ * BM200/300 se devuelve al BM el cash que no respalda su saldo asignado.
+ * Se suman los de PREPAGO_GUARD_STRICT_HECOM_IDS (coma).
+ */
+const STRICT_CLIENTES = new Set<string>([
+  // Cainan Aguirre: debe octubre; recargas directas en el BC sin pago (27/10/2026).
+  "63bdf982-43b2-411f-9410-64af4e5a527b",
+  ...String(process.env.PREPAGO_GUARD_STRICT_HECOM_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim().toLowerCase())
+    .filter(Boolean),
+]);
+/** BM donde cada cuenta tiene su propio cash. */
+const CASH_BUCKETS = ["200", "300"] as const;
 const MANAGER_EMAILS_PER_SECOND = 2;
 const AUDIT_ACTION = "prepago_guard.run";
 /** Correo de prueba que se envía una sola vez, en la primera revisión en producción. */
@@ -76,7 +95,10 @@ function resolveGuardMode(): PrepagoGuardMode {
 }
 
 export type PrepagoGuardIncident = {
-  kind: "budget_over_balance" | "credit_without_approval";
+  /** cash_over_balance: BM200/300, cash en TikTok que no viene de la cartera (solo clientes estrictos). */
+  kind: "budget_over_balance" | "cash_over_balance" | "credit_without_approval";
+  /** Cliente estricto: se corrige aunque el guardián esté en modo aviso. */
+  strict?: boolean;
   hecomClienteId: string;
   clienteName: string;
   advertiserId?: string;
@@ -108,6 +130,8 @@ export type PrepagoGuardIncident = {
       | "not_needed";
     previousBudgetUsd?: number;
     newBudgetUsd?: number;
+    /** cash_over_balance: lo devuelto al BM. */
+    refundedUsd?: number;
     error?: string;
   };
 };
@@ -168,9 +192,12 @@ type TikTokBudgetRow = {
   budget: number;
   cost: number;
   mode: string;
+  /** Cash propio de la cuenta (BM200/300). */
+  cash: number;
+  status: string;
 };
 
-async function scanSharedBc(bm: string, bcId: string, token: string): Promise<TikTokBudgetRow[]> {
+async function scanBc(bm: string, bcId: string, token: string): Promise<TikTokBudgetRow[]> {
   const out: TikTokBudgetRow[] = [];
   for (let page = 1; page <= 40; page++) {
     const url = `${TIKTOK_API}/advertiser/balance/get/?bc_id=${bcId}&page=${page}&page_size=50`;
@@ -192,6 +219,8 @@ async function scanSharedBc(bm: string, bcId: string, token: string): Promise<Ti
         budget: Number(r.budget) || 0,
         cost: Number(r.budget_cost) || 0,
         mode: String(r.budget_mode ?? "").toUpperCase(),
+        cash: Number(r.valid_cash_balance ?? r.account_balance) || 0,
+        status: String(r.advertiser_status ?? ""),
       });
     }
     if (page * 50 >= (json.data?.page_info?.total_number ?? 0)) break;
@@ -275,7 +304,7 @@ export async function runPrepagoGuard(
   const tiktokRows: TikTokBudgetRow[] = [];
   for (const bm of SHARED_BUCKETS) {
     const bcId = HECOM_BM_BUCKET_TO_BC[bm];
-    if (bcId) tiktokRows.push(...(await scanSharedBc(bm, bcId, token)));
+    if (bcId) tiktokRows.push(...(await scanBc(bm, bcId, token)));
   }
 
   const incidents: PrepagoGuardIncident[] = [];
@@ -308,7 +337,40 @@ export async function runPrepagoGuard(
       bcId: HECOM_BM_BUCKET_TO_BC[row.bm],
       organizationId: holistic.organizationId,
       adAccountIds: holistic.adAccountIds,
+      strict: STRICT_CLIENTES.has(holistic.hecomId.toLowerCase()),
     });
+  }
+
+  // BM200/300: solo clientes estrictos. Su cash en TikTok no debe superar lo asignado
+  // desde la cartera; el resto vino de una recarga directa en el BC.
+  const strictByAdv = new Map([...byAdvertiser].filter(([, h]) => STRICT_CLIENTES.has(h.hecomId.toLowerCase())));
+  for (const bm of strictByAdv.size ? CASH_BUCKETS : []) {
+    const bcId = HECOM_BM_BUCKET_TO_BC[bm];
+    if (!bcId) continue;
+    for (const row of await scanBc(bm, bcId, token)) {
+      const holistic = strictByAdv.get(row.advertiserId);
+      if (!holistic) continue;
+      clientesSeen.set(holistic.hecomId, holistic.clienteName);
+      // Castigada: no gasta y TikTok no deja devolver su cash.
+      if (classifyTikTokAdvertiserStatus(row.status) === "suspended") continue;
+      const excess = round2(row.cash - holistic.ledgerUsd);
+      if (excess <= TOLERANCE_USD) continue;
+      incidents.push({
+        kind: "cash_over_balance",
+        strict: true,
+        hecomClienteId: holistic.hecomId,
+        clienteName: holistic.clienteName,
+        advertiserId: row.advertiserId,
+        advertiserName: row.name,
+        bm,
+        tiktokRemainingUsd: round2(row.cash),
+        ledgerUsd: holistic.ledgerUsd,
+        excessUsd: excess,
+        bcId,
+        organizationId: holistic.organizationId,
+        adAccountIds: holistic.adAccountIds,
+      });
+    }
   }
 
   // Red de seguridad: en Ads nadie debe ser crédito sin aprobación de gerencia.
@@ -386,14 +448,13 @@ async function correctIncidents(
   mode: PrepagoGuardMode,
   apply: boolean,
 ): Promise<void> {
-  const budget = incidents.filter((i) => i.kind === "budget_over_balance");
+  const budget = incidents.filter((i) => i.kind === "budget_over_balance" || i.kind === "cash_over_balance");
   if (budget.length === 0) return;
 
-  if (mode === "alert" || !apply) {
-    for (const i of budget) i.correction = { status: "skipped_alert_mode" };
-    return;
-  }
-  const toCorrect = budget;
+  // Los clientes estrictos se corrigen aunque el guardián esté en modo aviso.
+  const toCorrect = budget.filter((i) => apply && (mode === "enforce" || i.strict));
+  for (const i of budget) if (!toCorrect.includes(i)) i.correction = { status: "skipped_alert_mode" };
+  if (toCorrect.length === 0) return;
 
   if (toCorrect.length > MAX_CORRECTIONS_PER_RUN) {
     for (const i of toCorrect) i.correction = { status: "skipped_circuit_breaker" };
@@ -402,6 +463,10 @@ async function correctIncidents(
   }
 
   for (const i of toCorrect) {
+    if (i.kind === "cash_over_balance") {
+      await refundUnbackedCash(i);
+      continue;
+    }
     if (!i.bcId || !i.advertiserId || i.targetBudgetUsd == null) {
       i.correction = { status: "failed", error: "Faltan datos de la cuenta en TikTok." };
       continue;
@@ -456,6 +521,34 @@ async function correctIncidents(
       };
       console.error("[prepago-guard] correction_failed", { advertiserId: i.advertiserId, error });
     }
+  }
+}
+
+/**
+ * BM200/300 de un cliente estricto: devuelve al BM el cash que no respalda su saldo
+ * asignado. Relee TikTok y la cartera en vivo para no tocar plata que sí es suya.
+ */
+async function refundUnbackedCash(i: PrepagoGuardIncident): Promise<void> {
+  try {
+    const live = await readLive(i.bm!, i.advertiserId!);
+    const ledgerUsd = round2(await readLiveLedgerUsd(i.adAccountIds ?? []));
+    const excess = Math.floor((live.cash - ledgerUsd) * 100) / 100;
+    i.tiktokRemainingUsd = round2(live.cash);
+    i.ledgerUsd = ledgerUsd;
+    if (excess <= TOLERANCE_USD) {
+      i.correction = { status: "not_needed" };
+      return;
+    }
+    i.excessUsd = excess;
+    const r = await bajarSaldoCuenta({ bm: i.bm!, advertiserId: i.advertiserId!, amountUsd: excess });
+    i.correction = { status: r.removedUsd > 0 ? "corrected" : "failed", refundedUsd: r.removedUsd, error: r.removedUsd > 0 ? undefined : r.message };
+    console.info("[prepago-guard] cash_refunded", { advertiserId: i.advertiserId, refunded: r.removedUsd });
+  } catch (error) {
+    i.correction = {
+      status: "failed",
+      error: error instanceof Error ? error.message.slice(0, 200) : "Error de TikTok",
+    };
+    console.error("[prepago-guard] cash_refund_failed", { advertiserId: i.advertiserId, error });
   }
 }
 
@@ -573,6 +666,9 @@ function usd(value: number | undefined): string {
 function actionLabel(i: PrepagoGuardIncident): { text: string; color: string } {
   switch (i.correction?.status) {
     case "corrected": {
+      if (i.kind === "cash_over_balance") {
+        return { text: `Devuelto al BM ${usd(i.correction.refundedUsd)}`, color: "#1f6b3a" };
+      }
       const after =
         i.correction.newBudgetUsd != null && i.costUsd != null
           ? Math.max(0, round2(i.correction.newBudgetUsd - i.costUsd))
@@ -593,7 +689,7 @@ function buildGuardEmail(
   preview?: { preview: true; scanned: number; clientes: number },
   mode: PrepagoGuardMode = "enforce",
 ) {
-  const budget = incidents.filter((i) => i.kind === "budget_over_balance");
+  const budget = incidents.filter((i) => i.kind !== "credit_without_approval");
   const credit = incidents.filter((i) => i.kind === "credit_without_approval");
   const corrected = budget.filter(isResolved);
   const pending = budget.filter((i) => !isResolved(i));
@@ -613,13 +709,15 @@ function buildGuardEmail(
   }`;
 
   const explanation =
-    mode === "alert"
+    mode === "alert" && corrected.length === 0
       ? "Está en <b>modo solo aviso</b>: no cambió nada. Para corregir, ajusta el presupuesto en TikTok al valor sugerido o asigna saldo desde la cartera."
       : breaker
         ? `Aparecieron más de ${MAX_CORRECTIONS_PER_RUN} cuentas a la vez, así que <b>no se corrigió ninguna</b> por seguridad: puede ser una falla al leer los saldos. Revisen antes de ajustar.`
         : pending.length
           ? "Lo que no se pudo corregir sigue pudiendo gastar de más. Revísenlo en TikTok."
-          : "El presupuesto en TikTok se bajó a lo ya gastado más el saldo asignado desde la cartera. Si el cliente necesita más, debe asignar saldo desde su cartera.";
+          : budget.some((i) => i.kind === "cash_over_balance")
+            ? "Alguien le puso saldo en TikTok directo desde el BC, sin pasar por su cartera, a un cliente que solo puede gastar lo que asigna desde el sistema. Ese saldo se devolvió al BM. TikTok no registra quién lo puso: revisen quién tiene permiso de Finanzas en el BC."
+            : "El presupuesto en TikTok se bajó a lo ya gastado más el saldo asignado desde la cartera. Si el cliente necesita más, debe asignar saldo desde su cartera.";
 
   const rowsHtml = budget
     .map((i) => {

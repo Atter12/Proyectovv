@@ -65,7 +65,7 @@ async function tk(path: string, body?: unknown): Promise<TkResponse> {
   return parse(await res.text()) as TkResponse;
 }
 
-async function readLive(bm: string, advertiserId: string): Promise<LiveRow> {
+export async function readLive(bm: string, advertiserId: string): Promise<LiveRow> {
   const bc = HECOM_BM_BUCKET_TO_BC[bm];
   if (!bc) throw new Error(`BM${bm} desconocido.`);
   const j = await tk(
