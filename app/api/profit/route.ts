@@ -9,7 +9,7 @@ import {
   defaultProfitDateRange,
 } from "@/lib/realprofit/db.server";
 import { loadClienteProfitPromo } from "@/lib/realprofit/profit-snapshot.server";
-import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
+import { loadRpConnections } from "@/lib/realprofit/connections.server";
 import {
   buildRealProfitInstallUrl,
   realProfitBaseUrl,
@@ -49,15 +49,16 @@ export async function GET(request: Request) {
   const to = clamped.to;
 
   try {
-    const [data, subscription] = await Promise.all([
-      loadClienteProfitPromo({
-        hecomClienteId: selected.id,
-        from,
-        to,
-        includeStaffOps: isStaff,
-      }),
-      getRealProfitSubscription(selected.id).catch(() => null),
-    ]);
+    const data = await loadClienteProfitPromo({
+      hecomClienteId: selected.id,
+      from,
+      to,
+      includeStaffOps: isStaff,
+    });
+    const connections = await loadRpConnections({
+      hecomClienteId: selected.id,
+      linkedStores: data.linkedStores,
+    });
     return NextResponse.json({
       ok: true,
       cliente: { id: selected.id, name: selected.name },
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
       realProfitUrl: realProfitBaseUrl(),
       // Firmado con este cliente: al instalar, la tienda se vincula sola.
       installUrl: buildRealProfitInstallUrl(selected.id),
-      subscription,
+      connections,
       linkedStores: data.linkedStores,
       snapshots: data.snapshots,
       analysis: data.analysis,

@@ -11,7 +11,6 @@ import {
   normalizeShopDomain,
   resolveShopDomainFromCodPayment,
 } from "@/lib/realprofit/profit-snapshot.server";
-import { getRealProfitSubscription } from "@/lib/realprofit/subscription.server";
 
 export const runtime = "nodejs";
 
@@ -35,17 +34,6 @@ export async function POST(request: Request) {
   if (!selected) {
     return NextResponse.json(
       { error: "Selecciona un cliente primero." },
-      { status: 400 },
-    );
-  }
-
-  const sub = await getRealProfitSubscription(selected.id);
-  if (!sub.isActive) {
-    return NextResponse.json(
-      {
-        error:
-          "Real Profit COD no está activo. Primero paga el +$20 y espera la aprobación.",
-      },
       { status: 400 },
     );
   }

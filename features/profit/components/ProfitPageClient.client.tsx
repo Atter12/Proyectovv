@@ -8,6 +8,10 @@ import { useAdAccountLiveMetrics } from "@/features/ad-accounts/hooks/useAdAccou
 import { ProfitDateRangeField } from "@/features/profit/components/ProfitDateRangeField.client";
 import { ProfitSectionSwitch } from "@/features/profit/radar/components/ProfitSectionSwitch";
 import { RadarInviteCard } from "@/features/profit/radar/components/RadarInviteCard";
+import {
+  RealProfitConnect,
+  type RpConnections,
+} from "@/features/profit/components/RealProfitConnect.client";
 import { formatMoney } from "@/lib/format-money";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
@@ -244,6 +248,9 @@ function formatSyncTime(iso: string | null, bcp47: string): string | null {
     return iso;
   }
 }
+
+/** Campañas visibles antes de "Ver todas". */
+const CAMPAIGNS_PREVIEW = 10;
 
 type SortKey = "spend" | "share" | "name" | "roas" | "ctr" | "cpc";
 
@@ -856,19 +863,11 @@ export function ProfitPageClient({
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
-  const [shopifyModalOpen, setShopifyModalOpen] = useState(false);
-  const [shopDomain, setShopDomain] = useState("");
-  const [subscription, setSubscription] = useState<RpSubscription | null>(null);
+  const [showAllCampaigns, setShowAllCampaigns] = useState(false);
+  const [connections, setConnections] = useState<RpConnections | null>(null);
+  const [realProfitUrl, setRealProfitUrl] = useState("https://realprofitcod.com");
   /** Link firmado con el cliente: instalar = vincular. */
   const [installUrl, setInstallUrl] = useState<string | null>(null);
-  const shopInstallHref = withShopParam(installUrl, shopDomain);
-  const [linkBusy, setLinkBusy] = useState(false);
-  const [linkMsg, setLinkMsg] = useState<string | null>(null);
-  const [linkErr, setLinkErr] = useState<string | null>(null);
-
-  function openShopifyModal() {
-    setShopifyModalOpen(true);
-  }
 
   const live = useAdAccountLiveMetrics(true);
   const liveAccounts = useMemo(() => {
@@ -908,8 +907,9 @@ export function ProfitPageClient({
         snapshots?: Snapshot[];
         analysis?: Analysis;
         staffOps?: StaffOps;
-        subscription?: RpSubscription | null;
+        connections?: RpConnections;
         installUrl?: string;
+        realProfitUrl?: string;
       };
       if (!res.ok || !json.ok) {
         throw new Error(json.error || t("loadError"));
@@ -920,7 +920,8 @@ export function ProfitPageClient({
       setSnapshots(
         (json.snapshots ?? []).filter((s) => s.store.id !== "__holistic_tiktok__"),
       );
-      setSubscription(json.subscription ?? null);
+      setConnections(json.connections ?? null);
+      if (json.realProfitUrl) setRealProfitUrl(json.realProfitUrl);
       const max = limaSpendMaxYmd();
       if (!from && json.from) {
         setFrom(json.from > max ? max : json.from);
@@ -934,36 +935,6 @@ export function ProfitPageClient({
       setLoading(false);
     }
   }, [from, to, t]);
-
-  const retryLinkStore = useCallback(async () => {
-    setLinkBusy(true);
-    setLinkErr(null);
-    setLinkMsg(null);
-    try {
-      const res = await fetch("/api/profit/link-retry", {
-        method: "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shopDomain: shopDomain.trim() || undefined,
-        }),
-      });
-      const json = (await res.json()) as {
-        ok?: boolean;
-        message?: string;
-        error?: string;
-      };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || t("shopifyLinkFailDefault"));
-      }
-      setLinkMsg(json.message || t("shopifyLinkedMsg"));
-      await refresh();
-    } catch (e) {
-      setLinkErr(e instanceof Error ? e.message : t("shopifyLinkError"));
-    } finally {
-      setLinkBusy(false);
-    }
-  }, [shopDomain, refresh, t]);
 
   useEffect(() => {
     if (from && to && from > to) {
@@ -1132,6 +1103,28 @@ export function ProfitPageClient({
           <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
             {t("heroSubtitle")}
           </p>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <ProfitDateRangeField
+              from={from}
+              to={to}
+              max={limaSpendMaxYmd()}
+              onChange={({ from: nextFrom, to: nextTo }) => {
+                const max = limaSpendMaxYmd();
+                let f = nextFrom;
+                let t = nextTo;
+                if (t && t > max) t = max;
+                if (f && f > max) f = max;
+                if (f && t && f > t) f = t;
+                setFrom(f);
+                setTo(t);
+              }}
+            />
+            {loading ? (
+              <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
+                {tCommon("loading")}
+              </p>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -1157,7 +1150,16 @@ export function ProfitPageClient({
             </h2>
             <p className="mt-0.5 text-[12px] text-[#8a8177]">{hoyHint}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
+            <p
+              className={`text-[2rem] font-bold leading-none tabular-nums tracking-[-0.04em] sm:text-[2.3rem] ${
+                spendTodayDisplay > 0 ? "text-[#c2410c]" : "text-[#1c1917]"
+              }`}
+              aria-label={t("spendTodayLiveLabel", { date: formatDayShort(todayYmd, bcp47) })}
+            >
+              {live.loading && !live.lastUpdatedAt ? "…" : moneyUsd(spendTodayDisplay)}
+            </p>
+            <div className="flex flex-wrap items-center justify-end gap-2">
             <span
               className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadgeClass(displayPacing.pacingLabel)}`}
             >
@@ -1174,34 +1176,8 @@ export function ProfitPageClient({
             >
               {live.loading ? tCommon("loading") : t("refreshLive")}
             </button>
+            </div>
           </div>
-        </div>
-
-        <div className="rounded-2xl border border-[#ffd7b8]/80 bg-white px-5 py-5 sm:px-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a9187]">
-            {t("spendTodayLiveLabel", { date: formatDayShort(todayYmd, bcp47) })}
-          </p>
-          <p
-            className={`mt-1 text-[2.35rem] font-bold tabular-nums tracking-[-0.04em] sm:text-[2.75rem] ${
-              spendTodayDisplay > 0 ? "text-[#c2410c]" : "text-[#1c1917]"
-            }`}
-          >
-            {live.loading && !live.lastUpdatedAt
-              ? "…"
-              : moneyUsd(spendTodayDisplay)}
-          </p>
-          {syncLabel ? (
-            <p className="mt-1 text-[12px] text-[#8a8177]">
-              {t("lastSyncPoll", {
-                time: syncLabel,
-                seconds: live.pollSeconds,
-              })}
-            </p>
-          ) : (
-            <p className="mt-1 text-[12px] text-[#8a8177]">
-              {t("queryingToday")}
-            </p>
-          )}
         </div>
 
         {liveAccounts.length > 0 ? (
@@ -1238,37 +1214,6 @@ export function ProfitPageClient({
               : t("liveErrorOnly", { error: live.error })}
           </p>
         ) : null}
-      </section>
-
-      <section className="rounded-2xl border border-[#ece7e0] bg-white p-4 sm:p-5">
-        <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-          {t("calendarRangeTitle")}
-        </p>
-        <p className="mb-3 max-w-xl text-[12.5px] leading-5 text-[#5c564e]">
-          {t("calendarRangeBody")}
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <ProfitDateRangeField
-            from={from}
-            to={to}
-            max={limaSpendMaxYmd()}
-            onChange={({ from: nextFrom, to: nextTo }) => {
-              const max = limaSpendMaxYmd();
-              let f = nextFrom;
-              let t = nextTo;
-              if (t && t > max) t = max;
-              if (f && f > max) f = max;
-              if (f && t && f > t) f = t;
-              setFrom(f);
-              setTo(t);
-            }}
-          />
-          {loading ? (
-            <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
-              {tCommon("loading")}
-            </p>
-          ) : null}
-        </div>
       </section>
 
       {loading && !analysis ? (
@@ -1659,7 +1604,7 @@ export function ProfitPageClient({
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedCampaigns.map((c) => {
+                    {(showAllCampaigns ? sortedCampaigns : sortedCampaigns.slice(0, CAMPAIGNS_PREVIEW)).map((c) => {
                       const idShown = c.campaignExternalId.startsWith("name:")
                         ? null
                         : c.campaignExternalId;
@@ -1678,26 +1623,18 @@ export function ProfitPageClient({
                             <p className="truncate font-semibold text-[#1c1917]">
                               {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
                             </p>
-                            <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
-                              {idShown ?? t("noId")}
-                            </p>
-                            <p className="mt-0.5 truncate text-[10px] text-[#b0a89e]">
-                              {c.hasTikTokPerf
-                                ? t("perfTikTok")
-                                : t("onlyHolistic")}
-                              {c.advertiserId ? ` · ${c.advertiserId}` : ""}
-                            </p>
+                            {isStaff ? (
+                              <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
+                                {idShown ?? t("noId")}
+                                {c.advertiserId ? ` · ${c.advertiserId}` : ""}
+                              </p>
+                            ) : null}
                           </td>
                           <td className="whitespace-nowrap px-2.5 py-2.5 align-top">
                             <p className="font-semibold tabular-nums text-[#1c1917]">
                               {deliveryDate}
                             </p>
-                            <p className="mt-0.5 text-[10px] text-[#9a9187]">
-                              {c.lastStatDate
-                                ? c.lastStatDate
-                                : `${analysis.from}→${analysis.to}`}
-                            </p>
-                            {deliveryTime ? (
+                            {isStaff && deliveryTime ? (
                               <p className="mt-0.5 text-[10px] font-medium text-[#c2410c]">
                                 {t("updatedShort", { time: deliveryTime })}
                               </p>
@@ -1758,6 +1695,17 @@ export function ProfitPageClient({
                     })}
                   </tbody>
                 </table>
+                {sortedCampaigns.length > CAMPAIGNS_PREVIEW ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCampaigns((v) => !v)}
+                    className="w-full border-t border-[#f0ebe4] bg-[#faf8f5] py-2.5 text-[12px] font-semibold text-[#c2410c] transition hover:bg-[#fff7f0]"
+                  >
+                    {showAllCampaigns
+                      ? t("campaignsShowLess")
+                      : t("campaignsShowAll", { count: sortedCampaigns.length })}
+                  </button>
+                ) : null}
               </div>
             )}
           </section>
@@ -1854,691 +1802,13 @@ export function ProfitPageClient({
         </section>
       ) : null}
 
-      <section
-        id="profit-shopify-connect"
-        className="scroll-mt-6 overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white"
-      >
-        {subscription?.isActive && analysis && !analysis.hasCodLink ? (
-          <div className="border-b border-[#ffd7b8] bg-[#fff7f0] px-5 py-4 sm:px-6">
-            <p className="text-[13px] font-bold text-[#9a3412]">
-              {subscription.isFree
-                ? t("shopifyCodFreeTitle")
-                : t("shopifyCodPendingTitle")}
-            </p>
-            <p className="mt-1 max-w-xl text-[12.5px] leading-5 text-[#9a3412]/90">
-              {t(subscription.isFree ? "shopifyCodFreeBody" : "shopifyCodPendingBody", {
-                action: t("shopifyAlreadyInstalled"),
-              })}
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <a
-                href={shopInstallHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#ffd7b8] bg-white px-4 text-[13px] font-semibold text-[#c2410c] transition hover:bg-[#fffaf6]"
-              >
-                  {t("modal.installInShopify")}
-                </a>
-              <button
-                type="button"
-                disabled={linkBusy}
-                onClick={() => void retryLinkStore()}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-4 text-[13px] font-semibold text-white transition-[filter] hover:brightness-[1.05] disabled:opacity-60"
-              >
-                {linkBusy ? t("shopifyLinking") : t("shopifyAlreadyInstalled")}
-              </button>
-            </div>
-            {linkErr ? (
-              <p className="mt-2 text-[12px] font-medium text-[#b91c1c]">
-                {linkErr}
-              </p>
-            ) : null}
-            {linkMsg ? (
-              <p className="mt-2 text-[12px] font-medium text-emerald-800">
-                {linkMsg}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {analysis?.hasCodLink ? (
-          <div className="border-b border-[var(--auth-divider)] px-5 py-5 sm:px-6">
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-emerald-700">
-              {t("shopifyConnectedEyebrow")}
-            </p>
-            <h2 className="mt-1.5 text-[1.25rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)]">
-              {t("shopifyConnectedTitle")}
-            </h2>
-            <p className="mt-1 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-              {t("shopifyConnectedBody")}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="border-b border-[var(--auth-divider)] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_55%,#faf8f5_100%)] px-5 py-5 sm:px-6">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--auth-accent)]">
-                {t("shopifyOfferEyebrow")}
-              </p>
-              <h2 className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.025em] text-[var(--auth-text)] sm:text-[1.45rem]">
-                {t("shopifyOfferTitle")}
-              </h2>
-              <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[var(--auth-text-muted)]">
-                {t("shopifyOfferBodyBefore")}{" "}
-                <span className="font-semibold text-[var(--auth-text)]">
-                  {t("shopifyOfferBodyHighlight")}
-                </span>{" "}
-                {t("shopifyOfferBodyAfter")}
-              </p>
-
-              <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
-                {[
-                  t("shopifyBenefit1"),
-                  t("shopifyBenefit2"),
-                  t("shopifyBenefit3"),
-                  t("shopifyBenefit4"),
-                ].map((item) => (
-                  <li
-                    key={item}
-                    className="flex gap-2 text-[13px] leading-5 text-[var(--auth-text-muted)]"
-                  >
-                    <span
-                      className="mt-0.5 font-semibold text-[var(--auth-accent)]"
-                      aria-hidden
-                    >
-                      →
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {subscription?.isFree ? null : (
-              <div className="mt-5 flex flex-wrap items-end gap-4 border-t border-[var(--auth-divider)] pt-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--auth-text-soft)]">
-                    {t("shopifyPriceLabel")}
-                  </p>
-                  <p className="mt-1 flex flex-wrap items-baseline gap-2">
-                    <span className="text-[15px] font-medium tabular-nums text-[#b0a89e] line-through">
-                      $40
-                    </span>
-                    <span className="text-[1.35rem] font-bold tabular-nums text-[var(--auth-text)]">
-                      $20
-                    </span>
-                    <span className="text-[12px] font-medium text-[var(--auth-text-muted)]">
-                      {t("shopifyPerMonth")}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              )}
-            </div>
-
-            <div className="px-5 py-5 sm:px-6 sm:py-6">
-              <p className="mb-3 text-[13px] font-semibold text-[var(--auth-text)]">
-                {t("shopifyDomainLabel")}
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex min-w-0 flex-1 overflow-hidden rounded-xl border border-[var(--auth-border)] bg-[#faf8f5] transition focus-within:border-[var(--auth-accent)]/45 focus-within:bg-white focus-within:ring-2 focus-within:ring-[var(--auth-accent)]/20">
-                  <span className="flex items-center border-r border-[var(--auth-border)] bg-[#f3efe9] px-3 text-[12px] font-medium text-[var(--auth-text-muted)]">
-                    https://
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="url"
-                    autoComplete="off"
-                    placeholder={t("shopifyDomainPlaceholder")}
-                    value={shopDomain}
-                    onChange={(e) => setShopDomain(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (
-                          subscription?.isActive &&
-                          analysis &&
-                          !analysis.hasCodLink
-                        ) {
-                          window.open(shopInstallHref, "_blank", "noreferrer");
-                        } else {
-                          openShopifyModal();
-                        }
-                      }
-                    }}
-                    className="min-w-0 flex-1 bg-transparent px-3 py-3 text-[14px] font-medium text-[var(--auth-text)] outline-none placeholder:text-[#b0a89e]"
-                  />
-                </div>
-                {subscription?.isActive && analysis && !analysis.hasCodLink ? (
-                  <a
-                    href={shopInstallHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] sm:w-auto"
-                  >
-                    {t("modal.installInShopify")}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={openShopifyModal}
-                    className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-[var(--auth-accent)] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgb(255_120_31_/_0.2)] transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.98] sm:w-auto"
-                  >
-                    {t("shopifyConnectCta")}
-                  </button>
-                )}
-              </div>
-              {subscription?.isFree ? null : (
-              <>
-              <p className="mt-4 text-[12px] leading-5 text-[var(--auth-text-muted)]">
-                {t("shopifyVoucherHint")}
-              </p>
-              <a
-                href={`https://wa.me/51933484150?text=${encodeURIComponent(
-                  t("shopifyWhatsappPrefill"),
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-3 rounded-xl border border-[#dcfce7] bg-[#f0fdf4] px-3.5 py-2.5 transition hover:border-[#86efac] hover:bg-[#ecfdf5]"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_12px_rgb(37_211_102_/_0.35)]">
-                  <svg
-                    className="h-[18px] w-[18px]"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden
-                  >
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                </span>
-                <span className="min-w-0 text-left">
-                  <span className="block text-[13px] font-semibold text-[#166534]">
-                    {t("shopifyWhatsappTitle")}
-                  </span>
-                  <span className="block text-[11.5px] text-[#15803d]/90">
-                    {t("shopifyWhatsappSubtitle")}
-                  </span>
-                </span>
-              </a>
-              </>
-              )}
-            </div>
-          </>
-        )}
-      </section>
-
-      {shopifyModalOpen ? (
-        <ShopifyConnectModal
-          shopDomain={shopDomain}
-          installHref={shopInstallHref}
-          subscription={subscription}
-          onSubscriptionChange={setSubscription}
-          onLinked={async () => {
-            await refresh();
-          }}
-          onClose={() => setShopifyModalOpen(false)}
-        />
-      ) : null}
+      <RealProfitConnect
+        connections={connections}
+        installUrl={installUrl}
+        realProfitUrl={realProfitUrl}
+        onChanged={refresh}
+      />
     </div>
   );
 }
 
-function normalizeShopDomain(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^https?:\/\//i, "")
-    .replace(/\/$/, "")
-    .toLowerCase();
-}
-
-/** Link firmado de /api/profit + dominio que escribió el cliente (si hay). */
-function withShopParam(installUrl: string | null, shopDomain: string): string {
-  const url = new URL(
-    installUrl ||
-      `${(process.env.NEXT_PUBLIC_REALPROFIT_URL?.trim() || "https://www.realprofitcod.com").replace(/\/$/, "")}/api/shopify/auth?surface=web`,
-  );
-  const domain = normalizeShopDomain(shopDomain);
-  if (domain) url.searchParams.set("shop", domain);
-  return url.toString();
-}
-
-type BankAccount = {
-  id: string;
-  label: string;
-  bank?: string;
-  holder: string;
-  accountNumber: string;
-  cci?: string;
-  notes?: string;
-};
-
-type RpSubscription = {
-  status: string;
-  isActive: boolean;
-  activeUntil: string | null;
-  /** Activo por el modo gratis (sin voucher). */
-  isFree?: boolean;
-};
-
-function ShopifyConnectModal({
-  shopDomain,
-  installHref,
-  onClose,
-  subscription,
-  onSubscriptionChange,
-  onLinked,
-}: {
-  shopDomain: string;
-  installHref: string;
-  onClose: () => void;
-  subscription: RpSubscription | null;
-  onSubscriptionChange: (sub: RpSubscription) => void;
-  onLinked?: () => void | Promise<void>;
-}) {
-  const t = useTranslations("profit");
-  const tCommon = useTranslations("common");
-  const tm = useTranslations("profit.modal");
-  const [mounted, setMounted] = useState(false);
-  const [payStep, setPayStep] = useState<"offer" | "deposit" | "done">(
-    subscription?.isActive ? "done" : "offer",
-  );
-  const [loadingPay, setLoadingPay] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [linkBusy, setLinkBusy] = useState(false);
-  const [linkFeedback, setLinkFeedback] = useState<string | null>(null);
-  const domain = normalizeShopDomain(shopDomain);
-  const isActive = Boolean(subscription?.isActive);
-  const awaitingReview = payStep === "done" && !isActive;
-
-  useEffect(() => {
-    setMounted(true);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
-
-  async function startDeposit() {
-    setLoadingPay(true);
-    setPayError(null);
-    try {
-      const res = await fetch("/api/profit/subscribe", {
-        method: "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopDomain: domain || undefined }),
-      });
-      const json = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        alreadyActive?: boolean;
-        paymentIntentId?: string;
-        bankAccounts?: BankAccount[];
-        subscription?: RpSubscription;
-      };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || tm("payStartError"));
-      }
-      if (json.alreadyActive && json.subscription) {
-        onSubscriptionChange(json.subscription);
-        setPayStep("done");
-        return;
-      }
-      setPaymentIntentId(json.paymentIntentId ?? null);
-      setBankAccounts(json.bankAccounts ?? []);
-      setPayStep("deposit");
-    } catch (e) {
-      setPayError(e instanceof Error ? e.message : tm("payStartErrorShort"));
-    } finally {
-      setLoadingPay(false);
-    }
-  }
-
-  async function uploadProof() {
-    if (!paymentIntentId || !proofFile) {
-      setPayError(tm("pickProof"));
-      return;
-    }
-    setUploading(true);
-    setPayError(null);
-    try {
-      const form = new FormData();
-      form.append("proof", proofFile);
-      const res = await fetch(`/api/payments/intents/${paymentIntentId}/proof`, {
-        method: "POST",
-        body: form,
-      });
-      const json = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error || tm("uploadError"));
-      }
-      onSubscriptionChange({
-        status: "pending_payment",
-        isActive: false,
-        activeUntil: null,
-      });
-      setPayStep("done");
-    } catch (e) {
-      setPayError(e instanceof Error ? e.message : tm("uploadErrorShort"));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  if (!mounted) return null;
-
-  const installUrl = installHref;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1c1917]/55 p-3 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="shopify-connect-title"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#ece7e0] bg-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-[#f0ebe4] px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-              {tm("compareEyebrow")}
-            </p>
-            <h3
-              id="shopify-connect-title"
-              className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]"
-            >
-              {payStep === "deposit"
-                ? tm("depositTitle")
-                : awaitingReview
-                  ? tm("proofReviewTitle")
-                  : isActive
-                    ? tm("activeTitle")
-                    : tm("offerTitle")}
-            </h3>
-            {domain ? (
-              <p className="mt-1.5 break-all font-mono text-[12px] text-[#8a8177]">
-                {domain}
-              </p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-10 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-[#8a8177] transition hover:bg-[#faf8f5] hover:text-[#1c1917] sm:min-h-0 sm:px-2.5"
-          >
-            {tCommon("close")}
-          </button>
-        </div>
-
-        {payStep === "offer" ? (
-          <div className="grid gap-0 sm:grid-cols-2">
-            <div className="flex flex-col border-b border-[#f0ebe4] px-5 py-5 sm:border-b-0 sm:border-r sm:px-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a8177]">
-                {tm("includedEyebrow")}
-              </p>
-              <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-                {tm("includedTitle")}
-              </p>
-              <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
-                <li className="flex gap-2">
-                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  {tm("freeFeature1")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  {tm("freeFeature2")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  {tm("freeFeature3")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 text-[#a8a29e]">✓</span>
-                  {tm("freeFeature4")}
-                </li>
-              </ul>
-              <div className="mt-4 border-t border-[#f0ebe4] pt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                  {tm("price")}
-                </p>
-                <p className="mt-1 text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
-                  $0{" "}
-                  <span className="text-[12px] font-medium text-[#6b645c]">
-                    · {tm("free")}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col px-5 py-5 sm:px-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#c2410c]">
-                {t("shopifyOfferEyebrow")}
-              </p>
-              <p className="mt-2 text-[15px] font-bold text-[#1c1917]">
-                {tm("paidTitle")}
-              </p>
-              <ul className="mt-3 flex-1 space-y-2.5 text-[12.5px] leading-5 text-[#5c564e]">
-                <li className="flex gap-2">
-                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  {t("shopifyBenefit1")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  {t("shopifyBenefit2")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  {t("shopifyBenefit3")}
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 font-semibold text-[#c2410c]">→</span>
-                  {t("shopifyBenefit4")}
-                </li>
-              </ul>
-              <div className="mt-4 border-t border-[#f0ebe4] pt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8177]">
-                  {t("shopifyPriceLabel")}
-                </p>
-                <p className="mt-1 flex flex-wrap items-baseline gap-2">
-                  <span className="text-[14px] font-medium tabular-nums text-[#b0a89e] line-through">
-                    $40
-                  </span>
-                  <span className="text-[1.1rem] font-bold tabular-nums text-[#1c1917]">
-                    $20
-                  </span>
-                  <span className="text-[11px] font-medium text-[#6b645c]">
-                    {t("shopifyPerMonth")}
-                  </span>
-                </p>
-                {payError ? (
-                  <p className="mt-2 text-[12px] text-[#b91c1c]">{payError}</p>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={loadingPay}
-                  onClick={() => void startDeposit()}
-                  className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12] disabled:opacity-60"
-                >
-                  {loadingPay ? tm("preparing") : tm("payCta")}
-                </button>
-                <p className="mt-2 text-[11px] leading-4 text-[#9a9187]">
-                  {tm("voucherShort")}
-                </p>
-                <a
-                  href={`https://wa.me/51933484150?text=${encodeURIComponent(
-                    t("shopifyWhatsappPrefill"),
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#dcfce7] bg-[#f0fdf4] px-3 py-2.5 text-[12.5px] font-semibold text-[#166534] transition hover:bg-[#ecfdf5]"
-                >
-                  <svg
-                    className="h-4 w-4 text-[#25D366]"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden
-                  >
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.881 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  {t("shopifyWhatsappTitle")}
-                </a>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {payStep === "deposit" ? (
-          <div className="space-y-4 px-5 py-5 sm:px-6">
-            <p className="text-[13px] leading-5 text-[#5c564e]">
-              {tm("depositBody")}
-            </p>
-            <div className="space-y-3">
-              {bankAccounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3"
-                >
-                  <p className="text-[12px] font-bold text-[#1c1917]">
-                    {acc.label}
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#5c564e]">
-                    {tm("holder", { name: acc.holder })}
-                  </p>
-                  <p className="mt-0.5 break-all font-mono text-[12px] text-[#1c1917]">
-                    {tm("account", { number: acc.accountNumber })}
-                  </p>
-                  {acc.cci ? (
-                    <p className="mt-0.5 break-all font-mono text-[12px] text-[#1c1917]">
-                      {tm("cci", { cci: acc.cci })}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.1em] text-[#8a8177]">
-              {tm("proof")}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="mt-1.5 block w-full text-[13px] font-medium normal-case tracking-normal text-[#1c1917]"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            {payError ? (
-              <p className="text-[12px] text-[#b91c1c]">{payError}</p>
-            ) : null}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => setPayStep("offer")}
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[#e7e0d8] px-4 text-[13px] font-semibold text-[#5c564e]"
-              >
-                {tCommon("back")}
-              </button>
-              <button
-                type="button"
-                disabled={uploading || !proofFile}
-                onClick={() => void uploadProof()}
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#1c1917] px-4 text-[13px] font-semibold text-white disabled:opacity-60"
-              >
-                {uploading ? tm("uploading") : tm("sendVoucher")}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {payStep === "done" ? (
-          <div className="space-y-4 px-5 py-5 sm:px-6">
-            {isActive ? (
-              <>
-                <p className="text-[13px] leading-5 text-[#5c564e]">
-                  {subscription?.activeUntil
-                    ? tm("activeUntil", {
-                        date: subscription.activeUntil.slice(0, 10),
-                      })
-                    : tm("activeNoUntil")}
-                </p>
-                <a
-                  href={installUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#ff781f] px-4 text-[13px] font-semibold text-white transition hover:bg-[#f06a12]"
-                >
-                  {tm("installInShopify")}
-                </a>
-                <button
-                  type="button"
-                  disabled={linkBusy}
-                  onClick={() => {
-                    void (async () => {
-                      setLinkBusy(true);
-                      setLinkFeedback(null);
-                      setPayError(null);
-                      try {
-                        const res = await fetch("/api/profit/link-retry", {
-                          method: "POST",
-                          cache: "no-store",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            shopDomain: domain || undefined,
-                          }),
-                        });
-                        const json = (await res.json()) as {
-                          ok?: boolean;
-                          message?: string;
-                          error?: string;
-                        };
-                        if (!res.ok || !json.ok) {
-                          throw new Error(
-                            json.error || t("shopifyLinkFailDefault"),
-                          );
-                        }
-                        setLinkFeedback(json.message || t("shopifyLinkedMsg"));
-                        await onLinked?.();
-                      } catch (e) {
-                        setPayError(
-                          e instanceof Error
-                            ? e.message
-                            : t("shopifyLinkError"),
-                        );
-                      } finally {
-                        setLinkBusy(false);
-                      }
-                    })();
-                  }}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-[#e7e0d8] bg-white px-4 text-[13px] font-semibold text-[#1c1917] transition hover:bg-[#faf8f5] disabled:opacity-60"
-                >
-                  {linkBusy ? t("shopifyLinking") : t("shopifyAlreadyInstalled")}
-                </button>
-                {linkFeedback ? (
-                  <p className="text-[12px] font-medium text-emerald-800">
-                    {linkFeedback}
-                  </p>
-                ) : null}
-                {payError ? (
-                  <p className="text-[12px] text-[#b91c1c]">{payError}</p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-[13px] leading-5 text-[#5c564e]">
-                {tm("proofSent")}
-              </p>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </div>,
-    document.body,
-  );
-}

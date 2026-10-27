@@ -33,3 +33,46 @@ export function buildRealProfitInstallUrl(hecomClienteId: string): string {
   }
   return url.toString();
 }
+
+/** Token corto para llamar a la API de Real Profit en nombre del cliente (p:'api'). */
+function signApiToken(hecomClienteId: string): string | null {
+  const secret = process.env.HOLISTIC_LINK_SECRET?.trim();
+  if (!secret) return null;
+  const payload = Buffer.from(
+    JSON.stringify({
+      c: hecomClienteId,
+      p: "api",
+      exp: Math.floor(Date.now() / 1000) + 120,
+    }),
+  ).toString("base64url");
+  const sig = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${sig}`;
+}
+
+/**
+ * POST a Real Profit firmado con el cliente. Sin `www.`: el redirect al dominio
+ * raíz es cross-origin y fetch descarta el header Authorization.
+ */
+export async function callRealProfitApi<T>(
+  path: string,
+  hecomClienteId: string,
+  body: unknown,
+): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
+  const token = signApiToken(hecomClienteId);
+  if (!token) {
+    return {
+      ok: false,
+      status: 503,
+      data: { error: "Falta HOLISTIC_LINK_SECRET en el servidor." } as T & { error?: string },
+    };
+  }
+  const base = realProfitBaseUrl().replace("://www.", "://");
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  return { ok: res.ok, status: res.status, data };
+}
