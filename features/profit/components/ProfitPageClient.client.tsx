@@ -864,6 +864,25 @@ export function ProfitPageClient({
   const [sortAsc, setSortAsc] = useState(false);
   const [bmFilter, setBmFilter] = useState<string>("all");
   const [showAllCampaigns, setShowAllCampaigns] = useState(false);
+  /** El cliente toca «Conectar TikTok Ads» para ver sus métricas (se recuerda en este navegador). */
+  const tiktokKey = `profit.tiktokLinked.${clienteName}`;
+  const [tiktokLinked, setTikTokLinked] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el cliente
+      setTikTokLinked(window.localStorage.getItem(tiktokKey) === "1");
+    } catch {
+      /* sin storage: queda desconectado */
+    }
+  }, [tiktokKey]);
+  function setTikTokLinkedPersist(on: boolean) {
+    setTikTokLinked(on);
+    try {
+      window.localStorage.setItem(tiktokKey, on ? "1" : "0");
+    } catch {
+      /* sin storage */
+    }
+  }
   const [connections, setConnections] = useState<RpConnections | null>(null);
   const [realProfitUrl, setRealProfitUrl] = useState("https://realprofitcod.com");
   /** Link firmado con el cliente: instalar = vincular. */
@@ -1081,52 +1100,21 @@ export function ProfitPageClient({
 
   return (
     <div className="space-y-5">
-      <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
-        />
-        {radarEnabled ? (
-          // z-10: el bloque del título (relative, va después) lo tapaba y el clic no llegaba.
-          <div className="relative z-10 mb-4 flex justify-end sm:absolute sm:right-7 sm:top-6 sm:mb-0">
-            <ProfitSectionSwitch active="analysis" />
-          </div>
-        ) : null}
-        {/* sm+: el selector es absoluto arriba a la derecha; reservar su ancho para que el título no pase por debajo. */}
-        <div className={`relative ${radarEnabled ? "sm:pr-52" : ""}`}>
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
-            {t("heroModule")}
-          </p>
-          <h1 className="mt-1.5 text-[1.55rem] font-bold tracking-[-0.035em] text-[#1c1917] sm:text-[1.75rem]">
-            {t("heroTitle", { name: clienteName })}
-          </h1>
-          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
-            {t("heroSubtitle")}
-          </p>
-          <div className="mt-4 flex flex-wrap items-end gap-3">
-            <ProfitDateRangeField
-              from={from}
-              to={to}
-              max={limaSpendMaxYmd()}
-              onChange={({ from: nextFrom, to: nextTo }) => {
-                const max = limaSpendMaxYmd();
-                let f = nextFrom;
-                let t = nextTo;
-                if (t && t > max) t = max;
-                if (f && f > max) f = max;
-                if (f && t && f > t) f = t;
-                setFrom(f);
-                setTo(t);
-              }}
-            />
-            {loading ? (
-              <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
-                {tCommon("loading")}
-              </p>
-            ) : null}
-          </div>
+      {radarEnabled ? (
+        <div className="flex justify-end">
+          <ProfitSectionSwitch active="analysis" />
         </div>
-      </header>
+      ) : null}
+
+      <RealProfitConnect
+        connections={connections}
+        installUrl={installUrl}
+        realProfitUrl={realProfitUrl}
+        onChanged={refresh}
+        tiktokLinked={tiktokLinked}
+        onTikTokLinkedChange={setTikTokLinkedPersist}
+      />
+
 
       {radarInvite ? <RadarInviteCard /> : null}
 
@@ -1139,578 +1127,624 @@ export function ProfitPageClient({
         </div>
       ) : null}
 
-      <section className="space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%,#fff7f0_100%)] p-5 shadow-[0_14px_36px_-24px_rgb(255_120_31_/_0.55)] sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
-              {t("spendTodayTitle")}
-            </p>
-            <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
-              {t("spendTodaySubtitle")}
-            </h2>
-            <p className="mt-0.5 text-[12px] text-[#8a8177]">{hoyHint}</p>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <p
-              className={`text-[2rem] font-bold leading-none tabular-nums tracking-[-0.04em] sm:text-[2.3rem] ${
-                spendTodayDisplay > 0 ? "text-[#c2410c]" : "text-[#1c1917]"
-              }`}
-              aria-label={t("spendTodayLiveLabel", { date: formatDayShort(todayYmd, bcp47) })}
-            >
-              {live.loading && !live.lastUpdatedAt ? "…" : moneyUsd(spendTodayDisplay)}
-            </p>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-            <span
-              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadgeClass(displayPacing.pacingLabel)}`}
-            >
-              {t(`pacing.${displayPacing.pacingLabel}`)}
-              {displayPacing.pacingRatio != null
-                ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
-                : ""}
-            </span>
-            <button
-              type="button"
-              onClick={() => void live.refresh({ force: true })}
-              disabled={live.loading}
-              className="rounded-full border border-[#ffd7b8] bg-white px-3 py-2.5 text-[11px] font-bold text-[#c2410c] sm:py-1.5 transition hover:bg-[#fff7f0] disabled:opacity-55"
-            >
-              {live.loading ? tCommon("loading") : t("refreshLive")}
-            </button>
-            </div>
-          </div>
-        </div>
-
-        {liveAccounts.length > 0 ? (
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {liveAccounts.slice(0, 6).map((acc) => (
-              <li
-                key={acc.advertiserId}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#f0ebe4] bg-white/80 px-3.5 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[#1c1917]">
-                    {acc.accountName}
-                  </p>
-                  <p className="truncate text-[11px] tabular-nums text-[#9a9187]">
-                    {acc.bmBucket ? `${t("bmLabel")} ${acc.bmBucket} · ` : ""}
-                    {acc.advertiserId}
-                  </p>
-                </div>
-                <p className="shrink-0 text-[14px] font-bold tabular-nums text-[#c2410c]">
-                  {moneyUsd(acc.spendTodayUsd ?? 0)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {live.error ? (
-          <p className="text-[12px] font-medium text-amber-800" role="alert">
-            {analysis
-              ? t("liveFallback", {
-                  error: live.error,
-                  amount: moneyUsd(analysis.spendToday),
-                })
-              : t("liveErrorOnly", { error: live.error })}
-          </p>
-        ) : null}
-      </section>
-
-      {loading && !analysis ? (
-        <div className="space-y-3" role="status" aria-live="polite">
-          <span className="sr-only">{t("loadingAnalysis")}</span>
-          <div className="h-24 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 animate-pulse rounded-2xl border border-[#ece7e0] bg-white"
-              />
-            ))}
-          </div>
-          <div className="h-64 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
-        </div>
-      ) : analysis ? (
+      {/* Métricas TikTok: solo cuando el cliente conectó TikTok Ads en el panel. */}
+      {tiktokLinked ? (
         <>
-          {displaySignals.length > 0 ? (
-            <section className="space-y-3 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                    {t("signals")}
-                  </p>
-                  <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
-                    {t("signalsTitle")}
-                  </h2>
-                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                    {isStaff ? t("signalsStaffHint") : t("signalsClientHint")}
-                  </p>
-                </div>
-                {isStaff ? (
-                  <p className="rounded-lg bg-[#fff7f0] px-2.5 py-1 text-[11px] font-semibold text-[#c2410c]">
-                    {t("signalsStaffBadge", {
-                      warn: warnSignalCount,
-                      total: displaySignals.length,
-                    })}
-                  </p>
-                ) : null}
-              </div>
-              <ul className="space-y-2">
-                {displaySignals.map((signal, idx) => {
-                  const tone =
-                    signal.severity === "critical"
-                      ? "critical"
-                      : signal.severity === "warn"
-                        ? "warn"
-                        : "info";
-                  return (
-                    <li
-                      key={`${signal.kind}-${idx}-${signal.title}`}
-                      className={`rounded-xl border px-3.5 py-3 ${
-                        tone === "critical"
-                          ? "border-[#fecaca] bg-[#fef2f2]"
-                          : tone === "warn"
-                            ? "border-[#ffd7b8] bg-[#fff7f0]"
-                            : "border-[#ece7e0] bg-[#faf8f5]"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
-                            tone === "critical"
-                              ? "bg-[#fee2e2] text-[#b91c1c]"
-                              : tone === "warn"
-                                ? "bg-[#ffedd5] text-[#c2410c]"
-                                : "bg-[#e7e0d8] text-[#5c564e]"
-                          }`}
-                        >
-                          {tone === "critical"
-                            ? t("severityCritical")
-                            : tone === "warn"
-                              ? t("severityWarn")
-                              : t("severityInfo")}
-                        </span>
-                        {isStaff ? (
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
-                            {signal.kind}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1.5 text-[13px] font-semibold text-[#1c1917]">
-                        {signal.title}
-                      </p>
-                      <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
-                        {signal.detail}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ) : null}
-
-          <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
-                  {t("campaigns")}
+        <header className="relative overflow-hidden rounded-2xl border border-[#ece7e0] bg-[linear-gradient(145deg,#fffaf6_0%,#ffffff_45%,#f7f4ef_100%)] px-5 py-6 sm:px-7">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#ff781f]/[0.12] blur-3xl"
+          />
+          <div className="relative">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#ff781f]">
+              {t("rp.tiktokTitle")}
+            </p>
+            <h2 className="mt-1.5 text-[1.35rem] font-bold tracking-[-0.03em] text-[#1c1917]">
+              {t("heroTitle", { name: clienteName })}
+            </h2>
+            <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#5c564e]">
+              {t("heroSubtitle")}
+            </p>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <ProfitDateRangeField
+                from={from}
+                to={to}
+                max={limaSpendMaxYmd()}
+                onChange={({ from: nextFrom, to: nextTo }) => {
+                  const max = limaSpendMaxYmd();
+                  let f = nextFrom;
+                  let t = nextTo;
+                  if (t && t > max) t = max;
+                  if (f && f > max) f = max;
+                  if (f && t && f > t) f = t;
+                  setFrom(f);
+                  setTo(t);
+                }}
+              />
+              {loading ? (
+                <p className="pb-3 text-[11px] font-semibold text-[#c2410c]">
+                  {tCommon("loading")}
                 </p>
-                <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
-                  {t("campaignsSubtitle")}
-                </h2>
-                <p className="mt-0.5 text-[12px] text-[#5c564e]">
-                  {t("rangeMeta", {
-                    range: formatRangeLabel(analysis.from, analysis.to, bcp47),
-                  })}
-                  {analysis.daysWithActivity
-                    ? ` · ${t("daysWithSpend", { count: analysis.daysWithActivity })}`
-                    : ""}
-                  {analysis.perf?.fetchedAt
-                    ? ` · ${t("perfUpdated", {
-                        time:
-                          formatSyncTime(analysis.perf.fetchedAt, bcp47) ?? "—",
-                      })}`
-                    : ""}
-                  {` · ${t("inRangeSpend")} `}
-                  <span className="font-semibold text-[#1c1917]">
-                    {moneyUsd(analysis.spendInRange)}
-                  </span>
-                </p>
-              </div>
-              {bmOptions.length > 0 ? (
-                <label className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a8177]">
-                  BM
-                  <select
-                    className="mt-1 block min-w-[140px] rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2 text-[13px] font-medium text-[#1c1917]"
-                    value={bmFilter}
-                    onChange={(e) => setBmFilter(e.target.value)}
-                  >
-                    <option value="all">{t("allBm")}</option>
-                    {bmOptions.map((bm) => (
-                      <option key={bm} value={bm}>
-                        {bm}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               ) : null}
             </div>
+          </div>
+        </header>
 
-            {analysis.perf ? (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi
-                  label={t("kpiImpressions")}
-                  value={
-                    analysis.perf.available
-                      ? analysis.perf.impressions.toLocaleString(bcp47)
-                      : "—"
-                  }
-                  hint={
-                    analysis.perf.error
-                      ? analysis.perf.error
-                      : t("kpiAccountsOk", {
-                          ok: analysis.perf.advertisersOk,
-                          total: analysis.perf.advertisersQueried,
-                        })
-                  }
-                />
-                <Kpi
-                  label={t("kpiClicks")}
-                  value={
-                    analysis.perf.available
-                      ? analysis.perf.clicks.toLocaleString(bcp47)
-                      : "—"
-                  }
-                  hint={
-                    analysis.perf.conversions > 0
-                      ? t("kpiConv", {
-                          count: analysis.perf.conversions.toLocaleString(bcp47),
-                        })
-                      : t("kpiReportTikTok")
-                  }
-                />
-                <Kpi
-                  label={t("kpiAvgCtr")}
-                  value={
-                    analysis.perf.avgCtr != null
-                      ? `${analysis.perf.avgCtr.toFixed(2)}%`
-                      : "—"
-                  }
-                  hint={t("kpiCtrHint")}
-                />
-                <Kpi
-                  label={t("kpiAvgCpc")}
-                  value={
-                    analysis.perf.avgCpc != null
-                      ? moneyUsd(analysis.perf.avgCpc)
-                      : "—"
-                  }
-                  hint={
-                    analysis.perf.avgCpm != null
-                      ? t("kpiCpmPrefix", {
-                          amount: moneyUsd(analysis.perf.avgCpm),
-                        })
-                      : t("kpiSpendClicks")
-                  }
-                  accent
-                />
-              </div>
-            ) : null}
-
-            {analysis.hasCodLink ? (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi
-                  label={t("kpiCollectedCod")}
-                  value={formatMoney(analysis.collectedRevenue, "PEN")}
-                  hint={t("kpiOrdersCollected", {
-                    count: analysis.ordersCollected ?? 0,
-                  })}
-                />
-                <Kpi
-                  label={t("kpiCpaCollected")}
-                  value={
-                    analysis.cpaCollected != null
-                      ? moneyUsd(analysis.cpaCollected)
-                      : "—"
-                  }
-                  hint={t("kpiCpaHint")}
-                />
-                <Kpi
-                  label={t("kpiRoasCollected")}
-                  value={
-                    analysis.roasCollected != null
-                      ? `${analysis.roasCollected.toFixed(2)}x`
-                      : "—"
-                  }
-                  hint={t("kpiRoasHint")}
-                  accent
-                />
-                <Kpi
-                  label={t("kpiRoasEffective")}
-                  value={
-                    analysis.roasEffective != null
-                      ? `${analysis.roasEffective.toFixed(2)}x`
-                      : "—"
-                  }
-                  hint={
-                    analysis.aboveBreakEven == null
-                      ? t("kpiBeFee", {
-                          be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
-                          fee: analysis.feePercent ?? "—",
-                        })
-                      : analysis.aboveBreakEven
-                        ? t("kpiAboveBe", {
-                            be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
-                            fee: analysis.feePercent ?? "—",
-                          })
-                        : t("kpiBelowBe", {
-                            be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
-                            fee: analysis.feePercent ?? "—",
-                          })
-                  }
-                />
-              </div>
-            ) : analysis.feePercent != null ? (
-              <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3 text-[12px] text-[#5c564e]">
-                {t("feeHolisticLine", {
-                  fee: analysis.feePercent,
-                  spend: moneyUsd(
-                    analysis.effectiveAdSpend ?? analysis.spendInRange,
-                  ),
-                  be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
-                })}{" "}
-                {t("emptyConnectStore")}
-              </div>
-            ) : null}
-
-            {analysis.hasCodLink && analysis.netProfit != null ? (
-              <div
-                className={`rounded-xl border px-4 py-3 ${
-                  analysis.netProfit >= 0
-                    ? "border-[#bfe3c9] bg-[#f2faf4]"
-                    : "border-[#f3c4c4] bg-[#fdf3f3]"
+        <section className="space-y-4 rounded-2xl border border-[#ffd7b8] bg-[linear-gradient(160deg,#fffaf6_0%,#ffffff_55%,#fff7f0_100%)] p-5 shadow-[0_14px_36px_-24px_rgb(255_120_31_/_0.55)] sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#ff781f]">
+                {t("spendTodayTitle")}
+              </p>
+              <h2 className="mt-1 text-[1.15rem] font-bold tracking-[-0.02em] text-[#1c1917]">
+                {t("spendTodaySubtitle")}
+              </h2>
+              <p className="mt-0.5 text-[12px] text-[#8a8177]">{hoyHint}</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <p
+                className={`text-[2rem] font-bold leading-none tabular-nums tracking-[-0.04em] sm:text-[2.3rem] ${
+                  spendTodayDisplay > 0 ? "text-[#c2410c]" : "text-[#1c1917]"
                 }`}
+                aria-label={t("spendTodayLiveLabel", { date: formatDayShort(todayYmd, bcp47) })}
               >
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a9187]">
-                  {t("netProfitLabel")}
-                </p>
-                <p
-                  className={`mt-1 text-[1.35rem] font-bold tabular-nums tracking-[-0.02em] ${
-                    analysis.netProfit >= 0 ? "text-[#15803d]" : "text-[#b91c1c]"
-                  }`}
+                {live.loading && !live.lastUpdatedAt ? "…" : moneyUsd(spendTodayDisplay)}
+              </p>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+              <span
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${pacingBadgeClass(displayPacing.pacingLabel)}`}
+              >
+                {t(`pacing.${displayPacing.pacingLabel}`)}
+                {displayPacing.pacingRatio != null
+                  ? ` · ${displayPacing.pacingRatio.toFixed(2)}×`
+                  : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => void live.refresh({ force: true })}
+                disabled={live.loading}
+                className="rounded-full border border-[#ffd7b8] bg-white px-3 py-2.5 text-[11px] font-bold text-[#c2410c] sm:py-1.5 transition hover:bg-[#fff7f0] disabled:opacity-55"
+              >
+                {live.loading ? tCommon("loading") : t("refreshLive")}
+              </button>
+              </div>
+            </div>
+          </div>
+
+          {liveAccounts.length > 0 ? (
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {liveAccounts.slice(0, 6).map((acc) => (
+                <li
+                  key={acc.advertiserId}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[#f0ebe4] bg-white/80 px-3.5 py-2.5"
                 >
-                  {formatMoney(analysis.netProfit, "PEN")}
-                </p>
-                <p className="mt-0.5 break-words text-[11px] text-[#5c564e]">
-                  {t("netProfitBreakdown", {
-                    collected: formatMoney(analysis.collectedRevenue, "PEN"),
-                    product: formatMoney(analysis.cogsTotal ?? 0, "PEN"),
-                    courier: formatMoney(analysis.courierTotal ?? 0, "PEN"),
-                    ads: moneyUsd(
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[#1c1917]">
+                      {acc.accountName}
+                    </p>
+                    <p className="truncate text-[11px] tabular-nums text-[#9a9187]">
+                      {acc.bmBucket ? `${t("bmLabel")} ${acc.bmBucket} · ` : ""}
+                      {acc.advertiserId}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-[14px] font-bold tabular-nums text-[#c2410c]">
+                    {moneyUsd(acc.spendTodayUsd ?? 0)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {live.error ? (
+            <p className="text-[12px] font-medium text-amber-800" role="alert">
+              {analysis
+                ? t("liveFallback", {
+                    error: live.error,
+                    amount: moneyUsd(analysis.spendToday),
+                  })
+                : t("liveErrorOnly", { error: live.error })}
+            </p>
+          ) : null}
+        </section>
+
+        {loading && !analysis ? (
+          <div className="space-y-3" role="status" aria-live="polite">
+            <span className="sr-only">{t("loadingAnalysis")}</span>
+            <div className="h-24 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 animate-pulse rounded-2xl border border-[#ece7e0] bg-white"
+                />
+              ))}
+            </div>
+            <div className="h-64 animate-pulse rounded-2xl border border-[#ece7e0] bg-white" />
+          </div>
+        ) : analysis ? (
+          <>
+            {displaySignals.length > 0 ? (
+              <section className="space-y-3 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                      {t("signals")}
+                    </p>
+                    <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
+                      {t("signalsTitle")}
+                    </h2>
+                    <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                      {isStaff ? t("signalsStaffHint") : t("signalsClientHint")}
+                    </p>
+                  </div>
+                  {isStaff ? (
+                    <p className="rounded-lg bg-[#fff7f0] px-2.5 py-1 text-[11px] font-semibold text-[#c2410c]">
+                      {t("signalsStaffBadge", {
+                        warn: warnSignalCount,
+                        total: displaySignals.length,
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+                <ul className="space-y-2">
+                  {displaySignals.map((signal, idx) => {
+                    const tone =
+                      signal.severity === "critical"
+                        ? "critical"
+                        : signal.severity === "warn"
+                          ? "warn"
+                          : "info";
+                    return (
+                      <li
+                        key={`${signal.kind}-${idx}-${signal.title}`}
+                        className={`rounded-xl border px-3.5 py-3 ${
+                          tone === "critical"
+                            ? "border-[#fecaca] bg-[#fef2f2]"
+                            : tone === "warn"
+                              ? "border-[#ffd7b8] bg-[#fff7f0]"
+                              : "border-[#ece7e0] bg-[#faf8f5]"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] ${
+                              tone === "critical"
+                                ? "bg-[#fee2e2] text-[#b91c1c]"
+                                : tone === "warn"
+                                  ? "bg-[#ffedd5] text-[#c2410c]"
+                                  : "bg-[#e7e0d8] text-[#5c564e]"
+                            }`}
+                          >
+                            {tone === "critical"
+                              ? t("severityCritical")
+                              : tone === "warn"
+                                ? t("severityWarn")
+                                : t("severityInfo")}
+                          </span>
+                          {isStaff ? (
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9a9187]">
+                              {signal.kind}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1.5 text-[13px] font-semibold text-[#1c1917]">
+                          {signal.title}
+                        </p>
+                        <p className="mt-0.5 text-[12px] leading-5 text-[#5c564e]">
+                          {signal.detail}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
+
+            <section className="space-y-4 rounded-2xl border border-[#ece7e0] bg-white p-5 sm:p-6">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#8a8177]">
+                    {t("campaigns")}
+                  </p>
+                  <h2 className="mt-1 text-[1.1rem] font-bold text-[#1c1917]">
+                    {t("campaignsSubtitle")}
+                  </h2>
+                  <p className="mt-0.5 text-[12px] text-[#5c564e]">
+                    {t("rangeMeta", {
+                      range: formatRangeLabel(analysis.from, analysis.to, bcp47),
+                    })}
+                    {analysis.daysWithActivity
+                      ? ` · ${t("daysWithSpend", { count: analysis.daysWithActivity })}`
+                      : ""}
+                    {analysis.perf?.fetchedAt
+                      ? ` · ${t("perfUpdated", {
+                          time:
+                            formatSyncTime(analysis.perf.fetchedAt, bcp47) ?? "—",
+                        })}`
+                      : ""}
+                    {` · ${t("inRangeSpend")} `}
+                    <span className="font-semibold text-[#1c1917]">
+                      {moneyUsd(analysis.spendInRange)}
+                    </span>
+                  </p>
+                </div>
+                {bmOptions.length > 0 ? (
+                  <label className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8a8177]">
+                    BM
+                    <select
+                      className="mt-1 block min-w-[140px] rounded-xl border border-[#e7e0d8] bg-[#faf8f5] px-3 py-2 text-[13px] font-medium text-[#1c1917]"
+                      value={bmFilter}
+                      onChange={(e) => setBmFilter(e.target.value)}
+                    >
+                      <option value="all">{t("allBm")}</option>
+                      {bmOptions.map((bm) => (
+                        <option key={bm} value={bm}>
+                          {bm}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+
+              {analysis.perf ? (
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <Kpi
+                    label={t("kpiImpressions")}
+                    value={
+                      analysis.perf.available
+                        ? analysis.perf.impressions.toLocaleString(bcp47)
+                        : "—"
+                    }
+                    hint={
+                      analysis.perf.error
+                        ? analysis.perf.error
+                        : t("kpiAccountsOk", {
+                            ok: analysis.perf.advertisersOk,
+                            total: analysis.perf.advertisersQueried,
+                          })
+                    }
+                  />
+                  <Kpi
+                    label={t("kpiClicks")}
+                    value={
+                      analysis.perf.available
+                        ? analysis.perf.clicks.toLocaleString(bcp47)
+                        : "—"
+                    }
+                    hint={
+                      analysis.perf.conversions > 0
+                        ? t("kpiConv", {
+                            count: analysis.perf.conversions.toLocaleString(bcp47),
+                          })
+                        : t("kpiReportTikTok")
+                    }
+                  />
+                  <Kpi
+                    label={t("kpiAvgCtr")}
+                    value={
+                      analysis.perf.avgCtr != null
+                        ? `${analysis.perf.avgCtr.toFixed(2)}%`
+                        : "—"
+                    }
+                    hint={t("kpiCtrHint")}
+                  />
+                  <Kpi
+                    label={t("kpiAvgCpc")}
+                    value={
+                      analysis.perf.avgCpc != null
+                        ? moneyUsd(analysis.perf.avgCpc)
+                        : "—"
+                    }
+                    hint={
+                      analysis.perf.avgCpm != null
+                        ? t("kpiCpmPrefix", {
+                            amount: moneyUsd(analysis.perf.avgCpm),
+                          })
+                        : t("kpiSpendClicks")
+                    }
+                    accent
+                  />
+                </div>
+              ) : null}
+
+              {analysis.hasCodLink ? (
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <Kpi
+                    label={t("kpiCollectedCod")}
+                    value={formatMoney(analysis.collectedRevenue, "PEN")}
+                    hint={t("kpiOrdersCollected", {
+                      count: analysis.ordersCollected ?? 0,
+                    })}
+                  />
+                  <Kpi
+                    label={t("kpiCpaCollected")}
+                    value={
+                      analysis.cpaCollected != null
+                        ? moneyUsd(analysis.cpaCollected)
+                        : "—"
+                    }
+                    hint={t("kpiCpaHint")}
+                  />
+                  <Kpi
+                    label={t("kpiRoasCollected")}
+                    value={
+                      analysis.roasCollected != null
+                        ? `${analysis.roasCollected.toFixed(2)}x`
+                        : "—"
+                    }
+                    hint={t("kpiRoasHint")}
+                    accent
+                  />
+                  <Kpi
+                    label={t("kpiRoasEffective")}
+                    value={
+                      analysis.roasEffective != null
+                        ? `${analysis.roasEffective.toFixed(2)}x`
+                        : "—"
+                    }
+                    hint={
+                      analysis.aboveBreakEven == null
+                        ? t("kpiBeFee", {
+                            be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                            fee: analysis.feePercent ?? "—",
+                          })
+                        : analysis.aboveBreakEven
+                          ? t("kpiAboveBe", {
+                              be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                              fee: analysis.feePercent ?? "—",
+                            })
+                          : t("kpiBelowBe", {
+                              be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                              fee: analysis.feePercent ?? "—",
+                            })
+                    }
+                  />
+                </div>
+              ) : analysis.feePercent != null ? (
+                <div className="rounded-xl border border-[#ece7e0] bg-[#faf8f5] px-4 py-3 text-[12px] text-[#5c564e]">
+                  {t("feeHolisticLine", {
+                    fee: analysis.feePercent,
+                    spend: moneyUsd(
                       analysis.effectiveAdSpend ?? analysis.spendInRange,
                     ),
-                  })}
-                </p>
-                {analysis.hasProductCosts === false ? (
-                  <p className="mt-1 text-[11px] font-semibold text-[#b45309]">
-                    {t("netProfitNoCosts")}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+                    be: analysis.breakEvenRoas?.toFixed(2) ?? "—",
+                  })}{" "}
+                  {t("emptyConnectStore")}
+                </div>
+              ) : null}
 
-            {sortedCampaigns.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
-                <p className="text-[13px] font-semibold text-[#1c1917]">
-                  {t("emptyCampaigns")}
-                </p>
-                <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
-                  {t("emptyTryRange")}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-[#ece7e0]">
-                <table className="min-w-[960px] w-full border-collapse text-left text-[11.5px]">
-                  <thead className="sticky top-0 z-[1] bg-[#f7f4ef] text-[10px] uppercase tracking-[0.07em] text-[#9a9187]">
-                    <tr>
-                      <th className="sticky left-0 z-[2] bg-[#f7f4ef] px-2.5 py-2.5 sm:px-3">
-                        <button
-                          type="button"
-                          className="font-bold uppercase tracking-[0.07em]"
-                          onClick={() => toggleSort("name")}
-                        >
-                          {t("colCampaign")}
-                        </button>
-                      </th>
-                      <th className="whitespace-nowrap px-2.5 py-2.5 font-bold">
-                        {t("colDelivery")}
-                      </th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colBm")}</th>
-                      <th className="px-2.5 py-2.5">
-                        <button
-                          type="button"
-                          className="font-bold uppercase tracking-[0.07em]"
-                          onClick={() => toggleSort("spend")}
-                        >
-                          {t("colSpend")}
-                        </button>
-                      </th>
-                      <th className="px-2.5 py-2.5">
-                        <button
-                          type="button"
-                          className="font-bold uppercase tracking-[0.07em]"
-                          onClick={() => toggleSort("share")}
-                        >
-                          {t("colPct")}
-                        </button>
-                      </th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colImp")}</th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colClicks")}</th>
-                      <th className="px-2.5 py-2.5">
-                        <button
-                          type="button"
-                          className="font-bold uppercase tracking-[0.07em]"
-                          onClick={() => toggleSort("ctr")}
-                        >
-                          {t("colCtr")}
-                        </button>
-                      </th>
-                      <th className="px-2.5 py-2.5">
-                        <button
-                          type="button"
-                          className="font-bold uppercase tracking-[0.07em]"
-                          onClick={() => toggleSort("cpc")}
-                        >
-                          {t("colCpc")}
-                        </button>
-                      </th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colCpm")}</th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colConv")}</th>
-                      <th className="px-2.5 py-2.5 font-bold">{t("colCpa")}</th>
-                      {analysis.hasCodLink ? (
-                        <>
-                          <th className="px-2.5 py-2.5 font-bold">{t("colCharged")}</th>
-                          <th className="px-2.5 py-2.5">
-                            <button
-                              type="button"
-                              className="font-bold uppercase tracking-[0.07em]"
-                              onClick={() => toggleSort("roas")}
-                            >
-                              {t("colRoas")}
-                            </button>
-                          </th>
-                        </>
-                      ) : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(showAllCampaigns ? sortedCampaigns : sortedCampaigns.slice(0, CAMPAIGNS_PREVIEW)).map((c) => {
-                      const idShown = c.campaignExternalId.startsWith("name:")
-                        ? null
-                        : c.campaignExternalId;
-                      const deliveryDate = c.lastStatDate
-                        ? formatDayShort(c.lastStatDate, bcp47)
-                        : formatRangeLabel(analysis.from, analysis.to, bcp47);
-                      const deliveryTime = c.hasTikTokPerf
-                        ? formatSyncTime(analysis.perf?.fetchedAt ?? null, bcp47)
-                        : null;
-                      return (
-                        <tr
-                          key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
-                          className="group border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
-                        >
-                          <td className="sticky left-0 z-[1] max-w-[150px] bg-white px-2.5 py-2.5 group-hover:bg-[#fffaf6] sm:max-w-[240px] sm:px-3">
-                            <p className="truncate font-semibold text-[#1c1917]">
-                              {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
-                            </p>
-                            {isStaff ? (
-                              <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
-                                {idShown ?? t("noId")}
-                                {c.advertiserId ? ` · ${c.advertiserId}` : ""}
-                              </p>
-                            ) : null}
-                          </td>
-                          <td className="whitespace-nowrap px-2.5 py-2.5 align-top">
-                            <p className="font-semibold tabular-nums text-[#1c1917]">
-                              {deliveryDate}
-                            </p>
-                            {isStaff && deliveryTime ? (
-                              <p className="mt-0.5 text-[10px] font-medium text-[#c2410c]">
-                                {t("updatedShort", { time: deliveryTime })}
-                              </p>
-                            ) : null}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
-                            {c.bm ?? "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#1c1917]">
-                            {moneyUsd(c.spend)}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
-                            {(c.spendShare * 100).toFixed(1)}%
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.impressions != null
-                              ? c.impressions.toLocaleString(bcp47)
-                              : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.clicks != null
-                              ? c.clicks.toLocaleString(bcp47)
-                              : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.ctr != null ? `${c.ctr.toFixed(2)}%` : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.cpc != null ? moneyUsd(c.cpc) : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.cpm != null ? moneyUsd(c.cpm) : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.conversions != null
-                              ? c.conversions.toLocaleString(bcp47)
-                              : "—"}
-                          </td>
-                          <td className="px-2.5 py-2.5 tabular-nums">
-                            {c.costPerConversion != null
-                              ? moneyUsd(c.costPerConversion)
-                              : "—"}
-                          </td>
-                          {analysis.hasCodLink ? (
-                            <>
-                              <td className="px-2.5 py-2.5 tabular-nums">
-                                {formatMoney(c.collectedEstimated, "PEN")}
-                              </td>
-                              <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#c2410c]">
-                                {c.roasEstimated != null
-                                  ? `${c.roasEstimated.toFixed(2)}x`
-                                  : "—"}
-                              </td>
-                            </>
-                          ) : null}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {sortedCampaigns.length > CAMPAIGNS_PREVIEW ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllCampaigns((v) => !v)}
-                    className="w-full border-t border-[#f0ebe4] bg-[#faf8f5] py-2.5 text-[12px] font-semibold text-[#c2410c] transition hover:bg-[#fff7f0]"
+              {analysis.hasCodLink && analysis.netProfit != null ? (
+                <div
+                  className={`rounded-xl border px-4 py-3 ${
+                    analysis.netProfit >= 0
+                      ? "border-[#bfe3c9] bg-[#f2faf4]"
+                      : "border-[#f3c4c4] bg-[#fdf3f3]"
+                  }`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9a9187]">
+                    {t("netProfitLabel")}
+                  </p>
+                  <p
+                    className={`mt-1 text-[1.35rem] font-bold tabular-nums tracking-[-0.02em] ${
+                      analysis.netProfit >= 0 ? "text-[#15803d]" : "text-[#b91c1c]"
+                    }`}
                   >
-                    {showAllCampaigns
-                      ? t("campaignsShowLess")
-                      : t("campaignsShowAll", { count: sortedCampaigns.length })}
-                  </button>
-                ) : null}
-              </div>
-            )}
-          </section>
+                    {formatMoney(analysis.netProfit, "PEN")}
+                  </p>
+                  <p className="mt-0.5 break-words text-[11px] text-[#5c564e]">
+                    {t("netProfitBreakdown", {
+                      collected: formatMoney(analysis.collectedRevenue, "PEN"),
+                      product: formatMoney(analysis.cogsTotal ?? 0, "PEN"),
+                      courier: formatMoney(analysis.courierTotal ?? 0, "PEN"),
+                      ads: moneyUsd(
+                        analysis.effectiveAdSpend ?? analysis.spendInRange,
+                      ),
+                    })}
+                  </p>
+                  {analysis.hasProductCosts === false ? (
+                    <p className="mt-1 text-[11px] font-semibold text-[#b45309]">
+                      {t("netProfitNoCosts")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {sortedCampaigns.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#e0d8ce] bg-[#faf8f5] px-4 py-8 text-center">
+                  <p className="text-[13px] font-semibold text-[#1c1917]">
+                    {t("emptyCampaigns")}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[#5c564e]">
+                    {t("emptyTryRange")}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-[#ece7e0]">
+                  <table className="min-w-[960px] w-full border-collapse text-left text-[11.5px]">
+                    <thead className="sticky top-0 z-[1] bg-[#f7f4ef] text-[10px] uppercase tracking-[0.07em] text-[#9a9187]">
+                      <tr>
+                        <th className="sticky left-0 z-[2] bg-[#f7f4ef] px-2.5 py-2.5 sm:px-3">
+                          <button
+                            type="button"
+                            className="font-bold uppercase tracking-[0.07em]"
+                            onClick={() => toggleSort("name")}
+                          >
+                            {t("colCampaign")}
+                          </button>
+                        </th>
+                        <th className="whitespace-nowrap px-2.5 py-2.5 font-bold">
+                          {t("colDelivery")}
+                        </th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colBm")}</th>
+                        <th className="px-2.5 py-2.5">
+                          <button
+                            type="button"
+                            className="font-bold uppercase tracking-[0.07em]"
+                            onClick={() => toggleSort("spend")}
+                          >
+                            {t("colSpend")}
+                          </button>
+                        </th>
+                        <th className="px-2.5 py-2.5">
+                          <button
+                            type="button"
+                            className="font-bold uppercase tracking-[0.07em]"
+                            onClick={() => toggleSort("share")}
+                          >
+                            {t("colPct")}
+                          </button>
+                        </th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colImp")}</th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colClicks")}</th>
+                        <th className="px-2.5 py-2.5">
+                          <button
+                            type="button"
+                            className="font-bold uppercase tracking-[0.07em]"
+                            onClick={() => toggleSort("ctr")}
+                          >
+                            {t("colCtr")}
+                          </button>
+                        </th>
+                        <th className="px-2.5 py-2.5">
+                          <button
+                            type="button"
+                            className="font-bold uppercase tracking-[0.07em]"
+                            onClick={() => toggleSort("cpc")}
+                          >
+                            {t("colCpc")}
+                          </button>
+                        </th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colCpm")}</th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colConv")}</th>
+                        <th className="px-2.5 py-2.5 font-bold">{t("colCpa")}</th>
+                        {analysis.hasCodLink ? (
+                          <>
+                            <th className="px-2.5 py-2.5 font-bold">{t("colCharged")}</th>
+                            <th className="px-2.5 py-2.5">
+                              <button
+                                type="button"
+                                className="font-bold uppercase tracking-[0.07em]"
+                                onClick={() => toggleSort("roas")}
+                              >
+                                {t("colRoas")}
+                              </button>
+                            </th>
+                          </>
+                        ) : null}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(showAllCampaigns ? sortedCampaigns : sortedCampaigns.slice(0, CAMPAIGNS_PREVIEW)).map((c) => {
+                        const idShown = c.campaignExternalId.startsWith("name:")
+                          ? null
+                          : c.campaignExternalId;
+                        const deliveryDate = c.lastStatDate
+                          ? formatDayShort(c.lastStatDate, bcp47)
+                          : formatRangeLabel(analysis.from, analysis.to, bcp47);
+                        const deliveryTime = c.hasTikTokPerf
+                          ? formatSyncTime(analysis.perf?.fetchedAt ?? null, bcp47)
+                          : null;
+                        return (
+                          <tr
+                            key={`${c.platform}-${c.campaignExternalId}-${c.advertiserId ?? ""}`}
+                            className="group border-t border-[#f0ebe4] hover:bg-[#fffaf6]"
+                          >
+                            <td className="sticky left-0 z-[1] max-w-[150px] bg-white px-2.5 py-2.5 group-hover:bg-[#fffaf6] sm:max-w-[240px] sm:px-3">
+                              <p className="truncate font-semibold text-[#1c1917]">
+                                {displayCampaignTitle(c.campaignName, c.campaignExternalId)}
+                              </p>
+                              {isStaff ? (
+                                <p className="mt-0.5 truncate font-mono text-[10px] tabular-nums text-[#9a9187]">
+                                  {idShown ?? t("noId")}
+                                  {c.advertiserId ? ` · ${c.advertiserId}` : ""}
+                                </p>
+                              ) : null}
+                            </td>
+                            <td className="whitespace-nowrap px-2.5 py-2.5 align-top">
+                              <p className="font-semibold tabular-nums text-[#1c1917]">
+                                {deliveryDate}
+                              </p>
+                              {isStaff && deliveryTime ? (
+                                <p className="mt-0.5 text-[10px] font-medium text-[#c2410c]">
+                                  {t("updatedShort", { time: deliveryTime })}
+                                </p>
+                              ) : null}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
+                              {c.bm ?? "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#1c1917]">
+                              {moneyUsd(c.spend)}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums text-[#6b645c]">
+                              {(c.spendShare * 100).toFixed(1)}%
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.impressions != null
+                                ? c.impressions.toLocaleString(bcp47)
+                                : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.clicks != null
+                                ? c.clicks.toLocaleString(bcp47)
+                                : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.ctr != null ? `${c.ctr.toFixed(2)}%` : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.cpc != null ? moneyUsd(c.cpc) : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.cpm != null ? moneyUsd(c.cpm) : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.conversions != null
+                                ? c.conversions.toLocaleString(bcp47)
+                                : "—"}
+                            </td>
+                            <td className="px-2.5 py-2.5 tabular-nums">
+                              {c.costPerConversion != null
+                                ? moneyUsd(c.costPerConversion)
+                                : "—"}
+                            </td>
+                            {analysis.hasCodLink ? (
+                              <>
+                                <td className="px-2.5 py-2.5 tabular-nums">
+                                  {formatMoney(c.collectedEstimated, "PEN")}
+                                </td>
+                                <td className="px-2.5 py-2.5 font-semibold tabular-nums text-[#c2410c]">
+                                  {c.roasEstimated != null
+                                    ? `${c.roasEstimated.toFixed(2)}x`
+                                    : "—"}
+                                </td>
+                              </>
+                            ) : null}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {sortedCampaigns.length > CAMPAIGNS_PREVIEW ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCampaigns((v) => !v)}
+                      className="w-full border-t border-[#f0ebe4] bg-[#faf8f5] py-2.5 text-[12px] font-semibold text-[#c2410c] transition hover:bg-[#fff7f0]"
+                    >
+                      {showAllCampaigns
+                        ? t("campaignsShowLess")
+                        : t("campaignsShowAll", { count: sortedCampaigns.length })}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </section>
+          </>
+        ) : null}
         </>
       ) : null}
+
 
       {snapshots.length > 0 ? (
         <section className="space-y-3">
@@ -1802,12 +1836,6 @@ export function ProfitPageClient({
         </section>
       ) : null}
 
-      <RealProfitConnect
-        connections={connections}
-        installUrl={installUrl}
-        realProfitUrl={realProfitUrl}
-        onChanged={refresh}
-      />
     </div>
   );
 }

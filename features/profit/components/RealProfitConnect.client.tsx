@@ -139,18 +139,23 @@ export function RealProfitConnect({
   installUrl,
   realProfitUrl,
   onChanged,
+  tiktokLinked,
+  onTikTokLinkedChange,
 }: {
   connections: RpConnections | null;
   installUrl: string | null;
   realProfitUrl: string;
   onChanged: () => Promise<void> | void;
+  /** El cliente tocó «Conectar TikTok Ads»: se muestran sus métricas. */
+  tiktokLinked: boolean;
+  onTikTokLinkedChange: (on: boolean) => void;
 }) {
   const t = useTranslations("profit.rp");
   const c = connections;
   const shopifyOn = Boolean(c?.shopify.connected);
   const connectedCount = [
     shopifyOn,
-    c?.tiktok.connected,
+    c?.tiktok.connected && tiktokLinked,
     c?.meta.connected,
     (c?.courier.ordersFromCourier ?? 0) > 0,
   ].filter(Boolean).length;
@@ -356,13 +361,41 @@ export function RealProfitConnect({
           step={2}
           logo={logos.tiktok}
           title={t("tiktokTitle")}
-          status={c?.tiktok.connected ? <StatusPill tone="auto">{t("automatic")}</StatusPill> : <StatusPill tone="locked">{t("noAccounts")}</StatusPill>}
+          status={
+            !c?.tiktok.connected ? (
+              <StatusPill tone="locked">{t("noAccounts")}</StatusPill>
+            ) : tiktokLinked ? (
+              <StatusPill tone="ok">{t("connected")}</StatusPill>
+            ) : (
+              <StatusPill tone="todo">{t("pending")}</StatusPill>
+            )
+          }
         >
-          <p>
-            {c?.tiktok.connected
-              ? t("tiktokOnBody", { count: c.tiktok.accounts })
-              : t("tiktokOffBody")}
-          </p>
+          {!c?.tiktok.connected ? (
+            <p>{t("tiktokOffBody")}</p>
+          ) : tiktokLinked ? (
+            <>
+              <p>{t("tiktokOnBody", { count: c.tiktok.accounts })}</p>
+              <button
+                type="button"
+                onClick={() => onTikTokLinkedChange(false)}
+                className="mt-2 self-start text-[12px] font-semibold text-[#8a8177] underline-offset-2 hover:underline"
+              >
+                {t("tiktokHide")}
+              </button>
+            </>
+          ) : (
+            <>
+              <p>{t("tiktokConnectBody", { count: c.tiktok.accounts })}</p>
+              <button
+                type="button"
+                onClick={() => onTikTokLinkedChange(true)}
+                className={`${primaryBtn} mt-3 self-start`}
+              >
+                {t("tiktokConnect")}
+              </button>
+            </>
+          )}
         </SourceCard>
 
         {/* 3 · Meta Ads */}
