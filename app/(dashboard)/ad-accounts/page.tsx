@@ -8,7 +8,11 @@ import { PickClienteEmpty } from "@/features/clientes/components/PickClienteEmpt
 import { requirePermission } from "@/lib/auth/guards.server";
 import { filterAdAccounts } from "@/lib/filter/ad-accounts";
 import { getHecomClienteAdAccountsOverview } from "@/lib/hecom/ad-accounts.server";
-import { getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import { getActingAsCliente, getSelectedHecomCliente } from "@/lib/hecom/selected-cliente.server";
+import {
+  resolvePaymentsFundingCapabilities,
+  withActAsClienteView,
+} from "@/lib/payments/funding-roles.server";
 import { getSearchParam } from "@/lib/search-params";
 import { resolveTikTokSelfServeAccountLimit } from "@/lib/integrations/tiktok/bc-create-profiles";
 import { countHecomTikTokAccountsForQuota } from "@/lib/hecom/link-tiktok-cuenta.server";
@@ -49,6 +53,14 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
   const selected = await getSelectedHecomCliente(session.id);
 
   if (!selected) {
+    // Un cliente sin ficha elegida (ej. con dos negocios) debe ver su propio selector,
+    // no el de gerencia: "Ver todos los clientes" no le sirve.
+    const actingAsCliente = await getActingAsCliente(session.id);
+    const funding = withActAsClienteView(
+      await resolvePaymentsFundingCapabilities({ email: session.email, role: session.role }),
+      actingAsCliente,
+    );
+    const canChangeCliente = funding.isStaff || funding.isSuperAdmin || actingAsCliente;
     return (
       <div className={`${dashboardClasses.page} pb-[env(safe-area-inset-bottom)] md:pb-0`}>
         <AdAccountsPageHeader
@@ -62,7 +74,10 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
           hecomScoped={false}
           hideCreate
         />
-        <PickClienteEmpty section="las cuentas publicitarias" mode="staff" />
+        <PickClienteEmpty
+          section="las cuentas publicitarias"
+          mode={canChangeCliente ? "staff" : "cliente"}
+        />
       </div>
     );
   }
