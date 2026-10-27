@@ -12,7 +12,6 @@ import {
   setSharedBmAdvertiserBudgetAbsolute,
 } from "@/lib/integrations/tiktok/bc-finance.server";
 import { bajarSaldoCuenta, readLive } from "@/lib/ops/frenar-gasto.server";
-import { classifyTikTokAdvertiserStatus } from "@/lib/integrations/tiktok/bc-advertisers.server";
 
 /**
  * Guardián de prepago (cron cada 15 min).
@@ -58,26 +57,38 @@ const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
   "afb12eff-76b7-4149-81be-62d047960527",
   // Fabian Hoyos - Colombia: USD 1,500 a crédito en su cuenta 204.0 por orden del usuario (20/10/2026).
   "4e509277-8c50-47fc-95a8-830453d1a5b8",
+  // Confianza por orden del usuario (27/10/2026): gerencia les recarga directo en el BC.
+  "1fb61f89-d270-469d-a516-a980d616a233", // Jesús Jiménez
+  "8191ad11-d421-4e5a-8758-91d93d22a4a5", // Yim Villar
+  "826bf4f1-70b0-4be5-9757-e1a48e19e3e2", // Renzo Cruz
+  "95ac1a7b-6906-4275-81c1-8af8f8cabfb1", // Luis Miguel Gomez
+  "7a54cf3b-bae3-4a5d-9778-75fdd971950a", // Benchi Quispe Tacuri
   ...`${process.env.PREPAGO_GUARD_CREDIT_HECOM_IDS ?? ""},${process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? ""}`
     .split(",")
     .map((id) => id.trim().toLowerCase())
     .filter(Boolean),
 ]);
 /**
- * Clientes que solo pueden gastar lo que asignan desde su cartera: lo que aparezca
- * en TikTok sin pasar por el sistema (recarga directa en el BC) se les quita
- * siempre, aunque el guardián esté en modo aviso. En BM10/30 se baja el cupo y en
- * BM200/300 se devuelve al BM el cash que no respalda su saldo asignado.
- * Se suman los de PREPAGO_GUARD_STRICT_HECOM_IDS (coma).
+ * Regla para todos los clientes de Ads (27/10/2026): solo gastan lo que asignan
+ * desde su cartera. Una recarga directa en el BC (BM200/300) que no hizo Ads
+ * Holistic se devuelve al BM; en BM10/30 el cupo se baja como siempre.
+ * Para dar crédito a alguien se lo agrega a CONFIRMED_CREDIT_CLIENTES, no se le
+ * recarga a mano.
+ *
+ * Solo cuentan recargas desde DIRECT_RECHARGE_SINCE (lo anterior ya fue acordado,
+ * ej. los $600 de Yolmer del 26/10). Hasta RULE_ENFORCE_FROM es solo aviso para
+ * todos; desde ahí corrige siempre, salvo PREPAGO_GUARD_MODE=pause.
  */
-const STRICT_CLIENTES = new Set<string>([
-  // Cainan Aguirre: debe octubre; recargas directas en el BC sin pago (27/10/2026).
-  "63bdf982-43b2-411f-9410-64af4e5a527b",
-  ...String(process.env.PREPAGO_GUARD_STRICT_HECOM_IDS ?? "")
-    .split(",")
-    .map((id) => id.trim().toLowerCase())
-    .filter(Boolean),
-]);
+const DIRECT_RECHARGE_SINCE = Date.parse("2026-10-27T21:00:00Z");
+const RULE_ENFORCE_FROM = Date.parse("2026-10-29T05:00:00Z"); // 29/10 00:00 Lima
+/** Cainan Aguirre ya estaba con la regla antes del arranque general (27/10/2026). */
+const ENFORCED_EARLY = new Set<string>(["63bdf982-43b2-411f-9410-64af4e5a527b"]);
+/** Ventana de transacciones que se revisa en cada corrida (corre cada 15 min). */
+const RECHARGE_LOOKBACK_MS = 6 * 3_600_000;
+/** Una asignación de Ads y su recarga en TikTok caen a minutos de distancia. */
+const MATCH_WINDOW_MS = 20 * 60_000;
+/** No se mueven montos menores (centavos de redondeo). */
+const MIN_DIRECT_RECHARGE_USD = 5;
 /** BM donde cada cuenta tiene su propio cash. */
 const CASH_BUCKETS = ["200", "300"] as const;
 const MANAGER_EMAILS_PER_SECOND = 2;
@@ -89,16 +100,21 @@ const PREVIEW_TO = ["lizarzaburusebastian046@gmail.com"];
 export type PrepagoGuardMode = "alert" | "enforce";
 
 function resolveGuardMode(): PrepagoGuardMode {
-  return String(process.env.PREPAGO_GUARD_MODE ?? "").trim().toLowerCase() === "alert"
-    ? "alert"
-    : "enforce";
+  const env = String(process.env.PREPAGO_GUARD_MODE ?? "").trim().toLowerCase();
+  if (env === "pause") return "alert";
+  if (Date.now() >= RULE_ENFORCE_FROM) return "enforce";
+  return env === "alert" ? "alert" : "enforce";
 }
 
 export type PrepagoGuardIncident = {
-  /** cash_over_balance: BM200/300, cash en TikTok que no viene de la cartera (solo clientes estrictos). */
-  kind: "budget_over_balance" | "cash_over_balance" | "credit_without_approval";
-  /** Cliente estricto: se corrige aunque el guardián esté en modo aviso. */
-  strict?: boolean;
+  /** direct_recharge: BM200/300, recarga en el BC que no vino de una asignación de Ads. */
+  kind: "budget_over_balance" | "direct_recharge" | "credit_without_approval";
+  /** Se corrige aunque el guardián esté en modo aviso (ENFORCED_EARLY). */
+  enforcedEarly?: boolean;
+  /** direct_recharge: la transacción de TikTok, cuándo y cuánto. */
+  transactionId?: string;
+  rechargedAt?: string;
+  rechargeUsd?: number;
   hecomClienteId: string;
   clienteName: string;
   advertiserId?: string;
@@ -130,7 +146,7 @@ export type PrepagoGuardIncident = {
       | "not_needed";
     previousBudgetUsd?: number;
     newBudgetUsd?: number;
-    /** cash_over_balance: lo devuelto al BM. */
+    /** direct_recharge: lo devuelto al BM. */
     refundedUsd?: number;
     error?: string;
   };
@@ -192,9 +208,6 @@ type TikTokBudgetRow = {
   budget: number;
   cost: number;
   mode: string;
-  /** Cash propio de la cuenta (BM200/300). */
-  cash: number;
-  status: string;
 };
 
 async function scanBc(bm: string, bcId: string, token: string): Promise<TikTokBudgetRow[]> {
@@ -219,8 +232,6 @@ async function scanBc(bm: string, bcId: string, token: string): Promise<TikTokBu
         budget: Number(r.budget) || 0,
         cost: Number(r.budget_cost) || 0,
         mode: String(r.budget_mode ?? "").toUpperCase(),
-        cash: Number(r.valid_cash_balance ?? r.account_balance) || 0,
-        status: String(r.advertiser_status ?? ""),
       });
     }
     if (page * 50 >= (json.data?.page_info?.total_number ?? 0)) break;
@@ -337,40 +348,14 @@ export async function runPrepagoGuard(
       bcId: HECOM_BM_BUCKET_TO_BC[row.bm],
       organizationId: holistic.organizationId,
       adAccountIds: holistic.adAccountIds,
-      strict: STRICT_CLIENTES.has(holistic.hecomId.toLowerCase()),
+      enforcedEarly: ENFORCED_EARLY.has(holistic.hecomId.toLowerCase()),
     });
   }
 
-  // BM200/300: solo clientes estrictos. Su cash en TikTok no debe superar lo asignado
-  // desde la cartera; el resto vino de una recarga directa en el BC.
-  const strictByAdv = new Map([...byAdvertiser].filter(([, h]) => STRICT_CLIENTES.has(h.hecomId.toLowerCase())));
-  for (const bm of strictByAdv.size ? CASH_BUCKETS : []) {
-    const bcId = HECOM_BM_BUCKET_TO_BC[bm];
-    if (!bcId) continue;
-    for (const row of await scanBc(bm, bcId, token)) {
-      const holistic = strictByAdv.get(row.advertiserId);
-      if (!holistic) continue;
-      clientesSeen.set(holistic.hecomId, holistic.clienteName);
-      // Castigada: no gasta y TikTok no deja devolver su cash.
-      if (classifyTikTokAdvertiserStatus(row.status) === "suspended") continue;
-      const excess = round2(row.cash - holistic.ledgerUsd);
-      if (excess <= TOLERANCE_USD) continue;
-      incidents.push({
-        kind: "cash_over_balance",
-        strict: true,
-        hecomClienteId: holistic.hecomId,
-        clienteName: holistic.clienteName,
-        advertiserId: row.advertiserId,
-        advertiserName: row.name,
-        bm,
-        tiktokRemainingUsd: round2(row.cash),
-        ledgerUsd: holistic.ledgerUsd,
-        excessUsd: excess,
-        bcId,
-        organizationId: holistic.organizationId,
-        adAccountIds: holistic.adAccountIds,
-      });
-    }
+  // BM200/300: recargas directas en el BC que no vinieron de una asignación de Ads.
+  for (const i of await findDirectRecharges(byAdvertiser, token)) {
+    clientesSeen.set(i.hecomClienteId, i.clienteName);
+    incidents.push(i);
   }
 
   // Red de seguridad: en Ads nadie debe ser crédito sin aprobación de gerencia.
@@ -448,11 +433,10 @@ async function correctIncidents(
   mode: PrepagoGuardMode,
   apply: boolean,
 ): Promise<void> {
-  const budget = incidents.filter((i) => i.kind === "budget_over_balance" || i.kind === "cash_over_balance");
+  const budget = incidents.filter((i) => i.kind !== "credit_without_approval");
   if (budget.length === 0) return;
 
-  // Los clientes estrictos se corrigen aunque el guardián esté en modo aviso.
-  const toCorrect = budget.filter((i) => apply && (mode === "enforce" || i.strict));
+  const toCorrect = budget.filter((i) => apply && mayCorrect(i, mode));
   for (const i of budget) if (!toCorrect.includes(i)) i.correction = { status: "skipped_alert_mode" };
   if (toCorrect.length === 0) return;
 
@@ -463,8 +447,8 @@ async function correctIncidents(
   }
 
   for (const i of toCorrect) {
-    if (i.kind === "cash_over_balance") {
-      await refundUnbackedCash(i);
+    if (i.kind === "direct_recharge") {
+      await refundDirectRecharge(i);
       continue;
     }
     if (!i.bcId || !i.advertiserId || i.targetBudgetUsd == null) {
@@ -524,31 +508,196 @@ async function correctIncidents(
   }
 }
 
+/** Antes del arranque general solo se corrige a los de ENFORCED_EARLY. */
+function mayCorrect(i: PrepagoGuardIncident, mode: PrepagoGuardMode): boolean {
+  if (i.enforcedEarly) return true;
+  if (mode !== "enforce") return false;
+  // Una recarga directa hecha durante el periodo de solo aviso no se devuelve después.
+  if (i.kind === "direct_recharge") return Date.parse(i.rechargedAt ?? "") >= RULE_ENFORCE_FROM;
+  return true;
+}
+
+type BcTransaction = {
+  id: string;
+  bm: string;
+  advertiserId: string;
+  name: string;
+  type: string;
+  billing: string;
+  amountUsd: number;
+  at: number;
+};
+
+/** create_time viene en la zona del BC ("2026-10-27 13:31:15", timezone "UTC-05:00"). */
+function parseTikTokTime(time: string, zone: string): number {
+  const offset = /UTC([+-]\d{2}:\d{2})/.exec(zone)?.[1] ?? "-05:00";
+  return Date.parse(`${time.replace(" ", "T")}${offset}`);
+}
+
+/** Lima no tiene horario de verano: UTC-5 fijo, igual que los BC. */
+function limaTime(ms: number): string {
+  return new Date(ms - 5 * 3_600_000).toISOString().slice(0, 19).replace("T", " ");
+}
+
+async function listBcTransactions(bm: string, bcId: string, fromMs: number, token: string): Promise<BcTransaction[]> {
+  const out: BcTransaction[] = [];
+  const filtering = JSON.stringify({ start_time: limaTime(fromMs), end_time: limaTime(Date.now() + 3_600_000) });
+  for (let page = 1; page <= 20; page++) {
+    const qs = new URLSearchParams({ bc_id: bcId, transaction_level: "ADVERTISER", filtering, page: String(page), page_size: "50" });
+    const res = await fetch(`${TIKTOK_API}/bc/account/transaction/get/?${qs}`, { headers: { "Access-Token": token }, cache: "no-store" });
+    const json = (await res.json()) as {
+      code?: number;
+      message?: string;
+      data?: { transaction_list?: Array<Record<string, unknown>>; page_info?: { total_number?: number } };
+    };
+    if (json.code !== 0) throw new Error(`BM${bm} transacciones: ${json.message ?? "TikTok error"}`);
+    for (const t of json.data?.transaction_list ?? []) {
+      // TikTok devuelve también las de otros BC del mismo token: sin esto cada recarga sale dos veces.
+      if (String(t.bc_id ?? "") !== bcId) continue;
+      out.push({
+        id: String(t.transaction_id ?? ""),
+        bm,
+        advertiserId: String(t.account_id ?? ""),
+        name: String(t.account_name ?? ""),
+        type: String(t.transaction_type ?? ""),
+        billing: String(t.billing_type ?? ""),
+        amountUsd: Number(t.amount) || 0,
+        at: parseTikTokTime(String(t.create_time ?? ""), String(t.timezone ?? "")),
+      });
+    }
+    if (page * 50 >= (json.data?.page_info?.total_number ?? 0)) break;
+  }
+  return out;
+}
+
+/** Transacciones ya devueltas en corridas anteriores (para no devolverlas dos veces). */
+async function loadRefundedTransactionIds(sinceMs: number): Promise<Set<string>> {
+  const { data } = await createAdminClient()
+    .from("audit_logs")
+    .select("metadata")
+    .eq("action", AUDIT_ACTION)
+    .gte("created_at", new Date(sinceMs).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(60);
+  const ids = new Set<string>();
+  for (const run of data ?? []) {
+    const list = ((run.metadata ?? {}) as { incidents?: PrepagoGuardIncident[] }).incidents ?? [];
+    for (const i of list) {
+      if (i.kind === "direct_recharge" && i.transactionId && i.correction?.status === "corrected") ids.add(i.transactionId);
+    }
+  }
+  return ids;
+}
+
 /**
- * BM200/300 de un cliente estricto: devuelve al BM el cash que no respalda su saldo
- * asignado. Relee TikTok y la cartera en vivo para no tocar plata que sí es suya.
+ * Recargas cash (BM200/300) de los últimos RECHARGE_LOOKBACK_MS que no salieron de
+ * Ads Holistic. Se descartan:
+ * - las que calzan con una asignación de Ads (misma cuenta y monto, a minutos);
+ * - las que son un traspaso entre cuentas del mismo cliente (sale lo mismo de otra);
+ * - montos chicos y las ya devueltas.
  */
-async function refundUnbackedCash(i: PrepagoGuardIncident): Promise<void> {
+async function findDirectRecharges(
+  byAdvertiser: Map<string, { ledgerUsd: number; hecomId: string; clienteName: string; organizationId: string; adAccountIds: string[] }>,
+  token: string,
+): Promise<PrepagoGuardIncident[]> {
+  const fromMs = Math.max(DIRECT_RECHARGE_SINCE, Date.now() - RECHARGE_LOOKBACK_MS);
+  const txs: BcTransaction[] = [];
+  for (const bm of CASH_BUCKETS) {
+    const bcId = HECOM_BM_BUCKET_TO_BC[bm];
+    if (bcId) txs.push(...(await listBcTransactions(bm, bcId, fromMs, token)));
+  }
+  const increases = txs.filter(
+    (t) => t.type === "INCREASE_BALANCE" && t.billing === "CASH" && t.at >= fromMs && byAdvertiser.has(t.advertiserId),
+  );
+  if (increases.length === 0) return [];
+
+  const { data: allocations, error } = await createAdminClient()
+    .from("ledger_journals")
+    .select("created_at, adv:metadata->>tiktok_advertiser_id, cents:metadata->>tiktok_amount_cents")
+    .eq("journal_type", "allocation_to_ad_account")
+    .gte("created_at", new Date(fromMs - MATCH_WINDOW_MS).toISOString())
+    .in("metadata->>tiktok_advertiser_id", [...new Set(increases.map((t) => t.advertiserId))]);
+  if (error) throw new Error(`Asignaciones: ${error.message}`);
+  const unusedAllocations = (allocations ?? []).map((a) => ({
+    adv: String(a.adv ?? ""),
+    cents: Number(a.cents) || 0,
+    at: Date.parse(String(a.created_at)),
+  }));
+  const decreases = txs.filter((t) => t.type === "DECREASE_BALANCE" && t.billing === "CASH");
+  const refunded = await loadRefundedTransactionIds(fromMs - 3_600_000);
+
+  const out: PrepagoGuardIncident[] = [];
+  for (const t of increases.sort((a, b) => a.at - b.at)) {
+    const cents = Math.round(t.amountUsd * 100);
+    const near = (at: number) => Math.abs(at - t.at) <= MATCH_WINDOW_MS;
+    const alloc = unusedAllocations.findIndex((a) => a.adv === t.advertiserId && Math.abs(a.cents - cents) <= 1 && near(a.at));
+    if (alloc >= 0) {
+      unusedAllocations.splice(alloc, 1);
+      continue;
+    }
+    const holistic = byAdvertiser.get(t.advertiserId)!;
+    const move = decreases.findIndex(
+      (d) =>
+        d.advertiserId !== t.advertiserId &&
+        byAdvertiser.get(d.advertiserId)?.hecomId === holistic.hecomId &&
+        Math.abs(Math.round(d.amountUsd * 100) - cents) <= 1 &&
+        near(d.at),
+    );
+    if (move >= 0) {
+      decreases.splice(move, 1);
+      continue;
+    }
+    if (t.amountUsd < MIN_DIRECT_RECHARGE_USD || refunded.has(t.id)) continue;
+    out.push({
+      kind: "direct_recharge",
+      hecomClienteId: holistic.hecomId,
+      clienteName: holistic.clienteName,
+      advertiserId: t.advertiserId,
+      advertiserName: t.name,
+      bm: t.bm,
+      transactionId: t.id,
+      rechargedAt: new Date(t.at).toISOString(),
+      rechargeUsd: round2(t.amountUsd),
+      ledgerUsd: holistic.ledgerUsd,
+      excessUsd: round2(t.amountUsd),
+      bcId: HECOM_BM_BUCKET_TO_BC[t.bm],
+      organizationId: holistic.organizationId,
+      adAccountIds: holistic.adAccountIds,
+      enforcedEarly: ENFORCED_EARLY.has(holistic.hecomId.toLowerCase()),
+    });
+  }
+  return out;
+}
+
+/**
+ * Devuelve al BM una recarga directa. Relee TikTok y la cartera en vivo: nunca
+ * toca lo que respalda su saldo asignado (plata que sí pagó) ni más de lo recargado.
+ */
+async function refundDirectRecharge(i: PrepagoGuardIncident): Promise<void> {
   try {
     const live = await readLive(i.bm!, i.advertiserId!);
     const ledgerUsd = round2(await readLiveLedgerUsd(i.adAccountIds ?? []));
-    const excess = Math.floor((live.cash - ledgerUsd) * 100) / 100;
+    const refundable = Math.floor(Math.min(i.rechargeUsd ?? 0, live.cash - ledgerUsd) * 100) / 100;
     i.tiktokRemainingUsd = round2(live.cash);
     i.ledgerUsd = ledgerUsd;
-    if (excess <= TOLERANCE_USD) {
-      i.correction = { status: "not_needed" };
+    i.excessUsd = Math.max(0, refundable);
+    if (refundable <= TOLERANCE_USD) {
+      i.correction = { status: "failed", error: "Ya lo gastó: no queda saldo para devolver." };
       return;
     }
-    i.excessUsd = excess;
-    const r = await bajarSaldoCuenta({ bm: i.bm!, advertiserId: i.advertiserId!, amountUsd: excess });
-    i.correction = { status: r.removedUsd > 0 ? "corrected" : "failed", refundedUsd: r.removedUsd, error: r.removedUsd > 0 ? undefined : r.message };
-    console.info("[prepago-guard] cash_refunded", { advertiserId: i.advertiserId, refunded: r.removedUsd });
+    const r = await bajarSaldoCuenta({ bm: i.bm!, advertiserId: i.advertiserId!, amountUsd: refundable });
+    i.correction = {
+      status: r.removedUsd > 0 ? "corrected" : "failed",
+      refundedUsd: r.removedUsd,
+      error: r.removedUsd > 0 ? undefined : r.message,
+    };
+    console.info("[prepago-guard] direct_recharge_refunded", { advertiserId: i.advertiserId, refunded: r.removedUsd });
   } catch (error) {
     i.correction = {
       status: "failed",
       error: error instanceof Error ? error.message.slice(0, 200) : "Error de TikTok",
     };
-    console.error("[prepago-guard] cash_refund_failed", { advertiserId: i.advertiserId, error });
+    console.error("[prepago-guard] direct_recharge_refund_failed", { advertiserId: i.advertiserId, error });
   }
 }
 
@@ -589,7 +738,7 @@ async function sendPreviewOnce(
 /** Huella de lo que sigue sin corregirse: cambia si aparece otra cuenta o el exceso sube de a $10. */
 function incidentsHash(incidents: PrepagoGuardIncident[]): string {
   const key = incidents
-    .map((i) => `${i.kind}:${i.advertiserId ?? i.hecomClienteId}:${i.unlimited ? "U" : Math.floor((i.excessUsd ?? 0) / 10)}`)
+    .map((i) => `${i.kind}:${i.transactionId ?? i.advertiserId ?? i.hecomClienteId}:${i.unlimited ? "U" : Math.floor((i.excessUsd ?? 0) / 10)}`)
     .sort()
     .join("|");
   return createHash("sha256").update(key).digest("hex").slice(0, 16);
@@ -666,7 +815,7 @@ function usd(value: number | undefined): string {
 function actionLabel(i: PrepagoGuardIncident): { text: string; color: string } {
   switch (i.correction?.status) {
     case "corrected": {
-      if (i.kind === "cash_over_balance") {
+      if (i.kind === "direct_recharge") {
         return { text: `Devuelto al BM ${usd(i.correction.refundedUsd)}`, color: "#1f6b3a" };
       }
       const after =
@@ -676,10 +825,11 @@ function actionLabel(i: PrepagoGuardIncident): { text: string; color: string } {
       return { text: `Ahora puede gastar ${usd(after)}`, color: "#1f6b3a" };
     }
     case "failed":
-      return { text: "No se pudo corregir", color: "#8f1d12" };
+      return { text: i.kind === "direct_recharge" && i.correction.error ? i.correction.error : "No se pudo corregir", color: "#8f1d12" };
     case "skipped_circuit_breaker":
       return { text: "Sin corregir (freno)", color: "#8f1d12" };
     default:
+      if (i.kind === "direct_recharge") return { text: `Se devolvería al BM (hasta ${usd(i.rechargeUsd)})`, color: "#57524b" };
       return { text: `Debería poder gastar ${usd(i.ledgerUsd)}`, color: "#57524b" };
   }
 }
@@ -715,7 +865,7 @@ function buildGuardEmail(
         ? `Aparecieron más de ${MAX_CORRECTIONS_PER_RUN} cuentas a la vez, así que <b>no se corrigió ninguna</b> por seguridad: puede ser una falla al leer los saldos. Revisen antes de ajustar.`
         : pending.length
           ? "Lo que no se pudo corregir sigue pudiendo gastar de más. Revísenlo en TikTok."
-          : budget.some((i) => i.kind === "cash_over_balance")
+          : budget.some((i) => i.kind === "direct_recharge")
             ? "Alguien le puso saldo en TikTok directo desde el BC, sin pasar por su cartera, a un cliente que solo puede gastar lo que asigna desde el sistema. Ese saldo se devolvió al BM. TikTok no registra quién lo puso: revisen quién tiene permiso de Finanzas en el BC."
             : "El presupuesto en TikTok se bajó a lo ya gastado más el saldo asignado desde la cartera. Si el cliente necesita más, debe asignar saldo desde su cartera.";
 
@@ -724,8 +874,8 @@ function buildGuardEmail(
       const action = actionLabel(i);
       return `
         <tr>
-          <td style="padding:10px 12px 10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;">${escapeHtml(i.clienteName)}<br /><span style="font-size:12px;color:#57524b;">${escapeHtml(i.advertiserName ?? "")} · BM${escapeHtml(i.bm ?? "")}</span></td>
-          <td align="right" style="padding:10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;white-space:nowrap;">${i.unlimited ? "Ilimitado" : usd(i.tiktokRemainingUsd)}</td>
+          <td style="padding:10px 12px 10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;">${escapeHtml(i.clienteName)}<br /><span style="font-size:12px;color:#57524b;">${escapeHtml(i.advertiserName ?? "")} · BM${escapeHtml(i.bm ?? "")}${i.kind === "direct_recharge" ? ` · recarga directa ${escapeHtml(limaTime(Date.parse(i.rechargedAt ?? "")).slice(0, 16))}` : ""}</span></td>
+          <td align="right" style="padding:10px 0;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;white-space:nowrap;">${i.kind === "direct_recharge" ? usd(i.rechargeUsd) : i.unlimited ? "Ilimitado" : usd(i.tiktokRemainingUsd)}</td>
           <td align="right" style="padding:10px 0 10px 12px;border-top:1px solid #e8e4dd;font-size:14px;color:#1a1917;vertical-align:top;white-space:nowrap;">${usd(i.ledgerUsd)}</td>
           <td align="right" style="padding:10px 0 10px 12px;border-top:1px solid #e8e4dd;font-size:14px;font-weight:700;color:${action.color};vertical-align:top;white-space:nowrap;">${escapeHtml(action.text)}</td>
         </tr>`;
