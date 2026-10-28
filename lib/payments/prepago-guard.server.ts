@@ -34,10 +34,10 @@ const SHARED_BUCKETS = ["10", "30"] as const;
 /** Margen para no avisar por centavos. */
 const TOLERANCE_USD = 1;
 /**
- * Si algo no se pudo corregir, se vuelve a avisar cada hora. La ventana es
- * 55 min porque las revisiones van cada 15: con 60 exactos salía cada 1 h 15.
+ * Si algo sigue sin corregir, se vuelve a avisar una vez al día (28/10/2026: cada hora
+ * eran ~280 correos en un día y gerencia lo veía como spam). Lo corregido avisa al momento.
  */
-const REALERT_AFTER_HOURS = 55 / 60;
+const REALERT_AFTER_HOURS = 24;
 /**
  * Freno de emergencia: con más cuentas que esto en una misma revisión no se
  * corrige ninguna. Un número así suele ser una falla (saldos que no cargaron),
@@ -732,10 +732,10 @@ async function sendPreviewOnce(
   });
 }
 
-/** Huella de lo que sigue sin corregirse: cambia si aparece otra cuenta o el exceso sube de a $10. */
+/** Huella de lo que sigue sin corregirse: cambia solo si aparece otra cuenta (no por el monto). */
 function incidentsHash(incidents: PrepagoGuardIncident[]): string {
   const key = incidents
-    .map((i) => `${i.kind}:${i.transactionId ?? i.advertiserId ?? i.hecomClienteId}:${i.unlimited ? "U" : Math.floor((i.excessUsd ?? 0) / 10)}`)
+    .map((i) => `${i.kind}:${i.transactionId ?? i.advertiserId ?? i.hecomClienteId}:${i.unlimited ? "U" : ""}`)
     .sort()
     .join("|");
   return createHash("sha256").update(key).digest("hex").slice(0, 16);
@@ -748,7 +748,7 @@ function isResolved(incident: PrepagoGuardIncident): boolean {
 /**
  * Cuándo avisar:
  * - Si en esta revisión se corrigió algo: siempre, en el momento.
- * - Si queda algo sin corregir: al aparecer y luego cada hora mientras siga.
+ * - Si queda algo sin corregir: al aparecer y luego una vez al día mientras siga.
  */
 async function alertIfNeeded(
   incidents: PrepagoGuardIncident[],
@@ -770,7 +770,7 @@ async function alertIfNeeded(
       .eq("action", AUDIT_ACTION)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(200);
     const alreadyAlerted = (recentRuns ?? []).some((run) => {
       const meta = (run.metadata ?? {}) as { alerted?: boolean; incidents_hash?: string };
       return meta.alerted === true && meta.incidents_hash === hash;
