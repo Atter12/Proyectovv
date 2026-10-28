@@ -711,14 +711,27 @@ export async function processSuccessfulPaymentIntent(input: {
   if (meta.purpose === "lo_pagado_deuda" && intent.provider !== "manual") {
     const providerReference = input.providerReference ?? intent.providerReference;
     const succeededAt = new Date().toISOString();
+    let claimed = false;
     if (intent.status !== "succeeded") {
-      await claimPaymentIntentSucceeded(intent.id, {
+      claimed = await claimPaymentIntentSucceeded(intent.id, {
         succeededAt,
         providerReference,
-        metadata: { ...meta, skip_wallet_credit: true, provider_reference: providerReference },
+        metadata: {
+          ...meta,
+          skip_wallet_credit: true,
+          provider_reference: providerReference,
+          debt_paid_at: succeededAt,
+        },
       });
     }
     const fresh = await getPaymentIntentByIdInternal(intent.id);
+    // Stripe manda dos webhooks (checkout.session.completed + payment_intent.succeeded) casi
+    // a la vez: solo el que marcó el pago registra el cobro. Los demás curan solo si quedó
+    // colgado (28/10/2026 Wilder: el mismo pago entró dos veces a Hecom).
+    if (!claimed) {
+      const paidAt = Date.parse(String(fresh?.metadata?.debt_paid_at ?? ""));
+      if (Number.isFinite(paidAt) && Date.now() - paidAt < 2 * 60_000) return;
+    }
     await ensureDebtPaymentCobroSynced({
       intent: fresh ?? intent,
       providerReference,
