@@ -94,7 +94,7 @@ function publicSession(ctx: PublicLoPagadoContext): SessionUser {
 
 async function countRecentPublicIntents(
   clientId: string,
-  provider: "manual" | "whop",
+  provider: "manual" | "whop" | "stripe",
 ): Promise<number> {
   const admin = createAdminClient();
   const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
@@ -170,7 +170,18 @@ export async function createPublicWhopDebtIntent(input: {
   amount: number;
   periodoResumen: string;
 }): Promise<{ paymentIntentId: string; checkoutUrl: string; grossChargeCents: number }> {
-  if (isGatewayInMaintenance("whop")) {
+  return createPublicCardDebtIntent({ ...input, provider: "whop" });
+}
+
+/** Pago de deuda con tarjeta desde el link Lo pagado (Whop o Stripe). No recarga cartera. */
+export async function createPublicCardDebtIntent(input: {
+  ctx: PublicLoPagadoContext;
+  token: string;
+  amount: number;
+  periodoResumen: string;
+  provider: "whop" | "stripe";
+}): Promise<{ paymentIntentId: string; checkoutUrl: string; grossChargeCents: number }> {
+  if (isGatewayInMaintenance(input.provider)) {
     throw new PublicLoPagadoError(
       "El pago con tarjeta está deshabilitado temporalmente. Usa transferencia o escríbenos por WhatsApp.",
       503,
@@ -185,7 +196,7 @@ export async function createPublicWhopDebtIntent(input: {
     throw new PublicLoPagadoError("Falta el mes de la deuda.");
   }
   const organizationId = requireOrganization(input.ctx);
-  const recent = await countRecentPublicIntents(input.ctx.clientId, "whop");
+  const recent = await countRecentPublicIntents(input.ctx.clientId, input.provider);
   if (recent >= 6) {
     throw new PublicLoPagadoError(
       "Ya abriste varios pagos con tarjeta. Espera unos minutos o escríbenos por WhatsApp.",
@@ -197,7 +208,7 @@ export async function createPublicWhopDebtIntent(input: {
   const result = await createPaymentIntentForSession(publicSession(input.ctx), {
     amount,
     currency: "USD",
-    provider: "whop",
+    provider: input.provider,
     hecomClienteId: input.ctx.clientId,
     organizationId,
     actorUserId: null,

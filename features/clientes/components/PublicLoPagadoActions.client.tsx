@@ -80,7 +80,7 @@ export function PublicLoPagadoActions({
       </section>
 
       <Suspense fallback={null}>
-        <PublicDebtCardPay configUrl={endpoints.config} createUrl={`${apiBase}/whop`} month={month} owedUsd={owedUsd} />
+        <PublicDebtCardPay configUrl={endpoints.config} apiBase={apiBase} month={month} owedUsd={owedUsd} />
       </Suspense>
 
       <MissingCobroClaimPanel

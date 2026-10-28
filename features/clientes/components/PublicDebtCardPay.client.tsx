@@ -4,28 +4,33 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { depositFromDesiredCredit } from "@/lib/payments/deposit-fee";
 
-type WhopConfig = { enabled: boolean; surchargePercent: number };
+type CardConfig = { enabled: boolean; surchargePercent: number };
+type CardProvider = "stripe" | "whop";
 
 function usd(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Pago de deuda con tarjeta (Whop) desde el link Lo pagado. Baja la deuda del mes, no recarga cartera. */
+/**
+ * Pago de deuda con tarjeta desde el link Lo pagado. Baja la deuda del mes, no recarga cartera.
+ * Stripe si está activo; si no, Whop.
+ */
 export function PublicDebtCardPay({
   configUrl,
-  createUrl,
+  apiBase,
   month,
   owedUsd,
 }: {
   configUrl: string;
-  createUrl: string;
+  /** Base de la API pública; se le agrega /stripe o /whop. */
+  apiBase: string;
   month: string;
   /** Deuda del mes (positivo = debe). */
   owedUsd: number;
 }) {
   const searchParams = useSearchParams();
   const returned = searchParams.get("pago") === "tarjeta";
-  const [config, setConfig] = useState<WhopConfig | null>(null);
+  const [config, setConfig] = useState<(CardConfig & { provider: CardProvider }) | null>(null);
   const owedCents = Math.max(0, Math.round(owedUsd * 100));
   const [partial, setPartial] = useState(false);
   const [amount, setAmount] = useState("");
@@ -36,11 +41,13 @@ export function PublicDebtCardPay({
     let alive = true;
     fetch(configUrl)
       .then((r) => r.json())
-      .then((j: { whop?: WhopConfig }) => {
-        if (alive) setConfig(j.whop ?? { enabled: false, surchargePercent: 0 });
+      .then((j: { whop?: CardConfig; stripe?: CardConfig }) => {
+        if (!alive) return;
+        if (j.stripe?.enabled) setConfig({ ...j.stripe, provider: "stripe" });
+        else setConfig({ ...(j.whop ?? { enabled: false, surchargePercent: 0 }), provider: "whop" });
       })
       .catch(() => {
-        if (alive) setConfig({ enabled: false, surchargePercent: 0 });
+        if (alive) setConfig({ enabled: false, surchargePercent: 0, provider: "whop" });
       });
     return () => {
       alive = false;
@@ -62,7 +69,7 @@ export function PublicDebtCardPay({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(createUrl, {
+      const res = await fetch(`${apiBase}/${config!.provider}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: debtCents / 100, periodoResumen: month }),

@@ -36,5 +36,9 @@ export async function GET(
       enabled: getPaymentProvider("whop").isConfigured() && !isGatewayInMaintenance("whop"),
       surchargePercent: normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent),
     },
+    stripe: {
+      enabled: getPaymentProvider("stripe").isConfigured() && !isGatewayInMaintenance("stripe"),
+      surchargePercent: normalizeStripeSurchargePercent(serverEnv.stripeDepositSurchargePercent),
+    },
   });
 }

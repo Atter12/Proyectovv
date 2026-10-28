@@ -162,10 +162,10 @@ export async function createPaymentIntentForSession(
     hecomClienteId: input.hecomClienteId,
   });
 
-  // Pago de deuda (link Lo pagado): por voucher o con tarjeta en Whop.
+  // Pago de deuda (link Lo pagado): por voucher o con tarjeta en Whop/Stripe.
   const settlesDebt =
     input.settlesHecomDebt === true &&
-    (input.provider === "manual" || input.provider === "whop");
+    (input.provider === "manual" || input.provider === "whop" || input.provider === "stripe");
   if (settlesDebt) {
     const periodo = String(input.debtPeriodoResumen ?? "").trim();
     if (!/^\d{4}-\d{2}$/.test(periodo)) {
@@ -384,7 +384,7 @@ export async function createPaymentIntentForSession(
             skip_wallet_credit: true,
             periodo_resumen: String(input.debtPeriodoResumen ?? "").trim(),
             input_mode: "debt_payment",
-            // Manual: 0. Whop: solo el recargo de la tarjeta (va aparte del monto de la deuda).
+            // Manual: 0. Whop/Stripe: solo el recargo de la tarjeta (va aparte del monto de la deuda).
             fee_percent: fee.feePercent,
             fee_amount_cents: fee.feeCents,
             fee_holistic_percent: 0,

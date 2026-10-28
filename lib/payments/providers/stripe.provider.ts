@@ -79,8 +79,9 @@ export class StripePaymentProvider implements PaymentProviderAdapter {
 
     const params = new URLSearchParams();
     params.set("mode", "payment");
-    params.set("success_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=success`);
-    params.set("cancel_url", `${serverEnv.appUrl}/payments?tab=wallet-tx&status=cancelled`);
+    // Link de deuda (Lo pagado) vuelve a su propia página; recargas, a pagos.
+    params.set("success_url", input.returnUrl || `${serverEnv.appUrl}/payments?tab=wallet-tx&status=success`);
+    params.set("cancel_url", input.returnUrl || `${serverEnv.appUrl}/payments?tab=wallet-tx&status=cancelled`);
     params.set("client_reference_id", input.paymentIntentId);
     // Metadata en la Checkout Session…
     params.set("metadata[payment_intent_id]", input.paymentIntentId);
