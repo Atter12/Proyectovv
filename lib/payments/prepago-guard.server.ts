@@ -60,9 +60,6 @@ const CONFIRMED_CREDIT_CLIENTES = new Set<string>([
   "826bf4f1-70b0-4be5-9757-e1a48e19e3e2", // Renzo Cruz
   "95ac1a7b-6906-4275-81c1-8af8f8cabfb1", // Luis Miguel Gomez
   "7a54cf3b-bae3-4a5d-9778-75fdd971950a", // Benchi Quispe Tacuri
-  // Frank Cari: $30 adelantados en su 16.00 (BM10) por orden del usuario (29/10/2026),
-  // mientras Binance suelta su recarga cripto de $200. Quitar cuando entre.
-  "4a585954-8a23-47c5-9add-003a09c35515",
   ...`${process.env.PREPAGO_GUARD_CREDIT_HECOM_IDS ?? ""},${process.env.PREPAGO_GUARD_EXCLUDE_HECOM_IDS ?? ""}`
     .split(",")
     .map((id) => id.trim().toLowerCase())
