@@ -113,6 +113,8 @@ const SELF_SERVE_LIMIT_OVERRIDES: Record<string, number> = {
   "673ac838-ce18-4074-a7a7-63407c72c80a": 9,
   // Fritzner Duran — 2026-09-29, autorizado por gerencia: ya tiene 3 mapeadas; +3 → cupo 6.
   "97780792-7dd8-43e1-9da2-42599e08e60e": 6,
+  // Catherine Burgos — 2026-10-28, autorizado por gerencia: ya tiene 5 mapeadas; +2 → cupo 7.
+  "319963fc-94e0-473b-89e6-36f410419112": 7,
 };
 
 /**
