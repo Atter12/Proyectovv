@@ -22,7 +22,7 @@ function load(path, mocks = {}, globals = {}) {
   return mod.exports;
 }
 const destination = load("lib/payments/voucher-destination.ts");
-const accounts = [{ holder: "HOLISTIC MARKETING LLC", accountNumber: "1947376966005", cci: "00219400737696600598" }];
+const accounts = [{ holder: "HOLISTIC MARKETING LLC", holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"], accountNumber: "1947376966005", cci: "00219400737696600598" }];
 const valid = { amount: 100, currency: "PEN", operation_code: "123456", confidence: 0.99, destination_account: accounts[0].accountNumber, beneficiary_name: accounts[0].holder, is_payment_receipt: true, payment_completed: true, visible_manipulation: false };
 async function analyze(overrides = {}, env = {}) {
   const service = load("lib/payments/voucher-analysis.server.ts", {
@@ -37,11 +37,36 @@ test("complete account or CCI and normalized holder are accepted", async () => {
   assert.equal((await analyze()).confirmed, true);
   assert.equal((await analyze({ destination_account: accounts[0].cci, beneficiary_name: "Holistic Marketing L.L.C." })).confirmed, true);
 });
-test("wrong, masked, absent or cross-paired destinations are rejected", async () => {
-  for (const patch of [{ destination_account: "1947376966006" }, { destination_account: "***6966005" }, { destination_account: null }, { beneficiary_name: null }, { beneficiary_name: "HOLISTIC" }, { beneficiary_name: "Another company" }]) {
+test("wrong, absent or cross-paired destinations are rejected", async () => {
+  for (const patch of [{ destination_account: "1947376966006" }, { destination_account: "***6006" }, { destination_account: null }, { beneficiary_name: null }, { beneficiary_name: "HOLISTIC" }, { beneficiary_name: "Another company" }]) {
     assert.equal((await analyze(patch)).confirmed, false, JSON.stringify(patch));
   }
   assert.equal(destination.matchesVoucherDestination(accounts[0].accountNumber, "Other", [...accounts, { holder: "Other", accountNumber: "123456789" }]), false);
+});
+test("historical BCP masking and explicit recipient aliases are recognized", async () => {
+  for (const number of ["**** 6005", "194-***-6005", "••••6005"]) {
+    assert.equal((await analyze({ destination_account: number, beneficiary_name: "Holistic Marketing Pe E." })).confirmed, true);
+  }
+  assert.equal((await analyze({ destination_account: accounts[0].cci, beneficiary_name: "Holistic Marketing Pe Eirl" })).confirmed, true);
+});
+test("short suffixes, missing mask, contradictory prefixes and ambiguous destinations fail closed", async () => {
+  for (const number of ["6005", "***005", "999***6005", "194737696600X", "ilegible 6005"]) {
+    assert.equal((await analyze({ destination_account: number })).confirmed, false, number);
+  }
+  assert.equal(destination.matchesVoucherDestination("****6005", accounts[0].holder, [...accounts, { holder: "Someone else", accountNumber: "9999999996005" }]), false);
+  assert.equal(destination.matchesVoucherDestination("****6005", "Holistic Marketing Pe E.", [{ ...accounts[0], holderAliases: [] }]), false);
+});
+test("source debit is separate from transfer amount; destination currency contradictions stay in review", async () => {
+  const good = await analyze({ debited_amount: 27, debited_currency: "USD", destination_currency_text: "Moneda Soles" });
+  assert.equal(good.detectedAmount, 100);
+  assert.equal(good.debitedAmount, 27);
+  assert.equal(good.confirmed, true);
+  const conflict = await analyze({ destination_currency_text: "Moneda Dólares" });
+  assert.equal(conflict.currencyConsistent, false);
+  assert.equal(conflict.confirmed, false);
+  const inferred = await analyze({ destination_currency: "USD", destination_currency_text: null });
+  assert.equal(inferred.destinationCurrency, null);
+  assert.equal(inferred.confirmed, true);
 });
 test("amount, currency, operation and confidence must be explicit and correct", async () => {
   for (const patch of [{ amount: 99.99 }, { amount: 0 }, { currency: "USD" }, { currency: null }, { operation_code: null }, { confidence: 0.5 }]) {

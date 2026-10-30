@@ -1,4 +1,4 @@
-export type VoucherDestination = { holder: string; accountNumber: string; cci?: string };
+export type VoucherDestination = { holder: string; holderAliases?: string[]; accountNumber: string; cci?: string };
 
 function account(value: unknown): string | null {
   if (typeof value !== "string" || !/^[\d\s-]+$/.test(value)) return null;
@@ -12,12 +12,24 @@ function holder(value: unknown): string {
     : "";
 }
 
-/** Both visible fields must match the same configured destination, never a suffix. */
+function matchesAccount(value: unknown, destination: VoucherDestination): boolean {
+  const full = account(value);
+  if (full !== null) return full === account(destination.accountNumber) || full === account(destination.cci);
+  if (typeof value !== "string") return false;
+  const compact = value.replace(/[\s-]/g, "");
+  // Only explicit masking, not an arbitrary short number or unreadable OCR.
+  const masked = /^(\d*)[*xX•●]+(\d{4,})$/.exec(compact);
+  const configured = account(destination.accountNumber);
+  if (!masked || !configured) return false;
+  const [, prefix, suffix] = masked;
+  return prefix.length + suffix.length < configured.length && configured.startsWith(prefix) && configured.endsWith(suffix);
+}
+
+/** Explicitly masked normal accounts need a unique destination AND its configured recipient. */
 export function matchesVoucherDestination(number: unknown, name: unknown, accounts: VoucherDestination[]): boolean {
-  const detected = account(number);
   const recipient = holder(name);
-  return detected !== null && recipient.length > 0 && accounts.some((destination) =>
-    recipient === holder(destination.holder) &&
-    (detected === account(destination.accountNumber) || detected === account(destination.cci)),
-  );
+  const candidates = accounts.filter(destination => matchesAccount(number, destination));
+  if (!recipient || candidates.length !== 1) return false;
+  const destination = candidates[0];
+  return [destination.holder, ...(destination.holderAliases ?? [])].some(alias => holder(alias) === recipient);
 }

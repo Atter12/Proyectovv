@@ -7,6 +7,7 @@ export type ManualBankAccount = {
   label: string;
   bank?: string;
   holder: string;
+  holderAliases?: string[];
   accountNumber: string;
   cci?: string;
   currencies: ManualChargeCurrency[];
@@ -19,6 +20,7 @@ const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
     label: "BCP - Cuenta corriente soles",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
+    holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"],
     accountNumber: "1947376966005",
     cci: "00219400737696600598",
     currencies: ["PEN"],
@@ -29,6 +31,7 @@ const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
     label: "BCP - Cuenta corriente dolares",
     bank: "BCP",
     holder: "HOLISTIC MARKETING LLC",
+    holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"],
     accountNumber: "1938022768168",
     cci: "00219300802276816813",
     currencies: ["USD"],
@@ -76,6 +79,9 @@ function parseAccountsFromEnv(): ManualBankAccount[] {
         label: sanitizeBankText(String(row.label ?? id).trim()),
         bank: row.bank ? String(row.bank) : undefined,
         holder,
+        holderAliases: Array.isArray(row.holderAliases)
+          ? row.holderAliases.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+          : DEFAULT_ACCOUNTS.find((account) => account.accountNumber === accountNumber)?.holderAliases,
         accountNumber,
         cci: row.cci ? String(row.cci) : undefined,
         currencies: currencies.length ? currencies : ["PEN"],
