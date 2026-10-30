@@ -60,6 +60,24 @@ test("wrong, absent or cross-paired destinations are rejected", async () => {
   }
   assert.equal(destination.matchesVoucherDestination(accounts[0].accountNumber, "Other", [...accounts, { holder: "Other", accountNumber: "123456789" }]), false);
 });
+test("recipient row wins over an OCR copy of the sender row; no missing recipient is invented", async () => {
+  const result = await analyze({ destination_account: "**** 9876", source_block: { label: "Desde", account: "**** 9876" }, destination_block: { label: "Enviado a", account: "**** 6005", holder: "Holistic Marketing Pe E." } });
+  assert.equal(result.confirmed, true);
+  assert.equal(result.destinationAccount, "**** 6005");
+  assert.equal(result.sourceAccount, "**** 9876");
+  for (const destination_block of [null, { label: "Desde", account: accounts[0].accountNumber, holder: accounts[0].holder }, { label: "Cuenta de destino", account: accounts[0].cci, holder: null }]) {
+    assert.equal((await analyze({ destination_block })).confirmed, false);
+  }
+});
+test("approved business receipt variant preserves request identifier and requires final success", async () => {
+  const { evaluateVoucherFormat } = load("lib/payments/voucher-format-review.server.ts", { "@/lib/env/env.server": { serverEnv: {} } });
+  const observed_labels = ["Cuenta de cargo", "Cuenta de destino", "Número de solicitud", "Fecha y hora de operación", "Transferencia exitosa"];
+  assert.equal(evaluateVoucherFormat({ profile: "interbank_receipt", outcome: "compatible", observed_labels, findings: [] }).passed, true);
+  assert.equal(evaluateVoucherFormat({ profile: "interbank_receipt", outcome: "compatible", observed_labels: observed_labels.slice(0, -1), findings: [] }).passed, false);
+  const result = await analyze({ operation_label: "Número de solicitud" });
+  assert.equal(result.operationLabel, "Número de solicitud");
+  assert.equal((await analyze({ operation_label: "Número de solicitud", payment_completed: false })).confirmed, false);
+});
 test("historical BCP masking and explicit recipient aliases are recognized", async () => {
   for (const number of ["**** 6005", "194-***-6005", "••••6005"]) {
     assert.equal((await analyze({ destination_account: number, beneficiary_name: "Holistic Marketing Pe E." })).confirmed, true);
