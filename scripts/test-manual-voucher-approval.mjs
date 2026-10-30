@@ -11,7 +11,7 @@ function load(path, mocks = {}, globals = {}) {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const mod = { exports: {} };
   vm.runInNewContext(code, {
-    module: mod, exports: mod.exports, Buffer, console,
+    module: mod, exports: mod.exports, Buffer, console, AbortSignal,
     require: (id) => {
       if (id === "server-only") return {};
       if (id in mocks) return mocks[id];
@@ -23,10 +23,11 @@ function load(path, mocks = {}, globals = {}) {
 }
 const destination = load("lib/payments/voucher-destination.ts");
 const accounts = [{ holder: "HOLISTIC MARKETING LLC", holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"], accountNumber: "1947376966005", cci: "00219400737696600598" }];
-const valid = { amount: 100, currency: "PEN", operation_code: "123456", confidence: 0.99, destination_account: accounts[0].accountNumber, beneficiary_name: accounts[0].holder, is_payment_receipt: true, payment_completed: true, visible_manipulation: false };
-async function analyze(overrides = {}, env = {}) {
+const valid = { amount: 100, currency: "PEN", operation_code: "123456", confidence: 0.99, destination_account: accounts[0].accountNumber, beneficiary_name: accounts[0].holder, is_payment_receipt: true, payment_completed: true, visible_manipulation: false, visual_assessment: "clear", visual_findings: [], critical_fields_readable: true };
+async function analyze(overrides = {}, env = {}, formatPassed = true) {
   const service = load("lib/payments/voucher-analysis.server.ts", {
     "./voucher-destination": destination,
+    "./voucher-format-review.server": { reviewVoucherFormat: async () => ({ passed: formatPassed, profile: "bcp_app", outcome: formatPassed ? "compatible" : "unsupported", observedLabels: [], findings: [] }) },
     "@/lib/env/env.server": { serverEnv: { openAiApiKey: "test", ...env } },
     "@/lib/payments/voucher-channel": { normalizeVoucherBank: () => null, normalizeVoucherChannel: () => "transferencia" },
   }, { fetch: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ ...valid, ...overrides }) } }] }) }) });
@@ -36,6 +37,22 @@ async function analyze(overrides = {}, env = {}) {
 test("complete account or CCI and normalized holder are accepted", async () => {
   assert.equal((await analyze()).confirmed, true);
   assert.equal((await analyze({ destination_account: accounts[0].cci, beneficiary_name: "Holistic Marketing L.L.C." })).confirmed, true);
+});
+test("independent format review blocks an otherwise clear receipt", async () => {
+  const result = await analyze({}, {}, false);
+  assert.equal(result.confirmed, false);
+  assert.equal(result.receiptScreeningPassed, false);
+});
+test("supported format requires literal labels and a consistent assessment", () => {
+  const { evaluateVoucherFormat } = load("lib/payments/voucher-format-review.server.ts", { "@/lib/env/env.server": { serverEnv: {} } });
+  const good = { profile: "bcp_app", outcome: "compatible", observed_labels: ["Enviado a", "Desde", "Número de operación"], findings: [] };
+  assert.equal(evaluateVoucherFormat(good).passed, true);
+  assert.equal(evaluateVoucherFormat({ ...good, profile: "interbank_receipt" }).profile, "bcp_app");
+  assert.equal(evaluateVoucherFormat({ ...good, profile: "interbank_receipt", observed_labels: ["Cuenta destino:", "Cuenta cargo:", "Código de operación:"] }).passed, true);
+  assert.equal(evaluateVoucherFormat({ ...good, observed_labels: [...good.observed_labels, "Cuenta destino", "Cuenta cargo", "Código de operación"] }).passed, false);
+  for (const patch of [{ profile: "unknown" }, { outcome: "suspicious" }, { observed_labels: ["Destinatario", "Desde", "Número de operación"] }, { findings: ["Montaje"] }, { findings: null }]) {
+    assert.equal(evaluateVoucherFormat({ ...good, ...patch }).passed, false);
+  }
 });
 test("wrong, absent or cross-paired destinations are rejected", async () => {
   for (const patch of [{ destination_account: "1947376966006" }, { destination_account: "***6006" }, { destination_account: null }, { beneficiary_name: null }, { beneficiary_name: "HOLISTIC" }, { beneficiary_name: "Another company" }]) {
@@ -82,6 +99,22 @@ test("memes, unrelated photos, pending transfers and suspected edits cannot cred
     assert.equal(result.confirmed, false, JSON.stringify(patch));
     assert.equal(result.receiptScreeningPassed, false);
   }
+});
+test("visual screening distinguishes clear evidence from suspicion, unreadability and malformed responses", async () => {
+  for (const patch of [
+    { visual_assessment: "suspicious", visual_findings: ["Monto sobre un recuadro de otro color"] },
+    { visual_assessment: "unreadable" }, { visual_assessment: "not_receipt" },
+    { visual_assessment: undefined }, { visual_assessment: "authentic" },
+    { visual_findings: ["Receptor sobrepuesto"] }, { visual_findings: null }, { visual_findings: "none" },
+    { visual_findings: [123] }, { critical_fields_readable: false }, { critical_fields_readable: undefined },
+  ]) {
+    const result = await analyze(patch);
+    assert.equal(result.receiptScreeningPassed, false, JSON.stringify(patch));
+    assert.equal(result.confirmed, false);
+  }
+  const clear = await analyze();
+  assert.equal(clear.visualAssessment, "clear");
+  assert.equal(clear.confirmed, true);
 });
 
 function completion({ metadata = {}, duplicate = false, checkFailed = false, status = "processing" } = {}) {
