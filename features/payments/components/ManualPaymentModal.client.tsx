@@ -31,7 +31,6 @@ import {
 } from "./PaymentModalChrome";
 
 type ChargeCurrency = "USD" | "PEN";
-type PayMethod = "bank" | "binance";
 type Step =
   "form" | "banks" | "voucher" | "analyzing" | "confirmed" | "pending";
 
@@ -45,21 +44,12 @@ type BankAccount = {
   notes?: string;
 };
 
-type BinancePayee = {
-  id: string;
-  label: string;
-  email: string;
-  networkHint?: string;
-  notes?: string;
-};
-
 type ManualConfig = {
   fxRateUsdPen: number;
   fxSource?: string;
   fxAsOf?: string | null;
   bankAccounts: BankAccount[];
   bankAccountsUsd: BankAccount[];
-  binance?: BinancePayee | null;
   aiEnabled: boolean;
 };
 
@@ -157,7 +147,6 @@ export function ManualPaymentModal({
   const [step, setStep] = useState<Step>(resume ? "banks" : "form");
   const [amount, setAmount] = useState("");
   const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>(resume?.chargeCurrency ?? "PEN");
-  const [payMethod, setPayMethod] = useState<PayMethod>("bank");
   const [config, setConfig] = useState<ManualConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,14 +170,6 @@ export function ManualPaymentModal({
           fxRateUsdPen: 3.48,
           bankAccounts: [],
           bankAccountsUsd: [],
-          binance: {
-            id: "binance-pay",
-            label: "Binance Pay",
-            email: "master7victor@gmail.com",
-            networkHint: "Correo Binance",
-            notes:
-              "En Binance usa Pay / enviar a correo. Conserva el comprobante para el siguiente paso.",
-          },
           aiEnabled: false,
         }),
       );
@@ -253,7 +234,6 @@ export function ManualPaymentModal({
     setStep("form");
     setAmount("");
     setChargeCurrency("PEN");
-    setPayMethod("bank");
     setError(null);
     setPaymentIntentId(null);
     setProofFile(null);
@@ -357,7 +337,7 @@ export function ManualPaymentModal({
     setError(null);
     const formData = new FormData();
     formData.append("proof", proofFile);
-    formData.append("payMethod", payMethod);
+    formData.append("payMethod", "bank");
     try {
       const data = await apiClient<ProofResponse>(
         endpoints?.proof(paymentIntentId) ??
@@ -554,7 +534,7 @@ export function ManualPaymentModal({
                   disabled={!isValidAmount || loading}
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                 >
-                  {loading ? t("addBalance.processing") : t("manualModal.seePayMethods")}
+                  {loading ? t("addBalance.processing") : t("manualModal.seeBanks")}
                 </Button>
               </PaymentModalFooter>
             </div>
@@ -565,16 +545,8 @@ export function ManualPaymentModal({
           <>
             <PaymentModalHeader
               titleId="manual-payment-title"
-              title={
-                payMethod === "binance"
-                  ? t("manualModal.doBinance")
-                  : t("manualModal.doTransfer")
-              }
-              description={
-                payMethod === "binance"
-                  ? t("manualModal.binanceHint", { amount: chargeLabel })
-                  : t("manualModal.transferHint", { amount: chargeLabel })
-              }
+              title={t("manualModal.doTransfer")}
+              description={t("manualModal.transferHint", { amount: chargeLabel })}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -583,99 +555,8 @@ export function ManualPaymentModal({
               onClose={resetAndClose}
             />
             <div className="p-5 sm:p-6">
-              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-[#f3efe9] p-1">
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("bank")}
-                  aria-pressed={payMethod === "bank"}
-                  className={`rounded-xl px-3 py-2.5 text-center transition ${
-                    payMethod === "bank"
-                      ? "bg-white text-[#1c1917] shadow-[0_1px_2px_rgba(28,25,23,0.08)]"
-                      : "text-[#6f675f] hover:text-[#1c1917]"
-                  }`}
-                >
-                  <span className="block text-[12px] font-semibold sm:text-[13px]">
-                    {t("manualModal.methodBank")}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] text-[#8a8278]">
-                    {t("manualModal.methodBankHint")}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("binance")}
-                  aria-pressed={payMethod === "binance"}
-                  disabled={!config?.binance?.email}
-                  className={`rounded-xl px-3 py-2.5 text-center transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                    payMethod === "binance"
-                      ? "bg-white text-[#1c1917] shadow-[0_1px_2px_rgba(28,25,23,0.08)]"
-                      : "text-[#6f675f] hover:text-[#1c1917]"
-                  }`}
-                >
-                  <span className="block text-[12px] font-semibold sm:text-[13px]">
-                    {t("manualModal.methodBinance")}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] text-[#8a8278]">
-                    {t("manualModal.methodBinanceHint")}
-                  </span>
-                </button>
-              </div>
-
               <div className="space-y-3">
-                {payMethod === "binance" ? (
-                  config?.binance?.email ? (
-                    <div className="overflow-hidden rounded-2xl border border-[#e8e1d8] bg-white shadow-[0_1px_0_rgba(28,25,23,0.04)]">
-                      <div className="flex items-center justify-between gap-3 bg-[#fff8e1] px-4 py-3 sm:px-5">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <PaymentAppIcon app="binance" size="sm" />
-                          <div className="min-w-0">
-                            <p className="truncate text-[13px] font-semibold text-[#1c1917]">
-                              {config.binance.label}
-                            </p>
-                            <p className="mt-0.5 truncate text-[11px] text-[#6f675f]">
-                              {config.binance.networkHint ??
-                                t("manualModal.binanceEmailLabel")}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="inline-flex shrink-0 items-center rounded-md bg-[#F0B90B]/25 px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#8a6d00]">
-                          BINANCE
-                        </span>
-                      </div>
-                      <div className="space-y-3 px-4 py-4 sm:px-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
-                              {t("manualModal.binanceEmailLabel")}
-                            </p>
-                            <p className="mt-1 break-all font-mono text-[14px] font-semibold tracking-tight text-[#1c1917] sm:truncate">
-                              {config.binance.email}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => void copyText(config.binance!.email)}
-                            className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[#ddd4cb] bg-[#faf8f5] px-3 text-xs font-semibold text-[#a85a32] transition-colors hover:bg-[#faf6f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d47840]/35"
-                          >
-                            {t("addBalance.copy")}
-                          </button>
-                        </div>
-                        <p className="text-[11px] leading-4 text-[#8a8278]">
-                          {config.binance.notes ?? t("manualModal.binanceNotes")}
-                        </p>
-                        <p className="rounded-xl bg-[#f7f5f2] px-3 py-2 text-[11px] leading-4 text-[#5c564e]">
-                          {t("manualModal.binanceAmountHint", {
-                            amount: chargeLabel,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
-                      {t("manualModal.binancePending")}
-                    </p>
-                  )
-                ) : banks.length === 0 ? (
+                {banks.length === 0 ? (
                   <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
                     Las cuentas bancarias estan pendientes de configuracion.
                     Contacta con soporte.
@@ -785,7 +666,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.uploadTitle")}
-              description={t(payMethod === "binance" ? "manualModal.binanceUploadDesc" : "manualModal.uploadDesc")}
+              description={t("manualModal.uploadDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -906,7 +787,7 @@ export function ManualPaymentModal({
             <div className="flex flex-col items-center px-6 py-12 text-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840]" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
-                {t(paysDebt || payMethod === "binance" ? "manualModal.reviewWait" : "manualModal.analyzingWait")}
+                {t(paysDebt ? "manualModal.reviewWait" : "manualModal.analyzingWait")}
               </p>
             </div>
           </>

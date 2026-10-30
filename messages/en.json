@@ -261,7 +261,7 @@
       "faqTitle": "Frequent questions",
       "tabs": {
         "yape": "Yape / Plin",
-        "manual": "Transfer or Binance",
+        "manual": "Automatic bank transfer",
         "crypto": "Crypto (USDT)",
         "abroad": "I am in another country"
       },
@@ -273,10 +273,10 @@
         "tip": "If you create a new receipt, the previous unpaid one is cancelled automatically."
       },
       "manual": {
-        "step1": "Choose “Bank transfer or Binance”, enter how much you want in your wallet and whether you pay in soles or dollars.",
-        "step2": "From BCP, use the listed account; from another bank, use the CCI. Check the recipient and transfer the exact amount. For Binance, use the email shown.",
+        "step1": "Choose “Automatic bank transfer”, enter how much you want in your wallet and whether you pay in soles or dollars.",
+        "step2": "From BCP, use the listed account; from another bank, use the CCI. Check the recipient and transfer the exact amount.",
         "step3": "Upload a complete, readable receipt showing the account or CCI, recipient, amount, currency and transaction number.",
-        "step4": "BCP transfers are credited automatically when the receipt passes validation. Binance payments and cases requiring review go to our team.",
+        "step4": "Transfers to BCP are credited automatically when the receipt passes validation. Cases requiring review go to our team.",
         "time": "BCP: automatically credited after receipt validation",
         "tip": "Transferred but did not upload the screenshot? Go to “My top-ups” below and tap “Upload receipt”."
       },
@@ -293,12 +293,12 @@
         "step2": "Buy USDT on Binance P2P with your local bank (Nequi, Bancolombia, Banco Pichincha, Pix…) or with your card.",
         "step3": "Choose “Crypto (USDT)” here and send the USDT on the TRC20 network. The balance arrives automatically.",
         "time": "Arrives automatically in a few minutes",
-        "tip": "You can also send via Binance Pay to the “Bank transfer or Binance” email, but that payment goes through review."
+        "tip": "For money sent to our BCP account, choose “Automatic bank transfer”. For USDT sent from Binance or another wallet, choose “Crypto (USDT)”."
       },
       "faq": {
         "notCredited": {
           "q": "I paid and do not see my balance",
-          "a": "For Yape or crypto, the balance is credited when the provider confirms payment. Check My top-ups: upload the receipt if it is missing. In review means automatic crediting was not completed or you paid with Binance. Do not pay again; we will notify you when resolved."
+          "a": "For Yape or crypto, the balance is credited when the provider confirms payment. Check My top-ups: upload the receipt if it is missing. In review means automatic validation was not completed. Do not pay again; we will notify you when resolved."
         },
         "invalidPayment": {
           "q": "Yape says “Invalid payment”",
@@ -328,7 +328,7 @@
       "copied": "Copied",
       "copyPrompt": "Copy the code:",
       "payCrypto": "Pay with crypto",
-      "providerManual": "Bank transfer or Binance",
+      "providerManual": "Automatic bank transfer",
       "providerYape": "Yape / Plin",
       "providerCrypto": "Crypto (USDT)",
       "providerCard": "Card",
@@ -586,7 +586,7 @@
       "feeGateway": "Gateway fee",
       "totalPay": "Total to pay",
       "gatewayCrypto": "Crypto (USDT)",
-      "gatewayManual": "Bank transfer or Binance",
+      "gatewayManual": "Automatic bank transfer",
       "gatewayLocal": "Yape, Plin and banks",
       "gatewayCards": "Visa and Mastercard",
       "gatewayWallet": "Wallet top-up",
@@ -666,8 +666,8 @@
       "stepAmount": "Amount",
       "stepTransfer": "Payment",
       "stepProof": "Proof",
-      "title": "Bank transfer or Binance",
-      "subtitle": "BCP: automatic validation · Binance: review",
+      "title": "Automatic bank transfer",
+      "subtitle": "Transfer to BCP · automatic validation",
       "amountTitle": "How much balance do you want to add?",
       "receiveLabel": "Balance you will receive (USD)",
       "currency": "Transfer currency",
@@ -676,16 +676,8 @@
       "seeBanks": "View bank accounts",
       "seePayMethods": "View payment methods",
       "doTransfer": "Make the transfer",
-      "doBinance": "Pay with Binance",
       "methodBank": "Bank account",
       "methodBankHint": "BCP account for BCP transfers · CCI for other banks",
-      "methodBinance": "Binance",
-      "methodBinanceHint": "Pay to email",
-      "binanceEmailLabel": "Binance email",
-      "binanceNotes": "In Binance use Pay / send to email. Keep the proof for the next step.",
-      "binancePending": "Binance is pending configuration. Contact support.",
-      "binanceAmountHint": "Send exactly {amount} and save the proof.",
-      "binanceHint": "Send {amount} to Holistic's Binance email. Keep the proof for the next step.",
       "accountNumber": "BCP account · from BCP",
       "paidUpload": "I paid · Upload proof",
       "uploadTitle": "Upload your proof",
@@ -698,7 +690,7 @@
       "credited": "Balance credited",
       "done": "Done",
       "amountHint": "Enter the balance you want to receive and choose whether to transfer in soles or dollars.",
-      "transferHint": "Transfer exactly {amount}. From BCP, use the account number; from another bank, use the CCI. Check the recipient name.",
+      "transferHint": "Transfer exactly {amount} to our BCP account. From BCP, use the account number; from another bank, use the CCI. Validation is the same regardless of the sending bank or app. Check the recipient.",
       "uploadDesc": "Upload the complete, readable receipt for the completed payment, without edits. Show the destination account or CCI, recipient, amount, currency and transaction number.",
       "verifyingDesc": "We check the account or CCI, recipient, amount, currency and transaction. We also check for duplicates and signs of editing.",
       "confirmedDesc": "The balance is already available in your Holistic wallet.",
@@ -717,10 +709,9 @@
       "fxFixed": "{label}: 1 USD = {rate} PEN (locked on confirm)",
       "errAmountRange": "Amount between {min} and {max}.",
       "fileTypesHint": "JPG, PNG, WEBP, or PDF · max 10 MB",
-      "analyzingWait": "If the BCP transfer passes validation, your balance is credited automatically. Binance payments go to review.",
+      "analyzingWait": "If the transfer to BCP passes validation, your balance is credited automatically.",
       "understood": "Got it",
       "cci": "CCI · from another bank",
-      "binanceUploadDesc": "Upload the complete Binance receipt without edits. Show the recipient, amount, currency and transaction number. Our team will review the payment.",
       "reviewWait": "We are reading the receipt. Our team will complete the review."
     },
     "reloadSection": {
@@ -842,8 +833,8 @@
       "stripeName": "Card",
       "whopDesc": "Card, Apple Pay, and global wallets",
       "cobranaDesc": "Pay with Yape, Plin, or bank transfer",
-      "manualName": "Bank transfer or Binance",
-      "manualDesc": "BCP: automatic validation · Binance: review"
+      "manualName": "Automatic bank transfer",
+      "manualDesc": "Transfer to BCP · automatic validation"
     },
     "clienteScoped": {
       "eyebrow": "Hecom history",

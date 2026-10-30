@@ -261,7 +261,7 @@
       "faqTitle": "Preguntas frecuentes",
       "tabs": {
         "yape": "Yape / Plin",
-        "manual": "Transferencia o Binance",
+        "manual": "Transferencia automática",
         "crypto": "Cripto (USDT)",
         "abroad": "Estoy en otro país"
       },
@@ -273,10 +273,10 @@
         "tip": "Si generas un recibo nuevo, el anterior que no pagaste se cancela solo."
       },
       "manual": {
-        "step1": "Elige «Transferencia o Binance», escribe cuánto quieres en tu cartera y si pagarás en soles o en dólares.",
-        "step2": "Desde BCP usa la cuenta indicada; desde otro banco, el CCI. Verifica el receptor y transfiere el monto exacto. Para Binance, usa el correo que aparece.",
+        "step1": "Elige «Transferencia automática», escribe cuánto quieres en tu cartera y si pagarás en soles o en dólares.",
+        "step2": "Desde BCP usa la cuenta indicada; desde otro banco, el CCI. Verifica el receptor y transfiere el monto exacto.",
         "step3": "Sube el comprobante completo y legible del pago realizado, con cuenta o CCI, receptor, monto, moneda y número de operación.",
-        "step4": "La transferencia BCP se acredita automáticamente si el comprobante pasa la validación. Binance y los casos que requieren revisión pasan al equipo.",
+        "step4": "El saldo se acredita automáticamente si la transferencia a BCP pasa la validación. Los casos que requieren revisión pasan al equipo.",
         "time": "BCP: acreditación automática al validar el comprobante",
         "tip": "¿Transferiste y no subiste la captura? Ve a «Mis recargas», más abajo, y toca «Subir comprobante»."
       },
@@ -293,12 +293,12 @@
         "step2": "Compra USDT en Binance P2P con tu banco local (Nequi, Bancolombia, Banco Pichincha, Pix…) o con tu tarjeta.",
         "step3": "Elige «Cripto (USDT)» aquí y envía los USDT por la red TRC20. El saldo entra solo.",
         "time": "Llega solo en unos minutos",
-        "tip": "También puedes enviar por Binance Pay al correo de «Transferencia o Binance», pero ese pago pasa por revisión."
+        "tip": "Si envías dinero a nuestra cuenta BCP, usa «Transferencia automática». Para enviar USDT desde Binance u otra billetera, usa «Cripto (USDT)»."
       },
       "faq": {
         "notCredited": {
           "q": "Pagué y no veo mi saldo",
-          "a": "Con Yape o cripto, el saldo entra cuando el proveedor confirma el pago. Revisa «Mis recargas»: si falta el comprobante, súbelo. Si está «En revisión», no se pudo acreditar automáticamente o pagaste por Binance. No vuelvas a pagar; te avisaremos al resolverlo."
+          "a": "Con Yape o cripto, el saldo entra cuando el proveedor confirma el pago. Revisa «Mis recargas»: si falta el comprobante, súbelo. Si está «En revisión», no se pudo completar la validación automática. No vuelvas a pagar; te avisaremos al resolverlo."
         },
         "invalidPayment": {
           "q": "Yape me dice «Pago no válido»",
@@ -328,7 +328,7 @@
       "copied": "Copiado",
       "copyPrompt": "Copia el código:",
       "payCrypto": "Pagar con cripto",
-      "providerManual": "Transferencia o Binance",
+      "providerManual": "Transferencia automática",
       "providerYape": "Yape / Plin",
       "providerCrypto": "Cripto (USDT)",
       "providerCard": "Tarjeta",
@@ -586,7 +586,7 @@
       "feeGateway": "Fee de pasarela",
       "totalPay": "Total a pagar",
       "gatewayCrypto": "Cripto (USDT)",
-      "gatewayManual": "Transferencia o Binance",
+      "gatewayManual": "Transferencia automática",
       "gatewayLocal": "Yape, Plin y bancos",
       "gatewayCards": "Tarjetas Visa y Mastercard",
       "gatewayWallet": "Recarga de cartera",
@@ -666,8 +666,8 @@
       "stepAmount": "Monto",
       "stepTransfer": "Pago",
       "stepProof": "Comprobante",
-      "title": "Transferencia o Binance",
-      "subtitle": "BCP: validación automática · Binance: revisión",
+      "title": "Transferencia automática",
+      "subtitle": "Transferencia a BCP · validación automática",
       "amountTitle": "¿Cuánto saldo quieres recargar?",
       "receiveLabel": "Saldo que recibirás (USD)",
       "currency": "Moneda de la transferencia",
@@ -676,16 +676,8 @@
       "seeBanks": "Ver cuentas bancarias",
       "seePayMethods": "Ver formas de pago",
       "doTransfer": "Realiza la transferencia",
-      "doBinance": "Paga con Binance",
       "methodBank": "Cuenta bancaria",
       "methodBankHint": "BCP a BCP con cuenta · otros bancos con CCI",
-      "methodBinance": "Binance",
-      "methodBinanceHint": "Pago al correo",
-      "binanceEmailLabel": "Correo Binance",
-      "binanceNotes": "En Binance usa Pay / enviar a correo. Conserva el comprobante para el siguiente paso.",
-      "binancePending": "Binance está pendiente de configuración. Contacta con soporte.",
-      "binanceAmountHint": "Envía exactamente {amount} y guarda el comprobante.",
-      "binanceHint": "Envía {amount} al correo Binance de Holistic. Conserva el comprobante para el siguiente paso.",
       "accountNumber": "Cuenta BCP · desde BCP",
       "paidUpload": "Ya pagué · Subir comprobante",
       "uploadTitle": "Sube tu comprobante",
@@ -698,7 +690,7 @@
       "credited": "Saldo acreditado",
       "done": "Listo",
       "amountHint": "Ingresa el saldo que deseas recibir y elige si realizarás la transferencia en soles o dólares.",
-      "transferHint": "Transfiere exactamente {amount}. Desde BCP usa el número de cuenta; desde otro banco, el CCI. Verifica el nombre del receptor.",
+      "transferHint": "Transfiere exactamente {amount} a nuestra cuenta BCP. Desde BCP usa el número de cuenta; desde otro banco, el CCI. La validación es la misma desde cualquier banco o app. Verifica el receptor.",
       "uploadDesc": "Sube el comprobante completo y legible del pago realizado, sin editar. Debe mostrar cuenta o CCI de destino, receptor, monto, moneda y número de operación.",
       "verifyingDesc": "Revisamos cuenta o CCI, receptor, monto, moneda y operación. También buscamos duplicados e indicios de edición.",
       "confirmedDesc": "El saldo ya está disponible en tu cartera Holistic.",
@@ -717,10 +709,9 @@
       "fxFixed": "{label}: 1 USD = {rate} PEN (fijado al confirmar)",
       "errAmountRange": "Monto entre {min} y {max}.",
       "fileTypesHint": "JPG, PNG, WEBP o PDF · máx. 10 MB",
-      "analyzingWait": "Si la transferencia BCP pasa la validación, el saldo se acredita automáticamente. Binance pasa a revisión.",
+      "analyzingWait": "Si la transferencia a BCP pasa la validación, el saldo se acredita automáticamente.",
       "understood": "Entendido",
       "cci": "CCI · desde otro banco",
-      "binanceUploadDesc": "Sube el comprobante completo de Binance, sin editar. Debe mostrar destinatario, monto, moneda y número de operación. El equipo revisará el pago.",
       "reviewWait": "Estamos leyendo el comprobante. Nuestro equipo completará la revisión."
     },
     "reloadSection": {
@@ -842,8 +833,8 @@
       "stripeName": "Tarjeta",
       "whopDesc": "Tarjeta, Apple Pay y wallets globales",
       "cobranaDesc": "Paga con Yape, Plin o transferencia bancaria",
-      "manualName": "Transferencia o Binance",
-      "manualDesc": "BCP: validación automática · Binance: revisión"
+      "manualName": "Transferencia automática",
+      "manualDesc": "Transferencia a BCP · validación automática"
     },
     "clienteScoped": {
       "eyebrow": "Historial Hecom",
