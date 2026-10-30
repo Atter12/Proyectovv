@@ -104,7 +104,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (!isVoucherPaymentProvider(intent.provider)) {
     return NextResponse.json(
-      { error: "El voucher solo aplica para pago manual." },
+      { error: "Este método de pago no admite comprobantes adjuntos." },
       { status: 400 },
     );
   }
@@ -124,7 +124,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   if (intent.provider === "manual" && isGatewayInMaintenance("manual")) {
     return NextResponse.json(
-      { error: "El pago manual está deshabilitado temporalmente. Contacta con soporte." },
+      { error: "Las recargas por transferencia están deshabilitadas temporalmente. Contacta con soporte." },
       { status: 503 },
     );
   }
@@ -254,7 +254,7 @@ export async function POST(request: Request, context: RouteContext) {
       organizationId,
       userId: session.id,
       title: "Comprobante enviado",
-      body: "Comprobante en revisión. Te avisamos cuando se acredite.",
+      body: "Comprobante en revisión. Te avisaremos del resultado; no vuelvas a pagar.",
       type: "payment_proof_uploaded",
       data: { payment_intent_id: intent.id, url: "/payments" },
     });
@@ -303,7 +303,7 @@ export async function POST(request: Request, context: RouteContext) {
     paymentIntent: {
       id: intent.id,
       status: processResult.status,
-      manualReviewStatus: processResult.analysis.confirmed
+      manualReviewStatus: processResult.autoApproved
         ? "approved"
         : "pending_review",
       proofFileName: safeName,

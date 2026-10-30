@@ -78,6 +78,8 @@ interface ProofUploadResponse {
     status: string;
     manualReviewStatus: string;
     proofFileName: string;
+    autoApproved?: boolean;
+    analysis?: { reason?: string };
     submittedAt: string;
   };
 }
@@ -447,10 +449,13 @@ export function AddBalanceModal({
         },
       );
       setResultMessage(
-        t("addBalance.voucherSent", {
+        data.paymentIntent.autoApproved
+          ? t("manualModal.confirmedDesc")
+          : data.paymentIntent.analysis?.reason ?? t("addBalance.voucherSent", {
           fileName: data.paymentIntent.proofFileName,
         }),
       );
+      setPaidConfirmed(data.paymentIntent.autoApproved === true);
       setStep("result");
       router.refresh();
     } catch (err) {

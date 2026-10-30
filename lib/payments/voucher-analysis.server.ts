@@ -284,7 +284,9 @@ ${input.destinationAccounts !== undefined ? "Extrae únicamente los datos visibl
         : input.destinationAccounts !== undefined
           ? !receiptScreeningPassed
             ? formatReview && !formatReview.passed
-              ? "No pudimos confirmar el formato del comprobante o encontramos inconsistencias. Un gerente lo revisará."
+              ? formatReview.outcome === "suspicious"
+                ? "Encontramos inconsistencias visibles en el comprobante. Nuestro equipo lo revisará; el saldo aún no se acreditó."
+                : "No pudimos completar la lectura del formato del comprobante. Nuestro equipo lo revisará; el saldo aún no se acreditó."
               : visualAssessment === "not_receipt"
               ? "La imagen no muestra un comprobante de pago. Sube el comprobante de la operación realizada."
               : visualAssessment === "suspicious"
@@ -294,7 +296,15 @@ ${input.destinationAccounts !== undefined ? "Extrae únicamente los datos visibl
                   : "No se pudo completar la validación visual. Un gerente revisará el comprobante."
             : !currencyConsistent
               ? "La moneda del importe y la cuenta destino no coinciden en el comprobante. Un gerente lo revisará."
-              : "No pudimos confirmar cuenta destino, receptor, monto, moneda o número de operación. Un gerente revisará el comprobante."
+              : !destinationVerified
+                ? "No pudimos hacer coincidir la cuenta o CCI y el receptor con los registrados. Nuestro equipo revisará el comprobante."
+                : detectedCurrency !== input.expectedCurrency
+                  ? "La moneda del comprobante no coincide con la elegida para esta recarga. Nuestro equipo lo revisará."
+                  : detectedAmount === null || Math.round(detectedAmount * 100) !== expectedCents
+                    ? "El monto del comprobante no coincide con el total solicitado para esta recarga. Nuestro equipo lo revisará."
+                    : typeof parsed.operation_code !== "string" || parsed.operation_code.replace(/[\s.\-_/]+/g, "").length < 4
+                      ? "No pudimos leer la referencia de la operación. Nuestro equipo revisará el comprobante."
+                      : "No pudimos completar la validación automática con los datos leídos. Nuestro equipo revisará el comprobante."
           : (parsed.notes ?? "No pudimos confirmar el monto o beneficiario con certeza."),
       analysisMode: "openai_vision",
     };
@@ -357,8 +367,9 @@ export async function analyzePaymentVoucher(input: {
     operationCode: null,
     paymentDate: null,
     beneficiaryMatch: null,
-    reason:
-      "Comprobante recibido. Un agente lo revisará en breve (IA no configurada).",
+    reason: input.mimeType === "application/pdf"
+      ? "Recibimos el PDF. Este formato requiere revisión del equipo; el saldo aún no se acreditó. No vuelvas a pagar."
+      : "Recibimos el comprobante, pero no pudimos completar la validación automática. Nuestro equipo lo revisará; no vuelvas a pagar.",
     analysisMode: "pending_no_ai",
   };
 }
