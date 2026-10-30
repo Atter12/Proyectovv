@@ -734,7 +734,7 @@ export function ManualPaymentModal({
                             <div className="flex items-center justify-between gap-3 border-t border-[#f0ebe4] pt-3">
                               <div className="min-w-0">
                                 <p className="text-[10px] font-medium uppercase tracking-wide text-[#8a8278]">
-                                  CCI
+                                  {t("manualModal.cci")}
                                 </p>
                                 <p className="mt-1 truncate font-mono text-[13px] font-medium tracking-tight text-[#1c1917]">
                                   {bank.cci}
@@ -785,7 +785,7 @@ export function ManualPaymentModal({
             <PaymentModalHeader
               titleId="manual-payment-title"
               title={t("manualModal.uploadTitle")}
-              description={t("manualModal.uploadDesc")}
+              description={t(payMethod === "binance" ? "manualModal.binanceUploadDesc" : "manualModal.uploadDesc")}
               identityIcon={<GatewayLogo gatewayId="manual" size="sm" />}
               identityLabel={t("manualModal.title")}
               identityDescription={t("manualModal.subtitle")}
@@ -906,7 +906,7 @@ export function ManualPaymentModal({
             <div className="flex flex-col items-center px-6 py-12 text-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#d47840]/20 border-t-[#d47840]" />
               <p className="mt-5 text-[13px] font-medium text-[#625b54]">
-                {t("manualModal.analyzingWait")}
+                {t(paysDebt || payMethod === "binance" ? "manualModal.reviewWait" : "manualModal.analyzingWait")}
               </p>
             </div>
           </>

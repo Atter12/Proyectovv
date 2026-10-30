@@ -27,8 +27,8 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   },
   {
     id: "manual",
-    name: "Pago manual",
-    description: "Transferencia BCP · comprobante en revisión",
+    name: "Transferencia o Binance",
+    description: "BCP: validación automática · Binance: revisión",
   },
   {
     id: "crypto",
