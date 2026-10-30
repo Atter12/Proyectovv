@@ -25,7 +25,7 @@ function respond(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 function authorized(request: Request) {
-  const expected = serverEnv.cronSecret;
+  const expected = process.env.VOUCHER_READONLY_CHECK_SECRET;
   const actual = request.headers.get("authorization")?.replace(/^Bearer /, "") ?? "";
   if (!expected || !actual || Date.now() > EXPIRES) return false;
   const a = Buffer.from(actual), b = Buffer.from(expected);
