@@ -4,7 +4,7 @@ import {
   updatePaymentIntentRecord,
 } from "@/lib/payments/payment-intents.server";
 import { createNotificationBestEffort } from "@/lib/notifications/create-notification.server";
-import { getString, isRecord, mergeMetadata } from "@/lib/records";
+import { mergeMetadata } from "@/lib/records";
 import {
   analyzePaymentVoucher,
   hashVoucherBuffer,
@@ -20,9 +20,8 @@ import {
 import type { ManualChargeCurrency } from "@/lib/payments/manual-deposit.server";
 import { getManualBankAccounts } from "@/lib/payments/manual-bank-accounts.server";
 import { isGatewayInMaintenance } from "@/lib/payments/gateway-config";
-import { completeManualBankConfirmedDeposit } from "@/lib/payments/manual-bank-match/confirm-deposit.server";
+import { completeManualVoucherConfirmedDeposit } from "@/lib/payments/manual-bank-match/confirm-deposit.server";
 import { MANUAL_DASHBOARD_SOURCE } from "@/lib/payments/manual-bank-match/source";
-import { pollYapeMailboxThrottled } from "@/lib/payments/yape/poll-mailbox.server";
 import { isMissingCobroPurpose, isLoPagadoDebtPurpose } from "@/lib/payments/missing-cobro.shared";
 
 export type ProcessManualVoucherResult = {
@@ -122,6 +121,9 @@ export async function processManualVoucherUpload(input: {
     };
   }
 
+  if (intent.status !== "requires_payment" && intent.status !== "processing") {
+    throw new Error("La recarga ya no está abierta.");
+  }
   const metadata = (intent.metadata ?? {}) as Record<string, unknown>;
   const expected = readExpectedChargeAmount(intent.amountCents, metadata);
   const creditUsdCents = readCreditUsdCents(metadata, intent.amountCents);
@@ -135,7 +137,8 @@ export async function processManualVoucherUpload(input: {
     );
   }
 
-  const holders = getManualBankAccounts(expected.currency).map((a) => a.holder);
+  const destinationAccounts = getManualBankAccounts(expected.currency);
+  const holders = destinationAccounts.map((a) => a.holder);
 
   const analysis = await analyzePaymentVoucher({
     buffer: input.buffer,
@@ -143,6 +146,8 @@ export async function processManualVoucherUpload(input: {
     expectedAmount: expected.amount,
     expectedCurrency: expected.currency,
     holderNames: holders,
+    strictCurrency: true,
+    destinationAccounts,
   });
 
   const hashCheck = await checkDuplicateVoucherHash(contentHash, intent.id);
@@ -185,22 +190,18 @@ export async function processManualVoucherUpload(input: {
     analysis.needsReview = true;
     analysis.reason =
       "No pudimos verificar si este comprobante ya se usó. Un gerente lo revisará.";
-  } else if (!rateLimits.autoApproveAllowed && rateLimits.reason) {
-    // Solo bloquea auto si no hay confirmación bancaria; el cierre dual lo
-    // reevalúa con la excepción de rate-limit (igual que Yape).
+  } else if (!rateLimits.autoApproveAllowed) {
     analysis.needsReview = true;
-    if (!getString(metadata.bank_confirmed_at)) {
-      analysis.confirmed = false;
-      analysis.reason = rateLimits.reason;
-    }
+    analysis.confirmed = false;
+    analysis.reason = rateLimits.reason ?? "No pudimos verificar los límites. Un gerente revisará el comprobante.";
   }
 
   const submittedAt = new Date().toISOString();
-  // Guardamos el análisis real: es una de las dos pruebas. La IA sola nunca
-  // acredita; hace falta el mail de abono (completeManualBankConfirmedDeposit).
+  // El panel valida destino, monto, moneda y duplicados sin esperar correo.
   const resolvedOpCode = normalizedOperationCode ?? claimedOperationCode;
   const baseMeta = mergeMetadata(metadata, {
     manual_review_status: "pending_review",
+    voucher_approval_policy: "destination_v1",
     voucher_content_hash: contentHash,
     ...(resolvedOpCode ? { voucher_operation_code: resolvedOpCode } : {}),
     voucher_security: security,
@@ -227,40 +228,13 @@ export async function processManualVoucherUpload(input: {
   const isDebtPayment = isLoPagadoDebtPurpose(metadata);
   const skipWalletAuto = isMissingCobro || isDebtPayment;
 
-  // Cobro faltante: nunca auto-cierra con mail bancario ni acredita cartera.
-  // Si el abono del banco/Binance llegó antes, cerramos ahora (solo wallet dashboard).
-  const bankNotificationId = getString(metadata.bank_confirmation_notification_id);
-  if (
-    !skipWalletAuto &&
-    analysis.confirmed &&
-    getString(metadata.bank_confirmed_at) &&
-    bankNotificationId &&
-    isRecord(metadata) &&
-    metadata.source === MANUAL_DASHBOARD_SOURCE
-  ) {
-    await completeManualBankConfirmedDeposit({
-      intentId: intent.id,
-      notificationId: bankNotificationId,
-      operationNumber: getString(metadata.bank_confirmation_operation_number),
-    });
-  } else if (!skipWalletAuto && analysis.confirmed) {
-    try {
-      await pollYapeMailboxThrottled();
-    } catch (error) {
-      console.warn("[manual-voucher] revisión inmediata del correo falló", error);
-    }
+  if (!skipWalletAuto && analysis.confirmed && metadata.source === MANUAL_DASHBOARD_SOURCE) {
+    await completeManualVoucherConfirmedDeposit({ intentId: intent.id });
   }
 
   const fresh = await getPaymentIntentByIdInternal(intent.id);
   const status = fresh?.status ?? "processing";
   const autoApproved = !skipWalletAuto && status === "succeeded";
-  // El cierre dual lo frenó por superar el tope de acreditación automática;
-  // los gerentes ya fueron avisados desde ahí.
-  const heldOverLimit =
-    !autoApproved &&
-    isRecord(fresh?.metadata) &&
-    isRecord(fresh.metadata.auto_approve_blocked);
-
   if (autoApproved) {
     return {
       analysis: {
@@ -277,7 +251,6 @@ export async function processManualVoucherUpload(input: {
     };
   }
 
-  const waitsForBankMail = analysis.paymentChannel === "yape";
 
   await createNotificationBestEffort({
     organizationId: intent.organizationId,
@@ -294,14 +267,9 @@ export async function processManualVoucherUpload(input: {
           (isDebtPayment
             ? "Tu comprobante fue recibido. Un gerente lo revisará antes de bajar la deuda del mes."
             : "Tu comprobante fue recibido. Un gerente lo revisará antes de registrarlo en Lo pagado.")
-      : heldOverLimit
-        ? "Recibimos tu comprobante y el abono. Por el monto, un gerente aprueba la acreditación antes de que entre el saldo."
-        : analysis.confirmed && waitsForBankMail
-        ? "Recibimos tu comprobante. Estamos confirmando el abono en el banco; el saldo entra en cuanto cuadre."
-        : analysis.confirmed
-        ? "Recibimos tu comprobante. Un gerente confirma el abono en el banco y el saldo entra en cuanto lo apruebe."
-        : analysis.reason ||
-          "Tu comprobante fue recibido. Un gerente lo revisará antes de acreditar saldo.",
+      : analysis.confirmed
+        ? "Comprobante recibido. La acreditación requiere revisión."
+        : analysis.reason || "Un gerente revisará tu comprobante.",
     type: "payment_proof_uploaded",
     data: {
       payment_intent_id: intent.id,
@@ -309,12 +277,8 @@ export async function processManualVoucherUpload(input: {
     },
   });
 
-  // Si la IA validó un Yape, el cierre dual lo completa con el aviso del BCP
-  // sin spam a managers. Las transferencias, depósitos y Binance no tienen ese
-  // aviso: el BCP solo manda correo cuando sale dinero o cuando entra un Yape
-  // (buzón revisado el 19/10/2026), así que sin este correo quedaban colgadas.
-  // Cobro faltante: siempre avisar (nunca auto-aprueba).
-  if (!analysis.confirmed || !waitsForBankMail || isMissingCobro || isDebtPayment) {
+  // Todo comprobante no acreditado se comunica a gerencia.
+  {
     const chargeCurrency = expected.currency;
     const chargeAmountCents =
       chargeCurrency === "PEN"
@@ -341,6 +305,7 @@ export async function processManualVoucherUpload(input: {
     analysis: {
       ...analysis,
       needsReview: true,
+      reason: analysis.confirmed ? "Comprobante recibido. La acreditación requiere revisión." : analysis.reason,
     },
     autoApproved: false,
     status: "processing",
