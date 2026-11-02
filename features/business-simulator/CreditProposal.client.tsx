@@ -66,7 +66,7 @@ export function CreditProposal({clientId,clientName,currency,feeReference}:{clie
     {busy&&<div role="status" className={styles.loading}><span className={styles.spinner} aria-hidden="true"/><div>Preparando el análisis del cliente<span className={styles.caption}>Consultando pagos, anuncios, ventas y costos disponibles.</span></div></div>}
     {current&&<section className={styles.assessment} aria-label="Evaluación automática">
       <div className={styles.assessmentHeader}>
-        <div><h2>{current.headline}</h2><p className={styles.fieldHint}>Consulta del {new Date(current.checkedAt).toLocaleString("es-PE")}</p></div>
+        <div><h2>{current.headline}</h2><p className={styles.fieldHint}>Consulta del {new Date(current.checkedAt).toLocaleString("es-PE")}</p><p className={styles.resultNote}>Propuesta evaluada para {clientName}: <strong>{money(current.terms.principalCents)}</strong> de capital · fee {current.terms.feeBps / 100}% · {current.terms.days} días · devolución total <strong>{money(current.totalDueCents)}</strong>.</p></div>
         <button type="button" onClick={download} className={styles.secondary}>Descargar evaluación</button>
       </div>
       {current.aiSummary&&<p className={styles.aiSummary}>{current.aiSummary}</p>}

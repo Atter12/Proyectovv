@@ -4,6 +4,14 @@ Ruta: `/simulador`. Menú: **Decisiones por cliente**, solo para gerencia. La ru
 
 ## Flujo vigente · 02/11/2026
 
+El resumen IA recibe la propuesta con importes monetarios ya convertidos y
+moneda explícita, y el fee expresado como porcentaje. Nunca recibe los enteros
+internos de centavos o puntos básicos como condiciones del crédito. Por ejemplo,
+100000 centavos y 1000 puntos básicos se envían como USD 1000.00 y 10.00%, con
+USD 100.00 de comisión y USD 1100.00 de devolución. El contexto histórico se
+envía separado de la propuesta. La cabecera del análisis muestra las condiciones
+exactas evaluadas desde el cálculo determinista, independientemente del texto IA.
+
 La interfaz sigue **elegir cliente → definir propuesta → revisar resultado**.
 Un buscador con selección directa reemplaza el buscador y selector separados.
 Las dos opciones conservan sus valores al alternar entre fee y crédito; cambiar
