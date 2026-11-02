@@ -13,7 +13,6 @@ import {
   type StatementGasto,
 } from "@/features/clientes/components/VoucherAccountStatement.client";
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
-import type { MonthlyDebtSettlement } from "@/lib/hecom/debt-settlement";
 
 function limaMonthKey(): string {
   return todayYmdInTz("America/Lima").slice(0, 7);
@@ -57,7 +56,6 @@ function ymdMonth(value: string | null | undefined): string | null {
 }
 
 type Props = {
-  settlement: MonthlyDebtSettlement | null;
   gastos: StatementGasto[];
   cobros: StatementCobro[];
   historyCobros: CobroHistoryRow[];
@@ -78,7 +76,6 @@ type Props = {
  * Mes compartido: picker arriba → gráfica Cuánto debes + historial de pagos.
  */
 export function ClienteCobrosMonthView({
-  settlement,
   gastos,
   cobros,
   historyCobros,
@@ -257,7 +254,6 @@ export function ClienteCobrosMonthView({
 
         <div className="p-4 sm:p-5">
           <VoucherAccountStatement
-            settlement={settlement}
             monthYm={month}
             feePercent={feePercent}
             capped={capped}

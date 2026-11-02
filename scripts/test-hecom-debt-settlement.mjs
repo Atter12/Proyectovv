@@ -82,12 +82,8 @@ const props={monthYm:'2026-10',feePercent:5,capped:false,
   settlement:{'2026-10':{pending:176.02,cargo:12445.02,covered:12269}},
 };
 const markup=renderToStaticMarkup(React.createElement(statementModule.VoucherAccountStatement,props));
-assert.ok(markup.includes('$176.02'),'The hero must use the settled debt');
+assert.ok(markup.includes('$7,445.02'),'The period balance deducts only the recorded 5000 payment');
 assert.ok(markup.includes('$5,000.00'),'The real monthly payment stays visible');
-assert.ok(markup.includes('Aplicado desde el historial: $7,269.00'),'Historical coverage is separate from cash receipts');
-assert.ok(!markup.includes('$7,445.02'),'The monthly cash gap must not masquerade as debt');
-const unavailable=renderToStaticMarkup(React.createElement(statementModule.VoucherAccountStatement,{...props,settlement:null}));
-assert.ok(unavailable.includes('Saldo por verificar'));
-assert.ok(!unavailable.includes('$7,445.02'));
-assert.ok(!unavailable.includes('Aplicado desde el historial:'));
-console.log('Rendered statement checks passed: actual payment, separate historical coverage, settled debt and unavailable state.');
+assert.ok(!markup.includes('Aplicado desde el historial:'),'Do not assign historical coverage automatically');
+assert.ok(!markup.includes('$176.02'),'An earlier-period balance must not reduce this period again');
+console.log('Rendered period checks passed: 5000 remains a payment; no automatic historical coverage.');

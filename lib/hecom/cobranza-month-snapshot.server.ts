@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
-import { getHecomMonthlyDebtSettlement } from "@/lib/hecom/debt-settlement.server";
 import {
   buildCobranzaMonthSnapshot,
   type CobranzaMonthSnapshot,
@@ -34,8 +33,6 @@ export async function loadWaCobranzaSnapshot(input: {
     includeDailySpend: false,
   });
   if (!dashboard) return null;
-  const settlement = await getHecomMonthlyDebtSettlement(input.hecomClienteId);
-  if (!settlement) throw new Error("No se pudo verificar la deuda con el historial completo. No enviar cobranza.");
 
   const snap = buildCobranzaMonthSnapshot({
     gastos: dashboard.gastos.map((row) => ({
@@ -59,12 +56,11 @@ export async function loadWaCobranzaSnapshot(input: {
 
   return {
     ...snap,
-    deudaCorte: settlement[input.monthYm]?.pending ?? 0,
     hecomClienteId: dashboard.cliente.id,
     nombre: dashboard.cliente.name,
     currency: "USD",
     feePercent: dashboard.summary.depositFeePercent,
     source: dashboard.source,
-    skipCobranza: (settlement[input.monthYm]?.pending ?? 0) <= 0,
+    skipCobranza: snap.deudaCorte <= 0,
   };
 }

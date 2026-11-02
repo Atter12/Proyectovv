@@ -6,7 +6,7 @@ import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import { verifyLoPagadoToken } from "@/lib/hecom/lo-pagado-public-token";
 import { resolvePublicDebtLinkMonth } from "@/lib/hecom/debt-link-month";
 import { todayYmdInTz } from "@/lib/hecom/gasto-date";
-import { getHecomMonthlyDebtSettlement } from "@/lib/hecom/debt-settlement.server";
+import { monthOwedUsd } from "@/lib/hecom/month-owed";
 import { serverEnv } from "@/lib/env/env.server";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 
@@ -75,8 +75,13 @@ export default async function LoPagadoPublicPage({
   const month = publicLinkMonth(query.m, fromMonth);
   const apiBase = `/api/public/lo-pagado/${encodeURIComponent(token)}`;
   // Lo que debe del mes del link: el botón de tarjeta lo trae listo para pagar todo.
-  const settlement = await getHecomMonthlyDebtSettlement(clientId);
-  const owedUsd = settlement?.[month]?.pending ?? 0;
+  const owedUsd = monthOwedUsd({
+    monthYm: month,
+    todayYmd: todayYmdInTz("America/Lima"),
+    feePercent: summary.depositFeePercent,
+    gastos,
+    cobros,
+  });
   let claims: Awaited<ReturnType<typeof listMissingCobroClaimsForCliente>> = [];
   try {
     claims = await listMissingCobroClaimsForCliente(clientId);
@@ -142,7 +147,6 @@ export default async function LoPagadoPublicPage({
           </p>
         </header>
         <ClienteCobrosMonthView
-          settlement={settlement}
           initialMonth={month}
           syncMonthToUrl
           hideStaff
@@ -176,7 +180,7 @@ export default async function LoPagadoPublicPage({
             registeredAt: row.registeredAt,
           }))}
         />
-        {settlement ? <PublicLoPagadoActions
+        <PublicLoPagadoActions
           apiBase={apiBase}
           month={month}
           owedUsd={owedUsd}
@@ -187,7 +191,7 @@ export default async function LoPagadoPublicPage({
             proofSignedUrl: null,
             organizationName: null,
           }))}
-        /> : <p role="status" className="rounded-xl bg-white p-4 text-sm text-[#5c564e]">No pudimos verificar el saldo completo. Actualiza la página antes de realizar un pago.</p>}
+        />
       </div>
     </main>
   );
