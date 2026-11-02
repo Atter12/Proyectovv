@@ -9,11 +9,11 @@ const root=process.cwd();
 const core=require(path.join(root,'lib/hecom/debt-core.cjs'));
 export function loadTs(file,imports={}){
   const code=ts.transpileModule(readFileSync(path.join(root,file),'utf8'),{fileName:file,compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,esModuleInterop:true,jsx:ts.JsxEmit.ReactJSX}}).outputText;
-  const loadedModule={exports:{}};
+  const module={exports:{}};
   vm.runInNewContext('(function(require,module,exports){'+code+'\n})',{console:{warn(){}},Map,Set,Number,Date,Error,Promise})(id=>{
     if(id in imports)return imports[id];throw Error('Unmocked dependency '+id);
-  },loadedModule,loadedModule.exports);
-  return loadedModule.exports;
+  },module,module.exports);
+  return module.exports;
 }
 const pure=loadTs('lib/hecom/debt-settlement.ts',{'./debt-core.cjs':core});
 const CID='11111111-1111-4111-8111-111111111111';
