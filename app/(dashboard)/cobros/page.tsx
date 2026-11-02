@@ -60,7 +60,7 @@ export default async function CobrosPage() {
     <div className={dashboardClasses.page}>
       <ClienteScopedCobros
         data={data}
-        // Clientes (y gerentes en «ver como cliente») ven desde setiembre 2026; gerentes, todo.
+        // Clientes y «ver como cliente» pueden revisar desde junio de 2026.
         fromMonth={
           capabilities.isStaff || capabilities.isSuperAdmin ? undefined : CLIENT_COBROS_FROM_MONTH
         }

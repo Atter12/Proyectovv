@@ -1,5 +1,17 @@
 # Cobros históricos y deuda mensual — 2026-11-02
 
+## Corrección posterior por instrucción del aprobador
+
+El aprobador aclaró que el abono confirmado es amortización de deuda y pidió volver a la presentación por período, sin reutilizar cobros históricos como saldo actual. Esta instrucción sustituye la integración de cobertura histórica descrita más abajo, que se conserva como antecedente. `b4615ffe` retira esa cobertura de la pantalla, del enlace de pago y del snapshot de cobranza; no modifica ni elimina recibos reales. El cron de reclasificación permanece retirado.
+
+La revisión general encontró además un límite de visibilidad de septiembre en la vista de cliente. Se amplía a junio de 2026, manteniendo la autorización del cliente seleccionado y el filtro de datos en servidor.
+
+El contraste de gasto utiliza informes diarios de cuenta de TikTok, no movimientos de recarga como si fueran pagos del cliente. Se excluyen cuentas sin permiso, titularidad histórica no acreditada y meses con facturación manual potencialmente superpuesta. Los ajustes de gasto sintéticos antiguos solo se corrigen contra gasto real de la misma cuenta/día; no se inventan gastos para cuadrar deuda. Los importes y comprobantes del caso individual permanecen en evidencia privada.
+
+La deuda histórica total no se da por conciliada a partir de la antigüedad de un pago ni de una expectativa verbal de saldo. El cálculo del período y el estado de una conciliación completa deben comunicarse por separado.
+
+## Antecedente sustituido: cobertura histórica automática
+
 La reclasificación de cobros para cuadrar tarjetas mensuales se retiró en Hecom. No debe recrearse mediante nuevas garantías, recibos sintéticos ni cambios automáticos de período. El motor FIFO ya aplica pagos y anticipos registrados al gasto.
 
 Ads debe distinguir ingreso registrado al período de gasto cubierto por el historial. El importe reclamable se obtiene del motor canónico de Hecom con gastos, cobros directos o ligados a gastos y garantías; una resta entre dos totales mensuales no sustituye ese cálculo.

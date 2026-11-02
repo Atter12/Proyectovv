@@ -9,7 +9,7 @@ import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
 
 /** Primer mes que ve un cliente en «Lo pagado». Gerentes ven todo el historial. */
-export const CLIENT_COBROS_FROM_MONTH = "2026-09";
+export const CLIENT_COBROS_FROM_MONTH = "2026-06";
 
 /** YYYY-MM de una fecha o periodo; null si no se puede leer. */
 function monthOf(value: string | null | undefined): string | null {
