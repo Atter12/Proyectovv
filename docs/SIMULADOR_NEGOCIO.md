@@ -4,6 +4,22 @@ Ruta: `/simulador`. Menú: **Decisiones por cliente**, solo para gerencia. La ru
 
 ## Flujo vigente · 02/11/2026
 
+La interfaz sigue **elegir cliente → definir propuesta → revisar resultado**.
+Un buscador con selección directa reemplaza el buscador y selector separados.
+Las dos opciones conservan sus valores al alternar entre fee y crédito; cambiar
+de cliente o moneda limpia las propuestas. Las consultas anteriores se cancelan
+para no mostrar resultados de otro cliente.
+
+**Todo se evalúa por cliente.** El formulario y el resultado de fee identifican
+al cliente seleccionado. No existe una modificación de fee general en este
+flujo: ni simular ni descargar aplica tarifas, acuerdos o desembolsos.
+
+El crédito separa capital, comisión y devolución total, con plazos rápidos de
+7, 15 y 30 días. El fee compara ingreso actual y propuesto; las referencias,
+fuentes y supuestos opcionales se abren a demanda. En móvil, el resultado aparece
+antes de los detalles secundarios. Se mantienen los cálculos y permisos del
+servidor. La vista previa de validación usa únicamente datos ficticios.
+
 La pantalla de gerencia se centra en un cliente real. Seleccionar y evaluar carga en paralelo el score existente de Profit, costos conocidos y el FEE efectivo del endpoint de depósitos (con origen de cliente, cuenta o tarifa general). Los datos ausentes permanecen pendientes; no arranca con el ejemplo del PDF ni una comparación de toda la agencia.
 
 Dos decisiones: **Evaluar cambio de FEE** y **Evaluar crédito**. La primera compara ingreso bruto por FEE con la tarifa actual y la propuesta sobre el gasto observado de 30 días, o una base manual expresamente identificada; permite ingresar un volumen comercial esperado y calcula el volumen para conservar el ingreso por FEE. No confunde el gasto observado con recargas facturadas ni ingreso con utilidad neta. La segunda calcula principal adicional comprometido, costo simple de financiación anual a 365 días para el plazo ingresado y FEE potencial si consume todo el crédito y devuelve principal y FEE puntualmente. No modela impago, deuda previa, impuestos ni otros costos. No aplica una tarifa ni desembolsa fondos.
