@@ -22,7 +22,7 @@ function load(path, mocks = {}, globals = {}) {
   return mod.exports;
 }
 const destination = load("lib/payments/voucher-destination.ts");
-const accounts = [{ holder: "HOLISTIC MARKETING LLC", holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"], accountNumber: "1947376966005", cci: "00219400737696600598" }];
+const accounts = [{ holder: "HOLISTIC MARKETING PE EIRL", holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"], accountNumber: "1947376966005", cci: "00219400737696600598" }];
 const valid = { amount: 100, currency: "PEN", operation_code: "123456", confidence: 0.99, destination_account: accounts[0].accountNumber, beneficiary_name: accounts[0].holder, is_payment_receipt: true, payment_completed: true, visible_manipulation: false, visual_assessment: "clear", visual_findings: [], critical_fields_readable: true };
 async function analyze(overrides = {}, env = {}, formatPassed = true) {
   const service = load("lib/payments/voucher-analysis.server.ts", {
@@ -36,7 +36,67 @@ async function analyze(overrides = {}, env = {}, formatPassed = true) {
 
 test("complete account or CCI and normalized holder are accepted", async () => {
   assert.equal((await analyze()).confirmed, true);
-  assert.equal((await analyze({ destination_account: accounts[0].cci, beneficiary_name: "Holistic Marketing L.L.C." })).confirmed, true);
+  assert.equal((await analyze({ destination_account: accounts[0].cci, beneficiary_name: "Holistic Marketing PE E.I.R.L." })).confirmed, true);
+});
+
+test("Peru beneficiary alias does not admit LLC or arbitrary prefixes", async () => {
+  for (const name of ["HOLISTIC MARKETING LLC", "Holistic Marketing", "Holistic Marketing Pe", "Holistic Marketing Pe E. Otra"]) {
+    assert.equal((await analyze({ beneficiary_name: name })).confirmed, false);
+  }
+});
+
+test("legacy LLC configuration is corrected only for the known Peru bank accounts", () => {
+  const config = load("lib/payments/manual-bank-accounts.server.ts", {
+    "@/lib/env/env.server": { serverEnv: { manualPaymentBankAccountsJson: JSON.stringify([
+      { id: "bcp-usd", holder: "HOLISTIC MARKETING LLC", accountNumber: "1938022768168", currencies: ["USD"] },
+      { id: "other", holder: "HOLISTIC MARKETING LLC", accountNumber: "123456789", currencies: ["USD"] },
+    ]) } },
+  });
+  const [peru, other] = config.getManualBankAccounts("USD");
+  assert.equal(peru.holder, "HOLISTIC MARKETING PE EIRL");
+  assert.equal(destination.matchesVoucherDestination("**** 8168", "Holistic Marketing Pe E.", [peru]), true);
+  assert.equal(other.holder, "HOLISTIC MARKETING LLC");
+});
+
+test("new manual top-ups charge exactly net plus fee without identification cents", async () => {
+  const fee = load("lib/payments/deposit-fee.ts");
+  const quote = load("lib/payments/manual-deposit.server.ts", {
+    "@/lib/payments/deposit-fee": fee,
+    "@/lib/payments/fx-rate.server": { getHolisticUsdPenRateSync: () => 3.49 },
+    "@/lib/payments/manual-deposit.shared": {},
+  });
+  for (const chargeCurrency of ["USD", "PEN"]) {
+    let saved;
+    let checkout;
+    const chain = { select: () => chain, eq: () => chain, limit: () => chain, maybeSingle: async () => ({ data: { id: "wallet" } }) };
+    const service = load("lib/payments/create-intent.server.ts", {
+      "./stripe-policy": {},
+      "@/lib/payments/providers": { getPaymentProvider: () => ({ isConfigured: () => true, createCheckout: async (input) => { checkout = input; return { status: "requires_payment" }; } }) },
+      "@/lib/payments/crypto-limits": {},
+      "@/lib/payments/payment-intents.server": { createPaymentIntentRecord: async (input) => { saved = input; return { id: "new-intent" }; }, updatePaymentIntentRecord: async () => {} },
+      "@/lib/ledger/ledger.server": {},
+      "@/lib/supabase/admin": { createAdminClient: () => ({ from: () => chain }) },
+      "@/lib/email/email.server": {},
+      "@/lib/email/templates/payments": {},
+      "@/lib/env/env.server": { serverEnv: {} },
+      "@/lib/payments/resolve-hecom-deposit-fee.server": { resolveDepositFeeForSession: async () => ({ feePercent: 10 }) },
+      "@/lib/payments/deposit-fee": fee,
+      "@/lib/payments/manual-deposit.server": { ...quote, resolveUsdPenRateForQuote: async () => 3.49 },
+      "@/lib/payments/gateway-config": { isGatewayInMaintenance: () => false },
+      "@/types/payment": { isPaymentGatewayId: () => true, isVoucherPaymentProvider: () => true },
+      "@/lib/hecom/ensure-wallet-cobro.server": {},
+      "@/lib/hecom/ensure-debt-payment-cobro.server": {},
+      "@/lib/payments/cobrana/cancel-stale.server": {},
+    });
+    const result = await service.createPaymentIntentForSession({ id: "user", organizationId: "org", email: "" }, { amount: 1000, provider: "manual", chargeCurrency });
+    const gross = chargeCurrency === "USD" ? 110000 : 383900;
+    assert.equal(saved.amountCents, gross);
+    assert.equal(checkout.amountCents, gross);
+    assert.equal(result.grossChargeCents, gross);
+    assert.equal(saved.metadata.credit_amount_cents, 100000);
+    assert.equal(saved.metadata.fee_amount_cents, 10000);
+    assert.equal(saved.metadata.unique_charge_cents, undefined);
+  }
 });
 test("independent format review blocks an otherwise clear receipt", async () => {
   const result = await analyze({}, {}, false);

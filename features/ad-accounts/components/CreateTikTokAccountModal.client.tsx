@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { DashboardModalShell } from "@/components/ui/DashboardModalShell.client";
 import { routes } from "@/config/routes";
+import { dispatchAdAccountsUpdated } from "@/lib/events/modal-events";
 import {
   DEFAULT_TIKTOK_CREATE_BM,
   TIKTOK_SELF_SERVE_ACCOUNT_LIMIT,
@@ -44,8 +45,11 @@ type QuotaPayload = {
   limit: number;
 };
 
-export function CreateTikTokAccountModal({
-  open,
+export function CreateTikTokAccountModal(props: CreateTikTokAccountModalProps) {
+  return props.open ? <CreateTikTokAccountModalContent key={props.clienteName} {...props}/> : null;
+}
+
+function CreateTikTokAccountModalContent({
   onClose,
   clienteName,
   currentAccountCount,
@@ -55,7 +59,7 @@ export function CreateTikTokAccountModal({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [quotaLoading, setQuotaLoading] = useState(false);
+  const [quotaLoading, setQuotaLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [success, setSuccess] = useState<CreateOk | null>(null);
@@ -67,15 +71,7 @@ export function CreateTikTokAccountModal({
   const remaining = Math.max(0, liveLimit - liveUsed);
 
   useEffect(() => {
-    if (!open) return;
-    setLiveUsed(currentAccountCount);
-    setLiveLimit(accountLimit);
-    setError(null);
-    setWhatsappUrl(null);
-    setSuccess(null);
-
     let cancelled = false;
-    setQuotaLoading(true);
     void (async () => {
       try {
         const response = await fetch(routes.api.adAccountsTikTokCreate, {
@@ -100,7 +96,7 @@ export function CreateTikTokAccountModal({
     return () => {
       cancelled = true;
     };
-  }, [open, currentAccountCount, accountLimit]);
+  }, []);
 
   const handleClose = useCallback(() => {
     setLoading(false);
@@ -110,8 +106,6 @@ export function CreateTikTokAccountModal({
     setSuccess(null);
     onClose();
   }, [onClose]);
-
-  if (!open) return null;
 
   async function handleCreate() {
     if (maintenance) return;
@@ -152,6 +146,7 @@ export function CreateTikTokAccountModal({
         setSuccess(json);
         setLiveUsed(json.accountCountAfter);
         router.refresh();
+        dispatchAdAccountsUpdated();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errGeneric"));
@@ -161,7 +156,7 @@ export function CreateTikTokAccountModal({
   }
 
   return (
-    <DashboardModalShell open={open} onClose={handleClose}>
+    <DashboardModalShell open onClose={handleClose}>
       <div className="space-y-4">
         <div>
           <h2
@@ -244,7 +239,7 @@ export function CreateTikTokAccountModal({
           >
             {maintenance || success ? tCommon("close") : tCommon("cancel")}
           </Button>
-          {maintenance ? null : whatsappUrl || atLimit ? (
+          {maintenance ? null : !success && (whatsappUrl || atLimit) ? (
             <a
               href={
                 whatsappUrl ||

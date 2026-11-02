@@ -40,10 +40,6 @@ import { isPaymentGatewayId, isVoucherPaymentProvider } from "@/types/payment";
 import { ensureHecomWalletCobroSynced } from "@/lib/hecom/ensure-wallet-cobro.server";
 import { ensureDebtPaymentCobroSynced } from "@/lib/hecom/ensure-debt-payment-cobro.server";
 import { cancelStaleCobranaCharges } from "@/lib/payments/cobrana/cancel-stale.server";
-import {
-  reserveUniquePenAmount,
-  reserveUniqueUsdAmount,
-} from "@/lib/payments/manual-bank-match/reserve-amount.server";
 
 export interface CreatePaymentIntentRequest {
   /** Monto que el cliente quiere acreditar en cartera (neto USD). Se cobra bruto + fee. */
@@ -305,28 +301,8 @@ export async function createPaymentIntentForSession(
     }
   }
 
-  // Pago manual del panel: céntimos únicos (BCP/Binance). Cobrana no: cobra el bruto exacto.
-  if (input.provider === "manual" && !isCobrana) {
-    if (chargeCurrency === "PEN") {
-      const reserved = await reserveUniquePenAmount(amountCents);
-      amountCents = reserved.amountCents;
-      manualQuoteMeta = {
-        ...manualQuoteMeta,
-        gross_pen_cents: amountCents,
-        pen_discriminator_cents: reserved.discriminatorCents,
-        unique_charge_cents: true,
-      };
-    } else {
-      const reserved = await reserveUniqueUsdAmount(amountCents);
-      amountCents = reserved.amountCents;
-      manualQuoteMeta = {
-        ...manualQuoteMeta,
-        gross_usd_cents: amountCents,
-        usd_discriminator_cents: reserved.discriminatorCents,
-        unique_charge_cents: true,
-      };
-    }
-  }
+  // El comprobante se identifica por destino y operación, no por céntimos extra.
+  // Cobrar exactamente cartera + fee: $1,000 + $100 = $1,100.
 
   if (amountCents <= 0) {
     throw new Error("El monto a cobrar debe ser mayor a cero.");
