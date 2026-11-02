@@ -1,31 +1,31 @@
 "use client";
+
 import { useState } from "react";
-import { feeImpact, creditImpact } from "@/lib/business-simulator/client-impact";
+import { feeImpact } from "@/lib/business-simulator/client-impact";
 import type { Snapshot } from "./CreditBehavior.client";
+import styles from "./Simulator.module.css";
 
 export type FeeReference = {
   feeHolisticPercent: number | null; feeSource: string; hecomClienteId: string;
   warnings?: string[]; checkedAt?: string; verifiedPayments?: number;
   history?: { paymentId: string; date: string; feePercent: number; source: string; paidCents: number; paidCurrency: string; creditUsdCents: number; grossUsdCents: number; fxRate: number | null; surchargePercent: number }[];
 };
-const control = "mt-2 min-h-11 w-full rounded-lg border border-[var(--auth-border)] bg-[var(--auth-surface)] px-3 text-sm focus-visible:outline-2 focus-visible:outline-[var(--auth-accent)]";
-const button = "min-h-11 rounded-lg border border-[var(--auth-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--auth-surface-muted)] focus-visible:outline-2 focus-visible:outline-[var(--auth-accent)]";
+
 function parse(raw: string, factor = 100, max = 1_000_000_000) {
   if (!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
   const value = Number(raw);
   return value <= max && Number.isSafeInteger(Math.round(value * factor)) && Math.abs(value * factor - Math.round(value * factor)) < 0.0001 ? Math.round(value * factor) : null;
 }
-export function ClientImpact({ snapshot, feeReference, currency, mode, requested, onRequested, clientId, clientName }: {
-  snapshot: Snapshot | null; feeReference: FeeReference | null; currency: string; mode: "fee" | "credit";
-  requested: number | null; onRequested: (value: number | null) => void; clientId: string; clientName: string;
+
+export function ClientImpact({ snapshot, feeReference, currency, clientId, clientName }: {
+  snapshot: Snapshot | null; feeReference: FeeReference | null; currency: string; clientId: string; clientName: string;
 }) {
-  const observed = currency === "USD" && snapshot && Number.isFinite(snapshot.analysis.spendInRange) ? Math.round(snapshot.analysis.spendInRange * 100) : null;
+  const observed = currency === "USD" && snapshot && Number.isFinite(snapshot.analysis.spendInRange) && snapshot.analysis.spendInRange >= 0
+    ? Math.round(snapshot.analysis.spendInRange * 100) : null;
   const [baseRaw, setBaseRaw] = useState("");
   const [currentRaw, setCurrentRaw] = useState("");
   const [newFee, setNewFee] = useState("");
   const [newBase, setNewBase] = useState("");
-  const [days, setDays] = useState("");
-  const [annual, setAnnual] = useState("");
   const [reason, setReason] = useState("");
   const [editBase, setEditBase] = useState(false);
   const [editFee, setEditFee] = useState(false);
@@ -34,46 +34,82 @@ export function ClientImpact({ snapshot, feeReference, currency, mode, requested
   const current = editFee ? parse(currentRaw, 100, 100) : feeReference?.feeHolisticPercent != null ? Math.round(feeReference.feeHolisticPercent * 100) : null;
   const proposed = parse(newFee, 100, 100);
   const volume = newBase === "" ? base : parse(newBase);
-  const term = parse(days, 1, 3650), rate = parse(annual, 100, 100);
   const fee = base !== null && current !== null && proposed !== null && volume !== null ? feeImpact(base, current, proposed, volume) : null;
-  const credit = requested !== null && requested > 0 && term !== null && term > 0 && rate !== null && current !== null ? creditImpact(requested, term, rate, current) : null;
   const money = (cents: number) => new Intl.NumberFormat("es-PE", { style: "currency", currency }).format(cents / 100);
-  const valid = mode === "fee" ? fee !== null : credit !== null;
+  const invalidFee = newFee !== "" && proposed === null;
+
   function download() {
-    const report = { version: "client-decision-v1", clientId, clientName, currency, decision: mode, reason, reference: { from: snapshot?.from, to: snapshot?.to, observedSpendCents: observed, fee: feeReference, baseIsManual: editBase, feeIsManual: editFee }, assumptions: { base, currentFeeBps: current, proposedFeeBps: proposed, proposedBase: volume, principal: requested, days: term, annualFundingBps: rate }, result: mode === "fee" ? fee : credit, risk: snapshot?.staffOps?.score ?? null, createdAt: new Date().toISOString(), status: "Evaluación gerencial; no aplicada" };
+    if (!fee) return;
+    const report = { version: "client-decision-v1", clientId, clientName, currency, decision: "fee", reason,
+      reference: { from: snapshot?.from, to: snapshot?.to, observedSpendCents: observed, fee: feeReference, baseIsManual: editBase, feeIsManual: editFee },
+      assumptions: { base, currentFeeBps: current, proposedFeeBps: proposed, proposedBase: volume }, result: fee,
+      risk: snapshot?.staffOps?.score ?? null, createdAt: new Date().toISOString(), status: "Evaluación gerencial; no aplicada" };
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
-    const link = document.createElement("a"); link.href = url; link.download = `decision-${mode}-${clientId.replace(/[^a-z0-9-]/gi, "_")}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setNotice("Evaluación exportada con cliente, motivo y supuestos.");
+    const link = document.createElement("a"); link.href = url; link.download = `decision-fee-${clientId.replace(/[^a-z0-9-]/gi, "_")}.json`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000); setNotice("Propuesta descargada. La tarifa del cliente sigue igual.");
   }
-  return <section aria-label="Impacto para Holistic" className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)]">
-    <div className="space-y-5">
-      <div><h2 className="text-lg font-semibold">{mode === "fee" ? "¿Qué FEE le ofreceríamos?" : "¿Cuánto crédito le daríamos?"}</h2><p className="mt-1 text-sm text-[var(--auth-text-muted)]">Solo para {clientName} · {currency}</p></div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--auth-border)] py-4"><div><p className="text-xs text-[var(--auth-text-muted)]">FEE actual {editFee ? "· manual" : feeReference?.feeSource === "payment_derived" ? "· calculado de recarga" : feeReference?.feeSource === "payment_record" ? "· aplicado en recarga" : feeReference?.feeSource === "hecom_cliente" ? "· acuerdo del cliente" : feeReference?.feeSource === "hecom_account" ? "· acuerdo de cuenta" : "· pendiente de verificar"}</p><p className="mt-1 text-lg font-semibold">{current === null ? "Sin datos" : `${current / 100}%`}</p></div><button className={button} type="button" onClick={() => { setEditFee(!editFee); setCurrentRaw(current === null ? "" : String(current / 100)); }}>{editFee ? "Usar registrado" : "Ajustar referencia"}</button></div>
-      {feeReference?.warnings?.map((warning) => <p key={warning} className="text-sm leading-6 text-[var(--auth-text-muted)]">{warning}</p>)}
-      {!!feeReference?.history?.length && <details className="text-sm"><summary className="cursor-pointer font-medium">Ver recargas que respaldan el FEE</summary><p className="mt-2 text-xs text-[var(--auth-text-muted)]">Hasta 100 recargas de 180 días; solo pagos confirmados con abono de cartera verificado. El porcentaje se calcula sobre el saldo acreditado.</p><ul className="mt-3 space-y-3">{feeReference.history.map((row) => <li key={row.paymentId} className="border-t border-[var(--auth-border)] pt-3 text-xs leading-6"><strong>{new Date(row.date).toLocaleDateString("es-PE")} · FEE {row.feePercent}%</strong><br/>Pago confirmado: {new Intl.NumberFormat("es-PE", { style: "currency", currency: row.paidCurrency }).format(row.paidCents / 100)} · A cartera: USD {(row.creditUsdCents / 100).toFixed(2)}{row.fxRate ? ` · Cambio: ${row.fxRate} PEN/USD` : ""}{row.surchargePercent ? ` · Pasarela excluida: ${row.surchargePercent}%` : ""}<button type="button" className="mt-2 block min-h-10 font-semibold underline underline-offset-4" onClick={() => { setEditFee(true); setCurrentRaw(String(row.feePercent)); }}>Usar {row.feePercent}% en esta simulación</button></li>)}</ul></details>}
-      {(editFee || current === null) && <label className="block text-sm">FEE actual a evaluar (%)<input type="number" min="0" max="100" step="0.01" value={currentRaw} onChange={(e) => { setEditFee(true); setCurrentRaw(e.target.value); }} className={control}/></label>}
-      {mode === "fee" ? <>
-        <label className="block text-sm font-medium">Nuevo FEE (%)<input autoComplete="off" type="number" min="0" max="100" step="0.1" value={newFee} onChange={(e) => setNewFee(e.target.value)} placeholder="Porcentaje que quieres ofrecer" className={control}/></label>
-        <div><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Base de comparación: <strong>{base === null ? "pendiente" : money(base)}</strong></span><button type="button" className="min-h-10 text-sm underline underline-offset-4" onClick={() => { setEditBase(!editBase); setBaseRaw(base === null ? "" : String(base / 100)); }}>{editBase ? "Usar gasto observado" : "Ajustar base"}</button></div><p className="text-xs leading-5 text-[var(--auth-text-muted)]">{editBase ? "Importe manual para el período evaluado." : snapshot && observed !== null ? `Gasto observado del ${snapshot.from} al ${snapshot.to}; se usa como base de simulación, no como FEE facturado.` : "Sin gasto compatible. Ingresa la base para evaluar."}</p></div>
-        {(editBase || base === null) && <label className="block text-sm">Base publicitaria ({currency})<input type="number" min="0" step="0.01" value={baseRaw} onChange={(e) => { setEditBase(true); setBaseRaw(e.target.value); }} className={control}/></label>}
-        <details><summary className="cursor-pointer text-sm font-medium">¿Esperas que este cliente invierta más?</summary><label className="mt-3 block text-sm">Volumen esperado en un período equivalente ({currency})<input type="number" min="0" step="0.01" value={newBase} onChange={(e) => setNewBase(e.target.value)} placeholder="Vacío = mismo volumen" className={control}/></label><p className="mt-2 text-xs text-[var(--auth-text-muted)]">Es una expectativa comercial, no una proyección automática.</p></details>
-      </> : <>
-        <label className="block text-sm font-medium">Crédito para financiar medios ({currency})<input type="number" min="0" step="0.01" value={requested === null ? "" : requested / 100} onChange={(e) => onRequested(parse(e.target.value))} className={control}/></label>
-        <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm">Plazo de devolución (días)<input type="number" min="1" max="3650" step="1" value={days} onChange={(e) => setDays(e.target.value)} className={control}/></label><label className="text-sm">Costo anual de fondos (%)<input type="number" min="0" max="100" step="0.01" value={annual} onChange={(e) => setAnnual(e.target.value)} className={control}/></label></div><p className="text-xs leading-5 text-[var(--auth-text-muted)]">Costo para Holistic, no interés al cliente. Usa 0 solo si no imputarás costo de financiación.</p>
-      </>}
-      <label className="block text-sm">Motivo de la propuesta<textarea rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Relación estratégica, retención, mayor inversión…" className={`${control} py-3`}/></label>
+
+  const referenceFields = <>
+    <label className={styles.field}>Fee actual para comparar (%)
+      <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={editFee ? currentRaw : current === null ? "" : current / 100} onChange={(e) => { setEditFee(true); setCurrentRaw(e.target.value); }} className={styles.control} aria-invalid={editFee && currentRaw !== "" && current === null}/>
+      {editFee && <button type="button" className={styles.textButton} onClick={() => { setEditFee(false); setCurrentRaw(""); }}>Usar fee registrado</button>}
+    </label>
+    <label className={styles.field}>Inversión publicitaria del período ({currency})
+      <input type="number" min="0" max="1000000000" step="0.01" inputMode="decimal" value={editBase ? baseRaw : base === null ? "" : base / 100} onChange={(e) => { setEditBase(true); setBaseRaw(e.target.value); }} className={styles.control} aria-invalid={editBase && baseRaw !== "" && base === null}/>
+      <span className={styles.fieldHint}>{currency === "PEN" ? "Ingresa una referencia en soles; el gasto en dólares no se convierte automáticamente." : "Usa un monto para el mismo período que estás comparando."}</span>
+      {editBase && observed !== null && <button type="button" className={styles.textButton} onClick={() => { setEditBase(false); setBaseRaw(""); }}>Usar gasto observado</button>}
+    </label>
+  </>;
+
+  return <section aria-label="Impacto para Holistic" className={styles.workspace}>
+    <div className={styles.form}>
+      <h2>¿Qué fee quieres ofrecer a {clientName}?</h2>
+      <p className={styles.intro}>Esta propuesta es solo para este cliente. No cambia el fee general ni el de otros clientes.</p>
+      <div className={styles.reference}>
+        <div><span className={styles.caption}>Fee actual{editFee ? " · referencia manual" : ""}</span><strong>{current === null ? "Por completar" : `${current / 100}%`}</strong></div>
+        <div><span className={styles.caption}>Inversión de referencia{editBase ? " · manual" : ""}</span><strong>{base === null ? "Por completar" : money(base)}</strong></div>
+      </div>
+      <div className={styles.fields}>
+        <label className={styles.field}>Nuevo fee (%)
+          <input autoComplete="off" type="number" min="0" max="100" step="0.01" inputMode="decimal" value={newFee} onChange={(e) => setNewFee(e.target.value)} placeholder="Escribe el porcentaje propuesto" aria-invalid={invalidFee} aria-describedby={invalidFee ? "fee-proposal-error" : undefined} className={styles.control}/>
+          {invalidFee && <span id="fee-proposal-error" className={styles.fieldError}>Ingresa un porcentaje de 0 a 100, con hasta 2 decimales.</span>}
+        </label>
+        {(observed === null || feeReference?.feeHolisticPercent == null) && referenceFields}
+      </div>
     </div>
-    <aside className="rounded-xl bg-[var(--auth-surface-muted)] p-5 sm:p-6" aria-live="polite">
-      <h3 className="text-base font-semibold">Así afecta a Holistic</h3>
-      {mode === "fee" ? fee ? <>
-        <p className="mt-4 text-2xl font-semibold tabular-nums">{fee.difference >= 0 ? "+" : "−"}{money(Math.abs(fee.difference))}</p><p className="mt-1 text-sm">de FEE frente a las condiciones actuales</p>
-        <dl className="mt-5 space-y-4 text-sm">{[["FEE con condiciones actuales", money(fee.current)], ["FEE con la propuesta", money(fee.proposed)], [fee.concession >= 0 ? "Rebaja al mismo volumen" : "Aumento al mismo volumen", money(Math.abs(fee.concession))], ["Volumen para conservar el FEE", fee.needed === null ? "No se recupera con FEE 0%" : money(fee.needed)]].map(([label, value]) => <div key={label} className="flex justify-between gap-4"><dt className="text-[var(--auth-text-muted)]">{label}</dt><dd className="text-right font-semibold tabular-nums">{value}</dd></div>)}</dl>
-        <p className="mt-5 border-t border-[var(--auth-border)] pt-4 text-sm leading-6">{fee.difference < 0 ? "La propuesta reduce el ingreso por FEE. La relación comercial o el crecimiento esperado deben justificar esa diferencia." : "La propuesta conserva o aumenta el ingreso por FEE con el volumen ingresado."}</p><p className="mt-2 text-xs leading-5 text-[var(--auth-text-muted)]">Ingreso bruto por FEE; no es utilidad neta. No descuenta costos operativos ni impuestos.</p>
-      </> : <p className="mt-4 text-sm leading-6 text-[var(--auth-text-muted)]">Ingresa el nuevo FEE{current === null ? ", la tarifa actual" : ""}{base === null ? " y la base publicitaria" : ""} para comparar el ingreso de este cliente.</p> : <>
-        <p className="mt-4 text-2xl font-semibold tabular-nums">{requested !== null ? money(requested) : "Monto pendiente"}</p><p className="mt-1 text-sm">capital adicional comprometido{term ? ` durante ${term} días` : ""}</p>
-        {credit ? <><dl className="mt-5 space-y-4 text-sm">{[["FEE si consume todo el crédito", money(credit.fee)], ["Costo de financiar el plazo", money(credit.financing)], ["FEE menos financiación", money(credit.afterFinancing)]].map(([label, value]) => <div key={label} className="flex justify-between gap-4"><dt className="text-[var(--auth-text-muted)]">{label}</dt><dd className="text-right font-semibold tabular-nums">{value}</dd></div>)}</dl><p className="mt-5 border-t border-[var(--auth-border)] pt-4 text-sm leading-6">{credit.afterFinancing <= 0 ? "El FEE no deja margen positivo tras financiar el plazo." : "El FEE cubre el costo de financiación ingresado. Falta revisar la capacidad de pago."}</p></> : <p className="mt-4 text-sm leading-6 text-[var(--auth-text-muted)]">Completa monto, plazo, FEE y costo de fondos para calcular el impacto.</p>}
-        <p className="mt-3 text-xs leading-5 text-[var(--auth-text-muted)]">Supone consumo completo y devolución puntual del principal y FEE. No incluye pérdidas por impago, costos operativos ni deuda previa. El principal comprometido no es ingreso.</p>
-      </>}
-      <button type="button" disabled={!valid} onClick={download} className={`${button} mt-5 w-full disabled:opacity-40`}>Exportar propuesta de este cliente</button><p className="mt-3 text-xs leading-5 text-[var(--auth-text-muted)]">Evaluar no modifica su tarifa ni desembolsa crédito.</p>{notice && <p role="status" className="mt-2 text-xs">{notice}</p>}
+    <aside className={`${styles.result} ${styles.feeResult}`} aria-live="polite" aria-label="Resultado del cambio de fee">
+      <div className={styles.resultHeader}><h3>Ingreso por fee de este cliente</h3><span>{currency}</span></div>
+      {fee ? <>
+        <dl className={styles.breakdown}>
+          <div><dt>Con el fee actual ({current! / 100}%)</dt><dd>{money(fee.current)}</dd></div>
+          <div><dt>Con el nuevo fee ({proposed! / 100}%)</dt><dd>{money(fee.proposed)}</dd></div>
+          <div className={styles.total}><dt>{fee.difference < 0 ? "Ingresaríamos menos" : fee.difference > 0 ? "Ingresaríamos más" : "Sin diferencia"}</dt><dd>{money(Math.abs(fee.difference))}</dd></div>
+        </dl>
+        <p className={styles.resultNote}>{fee.needed === null ? "Con un fee de 0% no se recupera el ingreso actual aumentando la inversión." : fee.difference < 0 ? <>Para mantener el ingreso actual con este fee, el cliente tendría que invertir <strong>{money(fee.needed)}</strong> en un período equivalente.</> : "La propuesta mantiene o aumenta el ingreso por fee con la inversión ingresada."}</p>
+        {newBase !== "" && <p className={styles.resultFootnote}>La propuesta usa una inversión esperada de {money(volume!)}. Al mantener la inversión actual, el fee sería {money(fee.sameVolume)}.</p>}
+      </> : <p className={styles.resultEmpty}>Ingresa el nuevo fee{current === null ? ", el fee actual" : ""}{base === null ? " y la inversión de referencia" : ""} para ver la comparación.</p>}
+      <p className={styles.resultFootnote}>Ingreso bruto por comisión. No descuenta costos operativos ni impuestos.</p>
+      <p className={styles.resultFootnote}>Propuesta para {clientName}. Su fee registrado no cambia al simular o descargar.</p>
+      <button type="button" disabled={!fee} onClick={download} className={`${styles.secondary} ${styles.action}`}>Descargar propuesta</button>
+      {notice && <p role="status" className={styles.fieldHint}>{notice}</p>}
     </aside>
+    <div className={styles.extras}>
+      {observed !== null && feeReference?.feeHolisticPercent != null && <details className={styles.disclosure}><summary>Ajustar el fee actual o la inversión de referencia</summary><div className={styles.fields}>{referenceFields}</div></details>}
+      <details className={styles.disclosure}>
+        <summary>¿Esperas que el cliente invierta más?</summary>
+        <label className={styles.field}>Inversión esperada en un período equivalente ({currency})<input type="number" min="0" max="1000000000" step="0.01" inputMode="decimal" value={newBase} onChange={(e) => setNewBase(e.target.value)} placeholder="Vacío = mantener la inversión actual" className={styles.control} aria-invalid={newBase !== "" && volume === null}/></label>
+        <p>Es tu expectativa comercial, no una predicción automática.</p>
+      </details>
+      <details className={styles.disclosure}><summary>Datos usados en esta comparación</summary>
+        <p>{editBase ? "Inversión ingresada manualmente." : snapshot && observed !== null ? `Gasto observado del ${snapshot.from} al ${snapshot.to}. Se usa como referencia; no equivale a comisiones facturadas.` : "No hay gasto disponible en esta moneda. Completa la referencia manual."}</p>
+        <p>{editFee ? "Fee ingresado manualmente para esta propuesta." : feeReference?.feeSource === "hecom_cliente" ? "Fee del acuerdo registrado para el cliente." : feeReference?.feeSource === "hecom_account" ? "Fee del acuerdo registrado en su cuenta." : feeReference?.feeSource?.startsWith("payment_") ? "Fee respaldado por recargas confirmadas." : "El origen del fee requiere verificación."}</p>
+        {feeReference?.warnings?.map(warning => <p key={warning}>{warning}</p>)}
+        {!!feeReference?.history?.length && <ul>{feeReference.history.map(row => <li key={row.paymentId}>
+          <strong>{new Date(row.date).toLocaleDateString("es-PE")} · Fee {row.feePercent}%</strong><p>Pago: {new Intl.NumberFormat("es-PE", { style: "currency", currency: row.paidCurrency }).format(row.paidCents / 100)} · A cartera: USD {(row.creditUsdCents / 100).toFixed(2)}{row.fxRate ? ` · Cambio: ${row.fxRate} PEN/USD` : ""}{row.surchargePercent ? ` · Pasarela excluida: ${row.surchargePercent}%` : ""}</p>
+          <button type="button" className={styles.textButton} onClick={() => { setEditFee(true); setCurrentRaw(String(row.feePercent)); }}>Usar {row.feePercent}% como referencia</button>
+        </li>)}</ul>}
+      </details>
+      <label className={`${styles.field} ${styles.action}`}>Motivo de la propuesta <span className={styles.caption}>Opcional · se incluye al descargar</span><textarea rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej. Mantener al cliente a cambio de mayor inversión" className={styles.control}/></label>
+    </div>
   </section>;
 }
