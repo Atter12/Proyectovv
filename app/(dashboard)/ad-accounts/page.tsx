@@ -16,13 +16,13 @@ import {
 import { getSearchParam } from "@/lib/search-params";
 import { resolveTikTokSelfServeAccountLimit } from "@/lib/integrations/tiktok/bc-create-profiles";
 import { countHecomTikTokAccountsForQuota } from "@/lib/hecom/link-tiktok-cuenta.server";
-import { routes } from "@/config/routes";
 import type { AdAccountStatus } from "@/types/ad-account";
 import { CrmPanel } from "@/components/dashboard/crm-ui";
 import { Suspense } from "react";
 import { StaffCreateTikTokAccountsPanel } from "@/features/ad-accounts/components/StaffCreateTikTokAccountsPanel.client";
 import { isHecomOtpStaffEmail } from "@/lib/auth/hecom-otp.server";
 import { isPaymentsSuperAdminEmail } from "@/lib/payments/funding-roles.server";
+import { TikTokConnectionPanel } from "@/features/ad-accounts/components/TikTokConnectionPanel.client";
 
 interface AdAccountsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -110,12 +110,14 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
 
       {isStaff ? <StaffCreateTikTokAccountsPanel clienteName={clienteName} /> : null}
 
+      <TikTokConnectionPanel key={selected.id} />
+
       <CrmPanel
         title={t("panel.title", { name: clienteName })}
-        subtitle={t("panel.subtitle")}
+        subtitle={data.accounts.length ? t("panel.subtitle") : undefined}
         className="overflow-hidden"
       >
-        <Suspense fallback={null}>
+        {data.accounts.length ? <Suspense fallback={null}>
           <AdAccountsToolbar
             initialSearch={search}
             initialStatus={status}
@@ -125,7 +127,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             currentAccountCount={accountCount}
             accountLimit={accountLimit}
           />
-        </Suspense>
+        </Suspense> : null}
         {filteredAccounts.length === 0 && data.accounts.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#16161a] text-[9px] font-bold tracking-wide">

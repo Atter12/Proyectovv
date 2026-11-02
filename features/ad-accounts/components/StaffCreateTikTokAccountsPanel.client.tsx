@@ -1,4 +1,5 @@
 "use client";
+import { dispatchAdAccountsUpdated } from "@/lib/events/modal-events";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -101,6 +102,7 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
       else if (!res.ok) setError("No se pudo crear.");
       if (j.created?.length) {
         router.refresh();
+        dispatchAdAccountsUpdated();
         if (mode === "free") setFreeByBm((prev) => ({ ...prev, [bm]: Math.max(0, (prev[bm] ?? 0) - (j.created?.length ?? 0)) }));
       }
     } catch (e) {
@@ -153,8 +155,8 @@ export function StaffCreateTikTokAccountsPanel({ clienteName }: { clienteName: s
           </div>
           {mode === "free" ? (
             <p className="text-[12px] leading-5 text-[#6f675f]">
-              Usa cuentas de reserva que ya existen ("gian libre 151", "libre sebas 12"…): se dejan con cupo $0, quedan a nombre del
-              cliente en Hecom y en su panel, le da acceso a sus usuarios y le pone el nombre del cliente en TikTok.
+              Usa cuentas de reserva existentes. Se entregan con cupo cero y se asignan al cliente en Hecom y en su panel,
+              con acceso para sus usuarios y el nombre del cliente en TikTok.
             </p>
           ) : null}
 

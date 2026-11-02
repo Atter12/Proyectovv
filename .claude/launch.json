@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "asistente-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/adsholistic/node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "4183", "C:/adsholistic/output/asistente-gerencia-diseno/implementation-preview"],
+      "port": 4183
     }
   ]
 }

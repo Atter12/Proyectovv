@@ -1,5 +1,20 @@
 # Referencias de comprobantes aprobados
 
+## Recargas y titular peruano · 2 de noviembre de 2026
+
+Las cuentas BCP de soles y dólares pertenecen a **HOLISTIC MARKETING PE EIRL**.
+Se conserva el alias bancario visible **Holistic Marketing Pe E.**, junto con
+la comprobación de destino único, monto, moneda, operación y duplicados. Los
+overrides antiguos con titular LLC se corrigen únicamente para estas cuentas
+conocidas; no se cambia el titular de cuentas distintas ni de Stripe.
+
+Las nuevas solicitudes manuales cobran exactamente el neto más el fee: con
+fee del 10%, **US$1,100 = US$1,000 de cartera + US$100 de comisión**. Ya no se
+agregan céntimos identificadores al importe. Las solicitudes históricas no se
+recalculan, reanalizan ni acreditan por este cambio.
+
+## Calibración histórica
+
 Revisión del 30 de octubre de 2026. La calibración utiliza comprobantes asociados
 a intenciones `manual`, `source=dashboard`, `status=succeeded`: 76 registros,
 75 aprobaciones desde dashboard y una corrección de operaciones. 76 tienen fecha

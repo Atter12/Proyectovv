@@ -711,23 +711,28 @@ async function loadLiveFinance(
   const cobrosLimit = full ? 800 : lite ? 25 : 80;
   try {
     const hecom = createHecomAdminClient();
+    async function financeRows(table: string, fields: string, limit: number, order: string) {
+      const result: Record<string, unknown>[] = [];
+      const pageSize = full ? 500 : limit;
+      for (let offset = 0; offset < limit; offset += pageSize) {
+        const end = Math.min(limit - 1, offset + pageSize - 1);
+        const response = await hecom.from(table).select(fields)
+          .eq("client_id", clientId).order(order, { ascending: false })
+          .order("id", { ascending: false }).range(offset, end);
+        if (response.error) return { data: null, error: response.error };
+        const page = (response.data ?? []) as unknown as Record<string, unknown>[];
+        result.push(...page);
+        if (page.length < end - offset + 1) break;
+      }
+      return { data: result, error: null };
+    }
     const financeQueries = [
-      hecom
-        .from("gastos")
-        .select(
+      financeRows("gastos",
           "id,client_id,mes,camp,gasto,fee,source,fecha_movimiento,tiktok_stat_date,codigo,notas",
-        )
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false })
-        .limit(gastosLimit),
-      hecom
-        .from("cobros")
-        .select(
+          gastosLimit, "created_at"),
+      financeRows("cobros",
           "id,client_id,monto,fecha,hora,metodo,notas,codigo,periodo_resumen,funding_breakdown,comprobante_urls,created_by,created_at",
-        )
-        .eq("client_id", clientId)
-        .order("fecha", { ascending: false })
-        .limit(cobrosLimit),
+          cobrosLimit, "fecha"),
     ] as const;
 
     const [gastosRes, cobrosRes, creativosRes] = await Promise.all([

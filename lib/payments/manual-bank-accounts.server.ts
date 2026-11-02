@@ -19,7 +19,7 @@ const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
     id: "bcp-pen",
     label: "BCP - Cuenta corriente soles",
     bank: "BCP",
-    holder: "HOLISTIC MARKETING LLC",
+    holder: "HOLISTIC MARKETING PE EIRL",
     holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"],
     accountNumber: "1947376966005",
     cci: "00219400737696600598",
@@ -30,7 +30,7 @@ const DEFAULT_ACCOUNTS: ManualBankAccount[] = [
     id: "bcp-usd",
     label: "BCP - Cuenta corriente dolares",
     bank: "BCP",
-    holder: "HOLISTIC MARKETING LLC",
+    holder: "HOLISTIC MARKETING PE EIRL",
     holderAliases: ["Holistic Marketing Pe E.", "Holistic Marketing Pe Eirl"],
     accountNumber: "1938022768168",
     cci: "00219300802276816813",
@@ -63,8 +63,13 @@ function parseAccountsFromEnv(): ManualBankAccount[] {
       if (!item || typeof item !== "object") continue;
       const row = item as Record<string, unknown>;
       const id = String(row.id ?? "").trim();
-      const holder = String(row.holder ?? "").trim();
+      const configuredHolder = String(row.holder ?? "").trim();
       const accountNumber = String(row.accountNumber ?? row.account_number ?? "").trim();
+      const knownAccount = DEFAULT_ACCOUNTS.find((account) =>
+        account.accountNumber === accountNumber.replace(/[\s-]/g, ""));
+      // Corregir el antiguo titular LLC también en overrides de estas cuentas peruanas.
+      const holder = knownAccount && configuredHolder.toUpperCase() === "HOLISTIC MARKETING LLC"
+        ? knownAccount.holder : configuredHolder;
       if (!id || !holder || !accountNumber) continue;
 
       const currenciesRaw = row.currencies;
@@ -81,7 +86,7 @@ function parseAccountsFromEnv(): ManualBankAccount[] {
         holder,
         holderAliases: Array.isArray(row.holderAliases)
           ? row.holderAliases.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-          : DEFAULT_ACCOUNTS.find((account) => account.accountNumber === accountNumber)?.holderAliases,
+          : knownAccount?.holderAliases,
         accountNumber,
         cci: row.cci ? String(row.cci) : undefined,
         currencies: currencies.length ? currencies : ["PEN"],
