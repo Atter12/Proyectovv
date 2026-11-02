@@ -4,6 +4,19 @@ export function creditRepayment(input: CreditTerms) {
   const feeCents = Number((BigInt(input.principalCents) * BigInt(input.feeBps) + BigInt(5000)) / BigInt(10000));
   return { ...input, feeCents, totalDueCents: input.principalCents + feeCents };
 }
+/** The language model receives display units, never cents or basis points. */
+export function creditProposalForAi(input: CreditTerms) {
+  const repayment = creditRepayment(input);
+  const amount = (cents: number) => `${input.currency} ${(cents / 100).toFixed(2)}`;
+  return {
+    capitalSolicitado: amount(input.principalCents),
+    comisionPorcentaje: `${(input.feeBps / 100).toFixed(2)}%`,
+    comisionImporte: amount(repayment.feeCents),
+    devolucionTotal: amount(repayment.totalDueCents),
+    plazo: `${input.days} días`,
+    alcance: "Un solo ciclo. Comisión única sobre el capital; sin renovación automática.",
+  };
+}
 export type FundingHistory = { count: number; totalCreditedUsdCents: number; typicalCreditUsdCents: number | null; averageGapDays: number | null; lastPaymentAt: string | null };
 export type CreditAssessment = {
   clientId: string; checkedAt: string; terms: CreditTerms; totalDueCents: number; feeCents: number;
