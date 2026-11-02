@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getHecomMonthlyDebtSettlement } from "@/lib/hecom/debt-settlement.server";
 import { getTranslations } from "next-intl/server";
 import { MissingCobroClaimPanel } from "@/features/clientes/components/MissingCobroClaimPanel.client";
 import { ClienteCobrosMonthView } from "@/features/clientes/components/ClienteCobrosMonthView.client";
@@ -27,6 +28,8 @@ export async function ClienteScopedCobros({
 }) {
   const t = await getTranslations("cobros");
   const { cliente, summary } = data;
+  const settlement = await getHecomMonthlyDebtSettlement(cliente.id);
+  if (!settlement) throw new Error("No se pudo leer el registro financiero completo. Actualiza antes de consultar o cobrar.");
   // Se filtra en el servidor: los meses anteriores ni siquiera llegan al navegador.
   const visible = (month: string | null) => !fromMonth || (month !== null && month >= fromMonth);
   const gastos = data.gastos.filter((row) => visible(monthOf(row.fecha)));
@@ -64,6 +67,7 @@ export async function ClienteScopedCobros({
       </header>
 
       <ClienteCobrosMonthView
+        pendingByMonth={Object.fromEntries(Object.entries(settlement).filter(([ym]) => !fromMonth || ym >= fromMonth).map(([ym, row]) => [ym, row.pending]))}
         feePercent={summary.depositFeePercent}
         capped={gastos.length >= 4000 || cobros.length >= 800}
         gastos={gastos.map((row) => ({

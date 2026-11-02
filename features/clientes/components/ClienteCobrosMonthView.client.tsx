@@ -56,6 +56,7 @@ function ymdMonth(value: string | null | undefined): string | null {
 }
 
 type Props = {
+  pendingByMonth?: Record<string, number> | null;
   gastos: StatementGasto[];
   cobros: StatementCobro[];
   historyCobros: CobroHistoryRow[];
@@ -76,6 +77,7 @@ type Props = {
  * Mes compartido: picker arriba → gráfica Cuánto debes + historial de pagos.
  */
 export function ClienteCobrosMonthView({
+  pendingByMonth,
   gastos,
   cobros,
   historyCobros,
@@ -254,6 +256,7 @@ export function ClienteCobrosMonthView({
 
         <div className="p-4 sm:p-5">
           <VoucherAccountStatement
+            pendingUsd={pendingByMonth === null ? null : pendingByMonth ? pendingByMonth[month] ?? 0 : undefined}
             monthYm={month}
             feePercent={feePercent}
             capped={capped}

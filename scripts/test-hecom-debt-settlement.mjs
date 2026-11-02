@@ -79,11 +79,11 @@ const statementModule=loadTs('features/clientes/components/VoucherAccountStateme
 const props={monthYm:'2026-10',feePercent:5,capped:false,
   gastos:[{fecha:'2026-10-31',gasto:11852.4,fee:5,camp:null}],
   cobros:[{fecha:'2026-10-12',monto:5000,metodo:'Binance',periodoResumen:'2026-10'}],
-  settlement:{'2026-10':{pending:176.02,cargo:12445.02,covered:12269}},
+  pendingUsd:176.02,
 };
 const markup=renderToStaticMarkup(React.createElement(statementModule.VoucherAccountStatement,props));
-assert.ok(markup.includes('$7,445.02'),'The period balance deducts only the recorded 5000 payment');
+assert.ok(markup.includes('$176.02'),'The displayed balance uses the same canonical calculation as Hecom collection');
 assert.ok(markup.includes('$5,000.00'),'The real monthly payment stays visible');
 assert.ok(!markup.includes('Aplicado desde el historial:'),'Do not assign historical coverage automatically');
-assert.ok(!markup.includes('$176.02'),'An earlier-period balance must not reduce this period again');
-console.log('Rendered period checks passed: 5000 remains a payment; no automatic historical coverage.');
+assert.ok(!markup.includes('$7,445.02'),'Do not expose a second conflicting debt formula');
+console.log('Rendered balance checks passed: one canonical balance, original payment visible, no comparison panels.');

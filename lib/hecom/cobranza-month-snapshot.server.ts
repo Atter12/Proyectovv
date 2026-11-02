@@ -1,4 +1,5 @@
 import "server-only";
+import { getHecomMonthlyDebtSettlement } from "@/lib/hecom/debt-settlement.server";
 
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
 import {
@@ -33,6 +34,8 @@ export async function loadWaCobranzaSnapshot(input: {
     includeDailySpend: false,
   });
   if (!dashboard) return null;
+  const settlement = await getHecomMonthlyDebtSettlement(input.hecomClienteId);
+  if (!settlement) throw new Error("No se pudo leer el registro financiero completo. No enviar cobranza.");
 
   const snap = buildCobranzaMonthSnapshot({
     gastos: dashboard.gastos.map((row) => ({
@@ -56,11 +59,12 @@ export async function loadWaCobranzaSnapshot(input: {
 
   return {
     ...snap,
+    deudaCorte: settlement[input.monthYm]?.pending ?? 0,
     hecomClienteId: dashboard.cliente.id,
     nombre: dashboard.cliente.name,
     currency: "USD",
     feePercent: dashboard.summary.depositFeePercent,
     source: dashboard.source,
-    skipCobranza: snap.deudaCorte <= 0,
+    skipCobranza: (settlement[input.monthYm]?.pending ?? 0) <= 0,
   };
 }

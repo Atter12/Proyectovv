@@ -25,6 +25,7 @@ export type StatementCobro = {
 };
 
 type Props = {
+  pendingUsd?: number | null;
   gastos: StatementGasto[];
   cobros: StatementCobro[];
   feePercent: number;
@@ -138,6 +139,7 @@ function formatMonthLabel(ymd: string, locale: string): string {
 }
 
 export function VoucherAccountStatement({
+  pendingUsd,
   gastos,
   cobros,
   feePercent,
@@ -236,8 +238,8 @@ export function VoucherAccountStatement({
     const cobrado = round2(rangePaid.reduce((sum, row) => sum + row.applicable, 0));
     const cobradoBruto = round2(rangePaid.reduce((sum, row) => sum + row.monto, 0));
     const surcharge = round2(cobradoBruto - cobrado);
-    const rangeSaldo = round2(cobrado - cargo);
-    const owed = round2(cargo - cobrado);
+    const owed = pendingUsd == null ? round2(cargo - cobrado) : pendingUsd;
+    const rangeSaldo = round2(-owed);
 
     // Gasto del mes por cuenta ads (id de la plantilla camp); suma = Gastado + fee.
     const accountMap = new Map<
@@ -363,6 +365,7 @@ export function VoucherAccountStatement({
       }),
     };
   }, [
+    pendingUsd,
     chartTo,
     from,
     isCurrentMonth,
@@ -403,7 +406,7 @@ export function VoucherAccountStatement({
 
   // Solo presentación: qué parte del consumo del mes ya se cubrió.
   const coverage =
-    view.cargo > 0.004 ? Math.min(1, Math.max(0, view.cobrado / view.cargo)) : view.cobrado > 0.004 ? 1 : 0;
+    view.cargo > 0.004 ? Math.min(1, Math.max(0, (view.cargo - Math.max(0, view.owed)) / view.cargo)) : 0;
 
   return (
     <section className={embedded ? "space-y-4" : "space-y-4 rounded-[24px] bg-[#faf8f5] p-4 ring-1 ring-[#e8dfd4] sm:p-5"}>
