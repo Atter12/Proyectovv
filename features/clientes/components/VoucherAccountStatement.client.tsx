@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { moneyUsd } from "@/lib/format/money-usd";
 import { shiftYmd, todayYmdInTz } from "@/lib/hecom/gasto-date";
 import { getAdAccountFromCamp } from "@/lib/hecom/gasto-label";
+import type { MonthlyDebtSettlement } from "@/lib/hecom/debt-settlement";
 
 export type StatementGasto = {
   fecha: string | null;
@@ -25,6 +26,7 @@ export type StatementCobro = {
 };
 
 type Props = {
+  settlement: MonthlyDebtSettlement | null;
   gastos: StatementGasto[];
   cobros: StatementCobro[];
   feePercent: number;
@@ -138,6 +140,7 @@ function formatMonthLabel(ymd: string, locale: string): string {
 }
 
 export function VoucherAccountStatement({
+  settlement,
   gastos,
   cobros,
   feePercent,
@@ -396,14 +399,15 @@ export function VoucherAccountStatement({
     const el = chartScrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
   }, [lastSeriesKey]);
-  const owes = view.owed > 0.004;
-  const favor = view.owed < -0.004;
-  const heroLabel = owes ? t("youOwe") : favor ? t("inYourFavor") : t("settled");
-  const heroTone = owes ? "owe" : favor ? "favor" : "ok";
+  const monthSettlement = settlement?.[monthYm] ?? (settlement && view.cargo === 0 ? { pending: 0, cargo: 0, covered: 0 } : null);
+  const owes = (monthSettlement?.pending ?? 0) > 0.004;
+  const heroLabel = !monthSettlement ? t("settlementUnavailable") : owes ? t("youOwe") : t("settled");
+  const heroTone: "owe" | "favor" | "ok" = owes ? "owe" : "ok";
+  const appliedFromHistory = monthSettlement ? Math.max(0, round2(monthSettlement.covered - view.cobrado)) : 0;
 
   // Solo presentación: qué parte del consumo del mes ya se cubrió.
   const coverage =
-    view.cargo > 0.004 ? Math.min(1, Math.max(0, view.cobrado / view.cargo)) : view.cobrado > 0.004 ? 1 : 0;
+    monthSettlement && monthSettlement.cargo > 0.004 ? Math.min(1, Math.max(0, monthSettlement.covered / monthSettlement.cargo)) : 0;
 
   return (
     <section className={embedded ? "space-y-4" : "space-y-4 rounded-[24px] bg-[#faf8f5] p-4 ring-1 ring-[#e8dfd4] sm:p-5"}>
@@ -439,27 +443,27 @@ export function VoucherAccountStatement({
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                 heroTone === "owe"
                   ? "bg-[#d47840]/20 text-[#f0b889]"
-                  : heroTone === "favor"
-                    ? "bg-[#9fd4b0]/15 text-[#9fd4b0]"
-                    : "bg-white/10 text-white/80"
+                  : "bg-white/10 text-white/80"
               }`}
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   heroTone === "owe"
                     ? "bg-[#e8955a]"
-                    : heroTone === "favor"
-                      ? "bg-[#6fbf8a]"
-                      : "bg-white/70"
+                    : "bg-white/70"
                 }`}
                 aria-hidden
               />
               {heroLabel}
             </span>
             <p className="mt-3 text-[2rem] font-semibold leading-none tabular-nums tracking-[-0.045em] min-[400px]:text-[2.4rem] sm:text-[2.75rem]">
-              {moneyUsd(Math.abs(view.owed))}
+              {monthSettlement ? moneyUsd(monthSettlement.pending) : "—"}
             </p>
             <p className="mt-2 text-[12px] capitalize text-white/60">{view.monthLabel}</p>
+            <p className="mt-2 text-[11px] leading-4 text-white/60">
+              {monthSettlement ? t("settlementHint") : t("settlementUnavailableHint")}
+            </p>
+            {appliedFromHistory > 0.004 ? <p className="mt-2 text-[12px] text-white/80">{t("historyApplied", { amount: moneyUsd(appliedFromHistory) })}</p> : null}
 
             <div className="mt-5">
               <div className="flex items-center justify-between text-[11px] text-white/70">

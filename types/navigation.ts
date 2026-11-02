@@ -17,6 +17,7 @@ export type NavItemKey =
   | "creativeAnalyzer"
   | "pixels"
   | "profit"
+  | "simulator"
   | "assistant"
   | "education"
   | "support";

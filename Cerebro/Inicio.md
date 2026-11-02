@@ -37,4 +37,4 @@ por aquí y termina colgando de uno de los seis mapas.
 Las decisiones que cambian el producto se escriben con [[Plantilla - Decisión]]
 y se enlazan desde su mapa.
 
-- 
+- [[El Copiloto de anuncios arranca por el Radar de ganadores]] 

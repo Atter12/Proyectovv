@@ -7,6 +7,7 @@ import { routes } from "@/config/routes";
 import { listMissingCobroClaimsForCliente } from "@/services/payments.service";
 import { listRecentPeriodos } from "@/lib/payments/missing-cobro.shared";
 import type { ManualPaymentIntentItem } from "@/services/payments.service";
+import { getHecomMonthlyDebtSettlement } from "@/lib/hecom/debt-settlement.server";
 
 /** Primer mes que ve un cliente en «Lo pagado». Gerentes ven todo el historial. */
 export const CLIENT_COBROS_FROM_MONTH = "2026-09";
@@ -27,6 +28,7 @@ export async function ClienteScopedCobros({
 }) {
   const t = await getTranslations("cobros");
   const { cliente, summary } = data;
+  const settlement = await getHecomMonthlyDebtSettlement(cliente.id);
   // Se filtra en el servidor: los meses anteriores ni siquiera llegan al navegador.
   const visible = (month: string | null) => !fromMonth || (month !== null && month >= fromMonth);
   const gastos = data.gastos.filter((row) => visible(monthOf(row.fecha)));
@@ -64,6 +66,7 @@ export async function ClienteScopedCobros({
       </header>
 
       <ClienteCobrosMonthView
+        settlement={settlement ? Object.fromEntries(Object.entries(settlement).filter(([ym]) => !fromMonth || ym >= fromMonth)) : null}
         feePercent={summary.depositFeePercent}
         capped={gastos.length >= 4000 || cobros.length >= 800}
         gastos={gastos.map((row) => ({
