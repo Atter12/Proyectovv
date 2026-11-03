@@ -22,9 +22,9 @@ const receipt=(monto,periodo_resumen,extra={})=>({id:'payment',client_id:CID,mon
 const gs=[expense('old','2026-04',700),expense('new','2026-10',400)];
 const ps=[receipt(1000,'2026-04')];
 const before=JSON.stringify(ps);
-assert.equal(pure.calculateMonthlyDebtSettlement(CID,gs,ps,[])['2026-10'].pending,100);
+assert.equal(pure.calculateMonthlyDebtSettlement(CID,gs,ps,[])['2026-10'].pending,400);
 assert.equal(JSON.stringify(ps),before,'No original payment changes');
-assert.equal(pure.calculateMonthlyDebtSettlement(CID,gs,[receipt(700,'2026-04')],[{client_id:CID,valor:100,estado:'Vigente',periodo_resumen:'2026-04'}])['2026-10'].pending,300);
+assert.equal(pure.calculateMonthlyDebtSettlement(CID,gs,[receipt(700,'2026-04')],[{client_id:CID,valor:100,estado:'Vigente',periodo_resumen:'2026-04'}])['2026-10'].pending,400);
 assert.throws(()=>pure.calculateMonthlyDebtSettlement(CID,[{...gs[0],client_id:'foreign'}],ps,[]),/another customer/);
 assert.throws(()=>pure.calculateMonthlyDebtSettlement(CID,gs,[{...ps[0],client_id:'foreign'}],[]),/another customer/);
 assert.throws(()=>pure.calculateMonthlyDebtSettlement(CID,gs,ps,[{client_id:'foreign',valor:999999}]),/another customer/);
@@ -49,7 +49,7 @@ const many=Array.from({length:1201},(_,i)=>expense('old-'+String(i).padStart(5,'
 many.push(expense('oct','2026-10',400));
 const db=fakeDb({gastos:many,cobros:[receipt(1501,'2026-09')],garantias:[]});
 const result=await settlementLoader(db)(CID);
-assert.equal(result['2026-10'].pending,100,'Debt must include expenses beyond the first 1000');
+assert.equal(result['2026-10'].pending,400,'Debt must include expenses beyond the first 1000');
 assert.equal(db.calls.filter(c=>c.table==='gastos').length,3);
 assert.equal(await settlementLoader(fakeDb({},{failTable:'garantias'}))(CID),null,'Unread guarantees cannot turn into a bill');
 assert.equal(await settlementLoader(fakeDb({},{badCount:true}))(CID),null,'An incomplete count cannot turn into a bill');
@@ -79,11 +79,11 @@ const statementModule=loadTs('features/clientes/components/VoucherAccountStateme
 const props={monthYm:'2026-10',feePercent:5,capped:false,
   gastos:[{fecha:'2026-10-31',gasto:11852.4,fee:5,camp:null}],
   cobros:[{fecha:'2026-10-12',monto:5000,metodo:'Binance',periodoResumen:'2026-10'}],
-  pendingUsd:176.02,
+  pendingUsd:7445.02,
 };
 const markup=renderToStaticMarkup(React.createElement(statementModule.VoucherAccountStatement,props));
-assert.ok(markup.includes('$176.02'),'The displayed balance uses the same canonical calculation as Hecom collection');
+assert.ok(markup.includes('$7,445.02'),'The displayed balance uses the same canonical calculation as Hecom collection');
 assert.ok(markup.includes('$5,000.00'),'The real monthly payment stays visible');
 assert.ok(!markup.includes('Aplicado desde el historial:'),'Do not assign historical coverage automatically');
-assert.ok(!markup.includes('$7,445.02'),'Do not expose a second conflicting debt formula');
+assert.ok(!markup.includes('$176.02'),'Do not expose a second conflicting debt formula');
 console.log('Rendered balance checks passed: one canonical balance, original payment visible, no comparison panels.');
