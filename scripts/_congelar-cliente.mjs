@@ -46,7 +46,7 @@ for (const adv of ADVS) {
   if (bm === "10" || bm === "30") {
     const budget = Number(row.budget ?? 0);
     const cost = Number(row.budget_cost ?? 0);
-    const target = Math.ceil(cost * 100) / 100;
+    const target = Math.ceil(cost * 100 - 1e-7) / 100;
     console.log(`  cupo: presupuesto ${budget.toFixed(2)} (${row.budget_mode}), gastado ${cost.toFixed(2)} → ${target.toFixed(2)}`);
     if (COMMIT && (budget > target || row.budget_mode !== "CUSTOM_BUDGET")) {
       const r = await post("/advertiser/update/", { bc_id: bc, budget_update_type: "UPDATE", advertiser_budgets: [{ advertiser_id: adv, budget: target, budget_mode: "CUSTOM_BUDGET" }] });
@@ -56,7 +56,7 @@ for (const adv of ADVS) {
     continue;
   }
 
-  const cash = Math.floor(Number(row.valid_cash_balance ?? row.account_balance ?? 0) * 100) / 100;
+  const cash = Math.floor(Number(row.valid_cash_balance ?? row.account_balance ?? 0) * 100 + 1e-7) / 100;
   console.log(`  cash: ${cash.toFixed(2)} → devolver al BM`);
   if (!COMMIT || !(cash > 0)) continue;
   const body = { bc_id: bc, advertiser_id: adv, transfer_type: "REFUND", cash_amount: cash, request_id: `congelar-${adv}-${Date.now()}` };
@@ -65,7 +65,7 @@ for (const adv of ADVS) {
   // TikTok retiene unos centavos hasta 3 h después de pausar: se devuelve el máximo que deja.
   const max = r.code === 40002 ? Number(/maximum amount you can transfer out is ([\d.]+)/.exec(r.message)?.[1]) : NaN;
   if (max > 0) {
-    const retry = { ...body, cash_amount: Math.floor(max * 100) / 100, request_id: `${body.request_id}-max` };
+    const retry = { ...body, cash_amount: Math.floor(max * 100 + 1e-7) / 100, request_id: `${body.request_id}-max` };
     r = await post("/bc/transfer/", bm === "200" ? { ...retry, payment_portfolio_id: PORTFOLIO_BM200 } : retry);
     console.log(`  (TikTok retiene ${(cash - retry.cash_amount).toFixed(2)} por 3 h; volver a correr luego)`);
   }

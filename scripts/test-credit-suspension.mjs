@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';import vm from 'node:vm';import ts from 'typescript';
-function load(file,imports={}){const out=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;const m={exports:{}};vm.runInNewContext('(function(require,module,exports){'+out+'\n})',{process:{env:{}},console,Map,Set,Date,Error,Promise})(id=>id in imports?imports[id]:new Proxy({},{get(_t,k){return ()=>{throw Error('Unexpected effect '+id+'.'+String(k))}}}),m,m.exports);return m.exports;}
+function load(file,imports={},globals={}){const out=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;const m={exports:{}};vm.runInNewContext('(function(require,module,exports){'+out+'\n})',{process:{env:{}},console,Map,Set,Date,Error,Promise,...globals})(id=>id in imports?imports[id]:new Proxy({},{get(_t,k){return ()=>{throw Error('Unexpected effect '+id+'.'+String(k))}}}),m,m.exports);return m.exports;}
 const policy=load('lib/payments/credit-suspension.ts');const src=fs.readFileSync('lib/payments/credit-suspension.ts','utf8');const cid=src.match(/[0-9a-f]{8}-[0-9a-f-]{27,}/)[0],adv=src.match(/"(\d{16,})"/)[1];
 for(const flag of ['agencyBmFunding','staffBmFunding','crossBmFunding','allowTikTokOverLedger']){assert.throws(()=>policy.assertAgencyCreditAllowed({clientId:cid,[flag]:true}),/Crédito suspendido/);assert.throws(()=>policy.assertAgencyCreditAllowed({advertiserId:adv,[flag]:true}),/Crédito suspendido/);policy.assertAgencyCreditAllowed({clientId:'not-in-cohort',[flag]:true});}
 policy.assertAgencyCreditAllowed({clientId:cid,advertiserId:adv});
@@ -28,3 +28,11 @@ assert.equal(staff.isStaffBlockedAdAccount({externalAccountId:'76862239867573043
 assert.equal(staff.isStaffBlockedAdAccount({hecomClienteId:'a71c1511-611c-4e34-86ce-7811240777e4'}),false,'a similar name or ID prefix never blocks another customer');
 assert.equal(staff.staffBlockStatusForUpsert({hecomClienteId:'unrelated',tiktokStatusKind:'approved'}).status,'active');
 console.log('Confirmed credit accounts: allocation and sync remain blocked by exact customer/account identity.');
+
+let chosenBudget=null,refundAmount=null;
+const freeze=load('lib/ops/frenar-gasto.server.ts',{'server-only':{},'@/lib/hecom/bm-bucket.shared':{HECOM_BM_BUCKET_TO_BC:{'10':'bc10','300':'bc300'}},'@/lib/env/env.server':{serverEnv:{tiktokAccessToken:'synthetic'}},'@/lib/integrations/tiktok/bc-finance.server':{setSharedBmAdvertiserBudgetAbsolute:async input=>{chosenBudget=input.budgetUsd;return {newBudget:chosenBudget}}}}, {fetch:async(url,options)=>{if(options.method==='POST'){refundAmount=JSON.parse(options.body).cash_amount;return {text:async()=>JSON.stringify({code:0})}}return {text:async()=>JSON.stringify({code:0,data:{advertiser_account_list:[{advertiser_id:'synthetic',budget:646.45,budget_cost:646.44,budget_mode:'CUSTOM_BUDGET',valid_cash_balance:1.15}]}})}}});
+const stopped=await freeze.bajarSaldoCuenta({bm:'10',advertiserId:'synthetic',amountUsd:null});
+assert.equal(chosenBudget,646.44);assert.equal(stopped.leftUsd,0,'binary precision must not leave one cent of credit');
+const refunded=await freeze.bajarSaldoCuenta({bm:'300',advertiserId:'synthetic',amountUsd:null});
+assert.equal(refundAmount,1.15);assert.equal(refunded.leftUsd,0,'binary precision must not retain a paid cent');
+console.log('Spend stop: exact cents for shared budgets and cash refunds.');

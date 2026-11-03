@@ -34,7 +34,7 @@ export type FrenarResult = {
 type LiveRow = { budget: number; cost: number; mode: string; cash: number; name: string };
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
-const floor2 = (v: number) => Math.floor(v * 100) / 100;
+const floor2 = (v: number) => Math.floor(v * 100 + 1e-7) / 100;
 
 function token(): string {
   const t = serverEnv.tiktokAccessToken.trim();
@@ -147,7 +147,7 @@ export async function bajarSaldoCuenta(input: {
 
   if (SHARED_BMS.has(bm)) {
     // Sin margen: si sigue gastando, setBudget reintenta con lo gastado + margen.
-    const floor = round2(Math.ceil(live.cost * 100) / 100);
+    const floor = round2(Math.ceil(live.cost * 100 - 1e-7) / 100);
     const unlimited = live.mode === "UNLIMITED";
     const free = unlimited ? null : round2(Math.max(0, live.budget - live.cost));
     const target =
