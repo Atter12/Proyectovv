@@ -19,3 +19,12 @@ await assert.rejects(()=>lock.assertCreditLockAllowsAllocate({organizationId:'or
 await lock.assertCreditLockAllowsAllocate({organizationId:'org',hecomClienteId:cid,agencyBmFunding:false});
 assert.match(fs.readFileSync('lib/payments/prepago-guard.server.ts','utf8'),/CONFIRMED_CREDIT_CLIENTES\.has\(hecomId\.toLowerCase\(\)\) && !isCreditSuspended\(hecomId\)/);
 console.log('Credit suspension: allocation, transfer, balance import and approval reject before effects; staff/disabled card lock cannot bypass; prepaid and other customers unchanged.');
+const staff=load('lib/payments/staff-block.server.ts',{'server-only':{},'@/lib/records':{isRecord:x=>!!x&&typeof x==='object'}});
+for(const client of ['35b02fad-605f-4fe8-8e94-338e29664554','c58831c7-e58a-43ea-9bd8-00499d0aa78f','61bc8449-6b40-4cce-8cbf-3b925cdcc7b3','4e509277-8c50-47fc-95a8-830453d1a5b8']){
+ assert.equal(staff.isStaffBlockedAdAccount({metadata:{hecom_cliente_id:client}}),true);
+ assert.equal(staff.staffBlockStatusForUpsert({hecomClienteId:client,tiktokStatusKind:'approved'}).status,'disabled');
+}
+assert.equal(staff.isStaffBlockedAdAccount({externalAccountId:'7686223986757304340'}),true,'mirror remains blocked without metadata');
+assert.equal(staff.isStaffBlockedAdAccount({hecomClienteId:'a71c1511-611c-4e34-86ce-7811240777e4'}),false,'a similar name or ID prefix never blocks another customer');
+assert.equal(staff.staffBlockStatusForUpsert({hecomClienteId:'unrelated',tiktokStatusKind:'approved'}).status,'active');
+console.log('Confirmed credit accounts: allocation and sync remain blocked by exact customer/account identity.');

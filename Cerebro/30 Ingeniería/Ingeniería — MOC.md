@@ -43,3 +43,8 @@ Pruebas: rechazo ejecutando los handlers internos antes de cualquier efecto en l
 
 
 Cierre parcial operativo: `d3dc73dd` main / Vercel success. Retirado el cash de dos cuentas financiadas exclusivamente con puente de agencia: TikTok code 0, relectura cash cero y cero campañas activas. Respaldo privado y dos audit_logs operativos registrados. No se alteraron asientos de deuda, pagos ni accesos. Los saldos antiguos con origen ambiguo y cuentas mixtas permanecen pendientes de evidencia; no se afirma bloqueo integral de todo gasto ni revocación de permisos externos de BC.
+
+
+## 2026-11-03 — Confirmación del origen del saldo pendiente
+
+El usuario confirma, en nombre de la responsable consultada, que el saldo cargado de las cuatro fichas pendientes es crédito de agencia. Esa confirmación resuelve la incertidumbre de origen para este subconjunto, sin extenderse a otras identidades homónimas ni a clientes mixtos. Se amplía el bloqueo staff por identificador exacto de cliente y sus cuentas mapeadas: impide nuevas asignaciones y reactivación automática por sync, sin revocar login. Lectura completa del alcance antes de operar, respaldo privado, retirada de disponibilidad con las operaciones existentes de freno de gasto y relectura por cuenta. Regresión de bloqueo por cliente, espejo sin metadata, sync y separación de identidad homónima aprobada. Publicación y ejecución pendientes en este corte.
