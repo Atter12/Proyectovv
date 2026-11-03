@@ -26,3 +26,6 @@ El catálogo administrativo deja de importar indiscriminadamente todas las ficha
 Motor compartido con Hecom: corte de cobranza octubre de 2026 confirmado por el usuario para todos los créditos; meses previos conservados como histórico saldado, mes abierto como consumo, sin garantías ni excedentes entre períodos. Evidencia válida de recarga wallet excluye deuda automática; modalidad mixta requiere revisión. No se modifica ningún pago ni usuario. Auditoría identificable sólo en artefacto privado fuera del repositorio.
 
 Validación: typecheck, settlement, render y pruebas de catálogo con más de una página, fallo e incompletitud aprobados. Publicación pendiente al escribir este corte.
+
+
+Cierre: `6607ce6c` publicado en main; GitHub/Vercel confirma Deployment has completed / success. Typecheck, lint de archivos TypeScript modificados y pruebas locales aprobados. No se automatizó una sesión autenticada productiva de catálogo, ni se escribieron datos reales.
