@@ -1,3 +1,4 @@
+import { listAdsHolisticClienteIds } from "@/lib/hecom/ads-cliente-cohort.server";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session.server";
 import { userIsAllowedAdmin } from "@/lib/admin/allowlist";
@@ -15,7 +16,8 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Lista clientes del CRM Hecom Club.
+ * Lista clientes con vínculo de usuario o pago exitoso en AdsHolistic.
+ * Una ficha del CRM Hecom, por sí sola, no acredita uso de AdsHolistic.
  * Con OTP activo: usuario no-admin solo ve clientes de SU email.
  */
 export async function GET() {
@@ -62,7 +64,8 @@ export async function GET() {
       });
     } else {
       const listed = await listHecomClientes();
-      clientes = listed.clientes;
+      const adsIds = await listAdsHolisticClienteIds();
+      clientes = listed.clientes.filter(cliente => adsIds.has(cliente.id));
       source = listed.source;
       steps.push({
         step: hecomCfg.configured ? "hecom_clientes_live" : "hecom_clientes_backup",

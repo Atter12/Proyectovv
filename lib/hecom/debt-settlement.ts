@@ -4,6 +4,7 @@ export type MonthlyDebtSettlement = Record<string, {
   pending: number;
   cargo: number;
   covered: number;
+  currentConsumption: number;
 }>;
 
 /** Same read-only FIFO as Hecom. Receipt dates, amounts and periods stay intact. */
@@ -34,9 +35,10 @@ export function calculateMonthlyDebtSettlement(
   const result: MonthlyDebtSettlement = {};
   for (const [ym, row] of grouped) {
     const cargo = core.r2(core.r2(row.ads) + core.r2(row.fee));
-    const pending = core.saldoPendienteCliente(gastos, cobros, garantias, clientId, ym);
+    const rawPending = core.saldoPendienteCliente(gastos, cobros, garantias, clientId, ym);
+    const pending = core.saldoPorCobrarCliente(gastos, cobros, garantias, clientId, ym);
     if (!Number.isFinite(pending) || pending < 0) throw new Error("Invalid settlement result");
-    result[ym] = { pending, cargo, covered: core.r2(Math.max(0, cargo - pending)) };
+    result[ym] = { pending, cargo, covered: core.r2(Math.max(0, cargo - rawPending)), currentConsumption: ym === core.mesActualCredito() ? cargo : 0 };
   }
   return result;
 }
