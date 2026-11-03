@@ -1,3 +1,4 @@
+import { isStaffBlockedAdAccount } from "@/lib/payments/staff-block.server";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
@@ -331,6 +332,9 @@ async function canRaiseBudget(
   advertiserId: string,
   newBudget: number,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (isStaffBlockedAdAccount({ hecomClienteId, externalAccountId: advertiserId })) {
+    return { ok: false, message: "El gasto de crédito de esta cuenta está suspendido por gerencia." };
+  }
   const frozen = await clienteFrozenState(hecomClienteId);
   if (frozen) return { ok: false, message: `La cuenta está en ${frozen}: no se puede gastar más.` };
   const live = await getHecomAdAccountsLiveMetrics(hecomClienteId, "fast", { bypassCache: true }).catch(() => null);

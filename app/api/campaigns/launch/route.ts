@@ -1,3 +1,4 @@
+import { isStaffBlockedAdAccount } from "@/lib/payments/staff-block.server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCampaignUser, type CampaignUser } from "@/lib/campaigns/staff-guard.server";
@@ -29,6 +30,7 @@ async function resolveAccount(
     .eq("organization_id", organizationId)
     .maybeSingle<{ external_account_id: string | null; status: string; metadata: Record<string, unknown> | null }>();
   if (!data?.external_account_id || data.status !== "active") return null;
+  if (isStaffBlockedAdAccount({ status: data.status, metadata: data.metadata, externalAccountId: data.external_account_id })) return null;
   const cliente = data.metadata?.hecom_cliente_id;
   return {
     advertiserId: data.external_account_id.trim(),

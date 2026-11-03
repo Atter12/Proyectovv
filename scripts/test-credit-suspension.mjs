@@ -36,3 +36,21 @@ assert.equal(chosenBudget,646.44);assert.equal(stopped.leftUsd,0,'binary precisi
 const refunded=await freeze.bajarSaldoCuenta({bm:'300',advertiserId:'synthetic',amountUsd:null});
 assert.equal(refundAmount,1.15);assert.equal(refunded.leftUsd,0,'binary precision must not retain a paid cent');
 console.log('Spend stop: exact cents for shared budgets and cash refunds.');
+
+let launchClient='61bc8449-6b40-4cce-8cbf-3b925cdcc7b3',launchAdvertiser='7686223986757304340',campaignCalls=[];
+const campaigns=load('lib/campaigns/launch-actions.server.ts',{
+ 'server-only':{},'@/lib/payments/staff-block.server':staff,
+ '@/lib/supabase/admin':{createAdminClient:()=>({from(table){const q={select(){return q},eq(){return q},async maybeSingle(){return {data:table==='campaign_launches'?{advertiser_id:launchAdvertiser,campaign_id:'campaign',daily_budget:10,hecom_cliente_id:launchClient}:null,error:null}}};return q}})},
+ '@/lib/integrations/tiktok/bc-finance.server':{resolveTikTokFinanceAccessToken:async()=>({token:'synthetic'})},
+ '@/lib/integrations/tiktok/http.server':{tiktokRequest:async r=>{campaignCalls.push(r);return {}}},
+ '@/lib/hecom/ad-account-live.server':{getHecomAdAccountsLiveMetrics:async()=>({accounts:[{advertiserId:launchAdvertiser,balanceUsd:100}]})},
+});
+assert.equal((await campaigns.setLaunchRunning({launchId:'launch',hecomClienteId:launchClient,running:true})).ok,false);
+assert.equal(campaignCalls.length,0,'credit cannot be resumed even if TikTok still shows cash');
+assert.equal((await campaigns.setLaunchRunning({launchId:'launch',hecomClienteId:launchClient,running:false})).ok,true);
+assert.equal(campaignCalls.at(-1).body.operation_status,'DISABLE');
+launchClient='1fb61f89-d270-469d-a516-a980d616a233';launchAdvertiser='7675776860156608530';
+assert.equal(policy.isCreditSuspended(launchClient,launchAdvertiser),true);
+assert.equal((await campaigns.setLaunchRunning({launchId:'launch',hecomClienteId:launchClient,running:true})).ok,true,'credit suspension alone does not freeze own prepaid');
+assert.equal(campaignCalls.at(-1).body.operation_status,'ENABLE');
+console.log('Campaigns: frozen credit cannot resume; own prepaid can resume despite no-new-credit policy; pause remains available.');
