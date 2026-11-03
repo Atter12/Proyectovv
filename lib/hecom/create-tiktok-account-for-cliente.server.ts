@@ -7,7 +7,12 @@ import {
 } from "@/lib/hecom/link-tiktok-cuenta.server";
 import { resolveOrganizationIdForHecomCliente } from "@/lib/hecom/resolve-cliente-organization.server";
 import { syncApprovedAdAccountsForCliente } from "@/lib/hecom/sync-approved-ad-accounts.server";
+import {
+  assignAccess,
+  detectClienteTikTokUsers,
+} from "@/lib/hecom/staff-create-tiktok-accounts.server";
 import { createBcAdvertiserForCliente } from "@/lib/integrations/tiktok/bc-advertiser-create.server";
+import { resolveTikTokFinanceAccessToken } from "@/lib/integrations/tiktok/bc-finance.server";
 import {
   buildHolisticWhatsAppUrl,
   getTikTokBcCreateProfile,
@@ -30,6 +35,8 @@ export type CreateTikTokAccountForClienteResult =
       organizationId: string | null;
       tiktokRequestId: string | null;
       accountCountAfter: number;
+      /** Usuarios TikTok del cliente que quedaron con ADMIN de la cuenta nueva. */
+      accessUserIds: string[];
     }
   | {
       ok: false;
@@ -130,6 +137,31 @@ export async function createTikTokAccountForCliente(input: {
     );
   }
 
+  // ADMIN de la cuenta nueva (nunca del BC) para el usuario TikTok del cliente: el que
+  // ya tiene acceso a sus otras cuentas y cuyo nombre coincide con el suyo. Sin esto
+  // la cuenta se creaba y el cliente no la veía en Ads Manager (Andy Peralta,
+  // 03/11/2026). Mismo criterio que la creación de gerencia. Si TikTok lo rechaza
+  // (usuario no es miembro de ese BM), soporte lo invita; no frena el alta.
+  const accessUserIds: string[] = [];
+  try {
+    const users = (await detectClienteTikTokUsers(clienteId)).filter((u) => u.suggested);
+    if (users.length) {
+      const { token } = await resolveTikTokFinanceAccessToken(organizationId ?? undefined);
+      for (const user of users) {
+        const result = await assignAccess(created.bcId, created.advertiserId, user.userId, token).catch(
+          (error) => ({ userId: user.userId, ok: false, message: error instanceof Error ? error.message : "error" }),
+        );
+        if (result.ok) accessUserIds.push(user.userId);
+        else console.warn("[hecom] create_tiktok_access_failed", { advertiserId: created.advertiserId, ...result });
+      }
+    }
+  } catch (error) {
+    console.warn("[hecom] create_tiktok_access_lookup_failed", {
+      advertiserId: created.advertiserId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+
   let syncedToOrg = false;
   if (organizationId) {
     try {
@@ -174,5 +206,6 @@ export async function createTikTokAccountForCliente(input: {
     organizationId,
     tiktokRequestId: created.tiktokRequestId,
     accountCountAfter: existingCount + 1,
+    accessUserIds,
   };
 }
