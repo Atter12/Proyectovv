@@ -3,6 +3,7 @@
  * El surcharge de pasarela (ej. Stripe 3%) NO cubre gasto+fee; el fee Holistic sí.
  */
 export type HecomFundingBreakdown = {
+  excluded_non_cash_adjustment?: boolean;
   schema_version?: unknown;
   currency?: unknown;
   mode?: unknown;
@@ -21,6 +22,7 @@ export type HecomFundingBreakdown = {
 };
 
 export type HecomCobroForDebt = {
+  metodo?: string | null;
   monto?: number | null;
   codigo?: string | null;
   client_id?: string | null;
@@ -51,6 +53,8 @@ function money(n: unknown): n is number {
 export function paymentApplicableAmount(row: HecomCobroForDebt): number {
   const amount = Number(row?.monto || 0);
   const value = (row?.funding_breakdown ?? row?.fundingBreakdown) || null;
+  const method = String(row?.metodo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  if (/^(ajuste|saldo a favor|condonacion)(\s|$)/.test(method) || /^AJ-/i.test(String(row?.codigo || '')) || value?.excluded_non_cash_adjustment === true) return 0;
   const gross = Math.round(amount * 100);
   const clientId = String(row?.client_id ?? row?.clientId ?? "");
   const match = /^AH-(STRIPE|BCP|YAPE|CRYPTO|WHOP)-(.+)$/.exec(

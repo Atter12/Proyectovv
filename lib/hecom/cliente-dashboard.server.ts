@@ -186,6 +186,7 @@ function mapCobro(row: Record<string, unknown>): HecomCobroRow {
       ? (row.funding_breakdown as Record<string, unknown>)
       : null;
   const applicableMonto = paymentApplicableAmount({
+    metodo: row.metodo ? String(row.metodo) : null,
     monto,
     codigo,
     client_id: clientId,
