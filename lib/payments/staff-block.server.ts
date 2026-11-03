@@ -9,6 +9,9 @@ const STAFF_BLOCKED_HECOM_CLIENTE_IDS = new Set([
 
 /** Advertisers TikTok bloqueados (BM10 Kevin, Hernan Lora). */
 const STAFF_BLOCKED_ADVERTISER_IDS = new Set([
+  // 2026-11-03: reviewed accounts funded by an agency bridge; credit suspended by owner.
+  "7646637746722766866",
+  "7655354420745781256",
   "7675788689846353927",
   "7675788433108860946",
   "7675789143745675282",

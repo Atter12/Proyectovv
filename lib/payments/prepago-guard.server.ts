@@ -1,3 +1,4 @@
+import { isCreditSuspended } from "./credit-suspension";
 import "server-only";
 import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -296,7 +297,7 @@ export async function runPrepagoGuard(
     if (!tagged) continue;
     const hecomId = String(tagged.hecom_cliente_id);
     if (!adsClienteIds.has(hecomId)) continue;
-    if (CONFIRMED_CREDIT_CLIENTES.has(hecomId.toLowerCase())) continue;
+    if (CONFIRMED_CREDIT_CLIENTES.has(hecomId.toLowerCase()) && !isCreditSuspended(hecomId)) continue;
     const withBalance = rows.map((a) => ({ a, usd: balanceByAdAccount.get(a.id) ?? 0 }));
     // Para corregir en TikTok se usa la organización de la fila con más saldo.
     const main = withBalance.reduce((best, x) => (x.usd > best.usd ? x : best), withBalance[0]!);

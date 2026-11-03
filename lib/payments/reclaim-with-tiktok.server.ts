@@ -1,3 +1,4 @@
+import { assertAgencyCreditAllowed } from "./credit-suspension";
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -164,6 +165,7 @@ export async function reclaimFromAdAccountWithTikTok(
     throw new Error("Cuenta publicitaria no encontrada en la organización.");
   }
 
+  assertAgencyCreditAllowed({ ...input, advertiserId: account.external_account_id, clientId: isRecord(account.metadata) ? String(account.metadata.hecom_cliente_id ?? "") : null });
   const ledger = await getAdAccountLedgerBalance(account.id);
   const holisticAvailable = ledger?.availableBalanceCents ?? 0;
   const allowTikTokOverLedger = Boolean(input.allowTikTokOverLedger);

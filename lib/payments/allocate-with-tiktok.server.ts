@@ -1,3 +1,4 @@
+import { assertAgencyCreditAllowed } from "./credit-suspension";
 ﻿import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -201,6 +202,7 @@ export async function allocateWithOptionalTikTokFunding(
   const hecomClienteId = isRecord(account.metadata)
     ? String(account.metadata.hecom_cliente_id ?? "").trim() || null
     : null;
+  assertAgencyCreditAllowed({ ...input, clientId: hecomClienteId, advertiserId: account.external_account_id });
   const { assertCreditLockAllowsAllocate } = await import(
     "@/lib/payments/credit-lock/credit-lock.server"
   );

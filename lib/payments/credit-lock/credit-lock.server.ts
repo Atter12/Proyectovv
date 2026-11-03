@@ -1,3 +1,4 @@
+import { assertAgencyCreditAllowed } from "../credit-suspension";
 import "server-only";
 import { STRIPE_PAYMENTS_ENABLED } from "../stripe-policy";
 import { getHecomClienteDashboard } from "@/lib/hecom/cliente-dashboard.server";
@@ -238,6 +239,7 @@ export async function reviewCreditLockRequest(input: {
   reviewedBy: string;
   notes?: string | null;
 }): Promise<Awaited<ReturnType<typeof getCreditLockState>>["cupo"]> {
+  if (input.decision === "approved") assertAgencyCreditAllowed({ clientId: input.hecomClienteId, agencyBmFunding: true });
   const profile = await getCreditLockProfile(input.organizationId);
   if (!profile?.requested_credit_cents) {
     throw new Error("No hay un pedido de crédito para revisar.");
@@ -273,6 +275,7 @@ export async function assertCreditLockAllowsAllocate(input: {
    */
   staffBmFunding?: boolean;
 }): Promise<void> {
+  assertAgencyCreditAllowed({ ...input, clientId: input.hecomClienteId });
   if (!CREDIT_CARD_LOCK_ENABLED) return;
   // Recarga ya pagada en cartera → el cliente puede asignar a TikTok sin candado.
   if (!input.agencyBmFunding) return;

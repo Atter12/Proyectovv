@@ -1,3 +1,4 @@
+import { assertAgencyCreditAllowed } from "./credit-suspension";
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { allocateWithOptionalTikTokFunding } from "@/lib/payments/allocate-with-tiktok.server";
@@ -59,7 +60,7 @@ export async function transferBetweenAdAccountsWithTikTok(
 
   if (error) throw new Error(error.message);
 
-  let fromAccount = rows?.find((r) => r.id === input.fromAdAccountId) as
+  const fromAccount = rows?.find((r) => r.id === input.fromAdAccountId) as
     | {
         id: string;
         organization_id: string;
@@ -128,6 +129,10 @@ export async function transferBetweenAdAccountsWithTikTok(
     });
     toAccount = sibling;
   }
+
+  // Reject before reclaiming the source: an allocation failure must not move funds first.
+  assertAgencyCreditAllowed({ ...input, advertiserId: fromAccount.external_account_id });
+  assertAgencyCreditAllowed({ ...input, advertiserId: toAccount.external_account_id });
 
   // Usar org canónica en el resto del flujo.
   input = { ...input, organizationId };
