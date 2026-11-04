@@ -50,11 +50,17 @@ function money(n: unknown): n is number {
  * Si el cobro AH-* trae funding_breakdown válido con gateway surcharge, ese
  * surcharge no imputa a la deuda (Total − aplicable).
  */
+/** Historical noncash adjustments are neither payments nor wallet topups. */
+export function isNonCashAdjustment(row: HecomCobroForDebt): boolean {
+  const value = row?.funding_breakdown ?? row?.fundingBreakdown;
+  const method = String(row?.metodo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  return /^(ajuste|saldo a favor|condonacion)(\s|$)/.test(method) || /^AJ-/i.test(String(row?.codigo || '')) || value?.excluded_non_cash_adjustment === true;
+}
+
 export function paymentApplicableAmount(row: HecomCobroForDebt): number {
   const amount = Number(row?.monto || 0);
   const value = (row?.funding_breakdown ?? row?.fundingBreakdown) || null;
-  const method = String(row?.metodo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-  if (/^(ajuste|saldo a favor|condonacion)(\s|$)/.test(method) || /^AJ-/i.test(String(row?.codigo || '')) || value?.excluded_non_cash_adjustment === true) return 0;
+  if (isNonCashAdjustment(row)) return 0;
   const gross = Math.round(amount * 100);
   const clientId = String(row?.client_id ?? row?.clientId ?? "");
   const match = /^AH-(STRIPE|BCP|YAPE|CRYPTO|WHOP)-(.+)$/.exec(

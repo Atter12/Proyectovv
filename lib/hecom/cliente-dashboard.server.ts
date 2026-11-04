@@ -22,7 +22,7 @@ import {
   getHecomSupabaseConfig,
 } from "@/lib/hecom/supabase.server";
 import { resolveFeePercentFromHecomCliente } from "@/lib/payments/resolve-hecom-deposit-fee.server";
-import { paymentApplicableAmount } from "@/lib/hecom/payment-applicable-amount";
+import { paymentApplicableAmount, isNonCashAdjustment } from "@/lib/hecom/payment-applicable-amount";
 import { sortGastosByDateDesc } from "@/lib/hecom/gasto-date";
 import type { HecomGastoRow } from "@/lib/hecom/cliente-finance.types";
 
@@ -208,6 +208,11 @@ function mapCobro(row: Record<string, unknown>): HecomCobroRow {
     registeredBy: row.created_by ? String(row.created_by) : null,
     registeredAt: row.created_at ? String(row.created_at) : null,
   };
+}
+
+/** One receipt projection for live data and backup, shared by all client views. */
+export function mapMonetaryCobros(rows: Record<string, unknown>[]): HecomCobroRow[] {
+  return rows.map(mapCobro).filter((row) => !isNonCashAdjustment(row));
 }
 
 function mapCreativoCliente(row: Record<string, unknown>): HecomCreativoCliente {
@@ -752,9 +757,8 @@ async function loadLiveFinance(
         .filter((row) => String(row.client_id ?? "") === clientId)
         .map(mapGasto),
     );
-    const cobros = ((cobrosRes.data ?? []) as Record<string, unknown>[])
-      .filter((row) => String(row.client_id ?? "") === clientId)
-      .map(mapCobro);
+    const cobros = mapMonetaryCobros(((cobrosRes.data ?? []) as Record<string, unknown>[])
+      .filter((row) => String(row.client_id ?? "") === clientId));
     const creativosClientes = includeCreativos
       ? ((creativosRes.data ?? []) as Record<string, unknown>[])
           .filter((row) => String(row.credito_client_id ?? "") === clientId)
@@ -935,7 +939,7 @@ export const getHecomClienteDashboard = cache(
           advertiserIds,
         ),
       );
-      const cobros = filtered.cobros.map(mapCobro);
+      const cobros = mapMonetaryCobros(filtered.cobros);
       const creativosClientes = includeCreativos
         ? filtered.creativosClientes.map(mapCreativoCliente)
         : [];
