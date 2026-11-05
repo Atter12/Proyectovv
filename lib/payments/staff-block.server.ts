@@ -15,6 +15,21 @@ const STAFF_BLOCKED_HECOM_CLIENTE_IDS = new Set([
 
 /** Advertisers TikTok bloqueados (BM10 Kevin, Hernan Lora). */
 const STAFF_BLOCKED_ADVERTISER_IDS = new Set([
+  // 2026-11-05: confirmed historical agency credit; TikTok rejects refund while punished.
+  "7626413924543545362",
+  "7653944872684109845",
+  "7653939366700105749",
+  "7653496502731440148",
+  "7650223113375875093",
+  "7650169884109750292",
+  "7647988038256377876",
+  "7647987799756521493",
+  "7647222728425750549",
+  "7647222613160525845",
+  "7646637143993040903",
+  "7646601213395648530",
+  "7646601856818479111",
+
   // Confirmed agency-credit accounts, including mirrors without customer metadata.
   "7626269348620238856",
   "7626269367927406610",
