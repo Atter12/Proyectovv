@@ -26,7 +26,6 @@ export const seoConfig = {
     "cuentas publicitarias de TikTok",
     "recargar saldo TikTok Ads",
     "recarga TikTok Ads con Stripe",
-    "pagar TikTok Ads con cripto",
     "Business Center TikTok",
     "píxel de TikTok",
     "anuncios contra entrega",
