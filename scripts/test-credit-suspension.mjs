@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';import vm from 'node:vm';import ts from 'typescript';
 function load(file,imports={},globals={}){const out=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;const m={exports:{}};vm.runInNewContext('(function(require,module,exports){'+out+'\n})',{process:{env:{}},console,Map,Set,Date,Error,Promise,...globals})(id=>id in imports?imports[id]:new Proxy({},{get(_t,k){return ()=>{throw Error('Unexpected effect '+id+'.'+String(k))}}}),m,m.exports);return m.exports;}
 const policy=load('lib/payments/credit-suspension.ts');const src=fs.readFileSync('lib/payments/credit-suspension.ts','utf8');const cid=src.match(/[0-9a-f]{8}-[0-9a-f-]{27,}/)[0],adv=src.match(/"(\d{16,})"/)[1];
-for(const flag of ['agencyBmFunding','staffBmFunding','crossBmFunding','allowTikTokOverLedger']){assert.throws(()=>policy.assertAgencyCreditAllowed({clientId:cid,[flag]:true}),/Crédito suspendido/);assert.throws(()=>policy.assertAgencyCreditAllowed({advertiserId:adv,[flag]:true}),/Crédito suspendido/);policy.assertAgencyCreditAllowed({clientId:'not-in-cohort',[flag]:true});}
+for(const flag of ['agencyBmFunding','staffBmFunding','crossBmFunding','allowTikTokOverLedger']){assert.throws(()=>policy.assertAgencyCreditAllowed({clientId:cid,[flag]:true}),/Crédito suspendido/);assert.throws(()=>policy.assertAgencyCreditAllowed({advertiserId:adv,[flag]:true}),/Crédito suspendido/);assert.throws(()=>policy.assertAgencyCreditAllowed({clientId:'not-in-cohort',[flag]:true}),/Crédito suspendido/);assert.throws(()=>policy.assertAgencyCreditAllowed({[flag]:true}),/Crédito suspendido/);}
 policy.assertAgencyCreditAllowed({clientId:cid,advertiserId:adv});
 const account={id:'a',organization_id:'org',external_account_id:adv,metadata:{hecom_cliente_id:cid},platform:'tiktok',status:'active'};
 function db(rows=account){return {from(t){assert.equal(t,'ad_accounts');const q={select(){return q},eq(){return q},maybeSingle:async()=>({data:rows,error:null}),in:async()=>({data:rows,error:null})};return q}}}
@@ -54,3 +54,13 @@ assert.equal(policy.isCreditSuspended(launchClient,launchAdvertiser),true);
 assert.equal((await campaigns.setLaunchRunning({launchId:'launch',hecomClienteId:launchClient,running:true})).ok,true,'credit suspension alone does not freeze own prepaid');
 assert.equal(campaignCalls.at(-1).body.operation_status,'ENABLE');
 console.log('Campaigns: frozen credit cannot resume; own prepaid can resume despite no-new-credit policy; pause remains available.');
+
+
+// Global policy also covers future clients and staff/superadmin/default UI paths.
+let testerMode=null;
+const roles=load('lib/payments/funding-roles.server.ts',{'server-only':{},'@/lib/auth/demo-personas.server':{isDemoClienteEmail:()=>false,isDemoGerenteEmail:()=>false},'@/lib/auth/tester-dashboard-mode.server':{getTesterDashboardMode:async()=>testerMode},'@/lib/env/env.server':{serverEnv:{paymentsSuperAdminEmails:[]}},'@/lib/auth/hecom-otp.server':{isHecomOtpStaffEmail:()=>true}});
+for(const mode of [null,'gerente','cliente']){testerMode=mode;const caps=await roles.resolvePaymentsFundingCapabilities({email:'attermayerbasiliorengifo@gmail.com',role:'owner'});assert.equal(caps.canAgencyBmFund,false);assert.equal(caps.canSwitchFundingModes,false);assert.equal(caps.canClientStripeFund,true);assert.equal(caps.defaultFundingMode,'client');}
+assert.equal(lock.CREDIT_CARD_SIGNUP_ENABLED,false);
+await assert.rejects(()=>lock.saveCreditLockCupo({organizationId:'new-org',hecomClienteId:null,requestedCreditUsd:100}),/desactivado/);
+await assert.rejects(()=>lock.reviewCreditLockRequest({organizationId:'new-org',hecomClienteId:null,decision:'approved',reviewedBy:'qa'}),/Crédito suspendido/);
+console.log('Global prepaid: staff, superadmin and new customers cannot grant credit; wallet funding remains available.');

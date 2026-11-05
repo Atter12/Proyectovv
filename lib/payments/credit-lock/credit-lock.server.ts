@@ -52,9 +52,8 @@ export const CREDIT_CARD_LOCK_ENABLED = parseBoolean(
  * el fondeo (eso es CREDIT_CARD_LOCK_ENABLED). Para esconderlo:
  * CREDIT_CARD_SIGNUP_ENABLED=false.
  */
-export const CREDIT_CARD_SIGNUP_ENABLED =
-  CREDIT_CARD_LOCK_ENABLED ||
-  parseBoolean(process.env.CREDIT_CARD_SIGNUP_ENABLED, true);
+// Owner decision 2026-11-05: existing debts remain, but new credit applications are closed.
+export const CREDIT_CARD_SIGNUP_ENABLED = false;
 
 /** Con deuda desde este monto no se puede quitar la tarjeta. */
 const DETACH_MAX_DEBT_CENTS = 100;

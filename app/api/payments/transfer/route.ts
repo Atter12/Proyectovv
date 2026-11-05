@@ -37,6 +37,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
+  if (body.agencyBmFunding) {
+    return NextResponse.json({ error: "El crédito está desactivado. Transfiere únicamente saldo prepago respaldado." }, { status: 403 });
+  }
   if (!body.fromAdAccountId || !body.toAdAccountId) {
     return NextResponse.json(
       { error: "Cuenta origen y destino requeridas." },

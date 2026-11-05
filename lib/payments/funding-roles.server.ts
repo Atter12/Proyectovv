@@ -71,10 +71,10 @@ function gerenteFundingCapabilities(): PaymentsFundingCapabilities {
   return {
     isStaff: true,
     isSuperAdmin: false,
-    canAgencyBmFund: true,
-    canClientStripeFund: false,
+    canAgencyBmFund: false,
+    canClientStripeFund: true,
     canSwitchFundingModes: false,
-    defaultFundingMode: "agency_bm",
+    defaultFundingMode: "client",
   };
 }
 
@@ -99,16 +99,11 @@ export async function resolvePaymentsFundingCapabilities(input: {
   const isStaff = isHecomOtpStaffEmail(email);
   const isSuperAdmin = isPaymentsSuperAdminEmail(email);
 
-  const canAgencyBmFund = isStaff;
-  const canClientStripeFund = !isStaff || isSuperAdmin;
-  const canSwitchFundingModes = isSuperAdmin && canAgencyBmFund;
-
-  let defaultFundingMode: PaymentsFundingMode = "client";
-  if (canAgencyBmFund && !canClientStripeFund) {
-    defaultFundingMode = "agency_bm";
-  } else if (canSwitchFundingModes) {
-    defaultFundingMode = "agency_bm";
-  }
+  // Owner instruction 2026-11-05: no role can grant new agency credit.
+  const canAgencyBmFund = false;
+  const canClientStripeFund = true;
+  const canSwitchFundingModes = false;
+  const defaultFundingMode: PaymentsFundingMode = "client";
 
   return {
     isStaff,

@@ -42,6 +42,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
+  if (body.agencyBmFunding || body.crossBmFunding) {
+    return NextResponse.json({ error: "El crédito está desactivado. Asigna únicamente saldo prepago desde la cartera." }, { status: 403 });
+  }
   if (!body.adAccountId) {
     return NextResponse.json({ error: "Cuenta publicitaria requerida." }, { status: 400 });
   }

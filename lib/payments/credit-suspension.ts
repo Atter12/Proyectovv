@@ -258,7 +258,9 @@ export function assertAgencyCreditAllowed(input: {
   clientId?: string | null; advertiserId?: string | null;
   agencyBmFunding?: boolean; staffBmFunding?: boolean; crossBmFunding?: boolean; allowTikTokOverLedger?: boolean;
 }): void {
-  if ((input.agencyBmFunding || input.staffBmFunding || input.crossBmFunding || input.allowTikTokOverLedger) && isCreditSuspended(input.clientId, input.advertiserId)) {
-    throw new Error("Crédito suspendido por gerencia. No se permite fondeo adicional de agencia ni importación de cupo sin respaldo.");
+  // 2026-11-05: owner ends new agency credit globally, including staff and new customers.
+  // Historical balances/debts and customer-funded prepaid are separate from this gate.
+  if (input.agencyBmFunding || input.staffBmFunding || input.crossBmFunding || input.allowTikTokOverLedger) {
+    throw new Error("Crédito suspendido por gerencia para todos los clientes. Solo se permite asignar saldo prepago respaldado en cartera.");
   }
 }
