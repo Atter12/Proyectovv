@@ -6,20 +6,13 @@ const STRIPE_ACTIVE = STRIPE_PAYMENTS_ENABLED && Boolean(serverEnv.stripeSecretK
 
 /**
  * Gateways visibles en Pagos.
- * Stripe (solo con STRIPE_PAYMENTS_ENABLED + clave) + Whop + Yape/Plin + Pago manual + Cripto.
- * Culqi / Mercado Pago ocultos.
+ * Stripe (solo con STRIPE_PAYMENTS_ENABLED + clave), Yape/Plin, manual y cripto.
+ * Whop retirado; NOWPayments visible en mantenimiento.
  */
 export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   ...(STRIPE_ACTIVE
     ? [{ id: "stripe", name: "Tarjeta", description: "Visa, Mastercard y más · pago seguro con Stripe" } as PaymentGateway]
     : []),
-  {
-    id: "whop",
-    name: "Whop",
-    description: "Tarjeta, Apple Pay y wallets globales",
-    // Whop cayó (checkout sin métodos de pago). Quitar al terminar el mantenimiento.
-    maintenance: true,
-  },
   {
     id: "cobrana",
     name: "Yape / Plin",
@@ -34,10 +27,13 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
     id: "crypto",
     name: "Cripto (USDT)",
     description: "USDT TRC20 · pago automático con NOWPayments",
+    maintenance: true,
   },
 ];
 
 export function isGatewayInMaintenance(id: PaymentGatewayId): boolean {
+  // Also reject direct API requests for the removed gateway.
+  if (id === "whop") return true;
   if (id === "stripe") return !STRIPE_ACTIVE;
   return Boolean(PAYMENT_GATEWAYS.find((g) => g.id === id)?.maintenance);
 }

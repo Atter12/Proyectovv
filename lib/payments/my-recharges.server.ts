@@ -1,6 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sortRecharges, toRechargeRow, type RechargeRow } from "./my-recharges.shared";
+import { isGatewayInMaintenance } from "./gateway-config";
+import { isPaymentGatewayId } from "@/types/payment";
 
 const WINDOW_DAYS = 30;
 const LIMIT = 12;
@@ -24,5 +26,12 @@ export async function listMyRecharges(input: {
     console.warn("[my-recharges] list_failed", { error: error.message });
     return [];
   }
-  return sortRecharges((data ?? []).map(toRechargeRow));
+  return sortRecharges((data ?? []).map((intent) => {
+    const row = toRechargeRow(intent);
+    if (isPaymentGatewayId(row.provider) && isGatewayInMaintenance(row.provider)) {
+      row.checkoutUrl = null;
+      row.cryptoMissingUsdt = null;
+    }
+    return row;
+  }));
 }
