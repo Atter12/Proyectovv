@@ -769,6 +769,10 @@ export async function processSuccessfulPaymentIntent(input: {
 
   const ledgerJournalId = await confirmDepositInLedger({
     paymentIntentId: intent.id,
+    // Every payment attempt for one crypto invoice shares one wallet credit.
+    idempotencyKey: input.provider === "crypto"
+      ? `ledger:deposit:payment_intent:${intent.id}`
+      : undefined,
     providerReference: input.providerReference ?? intent.providerReference,
     webhookEventId: input.webhookEventId,
     metadata: {

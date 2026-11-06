@@ -351,7 +351,7 @@
         "needs_proof": "Se já transferiu, envie o print para revisarmos.",
         "pay_yape": "No Yape: Pagamento de serviços → 360Pay → este código.",
         "pay_crypto": "Conclua o pagamento na NOWPayments. Tem que chegar o valor exato em USDT: se usar a Binance, some a taxa de rede.",
-        "pay_crypto_short": "Faltaram {amount} USDT: chegou menos porque sua carteira ou a Binance descontou a taxa de rede. Fale com a gente e completamos sua recarga.",
+        "pay_crypto_short": "Pagamento parcial: faltam {amount} USDT conforme os pagamentos confirmados. Se você já completou o pagamento, fale conosco para revisar a operação.",
         "processing": "Estamos confirmando o pagamento.",
         "replaced": "Cancelada porque você gerou um recibo mais novo.",
         "cancelled": "Esta recarga foi cancelada.",

@@ -124,9 +124,10 @@ export async function updatePaymentIntentRecord(
     failureReason?: string | null;
     canceledAt?: string | null;
   },
+  options?: { unlessSucceeded?: boolean },
 ): Promise<void> {
   const admin = createAdminClient();
-  const { error } = await admin
+  let update = admin
     .from("payment_intents")
     .update({
       ...(patch.status ? { status: patch.status } : {}),
@@ -144,6 +145,8 @@ export async function updatePaymentIntentRecord(
     })
     .eq("id", id);
 
+  if (options?.unlessSucceeded) update = update.neq("status", "succeeded");
+  const { error } = await update;
   if (error) throw new Error(error.message);
 }
 
@@ -188,6 +191,7 @@ export async function claimPaymentIntentSucceeded(
 export async function mergePaymentIntentMetadata(
   id: string,
   patch: Record<string, unknown>,
+  options?: { unlessSucceeded?: boolean },
 ): Promise<void> {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -199,13 +203,15 @@ export async function mergePaymentIntentMetadata(
 
   const current =
     data?.metadata && typeof data.metadata === "object" ? data.metadata : {};
-  const { error: upErr } = await admin
+  let update = admin
     .from("payment_intents")
     .update({
       metadata: { ...current, ...patch },
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
+  if (options?.unlessSucceeded) update = update.neq("status", "succeeded");
+  const { error: upErr } = await update;
   if (upErr) throw new Error(upErr.message);
 }
 

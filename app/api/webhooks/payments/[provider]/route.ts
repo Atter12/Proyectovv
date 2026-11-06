@@ -8,12 +8,7 @@ import {
   saveWhopCardFromSetup,
 } from "@/lib/payments/credit-card/credit-card.server";
 import { getPaymentProvider } from "@/lib/payments/providers";
-import {
-  CRYPTO_UNDERPAID_ABSORB_MAX,
-  cryptoShortfall,
-  nowPaymentsWebhookStep,
-} from "@/lib/payments/providers/nowpayments-ipn";
-import { nowPaymentsPaidFirstQuote } from "@/lib/payments/providers/nowpayments-first-quote.server";
+import { loadNowPaymentsReconciliation } from "@/lib/payments/providers/nowpayments-reconciliation.server";
 import {
   getPaymentIntentByProviderReference,
   getPaymentIntentByIdInternal,
@@ -100,7 +95,7 @@ export async function POST(request: Request, context: RouteContext) {
     payload,
   });
 
-  if (recorded.duplicate) {
+  if (recorded.duplicate && provider !== "crypto") {
     return NextResponse.json({ ok: true, duplicate: true });
   }
 
@@ -114,101 +109,55 @@ export async function POST(request: Request, context: RouteContext) {
         : null);
 
     if (provider === "crypto") {
-      let step = nowPaymentsWebhookStep(parsed, intent?.status ?? null);
-      // Recotización: si «falta» plata pero el cliente pagó la primera cotización, se acredita.
-      if ((step === "flag_underpaid" || (step === "mark_failed" && parsed.underpaid)) && intent && intent.status !== "succeeded") {
-        const quote = await nowPaymentsPaidFirstQuote(intent.id, parsed.actuallyPaid);
-        if (quote.covers) {
-          step = "credit";
-          await mergePaymentIntentMetadata(intent.id, {
-            crypto_credited_on_first_quote: {
-              first_quote: quote.firstQuote,
-              actually_paid: parsed.actuallyPaid ?? null,
-              requoted_pay_amount: parsed.payAmount ?? null,
-              status: parsed.eventType,
-            },
-          });
-        } else {
-          // Binance descuenta la comisión de red y llega 1-2 USDT menos (casos
-          // Catherine Burgos 08/10 y 21/10). Gerencia decidió absorberlo y acreditar
-          // completo si falta poco; más que eso sigue esperando el resto.
-          const shortfall = cryptoShortfall(quote.firstQuote ?? parsed.payAmount, parsed.actuallyPaid);
-          if (shortfall != null && shortfall > 0 && shortfall <= CRYPTO_UNDERPAID_ABSORB_MAX) {
-            step = "credit";
-            await mergePaymentIntentMetadata(intent.id, {
-              crypto_underpaid_absorbed: true,
-              crypto_awaiting_remaining: false,
-              crypto_underpaid_absorbed_detail: {
-                quoted: quote.firstQuote ?? parsed.payAmount ?? null,
-                actually_paid: parsed.actuallyPaid ?? null,
-                shortfall,
-                status: parsed.eventType,
-              },
-            });
-          }
-        }
+      if (!intent || intent.provider !== "crypto" || !intent.providerReference ||
+          parsed.providerReference !== intent.providerReference ||
+          parsed.paymentIntentId !== intent.id) {
+        throw new Error("NOWPayments invoice/order does not match the payment intent");
       }
+      // Always reconcile the complete verified history, including retries and late IPNs.
+      const total = await loadNowPaymentsReconciliation(intent);
+      const alreadyCredited = intent.status === "succeeded";
+      const step = alreadyCredited ? "ignore_after_credit" : total.canCredit ? "credit" :
+        total.needsReview ? "review" : total.hasSettled ? "flag_underpaid" :
+        parsed.failed ? "mark_failed" : parsed.cancelled ? "mark_cancelled" : "ack";
       const gapMeta = {
         crypto_ipn_status: parsed.eventType,
-        crypto_underpaid: Boolean(parsed.underpaid),
-        crypto_actually_paid: parsed.actuallyPaid ?? null,
-        crypto_pay_amount: parsed.payAmount ?? null,
+        crypto_actually_paid: total.actuallyPaid,
+        crypto_pay_amount: total.payAmount,
+        crypto_pay_currency: total.currency,
+        crypto_payment_ids: total.paymentIds,
+        crypto_reconciliation_needs_review: total.needsReview,
+        crypto_reconciliation_version: 2,
+        crypto_underpaid: !alreadyCredited && !total.canCredit && total.hasSettled,
+        crypto_awaiting_remaining: !alreadyCredited && !total.canCredit && total.hasSettled && !total.needsReview,
+        crypto_underpaid_absorbed: total.absorbed,
       };
-
       if (step === "credit") {
         await processSuccessfulPaymentIntent({
           provider,
-          providerReference: parsed.providerReference,
-          paymentIntentId: parsed.paymentIntentId,
-          amountCents: parsed.amountCents,
-          currency: parsed.currency,
+          providerReference: intent.providerReference,
+          paymentIntentId: intent.id,
+          amountCents: intent.amountCents,
+          currency: intent.currency,
           webhookEventId: parsed.eventId,
         });
-      } else if (step === "mark_failed" && intent) {
-        await updatePaymentIntentRecord(intent.id, {
-          status: "failed",
-          failureReason: parsed.eventType,
-        });
         await mergePaymentIntentMetadata(intent.id, gapMeta);
-        await recordCryptoIpnOpsEvent({
-          intentId: intent.id,
-          organizationId: intent.organizationId,
-          action: parsed.underpaid
-            ? "payment_intent.crypto_underpaid"
-            : "payment_intent.crypto_failed",
-          metadata: gapMeta,
-        });
-      } else if (step === "mark_cancelled" && intent) {
-        await updatePaymentIntentRecord(intent.id, {
-          status: "cancelled",
-          canceledAt: new Date().toISOString(),
-          failureReason: parsed.eventType,
-        });
-        await mergePaymentIntentMetadata(intent.id, gapMeta);
-      } else if (step === "flag_underpaid" && intent) {
-        await mergePaymentIntentMetadata(intent.id, {
-          ...gapMeta,
-          crypto_awaiting_remaining: true,
-        });
-        await recordCryptoIpnOpsEvent({
-          intentId: intent.id,
-          organizationId: intent.organizationId,
-          action: "payment_intent.crypto_underpaid",
-          metadata: { ...gapMeta, still_open: true },
-        });
-      } else if (step === "ignore_after_credit" && intent) {
-        await mergePaymentIntentMetadata(intent.id, {
-          crypto_ipn_after_credit: parsed.eventType,
-          ...gapMeta,
-        });
-        await recordCryptoIpnOpsEvent({
-          intentId: intent.id,
-          organizationId: intent.organizationId,
-          action: "payment_intent.crypto_ipn_after_credit",
-          metadata: gapMeta,
-        });
+      } else if (!alreadyCredited) {
+        // Conditional write prevents an older partial IPN from overwriting a concurrent credit.
+        await mergePaymentIntentMetadata(intent.id, gapMeta, { unlessSucceeded: true });
+        if (step === "mark_failed" || step === "mark_cancelled") {
+          await updatePaymentIntentRecord(intent.id, {
+            status: step === "mark_failed" ? "failed" : "cancelled",
+            failureReason: parsed.eventType,
+          }, { unlessSucceeded: true });
+        }
       }
-
+      await recordCryptoIpnOpsEvent({
+        intentId: intent.id,
+        organizationId: intent.organizationId,
+        action: `payment_intent.crypto_${step}`,
+        metadata: gapMeta,
+      });
       await markWebhookEventProcessed(provider, parsed.eventId);
       return NextResponse.json({ ok: true, step });
     }

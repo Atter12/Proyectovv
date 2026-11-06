@@ -351,7 +351,7 @@
         "needs_proof": "If you already transferred, upload the screenshot so we can review it.",
         "pay_yape": "In Yape: Pay services → 360Pay → this code.",
         "pay_crypto": "Finish the payment on NOWPayments. The exact USDT amount must arrive: if you use Binance, add the network fee.",
-        "pay_crypto_short": "You were {amount} USDT short: less arrived because your wallet or Binance took the network fee. Contact us and we’ll complete your top-up.",
+        "pay_crypto_short": "Partial payment: {amount} USDT remains based on confirmed payments. If you have already paid the rest, contact us to review the transaction.",
         "processing": "We are confirming the payment.",
         "replaced": "Cancelled because you created a newer receipt.",
         "cancelled": "This top-up was cancelled.",
