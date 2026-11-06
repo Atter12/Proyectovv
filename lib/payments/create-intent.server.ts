@@ -25,6 +25,7 @@ import {
 import { serverEnv } from "@/lib/env/env.server";
 import { resolveDepositFeeForSession } from "@/lib/payments/resolve-hecom-deposit-fee.server";
 import {
+  BINANCE_MANUAL_FEE_PERCENT,
   depositFromDesiredCredit,
   effectiveDepositFeePercent,
   normalizeStripeSurchargePercent,
@@ -178,8 +179,10 @@ export async function createPaymentIntentForSession(
         : provider === "whop"
           ? normalizeStripeSurchargePercent(serverEnv.whopDepositSurchargePercent)
           : 0;
+  const isManualBinance = provider === "manual" && input.manualPayMethod === "binance";
+  const holisticFeePercent = settlesDebt ? 0 : isManualBinance ? BINANCE_MANUAL_FEE_PERCENT : feeBase.feePercent;
   const feePercent = effectiveDepositFeePercent({
-    holisticFeePercent: settlesDebt ? 0 : feeBase.feePercent,
+    holisticFeePercent,
     provider,
     stripeSurchargePercent,
   });
@@ -337,9 +340,9 @@ export async function createPaymentIntentForSession(
       hecom_cliente_id: fee.hecomClienteId,
       hecom_cliente_name: fee.hecomClienteName,
       fee_percent: fee.feePercent,
-      fee_holistic_percent: feeBase.feePercent,
+      fee_holistic_percent: holisticFeePercent,
       fee_stripe_surcharge_percent: stripeSurchargePercent,
-      fee_source: fee.feeSource,
+      fee_source: isManualBinance && !settlesDebt ? "binance_fixed" : fee.feeSource,
       fee_amount_cents: fee.feeCents,
       credit_amount_cents: fee.creditCents,
       gross_amount_cents: fee.grossCents,
