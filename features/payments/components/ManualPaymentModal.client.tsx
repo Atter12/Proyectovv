@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/Input";
 import { apiClient, ApiClientError } from "@/lib/api/api-client.client";
 import { useAppFormatter } from "@/lib/i18n/use-app-formatter";
 import {
-  BINANCE_MANUAL_FEE_PERCENT,
   depositFromDesiredCredit,
   formatFeePercentLabel,
 } from "@/lib/payments/deposit-fee";
@@ -187,7 +186,7 @@ export function ManualPaymentModal({
     };
   }, [open]);
 
-  const effectiveFee = paysDebt ? 0 : payMethod === "binance" ? BINANCE_MANUAL_FEE_PERCENT : feePercent;
+  const effectiveFee = paysDebt ? 0 : feePercent;
   const minUsd = paysDebt ? MIN_DEBT_USD : MIN_USD;
   const parsedAmount = Number.parseFloat(amount);
   const rate = config?.fxRateUsdPen ?? 3.48;
@@ -506,7 +505,7 @@ export function ManualPaymentModal({
                   {paysDebt ? null : (
                   <div className="mt-2 flex justify-between gap-3">
                     <span className="text-[#625b54]">
-                      Fee {formatFeePercentLabel(effectiveFee)}
+                      Fee {formatFeePercentLabel(feePercent)}
                     </span>
                     <span className="font-medium tabular-nums text-[#1c1917]">
                       {chargeCurrency === "PEN"

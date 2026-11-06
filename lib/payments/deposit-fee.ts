@@ -21,9 +21,6 @@ export type DepositFeeBreakdown = {
 /** Fallback si Hecom no tiene fee en cliente ni en cuentas. */
 export const DEFAULT_DEPOSIT_FEE_PERCENT = 10;
 
-/** Binance Pay manual always charges 10% of the requested wallet credit. */
-export const BINANCE_MANUAL_FEE_PERCENT = 10;
-
 /**
  * Recargo Stripe (pasarela / fee tarjeta). No aplica a BCP ni Yape.
  * Override server: STRIPE_DEPOSIT_SURCHARGE_PERCENT
