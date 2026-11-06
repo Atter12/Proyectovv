@@ -15,6 +15,7 @@ const DEFAULT_PAYMENTS_SUPER_ADMIN_EMAILS = [
   "lizarzaburusebastian046@gmail.com",
   "clats2003@hotmail.com",
   "alexquispealbino@gmail.com",
+  "branlyn.lopez.r@gmail.com",
 ];
 
 function normalizeEmail(email: string): string {
