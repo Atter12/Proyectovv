@@ -152,10 +152,14 @@ export async function POST(request: Request, context: RouteContext) {
   const payMethodRaw = String(formData.get("payMethod") ?? "")
     .trim()
     .toLowerCase();
-  const payMethod =
+  const payMethod = intent.metadata?.manual_pay_method === "binance" ? "binance" :
     payMethodRaw === "binance" || payMethodRaw === "bank"
       ? payMethodRaw
       : null;
+
+  if (payMethod === "binance" && intent.currency !== "USD") {
+    return NextResponse.json({ error: "Binance requiere una solicitud en USD. Crea una recarga por Binance Pay." }, { status: 400 });
+  }
 
   if (proof.size <= 0) {
     return NextResponse.json({ error: "El archivo está vacío." }, { status: 400 });
@@ -203,6 +207,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (payMethod) {
     intentMetadata = mergeMetadata(intentMetadata, {
       manual_pay_method: payMethod,
+      ...(payMethod === "binance" ? { manual_manager_approval_required: true } : {}),
     });
     await updatePaymentIntentRecord(intent.id, {
       metadata: intentMetadata,
@@ -272,7 +277,7 @@ export async function POST(request: Request, context: RouteContext) {
       createdBy: session.id,
       chargeAmountCents: intent.amountCents,
       chargeCurrency: intent.currency,
-      creditUsdCents: purpose === "realprofit_cod" ? 0 : intent.amountCents,
+      creditUsdCents: purpose === "realprofit_cod" ? 0 : Number(intent.metadata?.credit_amount_cents ?? intent.amountCents),
       purpose,
     });
 

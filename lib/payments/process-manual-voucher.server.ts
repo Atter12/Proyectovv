@@ -150,6 +150,12 @@ export async function processManualVoucherUpload(input: {
     destinationAccounts,
   });
 
+  if (metadata.manual_pay_method === "binance" || analysis.paymentChannel === "binance") {
+    analysis.confirmed = false;
+    analysis.needsReview = true;
+    analysis.reason = "Comprobante de Binance recibido. Gerencia verificará el pago y aprobará la recarga desde Pagos manuales.";
+  }
+
   const hashCheck = await checkDuplicateVoucherHash(contentHash, intent.id);
   const duplicateHash = hashCheck.duplicate;
   const normalizedOperationCode = normalizeOperationCode(analysis.operationCode);

@@ -18,6 +18,7 @@ export type RechargeRow = {
   createdAt: string;
   state: RechargeState;
   provider: string;
+  manualPayMethod?: "bank" | "binance";
   /** Lo que el cliente paga (con fee), en la moneda del cobro. */
   chargeCents: number;
   chargeCurrency: "USD" | "PEN";
@@ -88,6 +89,7 @@ export function toRechargeRow(intent: IntentLike): RechargeRow {
     createdAt: intent.created_at,
     state: rechargeState(intent),
     provider: intent.provider,
+    manualPayMethod: m.manual_pay_method === "binance" ? "binance" : "bank",
     chargeCents: num(intent.amount_cents) ?? 0,
     chargeCurrency: currency,
     creditUsdCents: num(m.credit_amount_cents),

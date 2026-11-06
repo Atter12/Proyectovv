@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     gatewayId?: PaymentGatewayId;
     idempotencyKey?: string;
     customerDocument?: string;
+    manualPayMethod?: "bank" | "binance";
   };
 
   try {
@@ -88,6 +89,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Proveedor inválido." }, { status: 400 });
   }
 
+  if (body.manualPayMethod != null &&
+      (providerCandidate !== "manual" || !["bank", "binance"].includes(body.manualPayMethod))) {
+    return NextResponse.json({ error: "Método manual inválido." }, { status: 400 });
+  }
+
   const selected = await getSelectedHecomCliente(session.id);
   const hecomClienteId = selected?.id ?? null;
   const clienteOrgId = hecomClienteId
@@ -109,6 +115,7 @@ export async function POST(request: Request) {
       amount,
       currency: body.currency ?? "USD",
       chargeCurrency: body.chargeCurrency,
+      manualPayMethod: body.manualPayMethod,
       provider: providerCandidate,
       idempotencyKey: body.idempotencyKey,
       hecomClienteId,

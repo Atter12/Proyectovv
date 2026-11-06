@@ -667,14 +667,14 @@
       "stepAmount": "Amount",
       "stepTransfer": "Payment",
       "stepProof": "Proof",
-      "title": "Automatic bank transfer",
-      "subtitle": "Transfer to BCP · automatic validation",
+      "title": "Manual payment",
+      "subtitle": "BCP transfer or Binance Pay",
       "amountTitle": "How much balance do you want to add?",
       "receiveLabel": "Balance you will receive (USD)",
       "currency": "Transfer currency",
       "pen": "Soles (PEN)",
       "usd": "Dollars (USD)",
-      "seeBanks": "View bank accounts",
+      "seeBanks": "View payment details",
       "seePayMethods": "View payment methods",
       "doTransfer": "Make the transfer",
       "methodBank": "Bank account",
@@ -713,7 +713,9 @@
       "analyzingWait": "If the receipt passes validation, we credit the balance without waiting for email or manager approval. If information cannot be confirmed, it goes to review.",
       "understood": "Got it",
       "cci": "CCI · from another bank",
-      "reviewWait": "We are reading the receipt. Our team will complete the review."
+      "reviewWait": "We are reading the receipt. Our team will complete the review.",
+      "binanceInstructions": "Send the indicated USDT amount through Binance Pay to this email. Save your receipt and upload it in the next step.",
+      "binanceReview": "Your receipt will be sent to management for manual review. Your balance is credited after approval."
     },
     "reloadSection": {
       "title": "Add balance",

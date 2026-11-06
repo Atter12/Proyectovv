@@ -667,14 +667,14 @@
       "stepAmount": "Monto",
       "stepTransfer": "Pago",
       "stepProof": "Comprobante",
-      "title": "Transferencia automática",
-      "subtitle": "Transferencia a BCP · validación automática",
+      "title": "Pago manual",
+      "subtitle": "Transferencia BCP o Binance Pay",
       "amountTitle": "¿Cuánto saldo quieres recargar?",
       "receiveLabel": "Saldo que recibirás (USD)",
       "currency": "Moneda de la transferencia",
       "pen": "Soles (PEN)",
       "usd": "Dólares (USD)",
-      "seeBanks": "Ver cuentas bancarias",
+      "seeBanks": "Ver datos de pago",
       "seePayMethods": "Ver formas de pago",
       "doTransfer": "Realiza la transferencia",
       "methodBank": "Cuenta bancaria",
@@ -713,7 +713,9 @@
       "analyzingWait": "Si el comprobante cumple las validaciones, acreditamos el saldo sin esperar correo ni aprobación del gerente. Si falta confirmar algún dato, pasa a revisión.",
       "understood": "Entendido",
       "cci": "CCI · desde otro banco",
-      "reviewWait": "Estamos leyendo el comprobante. Nuestro equipo completará la revisión."
+      "reviewWait": "Estamos leyendo el comprobante. Nuestro equipo completará la revisión.",
+      "binanceInstructions": "Envía el importe indicado en USDT por Binance Pay al siguiente correo. Guarda el comprobante y súbelo en el siguiente paso.",
+      "binanceReview": "Tu comprobante se enviará a Pagos manuales de gerencia. El saldo se acredita cuando aprueben el pago."
     },
     "reloadSection": {
       "title": "Recargar saldo",

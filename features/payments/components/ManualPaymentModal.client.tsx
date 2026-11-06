@@ -51,6 +51,7 @@ type ManualConfig = {
   bankAccounts: BankAccount[];
   bankAccountsUsd: BankAccount[];
   aiEnabled: boolean;
+  binance?: { email: string; notes: string } | null;
 };
 
 interface ManualPaymentModalProps {
@@ -72,6 +73,7 @@ interface ManualPaymentModalProps {
     paymentIntentId: string;
     chargeCents: number;
     chargeCurrency: ChargeCurrency;
+    manualPayMethod?: "bank" | "binance";
   } | null;
 }
 
@@ -146,6 +148,7 @@ export function ManualPaymentModal({
   // Al retomar una recarga se monta con key propia y arranca en «Pago».
   const [step, setStep] = useState<Step>(resume ? "banks" : "form");
   const [amount, setAmount] = useState("");
+  const [payMethod, setPayMethod] = useState<"bank" | "binance">(resume?.manualPayMethod ?? "bank");
   const [chargeCurrency, setChargeCurrency] = useState<ChargeCurrency>(resume?.chargeCurrency ?? "PEN");
   const [config, setConfig] = useState<ManualConfig | null>(null);
   const [loading, setLoading] = useState(false);
@@ -222,18 +225,22 @@ export function ManualPaymentModal({
       : quote
         ? formatMoney(quote.usd.grossCents / 100)
         : "";
-  const chargeLabel =
-    (paysDebt || resume) && serverChargeCents != null
+  const baseChargeLabel =
+    serverChargeCents != null
       ? chargeCurrency === "PEN"
         ? formatPenAmount(serverChargeCents)
         : formatMoney(serverChargeCents / 100)
       : localChargeLabel || tCommon("emDash");
+  const chargeLabel = payMethod === "binance"
+    ? `${((serverChargeCents ?? quote?.usd.grossCents ?? 0) / 100).toFixed(2)} USDT`
+    : baseChargeLabel;
   const modalStepIndex = step === "form" ? 0 : step === "banks" ? 1 : 2;
 
   function resetAndClose() {
     setStep("form");
     setAmount("");
     setChargeCurrency("PEN");
+    setPayMethod("bank");
     setError(null);
     setPaymentIntentId(null);
     setProofFile(null);
@@ -305,13 +312,13 @@ export function ManualPaymentModal({
             amount: parsedAmount,
             provider: "manual",
             chargeCurrency,
+            ...(!endpoints ? { manualPayMethod: payMethod } : {}),
             ...(paysDebt ? { periodoResumen: debtMonth ?? "" } : {}),
           }),
         },
       );
       setPaymentIntentId(data.paymentIntent.paymentIntentId);
       if (
-        paysDebt &&
         typeof data.paymentIntent.grossChargeCents === "number"
       ) {
         setServerChargeCents(data.paymentIntent.grossChargeCents);
@@ -337,7 +344,7 @@ export function ManualPaymentModal({
     setError(null);
     const formData = new FormData();
     formData.append("proof", proofFile);
-    formData.append("payMethod", "bank");
+    formData.append("payMethod", payMethod);
     try {
       const data = await apiClient<ProofResponse>(
         endpoints?.proof(paymentIntentId) ??
@@ -437,23 +444,34 @@ export function ManualPaymentModal({
                     step="0.01"
                     placeholder="120.00"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => { setAmount(e.target.value); setServerChargeCents(null); }}
                     autoFocus
                     className="h-14 rounded-xl pl-9 text-lg font-semibold tabular-nums"
                   />
                 </div>
               </div>
 
+              {!endpoints && !paysDebt && config?.binance ? (
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  {(["bank", "binance"] as const).map((method) => (
+                    <button key={method} type="button" aria-pressed={payMethod === method}
+                      onClick={() => { setPayMethod(method); setChargeCurrency(method === "binance" ? "USD" : "PEN"); setServerChargeCents(null); }}
+                      className={`h-11 rounded-xl border text-sm font-semibold ${payMethod === method ? "border-[#d47840] bg-orange-50" : "border-[#e8e1d8]"}`}>
+                      {method === "binance" ? "Binance Pay" : "Transferencia BCP"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <div className="mt-5">
                 <p className="mb-2 text-[12px] font-semibold text-[#514b45]">
                   {t("manualModal.currency")}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {(["PEN", "USD"] as const).map((c) => (
+                  {(payMethod === "binance" ? ["USD"] as const : ["PEN", "USD"] as const).map((c) => (
                     <button
                       key={c}
                       type="button"
-                      onClick={() => setChargeCurrency(c)}
+                      onClick={() => { setChargeCurrency(c); setServerChargeCents(null); }}
                       aria-pressed={chargeCurrency === c}
                       className={`h-11 rounded-xl border text-sm font-semibold transition ${
                         chargeCurrency === c
@@ -461,7 +479,7 @@ export function ManualPaymentModal({
                           : "border-[#ece7e0] bg-white text-[#5c564e] hover:border-[#d47840]/40"
                       }`}
                     >
-                      {c === "PEN"
+                      {payMethod === "binance" ? "USDT" : c === "PEN"
                         ? t("manualModal.pen")
                         : t("manualModal.usd")}
                     </button>
@@ -531,7 +549,7 @@ export function ManualPaymentModal({
                 </Button>
                 <Button
                   onClick={handleCreateIntent}
-                  disabled={!isValidAmount || loading}
+                  disabled={!isValidAmount || loading || (payMethod === "binance" && !config?.binance)}
                   className="h-11 w-full rounded-xl bg-[#d47840] px-6 hover:bg-[#c96a35] sm:w-auto"
                 >
                   {loading ? t("addBalance.processing") : t("manualModal.seeBanks")}
@@ -556,7 +574,16 @@ export function ManualPaymentModal({
             />
             <div className="p-5 sm:p-6">
               <div className="space-y-3">
-                {banks.length === 0 ? (
+                {payMethod === "binance" ? (
+                  <div className="rounded-2xl border border-[#e8e1d8] p-5 space-y-3">
+                    <div className="flex items-center gap-3"><PaymentAppIcon app="binance" size="sm" /><strong>Binance Pay · USDT</strong></div>
+                    <p className="text-sm">{t("manualModal.binanceInstructions")}</p>
+                    <p className="break-all font-semibold">{config?.binance?.email ?? tCommon("emDash")}</p>
+                    <Button variant="outline" disabled={!config?.binance?.email}
+                      onClick={() => config?.binance?.email && void copyText(config.binance.email)}>{t("addBalance.copy")}</Button>
+                    <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{t("manualModal.binanceReview")}</p>
+                  </div>
+                ) : banks.length === 0 ? (
                   <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
                     Las cuentas bancarias estan pendientes de configuracion.
                     Contacta con soporte.

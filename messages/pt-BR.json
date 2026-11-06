@@ -667,14 +667,14 @@
       "stepAmount": "Valor",
       "stepTransfer": "Pagamento",
       "stepProof": "Comprovante",
-      "title": "Transferência automática",
-      "subtitle": "Transferência para BCP · validação automática",
+      "title": "Pagamento manual",
+      "subtitle": "Transferência BCP ou Binance Pay",
       "amountTitle": "Quanto saldo você quer recarregar?",
       "receiveLabel": "Saldo que você receberá (USD)",
       "currency": "Moeda da transferência",
       "pen": "Soles (PEN)",
       "usd": "Dólares (USD)",
-      "seeBanks": "Ver contas bancárias",
+      "seeBanks": "Ver dados de pagamento",
       "seePayMethods": "Ver formas de pagamento",
       "doTransfer": "Faça a transferência",
       "methodBank": "Conta bancária",
@@ -713,7 +713,9 @@
       "analyzingWait": "Se o comprovante passar nas validações, creditamos o saldo sem esperar e-mail ou aprovação do gerente. Se algum dado não puder ser confirmado, ele passa por análise.",
       "understood": "Entendi",
       "cci": "CCI · a partir de outro banco",
-      "reviewWait": "Estamos lendo o comprovante. Nossa equipe concluirá a análise."
+      "reviewWait": "Estamos lendo o comprovante. Nossa equipe concluirá a análise.",
+      "binanceInstructions": "Envie o valor indicado em USDT pelo Binance Pay para este e-mail. Guarde o comprovante e envie-o na próxima etapa.",
+      "binanceReview": "Seu comprovante será enviado à gerência para revisão manual. O saldo será creditado após a aprovação."
     },
     "reloadSection": {
       "title": "Recarregar saldo",

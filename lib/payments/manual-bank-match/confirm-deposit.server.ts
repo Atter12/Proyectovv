@@ -111,6 +111,12 @@ async function completeDeposit(input: {
     };
   }
 
+  if (intent.metadata.manual_pay_method === "binance" ||
+      intent.metadata.manual_manager_approval_required === true ||
+      (isRecord(intent.metadata.voucher_analysis) && intent.metadata.voucher_analysis.paymentChannel === "binance")) {
+    return { completed: false, reason: "Los pagos por Binance requieren aprobación de gerencia." };
+  }
+
   if (intent.status !== "requires_payment" && intent.status !== "processing") {
     return { completed: false, reason: "La recarga ya no está abierta." };
   }

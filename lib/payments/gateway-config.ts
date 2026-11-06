@@ -20,8 +20,8 @@ export const PAYMENT_GATEWAYS: PaymentGateway[] = [
   },
   {
     id: "manual",
-    name: "Transferencia automática",
-    description: "Transferencia a BCP · validación automática",
+    name: "Pago manual",
+    description: "Transferencia BCP o Binance Pay · con comprobante",
   },
   {
     id: "crypto",

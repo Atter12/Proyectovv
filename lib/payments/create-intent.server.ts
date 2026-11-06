@@ -47,6 +47,7 @@ export interface CreatePaymentIntentRequest {
   currency?: string;
   /** Moneda en la que transfiere (solo pago manual). */
   chargeCurrency?: ManualChargeCurrency;
+  manualPayMethod?: "bank" | "binance";
   provider: PaymentGatewayId;
   idempotencyKey?: string;
   hecomClienteId?: string | null;
@@ -191,7 +192,7 @@ export async function createPaymentIntentForSession(
 
   const isCobrana = provider === "cobrana";
   const chargeCurrency: ManualChargeCurrency =
-    input.provider === "manual" && input.chargeCurrency === "PEN"
+    input.provider === "manual" && input.manualPayMethod !== "binance" && input.chargeCurrency === "PEN"
       ? "PEN"
       : isCobrana
         ? "PEN"
@@ -353,6 +354,10 @@ export async function createPaymentIntentForSession(
           }
         : {}),
       ...manualQuoteMeta,
+      ...(input.provider === "manual" ? {
+        manual_pay_method: input.manualPayMethod ?? "bank",
+        ...(input.manualPayMethod === "binance" ? { manual_manager_approval_required: true } : {}),
+      } : {}),
       ...(settlesDebt
         ? {
             purpose: "lo_pagado_deuda",

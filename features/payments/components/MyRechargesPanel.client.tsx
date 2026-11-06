@@ -130,7 +130,7 @@ export function MyRechargesPanel({ rows, feePercent }: { rows: RechargeRow[]; fe
           open
           onClose={() => setResume(null)}
           feePercent={feePercent}
-          resume={{ paymentIntentId: resume.id, chargeCents: resume.chargeCents, chargeCurrency: resume.chargeCurrency }}
+          resume={{ paymentIntentId: resume.id, chargeCents: resume.chargeCents, chargeCurrency: resume.chargeCurrency, manualPayMethod: resume.manualPayMethod }}
         />
       ) : null}
     </section>
